@@ -16,4 +16,4 @@ dist/
 slurm/
 
 # Code that I don't intend to commit.
-gewittergefahr/*.py
+ml4rt/*.py
