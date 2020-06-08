@@ -1,262 +1,397 @@
 """Methods for normalizing predictor and target variables."""
 
-import pickle
 import numpy
-import pandas
-from scipy.interpolate import interp1d
-from gewittergefahr.gg_utils import number_rounding
-from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
+from ml4rt.utils import normalization_params
 
-NUM_VALUES_KEY = 'num_values'
-MEAN_VALUE_KEY = 'mean_value'
-MEAN_OF_SQUARES_KEY = 'mean_of_squares'
+DUMMY_HEIGHT_M_AGL = 10
 
-MEAN_VALUE_COLUMN = 'mean_value'
-STANDARD_DEVIATION_COLUMN = 'standard_deviation'
-MIN_VALUE_COLUMN = 'min_value'
-MAX_VALUE_COLUMN = 'max_value'
+MEAN_VALUE_COLUMN = normalization_params.MEAN_VALUE_COLUMN
+STANDARD_DEVIATION_COLUMN = normalization_params.STANDARD_DEVIATION_COLUMN
+MIN_VALUE_COLUMN = normalization_params.MIN_VALUE_COLUMN
+MAX_VALUE_COLUMN = normalization_params.MAX_VALUE_COLUMN
 
-TABLE_COLUMNS = [
-    MEAN_VALUE_COLUMN, STANDARD_DEVIATION_COLUMN,
-    MIN_VALUE_COLUMN, MAX_VALUE_COLUMN
-]
+MINMAX_NORM_STRING = 'minmax'
+Z_SCORE_NORM_STRING = 'z_score'
+VALID_NORM_TYPE_STRINGS = [MINMAX_NORM_STRING, Z_SCORE_NORM_STRING]
 
 
-def _get_standard_deviation(z_score_param_dict):
-    """Computes standard deviation.
+def _check_normalization_type(normalization_type_string):
+    """Ensures that normalization type is valid.
 
-    :param z_score_param_dict: See doc for `update_z_score_params`.
-    :return: standard_deviation: Standard deviation.
+    :param normalization_type_string: Normalization type.
+    :raises: ValueError: if
+        `normalization_type_string not in VALID_NORM_TYPE_STRINGS`.
     """
 
-    multiplier = float(
-        z_score_param_dict[NUM_VALUES_KEY]
-    ) / (z_score_param_dict[NUM_VALUES_KEY] - 1)
+    error_checking.assert_is_string(normalization_type_string)
 
-    return numpy.sqrt(multiplier * (
-        z_score_param_dict[MEAN_OF_SQUARES_KEY] -
-        z_score_param_dict[MEAN_VALUE_KEY] ** 2
-    ))
+    if normalization_type_string not in VALID_NORM_TYPE_STRINGS:
+        error_string = (
+            '\n\n{0:s}\nValid normalization types (listed above) do not include'
+            ' "{1:s}".'
+        ).format(
+            str(VALID_NORM_TYPE_STRINGS), normalization_type_string
+        )
+
+        raise ValueError(error_string)
 
 
-def _get_percentile(frequency_dict, percentile_level):
-    """Computes percentile.
+def _normalize_one_variable(
+        orig_values, normalization_type_string, normalization_table_one_row,
+        min_normalized_value=None, max_normalized_value=None):
+    """Normalizes one variable (either predictor or target variable).
 
-    :param frequency_dict: See doc for `update_frequency_dict`.
-    :param percentile_level: Percentile level.  Will take the [q]th percentile,
-        where q = `percentile_level`.
-    :return: percentile: [q]th percentile.
+    :param orig_values: numpy array with original (not normalized) values.
+    :param normalization_type_string: See doc for `normalize_data`.
+    :param normalization_table_one_row: One row of input `normalization_table`
+        to method `normalize_data`.
+    :param min_normalized_value: See doc for `normalize_data`.
+    :param max_normalized_value: Same.
+    :return: normalized_values: numpy array with same shape as `orig_values`,
+        containing normalized values.
     """
 
-    unique_values, counts = list(zip(
-        *iter(frequency_dict.items())
-    ))
-    unique_values = numpy.array(unique_values)
-    counts = numpy.array(counts, dtype=int)
+    if normalization_type_string == MINMAX_NORM_STRING:
+        min_value = normalization_table_one_row[MIN_VALUE_COLUMN]
+        max_value = normalization_table_one_row[MAX_VALUE_COLUMN]
 
-    sort_indices = numpy.argsort(unique_values)
-    unique_values = unique_values[sort_indices]
-    counts = counts[sort_indices]
+        if 'pandas' in str(type(min_value)):
+            min_value = min_value.values[0]
+            max_value = max_value.values[0]
 
-    cumulative_frequencies = (
-        numpy.cumsum(counts).astype(float) / numpy.sum(counts)
-    )
-    percentile_levels = 100 * (
-        (cumulative_frequencies * numpy.sum(counts) - 1) /
-        (numpy.sum(counts) - 1)
-    )
+        normalized_values = (
+            (orig_values - min_value) / (max_value - min_value)
+        )
+        normalized_values = min_normalized_value + normalized_values * (
+            max_normalized_value - min_normalized_value
+        )
+    else:
+        mean_value = normalization_table_one_row[MEAN_VALUE_COLUMN]
+        standard_deviation = (
+            normalization_table_one_row[STANDARD_DEVIATION_COLUMN]
+        )
 
-    if percentile_level > percentile_levels[-1]:
-        return unique_values[-1]
+        if 'pandas' in str(type(mean_value)):
+            mean_value = mean_value.values[0]
+            standard_deviation = standard_deviation.values[0]
 
-    if percentile_level < percentile_levels[0]:
-        return unique_values[0]
+        normalized_values = (orig_values - mean_value) / standard_deviation
 
-    interp_object = interp1d(
-        x=percentile_levels, y=unique_values, kind='linear',
-        bounds_error=True, assume_sorted=True
-    )
-
-    return interp_object(percentile_level)
+    return normalized_values
 
 
-def update_z_score_params(z_score_param_dict, new_data_matrix):
-    """Uses new data to update parameters for z-score normalization.
+def _denorm_one_variable(
+        normalized_values, normalization_type_string,
+        normalization_table_one_row, min_normalized_value=None,
+        max_normalized_value=None):
+    """Denormalizes one variable (either predictor or target variable).
 
-    :param z_score_param_dict: Dictionary with the following keys.
-    z_score_param_dict['num_values']: Number of values on which current
-        estimates are based.
-    z_score_param_dict['mean_value']: Current estimate of mean.
-    z_score_param_dict['mean_of_squares']: Current estimate of mean of squares.
-
-    :param new_data_matrix: numpy array with new data.
-    :return: z_score_param_dict: Same as input but with updated values.
+    :param normalized_values: numpy array with normalized values.
+    :param normalization_type_string: See doc for `_normalize_one_variable`.
+    :param normalization_table_one_row: Same.
+    :param min_normalized_value: Same.
+    :param max_normalized_value: Same.
+    :return: denorm_values: numpy array with same shape as `normalized_values`,
+        containing denormalized values.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(new_data_matrix)
+    if normalization_type_string == MINMAX_NORM_STRING:
+        min_value = normalization_table_one_row[MIN_VALUE_COLUMN]
+        max_value = normalization_table_one_row[MAX_VALUE_COLUMN]
 
-    these_means = numpy.array([
-        z_score_param_dict[MEAN_VALUE_KEY], numpy.mean(new_data_matrix)
-    ])
-    these_weights = numpy.array([
-        z_score_param_dict[NUM_VALUES_KEY], new_data_matrix.size
-    ])
-    z_score_param_dict[MEAN_VALUE_KEY] = numpy.average(
-        these_means, weights=these_weights
-    )
+        if 'pandas' in str(type(min_value)):
+            min_value = min_value.values[0]
+            max_value = max_value.values[0]
 
-    these_means = numpy.array([
-        z_score_param_dict[MEAN_OF_SQUARES_KEY],
-        numpy.mean(new_data_matrix ** 2)
-    ])
-    these_weights = numpy.array([
-        z_score_param_dict[NUM_VALUES_KEY], new_data_matrix.size
-    ])
-    z_score_param_dict[MEAN_OF_SQUARES_KEY] = numpy.average(
-        these_means, weights=these_weights
-    )
+        denorm_values = (
+            (normalized_values - min_normalized_value) /
+            (max_normalized_value - min_normalized_value)
+        )
+        denorm_values = min_value + denorm_values * (max_value - min_value)
+    else:
+        mean_value = normalization_table_one_row[MEAN_VALUE_COLUMN]
+        standard_deviation = (
+            normalization_table_one_row[STANDARD_DEVIATION_COLUMN]
+        )
 
-    z_score_param_dict[NUM_VALUES_KEY] += new_data_matrix.size
+        if 'pandas' in str(type(mean_value)):
+            mean_value = mean_value.values[0]
+            standard_deviation = standard_deviation.values[0]
 
-    return z_score_param_dict
+        denorm_values = mean_value + standard_deviation * normalized_values
+
+    return denorm_values
 
 
-def update_frequency_dict(frequency_dict, new_data_matrix, rounding_base):
-    """Uses new data to update frequencies for min-max normalization.
+def normalize_data(
+        example_dict, normalization_type_string, normalization_file_name,
+        min_normalized_value=-1., max_normalized_value=1.,
+        separate_heights=False, test_mode=False, normalization_table=None):
+    """Normalizes data (both predictor and target variables).
 
-    :param frequency_dict: Dictionary, where each key is a unique measurement
-        and the corresponding value is num times the measurement occurs.
-    :param new_data_matrix: numpy array with new data.
-    :param rounding_base: Rounding base used to discretize continuous values
-        into unique values.
-    :return: frequency_dict: Same as input but with updated values.
+    :param example_dict: Dictionary with learning examples (see doc for
+        `example_io.read_file`).
+    :param normalization_type_string: Normalization type (must be accepted by
+        `check_normalization_type`).
+    :param normalization_file_name: Path to file with normalization params (will
+        be read by `read_normalization_file`).
+    :param min_normalized_value:
+        [used only if normalization_type_string == 'minmax']
+        Minimum value after normalization.
+    :param max_normalized_value:
+        [used only if normalization_type_string == 'minmax']
+        Max value after normalization.
+    :param separate_heights: Boolean flag.  If True, will normalize separately
+        at each height.
+    :param test_mode: For testing only.  Leave this alone.
+    :param normalization_table: For testing only.  Leave this alone.
+    :return: example_dict: Same as input but with normalized values.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(new_data_matrix)
+    error_checking.assert_is_boolean(separate_heights)
+    error_checking.assert_is_boolean(test_mode)
 
-    new_unique_values, new_counts = numpy.unique(
-        number_rounding.round_to_nearest(new_data_matrix, rounding_base),
-        return_counts=True
-    )
+    if not test_mode:
+        normalization_table = normalization_params.read_file(
+            normalization_file_name
+        )[int(separate_heights)]
 
-    for i in range(len(new_unique_values)):
-        if new_unique_values[i] in frequency_dict:
-            frequency_dict[new_unique_values[i]] += new_counts[i]
+    _check_normalization_type(normalization_type_string)
+
+    if normalization_type_string == MINMAX_NORM_STRING:
+        error_checking.assert_is_greater(
+            max_normalized_value, min_normalized_value
+        )
+
+    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+
+    for k in range(len(scalar_predictor_names)):
+        if separate_heights:
+            this_index = [(scalar_predictor_names[k], DUMMY_HEIGHT_M_AGL)]
         else:
-            frequency_dict[new_unique_values[i]] = new_counts[i]
+            this_index = scalar_predictor_names[k]
 
-    return frequency_dict
+        scalar_predictor_matrix[..., k] = _normalize_one_variable(
+            orig_values=scalar_predictor_matrix[..., k],
+            normalization_type_string=normalization_type_string,
+            normalization_table_one_row=normalization_table.loc[this_index],
+            min_normalized_value=min_normalized_value,
+            max_normalized_value=max_normalized_value
+        )
+
+    example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = scalar_predictor_matrix
+
+    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+
+    for k in range(len(scalar_target_names)):
+        if separate_heights:
+            this_index = [(scalar_target_names[k], DUMMY_HEIGHT_M_AGL)]
+        else:
+            this_index = scalar_target_names[k]
+
+        scalar_target_matrix[..., k] = _normalize_one_variable(
+            orig_values=scalar_target_matrix[..., k],
+            normalization_type_string=normalization_type_string,
+            normalization_table_one_row=normalization_table.loc[this_index],
+            min_normalized_value=min_normalized_value,
+            max_normalized_value=max_normalized_value
+        )
+
+    example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
+
+    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    heights_m_agl = (
+        numpy.round(example_dict[example_io.HEIGHTS_KEY]).astype(int)
+    )
+    num_heights = len(heights_m_agl)
+
+    for k in range(len(vector_predictor_names)):
+        if separate_heights:
+            for j in range(num_heights):
+                this_index = [(vector_predictor_names[k], heights_m_agl[j])]
+
+                vector_predictor_matrix[..., j, k] = _normalize_one_variable(
+                    orig_values=vector_predictor_matrix[..., j, k],
+                    normalization_type_string=normalization_type_string,
+                    normalization_table_one_row=
+                    normalization_table.loc[this_index],
+                    min_normalized_value=min_normalized_value,
+                    max_normalized_value=max_normalized_value
+                )
+        else:
+            vector_predictor_matrix[..., k] = _normalize_one_variable(
+                orig_values=vector_predictor_matrix[..., k],
+                normalization_type_string=normalization_type_string,
+                normalization_table_one_row=
+                normalization_table.loc[vector_predictor_names[k]],
+                min_normalized_value=min_normalized_value,
+                max_normalized_value=max_normalized_value
+            )
+
+    example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = vector_predictor_matrix
+
+    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+
+    for k in range(len(vector_target_names)):
+        if separate_heights:
+            for j in range(num_heights):
+                this_index = [(vector_target_names[k], heights_m_agl[j])]
+
+                vector_target_matrix[..., j, k] = _normalize_one_variable(
+                    orig_values=vector_target_matrix[..., j, k],
+                    normalization_type_string=normalization_type_string,
+                    normalization_table_one_row=
+                    normalization_table.loc[this_index],
+                    min_normalized_value=min_normalized_value,
+                    max_normalized_value=max_normalized_value
+                )
+        else:
+            vector_target_matrix[..., k] = _normalize_one_variable(
+                orig_values=vector_target_matrix[..., k],
+                normalization_type_string=normalization_type_string,
+                normalization_table_one_row=
+                normalization_table.loc[vector_target_names[k]],
+                min_normalized_value=min_normalized_value,
+                max_normalized_value=max_normalized_value
+            )
+
+    example_dict[example_io.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
+    return example_dict
 
 
-def finalize_params(z_score_dict_dict, frequency_dict_dict,
-                    min_percentile_level, max_percentile_level):
-    """Finalizes normalization parameters.
+def denormalize_data(
+        example_dict, normalization_type_string, normalization_file_name,
+        min_normalized_value=-1., max_normalized_value=1.,
+        separate_heights=False, test_mode=False, normalization_table=None):
+    """Denormalizes data (both predictor and target variables).
 
-    :param z_score_dict_dict: Dictionary of dictionaries, where each inner
-        dictionary follows the input format for `update_z_score_params`.
-    :param frequency_dict_dict: Dictionary of dictionaries, where each inner
-        dictionary follows the input format for `update_frequency_dict`.
-    :param min_percentile_level: Percentile level used to create minimum values
-        for min-max normalization.
-    :param max_percentile_level: Percentile level used to create maximum values
-        for min-max normalization.
-    :return: normalization_table: pandas DataFrame, where the indices are outer
-        keys in `z_score_dict_dict`.  For example, if `z_score_dict_dict`
-        contains 80 inner dictionaries, this table will have 80 rows.  Columns
-        are as follows.
-
-    normalization_table.mean_value: Mean value.
-    normalization_table.standard_deviation: Standard deviation.
-    normalization_table.min_value: Minimum value.
-    normalization_table.max_value: Max value.
+    :param example_dict: See doc for `normalize_data`.
+    :param normalization_type_string: Same.
+    :param normalization_file_name: Same.
+    :param min_normalized_value: Same.
+    :param max_normalized_value: Same.
+    :param separate_heights: Same.
+    :param test_mode: Same.
+    :param normalization_table: Same.
+    :return: example_dict: Same as input but with denormalized values.
     """
 
-    error_checking.assert_is_geq(min_percentile_level, 0.)
-    error_checking.assert_is_leq(min_percentile_level, 10.)
-    error_checking.assert_is_geq(max_percentile_level, 90.)
-    error_checking.assert_is_leq(max_percentile_level, 100.)
+    error_checking.assert_is_boolean(separate_heights)
+    error_checking.assert_is_boolean(test_mode)
 
-    normalization_dict = {}
+    if not test_mode:
+        normalization_table = normalization_params.read_file(
+            normalization_file_name
+        )[int(separate_heights)]
 
-    for this_key in z_score_dict_dict:
-        this_standard_deviation = _get_standard_deviation(
-            z_score_dict_dict[this_key]
+    _check_normalization_type(normalization_type_string)
+
+    if normalization_type_string == MINMAX_NORM_STRING:
+        error_checking.assert_is_greater(
+            max_normalized_value, min_normalized_value
         )
-        this_min_value = _get_percentile(
-            frequency_dict=frequency_dict_dict[this_key],
-            percentile_level=min_percentile_level
+
+    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+
+    for k in range(len(scalar_predictor_names)):
+        if separate_heights:
+            this_index = [(scalar_predictor_names[k], DUMMY_HEIGHT_M_AGL)]
+        else:
+            this_index = scalar_predictor_names[k]
+
+        scalar_predictor_matrix[..., k] = _denorm_one_variable(
+            normalized_values=scalar_predictor_matrix[..., k],
+            normalization_type_string=normalization_type_string,
+            normalization_table_one_row=normalization_table.loc[this_index],
+            min_normalized_value=min_normalized_value,
+            max_normalized_value=max_normalized_value
         )
-        this_max_value = _get_percentile(
-            frequency_dict=frequency_dict_dict[this_key],
-            percentile_level=max_percentile_level
+
+    example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = scalar_predictor_matrix
+
+    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+
+    for k in range(len(scalar_target_names)):
+        if separate_heights:
+            this_index = [(scalar_target_names[k], DUMMY_HEIGHT_M_AGL)]
+        else:
+            this_index = scalar_target_names[k]
+
+        scalar_target_matrix[..., k] = _denorm_one_variable(
+            normalized_values=scalar_target_matrix[..., k],
+            normalization_type_string=normalization_type_string,
+            normalization_table_one_row=normalization_table.loc[this_index],
+            min_normalized_value=min_normalized_value,
+            max_normalized_value=max_normalized_value
         )
-        normalization_dict[this_key] = numpy.array([
-            z_score_dict_dict[this_key][MEAN_VALUE_KEY],
-            this_standard_deviation, this_min_value, this_max_value
-        ])
 
-    normalization_table = pandas.DataFrame.from_dict(
-        normalization_dict, orient='index'
+    example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
+
+    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    heights_m_agl = (
+        numpy.round(example_dict[example_io.HEIGHTS_KEY]).astype(int)
     )
+    num_heights = len(heights_m_agl)
 
-    column_dict_old_to_new = {
-        0: MEAN_VALUE_COLUMN,
-        1: STANDARD_DEVIATION_COLUMN,
-        2: MIN_VALUE_COLUMN,
-        3: MAX_VALUE_COLUMN
-    }
+    for k in range(len(vector_predictor_names)):
+        if separate_heights:
+            for j in range(num_heights):
+                this_index = [(vector_predictor_names[k], heights_m_agl[j])]
 
-    return normalization_table.rename(
-        columns=column_dict_old_to_new, inplace=False
-    )
+                vector_predictor_matrix[..., j, k] = _denorm_one_variable(
+                    normalized_values=vector_predictor_matrix[..., j, k],
+                    normalization_type_string=normalization_type_string,
+                    normalization_table_one_row=
+                    normalization_table.loc[this_index],
+                    min_normalized_value=min_normalized_value,
+                    max_normalized_value=max_normalized_value
+                )
+        else:
+            vector_predictor_matrix[..., k] = _denorm_one_variable(
+                normalized_values=vector_predictor_matrix[..., k],
+                normalization_type_string=normalization_type_string,
+                normalization_table_one_row=
+                normalization_table.loc[vector_predictor_names[k]],
+                min_normalized_value=min_normalized_value,
+                max_normalized_value=max_normalized_value
+            )
 
+    example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = vector_predictor_matrix
 
-def write_file(pickle_file_name, norm_table_no_height, norm_table_with_height):
-    """Writes normalization parameters to Pickle file.
+    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
 
-    :param pickle_file_name: Path to output file.
-    :param norm_table_no_height: pandas DataFrame created by `finalize_params`,
-        containing one set of params for each variable.  This table should be
-        single-indexed (field name only).
-    :param norm_table_with_height: pandas DataFrame created by
-        `finalize_params`, containing one set of params for each
-        variable/height.  This table should be double-indexed (field name, then
-        height in metres above ground level).
-    """
+    for k in range(len(vector_target_names)):
+        if separate_heights:
+            for j in range(num_heights):
+                this_index = [(vector_target_names[k], heights_m_agl[j])]
 
-    error_checking.assert_columns_in_dataframe(
-        norm_table_no_height, TABLE_COLUMNS
-    )
-    error_checking.assert_columns_in_dataframe(
-        norm_table_with_height, TABLE_COLUMNS
-    )
+                vector_target_matrix[..., j, k] = _denorm_one_variable(
+                    normalized_values=vector_target_matrix[..., j, k],
+                    normalization_type_string=normalization_type_string,
+                    normalization_table_one_row=
+                    normalization_table.loc[this_index],
+                    min_normalized_value=min_normalized_value,
+                    max_normalized_value=max_normalized_value
+                )
+        else:
+            vector_target_matrix[..., k] = _denorm_one_variable(
+                normalized_values=vector_target_matrix[..., k],
+                normalization_type_string=normalization_type_string,
+                normalization_table_one_row=
+                normalization_table.loc[vector_target_names[k]],
+                min_normalized_value=min_normalized_value,
+                max_normalized_value=max_normalized_value
+            )
 
-    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
-    pickle_file_handle = open(pickle_file_name, 'wb')
-    pickle.dump(norm_table_no_height, pickle_file_handle)
-    pickle.dump(norm_table_with_height, pickle_file_handle)
-    pickle_file_handle.close()
-
-
-def read_normalization_file(pickle_file_name):
-    """Reads normalization parameters from Pickle file.
-
-    :param pickle_file_name: Path to input file.
-    :return: norm_table_no_height: See doc for `write_file`.
-    :return: norm_table_with_height: Same.
-    """
-
-    pickle_file_handle = open(pickle_file_name, 'rb')
-    norm_table_no_height = pickle.load(pickle_file_handle)
-    norm_table_with_height = pickle.load(pickle_file_handle)
-    pickle_file_handle.close()
-
-    error_checking.assert_columns_in_dataframe(
-        norm_table_no_height, TABLE_COLUMNS
-    )
-    error_checking.assert_columns_in_dataframe(
-        norm_table_with_height, TABLE_COLUMNS
-    )
-
-    return norm_table_no_height, norm_table_with_height
+    example_dict[example_io.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
+    return example_dict

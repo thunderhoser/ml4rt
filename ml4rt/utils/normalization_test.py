@@ -1,168 +1,87 @@
-"""Unit tests for normalization.py."""
+"""Unit tests for normalization.py"""
 
 import copy
 import unittest
 import numpy
 import pandas
+from ml4rt.io import example_io
 from ml4rt.utils import normalization
 
 TOLERANCE = 1e-6
+MIN_NORMALIZED_VALUE = 0.
+MAX_NORMALIZED_VALUE = 1.
 
-# The following constants are used to test update_z_score_params.
-ORIGINAL_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 20,
-    normalization.MEAN_VALUE_KEY: 5.,
-    normalization.MEAN_OF_SQUARES_KEY: 10.
-}
+ZENITH_ANGLES_RADIANS = numpy.array([0, 1, 2, 3], dtype=float)
+LATITUDES_DEG_N = numpy.array([40.02, 40.02, 40.02, 40.02])
+SCALAR_PREDICTOR_NAMES = [
+    example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME
+]
+SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
+    (ZENITH_ANGLES_RADIANS, LATITUDES_DEG_N)
+))
 
-NEW_MATRIX_FOR_Z_SCORES = numpy.array([
-    [0, 1, 2, 3, 4],
-    [1, 2, 4, 2, 1]
+TEMPERATURE_MATRIX_KELVINS = numpy.array([
+    [290, 295],
+    [289, 294],
+    [288, 293],
+    [287, 292.5]
+])
+VECTOR_PREDICTOR_NAMES = [example_io.TEMPERATURE_NAME]
+HEIGHTS_M_AGL = numpy.array([100, 500], dtype=float)
+VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(TEMPERATURE_MATRIX_KELVINS, axis=-1)
+
+SHORTWAVE_SURFACE_DOWN_FLUXES_W_M02 = numpy.array(
+    [200, 200, 200, 200], dtype=float
+)
+SCALAR_TARGET_NAMES = [example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]
+SCALAR_TARGET_MATRIX = numpy.reshape(
+    SHORTWAVE_SURFACE_DOWN_FLUXES_W_M02,
+    (len(SHORTWAVE_SURFACE_DOWN_FLUXES_W_M02), 1)
+)
+
+SHORTWAVE_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
+    [300, 200],
+    [500, 300],
+    [450, 450],
+    [200, 100]
 ], dtype=float)
 
-NEW_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 30,
-    normalization.MEAN_VALUE_KEY: 4.,
-    normalization.MEAN_OF_SQUARES_KEY: 8.533333
-}
-
-# The following constants are used to test update_frequency_dict.
-ROUNDING_BASE = 0.001
-MAIN_FREQUENCY_DICT = {
-    0.001: 5,
-    0.002: 3,
-    0.004: 7,
-    0.006: 2
-}
-
-NEW_MATRIX_FOR_FREQUENCIES = numpy.array([
-    [0.003, 0.007, 0.002, 0.004],
-    [0.006, 0.005, 0.002, -0.001],
-    [0.006, 0.001, 0.008, 0.007]
-])
-
-NEW_FREQUENCY_DICT = {
-    -0.001: 1,
-    0.001: 6,
-    0.002: 5,
-    0.003: 1,
-    0.004: 8,
-    0.005: 1,
-    0.006: 4,
-    0.007: 2,
-    0.008: 1
-}
-
-# The following constants are used to test _get_standard_deviation.
-STDEV_INPUT_MATRIX = numpy.array([
-    [1, 2, 3, 4, 5],
-    [6, 7, 8, 9, 10]
+SHORTWAVE_UP_FLUX_MATRIX_W_M02 = numpy.array([
+    [150, 150],
+    [200, 150],
+    [300, 350],
+    [400, 100]
 ], dtype=float)
 
-STANDARD_DEVIATION = numpy.std(STDEV_INPUT_MATRIX, ddof=1)
+VECTOR_TARGET_NAMES = [
+    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME
+]
+VECTOR_TARGET_MATRIX = numpy.stack(
+    (SHORTWAVE_DOWN_FLUX_MATRIX_W_M02, SHORTWAVE_UP_FLUX_MATRIX_W_M02), axis=-1
+)
 
-# The following constants are used to test _get_percentile.
-SMALL_PERCENTILE_LEVEL = 3.125
-MEDIUM_PERCENTILE_LEVEL = 43.75
-LARGE_PERCENTILE_LEVEL = 93.75
-
-SMALL_PERCENTILE = 0.001
-MEDIUM_PERCENTILE = 0.002
-LARGE_PERCENTILE = 0.005
-
-# The following constants are used to test finalize_params without separate
-# heights (output table should be single-indexed).
-FIRST_KEY_NO_HEIGHT = 'reflectivity_dbz'
-SECOND_KEY_NO_HEIGHT = 'reflectivity_column_max_dbz'
-THIRD_KEY_NO_HEIGHT = 'low_level_shear_s01'
-
-FIRST_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 100,
-    normalization.MEAN_VALUE_KEY: 15.,
-    normalization.MEAN_OF_SQUARES_KEY: 300.
+EXAMPLE_DICT_DENORM = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
 }
-SECOND_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 100,
-    normalization.MEAN_VALUE_KEY: 25.,
-    normalization.MEAN_OF_SQUARES_KEY: 1000.
-}
-THIRD_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 400,
-    normalization.MEAN_VALUE_KEY: 8e-3,
-    normalization.MEAN_OF_SQUARES_KEY: 1e-4
-}
-Z_SCORE_DICT_DICT_NO_HEIGHT = {
-    FIRST_KEY_NO_HEIGHT: FIRST_Z_SCORE_DICT,
-    SECOND_KEY_NO_HEIGHT: SECOND_Z_SCORE_DICT,
-    THIRD_KEY_NO_HEIGHT: THIRD_Z_SCORE_DICT
-}
-
-FIRST_FREQUENCY_DICT = {
-    0: 5,
-    5: 10,
-    10: 20,
-    15: 30,
-    20: 20,
-    25: 10,
-    30: 5
-}
-SECOND_FREQUENCY_DICT = {
-    0: 0,
-    5: 5,
-    10: 5,
-    15: 10,
-    20: 15,
-    25: 30,
-    30: 15,
-    35: 10,
-    40: 5,
-    45: 5
-}
-THIRD_FREQUENCY_DICT = {
-    -4e-3: 10,
-    -1e-3: 15,
-    2e-3: 25,
-    5e-3: 50,
-    8e-3: 200,
-    11e-3: 50,
-    14e-3: 25,
-    17e-3: 15,
-    20e-3: 10
-}
-FREQUENCY_DICT_DICT_NO_HEIGHT = {
-    FIRST_KEY_NO_HEIGHT: FIRST_FREQUENCY_DICT,
-    SECOND_KEY_NO_HEIGHT: SECOND_FREQUENCY_DICT,
-    THIRD_KEY_NO_HEIGHT: THIRD_FREQUENCY_DICT
-}
-
-MIN_PERCENTILE_LEVEL = 1.
-MAX_PERCENTILE_LEVEL = 99.
-
-FIRST_PARAM_VECTOR = numpy.array([
-    FIRST_Z_SCORE_DICT[normalization.MEAN_VALUE_KEY],
-    normalization._get_standard_deviation(FIRST_Z_SCORE_DICT),
-    normalization._get_percentile(FIRST_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL),
-    normalization._get_percentile(FIRST_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL)
-])
-
-SECOND_PARAM_VECTOR = numpy.array([
-    SECOND_Z_SCORE_DICT[normalization.MEAN_VALUE_KEY],
-    normalization._get_standard_deviation(SECOND_Z_SCORE_DICT),
-    normalization._get_percentile(SECOND_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL),
-    normalization._get_percentile(SECOND_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL)
-])
-
-THIRD_PARAM_VECTOR = numpy.array([
-    THIRD_Z_SCORE_DICT[normalization.MEAN_VALUE_KEY],
-    normalization._get_standard_deviation(THIRD_Z_SCORE_DICT),
-    normalization._get_percentile(THIRD_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL),
-    normalization._get_percentile(THIRD_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL)
-])
 
 THIS_DICT = {
-    FIRST_KEY_NO_HEIGHT: FIRST_PARAM_VECTOR,
-    SECOND_KEY_NO_HEIGHT: SECOND_PARAM_VECTOR,
-    THIRD_KEY_NO_HEIGHT: THIRD_PARAM_VECTOR
+    example_io.ZENITH_ANGLE_NAME: numpy.array([0.75, 0.25, 0, 1.5]),
+    example_io.LATITUDE_NAME: numpy.array([45, 10, -90, 90], dtype=float),
+    example_io.TEMPERATURE_NAME: numpy.array([270, 10, 200, 310], dtype=float),
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
+        numpy.array([300, 50, 0, 1000], dtype=float),
+    example_io.SHORTWAVE_DOWN_FLUX_NAME:
+        numpy.array([200, 100, 0, 1000], dtype=float),
+    example_io.SHORTWAVE_UP_FLUX_NAME:
+        numpy.array([150, 75, 0, 1000], dtype=float)
 }
 NORM_TABLE_NO_HEIGHT = pandas.DataFrame.from_dict(THIS_DICT, orient='index')
 
@@ -174,120 +93,265 @@ COLUMN_DICT_OLD_TO_NEW = {
 }
 NORM_TABLE_NO_HEIGHT.rename(columns=COLUMN_DICT_OLD_TO_NEW, inplace=True)
 
-# The following constants are used to test finalize_params with separate heights
-# (output table should be double-indexed).
-FIRST_KEY_WITH_HEIGHT = ('reflectivity_dbz', 1000)
-SECOND_KEY_WITH_HEIGHT = ('reflectivity_column_max_dbz', 250)
-THIRD_KEY_WITH_HEIGHT = ('low_level_shear_s01', 250)
+THESE_ZENITH_ANGLES = numpy.array([-3, 1, 5, 9], dtype=float)
+THESE_LATITUDES_DEG_N = numpy.array([-0.498, -0.498, -0.498, -0.498])
+THIS_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
+    (THESE_ZENITH_ANGLES, THESE_LATITUDES_DEG_N)
+))
 
-Z_SCORE_DICT_DICT_WITH_HEIGHT = {
-    FIRST_KEY_WITH_HEIGHT: FIRST_Z_SCORE_DICT,
-    SECOND_KEY_WITH_HEIGHT: SECOND_Z_SCORE_DICT,
-    THIRD_KEY_WITH_HEIGHT: THIRD_Z_SCORE_DICT
+THIS_TEMPERATURE_MATRIX = numpy.array([
+    [2, 2.5],
+    [1.9, 2.4],
+    [1.8, 2.3],
+    [1.7, 2.25]
+])
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_TEMPERATURE_MATRIX, axis=-1
+)
+
+THESE_SHORTWAVE_SURFACE_DOWN_FLUXES = numpy.array([-2, -2, -2, -2], dtype=float)
+THIS_SCALAR_TARGET_MATRIX = numpy.reshape(
+    THESE_SHORTWAVE_SURFACE_DOWN_FLUXES,
+    (len(THESE_SHORTWAVE_SURFACE_DOWN_FLUXES), 1)
+)
+
+THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
+    [1, 0],
+    [3, 1],
+    [2.5, 2.5],
+    [0, -1]
+])
+
+THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
+    [0, 0],
+    [2, 0],
+    [6, 8],
+    [10, -2]
+], dtype=float) / 3
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
+)
+
+EXAMPLE_DICT_Z_SCORES_NO_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
 }
 
-FREQUENCY_DICT_DICT_WITH_HEIGHT = {
-    FIRST_KEY_WITH_HEIGHT: FIRST_FREQUENCY_DICT,
-    SECOND_KEY_WITH_HEIGHT: SECOND_FREQUENCY_DICT,
-    THIRD_KEY_WITH_HEIGHT: THIRD_FREQUENCY_DICT
+THESE_ZENITH_ANGLES = numpy.array([0, 1, 2, 3], dtype=float) / 1.5
+THESE_LATITUDES_DEG_N = numpy.array([130.02, 130.02, 130.02, 130.02]) / 180
+THIS_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
+    (THESE_ZENITH_ANGLES, THESE_LATITUDES_DEG_N)
+))
+
+THIS_TEMPERATURE_MATRIX = numpy.array([
+    [90, 95],
+    [89, 94],
+    [88, 93],
+    [87, 92.5]
+]) / 110
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_TEMPERATURE_MATRIX, axis=-1
+)
+
+THESE_SHORTWAVE_SURFACE_DOWN_FLUXES = numpy.array([0.2, 0.2, 0.2, 0.2])
+THIS_SCALAR_TARGET_MATRIX = numpy.reshape(
+    THESE_SHORTWAVE_SURFACE_DOWN_FLUXES,
+    (len(THESE_SHORTWAVE_SURFACE_DOWN_FLUXES), 1)
+)
+
+THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
+    [0.3, 0.2],
+    [0.5, 0.3],
+    [0.45, 0.45],
+    [0.2, 0.1]
+])
+
+THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
+    [0.15, 0.15],
+    [0.2, 0.15],
+    [0.3, 0.35],
+    [0.4, 0.1]
+])
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
+)
+
+EXAMPLE_DICT_MINMAX_NO_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
 }
+
+DUMMY_HEIGHT_M_AGL = normalization.DUMMY_HEIGHT_M_AGL
 
 THIS_DICT = {
-    FIRST_KEY_WITH_HEIGHT: FIRST_PARAM_VECTOR,
-    SECOND_KEY_WITH_HEIGHT: SECOND_PARAM_VECTOR,
-    THIRD_KEY_WITH_HEIGHT: THIRD_PARAM_VECTOR
+    (example_io.ZENITH_ANGLE_NAME, DUMMY_HEIGHT_M_AGL):
+        numpy.array([0.75, 0.25, 0, 1.5]),
+    (example_io.LATITUDE_NAME, DUMMY_HEIGHT_M_AGL):
+        numpy.array([45, 10, -90, 90], dtype=float),
+    (example_io.TEMPERATURE_NAME, 100):
+        numpy.array([295, 15, 220, 310], dtype=float),
+    (example_io.TEMPERATURE_NAME, 500): numpy.array([290, 12.5, 215, 305]),
+    (example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME, DUMMY_HEIGHT_M_AGL):
+        numpy.array([300, 50, 0, 1000], dtype=float),
+    (example_io.SHORTWAVE_DOWN_FLUX_NAME, 100):
+        numpy.array([300, 150, 0, 1000], dtype=float),
+    (example_io.SHORTWAVE_DOWN_FLUX_NAME, 500):
+        numpy.array([275, 125, 0, 800], dtype=float),
+    (example_io.SHORTWAVE_UP_FLUX_NAME, 100):
+        numpy.array([200, 100, 0, 1000], dtype=float),
+    (example_io.SHORTWAVE_UP_FLUX_NAME, 500):
+        numpy.array([175, 75, 0, 900], dtype=float)
 }
 NORM_TABLE_WITH_HEIGHT = pandas.DataFrame.from_dict(THIS_DICT, orient='index')
 NORM_TABLE_WITH_HEIGHT.rename(columns=COLUMN_DICT_OLD_TO_NEW, inplace=True)
 
+THESE_ZENITH_ANGLES = numpy.array([-3, 1, 5, 9], dtype=float)
+THESE_LATITUDES_DEG_N = numpy.array([-0.498, -0.498, -0.498, -0.498])
+THIS_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
+    (THESE_ZENITH_ANGLES, THESE_LATITUDES_DEG_N)
+))
 
-def _compare_z_score_dicts(first_z_score_dict, second_z_score_dict):
-    """Compares two dictionaries with z-score parameters.
+THIS_TEMPERATURE_MATRIX = numpy.array([
+    [-5. / 15, 5. / 12.5],
+    [-6. / 15, 4. / 12.5],
+    [-7. / 15, 3. / 12.5],
+    [-8. / 15, 2.5 / 12.5]
+])
 
-    :param first_z_score_dict: First dictionary.
-    :param second_z_score_dict: Second dictionary.
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_TEMPERATURE_MATRIX, axis=-1
+)
+
+THESE_SHORTWAVE_SURFACE_DOWN_FLUXES = numpy.array([-2, -2, -2, -2], dtype=float)
+THIS_SCALAR_TARGET_MATRIX = numpy.reshape(
+    THESE_SHORTWAVE_SURFACE_DOWN_FLUXES,
+    (len(THESE_SHORTWAVE_SURFACE_DOWN_FLUXES), 1)
+)
+
+THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
+    [0, -75. / 125],
+    [4. / 3, 25. / 125],
+    [1, 175. / 125],
+    [-2. / 3, -175. / 125]
+])
+
+THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
+    [-0.5, -1. / 3],
+    [0, -1. / 3],
+    [1, 7. / 3],
+    [2, -1]
+], dtype=float)
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
+)
+
+EXAMPLE_DICT_Z_SCORES_WITH_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+THESE_ZENITH_ANGLES = numpy.array([0, 1, 2, 3], dtype=float) / 1.5
+THESE_LATITUDES_DEG_N = numpy.array([130.02, 130.02, 130.02, 130.02]) / 180
+THIS_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
+    (THESE_ZENITH_ANGLES, THESE_LATITUDES_DEG_N)
+))
+
+THIS_TEMPERATURE_MATRIX = numpy.array([
+    [70, 80],
+    [69, 79],
+    [68, 78],
+    [67, 77.5]
+]) / 90
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_TEMPERATURE_MATRIX, axis=-1
+)
+
+THESE_SHORTWAVE_SURFACE_DOWN_FLUXES = numpy.array([0.2, 0.2, 0.2, 0.2])
+THIS_SCALAR_TARGET_MATRIX = numpy.reshape(
+    THESE_SHORTWAVE_SURFACE_DOWN_FLUXES,
+    (len(THESE_SHORTWAVE_SURFACE_DOWN_FLUXES), 1)
+)
+
+THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
+    [0.3, 0.25],
+    [0.5, 0.375],
+    [0.45, 4.5 / 8],
+    [0.2, 0.125]
+])
+
+THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
+    [0.15, 1.5 / 9],
+    [0.2, 1.5 / 9],
+    [0.3, 3.5 / 9],
+    [0.4, 1. / 9]
+], dtype=float)
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
+)
+
+EXAMPLE_DICT_MINMAX_WITH_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+
+def _compare_example_dicts(first_example_dict, second_example_dict):
+    """Compares two dictionaries with learning examples.
+
+    :param first_example_dict: See doc for `example_io.read_file`.
+    :param second_example_dict: Same.
     :return: are_dicts_equal: Boolean flag.
     """
 
-    first_keys = list(first_z_score_dict.keys())
-    second_keys = list(second_z_score_dict.keys())
+    first_keys = list(first_example_dict.keys())
+    second_keys = list(first_example_dict.keys())
     if set(first_keys) != set(second_keys):
         return False
 
-    for this_key in first_keys:
-        if this_key == normalization.MEAN_VALUE_KEY:
-            if first_z_score_dict[this_key] != second_z_score_dict[this_key]:
-                return False
-        else:
-            if not numpy.isclose(first_z_score_dict[this_key],
-                                 second_z_score_dict[this_key], atol=TOLERANCE):
-                return False
+    keys_to_compare = [
+        example_io.SCALAR_PREDICTOR_VALS_KEY,
+        example_io.VECTOR_PREDICTOR_VALS_KEY,
+        example_io.SCALAR_TARGET_VALS_KEY, example_io.VECTOR_TARGET_VALS_KEY
+    ]
 
-    return True
-
-
-def _compare_frequency_dicts(first_frequency_dict, second_frequency_dict):
-    """Compares two dictionaries with measurement frequencies.
-
-    :param first_frequency_dict: First dictionary.
-    :param second_frequency_dict: Second dictionary.
-    :return: are_dicts_equal: Boolean flag.
-    """
-
-    first_keys, first_values = list(zip(
-        *iter(first_frequency_dict.items())
-    ))
-    first_keys = numpy.array(first_keys)
-    first_values = numpy.array(first_values, dtype=int)
-
-    sort_indices = numpy.argsort(first_keys)
-    first_keys = first_keys[sort_indices]
-    first_values = first_values[sort_indices]
-
-    second_keys, second_values = list(zip(
-        *iter(second_frequency_dict.items())
-    ))
-    second_keys = numpy.array(second_keys)
-    second_values = numpy.array(second_values, dtype=int)
-
-    sort_indices = numpy.argsort(second_keys)
-    second_keys = second_keys[sort_indices]
-    second_values = second_values[sort_indices]
-
-    if not numpy.array_equal(first_keys, second_keys):
-        return False
-    if not numpy.array_equal(first_values, second_values):
-        return False
-
-    return True
-
-
-def _compare_normalization_tables(first_norm_table, second_norm_table):
-    """Compares two pandas DataFrame with normalization params.
-
-    :param first_norm_table: First table.
-    :param second_norm_table: Second table.
-    :return: are_tables_equal: Boolean flag.
-    """
-
-    first_indices = first_norm_table.index
-    second_indices = second_norm_table.index
-    if len(first_indices) != len(second_indices):
-        return False
-
-    first_column_names = list(first_norm_table)
-    second_column_names = list(second_norm_table)
-    if set(first_column_names) != set(second_column_names):
-        return False
-
-    for this_index in first_indices:
-        for this_column_name in first_column_names:
-            if not numpy.isclose(
-                    first_norm_table[this_column_name].loc[[this_index]],
-                    second_norm_table[this_column_name].loc[[this_index]],
-                    atol=TOLERANCE
-            ):
-                return False
+    for this_key in keys_to_compare:
+        if not numpy.allclose(
+                first_example_dict[this_key], second_example_dict[this_key],
+                atol=TOLERANCE
+        ):
+            return False
 
     return True
 
@@ -295,124 +359,148 @@ def _compare_normalization_tables(first_norm_table, second_norm_table):
 class NormalizationTests(unittest.TestCase):
     """Each method is a unit test for normalization.py."""
 
-    def test_update_z_score_params(self):
-        """Ensures correct output from update_z_score_params."""
+    def test_normalize_data_z_no_height(self):
+        """Ensures correct output from normalize_data.
 
-        this_new_param_dict = normalization.update_z_score_params(
-            z_score_param_dict=copy.deepcopy(ORIGINAL_Z_SCORE_DICT),
-            new_data_matrix=NEW_MATRIX_FOR_Z_SCORES
-        )
-
-        self.assertTrue(_compare_z_score_dicts(
-            this_new_param_dict, NEW_Z_SCORE_DICT
-        ))
-
-    def test_update_frequency_dict(self):
-        """Ensures correct output from update_frequency_dict."""
-
-        this_new_frequency_dict = normalization.update_frequency_dict(
-            frequency_dict=copy.deepcopy(MAIN_FREQUENCY_DICT),
-            new_data_matrix=NEW_MATRIX_FOR_FREQUENCIES,
-            rounding_base=ROUNDING_BASE
-        )
-
-        self.assertTrue(_compare_frequency_dicts(
-            this_new_frequency_dict, NEW_FREQUENCY_DICT
-        ))
-
-    def test_get_standard_deviation(self):
-        """Ensures correct output from _get_standard_deviation."""
-
-        z_score_param_dict = {
-            normalization.NUM_VALUES_KEY: STDEV_INPUT_MATRIX.size,
-            normalization.MEAN_VALUE_KEY: numpy.mean(STDEV_INPUT_MATRIX),
-            normalization.MEAN_OF_SQUARES_KEY:
-                numpy.mean(STDEV_INPUT_MATRIX ** 2)
-        }
-
-        this_standard_deviation = normalization._get_standard_deviation(
-            z_score_param_dict
-        )
-
-        self.assertTrue(numpy.isclose(
-            this_standard_deviation, STANDARD_DEVIATION, atol=TOLERANCE
-        ))
-
-    def test_get_percentile_small(self):
-        """Ensures correct output from _get_percentile.
-
-        In this case, percentile level is small.
+        In this case, using z-score normalization with no separation by height.
         """
 
-        this_percentile = normalization._get_percentile(
-            frequency_dict=MAIN_FREQUENCY_DICT,
-            percentile_level=SMALL_PERCENTILE_LEVEL
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
         )
-        self.assertTrue(numpy.isclose(
-            this_percentile, SMALL_PERCENTILE, atol=TOLERANCE
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_Z_SCORES_NO_HEIGHT
         ))
 
-    def test_get_percentile_medium(self):
-        """Ensures correct output from _get_percentile.
+    def test_denormalize_data_z_no_height(self):
+        """Ensures correct output from denormalize_data.
 
-        In this case, percentile level is medium.
+        In this case, using z-score normalization with no separation by height.
         """
 
-        this_percentile = normalization._get_percentile(
-            frequency_dict=MAIN_FREQUENCY_DICT,
-            percentile_level=MEDIUM_PERCENTILE_LEVEL
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_SCORES_NO_HEIGHT),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
         )
-        self.assertTrue(numpy.isclose(
-            this_percentile, MEDIUM_PERCENTILE, atol=TOLERANCE
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
         ))
 
-    def test_get_percentile_large(self):
-        """Ensures correct output from _get_percentile.
+    def test_normalize_data_minmax_no_height(self):
+        """Ensures correct output from normalize_data.
 
-        In this case, percentile level is large.
+        In this case, using min-max normalization with no separation by height.
         """
 
-        this_percentile = normalization._get_percentile(
-            frequency_dict=MAIN_FREQUENCY_DICT,
-            percentile_level=LARGE_PERCENTILE_LEVEL
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
         )
-        self.assertTrue(numpy.isclose(
-            this_percentile, LARGE_PERCENTILE, atol=TOLERANCE
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_NO_HEIGHT
         ))
 
-    def test_finalize_params_no_height(self):
-        """Ensures correct output from finalize_params.
+    def test_denormalize_data_minmax_no_height(self):
+        """Ensures correct output from denormalize_data.
 
-        In this case, the table should be single-indexed (field name only).
+        In this case, using min-max normalization with no separation by height.
         """
 
-        this_norm_table = normalization.finalize_params(
-            z_score_dict_dict=Z_SCORE_DICT_DICT_NO_HEIGHT,
-            frequency_dict_dict=FREQUENCY_DICT_DICT_NO_HEIGHT,
-            min_percentile_level=MIN_PERCENTILE_LEVEL,
-            max_percentile_level=MAX_PERCENTILE_LEVEL
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_NO_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
         )
 
-        self.assertTrue(_compare_normalization_tables(
-            this_norm_table, NORM_TABLE_NO_HEIGHT
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
         ))
 
-    def test_finalize_params_with_height(self):
-        """Ensures correct output from finalize_params.
+    def test_normalize_data_z_with_height(self):
+        """Ensures correct output from normalize_data.
 
-        In this case, the table should be double-indexed (field name and
-        height).
+        In this case, using z-score normalization with separation by height.
         """
 
-        this_norm_table = normalization.finalize_params(
-            z_score_dict_dict=Z_SCORE_DICT_DICT_WITH_HEIGHT,
-            frequency_dict_dict=FREQUENCY_DICT_DICT_WITH_HEIGHT,
-            min_percentile_level=MIN_PERCENTILE_LEVEL,
-            max_percentile_level=MAX_PERCENTILE_LEVEL
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
         )
 
-        self.assertTrue(_compare_normalization_tables(
-            this_norm_table, NORM_TABLE_WITH_HEIGHT
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_Z_SCORES_WITH_HEIGHT
+        ))
+
+    def test_denormalize_data_z_with_height(self):
+        """Ensures correct output from denormalize_data.
+
+        In this case, using z-score normalization with separation by height.
+        """
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_SCORES_WITH_HEIGHT),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_with_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization with separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_WITH_HEIGHT
+        ))
+
+    def test_denormalize_data_minmax_with_height(self):
+        """Ensures correct output from denormalize_data.
+
+        In this case, using min-max normalization with separation by height.
+        """
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_WITH_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
         ))
 
 
