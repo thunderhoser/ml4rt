@@ -1,18 +1,18 @@
-"""Unit tests for normalization.py."""
+"""Unit tests for normalization_params.py."""
 
 import copy
 import unittest
 import numpy
 import pandas
-from ml4rt.utils import normalization
+from ml4rt.utils import normalization_params
 
 TOLERANCE = 1e-6
 
 # The following constants are used to test update_z_score_params.
 ORIGINAL_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 20,
-    normalization.MEAN_VALUE_KEY: 5.,
-    normalization.MEAN_OF_SQUARES_KEY: 10.
+    normalization_params.NUM_VALUES_KEY: 20,
+    normalization_params.MEAN_VALUE_KEY: 5.,
+    normalization_params.MEAN_OF_SQUARES_KEY: 10.
 }
 
 NEW_MATRIX_FOR_Z_SCORES = numpy.array([
@@ -21,9 +21,9 @@ NEW_MATRIX_FOR_Z_SCORES = numpy.array([
 ], dtype=float)
 
 NEW_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 30,
-    normalization.MEAN_VALUE_KEY: 4.,
-    normalization.MEAN_OF_SQUARES_KEY: 8.533333
+    normalization_params.NUM_VALUES_KEY: 30,
+    normalization_params.MEAN_VALUE_KEY: 4.,
+    normalization_params.MEAN_OF_SQUARES_KEY: 8.533333
 }
 
 # The following constants are used to test update_frequency_dict.
@@ -77,19 +77,19 @@ SECOND_KEY_NO_HEIGHT = 'reflectivity_column_max_dbz'
 THIRD_KEY_NO_HEIGHT = 'low_level_shear_s01'
 
 FIRST_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 100,
-    normalization.MEAN_VALUE_KEY: 15.,
-    normalization.MEAN_OF_SQUARES_KEY: 300.
+    normalization_params.NUM_VALUES_KEY: 100,
+    normalization_params.MEAN_VALUE_KEY: 15.,
+    normalization_params.MEAN_OF_SQUARES_KEY: 300.
 }
 SECOND_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 100,
-    normalization.MEAN_VALUE_KEY: 25.,
-    normalization.MEAN_OF_SQUARES_KEY: 1000.
+    normalization_params.NUM_VALUES_KEY: 100,
+    normalization_params.MEAN_VALUE_KEY: 25.,
+    normalization_params.MEAN_OF_SQUARES_KEY: 1000.
 }
 THIRD_Z_SCORE_DICT = {
-    normalization.NUM_VALUES_KEY: 400,
-    normalization.MEAN_VALUE_KEY: 8e-3,
-    normalization.MEAN_OF_SQUARES_KEY: 1e-4
+    normalization_params.NUM_VALUES_KEY: 400,
+    normalization_params.MEAN_VALUE_KEY: 8e-3,
+    normalization_params.MEAN_OF_SQUARES_KEY: 1e-4
 }
 Z_SCORE_DICT_DICT_NO_HEIGHT = {
     FIRST_KEY_NO_HEIGHT: FIRST_Z_SCORE_DICT,
@@ -139,24 +139,36 @@ MIN_PERCENTILE_LEVEL = 1.
 MAX_PERCENTILE_LEVEL = 99.
 
 FIRST_PARAM_VECTOR = numpy.array([
-    FIRST_Z_SCORE_DICT[normalization.MEAN_VALUE_KEY],
-    normalization._get_standard_deviation(FIRST_Z_SCORE_DICT),
-    normalization._get_percentile(FIRST_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL),
-    normalization._get_percentile(FIRST_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL)
+    FIRST_Z_SCORE_DICT[normalization_params.MEAN_VALUE_KEY],
+    normalization_params._get_standard_deviation(FIRST_Z_SCORE_DICT),
+    normalization_params._get_percentile(
+        FIRST_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL
+    ),
+    normalization_params._get_percentile(
+        FIRST_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL
+    )
 ])
 
 SECOND_PARAM_VECTOR = numpy.array([
-    SECOND_Z_SCORE_DICT[normalization.MEAN_VALUE_KEY],
-    normalization._get_standard_deviation(SECOND_Z_SCORE_DICT),
-    normalization._get_percentile(SECOND_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL),
-    normalization._get_percentile(SECOND_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL)
+    SECOND_Z_SCORE_DICT[normalization_params.MEAN_VALUE_KEY],
+    normalization_params._get_standard_deviation(SECOND_Z_SCORE_DICT),
+    normalization_params._get_percentile(
+        SECOND_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL
+    ),
+    normalization_params._get_percentile(
+        SECOND_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL
+    )
 ])
 
 THIRD_PARAM_VECTOR = numpy.array([
-    THIRD_Z_SCORE_DICT[normalization.MEAN_VALUE_KEY],
-    normalization._get_standard_deviation(THIRD_Z_SCORE_DICT),
-    normalization._get_percentile(THIRD_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL),
-    normalization._get_percentile(THIRD_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL)
+    THIRD_Z_SCORE_DICT[normalization_params.MEAN_VALUE_KEY],
+    normalization_params._get_standard_deviation(THIRD_Z_SCORE_DICT),
+    normalization_params._get_percentile(
+        THIRD_FREQUENCY_DICT, MIN_PERCENTILE_LEVEL
+    ),
+    normalization_params._get_percentile(
+        THIRD_FREQUENCY_DICT, MAX_PERCENTILE_LEVEL
+    )
 ])
 
 THIS_DICT = {
@@ -167,10 +179,10 @@ THIS_DICT = {
 NORM_TABLE_NO_HEIGHT = pandas.DataFrame.from_dict(THIS_DICT, orient='index')
 
 COLUMN_DICT_OLD_TO_NEW = {
-    0: normalization.MEAN_VALUE_COLUMN,
-    1: normalization.STANDARD_DEVIATION_COLUMN,
-    2: normalization.MIN_VALUE_COLUMN,
-    3: normalization.MAX_VALUE_COLUMN
+    0: normalization_params.MEAN_VALUE_COLUMN,
+    1: normalization_params.STANDARD_DEVIATION_COLUMN,
+    2: normalization_params.MIN_VALUE_COLUMN,
+    3: normalization_params.MAX_VALUE_COLUMN
 }
 NORM_TABLE_NO_HEIGHT.rename(columns=COLUMN_DICT_OLD_TO_NEW, inplace=True)
 
@@ -215,7 +227,7 @@ def _compare_z_score_dicts(first_z_score_dict, second_z_score_dict):
         return False
 
     for this_key in first_keys:
-        if this_key == normalization.MEAN_VALUE_KEY:
+        if this_key == normalization_params.MEAN_VALUE_KEY:
             if first_z_score_dict[this_key] != second_z_score_dict[this_key]:
                 return False
         else:
@@ -292,13 +304,13 @@ def _compare_normalization_tables(first_norm_table, second_norm_table):
     return True
 
 
-class NormalizationTests(unittest.TestCase):
-    """Each method is a unit test for normalization.py."""
+class NormalizationParamsTests(unittest.TestCase):
+    """Each method is a unit test for normalization_params.py."""
 
     def test_update_z_score_params(self):
         """Ensures correct output from update_z_score_params."""
 
-        this_new_param_dict = normalization.update_z_score_params(
+        this_new_param_dict = normalization_params.update_z_score_params(
             z_score_param_dict=copy.deepcopy(ORIGINAL_Z_SCORE_DICT),
             new_data_matrix=NEW_MATRIX_FOR_Z_SCORES
         )
@@ -310,7 +322,7 @@ class NormalizationTests(unittest.TestCase):
     def test_update_frequency_dict(self):
         """Ensures correct output from update_frequency_dict."""
 
-        this_new_frequency_dict = normalization.update_frequency_dict(
+        this_new_frequency_dict = normalization_params.update_frequency_dict(
             frequency_dict=copy.deepcopy(MAIN_FREQUENCY_DICT),
             new_data_matrix=NEW_MATRIX_FOR_FREQUENCIES,
             rounding_base=ROUNDING_BASE
@@ -324,13 +336,13 @@ class NormalizationTests(unittest.TestCase):
         """Ensures correct output from _get_standard_deviation."""
 
         z_score_param_dict = {
-            normalization.NUM_VALUES_KEY: STDEV_INPUT_MATRIX.size,
-            normalization.MEAN_VALUE_KEY: numpy.mean(STDEV_INPUT_MATRIX),
-            normalization.MEAN_OF_SQUARES_KEY:
+            normalization_params.NUM_VALUES_KEY: STDEV_INPUT_MATRIX.size,
+            normalization_params.MEAN_VALUE_KEY: numpy.mean(STDEV_INPUT_MATRIX),
+            normalization_params.MEAN_OF_SQUARES_KEY:
                 numpy.mean(STDEV_INPUT_MATRIX ** 2)
         }
 
-        this_standard_deviation = normalization._get_standard_deviation(
+        this_standard_deviation = normalization_params._get_standard_deviation(
             z_score_param_dict
         )
 
@@ -344,7 +356,7 @@ class NormalizationTests(unittest.TestCase):
         In this case, percentile level is small.
         """
 
-        this_percentile = normalization._get_percentile(
+        this_percentile = normalization_params._get_percentile(
             frequency_dict=MAIN_FREQUENCY_DICT,
             percentile_level=SMALL_PERCENTILE_LEVEL
         )
@@ -358,7 +370,7 @@ class NormalizationTests(unittest.TestCase):
         In this case, percentile level is medium.
         """
 
-        this_percentile = normalization._get_percentile(
+        this_percentile = normalization_params._get_percentile(
             frequency_dict=MAIN_FREQUENCY_DICT,
             percentile_level=MEDIUM_PERCENTILE_LEVEL
         )
@@ -372,7 +384,7 @@ class NormalizationTests(unittest.TestCase):
         In this case, percentile level is large.
         """
 
-        this_percentile = normalization._get_percentile(
+        this_percentile = normalization_params._get_percentile(
             frequency_dict=MAIN_FREQUENCY_DICT,
             percentile_level=LARGE_PERCENTILE_LEVEL
         )
@@ -386,7 +398,7 @@ class NormalizationTests(unittest.TestCase):
         In this case, the table should be single-indexed (field name only).
         """
 
-        this_norm_table = normalization.finalize_params(
+        this_norm_table = normalization_params.finalize_params(
             z_score_dict_dict=Z_SCORE_DICT_DICT_NO_HEIGHT,
             frequency_dict_dict=FREQUENCY_DICT_DICT_NO_HEIGHT,
             min_percentile_level=MIN_PERCENTILE_LEVEL,
@@ -404,7 +416,7 @@ class NormalizationTests(unittest.TestCase):
         height).
         """
 
-        this_norm_table = normalization.finalize_params(
+        this_norm_table = normalization_params.finalize_params(
             z_score_dict_dict=Z_SCORE_DICT_DICT_WITH_HEIGHT,
             frequency_dict_dict=FREQUENCY_DICT_DICT_WITH_HEIGHT,
             min_percentile_level=MIN_PERCENTILE_LEVEL,

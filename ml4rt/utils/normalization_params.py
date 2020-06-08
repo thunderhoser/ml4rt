@@ -1,4 +1,4 @@
-"""Methods for normalizing predictor and target variables."""
+"""Methods for computing, reading, and writing normalization parameters."""
 
 import pickle
 import numpy
@@ -34,10 +34,12 @@ def _get_standard_deviation(z_score_param_dict):
         z_score_param_dict[NUM_VALUES_KEY]
     ) / (z_score_param_dict[NUM_VALUES_KEY] - 1)
 
-    return numpy.sqrt(multiplier * (
+    standard_deviation = numpy.sqrt(multiplier * (
         z_score_param_dict[MEAN_OF_SQUARES_KEY] -
         z_score_param_dict[MEAN_VALUE_KEY] ** 2
     ))
+
+    return numpy.maximum(standard_deviation, numpy.finfo(float).eps)
 
 
 def _get_percentile(frequency_dict, percentile_level):
@@ -191,6 +193,12 @@ def finalize_params(z_score_dict_dict, frequency_dict_dict,
             frequency_dict=frequency_dict_dict[this_key],
             percentile_level=max_percentile_level
         )
+
+        if this_max_value - this_min_value < numpy.finfo(float).eps:
+            this_mean_value = numpy.mean([this_min_value, this_max_value])
+            this_min_value = this_mean_value - numpy.finfo(float).eps
+            this_max_value = this_mean_value + numpy.finfo(float).eps
+
         normalization_dict[this_key] = numpy.array([
             z_score_dict_dict[this_key][MEAN_VALUE_KEY],
             this_standard_deviation, this_min_value, this_max_value
@@ -239,7 +247,7 @@ def write_file(pickle_file_name, norm_table_no_height, norm_table_with_height):
     pickle_file_handle.close()
 
 
-def read_normalization_file(pickle_file_name):
+def read_file(pickle_file_name):
     """Reads normalization parameters from Pickle file.
 
     :param pickle_file_name: Path to input file.

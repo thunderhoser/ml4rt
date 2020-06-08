@@ -5,7 +5,7 @@ import argparse
 import numpy
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
-from ml4rt.utils import normalization
+from ml4rt.utils import normalization_params
 
 SCALAR_FIELD_NAMES = (
     example_io.SCALAR_PREDICTOR_NAMES + example_io.SCALAR_TARGET_NAMES
@@ -71,7 +71,8 @@ MAX_PERCENTILE_HELP_STRING = (
     'actually be this percentile level (in range 50...100).'
 )
 OUTPUT_FILE_HELP_STRING = (
-    'Path to output file (will be written by `normalization.write_file`).'
+    'Path to output file (will be written by '
+    '`normalization_params.write_file`).'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -135,9 +136,9 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
     ).astype(int)
 
     orig_parameter_dict = {
-        normalization.NUM_VALUES_KEY: 0,
-        normalization.MEAN_VALUE_KEY: 0.,
-        normalization.MEAN_OF_SQUARES_KEY: 0.
+        normalization_params.NUM_VALUES_KEY: 0,
+        normalization_params.MEAN_VALUE_KEY: 0.,
+        normalization_params.MEAN_OF_SQUARES_KEY: 0.
     }
     field_names = example_io.PREDICTOR_NAMES + example_io.TARGET_NAMES
 
@@ -173,13 +174,13 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                 height_m_agl=None
             )
             z_score_dict_no_height[this_field_name] = (
-                normalization.update_z_score_params(
+                normalization_params.update_z_score_params(
                     z_score_param_dict=z_score_dict_no_height[this_field_name],
                     new_data_matrix=this_data_matrix
                 )
             )
             frequency_dict_no_height[this_field_name] = (
-                normalization.update_frequency_dict(
+                normalization_params.update_frequency_dict(
                     frequency_dict=frequency_dict_no_height[this_field_name],
                     new_data_matrix=this_data_matrix,
                     rounding_base=FIELD_TO_ROUNDING_BASE_SCALAR[this_field_name]
@@ -216,7 +217,7 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                 this_dict = z_score_dict_with_height[
                     this_field_name, this_height_m_agl
                 ]
-                this_dict = normalization.update_z_score_params(
+                this_dict = normalization_params.update_z_score_params(
                     z_score_param_dict=this_dict,
                     new_data_matrix=this_data_matrix
                 )
@@ -227,7 +228,7 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                 this_dict = frequency_dict_with_height[
                     this_field_name, this_height_m_agl
                 ]
-                this_dict = normalization.update_frequency_dict(
+                this_dict = normalization_params.update_frequency_dict(
                     frequency_dict=this_dict,
                     new_data_matrix=this_data_matrix,
                     rounding_base=FIELD_TO_ROUNDING_BASE_VECTOR[this_field_name]
@@ -236,7 +237,7 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                     this_field_name, this_height_m_agl
                 ] = this_dict
 
-    norm_table_no_height = normalization.finalize_params(
+    norm_table_no_height = normalization_params.finalize_params(
         z_score_dict_dict=z_score_dict_no_height,
         frequency_dict_dict=frequency_dict_no_height,
         min_percentile_level=min_percentile_level,
@@ -249,7 +250,7 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
         str(norm_table_no_height)
     ))
 
-    norm_table_with_height = normalization.finalize_params(
+    norm_table_with_height = normalization_params.finalize_params(
         z_score_dict_dict=z_score_dict_with_height,
         frequency_dict_dict=frequency_dict_with_height,
         min_percentile_level=min_percentile_level,
@@ -260,7 +261,7 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
         str(norm_table_with_height)
     ))
 
-    normalization.write_file(
+    normalization_params.write_file(
         pickle_file_name=output_file_name,
         norm_table_no_height=norm_table_no_height,
         norm_table_with_height=norm_table_with_height
