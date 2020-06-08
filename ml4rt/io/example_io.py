@@ -1,8 +1,11 @@
 """Input/output methods for learning examples."""
 
+import copy
+import os.path
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
+from gewittergefahr.gg_utils import error_checking
 
 KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
@@ -18,6 +21,14 @@ VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 VALID_TIMES_KEY = 'valid_times_unix_sec'
 HEIGHTS_KEY = 'heights_m_agl'
 STANDARD_ATMO_FLAGS_KEY = 'standard_atmo_flags'
+
+DICTIONARY_KEYS = [
+    SCALAR_PREDICTOR_VALS_KEY, SCALAR_PREDICTOR_NAMES_KEY,
+    VECTOR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_NAMES_KEY,
+    SCALAR_TARGET_VALS_KEY, SCALAR_TARGET_NAMES_KEY,
+    VECTOR_TARGET_VALS_KEY, VECTOR_TARGET_NAMES_KEY,
+    VALID_TIMES_KEY, HEIGHTS_KEY, STANDARD_ATMO_FLAGS_KEY
+]
 
 VALID_TIMES_KEY_ORIG = 'time'
 HEIGHTS_KEY_ORIG = 'height'
@@ -114,6 +125,34 @@ TARGET_NAME_TO_CONV_FACTOR = {
     SHORTWAVE_UP_FLUX_NAME: 1.,
     SHORTWAVE_HEATING_RATE_NAME: 1. / 86400
 }
+
+
+def find_file(example_dir_name, year, raise_error_if_missing=True):
+    """Finds NetCDF file with learning examples.
+
+    :param example_dir_name: Name of directory where file is expected.
+    :param year: Year (integer).
+    :param raise_error_if_missing: Boolean flag.  If file is missing and
+        `raise_error_if_missing == True`, will throw error.  If file is missing
+        and `raise_error_if_missing == False`, will return *expected* file path.
+    :return: example_file_name: File path.
+    """
+
+    error_checking.assert_is_string(example_dir_name)
+    error_checking.assert_is_integer(year)
+    error_checking.assert_is_boolean(raise_error_if_missing)
+
+    example_file_name = '{0:s}/radiative_transfer_examples_{1:04d}.nc'.format(
+        example_dir_name, year
+    )
+
+    if raise_error_if_missing and not os.path.isfile(example_file_name):
+        error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
+            example_file_name
+        )
+        raise ValueError(error_string)
+
+    return example_file_name
 
 
 def read_file(example_file_name):
@@ -249,3 +288,76 @@ def read_file(example_file_name):
 
     dataset_object.close()
     return example_dict
+
+
+def concat_examples(example_dicts):
+    """Concatenates many dictionaries with examples into one.
+
+    :param example_dicts: List of dictionaries, each in the format returned by
+        `read_file`.
+    :return: example_dict: Single dictionary, also in the format returned by
+        `read_file`.
+    """
+
+    example_dict = copy.deepcopy(example_dicts[0])
+
+    keys_to_match = [
+        SCALAR_PREDICTOR_NAMES_KEY, VECTOR_PREDICTOR_NAMES_KEY,
+        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY
+    ]
+
+    for i in range(1, len(example_dicts)):
+        for this_key in DICTIONARY_KEYS:
+            if this_key in keys_to_match:
+                assert example_dict[this_key] == example_dicts[i][this_key]
+            else:
+                example_dict[this_key] = numpy.concatenate((
+                    example_dict[this_key], example_dicts[i][this_key]
+                ), axis=0)
+
+    return example_dict
+
+
+def get_field_from_dict(example_dict, field_name, height_m_agl=None):
+    """Returns field from dictionary of examples.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param field_name: Name of field (may be predictor or target variable).
+    :param height_m_agl: Height (metres above ground level).  For scalar field,
+        `height_m_agl` will not be used.  For vector field, `height_m_agl` will
+        be used only if `height_m_agl is not None`.
+    :return: data_matrix: numpy array with data values for given field.
+    """
+
+    # TODO(thunderhoser): Nicer check.
+    assert field_name in PREDICTOR_NAMES + TARGET_NAMES
+
+    if field_name in SCALAR_PREDICTOR_NAMES:
+        height_m_agl = None
+        field_index = example_dict[SCALAR_PREDICTOR_NAMES_KEY].index(field_name)
+        data_matrix = example_dict[SCALAR_PREDICTOR_VALS_KEY][..., field_index]
+    elif field_name in SCALAR_TARGET_NAMES:
+        height_m_agl = None
+        field_index = example_dict[SCALAR_TARGET_NAMES_KEY].index(field_name)
+        data_matrix = example_dict[SCALAR_TARGET_VALS_KEY][..., field_index]
+    elif field_name in VECTOR_PREDICTOR_NAMES:
+        field_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(field_name)
+        data_matrix = example_dict[VECTOR_PREDICTOR_VALS_KEY][..., field_index]
+    else:
+        field_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(field_name)
+        data_matrix = example_dict[VECTOR_TARGET_VALS_KEY][..., field_index]
+
+    if height_m_agl is None:
+        return data_matrix
+
+    error_checking.assert_is_not_nan(height_m_agl)
+    height_diffs_metres = numpy.absolute(
+        example_dict[HEIGHTS_KEY] - height_m_agl
+    )
+
+    # TODO(thunderhoser): Nicer check.
+    height_index = numpy.argmin(height_diffs_metres)
+    assert height_diffs_metres[height_index] <= 0.5
+
+    return data_matrix[..., height_index]
