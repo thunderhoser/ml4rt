@@ -1,9 +1,11 @@
 """Methods for normalizing predictor and target variables."""
 
+import pickle
 import numpy
 import pandas
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 
 NUM_VALUES_KEY = 'num_values'
@@ -14,6 +16,11 @@ MEAN_VALUE_COLUMN = 'mean_value'
 STANDARD_DEVIATION_COLUMN = 'standard_deviation'
 MIN_VALUE_COLUMN = 'min_value'
 MAX_VALUE_COLUMN = 'max_value'
+
+TABLE_COLUMNS = [
+    MEAN_VALUE_COLUMN, STANDARD_DEVIATION_COLUMN,
+    MIN_VALUE_COLUMN, MAX_VALUE_COLUMN
+]
 
 
 def _get_standard_deviation(z_score_param_dict):
@@ -166,7 +173,7 @@ def finalize_params(z_score_dict_dict, frequency_dict_dict,
     """
 
     error_checking.assert_is_geq(min_percentile_level, 0.)
-    error_checking.assert_is_leq(min_percentile_level, 0.)
+    error_checking.assert_is_leq(min_percentile_level, 10.)
     error_checking.assert_is_geq(max_percentile_level, 90.)
     error_checking.assert_is_leq(max_percentile_level, 100.)
 
@@ -203,3 +210,53 @@ def finalize_params(z_score_dict_dict, frequency_dict_dict,
     return normalization_table.rename(
         columns=column_dict_old_to_new, inplace=False
     )
+
+
+def write_file(pickle_file_name, norm_table_no_height, norm_table_with_height):
+    """Writes normalization parameters to Pickle file.
+
+    :param pickle_file_name: Path to output file.
+    :param norm_table_no_height: pandas DataFrame created by `finalize_params`,
+        containing one set of params for each variable.  This table should be
+        single-indexed (field name only).
+    :param norm_table_with_height: pandas DataFrame created by
+        `finalize_params`, containing one set of params for each
+        variable/height.  This table should be double-indexed (field name, then
+        height in metres above ground level).
+    """
+
+    error_checking.assert_columns_in_dataframe(
+        norm_table_no_height, TABLE_COLUMNS
+    )
+    error_checking.assert_columns_in_dataframe(
+        norm_table_with_height, TABLE_COLUMNS
+    )
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
+    pickle_file_handle = open(pickle_file_name, 'wb')
+    pickle.dump(norm_table_no_height, pickle_file_handle)
+    pickle.dump(norm_table_with_height, pickle_file_handle)
+    pickle_file_handle.close()
+
+
+def read_normalization_file(pickle_file_name):
+    """Reads normalization parameters from Pickle file.
+
+    :param pickle_file_name: Path to input file.
+    :return: norm_table_no_height: See doc for `write_file`.
+    :return: norm_table_with_height: Same.
+    """
+
+    pickle_file_handle = open(pickle_file_name, 'rb')
+    norm_table_no_height = pickle.load(pickle_file_handle)
+    norm_table_with_height = pickle.load(pickle_file_handle)
+    pickle_file_handle.close()
+
+    error_checking.assert_columns_in_dataframe(
+        norm_table_no_height, TABLE_COLUMNS
+    )
+    error_checking.assert_columns_in_dataframe(
+        norm_table_with_height, TABLE_COLUMNS
+    )
+
+    return norm_table_no_height, norm_table_with_height

@@ -5,7 +5,6 @@ import argparse
 import numpy
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
-from ml4rt.utils import preprocessing
 from ml4rt.utils import normalization
 
 SCALAR_FIELD_NAMES = (
@@ -81,11 +80,11 @@ INPUT_ARG_PARSER.add_argument(
     help=EXAMPLE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + FIRST_YEAR_ARG_NAME, type=str, required=True,
+    '--' + FIRST_YEAR_ARG_NAME, type=int, required=True,
     help=FIRST_YEAR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + LAST_YEAR_ARG_NAME, type=str, required=True,
+    '--' + LAST_YEAR_ARG_NAME, type=int, required=True,
     help=LAST_YEAR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -261,7 +260,7 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
         str(norm_table_with_height)
     ))
 
-    preprocessing.write_normalization_file(
+    normalization.write_file(
         pickle_file_name=output_file_name,
         norm_table_no_height=norm_table_no_height,
         norm_table_with_height=norm_table_with_height
