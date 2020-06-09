@@ -11,14 +11,11 @@ DEFAULT_CONV_LAYER_CHANNEL_NUMS = numpy.array([80, 80, 80, 3], dtype=int)
 DEFAULT_CONV_LAYER_DROPOUT_RATES = numpy.array([0.5, 0.5, 0.5, numpy.nan])
 DEFAULT_DENSE_LAYER_NEURON_NUMS = numpy.array([409, 29, 2], dtype=int)
 DEFAULT_DENSE_LAYER_DROPOUT_RATES = numpy.array([0.5, 0.5, numpy.nan])
-DEFAULT_INNER_ACTIVN_LAYER_OBJECT = architecture_utils.get_activation_layer(
-    activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
-    alpha_for_relu=0.2
-)
-DEFAULT_OUTPUT_ACTIVN_LAYER_OBJECT = architecture_utils.get_activation_layer(
-    activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
-    alpha_for_relu=0.
-)
+
+DEFAULT_INNER_ACTIV_FUNCTION_NAME = architecture_utils.RELU_FUNCTION_STRING
+DEFAULT_INNER_ACTIV_FUNCTION_ALPHA = 0.2
+DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME = architecture_utils.RELU_FUNCTION_STRING
+DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA = 0.
 
 # TODO(thunderhoser): Filter size needs to be an option.
 
@@ -29,8 +26,10 @@ def make_cnn(
         conv_layer_dropout_rates=DEFAULT_CONV_LAYER_DROPOUT_RATES,
         dense_layer_neuron_nums=DEFAULT_DENSE_LAYER_NEURON_NUMS,
         dense_layer_dropout_rates=DEFAULT_DENSE_LAYER_DROPOUT_RATES,
-        inner_activn_layer_object=DEFAULT_INNER_ACTIVN_LAYER_OBJECT,
-        output_activn_layer_object=DEFAULT_OUTPUT_ACTIVN_LAYER_OBJECT,
+        inner_activ_function_name=DEFAULT_INNER_ACTIV_FUNCTION_NAME,
+        inner_activ_function_alpha=DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
+        output_activ_function_name=DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
+        output_activ_function_alpha=DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
         l1_weight=DEFAULT_L1_WEIGHT, l2_weight=DEFAULT_L2_WEIGHT,
         use_batch_normalization=True):
     """Makes CNN (convolutional neural net).
@@ -57,10 +56,14 @@ def make_cnn(
     :param dense_layer_dropout_rates: length-D numpy array with dropout rate for
         each dense layer.  Use NaN if you do not want dropout for a particular
         layer.
-    :param inner_activn_layer_object: Keras layer specifying activation function
-        for all inner (non-output) layers.
-    :param output_activn_layer_object: Keras layer specifying activation
-        function for both output layers (profiles and scalars).
+    :param inner_activ_function_name: Name of activation function for all inner
+        (non-output) layers.  Must be accepted by ``.
+    :param inner_activ_function_alpha: Alpha (slope parameter) for activation
+        function for all inner layers.  Applies only to ReLU and eLU.
+    :param output_activ_function_name: Same as `inner_activ_function_name` but
+        for output layers (profiles and scalars).
+    :param output_activ_function_alpha: Same as `inner_activ_function_alpha` but
+        for output layers (profiles and scalars).
     :param l1_weight: Weight for L_1 regularization.
     :param l2_weight: Weight for L_2 regularization.
     :param use_batch_normalization: Boolean flag.  If True, will use batch
@@ -96,13 +99,17 @@ def make_cnn(
         )(this_input_layer_object)
 
         if i == num_conv_layers - 1:
-            conv_output_layer_object = output_activn_layer_object(
-                conv_output_layer_object
-            )
+            conv_output_layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=output_activ_function_name,
+                alpha_for_relu=output_activ_function_alpha,
+                alpha_for_elu=output_activ_function_alpha
+            )(conv_output_layer_object)
         else:
-            conv_output_layer_object = inner_activn_layer_object(
-                conv_output_layer_object
-            )
+            conv_output_layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=inner_activ_function_name,
+                alpha_for_relu=inner_activ_function_alpha,
+                alpha_for_elu=inner_activ_function_alpha
+            )(conv_output_layer_object)
 
         if conv_layer_dropout_rates[i] > 0:
             conv_output_layer_object = architecture_utils.get_dropout_layer(
@@ -127,13 +134,17 @@ def make_cnn(
         )(dense_output_layer_object)
 
         if i == num_dense_layers - 1:
-            dense_output_layer_object = output_activn_layer_object(
-                dense_output_layer_object
-            )
+            dense_output_layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=output_activ_function_name,
+                alpha_for_relu=output_activ_function_alpha,
+                alpha_for_elu=output_activ_function_alpha
+            )(dense_output_layer_object)
         else:
-            dense_output_layer_object = inner_activn_layer_object(
-                dense_output_layer_object
-            )
+            dense_output_layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=inner_activ_function_name,
+                alpha_for_relu=inner_activ_function_alpha,
+                alpha_for_elu=inner_activ_function_alpha
+            )(dense_output_layer_object)
 
         if dense_layer_dropout_rates[i] > 0:
             dense_output_layer_object = architecture_utils.get_dropout_layer(
