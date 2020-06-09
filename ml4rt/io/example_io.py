@@ -7,6 +7,7 @@ import netCDF4
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import error_checking
 
+TOLERANCE = 1e-6
 KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
 
@@ -125,6 +126,55 @@ TARGET_NAME_TO_CONV_FACTOR = {
     SHORTWAVE_UP_FLUX_NAME: 1.,
     SHORTWAVE_HEATING_RATE_NAME: 1. / 86400
 }
+
+
+def _check_field_name(field_name):
+    """Ensures that field name is valid (either predictor or target variable).
+
+    :param field_name: Field name.
+    :raises: ValueError: if `field_name not in PREDICTOR_NAMES + TARGET_NAMES`.
+    """
+
+    error_checking.assert_is_string(field_name)
+    if field_name in PREDICTOR_NAMES + TARGET_NAMES:
+        return
+
+    error_string = (
+        '\nField "{0:s}" is not valid predictor or target variable.  Valid '
+        'options listed below:\n{1:s}'
+    ).format(field_name, str(PREDICTOR_NAMES + TARGET_NAMES))
+
+    raise ValueError(error_string)
+
+
+def _match_heights(heights_m_agl, desired_height_m_agl):
+    """Finds nearest available height to desired height.
+
+    :param heights_m_agl: 1-D numpy array of available heights (metres above
+        ground level).
+    :param desired_height_m_agl: Desired height (metres above ground level).
+    :return: matching_index: Index of desired height in array.  If
+        `matching_index == k`, then `heights_m_agl[k]` is the desired height.
+    :raises: ValueError: if there is no available height within 0.5 metres of
+        the desired height.
+    """
+
+    error_checking.assert_is_geq_numpy_array(heights_m_agl, 0.)
+    error_checking.assert_is_numpy_array(heights_m_agl, num_dimensions=1)
+    error_checking.assert_is_geq(desired_height_m_agl, 0.)
+
+    height_diffs_metres = numpy.absolute(heights_m_agl - desired_height_m_agl)
+    matching_index = numpy.argmin(height_diffs_metres)
+
+    if height_diffs_metres[matching_index] <= 0.5:
+        return matching_index
+
+    error_string = (
+        'Cannot find available height within 0.5 metres of desired height '
+        '({0:.1f} m AGL).  Nearest available height is {1:.1f} m AGL.'
+    ).format(desired_height_m_agl, heights_m_agl[matching_index])
+
+    raise ValueError(error_string)
 
 
 def find_file(example_dir_name, year, raise_error_if_missing=True):
@@ -297,23 +347,58 @@ def concat_examples(example_dicts):
         `read_file`.
     :return: example_dict: Single dictionary, also in the format returned by
         `read_file`.
+    :raises: ValueError: if any two dictionaries have different predictor
+        variables, target variables, or height coordinates.
     """
 
     example_dict = copy.deepcopy(example_dicts[0])
 
     keys_to_match = [
         SCALAR_PREDICTOR_NAMES_KEY, VECTOR_PREDICTOR_NAMES_KEY,
-        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY
+        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY, HEIGHTS_KEY
     ]
 
     for i in range(1, len(example_dicts)):
+        if not numpy.allclose(
+                example_dict[HEIGHTS_KEY], example_dicts[i][HEIGHTS_KEY],
+                atol=TOLERANCE
+        ):
+            error_string = (
+                '1st and {0:d}th dictionaries have different height coords '
+                '(units are m AGL).  1st dictionary:\n{1:s}\n\n'
+                '{0:d}th dictionary:\n{2:s}'
+            ).format(
+                i + 1, str(example_dict[HEIGHTS_KEY]),
+                str(example_dicts[i][HEIGHTS_KEY])
+            )
+
+            raise ValueError(error_string)
+
+        for this_key in keys_to_match:
+            if this_key == HEIGHTS_KEY:
+                continue
+
+            if example_dict[this_key] == example_dicts[i][this_key]:
+                continue
+
+            error_string = (
+                '1st and {0:d}th dictionaries have different values for '
+                '"{1:s}".  1st dictionary:\n{2:s}\n\n'
+                '{0:d}th dictionary:\n{3:s}'
+            ).format(
+                i + 1, this_key, str(example_dict[this_key]),
+                str(example_dicts[i][this_key])
+            )
+
+            raise ValueError(error_string)
+
         for this_key in DICTIONARY_KEYS:
             if this_key in keys_to_match:
-                assert example_dict[this_key] == example_dicts[i][this_key]
-            else:
-                example_dict[this_key] = numpy.concatenate((
-                    example_dict[this_key], example_dicts[i][this_key]
-                ), axis=0)
+                continue
+
+            example_dict[this_key] = numpy.concatenate((
+                example_dict[this_key], example_dicts[i][this_key]
+            ), axis=0)
 
     return example_dict
 
@@ -330,8 +415,7 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     :return: data_matrix: numpy array with data values for given field.
     """
 
-    # TODO(thunderhoser): Nicer check.
-    assert field_name in PREDICTOR_NAMES + TARGET_NAMES
+    _check_field_name(field_name)
 
     if field_name in SCALAR_PREDICTOR_NAMES:
         height_m_agl = None
@@ -351,13 +435,9 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     if height_m_agl is None:
         return data_matrix
 
-    error_checking.assert_is_not_nan(height_m_agl)
-    height_diffs_metres = numpy.absolute(
-        example_dict[HEIGHTS_KEY] - height_m_agl
+    height_index = _match_heights(
+        heights_m_agl=example_dict[HEIGHTS_KEY],
+        desired_height_m_agl=height_m_agl
     )
-
-    # TODO(thunderhoser): Nicer check.
-    height_index = numpy.argmin(height_diffs_metres)
-    assert height_diffs_metres[height_index] <= 0.5
 
     return data_matrix[..., height_index]
