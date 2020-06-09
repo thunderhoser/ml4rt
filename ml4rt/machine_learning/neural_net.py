@@ -9,8 +9,12 @@ DEFAULT_L2_WEIGHT = 0.001
 
 DEFAULT_CONV_LAYER_CHANNEL_NUMS = numpy.array([80, 80, 80, 3], dtype=int)
 DEFAULT_CONV_LAYER_DROPOUT_RATES = numpy.array([0.5, 0.5, 0.5, numpy.nan])
-DEFAULT_DENSE_LAYER_NEURON_NUMS = numpy.array([409, 29, 2], dtype=int)
-DEFAULT_DENSE_LAYER_DROPOUT_RATES = numpy.array([0.5, 0.5, numpy.nan])
+DEFAULT_DENSE_NEURON_NUMS_FOR_CNN = numpy.array([409, 29, 2], dtype=int)
+DEFAULT_DENSE_DROPOUT_RATES_FOR_CNN = numpy.array([0.5, 0.5, numpy.nan])
+
+# TODO(thunderhoser): Probably want to change this.
+DEFAULT_DENSE_NEURON_NUMS_FOR_DNN = numpy.array([1000, 409, 29, 2], dtype=int)
+DEFAULT_DENSE_DROPOUT_RATES_FOR_DNN = numpy.array([0.5, 0.5, 0.5, numpy.nan])
 
 DEFAULT_INNER_ACTIV_FUNCTION_NAME = architecture_utils.RELU_FUNCTION_STRING
 DEFAULT_INNER_ACTIV_FUNCTION_ALPHA = 0.2
@@ -22,8 +26,8 @@ DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA = 0.
 
 def make_dense_net(
         num_inputs,
-        dense_layer_neuron_nums=DEFAULT_DENSE_LAYER_NEURON_NUMS,
-        dense_layer_dropout_rates=DEFAULT_DENSE_LAYER_DROPOUT_RATES,
+        dense_layer_neuron_nums=DEFAULT_DENSE_NEURON_NUMS_FOR_DNN,
+        dense_layer_dropout_rates=DEFAULT_DENSE_DROPOUT_RATES_FOR_DNN,
         inner_activ_function_name=DEFAULT_INNER_ACTIV_FUNCTION_NAME,
         inner_activ_function_alpha=DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
         output_activ_function_name=DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
@@ -105,8 +109,8 @@ def make_cnn(
         num_heights, num_input_channels,
         conv_layer_channel_nums=DEFAULT_CONV_LAYER_CHANNEL_NUMS,
         conv_layer_dropout_rates=DEFAULT_CONV_LAYER_DROPOUT_RATES,
-        dense_layer_neuron_nums=DEFAULT_DENSE_LAYER_NEURON_NUMS,
-        dense_layer_dropout_rates=DEFAULT_DENSE_LAYER_DROPOUT_RATES,
+        dense_layer_neuron_nums=DEFAULT_DENSE_NEURON_NUMS_FOR_CNN,
+        dense_layer_dropout_rates=DEFAULT_DENSE_DROPOUT_RATES_FOR_CNN,
         inner_activ_function_name=DEFAULT_INNER_ACTIV_FUNCTION_NAME,
         inner_activ_function_alpha=DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
         output_activ_function_name=DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
