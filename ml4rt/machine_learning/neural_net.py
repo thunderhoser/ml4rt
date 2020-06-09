@@ -20,6 +20,87 @@ DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA = 0.
 # TODO(thunderhoser): Filter size needs to be an option.
 
 
+def make_dense_net(
+        num_inputs,
+        dense_layer_neuron_nums=DEFAULT_DENSE_LAYER_NEURON_NUMS,
+        dense_layer_dropout_rates=DEFAULT_DENSE_LAYER_DROPOUT_RATES,
+        inner_activ_function_name=DEFAULT_INNER_ACTIV_FUNCTION_NAME,
+        inner_activ_function_alpha=DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
+        output_activ_function_name=DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
+        output_activ_function_alpha=DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
+        l1_weight=DEFAULT_L1_WEIGHT, l2_weight=DEFAULT_L2_WEIGHT,
+        use_batch_normalization=True):
+    """Makes dense (fully connected) neural net.
+
+    :param num_inputs: Number of input variables (predictors).
+    :param dense_layer_neuron_nums: See doc for `make_cnn`.
+    :param dense_layer_dropout_rates: Same.
+    :param inner_activ_function_name: Same.
+    :param inner_activ_function_alpha: Same.
+    :param output_activ_function_name: Same.
+    :param output_activ_function_alpha: Same.
+    :param l1_weight: Same.
+    :param l2_weight: Same.
+    :param use_batch_normalization: Same.
+    :return: model_object: Same.
+    """
+
+    input_layer_object = keras.layers.Input(shape=(num_inputs,))
+    regularizer_object = architecture_utils.get_weight_regularizer(
+        l1_weight=l1_weight, l2_weight=l2_weight
+    )
+
+    num_dense_layers = len(dense_layer_neuron_nums)
+    layer_object = None
+
+    for i in range(num_dense_layers):
+        if layer_object is None:
+            this_input_layer_object = input_layer_object
+        else:
+            this_input_layer_object = layer_object
+
+        layer_object = architecture_utils.get_dense_layer(
+            num_output_units=dense_layer_neuron_nums[i],
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        if i == num_dense_layers - 1:
+            layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=output_activ_function_name,
+                alpha_for_relu=output_activ_function_alpha,
+                alpha_for_elu=output_activ_function_alpha
+            )(layer_object)
+        else:
+            layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=inner_activ_function_name,
+                alpha_for_relu=inner_activ_function_alpha,
+                alpha_for_elu=inner_activ_function_alpha
+            )(layer_object)
+
+        if dense_layer_dropout_rates[i] > 0:
+            layer_object = architecture_utils.get_dropout_layer(
+                dropout_fraction=dense_layer_dropout_rates[i]
+            )(layer_object)
+
+        if use_batch_normalization and i != num_dense_layers - 1:
+            layer_object = architecture_utils.get_batch_norm_layer()(
+                layer_object
+            )
+
+    model_object = keras.models.Model(
+        inputs=input_layer_object, outputs=layer_object
+    )
+
+    # TODO(thunderhoser): Add bias to metrics.
+    model_object.compile(
+        loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+        metrics=['mae']
+    )
+
+    model_object.summary()
+    return model_object
+
+
 def make_cnn(
         num_heights, num_input_channels,
         conv_layer_channel_nums=DEFAULT_CONV_LAYER_CHANNEL_NUMS,
@@ -70,6 +151,8 @@ def make_cnn(
         normalization after each inner (non-output) layer.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
+
+    # TODO(thunderhoser): Check input args.
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
