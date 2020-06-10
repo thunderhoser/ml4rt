@@ -1,18 +1,29 @@
 """Methods for building, training, and applying neural nets."""
 
+import pickle
+import os.path
 import numpy
 import keras
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.io import example_io
 from ml4rt.utils import normalization
+from ml4rt.machine_learning import keras_metrics as custom_metrics
+
+PLATEAU_PATIENCE_EPOCHS = 3
+PLATEAU_LEARNING_RATE_MULTIPLIER = 0.5
+PLATEAU_COOLDOWN_EPOCHS = 0
+EARLY_STOPPING_PATIENCE_EPOCHS = 15
+LOSS_PATIENCE = 0.005
 
 DEFAULT_L1_WEIGHT = 0.
 DEFAULT_L2_WEIGHT = 0.001
 
 DEFAULT_CONV_LAYER_CHANNEL_NUMS = numpy.array([80, 80, 80, 3], dtype=int)
 DEFAULT_CONV_LAYER_DROPOUT_RATES = numpy.array([0.5, 0.5, 0.5, numpy.nan])
+DEFAULT_CONV_LAYER_FILTER_SIZES = numpy.array([5, 5, 5, 5], dtype=int)
 DEFAULT_DENSE_NEURON_NUMS_FOR_CNN = numpy.array([409, 29, 2], dtype=int)
 DEFAULT_DENSE_DROPOUT_RATES_FOR_CNN = numpy.array([0.5, 0.5, numpy.nan])
 
@@ -39,7 +50,7 @@ TARGET_NORM_TYPE_KEY = 'target_norm_type_string'
 TARGET_MIN_NORM_VALUE_KEY = 'target_min_norm_value'
 TARGET_MAX_NORM_VALUE_KEY = 'target_max_norm_value'
 
-DEFAULT_OPTION_DICT = {
+DEFAULT_GENERATOR_OPTION_DICT = {
     PREDICTOR_NAMES_KEY: (
         example_io.SCALAR_PREDICTOR_NAMES_KEY +
         example_io.VECTOR_PREDICTOR_NAMES_KEY
@@ -55,16 +66,172 @@ DEFAULT_OPTION_DICT = {
     TARGET_MAX_NORM_VALUE_KEY: 1.
 }
 
+NUM_HEIGHTS_KEY = 'num_heights'
+NUM_INPUT_CHANNELS_KEY = 'num_input_channels'
+NUM_INPUTS_KEY = 'num_inputs'
+CONV_LAYER_CHANNEL_NUMS_KEY = 'conv_layer_channel_nums'
+CONV_LAYER_DROPOUT_RATES_KEY = 'conv_layer_dropout_rates'
+CONV_LAYER_FILTER_SIZES_KEY = 'conv_layer_filter_sizes'
+DENSE_LAYER_NEURON_NUMS_KEY = 'dense_layer_neuron_nums'
+DENSE_LAYER_DROPOUT_RATES_KEY = 'dense_layer_dropout_rates'
+INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
+INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
+OUTPUT_ACTIV_FUNCTION_KEY = 'output_activ_function_name'
+OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
+L1_WEIGHT_KEY = 'l1_weight'
+L2_WEIGHT_KEY = 'l2_weight'
+USE_BATCH_NORM_KEY = 'use_batch_normalization'
+
+DEFAULT_CNN_ARCH_OPTION_DICT = {
+    CONV_LAYER_CHANNEL_NUMS_KEY: DEFAULT_CONV_LAYER_CHANNEL_NUMS,
+    CONV_LAYER_DROPOUT_RATES_KEY: DEFAULT_CONV_LAYER_DROPOUT_RATES,
+    CONV_LAYER_FILTER_SIZES_KEY: DEFAULT_CONV_LAYER_FILTER_SIZES,
+    DENSE_LAYER_NEURON_NUMS_KEY: DEFAULT_DENSE_NEURON_NUMS_FOR_CNN,
+    DENSE_LAYER_DROPOUT_RATES_KEY: DEFAULT_DENSE_DROPOUT_RATES_FOR_CNN,
+    INNER_ACTIV_FUNCTION_KEY: DEFAULT_INNER_ACTIV_FUNCTION_NAME,
+    INNER_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
+    OUTPUT_ACTIV_FUNCTION_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
+    OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
+    L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
+    L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
+    USE_BATCH_NORM_KEY: True
+}
+
+DEFAULT_DNN_ARCH_OPTION_DICT = {
+    DENSE_LAYER_NEURON_NUMS_KEY: DEFAULT_DENSE_NEURON_NUMS_FOR_DNN,
+    DENSE_LAYER_DROPOUT_RATES_KEY: DEFAULT_DENSE_DROPOUT_RATES_FOR_DNN,
+    INNER_ACTIV_FUNCTION_KEY: DEFAULT_INNER_ACTIV_FUNCTION_NAME,
+    INNER_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
+    OUTPUT_ACTIV_FUNCTION_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
+    OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
+    L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
+    L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
+    USE_BATCH_NORM_KEY: True
+}
+
+METRIC_FUNCTION_LIST = [
+    custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
+    custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
+    custom_metrics.mse_skill_score, custom_metrics.correlation
+]
+
+METRIC_FUNCTION_DICT = {
+    'mean_bias': custom_metrics.mean_bias,
+    'mean_absolute_error': custom_metrics.mean_absolute_error,
+    'mae_skill_score': custom_metrics.mae_skill_score,
+    'mean_squared_error': custom_metrics.mean_squared_error,
+    'mse_skill_score': custom_metrics.mse_skill_score,
+    'correlation': custom_metrics.correlation
+}
+
+NUM_EPOCHS_KEY = 'num_epochs'
+NUM_TRAINING_BATCHES_KEY = 'num_training_batches_per_epoch'
+TRAINING_OPTIONS_KEY = 'training_option_dict'
+NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
+VALIDATION_OPTIONS_KEY = 'validation_option_dict'
+IS_CNN_KEY = 'is_cnn'
+
+METADATA_KEYS = [
+    NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
+    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY
+]
+
+
+def _check_architecture_args(option_dict, is_cnn):
+    """Error-checks input arguments for architecture.
+
+    :param option_dict: See doc for `make_cnn` or `make_dense_net`.
+    :return: option_dict: Same as input, except defaults may have been added.
+    """
+
+    error_checking.assert_is_boolean(is_cnn)
+    orig_option_dict = option_dict.copy()
+
+    if is_cnn:
+        option_dict = DEFAULT_CNN_ARCH_OPTION_DICT.copy()
+    else:
+        option_dict = DEFAULT_DNN_ARCH_OPTION_DICT.copy()
+
+    option_dict.update(orig_option_dict)
+
+    if is_cnn:
+        num_heights = option_dict[NUM_HEIGHTS_KEY]
+        error_checking.assert_is_integer(num_heights)
+        error_checking.assert_is_geq(num_heights, 10)
+
+        num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
+        error_checking.assert_is_integer(num_input_channels)
+        error_checking.assert_is_geq(num_input_channels, 1)
+
+        conv_layer_channel_nums = option_dict[CONV_LAYER_CHANNEL_NUMS_KEY]
+        error_checking.assert_is_integer_numpy_array(conv_layer_channel_nums)
+        error_checking.assert_is_numpy_array(
+            conv_layer_channel_nums, num_dimensions=1
+        )
+        error_checking.assert_is_geq_numpy_array(conv_layer_channel_nums, 1)
+
+        num_conv_layers = len(conv_layer_channel_nums)
+        these_dimensions = numpy.array([num_conv_layers], dtype=int)
+
+        conv_layer_dropout_rates = option_dict[CONV_LAYER_DROPOUT_RATES_KEY]
+        error_checking.assert_is_numpy_array(
+            conv_layer_dropout_rates, exact_dimensions=these_dimensions
+        )
+        error_checking.assert_is_leq_numpy_array(
+            conv_layer_dropout_rates, 1., allow_nan=True
+        )
+
+        # TODO(thunderhoser): Also make sure filter sizes are odd?
+        conv_layer_filter_sizes = option_dict[CONV_LAYER_FILTER_SIZES_KEY]
+        error_checking.assert_is_integer_numpy_array(conv_layer_filter_sizes)
+        error_checking.assert_is_numpy_array(
+            conv_layer_filter_sizes, exact_dimensions=these_dimensions
+        )
+        error_checking.assert_is_geq_numpy_array(conv_layer_filter_sizes, 3)
+    else:
+        num_inputs = option_dict[NUM_INPUTS_KEY]
+        error_checking.assert_is_integer(num_inputs)
+        error_checking.assert_is_geq(num_inputs, 10)
+
+    dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
+    error_checking.assert_is_integer_numpy_array(dense_layer_neuron_nums)
+    error_checking.assert_is_numpy_array(
+        dense_layer_neuron_nums, num_dimensions=1
+    )
+    error_checking.assert_is_geq_numpy_array(dense_layer_neuron_nums, 1)
+
+    num_dense_layers = len(dense_layer_neuron_nums)
+    these_dimensions = numpy.array([num_dense_layers], dtype=int)
+
+    dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
+    error_checking.assert_is_numpy_array(
+        dense_layer_dropout_rates, exact_dimensions=these_dimensions
+    )
+    error_checking.assert_is_leq_numpy_array(
+        dense_layer_dropout_rates, 1., allow_nan=True
+    )
+
+    l1_weight = option_dict[L1_WEIGHT_KEY]
+    error_checking.assert_is_geq(l1_weight, 0.)
+
+    l2_weight = option_dict[L2_WEIGHT_KEY]
+    error_checking.assert_is_geq(l2_weight, 0.)
+
+    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    error_checking.assert_is_boolean(use_batch_normalization)
+
+    return option_dict
+
 
 def _check_generator_args(option_dict):
     """Error-checks input arguments for generator.
 
-    :param option_dict: See doc for any generator in this file.
+    :param option_dict: See doc for `cnn_generator` or `dense_net_generator`.
     :return: option_dict: Same as input, except defaults may have been added.
     """
 
     orig_option_dict = option_dict.copy()
-    option_dict = DEFAULT_OPTION_DICT.copy()
+    option_dict = DEFAULT_GENERATOR_OPTION_DICT.copy()
     option_dict.update(orig_option_dict)
 
     error_checking.assert_is_integer(option_dict[BATCH_SIZE_KEY])
@@ -79,6 +246,62 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
 
     return option_dict
+
+
+def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
+    """Error-checks arguments for `apply_cnn` or `apply_dense_net`.
+
+    :param predictor_matrix: See doc for `apply_cnn` or `apply_dense_net`.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages during
+        inference.
+    :return: num_examples_per_batch: Batch size (may be different than input).
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
+    num_examples = predictor_matrix.shape[0]
+
+    if num_examples_per_batch is None:
+        num_examples_per_batch = num_examples + 0
+    else:
+        error_checking.assert_is_integer(num_examples_per_batch)
+        error_checking.assert_is_geq(num_examples_per_batch, 100)
+
+    num_examples_per_batch = min([num_examples_per_batch, num_examples])
+    error_checking.assert_is_boolean(verbose)
+
+    return num_examples_per_batch
+
+
+def _write_metadata(
+        pickle_file_name, num_epochs, num_training_batches_per_epoch,
+        training_option_dict, num_validation_batches_per_epoch,
+        validation_option_dict, is_cnn):
+    """Writes metadata to Pickle file.
+
+    :param pickle_file_name: Path to output file.
+    :param num_epochs: See doc for `train_neural_net`.
+    :param num_training_batches_per_epoch: Same.
+    :param training_option_dict: Same.
+    :param num_validation_batches_per_epoch: Same.
+    :param validation_option_dict: Same.
+    :param is_cnn: Same.
+    """
+
+    metadata_dict = {
+        NUM_EPOCHS_KEY: num_epochs,
+        NUM_TRAINING_BATCHES_KEY: num_training_batches_per_epoch,
+        TRAINING_OPTIONS_KEY: training_option_dict,
+        NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
+        VALIDATION_OPTIONS_KEY: validation_option_dict,
+        IS_CNN_KEY: is_cnn
+    }
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
+
+    pickle_file_handle = open(pickle_file_name, 'wb')
+    pickle.dump(metadata_dict, pickle_file_handle)
+    pickle_file_handle.close()
 
 
 def _make_cnn_predictor_matrix(example_dict):
@@ -252,18 +475,7 @@ def _read_file_for_generator(
     return example_dict
 
 
-def make_cnn(
-        num_heights, num_input_channels,
-        conv_layer_channel_nums=DEFAULT_CONV_LAYER_CHANNEL_NUMS,
-        conv_layer_dropout_rates=DEFAULT_CONV_LAYER_DROPOUT_RATES,
-        dense_layer_neuron_nums=DEFAULT_DENSE_NEURON_NUMS_FOR_CNN,
-        dense_layer_dropout_rates=DEFAULT_DENSE_DROPOUT_RATES_FOR_CNN,
-        inner_activ_function_name=DEFAULT_INNER_ACTIV_FUNCTION_NAME,
-        inner_activ_function_alpha=DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
-        output_activ_function_name=DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
-        output_activ_function_alpha=DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
-        l1_weight=DEFAULT_L1_WEIGHT, l2_weight=DEFAULT_L2_WEIGHT,
-        use_batch_normalization=True):
+def make_cnn(option_dict):
     """Makes CNN (convolutional neural net).
 
     This method only sets up the architecture, loss function, and optimizer,
@@ -272,39 +484,62 @@ def make_cnn(
     C = number of convolutional layers
     D = number of dense layers
 
-    :param num_heights: Number of height levels.
-    :param num_input_channels: Number of input channels.
-    :param conv_layer_channel_nums: length-C numpy array with number of channels
-        (filters) produced by each conv layer.  The last value in the array,
-        conv_layer_channel_nums[-1], is the number of output channels (profiles
-        to be predicted).
-    :param conv_layer_dropout_rates: length-C numpy array with dropout rate for
-        each conv layer.  Use NaN if you do not want dropout for a particular
-        layer.
-    :param dense_layer_neuron_nums: length-D numpy array with number of neurons
-        (features) produced by each dense layer.  The last value in the array,
-        dense_layer_neuron_nums[-1], is the number of output scalars (to be
-        predicted).
-    :param dense_layer_dropout_rates: length-D numpy array with dropout rate for
-        each dense layer.  Use NaN if you do not want dropout for a particular
-        layer.
-    :param inner_activ_function_name: Name of activation function for all inner
-        (non-output) layers.  Must be accepted by ``.
-    :param inner_activ_function_alpha: Alpha (slope parameter) for activation
-        function for all inner layers.  Applies only to ReLU and eLU.
-    :param output_activ_function_name: Same as `inner_activ_function_name` but
-        for output layers (profiles and scalars).
-    :param output_activ_function_alpha: Same as `inner_activ_function_alpha` but
-        for output layers (profiles and scalars).
-    :param l1_weight: Weight for L_1 regularization.
-    :param l2_weight: Weight for L_2 regularization.
-    :param use_batch_normalization: Boolean flag.  If True, will use batch
-        normalization after each inner (non-output) layer.
+    :param option_dict: Dictionary with the following keys.
+    option_dict['num_heights']: Number of height levels.
+    option_dict['num_input_channels']: Number of input channels.
+    option_dict['conv_layer_channel_nums']: length-C numpy array with number of
+        channels (filters) produced by each conv layer.  The last value in the
+        array, conv_layer_channel_nums[-1], is the number of output channels
+        (profiles to be predicted).
+    option_dict['conv_layer_dropout_rates']: length-C numpy array with dropout
+        rate for each conv layer.  Use NaN if you do not want dropout for a
+        particular layer.
+    option_dict['conv_layer_filter_sizes']: length-C numpy array with filter
+        size (number of heights) for each conv layer.
+    option_dict['dense_layer_neuron_nums']: length-D numpy array with number of
+        neurons (features) produced by each dense layer.  The last value in the
+        array, dense_layer_neuron_nums[-1], is the number of output scalars (to
+        be predicted).
+    option_dict['dense_layer_dropout_rates']: length-D numpy array with dropout
+        rate for each dense layer.  Use NaN if you do not want dropout for a
+        particular layer.
+    option_dict['inner_activ_function_name']: Name of activation function for
+        all inner (non-output) layers.  Must be accepted by
+        `architecture_utils.check_activation_function`.
+    option_dict['inner_activ_function_alpha']: Alpha (slope parameter) for
+        activation function for all inner layers.  Applies only to ReLU and eLU.
+    option_dict['output_activ_function_name']: Same as
+        `inner_activ_function_name` but for output layers (profiles and
+        scalars).
+    option_dict['output_activ_function_alpha']: Same as
+        `inner_activ_function_alpha` but for output layers (profiles and
+        scalars).
+    option_dict['l1_weight']: Weight for L_1 regularization.
+    option_dict['l2_weight']: Weight for L_2 regularization.
+    option_dict['use_batch_normalization']: Boolean flag.  If True, will use
+        batch normalization after each inner (non-output) layer.
+
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
-    # TODO(thunderhoser): Check input args.
-    # TODO(thunderhoser): Filter size needs to be an option.
+    # TODO(thunderhoser): Allow for no dense layers.
+
+    option_dict = _check_architecture_args(option_dict=option_dict, is_cnn=True)
+
+    num_heights = option_dict[NUM_HEIGHTS_KEY]
+    num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
+    conv_layer_channel_nums = option_dict[CONV_LAYER_CHANNEL_NUMS_KEY]
+    conv_layer_dropout_rates = option_dict[CONV_LAYER_DROPOUT_RATES_KEY]
+    conv_layer_filter_sizes = option_dict[CONV_LAYER_FILTER_SIZES_KEY]
+    dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
+    dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
+    inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
+    inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
+    output_activ_function_name = option_dict[OUTPUT_ACTIV_FUNCTION_KEY]
+    output_activ_function_alpha = option_dict[OUTPUT_ACTIV_FUNCTION_ALPHA_KEY]
+    l1_weight = option_dict[L1_WEIGHT_KEY]
+    l2_weight = option_dict[L2_WEIGHT_KEY]
+    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -327,7 +562,7 @@ def make_cnn(
             dense_input_layer_object = conv_output_layer_object
 
         conv_output_layer_object = architecture_utils.get_1d_conv_layer(
-            num_kernel_rows=5, num_rows_per_stride=1,
+            num_kernel_rows=conv_layer_filter_sizes[i], num_rows_per_stride=1,
             num_filters=conv_layer_channel_nums[i],
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object
@@ -398,42 +633,47 @@ def make_cnn(
         outputs=[conv_output_layer_object, dense_output_layer_object]
     )
 
-    # TODO(thunderhoser): Add bias to metrics.
     model_object.compile(
         loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
-        metrics=['mae']
+        metrics=METRIC_FUNCTION_LIST
     )
 
     model_object.summary()
     return model_object
 
 
-def make_dense_net(
-        num_inputs,
-        dense_layer_neuron_nums=DEFAULT_DENSE_NEURON_NUMS_FOR_DNN,
-        dense_layer_dropout_rates=DEFAULT_DENSE_DROPOUT_RATES_FOR_DNN,
-        inner_activ_function_name=DEFAULT_INNER_ACTIV_FUNCTION_NAME,
-        inner_activ_function_alpha=DEFAULT_INNER_ACTIV_FUNCTION_ALPHA,
-        output_activ_function_name=DEFAULT_OUTPUT_ACTIV_FUNCTION_NAME,
-        output_activ_function_alpha=DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
-        l1_weight=DEFAULT_L1_WEIGHT, l2_weight=DEFAULT_L2_WEIGHT,
-        use_batch_normalization=True):
+def make_dense_net(option_dict):
     """Makes dense (fully connected) neural net.
 
-    :param num_inputs: Number of input variables (predictors).
-    :param dense_layer_neuron_nums: See doc for `make_cnn`.
-    :param dense_layer_dropout_rates: Same.
-    :param inner_activ_function_name: Same.
-    :param inner_activ_function_alpha: Same.
-    :param output_activ_function_name: Same.
-    :param output_activ_function_alpha: Same.
-    :param l1_weight: Same.
-    :param l2_weight: Same.
-    :param use_batch_normalization: Same.
-    :return: model_object: Same.
+    :param option_dict: Dictionary with the following keys.
+    option_dict['num_inputs']: Number of input variables (predictors).
+    option_dict['dense_layer_neuron_nums']: See doc for `make_cnn`.
+    option_dict['dense_layer_dropout_rates']: Same.
+    option_dict['inner_activ_function_name']: Same.
+    option_dict['inner_activ_function_alpha']: Same.
+    option_dict['output_activ_function_name']: Same.
+    option_dict['output_activ_function_alpha']: Same.
+    option_dict['l1_weight']: Same.
+    option_dict['l2_weight']: Same.
+    option_dict['use_batch_normalization']: Same.
+
+    :return: model_object: See doc for `make_cnn`.
     """
 
-    # TODO(thunderhoser): Check input args.
+    option_dict = _check_architecture_args(
+        option_dict=option_dict, is_cnn=False
+    )
+
+    num_inputs = option_dict[NUM_INPUTS_KEY]
+    dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
+    dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
+    inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
+    inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
+    output_activ_function_name = option_dict[OUTPUT_ACTIV_FUNCTION_KEY]
+    output_activ_function_alpha = option_dict[OUTPUT_ACTIV_FUNCTION_ALPHA_KEY]
+    l1_weight = option_dict[L1_WEIGHT_KEY]
+    l2_weight = option_dict[L2_WEIGHT_KEY]
+    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
 
     input_layer_object = keras.layers.Input(shape=(num_inputs,))
     regularizer_object = architecture_utils.get_weight_regularizer(
@@ -481,10 +721,9 @@ def make_dense_net(
         inputs=input_layer_object, outputs=layer_object
     )
 
-    # TODO(thunderhoser): Add bias to metrics.
     model_object.compile(
         loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
-        metrics=['mae']
+        metrics=METRIC_FUNCTION_LIST
     )
 
     model_object.summary()
@@ -709,3 +948,300 @@ def dense_net_generator(option_dict):
             predictor_matrix.astype('float32'),
             target_matrix.astype('float32')
         )
+
+
+def train_neural_net(
+        model_object, output_dir_name, num_epochs,
+        num_training_batches_per_epoch, training_option_dict,
+        num_validation_batches_per_epoch, validation_option_dict, is_cnn):
+    """Trains neural net (either CNN or dense net).
+
+    :param model_object: Untrained neural net (instance of `keras.models.Model`
+        or `keras.models.Sequential`).
+    :param output_dir_name: Path to output directory (model and training history
+        will be saved here).
+    :param num_epochs: Number of training epochs.
+    :param num_training_batches_per_epoch: Number of training batches per epoch.
+    :param training_option_dict: See doc for `cnn_generator` or
+        `dense_net_generator`.  This dictionary will be used for training
+        options.
+    :param num_validation_batches_per_epoch: Number of validation batches per
+        epoch.
+    :param validation_option_dict: See doc for `cnn_generator` or
+        `dense_net_generator`.  For validation only, the following values will
+        replace corresponding values in `training_option_dict`:
+    validation_option_dict['example_dir_name']
+    validation_option_dict['num_examples_per_batch']
+    validation_option_dict['first_time_unix_sec']
+    validation_option_dict['last_time_unix_sec']
+
+    :param is_cnn: Boolean flag.  If True, will assume that `model_object` is a
+        CNN.  If False, will assume that it is a dense net.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 10)
+    error_checking.assert_is_integer(num_training_batches_per_epoch)
+    error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
+    error_checking.assert_is_integer(num_validation_batches_per_epoch)
+    error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
+
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath='{0:s}/model.h5'.format(output_dir_name),
+        monitor='val_loss', verbose=1, save_best_only=True,
+        save_weights_only=False, mode='min', period=1
+    )
+
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=LOSS_PATIENCE,
+        patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
+    )
+
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
+        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+    )
+
+    list_of_callback_objects = [
+        history_object, checkpoint_object, early_stopping_object, plateau_object
+    ]
+
+    validation_keys_to_keep = [
+        EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
+    ]
+
+    for this_key in list(validation_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    _write_metadata(
+        pickle_file_name=metafile_name, num_epochs=num_epochs,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+        validation_option_dict=validation_option_dict, is_cnn=is_cnn
+    )
+
+    if is_cnn:
+        training_generator = cnn_generator(training_option_dict)
+        validation_generator = cnn_generator(validation_option_dict)
+    else:
+        training_generator = dense_net_generator(training_option_dict)
+        validation_generator = dense_net_generator(validation_option_dict)
+
+    model_object.fit_generator(
+        generator=training_generator,
+        steps_per_epoch=num_training_batches_per_epoch, epochs=num_epochs,
+        verbose=1, callbacks=list_of_callback_objects,
+        validation_data=validation_generator,
+        validation_steps=num_validation_batches_per_epoch
+    )
+
+
+def apply_cnn(
+        model_object, predictor_matrix, num_examples_per_batch, verbose=False):
+    """Applies trained CNN to data.
+
+    E = number of examples per batch (batch size)
+    H = number of heights
+    T_v = number of vector target variables (channels)
+    T_s = number of scalar target variables
+
+    :param model_object: Trained CNN (instance of `keras.models.Model` or
+        `keras.models.Sequential`).
+    :param predictor_matrix: See output doc for `cnn_generator`.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :return: vector_prediction_matrix: numpy array (E x H x T_v) of predicted
+        values.
+    :return: scalar_prediction_matrix: numpy array (E x T_s) of predicted
+        values.
+    """
+
+    num_examples_per_batch = _check_inference_args(
+        predictor_matrix=predictor_matrix,
+        num_examples_per_batch=num_examples_per_batch, verbose=verbose
+    )
+
+    num_examples = predictor_matrix.shape[0]
+    vector_prediction_matrix = None
+    scalar_prediction_matrix = None
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        this_first_index = i
+        this_last_index = min(
+            [i + num_examples_per_batch - 1, num_examples - 1]
+        )
+
+        these_indices = numpy.linspace(
+            this_first_index, this_last_index,
+            num=this_last_index - this_first_index + 1, dtype=int
+        )
+
+        if verbose:
+            print('Applying CNN to examples {0:d}-{1:d} of {2:d}...'.format(
+                this_first_index + 1, this_last_index + 1, num_examples
+            ))
+
+        these_outputs = model_object.predict(
+            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
+        )
+
+        if vector_prediction_matrix is None:
+            vector_prediction_matrix = these_outputs[0] + 0.
+            scalar_prediction_matrix = these_outputs[1] + 0.
+        else:
+            vector_prediction_matrix = numpy.concatenate(
+                (vector_prediction_matrix, these_outputs[0]), axis=0
+            )
+            scalar_prediction_matrix = numpy.concatenate(
+                (scalar_prediction_matrix, these_outputs[1]), axis=0
+            )
+
+    if verbose:
+        print('Have applied CNN to all {0:d} examples!'.format(num_examples))
+
+    return vector_prediction_matrix, scalar_prediction_matrix
+
+
+def apply_dense_net(
+        model_object, predictor_matrix, num_examples_per_batch, verbose=False):
+    """Applies dense net to data.
+
+    E = number of examples per batch (batch size)
+    T = number of target variables
+
+    :param model_object: Trained dense net (instance of `keras.models.Model` or
+        `keras.models.Sequential`).
+    :param predictor_matrix: See output doc for `dense_net_generator`.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :return: prediction_matrix: E-by-T numpy array of predicted values.
+    """
+
+    num_examples_per_batch = _check_inference_args(
+        predictor_matrix=predictor_matrix,
+        num_examples_per_batch=num_examples_per_batch, verbose=verbose
+    )
+
+    num_examples = predictor_matrix.shape[0]
+    prediction_matrix = None
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        this_first_index = i
+        this_last_index = min(
+            [i + num_examples_per_batch - 1, num_examples - 1]
+        )
+
+        these_indices = numpy.linspace(
+            this_first_index, this_last_index,
+            num=this_last_index - this_first_index + 1, dtype=int
+        )
+
+        if verbose:
+            print((
+                'Applying dense net to examples {0:d}-{1:d} of {2:d}...'
+            ).format(
+                this_first_index + 1, this_last_index + 1, num_examples
+            ))
+
+        this_prediction_matrix = model_object.predict(
+            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
+        )
+
+        if prediction_matrix is None:
+            prediction_matrix = this_prediction_matrix + 0.
+        else:
+            prediction_matrix = numpy.concatenate(
+                (prediction_matrix, this_prediction_matrix), axis=0
+            )
+
+    if verbose:
+        print('Have applied dense net to all {0:d} examples!'.format(
+            num_examples
+        ))
+
+    return prediction_matrix
+
+
+def read_model(hdf5_file_name):
+    """Reads model from HDF5 file.
+
+    :param hdf5_file_name: Path to input file.
+    :return: model_object: Instance of `keras.models.Model` or
+        `keras.models.Sequential`.
+    """
+
+    error_checking.assert_file_exists(hdf5_file_name)
+    return keras.models.load_model(
+        hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
+    )
+
+
+def find_metafile(model_dir_name, raise_error_if_missing=True):
+    """Finds metafile for neural net.
+
+    :param model_dir_name: Name of model directory.
+    :param raise_error_if_missing: Boolean flag.  If file is missing and
+        `raise_error_if_missing == True`, will throw error.  If file is missing
+        and `raise_error_if_missing == False`, will return *expected* file path.
+    :return: metafile_name: Path to metafile.
+    """
+
+    error_checking.assert_is_string(model_dir_name)
+    error_checking.assert_is_boolean(raise_error_if_missing)
+
+    metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
+
+    if raise_error_if_missing and not os.path.isfile(metafile_name):
+        error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
+            metafile_name
+        )
+        raise ValueError(error_string)
+
+    return metafile_name
+
+
+def read_metadata(pickle_file_name):
+    """Reads metadata for neural net from Pickle file.
+
+    :param pickle_file_name: Path to input file.
+    :return: metadata_dict: Dictionary with the following keys.
+    metadata_dict['num_epochs']: See doc for `train_neural_net`.
+    metadata_dict['num_training_batches_per_epoch']: Same.
+    metadata_dict['training_option_dict']: Same.
+    metadata_dict['num_validation_batches_per_epoch']: Same.
+    metadata_dict['validation_option_dict']: Same.
+    metadata_dict['is_cnn']: Same.
+    """
+
+    error_checking.assert_file_exists(pickle_file_name)
+
+    pickle_file_handle = open(pickle_file_name, 'rb')
+    metadata_dict = pickle.load(pickle_file_handle)
+    pickle_file_handle.close()
+
+    missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
+    if len(missing_keys) == 0:
+        return metadata_dict
+
+    error_string = (
+        '\n{0:s}\nKeys listed above were expected, but not found, in file '
+        '"{1:s}".'
+    ).format(str(missing_keys), pickle_file_name)
+
+    raise ValueError(error_string)
