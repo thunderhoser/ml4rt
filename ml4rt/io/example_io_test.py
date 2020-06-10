@@ -131,6 +131,67 @@ CONCAT_EXAMPLE_DICT = {
     )
 }
 
+# The following constants are used to test reduce_sample_size.
+NUM_EXAMPLES_TO_KEEP = 2
+
+FIRST_EXAMPLE_DICT_REDUCED = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[:2, ...],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[:2, ...],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[:2, ...],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[:2, ...],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[:2, ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[:2, ...]
+}
+
+# The following constants are used to test subset_by_time.
+FIRST_TIME_UNIX_SEC = 1
+LAST_TIME_UNIX_SEC = 600
+
+FIRST_EXAMPLE_DICT_SELECT_TIMES = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[1:3, ...],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[1:3, ...],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[1:3, ...],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[1:3, ...],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...]
+}
+
+# The following constants are used to test subset_by_field.
+FIELD_NAMES_TO_KEEP = [
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.LATITUDE_NAME,
+    example_io.SHORTWAVE_DOWN_FLUX_NAME
+]
+
+FIRST_EXAMPLE_DICT_SELECT_FIELDS = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: [SCALAR_PREDICTOR_NAMES[1]],
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[..., [1]],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[..., []],
+    example_io.SCALAR_TARGET_NAMES_KEY: [],
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[..., []],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES[::-1],
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[..., ::-1],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
+}
+
 
 def _compare_example_dicts(first_example_dict, second_example_dict):
     """Compares two dictionaries with learning examples.
@@ -158,6 +219,12 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
                 atol=TOLERANCE
         ):
             return False
+
+    if not numpy.array_equal(
+            first_example_dict[example_io.VALID_TIMES_KEY],
+            second_example_dict[example_io.VALID_TIMES_KEY]
+    ):
+        return False
 
     keys_to_compare = [
         example_io.SCALAR_PREDICTOR_NAMES_KEY,
@@ -325,6 +392,43 @@ class ExampleIoTests(unittest.TestCase):
                 example_dict=FIRST_EXAMPLE_DICT,
                 field_name=example_io.LIQUID_WATER_PATH_NAME, height_m_agl=None
             )
+
+    def test_reduce_sample_size(self):
+        """Ensures correct output from reduce_sample_size."""
+
+        this_example_dict = example_io.reduce_sample_size(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            num_examples_to_keep=NUM_EXAMPLES_TO_KEEP, test_mode=True
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_REDUCED
+        ))
+
+    def test_subset_by_time(self):
+        """Ensures correct output from subset_by_time."""
+
+        this_example_dict = example_io.subset_by_time(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            first_time_unix_sec=FIRST_TIME_UNIX_SEC,
+            last_time_unix_sec=LAST_TIME_UNIX_SEC
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_SELECT_TIMES
+        ))
+
+    def test_subset_by_field(self):
+        """Ensures correct output from subset_by_field."""
+
+        this_example_dict = example_io.subset_by_field(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            field_names=FIELD_NAMES_TO_KEEP
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_SELECT_FIELDS
+        ))
 
 
 if __name__ == '__main__':

@@ -133,7 +133,31 @@ THIS_VECTOR_TARGET_MATRIX = numpy.stack(
     (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
 )
 
-EXAMPLE_DICT_Z_SCORES_NO_HEIGHT = {
+EXAMPLE_DICT_Z_PREDICTORS_NO_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_Z_TARGETS_NO_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_Z_BOTH_NO_HEIGHT = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
     example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
     example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
@@ -185,7 +209,31 @@ THIS_VECTOR_TARGET_MATRIX = numpy.stack(
     (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
 )
 
-EXAMPLE_DICT_MINMAX_NO_HEIGHT = {
+EXAMPLE_DICT_MINMAX_PREDICTORS_NO_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_MINMAX_TARGETS_NO_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_MINMAX_BOTH_NO_HEIGHT = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
     example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
     example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
@@ -262,7 +310,31 @@ THIS_VECTOR_TARGET_MATRIX = numpy.stack(
     (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
 )
 
-EXAMPLE_DICT_Z_SCORES_WITH_HEIGHT = {
+EXAMPLE_DICT_Z_PREDICTORS_WITH_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_Z_TARGETS_WITH_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_Z_BOTH_WITH_HEIGHT = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
     example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
     example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
@@ -314,7 +386,31 @@ THIS_VECTOR_TARGET_MATRIX = numpy.stack(
     (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
 )
 
-EXAMPLE_DICT_MINMAX_WITH_HEIGHT = {
+EXAMPLE_DICT_MINMAX_PREDICTORS_WITH_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_MINMAX_TARGETS_WITH_HEIGHT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
+EXAMPLE_DICT_MINMAX_BOTH_WITH_HEIGHT = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
     example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
     example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
@@ -359,71 +455,30 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
 class NormalizationTests(unittest.TestCase):
     """Each method is a unit test for normalization.py."""
 
-    def test_normalize_data_z_no_height(self):
+    def test_normalize_data_z_both_no_height(self):
         """Ensures correct output from normalize_data.
 
-        In this case, using z-score normalization with no separation by height.
+        In this case, using z-score normalization for both predictors and
+        targets, with *no* separation by height.
         """
 
         this_example_dict = normalization.normalize_data(
             example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
             normalization_file_name=None, separate_heights=False,
+            apply_to_predictors=True, apply_to_targets=True,
             test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
         )
 
         self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_Z_SCORES_NO_HEIGHT
+            this_example_dict, EXAMPLE_DICT_Z_BOTH_NO_HEIGHT
         ))
 
-    def test_denormalize_data_z_no_height(self):
-        """Ensures correct output from denormalize_data.
-
-        In this case, using z-score normalization with no separation by height.
-        """
-
         this_example_dict = normalization.denormalize_data(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_SCORES_NO_HEIGHT),
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_BOTH_NO_HEIGHT),
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
             normalization_file_name=None, separate_heights=False,
-            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_DENORM
-        ))
-
-    def test_normalize_data_minmax_no_height(self):
-        """Ensures correct output from normalize_data.
-
-        In this case, using min-max normalization with no separation by height.
-        """
-
-        this_example_dict = normalization.normalize_data(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
-            normalization_type_string=normalization.MINMAX_NORM_STRING,
-            normalization_file_name=None, separate_heights=False,
-            min_normalized_value=MIN_NORMALIZED_VALUE,
-            max_normalized_value=MAX_NORMALIZED_VALUE,
-            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_MINMAX_NO_HEIGHT
-        ))
-
-    def test_denormalize_data_minmax_no_height(self):
-        """Ensures correct output from denormalize_data.
-
-        In this case, using min-max normalization with no separation by height.
-        """
-
-        this_example_dict = normalization.denormalize_data(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_NO_HEIGHT),
-            normalization_type_string=normalization.MINMAX_NORM_STRING,
-            normalization_file_name=None, separate_heights=False,
-            min_normalized_value=MIN_NORMALIZED_VALUE,
-            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=True,
             test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
         )
 
@@ -431,33 +486,198 @@ class NormalizationTests(unittest.TestCase):
             this_example_dict, EXAMPLE_DICT_DENORM
         ))
 
-    def test_normalize_data_z_with_height(self):
+    def test_normalize_data_z_predictors_no_height(self):
         """Ensures correct output from normalize_data.
 
-        In this case, using z-score normalization with separation by height.
+        In this case, using z-score normalization for predictors only, with *no*
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_Z_PREDICTORS_NO_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_PREDICTORS_NO_HEIGHT),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_z_targets_no_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using z-score normalization for targets only, with *no*
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_Z_TARGETS_NO_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_TARGETS_NO_HEIGHT),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_both_no_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization for both predictors and
+        targets, with *no* separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_BOTH_NO_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_BOTH_NO_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_predictors_no_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization for predictors only, with *no*
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_PREDICTORS_NO_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=
+            copy.deepcopy(EXAMPLE_DICT_MINMAX_PREDICTORS_NO_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_targets_no_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization for targets only, with *no*
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_TARGETS_NO_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_TARGETS_NO_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=False,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_NO_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_z_both_with_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using z-score normalization for both predictors and
+        targets, with separation by height.
         """
 
         this_example_dict = normalization.normalize_data(
             example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
             normalization_file_name=None, separate_heights=True,
+            apply_to_predictors=True, apply_to_targets=True,
             test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
         )
 
         self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_Z_SCORES_WITH_HEIGHT
+            this_example_dict, EXAMPLE_DICT_Z_BOTH_WITH_HEIGHT
         ))
 
-    def test_denormalize_data_z_with_height(self):
-        """Ensures correct output from denormalize_data.
-
-        In this case, using z-score normalization with separation by height.
-        """
-
         this_example_dict = normalization.denormalize_data(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_SCORES_WITH_HEIGHT),
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_BOTH_WITH_HEIGHT),
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
             normalization_file_name=None, separate_heights=True,
+            apply_to_predictors=True, apply_to_targets=True,
             test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
         )
 
@@ -465,10 +685,73 @@ class NormalizationTests(unittest.TestCase):
             this_example_dict, EXAMPLE_DICT_DENORM
         ))
 
-    def test_normalize_data_minmax_with_height(self):
+    def test_normalize_data_z_predictors_with_height(self):
         """Ensures correct output from normalize_data.
 
-        In this case, using min-max normalization with separation by height.
+        In this case, using z-score normalization for predictors only, with
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_Z_PREDICTORS_WITH_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_PREDICTORS_WITH_HEIGHT),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_z_targets_with_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using z-score normalization for targets only, with
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_Z_TARGETS_WITH_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_Z_TARGETS_WITH_HEIGHT),
+            normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_both_with_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization for both predictors and
+        targets, with separation by height.
         """
 
         this_example_dict = normalization.normalize_data(
@@ -477,25 +760,92 @@ class NormalizationTests(unittest.TestCase):
             normalization_file_name=None, separate_heights=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=True,
             test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
         )
 
         self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_MINMAX_WITH_HEIGHT
+            this_example_dict, EXAMPLE_DICT_MINMAX_BOTH_WITH_HEIGHT
         ))
 
-    def test_denormalize_data_minmax_with_height(self):
-        """Ensures correct output from denormalize_data.
-
-        In this case, using min-max normalization with separation by height.
-        """
-
         this_example_dict = normalization.denormalize_data(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_WITH_HEIGHT),
+            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_BOTH_WITH_HEIGHT),
             normalization_type_string=normalization.MINMAX_NORM_STRING,
             normalization_file_name=None, separate_heights=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_predictors_with_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization for predictors only, with
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_PREDICTORS_WITH_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=
+            copy.deepcopy(EXAMPLE_DICT_MINMAX_PREDICTORS_WITH_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=True, apply_to_targets=False,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_normalize_data_minmax_targets_with_height(self):
+        """Ensures correct output from normalize_data.
+
+        In this case, using min-max normalization for targets only, with
+        separation by height.
+        """
+
+        this_example_dict = normalization.normalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_DENORM),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=False, apply_to_targets=True,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_MINMAX_TARGETS_WITH_HEIGHT
+        ))
+
+        this_example_dict = normalization.denormalize_data(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_TARGETS_WITH_HEIGHT),
+            normalization_type_string=normalization.MINMAX_NORM_STRING,
+            normalization_file_name=None, separate_heights=True,
+            min_normalized_value=MIN_NORMALIZED_VALUE,
+            max_normalized_value=MAX_NORMALIZED_VALUE,
+            apply_to_predictors=False, apply_to_targets=True,
             test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
         )
 

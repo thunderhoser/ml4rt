@@ -454,17 +454,19 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     return data_matrix[..., height_index]
 
 
-def reduce_sample_size(example_dict, num_examples_to_keep):
+def reduce_sample_size(example_dict, num_examples_to_keep, test_mode=False):
     """Reduces sample size by randomly removing examples.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `read_file`).
     :param num_examples_to_keep: Number of examples to keep.
+    :param test_mode: Leave this alone.
     :return: example_dict: Same as input but with fewer examples.
     """
 
     error_checking.assert_is_integer(num_examples_to_keep)
     error_checking.assert_is_greater(num_examples_to_keep, 0)
+    error_checking.assert_is_boolean(test_mode)
 
     num_examples_total = len(example_dict[VALID_TIMES_KEY])
     if num_examples_total <= num_examples_to_keep:
@@ -473,9 +475,13 @@ def reduce_sample_size(example_dict, num_examples_to_keep):
     all_indices = numpy.linspace(
         0, num_examples_total - 1, num=num_examples_total, dtype=int
     )
-    indices_to_keep = numpy.random.choice(
-        all_indices, size=num_examples_to_keep, replace=False
-    )
+
+    if test_mode:
+        indices_to_keep = all_indices[:num_examples_to_keep]
+    else:
+        indices_to_keep = numpy.random.choice(
+            all_indices, size=num_examples_to_keep, replace=False
+        )
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
         example_dict[this_key] = example_dict[this_key][indices_to_keep, ...]
