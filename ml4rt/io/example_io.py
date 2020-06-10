@@ -4,12 +4,15 @@ import copy
 import os.path
 import numpy
 import netCDF4
+from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import error_checking
 
 TOLERANCE = 1e-6
 KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
+
+DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
 SCALAR_PREDICTOR_VALS_KEY = 'scalar_predictor_matrix'
 SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
@@ -587,3 +590,96 @@ def subset_by_field(example_dict, field_names):
     )
 
     return example_dict
+
+
+def average_examples(
+        example_dict, use_pmm,
+        max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL):
+    """Averages predictor and target fields over many examples.
+
+    H = number of heights
+    P_s = number of scalar predictors
+    P_v = number of vector predictors
+    T_s = number of scalar targets
+    T_v = number of vector targets
+
+    :param example_dict: See doc for `read_file`.
+    :param use_pmm: Boolean flag.  If True, will use probability-matched means
+        for vector fields (vertical profiles).  If False, will use arithmetic
+        means for vector fields.
+    :param max_pmm_percentile_level: [used only if `use_pmm == True`]
+        Max percentile level for probability-matched means.
+    :return: mean_example_dict: Dictionary with the following keys.
+    mean_example_dict['scalar_predictor_matrix']: numpy array (1 x P_s) with
+        values of scalar predictors.
+    mean_example_dict['scalar_predictor_names']: Same as input.
+    mean_example_dict['vector_predictor_matrix']: numpy array (1 x H x P_v) with
+        values of vector predictors.
+    mean_example_dict['vector_predictor_names']: Same as input.
+    mean_example_dict['scalar_target_matrix']: numpy array (1 x T_s) with values
+        of scalar targets.
+    mean_example_dict['scalar_predictor_names']: Same as input.
+    mean_example_dict['vector_target_matrix']: numpy array (1 x H x T_v) with
+        values of vector targets.
+    mean_example_dict['vector_predictor_names']: Same as input.
+    mean_example_dict['heights_m_agl']: length-H numpy array of heights (metres
+        above ground level).
+    """
+
+    error_checking.assert_is_boolean(use_pmm)
+    error_checking.assert_is_geq(max_pmm_percentile_level, 90.)
+    error_checking.assert_is_leq(max_pmm_percentile_level, 100.)
+
+    mean_scalar_predictor_matrix = numpy.mean(
+        example_dict[SCALAR_PREDICTOR_VALS_KEY], axis=0
+    )
+    mean_scalar_predictor_matrix = numpy.expand_dims(
+        mean_scalar_predictor_matrix, axis=0
+    )
+
+    mean_scalar_target_matrix = numpy.mean(
+        example_dict[SCALAR_TARGET_VALS_KEY], axis=0
+    )
+    mean_scalar_target_matrix = numpy.expand_dims(
+        mean_scalar_target_matrix, axis=0
+    )
+
+    if use_pmm:
+        mean_vector_predictor_matrix = pmm.run_pmm_many_variables(
+            input_matrix=example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            max_percentile_level=max_pmm_percentile_level
+        )
+    else:
+        mean_vector_predictor_matrix = numpy.mean(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY], axis=0
+        )
+
+    mean_vector_predictor_matrix = numpy.expand_dims(
+        mean_vector_predictor_matrix, axis=0
+    )
+
+    if use_pmm:
+        mean_vector_target_matrix = pmm.run_pmm_many_variables(
+            input_matrix=example_dict[VECTOR_TARGET_VALS_KEY],
+            max_percentile_level=max_pmm_percentile_level
+        )
+    else:
+        mean_vector_target_matrix = numpy.mean(
+            example_dict[VECTOR_TARGET_VALS_KEY], axis=0
+        )
+
+    mean_vector_target_matrix = numpy.expand_dims(
+        mean_vector_target_matrix, axis=0
+    )
+
+    return {
+        SCALAR_PREDICTOR_NAMES_KEY: example_dict[SCALAR_PREDICTOR_NAMES_KEY],
+        SCALAR_PREDICTOR_VALS_KEY: mean_scalar_predictor_matrix,
+        SCALAR_TARGET_NAMES_KEY: example_dict[SCALAR_TARGET_NAMES_KEY],
+        SCALAR_TARGET_VALS_KEY: mean_scalar_target_matrix,
+        VECTOR_PREDICTOR_NAMES_KEY: example_dict[VECTOR_PREDICTOR_NAMES_KEY],
+        VECTOR_PREDICTOR_VALS_KEY: mean_vector_predictor_matrix,
+        VECTOR_TARGET_NAMES_KEY: example_dict[VECTOR_TARGET_NAMES_KEY],
+        VECTOR_TARGET_VALS_KEY: mean_vector_target_matrix,
+        HEIGHTS_KEY: example_dict[HEIGHTS_KEY]
+    }

@@ -192,6 +192,30 @@ FIRST_EXAMPLE_DICT_SELECT_FIELDS = {
     example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
 }
 
+# The following constants are used to test average_examples.
+THIS_SCALAR_PREDICTOR_MATRIX = numpy.array([[1.5, 40.02]])
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.array([[288.5, 293.625]])
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_VECTOR_PREDICTOR_MATRIX, axis=-1
+)
+THIS_SCALAR_TARGET_MATRIX = numpy.array([[200]], dtype=float)
+THIS_VECTOR_TARGET_MATRIX = numpy.array([
+    [362.5, 262.5],
+    [262.5, 187.5]
+])
+
+FIRST_EXAMPLE_DICT_AVERAGE = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+}
+
 
 def _compare_example_dicts(first_example_dict, second_example_dict):
     """Compares two dictionaries with learning examples.
@@ -220,11 +244,14 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
         ):
             return False
 
-    if not numpy.array_equal(
-            first_example_dict[example_io.VALID_TIMES_KEY],
-            second_example_dict[example_io.VALID_TIMES_KEY]
-    ):
-        return False
+    try:
+        if not numpy.array_equal(
+                first_example_dict[example_io.VALID_TIMES_KEY],
+                second_example_dict[example_io.VALID_TIMES_KEY]
+        ):
+            return False
+    except KeyError:
+        pass
 
     keys_to_compare = [
         example_io.SCALAR_PREDICTOR_NAMES_KEY,
@@ -428,6 +455,17 @@ class ExampleIoTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SELECT_FIELDS
+        ))
+
+    def test_average_examples(self):
+        """Ensures correct output from average_examples."""
+
+        this_example_dict = example_io.average_examples(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT), use_pmm=False
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_AVERAGE
         ))
 
 
