@@ -128,7 +128,8 @@ def _denorm_one_variable(
 def normalize_data(
         example_dict, normalization_type_string, normalization_file_name,
         min_normalized_value=-1., max_normalized_value=1.,
-        separate_heights=False, test_mode=False, normalization_table=None):
+        separate_heights=False, apply_to_predictors=True, apply_to_targets=True,
+        test_mode=False, normalization_table=None):
     """Normalizes data (both predictor and target variables).
 
     :param example_dict: Dictionary with learning examples (see doc for
@@ -145,13 +146,25 @@ def normalize_data(
         Max value after normalization.
     :param separate_heights: Boolean flag.  If True, will normalize separately
         at each height.
+    :param apply_to_predictors: Boolean flag.  If True, will normalize
+        predictors.
+    :param apply_to_targets: Boolean flag.  If True, will normalize targets.
     :param test_mode: For testing only.  Leave this alone.
     :param normalization_table: For testing only.  Leave this alone.
     :return: example_dict: Same as input but with normalized values.
+    :raises: ValueError: if `apply_to_predictors == apply_to_targets == False`.
     """
 
     error_checking.assert_is_boolean(separate_heights)
+    error_checking.assert_is_boolean(apply_to_predictors)
+    error_checking.assert_is_boolean(apply_to_targets)
     error_checking.assert_is_boolean(test_mode)
+
+    if not (apply_to_predictors or apply_to_targets):
+        error_string = (
+            'Either `apply_to_predictors` or `apply_to_targets` must be True.'
+        )
+        raise ValueError(error_string)
 
     if not test_mode:
         normalization_table = normalization_params.read_file(
@@ -165,7 +178,13 @@ def normalize_data(
             max_normalized_value, min_normalized_value
         )
 
-    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    if apply_to_predictors:
+        scalar_predictor_names = example_dict[
+            example_io.SCALAR_PREDICTOR_NAMES_KEY
+        ]
+    else:
+        scalar_predictor_names = []
+
     scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
 
     for k in range(len(scalar_predictor_names)):
@@ -184,7 +203,11 @@ def normalize_data(
 
     example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = scalar_predictor_matrix
 
-    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    if apply_to_targets:
+        scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    else:
+        scalar_target_names = []
+
     scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
 
     for k in range(len(scalar_target_names)):
@@ -203,7 +226,13 @@ def normalize_data(
 
     example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
 
-    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    if apply_to_predictors:
+        vector_predictor_names = example_dict[
+            example_io.VECTOR_PREDICTOR_NAMES_KEY
+        ]
+    else:
+        vector_predictor_names = []
+
     vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     heights_m_agl = (
         numpy.round(example_dict[example_io.HEIGHTS_KEY]).astype(int)
@@ -235,7 +264,11 @@ def normalize_data(
 
     example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = vector_predictor_matrix
 
-    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    if apply_to_targets:
+        vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    else:
+        vector_target_names = []
+
     vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
 
     for k in range(len(vector_target_names)):
@@ -268,7 +301,8 @@ def normalize_data(
 def denormalize_data(
         example_dict, normalization_type_string, normalization_file_name,
         min_normalized_value=-1., max_normalized_value=1.,
-        separate_heights=False, test_mode=False, normalization_table=None):
+        separate_heights=False, apply_to_predictors=True, apply_to_targets=True,
+        test_mode=False, normalization_table=None):
     """Denormalizes data (both predictor and target variables).
 
     :param example_dict: See doc for `normalize_data`.
@@ -277,13 +311,24 @@ def denormalize_data(
     :param min_normalized_value: Same.
     :param max_normalized_value: Same.
     :param separate_heights: Same.
+    :param apply_to_predictors: Same.
+    :param apply_to_targets: Same.
     :param test_mode: Same.
     :param normalization_table: Same.
     :return: example_dict: Same as input but with denormalized values.
+    :raises: ValueError: if `apply_to_predictors == apply_to_targets == False`.
     """
 
     error_checking.assert_is_boolean(separate_heights)
+    error_checking.assert_is_boolean(apply_to_predictors)
+    error_checking.assert_is_boolean(apply_to_targets)
     error_checking.assert_is_boolean(test_mode)
+
+    if not (apply_to_predictors or apply_to_targets):
+        error_string = (
+            'Either `apply_to_predictors` or `apply_to_targets` must be True.'
+        )
+        raise ValueError(error_string)
 
     if not test_mode:
         normalization_table = normalization_params.read_file(
@@ -297,7 +342,13 @@ def denormalize_data(
             max_normalized_value, min_normalized_value
         )
 
-    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    if apply_to_predictors:
+        scalar_predictor_names = example_dict[
+            example_io.SCALAR_PREDICTOR_NAMES_KEY
+        ]
+    else:
+        scalar_predictor_names = []
+
     scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
 
     for k in range(len(scalar_predictor_names)):
@@ -316,7 +367,11 @@ def denormalize_data(
 
     example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = scalar_predictor_matrix
 
-    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    if apply_to_targets:
+        scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    else:
+        scalar_target_names = []
+
     scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
 
     for k in range(len(scalar_target_names)):
@@ -335,7 +390,13 @@ def denormalize_data(
 
     example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
 
-    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    if apply_to_predictors:
+        vector_predictor_names = example_dict[
+            example_io.VECTOR_PREDICTOR_NAMES_KEY
+        ]
+    else:
+        vector_predictor_names = []
+
     vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     heights_m_agl = (
         numpy.round(example_dict[example_io.HEIGHTS_KEY]).astype(int)
@@ -367,7 +428,11 @@ def denormalize_data(
 
     example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = vector_predictor_matrix
 
-    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    if apply_to_targets:
+        vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    else:
+        vector_target_names = []
+
     vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
 
     for k in range(len(vector_target_names)):

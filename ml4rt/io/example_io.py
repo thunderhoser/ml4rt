@@ -30,6 +30,17 @@ DICTIONARY_KEYS = [
     VECTOR_TARGET_VALS_KEY, VECTOR_TARGET_NAMES_KEY,
     VALID_TIMES_KEY, HEIGHTS_KEY, STANDARD_ATMO_FLAGS_KEY
 ]
+ONE_PER_EXAMPLE_KEYS = [
+    SCALAR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_VALS_KEY,
+    SCALAR_TARGET_VALS_KEY, VECTOR_TARGET_VALS_KEY,
+    VALID_TIMES_KEY, STANDARD_ATMO_FLAGS_KEY
+]
+ONE_PER_FIELD_KEYS = [
+    SCALAR_PREDICTOR_VALS_KEY, SCALAR_PREDICTOR_NAMES_KEY,
+    VECTOR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_NAMES_KEY,
+    SCALAR_TARGET_VALS_KEY, SCALAR_TARGET_NAMES_KEY,
+    VECTOR_TARGET_VALS_KEY, VECTOR_TARGET_NAMES_KEY
+]
 
 VALID_TIMES_KEY_ORIG = 'time'
 HEIGHTS_KEY_ORIG = 'height'
@@ -441,3 +452,132 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     )
 
     return data_matrix[..., height_index]
+
+
+def reduce_sample_size(example_dict, num_examples_to_keep):
+    """Reduces sample size by randomly removing examples.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param num_examples_to_keep: Number of examples to keep.
+    :return: example_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_integer(num_examples_to_keep)
+    error_checking.assert_is_greater(num_examples_to_keep, 0)
+
+    num_examples_total = len(example_dict[VALID_TIMES_KEY])
+    if num_examples_total <= num_examples_to_keep:
+        return example_dict
+
+    all_indices = numpy.linspace(
+        0, num_examples_total - 1, num=num_examples_total, dtype=int
+    )
+    indices_to_keep = numpy.random.choice(
+        all_indices, size=num_examples_to_keep, replace=False
+    )
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        example_dict[this_key] = example_dict[this_key][indices_to_keep, ...]
+
+    return example_dict
+
+
+def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
+    """Subsets examples by time.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param first_time_unix_sec: Earliest time to keep.
+    :param last_time_unix_sec: Latest time to keep.
+    :return: example_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_integer(first_time_unix_sec)
+    error_checking.assert_is_integer(last_time_unix_sec)
+    error_checking.assert_is_geq(last_time_unix_sec, first_time_unix_sec)
+
+    good_indices = numpy.where(numpy.logical_and(
+        example_dict[VALID_TIMES_KEY] >= first_time_unix_sec,
+        example_dict[VALID_TIMES_KEY] <= last_time_unix_sec
+    ))[0]
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        example_dict[this_key] = example_dict[this_key][good_indices, ...]
+
+    return example_dict
+
+
+def subset_by_field(example_dict, field_names):
+    """Subsets examples by field.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param field_names: 1-D list of field names to keep (each must be accepted
+        by `_check_field_name`).
+    :return: example_dict: Same as input but with fewer fields.
+    """
+
+    error_checking.assert_is_numpy_array(
+        numpy.array(field_names), num_dimensions=1
+    )
+
+    scalar_predictor_indices = []
+    scalar_target_indices = []
+    vector_predictor_indices = []
+    vector_target_indices = []
+
+    for this_field_name in field_names:
+        _check_field_name(this_field_name)
+
+        if this_field_name in SCALAR_PREDICTOR_NAMES:
+            scalar_predictor_indices.append(
+                example_dict[SCALAR_PREDICTOR_NAMES_KEY].index(this_field_name)
+            )
+        elif this_field_name in SCALAR_TARGET_NAMES:
+            scalar_target_indices.append(
+                example_dict[SCALAR_TARGET_NAMES_KEY].index(this_field_name)
+            )
+        elif this_field_name in VECTOR_PREDICTOR_NAMES:
+            vector_predictor_indices.append(
+                example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(this_field_name)
+            )
+        else:
+            vector_target_indices.append(
+                example_dict[VECTOR_TARGET_NAMES_KEY].index(this_field_name)
+            )
+
+    scalar_predictor_indices = numpy.array(scalar_predictor_indices, dtype=int)
+    scalar_target_indices = numpy.array(scalar_target_indices, dtype=int)
+    vector_predictor_indices = numpy.array(vector_predictor_indices, dtype=int)
+    vector_target_indices = numpy.array(vector_target_indices, dtype=int)
+
+    example_dict[SCALAR_PREDICTOR_NAMES_KEY] = [
+        example_dict[SCALAR_PREDICTOR_NAMES_KEY][k]
+        for k in scalar_predictor_indices
+    ]
+    example_dict[SCALAR_TARGET_NAMES_KEY] = [
+        example_dict[SCALAR_TARGET_NAMES_KEY][k] for k in scalar_target_indices
+    ]
+    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = [
+        example_dict[VECTOR_PREDICTOR_NAMES_KEY][k]
+        for k in vector_predictor_indices
+    ]
+    example_dict[VECTOR_TARGET_NAMES_KEY] = [
+        example_dict[VECTOR_TARGET_NAMES_KEY][k] for k in vector_target_indices
+    ]
+
+    example_dict[SCALAR_PREDICTOR_VALS_KEY] = (
+        example_dict[SCALAR_PREDICTOR_VALS_KEY][..., scalar_predictor_indices]
+    )
+    example_dict[SCALAR_TARGET_VALS_KEY] = (
+        example_dict[SCALAR_TARGET_VALS_KEY][..., scalar_target_indices]
+    )
+    example_dict[VECTOR_PREDICTOR_VALS_KEY] = (
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., vector_predictor_indices]
+    )
+    example_dict[VECTOR_TARGET_VALS_KEY] = (
+        example_dict[VECTOR_TARGET_VALS_KEY][..., vector_target_indices]
+    )
+
+    return example_dict
