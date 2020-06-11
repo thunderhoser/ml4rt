@@ -94,7 +94,7 @@ def _run(example_dir_name, first_time_string, last_time_string, use_pmm,
     )
 
     num_files = len(example_file_names)
-    example_dicts = [None] * num_files
+    example_dicts = [dict()] * num_files
 
     for i in range(num_files):
         print('Reading data from: "{0:s}"...'.format(example_file_names[i]))
@@ -105,12 +105,29 @@ def _run(example_dir_name, first_time_string, last_time_string, use_pmm,
             first_time_unix_sec=first_time_unix_sec,
             last_time_unix_sec=last_time_unix_sec
         )
+
+        this_orig_num_examples = len(
+            example_dicts[i][example_io.VALID_TIMES_KEY]
+        )
         example_dicts[i] = example_io.subset_by_standard_atmo(
             example_dict=example_dicts[i], standard_atmo_enum=standard_atmo_enum
         )
+        this_num_examples = len(
+            example_dicts[i][example_io.VALID_TIMES_KEY]
+        )
 
-    print('Averaging examples...')
+        print((
+            '{0:d} of {1:d} examples have standard-atmosphere type {2:d}.\n'
+        ).format(
+            this_num_examples, this_orig_num_examples, standard_atmo_enum
+        ))
+
     example_dict = example_io.concat_examples(example_dicts)
+    num_examples = len(
+        example_dict[example_io.VALID_TIMES_KEY]
+    )
+
+    print('Averaging {0:d} examples...'.format(num_examples))
     mean_example_dict = example_io.average_examples(
         example_dict=example_dict, use_pmm=use_pmm,
         max_pmm_percentile_level=max_pmm_percentile_level
