@@ -278,8 +278,6 @@ def find_many_files(
             raise_error_if_missing=raise_error_if_any_missing
         )
 
-        print(this_file_name)
-
         if test_mode or os.path.isfile(this_file_name):
             example_file_names.append(this_file_name)
 

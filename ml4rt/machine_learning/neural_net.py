@@ -794,6 +794,9 @@ def cnn_generator(option_dict):
             )
 
             file_index += 1
+            if file_index >= len(example_file_names):
+                file_index = 0
+
             num_examples_in_memory += len(
                 this_example_dict[example_io.VALID_TIMES_KEY]
             )
@@ -893,6 +896,9 @@ def dense_net_generator(option_dict):
             )
 
             file_index += 1
+            if file_index >= len(example_file_names):
+                file_index = 0
+
             num_examples_in_memory += len(
                 this_example_dict[example_io.VALID_TIMES_KEY]
             )
