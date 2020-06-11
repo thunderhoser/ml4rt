@@ -9,7 +9,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.plotting import profile_plotting
 
-FIGURE_RESOLUTION_DPI = 600
+FIGURE_RESOLUTION_DPI = 300
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 INPUT_FILE_ARG_NAME = 'input_mean_example_file_name'
