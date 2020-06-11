@@ -4,7 +4,6 @@ import pickle
 import os.path
 import numpy
 import keras
-from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
@@ -372,37 +371,6 @@ def _make_dense_net_target_matrix(example_dict):
         vector_target_matrix,
         example_dict[example_io.SCALAR_TARGET_VALS_KEY]
     ), axis=-1)
-
-
-def _find_example_files(
-        example_dir_name, first_time_unix_sec, last_time_unix_sec,
-        test_mode=False):
-    """Finds example files.
-
-    :param example_dir_name: See doc for `cnn_generator`.
-    :param first_time_unix_sec: Same.
-    :param last_time_unix_sec: Same.
-    :param test_mode: Leave this alone.
-    """
-
-    start_year = int(
-        time_conversion.unix_sec_to_string(first_time_unix_sec, '%Y')
-    )
-    end_year = int(
-        time_conversion.unix_sec_to_string(last_time_unix_sec, '%Y')
-    )
-    years = numpy.linspace(
-        start_year, end_year, num=end_year - start_year + 1, dtype=int
-    )
-    example_file_names = [
-        example_io.find_file(
-            example_dir_name=example_dir_name, year=y,
-            raise_error_if_missing=not test_mode
-        )
-        for y in years
-    ]
-
-    return example_file_names
 
 
 def _read_file_for_generator(
@@ -792,10 +760,11 @@ def cnn_generator(option_dict):
     target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
     target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
 
-    example_file_names = _find_example_files(
+    example_file_names = example_io.find_many_files(
         example_dir_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
-        last_time_unix_sec=last_time_unix_sec
+        last_time_unix_sec=last_time_unix_sec,
+        raise_error_if_any_missing=False
     )
 
     file_index = 0
@@ -891,10 +860,11 @@ def dense_net_generator(option_dict):
     target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
     target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
 
-    example_file_names = _find_example_files(
+    example_file_names = example_io.find_many_files(
         example_dir_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
-        last_time_unix_sec=last_time_unix_sec
+        last_time_unix_sec=last_time_unix_sec,
+        raise_error_if_any_missing=False
     )
 
     file_index = 0

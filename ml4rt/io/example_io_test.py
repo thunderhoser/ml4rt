@@ -3,6 +3,7 @@
 import copy
 import unittest
 import numpy
+from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 
 TOLERANCE = 1e-6
@@ -11,6 +12,23 @@ TOLERANCE = 1e-6
 EXAMPLE_DIR_NAME = 'foo'
 YEAR = 2018
 EXAMPLE_FILE_NAME = 'foo/radiative_transfer_examples_2018.nc'
+
+# The following constants are used to test find_many_files.
+FIRST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
+    '1999-12-31-235959', '%Y-%m-%d-%H%M%S'
+)
+LAST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
+    '2005-01-01-000000', '%Y-%m-%d-%H%M%S'
+)
+EXAMPLE_FILE_NAMES = [
+    'foo/radiative_transfer_examples_1999.nc',
+    'foo/radiative_transfer_examples_2000.nc',
+    'foo/radiative_transfer_examples_2001.nc',
+    'foo/radiative_transfer_examples_2002.nc',
+    'foo/radiative_transfer_examples_2003.nc',
+    'foo/radiative_transfer_examples_2004.nc',
+    'foo/radiative_transfer_examples_2005.nc'
+]
 
 # The following constants are used to test concat_examples.
 FIRST_TIMES_UNIX_SEC = numpy.array([0, 300, 600, 1200], dtype=int)
@@ -151,8 +169,8 @@ FIRST_EXAMPLE_DICT_REDUCED = {
 }
 
 # The following constants are used to test subset_by_time.
-FIRST_TIME_UNIX_SEC = 1
-LAST_TIME_UNIX_SEC = 600
+FIRST_SUBSET_TIME_UNIX_SEC = 1
+LAST_SUBSET_TIME_UNIX_SEC = 600
 
 FIRST_EXAMPLE_DICT_SELECT_TIMES = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -168,6 +186,25 @@ FIRST_EXAMPLE_DICT_SELECT_TIMES = {
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
     example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...]
+}
+
+# The following constants are used to test subset_by_standard_atmo.
+STANDARD_ATMO_ENUM = 2
+
+FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[[2], ...],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[[2], ...],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[[2], ...],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[2], ...],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2], ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2], ...]
 }
 
 # The following constants are used to test subset_by_field.
@@ -278,6 +315,19 @@ class ExampleIoTests(unittest.TestCase):
         )
 
         self.assertTrue(this_file_name == EXAMPLE_FILE_NAME)
+
+    def test_find_many_files(self):
+        """Ensures correct output from find_many_files."""
+
+        these_file_names = example_io.find_many_files(
+            example_dir_name=EXAMPLE_DIR_NAME,
+            first_time_unix_sec=FIRST_FILE_TIME_UNIX_SEC,
+            last_time_unix_sec=LAST_FILE_TIME_UNIX_SEC,
+            raise_error_if_any_missing=False,
+            raise_error_if_all_missing=False, test_mode=True
+        )
+
+        self.assertTrue(these_file_names == EXAMPLE_FILE_NAMES)
 
     def test_concat_examples_good(self):
         """Ensures correct output from concat_examples.
@@ -437,12 +487,24 @@ class ExampleIoTests(unittest.TestCase):
 
         this_example_dict = example_io.subset_by_time(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
-            first_time_unix_sec=FIRST_TIME_UNIX_SEC,
-            last_time_unix_sec=LAST_TIME_UNIX_SEC
+            first_time_unix_sec=FIRST_SUBSET_TIME_UNIX_SEC,
+            last_time_unix_sec=LAST_SUBSET_TIME_UNIX_SEC
         )
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SELECT_TIMES
+        ))
+
+    def test_subset_by_standard_atmo(self):
+        """Ensures correct output from subset_by_standard_atmo."""
+
+        this_example_dict = example_io.subset_by_standard_atmo(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            standard_atmo_enum=STANDARD_ATMO_ENUM
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES
         ))
 
     def test_subset_by_field(self):

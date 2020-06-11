@@ -4,6 +4,7 @@ import copy
 import os.path
 import numpy
 import netCDF4
+from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import error_checking
@@ -191,6 +192,24 @@ def _match_heights(heights_m_agl, desired_height_m_agl):
     raise ValueError(error_string)
 
 
+def check_standard_atmo_type(standard_atmo_enum):
+    """Ensures that standard-atmosphere type is valid.
+
+    :param standard_atmo_enum: Integer (must be in `STANDARD_ATMO_ENUMS`).
+    :raises: ValueError: if `standard_atmo_enum not in STANDARD_ATMO_ENUMS`.
+    """
+
+    error_checking.assert_is_integer(standard_atmo_enum)
+
+    if standard_atmo_enum not in STANDARD_ATMO_ENUMS:
+        error_string = (
+            'Standard-atmosphere type {0:d} is invalid.  Must be in the '
+            'following list:\n{1:s}'
+        ).format(standard_atmo_enum, str(STANDARD_ATMO_ENUMS))
+
+        raise ValueError(error_string)
+
+
 def find_file(example_dir_name, year, raise_error_if_missing=True):
     """Finds NetCDF file with learning examples.
 
@@ -217,6 +236,62 @@ def find_file(example_dir_name, year, raise_error_if_missing=True):
         raise ValueError(error_string)
 
     return example_file_name
+
+
+def find_many_files(
+        example_dir_name, first_time_unix_sec, last_time_unix_sec,
+        raise_error_if_any_missing=True, raise_error_if_all_missing=True,
+        test_mode=False):
+    """Finds many NetCDF files with learning examples.
+
+    :param example_dir_name: Name of directory where files are expected.
+    :param first_time_unix_sec: First time at which examples are desired.
+    :param last_time_unix_sec: Last time at which examples are desired.
+    :param raise_error_if_any_missing: Boolean flag.  If any file is missing and
+        `raise_error_if_any_missing == True`, will throw error.
+    :param raise_error_if_all_missing: Boolean flag.  If all files are missing
+        and `raise_error_if_all_missing == True`, will throw error.
+    :param test_mode: Leave this alone.
+    :return: example_file_names: 1-D list of paths to example files.  This list
+        does *not* contain expected paths to non-existent files.
+    """
+
+    error_checking.assert_is_boolean(raise_error_if_any_missing)
+    error_checking.assert_is_boolean(raise_error_if_all_missing)
+    error_checking.assert_is_boolean(test_mode)
+
+    start_year = int(
+        time_conversion.unix_sec_to_string(first_time_unix_sec, '%Y')
+    )
+    end_year = int(
+        time_conversion.unix_sec_to_string(last_time_unix_sec, '%Y')
+    )
+    years = numpy.linspace(
+        start_year, end_year, num=end_year - start_year + 1, dtype=int
+    )
+
+    example_file_names = []
+
+    for this_year in years:
+        this_file_name = find_file(
+            example_dir_name=example_dir_name, year=this_year,
+            raise_error_if_missing=raise_error_if_any_missing
+        )
+
+        if not (test_mode or os.path.isfile(this_file_name)):
+            continue
+
+        example_file_names.append(this_file_name)
+
+    if raise_error_if_all_missing and len(example_file_names) == 0:
+        error_string = (
+            'Cannot find any file in directory "{0:s}" from years {1:d}-{2:d}.'
+        ).format(
+            example_dir_name, start_year, end_year
+        )
+        raise ValueError(error_string)
+
+    return example_file_names
 
 
 def read_file(example_file_name):
@@ -510,6 +585,27 @@ def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
         example_dict[VALID_TIMES_KEY] >= first_time_unix_sec,
         example_dict[VALID_TIMES_KEY] <= last_time_unix_sec
     ))[0]
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        example_dict[this_key] = example_dict[this_key][good_indices, ...]
+
+    return example_dict
+
+
+def subset_by_standard_atmo(example_dict, standard_atmo_enum):
+    """Subsets examples by standard-atmosphere type.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param standard_atmo_enum: See doc for `check_standard_atmo_type`.
+    :return: example_dict: Same as input but with fewer examples.
+    """
+
+    check_standard_atmo_type(standard_atmo_enum)
+
+    good_indices = numpy.where(
+        example_dict[STANDARD_ATMO_FLAGS_KEY] == standard_atmo_enum,
+    )[0]
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
         example_dict[this_key] = example_dict[this_key][good_indices, ...]

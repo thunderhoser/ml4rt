@@ -2,7 +2,6 @@
 
 import unittest
 import numpy
-from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
 
@@ -113,24 +112,6 @@ DENSE_NET_TARGET_MATRIX = numpy.array([
     [200, 100, 400, 100, 200]
 ], dtype=float)
 
-# The following constants are used to test _find_example_files.
-EXAMPLE_DIR_NAME = 'poop'
-FIRST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
-    '1999-12-31-235959', '%Y-%m-%d-%H%M%S'
-)
-LAST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
-    '2005-01-01-000000', '%Y-%m-%d-%H%M%S'
-)
-EXAMPLE_FILE_NAMES = [
-    'poop/radiative_transfer_examples_1999.nc',
-    'poop/radiative_transfer_examples_2000.nc',
-    'poop/radiative_transfer_examples_2001.nc',
-    'poop/radiative_transfer_examples_2002.nc',
-    'poop/radiative_transfer_examples_2003.nc',
-    'poop/radiative_transfer_examples_2004.nc',
-    'poop/radiative_transfer_examples_2005.nc'
-]
-
 
 class NeuralNetTests(unittest.TestCase):
     """Each method is a unit test for neural_net.py."""
@@ -158,17 +139,6 @@ class NeuralNetTests(unittest.TestCase):
         self.assertTrue(numpy.allclose(
             this_matrix, DENSE_NET_TARGET_MATRIX, atol=TOLERANCE
         ))
-
-    def test_find_example_files(self):
-        """Ensures correct output from _find_example_files."""
-
-        these_file_names = neural_net._find_example_files(
-            example_dir_name=EXAMPLE_DIR_NAME,
-            first_time_unix_sec=FIRST_TIME_UNIX_SEC,
-            last_time_unix_sec=LAST_TIME_UNIX_SEC, test_mode=True
-        )
-
-        self.assertTrue(these_file_names == EXAMPLE_FILE_NAMES)
 
 
 if __name__ == '__main__':
