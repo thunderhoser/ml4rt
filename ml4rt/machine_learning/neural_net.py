@@ -800,6 +800,7 @@ def cnn_generator(option_dict):
             num_examples_in_memory += len(
                 this_example_dict[example_io.VALID_TIMES_KEY]
             )
+            print(len(this_example_dict[example_io.VALID_TIMES_KEY]))
 
             this_predictor_matrix = _make_cnn_predictor_matrix(
                 example_dict=this_example_dict
