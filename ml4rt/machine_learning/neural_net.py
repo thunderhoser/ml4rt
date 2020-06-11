@@ -26,8 +26,9 @@ DEFAULT_CONV_LAYER_FILTER_SIZES = numpy.array([5, 5, 5, 5], dtype=int)
 DEFAULT_DENSE_NEURON_NUMS_FOR_CNN = numpy.array([409, 29, 2], dtype=int)
 DEFAULT_DENSE_DROPOUT_RATES_FOR_CNN = numpy.array([0.5, 0.5, numpy.nan])
 
-# TODO(thunderhoser): Probably want to change this.
-DEFAULT_DENSE_NEURON_NUMS_FOR_DNN = numpy.array([1000, 409, 29, 2], dtype=int)
+DEFAULT_DENSE_NEURON_NUMS_FOR_DNN = numpy.array(
+    [1000, 605, 366, 221], dtype=int
+)
 DEFAULT_DENSE_DROPOUT_RATES_FOR_DNN = numpy.array([0.5, 0.5, 0.5, numpy.nan])
 
 DEFAULT_INNER_ACTIV_FUNCTION_NAME = architecture_utils.RELU_FUNCTION_STRING
@@ -236,10 +237,10 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_integer(option_dict[BATCH_SIZE_KEY])
     error_checking.assert_is_geq(option_dict[BATCH_SIZE_KEY], 32)
     error_checking.assert_is_numpy_array(
-        option_dict[PREDICTOR_NAMES_KEY], num_dimensions=1
+        numpy.array(option_dict[PREDICTOR_NAMES_KEY]), num_dimensions=1
     )
     error_checking.assert_is_numpy_array(
-        option_dict[TARGET_NAMES_KEY], num_dimensions=1
+        numpy.array(option_dict[TARGET_NAMES_KEY]), num_dimensions=1
     )
     error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
     error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
