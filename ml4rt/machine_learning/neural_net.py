@@ -769,9 +769,9 @@ def cnn_generator(option_dict):
     )
 
     file_index = 0
-    num_examples_in_memory = 0
 
     while True:
+        num_examples_in_memory = 0
         predictor_matrix = None
         vector_target_matrix = None
         scalar_target_matrix = None
@@ -797,11 +797,6 @@ def cnn_generator(option_dict):
             if file_index >= len(example_file_names):
                 file_index = 0
 
-            num_examples_in_memory += len(
-                this_example_dict[example_io.VALID_TIMES_KEY]
-            )
-            print(len(this_example_dict[example_io.VALID_TIMES_KEY]))
-
             this_predictor_matrix = _make_cnn_predictor_matrix(
                 example_dict=this_example_dict
             )
@@ -826,6 +821,8 @@ def cnn_generator(option_dict):
                 scalar_target_matrix = numpy.concatenate(
                     (scalar_target_matrix, this_scalar_target_matrix), axis=0
                 )
+
+            num_examples_in_memory = predictor_matrix.shape[0]
 
         predictor_matrix = predictor_matrix.astype('float32')
         vector_target_matrix = vector_target_matrix.astype('float32')
@@ -873,9 +870,9 @@ def dense_net_generator(option_dict):
     )
 
     file_index = 0
-    num_examples_in_memory = 0
 
     while True:
+        num_examples_in_memory = 0
         predictor_matrix = None
         target_matrix = None
 
@@ -900,10 +897,6 @@ def dense_net_generator(option_dict):
             if file_index >= len(example_file_names):
                 file_index = 0
 
-            num_examples_in_memory += len(
-                this_example_dict[example_io.VALID_TIMES_KEY]
-            )
-
             this_predictor_matrix = _make_dense_net_predictor_matrix(
                 example_dict=this_example_dict
             )
@@ -921,6 +914,8 @@ def dense_net_generator(option_dict):
                 target_matrix = numpy.concatenate(
                     (target_matrix, this_target_matrix), axis=0
                 )
+
+            num_examples_in_memory = predictor_matrix.shape[0]
 
         yield (
             predictor_matrix.astype('float32'),
