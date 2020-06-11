@@ -278,10 +278,10 @@ def find_many_files(
             raise_error_if_missing=raise_error_if_any_missing
         )
 
-        if not (test_mode or os.path.isfile(this_file_name)):
-            continue
+        print(this_file_name)
 
-        example_file_names.append(this_file_name)
+        if test_mode or os.path.isfile(this_file_name):
+            example_file_names.append(this_file_name)
 
     if raise_error_if_all_missing and len(example_file_names) == 0:
         error_string = (
