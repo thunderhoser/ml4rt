@@ -8,7 +8,7 @@ from ml4rt.machine_learning import neural_net
 TOLERANCE = 1e-6
 
 # The following constants are used to test _make_cnn_predictor_matrix,
-# _make_dense_net_predictor_matrix, and _make_dense_net_target_matrix.
+# _make_dense_net_predictor_matrix, and make_dense_net_target_matrix.
 HEIGHTS_M_AGL = numpy.array([100, 500], dtype=float)
 VALID_TIMES_UNIX_SEC = numpy.array([0, 300, 600, 1200], dtype=int)
 STANDARD_ATMO_FLAGS = numpy.array([0, 1, 2, 3], dtype=int)
@@ -133,9 +133,9 @@ class NeuralNetTests(unittest.TestCase):
         ))
 
     def test_make_dense_net_target_matrix(self):
-        """Ensures correct output from _make_dense_net_target_matrix."""
+        """Ensures correct output from make_dense_net_target_matrix."""
 
-        this_matrix = neural_net._make_dense_net_target_matrix(EXAMPLE_DICT)
+        this_matrix = neural_net.make_dense_net_target_matrix(EXAMPLE_DICT)
         self.assertTrue(numpy.allclose(
             this_matrix, DENSE_NET_TARGET_MATRIX, atol=TOLERANCE
         ))

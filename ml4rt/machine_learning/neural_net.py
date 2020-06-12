@@ -350,30 +350,6 @@ def _make_dense_net_predictor_matrix(example_dict):
     ), axis=-1)
 
 
-def _make_dense_net_target_matrix(example_dict):
-    """Makes target matrix for dense neural net.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: target_matrix: See output doc for `dense_net_generator`.
-    """
-
-    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
-    num_examples = vector_target_matrix.shape[0]
-    num_heights = vector_target_matrix.shape[1]
-    num_fields = vector_target_matrix.shape[2]
-
-    vector_target_matrix = numpy.reshape(
-        vector_target_matrix, (num_examples, num_heights * num_fields),
-        order='F'
-    )
-
-    return numpy.concatenate((
-        vector_target_matrix,
-        example_dict[example_io.SCALAR_TARGET_VALS_KEY]
-    ), axis=-1)
-
-
 def _read_file_for_generator(
         example_file_name, num_examples_to_keep, first_time_unix_sec,
         last_time_unix_sec, field_names, normalization_file_name,
@@ -442,6 +418,30 @@ def _read_file_for_generator(
     )
 
     return example_dict
+
+
+def make_dense_net_target_matrix(example_dict):
+    """Makes target matrix for dense neural net.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: target_matrix: See output doc for `dense_net_generator`.
+    """
+
+    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+    num_examples = vector_target_matrix.shape[0]
+    num_heights = vector_target_matrix.shape[1]
+    num_fields = vector_target_matrix.shape[2]
+
+    vector_target_matrix = numpy.reshape(
+        vector_target_matrix, (num_examples, num_heights * num_fields),
+        order='F'
+    )
+
+    return numpy.concatenate((
+        vector_target_matrix,
+        example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    ), axis=-1)
 
 
 def make_cnn(option_dict):
@@ -900,7 +900,7 @@ def dense_net_generator(option_dict):
             this_predictor_matrix = _make_dense_net_predictor_matrix(
                 example_dict=this_example_dict
             )
-            this_target_matrix = _make_dense_net_target_matrix(
+            this_target_matrix = make_dense_net_target_matrix(
                 example_dict=this_example_dict
             )
 
