@@ -24,9 +24,7 @@ VECTOR_MAE_SKILL_KEY = 'vector_mae_ss_matrix'
 SCALAR_BIAS_KEY = 'scalar_biases'
 VECTOR_BIAS_KEY = 'vector_bias_matrix'
 SCALAR_CORRELATION_KEY = 'scalar_correlations'
-SCALAR_CORRELATION_SKILL_KEY = 'scalar_correlation_skill_scores'
 VECTOR_CORRELATION_KEY = 'vector_correlation_matrix'
-VECTOR_CORRELATION_SKILL_KEY = 'vector_correlation_ss_matrix'
 SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x_matrix'
 SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y_matrix'
 SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count_matrix'
@@ -201,30 +199,7 @@ def _get_correlation_one_scalar(target_values, predicted_values):
         numpy.sqrt(sum_squared_target_diffs * sum_squared_prediction_diffs)
     )
 
-    print(correlation)
-    print(numpy.corrcoef(target_values, predicted_values)[0, 1])
-
     return correlation
-
-
-def _get_correlation_ss_one_scalar(target_values, predicted_values,
-                                   mean_training_target_value):
-    """Computes Pearson-correlation skill score for one scalar target variable.
-
-    :param target_values: See doc for `_get_mse_one_scalar`.
-    :param predicted_values: Same.
-    :param mean_training_target_value: See doc for `_get_mse_ss_one_scalar`.
-    :return: correlation_skill_score: Self-explanatory.
-    """
-
-    correlation_actual = _get_correlation_one_scalar(
-        target_values=target_values, predicted_values=predicted_values
-    )
-    correlation_climo = _get_correlation_one_scalar(
-        target_values=target_values, predicted_values=mean_training_target_value
-    )
-
-    return (correlation_climo - correlation_actual) / correlation_climo
 
 
 def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
@@ -291,8 +266,8 @@ def get_scores_all_variables(
         for each scalar target variable.
     :param get_bias: Boolean flag.  If True, will compute bias for each scalar
         target variable.
-    :param get_correlation: Boolean flag.  If True, will compute correlation and
-        correlation skill score for each scalar target variable.
+    :param get_correlation: Boolean flag.  If True, will compute correlation for
+        each scalar target variable.
     :param get_reliability_curve: Boolean flag.  If True, will compute points in
         reliability curve for each scalar target variable.
     :param num_reliability_bins: [used only if `get_reliability_curve == True`]
@@ -339,12 +314,8 @@ def get_scores_all_variables(
         numpy array (H x T_v) of biases.
     evaluation_dict['scalar_correlations']: numpy array (length T_s) of
         correlations.
-    evaluation_dict['scalar_correlation_skill_scores']: numpy array (length T_s)
-        of correlation skill scores.
     evaluation_dict['vector_correlation_matrix']: [None if `is_cnn == False`]
         numpy array (H x T_v) of correlations.
-    evaluation_dict['vector_correlation_ss_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of correlation skill scores.
     evaluation_dict['scalar_reliability_x_matrix']: numpy array (T_s x B) of
         x-coordinates for reliability curves.
     evaluation_dict['scalar_reliability_y_matrix']: Same but for y-coordinates.
@@ -358,6 +329,7 @@ def get_scores_all_variables(
     """
 
     # TODO(thunderhoser): Fix documentation for `mean_training_example_dict`.
+    # TODO(thunderhoser): This method could use a unit test.
 
     _check_args(
         scalar_target_matrix=scalar_target_matrix,
@@ -530,9 +502,6 @@ def get_scores_all_variables(
 
     if get_correlation:
         scalar_correlations = numpy.full(num_scalar_targets, numpy.nan)
-        scalar_correlation_skill_scores = numpy.full(
-            num_scalar_targets, numpy.nan
-        )
 
         for k in num_scalar_targets:
             scalar_correlations[k] = _get_correlation_one_scalar(
@@ -540,22 +509,10 @@ def get_scores_all_variables(
                 predicted_values=scalar_prediction_matrix[:, k]
             )
 
-            scalar_correlation_skill_scores[k] = _get_correlation_ss_one_scalar(
-                target_values=scalar_target_matrix[:, k],
-                predicted_values=scalar_prediction_matrix[:, k],
-                mean_training_target_value=scalar_prediction_matrix_climo[0, k]
-            )
-
         evaluation_dict[SCALAR_CORRELATION_KEY] = scalar_correlations
-        evaluation_dict[SCALAR_CORRELATION_SKILL_KEY] = (
-            scalar_correlation_skill_scores
-        )
 
         if is_cnn:
             vector_correlation_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
-            vector_correlation_ss_matrix = numpy.full(
                 (num_heights, num_vector_targets), numpy.nan
             )
 
@@ -568,22 +525,7 @@ def get_scores_all_variables(
                         )
                     )
 
-                    this_climo_value = mean_training_example_dict[
-                        example_io.VECTOR_TARGET_VALS_KEY
-                    ][0, j, k]
-
-                    vector_correlation_ss_matrix[j, k] = (
-                        _get_correlation_ss_one_scalar(
-                            target_values=vector_target_matrix[:, j, k],
-                            predicted_values=vector_prediction_matrix[:, j, k],
-                            mean_training_target_value=this_climo_value
-                        )
-                    )
-
             evaluation_dict[VECTOR_CORRELATION_KEY] = vector_correlation_matrix
-            evaluation_dict[VECTOR_CORRELATION_SKILL_KEY] = (
-                vector_correlation_ss_matrix
-            )
 
     if get_reliability_curve:
         these_dim = (num_scalar_targets, num_reliability_bins)
