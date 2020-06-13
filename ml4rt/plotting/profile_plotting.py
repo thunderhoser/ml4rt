@@ -50,7 +50,7 @@ def _make_spines_invisible(axes_object):
         this_spine_object.set_visible(False)
 
 
-def _set_height_labels(axes_object):
+def set_height_labels(axes_object):
     """Sets labels for height axis (y-axis).
 
     This method should be called only if height axis is logarithmic.
@@ -58,6 +58,9 @@ def _set_height_labels(axes_object):
     :param axes_object: Axes handle (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
     """
+
+    # TODO(thunderhoser): Should probably put this method in a plotting_utils.py
+    # or something.
 
     tick_values = axes_object.get_yticks()
     num_ticks = len(tick_values)
@@ -182,7 +185,7 @@ def plot_predictors(example_dict, example_index, plot_ice, use_log_scale,
     ])
 
     if use_log_scale:
-        _set_height_labels(temperature_axes_object)
+        set_height_labels(temperature_axes_object)
 
     temperature_axes_object.xaxis.label.set_color(TEMPERATURE_COLOUR)
     humidity_axes_object.xaxis.label.set_color(HUMIDITY_COLOUR)
@@ -274,7 +277,7 @@ def plot_targets(example_dict, example_index, use_log_scale,
     ])
 
     if use_log_scale:
-        _set_height_labels(heating_rate_axes_object)
+        set_height_labels(heating_rate_axes_object)
 
     heating_rate_axes_object.xaxis.label.set_color(HEATING_RATE_COLOUR)
     flux_axes_object.xaxis.label.set_color(FLUX_COLOUR)

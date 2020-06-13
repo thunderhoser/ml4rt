@@ -26,6 +26,26 @@ SIMPLE_CORRELATION = numpy.corrcoef(
     SIMPLE_TARGET_VALUES, SIMPLE_PREDICTED_VALUES
 )[0, 1]
 
+# The following constants are used to test _get_prmse_one_variable.
+TARGET_MATRIX = numpy.array([
+    [200, 175, 150, 125, 100],
+    [100, 200, 300, 200, 100],
+    [40, 30, 20, 10, 0]
+], dtype=float)
+
+PREDICTION_MATRIX = numpy.array([
+    [200, 200, 200, 100, 100],
+    [100, 250, 350, 200, 110],
+    [35, 30, 20, 15, 0]
+], dtype=float)
+
+PRMSE_FIRST_EXAMPLE = numpy.sqrt(3750. / 5)
+PRMSE_SECOND_EXAMPLE = numpy.sqrt(5100. / 5)
+PRMSE_THIRD_EXAMPLE = numpy.sqrt(50. / 5)
+PRMSE = numpy.mean(numpy.array(
+    [PRMSE_FIRST_EXAMPLE, PRMSE_SECOND_EXAMPLE, PRMSE_THIRD_EXAMPLE]
+))
+
 # The following constants are used to test _get_rel_curve_one_scalar.
 NUM_BINS = 5
 MAX_BIN_EDGE = 10.
@@ -122,6 +142,14 @@ class EvaluationTests(unittest.TestCase):
         self.assertTrue(numpy.isclose(
             this_correlation, SIMPLE_CORRELATION, atol=TOLERANCE
         ))
+
+    def test_get_prmse_one_variable(self):
+        """Ensures correct output from _get_prmse_one_variable."""
+
+        this_prmse = evaluation._get_prmse_one_variable(
+            target_matrix=TARGET_MATRIX, prediction_matrix=PREDICTION_MATRIX
+        )
+        self.assertTrue(numpy.isclose(this_prmse, PRMSE, atol=TOLERANCE))
 
     def test_get_rel_curve_no_empty_bins(self):
         """Ensures correct output from _get_rel_curve_one_scalar.

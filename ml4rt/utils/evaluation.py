@@ -25,6 +25,7 @@ SCALAR_BIAS_KEY = 'scalar_biases'
 VECTOR_BIAS_KEY = 'vector_bias_matrix'
 SCALAR_CORRELATION_KEY = 'scalar_correlations'
 VECTOR_CORRELATION_KEY = 'vector_correlation_matrix'
+VECTOR_PRMSE_KEY = 'vector_prmse_values'
 SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x_matrix'
 SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y_matrix'
 SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count_matrix'
@@ -202,6 +203,24 @@ def _get_correlation_one_scalar(target_values, predicted_values):
     return correlation
 
 
+def _get_prmse_one_variable(target_matrix, prediction_matrix):
+    """Computes profile root mean squared error (PRMSE) for one variable.
+
+    E = number of examples
+    H = number of heights
+
+    This is "PRMSE," as opposed to "prmse," in Krasnopolsky's papers.
+
+    :param target_matrix: E-by-H numpy array of target (actual) values.
+    :param prediction_matrix: E-by-H numpy array of predicted values.
+    :return: prmse: Self-explanatory.
+    """
+
+    return numpy.mean(numpy.sqrt(
+        numpy.mean((target_matrix - prediction_matrix) ** 2, axis=1)
+    ))
+
+
 def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
                               max_bin_edge):
     """Computes reliability curve for one scalar target variable.
@@ -242,7 +261,7 @@ def get_scores_all_variables(
         scalar_target_matrix, scalar_prediction_matrix,
         mean_training_example_dict, is_cnn,
         get_mse=True, get_mae=True, get_bias=True, get_correlation=True,
-        get_reliability_curve=True,
+        get_prmse=True, get_reliability_curve=True,
         num_reliability_bins=DEFAULT_NUM_RELIABILITY_BINS,
         max_bin_edge_percentile=DEFAULT_MAX_BIN_EDGE_PERCENTILE,
         vector_target_matrix=None, vector_prediction_matrix=None):
@@ -268,6 +287,8 @@ def get_scores_all_variables(
         target variable.
     :param get_correlation: Boolean flag.  If True, will compute correlation for
         each scalar target variable.
+    :param get_prmse: Boolean flag.  If True, will compute profile RMSE for
+        each vector target variable.
     :param get_reliability_curve: Boolean flag.  If True, will compute points in
         reliability curve for each scalar target variable.
     :param num_reliability_bins: [used only if `get_reliability_curve == True`]
@@ -316,6 +337,8 @@ def get_scores_all_variables(
         correlations.
     evaluation_dict['vector_correlation_matrix']: [None if `is_cnn == False`]
         numpy array (H x T_v) of correlations.
+    evaluation_dict['prmse_values']: [None if `is_cnn == False`]
+        numpy array (length T_v) of profile-RMSE values.
     evaluation_dict['scalar_reliability_x_matrix']: numpy array (T_s x B) of
         x-coordinates for reliability curves.
     evaluation_dict['scalar_reliability_y_matrix']: Same but for y-coordinates.
@@ -330,6 +353,7 @@ def get_scores_all_variables(
 
     # TODO(thunderhoser): Fix documentation for `mean_training_example_dict`.
     # TODO(thunderhoser): This method could use a unit test.
+    # TODO(thunderhoser): Allow this method to compute PRMSE for a dense net.
 
     _check_args(
         scalar_target_matrix=scalar_target_matrix,
@@ -343,7 +367,10 @@ def get_scores_all_variables(
     error_checking.assert_is_boolean(get_mae)
     error_checking.assert_is_boolean(get_bias)
     error_checking.assert_is_boolean(get_correlation)
+    error_checking.assert_is_boolean(get_prmse)
     error_checking.assert_is_boolean(get_reliability_curve)
+
+    get_prmse = get_prmse and is_cnn
 
     if get_reliability_curve:
         error_checking.assert_is_integer(num_reliability_bins)
@@ -526,6 +553,17 @@ def get_scores_all_variables(
                     )
 
             evaluation_dict[VECTOR_CORRELATION_KEY] = vector_correlation_matrix
+
+    if get_prmse:
+        vector_prmse_values = numpy.full(num_vector_targets, numpy.nan)
+
+        for k in range(num_vector_targets):
+            vector_prmse_values[k] = _get_prmse_one_variable(
+                target_matrix=vector_target_matrix[..., k],
+                prediction_matrix=vector_prediction_matrix[..., k]
+            )
+
+        evaluation_dict[VECTOR_PRMSE_KEY] = vector_prmse_values
 
     if get_reliability_curve:
         these_dim = (num_scalar_targets, num_reliability_bins)
