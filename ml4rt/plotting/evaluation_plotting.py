@@ -94,12 +94,6 @@ def _plot_reliability_curve(axes_object, mean_predictions, mean_observations,
     :param line_colour: Line colour (in any format accepted by matplotlib).
     """
 
-    error_checking.assert_is_numpy_array(mean_predictions, num_dimensions=1)
-    error_checking.assert_is_numpy_array(
-        mean_observations,
-        exact_dimensions=numpy.array(mean_predictions.shape, dtype=int)
-    )
-
     max_value = numpy.maximum(
         numpy.max(mean_predictions), numpy.max(mean_observations)
     )
@@ -256,10 +250,6 @@ def _plot_attr_diagram_histogram(
     :param max_prediction_in_plot: Maximum value on x-axis.
     """
 
-    error_checking.assert_is_integer_numpy_array(example_counts)
-    error_checking.assert_is_numpy_array(example_counts, num_dimensions=1)
-    error_checking.assert_is_geq_numpy_array(example_counts, 0)
-
     example_frequencies = (
         example_counts.astype(float) / numpy.sum(example_counts)
     )
@@ -307,6 +297,25 @@ def plot_attributes_diagram(
     :param mean_value_in_training: Mean of target variable in training data.
     """
 
+    error_checking.assert_is_numpy_array_without_nan(mean_predictions)
+    error_checking.assert_is_numpy_array(mean_predictions, num_dimensions=1)
+
+    num_bins = len(mean_predictions)
+    expected_dim = numpy.array([num_bins], dtype=int)
+
+    error_checking.assert_is_geq_numpy_array(mean_observations, 0.)
+    error_checking.assert_is_numpy_array(
+        mean_observations, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_integer_numpy_array(example_counts)
+    error_checking.assert_is_geq_numpy_array(example_counts, 0)
+    error_checking.assert_is_numpy_array(
+        example_counts, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_geq(mean_value_in_training, 0.)
+
     this_max_value = numpy.maximum(
         numpy.max(mean_predictions), numpy.max(mean_observations)
     )
@@ -342,6 +351,11 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
     :param figure_object: Will plot on this figure (instance of
         `matplotlib.figure.Figure`).
     """
+
+    error_checking.assert_is_geq(target_stdev, 0.)
+    error_checking.assert_is_geq(prediction_stdev, 0.)
+    error_checking.assert_is_geq(correlation, -1.)
+    error_checking.assert_is_leq(correlation, 1.)
 
     taylor_diagram_object = taylor_diagram.TaylorDiagram(
         refstd=target_stdev, fig=figure_object, srange=(0, 2), extend=False
