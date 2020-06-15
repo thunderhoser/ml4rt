@@ -209,6 +209,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     # TODO(thunderhoser): Make `separate_heights` an option for neural-net
     # normalization.
 
+    # TODO(thunderhoser): Remove this HACK.
+    generator_option_dict = neural_net._check_generator_args(
+        generator_option_dict
+    )
+
     target_example_dict = normalization.denormalize_data(
         example_dict=target_example_dict,
         normalization_type_string=
