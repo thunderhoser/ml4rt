@@ -57,7 +57,7 @@ def _check_args(
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
 
     num_examples = scalar_target_matrix.shape[0]
-    num_scalar_targets = (
+    num_scalar_targets = len(
         mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
     )
 
