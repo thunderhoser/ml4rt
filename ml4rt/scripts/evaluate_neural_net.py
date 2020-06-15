@@ -92,7 +92,7 @@ def _run(prediction_file_name, evaluation_file_name):
     mean_training_example_dict = normalization.create_mean_example(
         example_dict=example_dict,
         normalization_file_name=
-        model_metadata_dict[neural_net.NORMALIZATION_FILE_KEY]
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
 
     evaluation_dict = evaluation.get_scores_all_variables(
