@@ -234,6 +234,8 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
     :return: example_counts: length-B numpy array with num examples in each bin.
     """
 
+    max_bin_edge = max([max_bin_edge, numpy.finfo(float).eps])
+
     bin_index_by_example = histograms.create_histogram(
         input_values=predicted_values, num_bins=num_bins, min_value=0.,
         max_value=max_bin_edge
