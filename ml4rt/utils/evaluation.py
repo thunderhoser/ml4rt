@@ -395,7 +395,7 @@ def get_scores_all_variables(
         scalar_mse_values = numpy.full(num_scalar_targets, numpy.nan)
         scalar_mse_skill_scores = numpy.full(num_scalar_targets, numpy.nan)
 
-        for k in num_scalar_targets:
+        for k in range(num_scalar_targets):
             scalar_mse_values[k] = _get_mse_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k]
@@ -447,7 +447,7 @@ def get_scores_all_variables(
         scalar_mae_values = numpy.full(num_scalar_targets, numpy.nan)
         scalar_mae_skill_scores = numpy.full(num_scalar_targets, numpy.nan)
 
-        for k in num_scalar_targets:
+        for k in range(num_scalar_targets):
             scalar_mae_values[k] = _get_mae_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k]
@@ -498,7 +498,7 @@ def get_scores_all_variables(
 
         scalar_biases = numpy.full(num_scalar_targets, numpy.nan)
 
-        for k in num_scalar_targets:
+        for k in range(num_scalar_targets):
             scalar_biases[k] = _get_bias_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k]
@@ -524,7 +524,7 @@ def get_scores_all_variables(
 
         scalar_correlations = numpy.full(num_scalar_targets, numpy.nan)
 
-        for k in num_scalar_targets:
+        for k in range(num_scalar_targets):
             scalar_correlations[k] = _get_correlation_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k]
@@ -568,7 +568,7 @@ def get_scores_all_variables(
         scalar_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
         scalar_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
 
-        for k in num_scalar_targets:
+        for k in range(num_scalar_targets):
             these_x, these_y, these_counts = _get_rel_curve_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k],
