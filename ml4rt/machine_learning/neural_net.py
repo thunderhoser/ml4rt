@@ -1489,7 +1489,7 @@ def write_predictions(
     error_checking.assert_is_numpy_array_without_nan(scalar_prediction_matrix)
     error_checking.assert_is_numpy_array(
         scalar_prediction_matrix,
-        exact_dimensions=numpy.array(scalar_target_matrix, dtype=int)
+        exact_dimensions=numpy.array(scalar_target_matrix.shape, dtype=int)
     )
 
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
@@ -1506,7 +1506,7 @@ def write_predictions(
     error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
     error_checking.assert_is_numpy_array(
         vector_prediction_matrix,
-        exact_dimensions=numpy.array(vector_target_matrix, dtype=int)
+        exact_dimensions=numpy.array(vector_target_matrix.shape, dtype=int)
     )
 
     error_checking.assert_is_string(model_file_name)
