@@ -4,6 +4,7 @@ import pickle
 import os.path
 import numpy
 import keras
+import netCDF4
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
@@ -135,6 +136,17 @@ METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY
 ]
+
+EXAMPLE_DIMENSION_KEY = 'example'
+HEIGHT_DIMENSION_KEY = 'height'
+VECTOR_TARGET_DIMENSION_KEY = 'vector_target'
+SCALAR_TARGET_DIMENSION_KEY = 'scalar_target'
+
+MODEL_FILE_KEY = 'model_file_name'
+SCALAR_TARGETS_KEY = 'scalar_target_matrix'
+SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
+VECTOR_TARGETS_KEY = 'vector_target_matrix'
+VECTOR_PREDICTIONS_KEY = 'vector_prediction_matrix'
 
 
 def _check_architecture_args(option_dict, is_cnn):
@@ -304,58 +316,13 @@ def _write_metadata(
     pickle_file_handle.close()
 
 
-def _make_cnn_predictor_matrix(example_dict):
-    """Makes predictor matrix for CNN.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: predictor_matrix: See output doc for `cnn_generator`.
-    """
-
-    num_heights = len(example_dict[example_io.HEIGHTS_KEY])
-
-    scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-    scalar_predictor_matrix = numpy.expand_dims(scalar_predictor_matrix, axis=1)
-    scalar_predictor_matrix = numpy.repeat(
-        scalar_predictor_matrix, repeats=num_heights, axis=1
-    )
-
-    return numpy.concatenate((
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
-        scalar_predictor_matrix
-    ), axis=-1)
-
-
-def _make_dense_net_predictor_matrix(example_dict):
-    """Makes predictor matrix for dense neural net.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: predictor_matrix: See output doc for `dense_net_generator`.
-    """
-
-    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
-    num_examples = vector_predictor_matrix.shape[0]
-    num_heights = vector_predictor_matrix.shape[1]
-    num_fields = vector_predictor_matrix.shape[2]
-
-    vector_predictor_matrix = numpy.reshape(
-        vector_predictor_matrix, (num_examples, num_heights * num_fields),
-        order='F'
-    )
-
-    return numpy.concatenate((
-        vector_predictor_matrix,
-        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-    ), axis=-1)
-
-
 def _read_file_for_generator(
         example_file_name, num_examples_to_keep, first_time_unix_sec,
         last_time_unix_sec, field_names, normalization_file_name,
         predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, target_norm_type_string,
-        target_min_norm_value, target_max_norm_value):
+        target_min_norm_value, target_max_norm_value,
+        first_example_to_keep=None):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -373,6 +340,10 @@ def _read_file_for_generator(
     :param target_norm_type_string: Same.
     :param target_min_norm_value: Same.
     :param target_max_norm_value: Same.
+    :param first_example_to_keep: Index of first example to keep.  If specified,
+        this method will return examples i through i + N - 1, where
+        i = `first_example_to_keep` and N = `num_examples_to_keep`.  If None,
+        this method will return N random examples.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
@@ -380,7 +351,8 @@ def _read_file_for_generator(
     example_dict = example_io.read_file(example_file_name)
 
     example_dict = example_io.reduce_sample_size(
-        example_dict=example_dict, num_examples_to_keep=num_examples_to_keep
+        example_dict=example_dict, num_examples_to_keep=num_examples_to_keep,
+        first_example_to_keep=first_example_to_keep
     )
     example_dict = example_io.subset_by_time(
         example_dict=example_dict,
@@ -420,13 +392,137 @@ def _read_file_for_generator(
     return example_dict
 
 
-def make_dense_net_target_matrix(example_dict):
-    """Makes target matrix for dense neural net.
+def predictors_dict_to_numpy(example_dict, for_cnn):
+    """Converts predictors from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
-    :return: target_matrix: See output doc for `dense_net_generator`.
+    :param for_cnn: Boolean flag.  If True, will return format required by CNN.
+        If False, will return format required by dense neural net.
+    :return: predictor_matrix: See output doc for `cnn_generator` or
+        `dense_net_generator`.
     """
+
+    error_checking.assert_is_boolean(for_cnn)
+
+    if for_cnn:
+        num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+
+        scalar_predictor_matrix = (
+            example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        )
+        scalar_predictor_matrix = numpy.expand_dims(
+            scalar_predictor_matrix, axis=1
+        )
+        scalar_predictor_matrix = numpy.repeat(
+            scalar_predictor_matrix, repeats=num_heights, axis=1
+        )
+
+        return numpy.concatenate((
+            example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            scalar_predictor_matrix
+        ), axis=-1)
+
+    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    num_examples = vector_predictor_matrix.shape[0]
+    num_heights = vector_predictor_matrix.shape[1]
+    num_fields = vector_predictor_matrix.shape[2]
+
+    vector_predictor_matrix = numpy.reshape(
+        vector_predictor_matrix, (num_examples, num_heights * num_fields),
+        order='F'
+    )
+
+    return numpy.concatenate((
+        vector_predictor_matrix,
+        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    ), axis=-1)
+
+
+def predictors_numpy_to_dict(predictor_matrix, example_dict, for_cnn):
+    """Converts predictors from numpy array to dictionary.
+
+    This method is the inverse of `predictors_dict_to_numpy`.
+
+    :param predictor_matrix: numpy array created by `predictors_dict_to_numpy`.
+    :param example_dict: Dictionary with the following keys.  See doc for
+        `example_io.read_file` for details on each key.
+    example_dict['scalar_predictor_names']
+    example_dict['vector_predictor_names']
+    example_dict['heights_m_agl']
+
+    :param for_cnn: Boolean flag.  If True, will assume that `predictor_matrix`
+        contains predictors in format required by CNN.  If False, will assume
+        that it contains predictors in format required by dense neural net.
+
+    :return: example_dict: Dictionary with the following keys.  See doc for
+        `example_io.read_file` for details on each key.
+    example_dict['scalar_predictor_matrix']
+    example_dict['vector_predictor_matrix']
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
+    error_checking.assert_is_boolean(for_cnn)
+
+    num_scalar_predictors = len(
+        example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    )
+
+    if for_cnn:
+        error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=3)
+
+        scalar_predictor_matrix = (
+            predictor_matrix[:, 0, -num_scalar_predictors:]
+        )
+        vector_predictor_matrix = predictor_matrix[..., :-num_scalar_predictors]
+
+        return {
+            example_io.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
+            example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
+        }
+
+    error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=2)
+
+    scalar_predictor_matrix = predictor_matrix[:, -num_scalar_predictors:]
+    vector_predictor_matrix = predictor_matrix[:, :-num_scalar_predictors]
+
+    num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+    num_vector_predictors = len(
+        example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    )
+    num_examples = vector_predictor_matrix.shape[0]
+
+    vector_predictor_matrix = numpy.reshape(
+        vector_predictor_matrix,
+        (num_examples, num_heights, num_vector_predictors),
+        order='F'
+    )
+
+    return {
+        example_io.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
+        example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
+    }
+
+
+def targets_dict_to_numpy(example_dict, for_cnn):
+    """Converts targets from dictionary to numpy array.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :param for_cnn: Boolean flag.  If True, will return format required by CNN.
+        If False, will return format required by dense neural net.
+    :return: target_matrices: If `for_cnn == True`, same as output from
+        `cnn_generator`.  If `for_cnn == False`, same as output from
+        `dense_net_generator` but in a one-element list.
+    """
+
+    error_checking.assert_is_boolean(for_cnn)
+
+    if for_cnn:
+        return [
+            example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+        ]
 
     vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
     num_examples = vector_target_matrix.shape[0]
@@ -438,10 +534,78 @@ def make_dense_net_target_matrix(example_dict):
         order='F'
     )
 
-    return numpy.concatenate((
+    target_matrix = numpy.concatenate((
         vector_target_matrix,
         example_dict[example_io.SCALAR_TARGET_VALS_KEY]
     ), axis=-1)
+
+    return [target_matrix]
+
+
+def targets_numpy_to_dict(target_matrices, example_dict, for_cnn):
+    """Converts targets from numpy array to dictionary.
+
+    This method is the inverse of `targets_dict_to_numpy`.
+
+    :param target_matrices: List created by `targets_dict_to_numpy`.
+    :param example_dict: Dictionary with the following keys.  See doc for
+        `example_io.read_file` for details on each key.
+    example_dict['scalar_target_names']
+    example_dict['vector_target_names']
+    example_dict['heights_m_agl']
+
+    :param for_cnn: Boolean flag.  If True, will assume that `target_matrices`
+        contains targets in format required by CNN.  If False, will assume
+        that it contains targets in format required by dense neural net.
+
+    :return: example_dict: Dictionary with the following keys.  See doc for
+        `example_io.read_file` for details on each key.
+    example_dict['scalar_target_matrix']
+    example_dict['vector_target_matrix']
+    """
+
+    error_checking.assert_is_boolean(for_cnn)
+
+    if for_cnn:
+        vector_target_matrix = target_matrices[0]
+        scalar_target_matrix = target_matrices[1]
+
+        error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
+        error_checking.assert_is_numpy_array(
+            vector_target_matrix, num_dimensions=3
+        )
+
+        error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
+        error_checking.assert_is_numpy_array(
+            scalar_target_matrix, num_dimensions=2
+        )
+
+        return {
+            example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+        }
+
+    target_matrix = target_matrices[0]
+    num_scalar_targets = len(example_dict[example_io.SCALAR_TARGET_NAMES_KEY])
+
+    scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
+    vector_target_matrix = target_matrix[:, :-num_scalar_targets]
+
+    num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+    num_vector_targets = len(
+        example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    )
+    num_examples = vector_target_matrix.shape[0]
+
+    vector_target_matrix = numpy.reshape(
+        vector_target_matrix, (num_examples, num_heights, num_vector_targets),
+        order='F'
+    )
+
+    return {
+        example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+        example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+    }
 
 
 def make_cnn(option_dict):
@@ -699,7 +863,7 @@ def make_dense_net(option_dict):
     return model_object
 
 
-def cnn_generator(option_dict):
+def cnn_generator(option_dict, for_inference):
     """Generates examples for CNN.
 
     E = number of examples per batch (batch size)
@@ -734,6 +898,11 @@ def cnn_generator(option_dict):
         (used only if normalization type is min-max).
     option_dict['target_max_norm_value']: Same but max value.
 
+    :param for_inference: Boolean flag.  If True, generator is being used for
+        inference stage (applying trained model to new data).  If False,
+        generator is being used for training or monitoring (on-the-fly
+        validation).
+
     :return: predictor_matrix: E-by-H-by-P numpy array of predictor values.
     :return: target_list: List with 2 items.
     target_list[0] = vector_target_matrix: numpy array (E x H x T_v) of target
@@ -743,6 +912,7 @@ def cnn_generator(option_dict):
     """
 
     option_dict = _check_generator_args(option_dict)
+    error_checking.assert_is_boolean(for_inference)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -751,7 +921,7 @@ def cnn_generator(option_dict):
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
-    all_field_names = predictor_names +  target_names
+    all_field_names = predictor_names + target_names
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
@@ -770,13 +940,30 @@ def cnn_generator(option_dict):
 
     file_index = 0
 
+    if for_inference:
+        example_index = 0
+    else:
+        example_index = None
+
     while True:
+        if for_inference and file_index >= len(example_file_names):
+            raise StopIteration
+
         num_examples_in_memory = 0
         predictor_matrix = None
         vector_target_matrix = None
         scalar_target_matrix = None
 
         while num_examples_in_memory < num_examples_per_batch:
+            if file_index == len(example_file_names):
+                if for_inference:
+                    if predictor_matrix is None:
+                        raise StopIteration
+
+                    break
+
+                file_index = 0
+
             this_example_dict = _read_file_for_generator(
                 example_file_name=example_file_names[file_index],
                 num_examples_to_keep=
@@ -790,22 +977,31 @@ def cnn_generator(option_dict):
                 predictor_max_norm_value=predictor_max_norm_value,
                 target_norm_type_string=target_norm_type_string,
                 target_min_norm_value=target_min_norm_value,
-                target_max_norm_value=target_max_norm_value
+                target_max_norm_value=target_max_norm_value,
+                first_example_to_keep=example_index
             )
 
-            file_index += 1
-            if file_index >= len(example_file_names):
-                file_index = 0
+            if for_inference:
+                this_num_examples = len(
+                    this_example_dict[example_io.VALID_TIMES_KEY]
+                )
 
-            this_predictor_matrix = _make_cnn_predictor_matrix(
-                example_dict=this_example_dict
+                if this_num_examples == 0:
+                    file_index += 1
+                    example_index = 0
+                else:
+                    example_index += this_num_examples
+            else:
+                file_index += 1
+
+            this_predictor_matrix = predictors_dict_to_numpy(
+                example_dict=this_example_dict, for_cnn=True
             )
-            this_vector_target_matrix = (
-                this_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+            this_list = targets_dict_to_numpy(
+                example_dict=this_example_dict, for_cnn=True
             )
-            this_scalar_target_matrix = (
-                this_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
-            )
+            this_vector_target_matrix = this_list[0]
+            this_scalar_target_matrix = this_list[1]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
@@ -831,7 +1027,7 @@ def cnn_generator(option_dict):
         yield (predictor_matrix, [vector_target_matrix, scalar_target_matrix])
 
 
-def dense_net_generator(option_dict):
+def dense_net_generator(option_dict, for_inference):
     """Generates examples for dense neural net.
 
     E = number of examples per batch (batch size)
@@ -839,11 +1035,16 @@ def dense_net_generator(option_dict):
     T = number of target variables
 
     :param option_dict: See doc for `cnn_generator`.
+    :param for_inference: Boolean flag.  If True, generator is being used for
+        inference stage (applying trained model to new data).  If False,
+        generator is being used for training or monitoring (on-the-fly
+        validation).
     :return: predictor_matrix: E-by-P numpy array of predictor values.
     :return: target_matrix: E-by-T numpy array of target values.
     """
 
     option_dict = _check_generator_args(option_dict)
+    error_checking.assert_is_boolean(for_inference)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -852,7 +1053,7 @@ def dense_net_generator(option_dict):
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
-    all_field_names = predictor_names +  target_names
+    all_field_names = predictor_names + target_names
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
@@ -871,12 +1072,29 @@ def dense_net_generator(option_dict):
 
     file_index = 0
 
+    if for_inference:
+        example_index = 0
+    else:
+        example_index = None
+
     while True:
+        if for_inference and file_index >= len(example_file_names):
+            raise StopIteration
+
         num_examples_in_memory = 0
         predictor_matrix = None
         target_matrix = None
 
         while num_examples_in_memory < num_examples_per_batch:
+            if file_index == len(example_file_names):
+                if for_inference:
+                    if predictor_matrix is None:
+                        raise StopIteration
+
+                    break
+
+                file_index = 0
+
             this_example_dict = _read_file_for_generator(
                 example_file_name=example_file_names[file_index],
                 num_examples_to_keep=
@@ -890,19 +1108,29 @@ def dense_net_generator(option_dict):
                 predictor_max_norm_value=predictor_max_norm_value,
                 target_norm_type_string=target_norm_type_string,
                 target_min_norm_value=target_min_norm_value,
-                target_max_norm_value=target_max_norm_value
+                target_max_norm_value=target_max_norm_value,
+                first_example_to_keep=example_index
             )
 
-            file_index += 1
-            if file_index >= len(example_file_names):
-                file_index = 0
+            if for_inference:
+                this_num_examples = len(
+                    this_example_dict[example_io.VALID_TIMES_KEY]
+                )
 
-            this_predictor_matrix = _make_dense_net_predictor_matrix(
-                example_dict=this_example_dict
+                if this_num_examples == 0:
+                    file_index += 1
+                    example_index = 0
+                else:
+                    example_index += this_num_examples
+            else:
+                file_index += 1
+
+            this_predictor_matrix = predictors_dict_to_numpy(
+                example_dict=this_example_dict, for_cnn=False
             )
-            this_target_matrix = make_dense_net_target_matrix(
-                example_dict=this_example_dict
-            )
+            this_target_matrix = targets_dict_to_numpy(
+                example_dict=this_example_dict, for_cnn=False
+            )[0]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
@@ -1010,11 +1238,19 @@ def train_neural_net(
     )
 
     if is_cnn:
-        training_generator = cnn_generator(training_option_dict)
-        validation_generator = cnn_generator(validation_option_dict)
+        training_generator = cnn_generator(
+            option_dict=training_option_dict, for_inference=False
+        )
+        validation_generator = cnn_generator(
+            option_dict=validation_option_dict, for_inference=False
+        )
     else:
-        training_generator = dense_net_generator(training_option_dict)
-        validation_generator = dense_net_generator(validation_option_dict)
+        training_generator = dense_net_generator(
+            option_dict=training_option_dict, for_inference=False
+        )
+        validation_generator = dense_net_generator(
+            option_dict=validation_option_dict, for_inference=False
+        )
 
     model_object.fit_generator(
         generator=training_generator,
@@ -1218,3 +1454,138 @@ def read_metadata(pickle_file_name):
     ).format(str(missing_keys), pickle_file_name)
 
     raise ValueError(error_string)
+
+
+def write_predictions(
+        netcdf_file_name, scalar_target_matrix, vector_target_matrix,
+        scalar_prediction_matrix, vector_prediction_matrix, model_file_name):
+    """Writes predictions to NetCDF file.
+
+    E = number of examples
+    H = number of heights
+    T_s = number of scalar targets
+    T_v = number of vector targets
+
+    :param netcdf_file_name: Path to output file.
+    :param scalar_target_matrix: numpy array (E x T_s) with actual values of
+        scalar targets.
+    :param vector_target_matrix: numpy array (E x H x T_v) with actual values of
+        vector targets.
+    :param scalar_prediction_matrix: Same as `scalar_target_matrix` but with
+        predicted values.
+    :param vector_prediction_matrix: Same as `vector_target_matrix` but with
+        predicted values.
+    :param model_file_name: Path to file with trained model (readable by
+        `neural_net.read_model`).
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
+    error_checking.assert_is_numpy_array(scalar_target_matrix, num_dimensions=2)
+
+    error_checking.assert_is_numpy_array_without_nan(scalar_prediction_matrix)
+    error_checking.assert_is_numpy_array(
+        scalar_prediction_matrix,
+        exact_dimensions=numpy.array(scalar_target_matrix, dtype=int)
+    )
+
+    error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
+    error_checking.assert_is_numpy_array(vector_target_matrix, num_dimensions=3)
+
+    num_examples = scalar_target_matrix.shape[0]
+    expected_dim = numpy.array(
+        (num_examples,) + vector_target_matrix.shape[1:], dtype=int
+    )
+    error_checking.assert_is_numpy_array(
+        vector_target_matrix, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
+    error_checking.assert_is_numpy_array(
+        vector_prediction_matrix,
+        exact_dimensions=numpy.array(vector_target_matrix, dtype=int)
+    )
+
+    error_checking.assert_is_string(model_file_name)
+
+    # Write to NetCDF file.
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    dataset_object = netCDF4.Dataset(
+        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+    )
+
+    dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
+
+    dataset_object.createDimension(
+        EXAMPLE_DIMENSION_KEY, vector_target_matrix.shape[0]
+    )
+    dataset_object.createDimension(
+        HEIGHT_DIMENSION_KEY, vector_target_matrix.shape[1]
+    )
+    dataset_object.createDimension(
+        VECTOR_TARGET_DIMENSION_KEY, vector_target_matrix.shape[2]
+    )
+    dataset_object.createDimension(
+        SCALAR_TARGET_DIMENSION_KEY, scalar_target_matrix.shape[1]
+    )
+
+    dataset_object.createVariable(
+        SCALAR_TARGETS_KEY, datatype=numpy.float32,
+        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
+    )
+    dataset_object.variables[SCALAR_TARGETS_KEY][:] = scalar_target_matrix
+
+    dataset_object.createVariable(
+        SCALAR_PREDICTIONS_KEY, datatype=numpy.float32,
+        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
+    )
+    dataset_object.variables[SCALAR_PREDICTIONS_KEY][:] = (
+        scalar_prediction_matrix
+    )
+
+    these_dimensions = (
+        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY
+    )
+
+    dataset_object.createVariable(
+        VECTOR_TARGETS_KEY, datatype=numpy.float32, dimensions=these_dimensions
+    )
+    dataset_object.variables[VECTOR_TARGETS_KEY][:] = vector_target_matrix
+
+    dataset_object.createVariable(
+        VECTOR_PREDICTIONS_KEY, datatype=numpy.float32,
+        dimensions=these_dimensions
+    )
+    dataset_object.variables[VECTOR_PREDICTIONS_KEY][:] = (
+        vector_prediction_matrix
+    )
+
+    dataset_object.close()
+
+
+def read_predictions(netcdf_file_name):
+    """Reads predictions from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: prediction_dict: Dictionary with the following keys.
+    prediction_dict['scalar_target_matrix']: See doc for `write_predictions`.
+    prediction_dict['scalar_prediction_matrix']: Same.
+    prediction_dict['vector_target_matrix']: Same.
+    prediction_dict['vector_prediction_matrix']: Same.
+    prediction_dict['model_file_name']: Same.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    prediction_dict = {
+        SCALAR_TARGETS_KEY: dataset_object.variables[SCALAR_TARGETS_KEY][:],
+        SCALAR_PREDICTIONS_KEY:
+            dataset_object.variables[SCALAR_PREDICTIONS_KEY][:],
+        VECTOR_TARGETS_KEY: dataset_object.variables[VECTOR_TARGETS_KEY][:],
+        VECTOR_PREDICTIONS_KEY:
+            dataset_object.variables[VECTOR_PREDICTIONS_KEY][:],
+        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
+    }
+
+    dataset_object.close()
+    return prediction_dict

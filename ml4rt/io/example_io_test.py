@@ -150,22 +150,61 @@ CONCAT_EXAMPLE_DICT = {
 }
 
 # The following constants are used to test reduce_sample_size.
-NUM_EXAMPLES_TO_KEEP = 2
+NUM_EXAMPLES_MEDIUM = 2
+FIRST_EXAMPLE_INDEX_MEDIUM = 1
 
-FIRST_EXAMPLE_DICT_REDUCED = {
+FIRST_EXAMPLE_DICT_MEDIUM = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
     example_io.SCALAR_PREDICTOR_VALS_KEY:
-        FIRST_SCALAR_PREDICTOR_MATRIX[:2, ...],
+        FIRST_SCALAR_PREDICTOR_MATRIX[1:3, ...],
     example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
     example_io.VECTOR_PREDICTOR_VALS_KEY:
-        FIRST_VECTOR_PREDICTOR_MATRIX[:2, ...],
+        FIRST_VECTOR_PREDICTOR_MATRIX[1:3, ...],
     example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
-    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[:2, ...],
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[1:3, ...],
     example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
-    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[:2, ...],
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[1:3, ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
-    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[:2, ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[:2, ...]
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...]
+}
+
+NUM_EXAMPLES_SMALL = 2
+FIRST_EXAMPLE_INDEX_SMALL = 3
+
+FIRST_EXAMPLE_DICT_SMALL = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[[3], ...],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[[3], ...],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[[3], ...],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[3], ...],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[3], ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[3], ...]
+}
+
+NUM_EXAMPLES_EMPTY = 2
+FIRST_EXAMPLE_INDEX_EMPTY = 4
+
+FIRST_EXAMPLE_DICT_EMPTY = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[[], ...],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[[], ...],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[[], ...],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[], ...],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[], ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[], ...]
 }
 
 # The following constants are used to test subset_by_time.
@@ -470,16 +509,52 @@ class ExampleIoTests(unittest.TestCase):
                 field_name=example_io.LIQUID_WATER_PATH_NAME, height_m_agl=None
             )
 
-    def test_reduce_sample_size(self):
-        """Ensures correct output from reduce_sample_size."""
+    def test_reduce_sample_size_medium(self):
+        """Ensures correct output from reduce_sample_size.
+
+        In this case, reducing to medium sample size.
+        """
 
         this_example_dict = example_io.reduce_sample_size(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
-            num_examples_to_keep=NUM_EXAMPLES_TO_KEEP, test_mode=True
+            num_examples_to_keep=NUM_EXAMPLES_MEDIUM,
+            first_example_to_keep=FIRST_EXAMPLE_INDEX_MEDIUM
         )
 
         self.assertTrue(_compare_example_dicts(
-            this_example_dict, FIRST_EXAMPLE_DICT_REDUCED
+            this_example_dict, FIRST_EXAMPLE_DICT_MEDIUM
+        ))
+
+    def test_reduce_sample_size_small(self):
+        """Ensures correct output from reduce_sample_size.
+
+        In this case, reducing to small sample size.
+        """
+
+        this_example_dict = example_io.reduce_sample_size(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            num_examples_to_keep=NUM_EXAMPLES_SMALL,
+            first_example_to_keep=FIRST_EXAMPLE_INDEX_SMALL
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_SMALL
+        ))
+
+    def test_reduce_sample_size_empty(self):
+        """Ensures correct output from reduce_sample_size.
+
+        In this case, reducing to zero sample size.
+        """
+
+        this_example_dict = example_io.reduce_sample_size(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            num_examples_to_keep=NUM_EXAMPLES_EMPTY,
+            first_example_to_keep=FIRST_EXAMPLE_INDEX_EMPTY
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_EMPTY
         ))
 
     def test_subset_by_time(self):

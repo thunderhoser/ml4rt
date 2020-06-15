@@ -7,8 +7,8 @@ from ml4rt.machine_learning import neural_net
 
 TOLERANCE = 1e-6
 
-# The following constants are used to test _make_cnn_predictor_matrix,
-# _make_dense_net_predictor_matrix, and make_dense_net_target_matrix.
+# The following constants are used to test predictors_dict_to_numpy,
+# predictors_numpy_to_dict, targets_dict_to_numpy, and targets_numpy_to_dict.
 HEIGHTS_M_AGL = numpy.array([100, 500], dtype=float)
 VALID_TIMES_UNIX_SEC = numpy.array([0, 300, 600, 1200], dtype=int)
 STANDARD_ATMO_FLAGS = numpy.array([0, 1, 2, 3], dtype=int)
@@ -98,6 +98,8 @@ CNN_PREDICTOR_MATRIX = numpy.concatenate(
     (VECTOR_PREDICTOR_MATRIX, THIS_SCALAR_PREDICTOR_MATRIX), axis=-1
 )
 
+CNN_TARGET_MATRICES = [VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.]
+
 DENSE_NET_PREDICTOR_MATRIX = numpy.array([
     [290, 295, 0.008, 0.009, 0, 40.02],
     [289, 294, 0.007, 0.008, 1, 40.02],
@@ -112,32 +114,146 @@ DENSE_NET_TARGET_MATRIX = numpy.array([
     [200, 100, 400, 100, 200]
 ], dtype=float)
 
+DENSE_NET_TARGET_MATRICES = [DENSE_NET_TARGET_MATRIX]
+
 
 class NeuralNetTests(unittest.TestCase):
     """Each method is a unit test for neural_net.py."""
 
-    def test_make_cnn_predictor_matrix(self):
-        """Ensures correct output from _make_cnn_predictor_matrix."""
+    def test_predictors_dict_to_numpy_cnn(self):
+        """Ensures correct output from predictors_dict_to_numpy.
 
-        this_matrix = neural_net._make_cnn_predictor_matrix(EXAMPLE_DICT)
+        In this case, for CNN rather than dense net.
+        """
+
+        this_matrix = neural_net.predictors_dict_to_numpy(
+            example_dict=EXAMPLE_DICT, for_cnn=True
+        )
         self.assertTrue(numpy.allclose(
             this_matrix, CNN_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
-    def test_make_dense_net_predictor_matrix(self):
-        """Ensures correct output from _make_dense_net_predictor_matrix."""
+    def test_predictors_dict_to_numpy_dense_net(self):
+        """Ensures correct output from predictors_dict_to_numpy.
 
-        this_matrix = neural_net._make_dense_net_predictor_matrix(EXAMPLE_DICT)
+        In this case, for dense net rather than CNN.
+        """
+
+        this_matrix = neural_net.predictors_dict_to_numpy(
+            example_dict=EXAMPLE_DICT, for_cnn=False
+        )
         self.assertTrue(numpy.allclose(
             this_matrix, DENSE_NET_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
-    def test_make_dense_net_target_matrix(self):
-        """Ensures correct output from make_dense_net_target_matrix."""
+    def test_predictors_numpy_to_dict_cnn(self):
+        """Ensures correct output from predictors_numpy_to_dict.
 
-        this_matrix = neural_net.make_dense_net_target_matrix(EXAMPLE_DICT)
+        In this case, for CNN rather than dense net.
+        """
+
+        this_example_dict = neural_net.predictors_numpy_to_dict(
+            predictor_matrix=CNN_PREDICTOR_MATRIX, example_dict=EXAMPLE_DICT,
+            for_cnn=True
+        )
         self.assertTrue(numpy.allclose(
-            this_matrix, DENSE_NET_TARGET_MATRIX, atol=TOLERANCE
+            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            VECTOR_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY],
+            SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+
+    def test_predictors_numpy_to_dict_dense_net(self):
+        """Ensures correct output from predictors_numpy_to_dict.
+
+        In this case, for dense net rather than CNN.
+        """
+
+        this_example_dict = neural_net.predictors_numpy_to_dict(
+            predictor_matrix=DENSE_NET_PREDICTOR_MATRIX,
+            example_dict=EXAMPLE_DICT, for_cnn=False
+        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            VECTOR_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY],
+            SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+
+    def test_targets_dict_to_numpy_cnn(self):
+        """Ensures correct output from targets_dict_to_numpy.
+
+        In this case, for CNN rather than dense net.
+        """
+
+        these_matrices = neural_net.targets_dict_to_numpy(
+            example_dict=EXAMPLE_DICT, for_cnn=True
+        )
+
+        self.assertTrue(len(these_matrices) == len(CNN_TARGET_MATRICES))
+
+        for i in range(len(these_matrices)):
+            self.assertTrue(numpy.allclose(
+                these_matrices[i], CNN_TARGET_MATRICES[i], atol=TOLERANCE
+            ))
+
+    def test_targets_dict_to_numpy_dense_net(self):
+        """Ensures correct output from targets_dict_to_numpy.
+
+        In this case, for dense net rather than CNN.
+        """
+
+        these_matrices = neural_net.targets_dict_to_numpy(
+            example_dict=EXAMPLE_DICT, for_cnn=False
+        )
+
+        self.assertTrue(len(these_matrices) == len(DENSE_NET_TARGET_MATRICES))
+
+        for i in range(len(these_matrices)):
+            self.assertTrue(numpy.allclose(
+                these_matrices[i], DENSE_NET_TARGET_MATRICES[i], atol=TOLERANCE
+            ))
+
+    def test_targets_numpy_to_dict_cnn(self):
+        """Ensures correct output from targets_numpy_to_dict.
+
+        In this case, for CNN rather than dense net.
+        """
+
+        this_example_dict = neural_net.targets_numpy_to_dict(
+            target_matrices=CNN_TARGET_MATRICES, example_dict=EXAMPLE_DICT,
+            for_cnn=True
+        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            VECTOR_TARGET_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
+            SCALAR_TARGET_MATRIX, atol=TOLERANCE
+        ))
+
+    def test_targets_numpy_to_dict_dense_net(self):
+        """Ensures correct output from targets_numpy_to_dict.
+
+        In this case, for dense net rather than CNN.
+        """
+
+        this_example_dict = neural_net.targets_numpy_to_dict(
+            target_matrices=DENSE_NET_TARGET_MATRICES,
+            example_dict=EXAMPLE_DICT, for_cnn=False
+        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            VECTOR_TARGET_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
+            SCALAR_TARGET_MATRIX, atol=TOLERANCE
         ))
 
 
