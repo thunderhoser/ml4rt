@@ -112,7 +112,7 @@ def _run(prediction_file_name, evaluation_file_name):
         print((
             'Variable = "{0:s}" ... stdev of target and predicted values = '
             '{1:f}, {2:f} ... MSE and skill score = {3:f}, {4:f} ... '
-            'MSE and skill score = {5:f}, {6:f} ... bias = {7:f} ... '
+            'MAE and skill score = {5:f}, {6:f} ... bias = {7:f} ... '
             'correlation = {8:f}'
         ).format(
             scalar_target_names[k],
@@ -142,10 +142,10 @@ def _run(prediction_file_name, evaluation_file_name):
                 'Variable = "{0:s}" at {1:d} m AGL ... '
                 'stdev of target and predicted values = {2:f}, {3:f} ... '
                 'MSE and skill score = {4:f}, {5:f} ... '
-                'MSE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
+                'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
                 'correlation = {9:f}'
             ).format(
-                vector_target_names[k], HEIGHTS_M_AGL[j],
+                vector_target_names[k], int(numpy.round(HEIGHTS_M_AGL[j])),
                 evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][j, k],
                 evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][j, k],
                 evaluation_dict[evaluation.VECTOR_MSE_KEY][j, k],
