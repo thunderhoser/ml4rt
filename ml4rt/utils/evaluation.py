@@ -79,7 +79,7 @@ def _check_args(
     )
 
     num_heights = vector_target_matrix.shape[1]
-    num_vector_targets = (
+    num_vector_targets = len(
         mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
     )
 
