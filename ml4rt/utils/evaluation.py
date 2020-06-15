@@ -1,10 +1,11 @@
 """Methods for model evaluation."""
 
+import pickle
 import numpy
 from gewittergefahr.gg_utils import histograms
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
-from ml4rt.machine_learning import neural_net
 
 DEFAULT_NUM_RELIABILITY_BINS = 20
 DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
@@ -33,35 +34,33 @@ VECTOR_RELIABILITY_X_KEY = 'vector_reliability_x_matrix'
 VECTOR_RELIABILITY_Y_KEY = 'vector_reliability_y_matrix'
 VECTOR_RELIABILITY_COUNT_KEY = 'vector_reliability_count_matrix'
 
+MODEL_FILE_KEY = 'model_file_name'
+
+REQUIRED_KEYS = [
+    SCALAR_TARGET_STDEV_KEY, SCALAR_PREDICTION_STDEV_KEY,
+    VECTOR_TARGET_STDEV_KEY, VECTOR_PREDICTION_STDEV_KEY, MODEL_FILE_KEY
+]
+
 
 def _check_args(
-        scalar_target_matrix, scalar_prediction_matrix,
-        mean_training_example_dict, is_cnn, vector_target_matrix=None,
-        vector_prediction_matrix=None):
+        scalar_target_matrix, scalar_prediction_matrix, vector_target_matrix,
+        vector_prediction_matrix, mean_training_example_dict):
     """Error-checks input args for methods called `get_*_all_variables`.
 
     :param scalar_target_matrix: See doc for `get_*_all_variables`.
     :param scalar_prediction_matrix: Same.
-    :param mean_training_example_dict: Same.
-    :param is_cnn: Same.
     :param vector_target_matrix: Same.
     :param vector_prediction_matrix: Same.
+    :param mean_training_example_dict: Same.
     """
 
-    error_checking.assert_is_boolean(is_cnn)
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
 
-    if is_cnn:
-        num_scalar_targets = (
-            mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
-        )
-    else:
-        scalar_prediction_matrix_climo = (
-            neural_net.make_dense_net_target_matrix(mean_training_example_dict)
-        )
-        num_scalar_targets = scalar_prediction_matrix_climo.shape[-1]
-
     num_examples = scalar_target_matrix.shape[0]
+    num_scalar_targets = (
+        mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    )
+
     these_expected_dim = numpy.array(
         [num_examples, num_scalar_targets], dtype=int
     )
@@ -74,30 +73,29 @@ def _check_args(
         scalar_prediction_matrix, exact_dimensions=these_expected_dim
     )
 
-    if is_cnn:
-        num_vector_targets = (
-            mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-        )
+    error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
+    error_checking.assert_is_numpy_array(
+        vector_target_matrix, num_dimensions=3
+    )
 
-        error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-        error_checking.assert_is_numpy_array(
-            vector_target_matrix, num_dimensions=3
-        )
+    num_heights = vector_target_matrix.shape[1]
+    num_vector_targets = (
+        mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    )
 
-        num_heights = vector_target_matrix.shape[1]
-        these_expected_dim = numpy.array(
-            [num_examples, num_heights, num_vector_targets], dtype=int
-        )
-        error_checking.assert_is_numpy_array(
-            vector_target_matrix, exact_dimensions=these_expected_dim
-        )
+    these_expected_dim = numpy.array(
+        [num_examples, num_heights, num_vector_targets], dtype=int
+    )
+    error_checking.assert_is_numpy_array(
+        vector_target_matrix, exact_dimensions=these_expected_dim
+    )
 
-        error_checking.assert_is_numpy_array_without_nan(
-            vector_prediction_matrix
-        )
-        error_checking.assert_is_numpy_array(
-            vector_prediction_matrix, exact_dimensions=these_expected_dim
-        )
+    error_checking.assert_is_numpy_array_without_nan(
+        vector_prediction_matrix
+    )
+    error_checking.assert_is_numpy_array(
+        vector_prediction_matrix, exact_dimensions=these_expected_dim
+    )
 
 
 def _get_mse_one_scalar(target_values, predicted_values):
@@ -259,12 +257,11 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
 
 def get_scores_all_variables(
         scalar_target_matrix, scalar_prediction_matrix,
-        mean_training_example_dict, is_cnn,
-        get_mse=True, get_mae=True, get_bias=True, get_correlation=True,
-        get_prmse=True, get_reliability_curve=True,
+        vector_target_matrix, vector_prediction_matrix,
+        mean_training_example_dict, get_mse=True, get_mae=True, get_bias=True,
+        get_correlation=True, get_prmse=True, get_reliability_curve=True,
         num_reliability_bins=DEFAULT_NUM_RELIABILITY_BINS,
-        max_bin_edge_percentile=DEFAULT_MAX_BIN_EDGE_PERCENTILE,
-        vector_target_matrix=None, vector_prediction_matrix=None):
+        max_bin_edge_percentile=DEFAULT_MAX_BIN_EDGE_PERCENTILE):
     """Computes desired scores for all target variables.
 
     E = number of examples
@@ -276,9 +273,13 @@ def get_scores_all_variables(
     :param scalar_target_matrix: numpy array (E x T_s) of target (actual)
         values.
     :param scalar_prediction_matrix: numpy array (E x T_s) of predicted values.
-    :param mean_training_example_dict: See doc for... something.
-    :param is_cnn: Boolean flag.  If True, evaluating CNN.  If False, evaluating
-        CNN.
+    :param vector_target_matrix: numpy array (E x H x T_v) of target (actual)
+        values.
+    :param vector_prediction_matrix: numpy array (E x H x T_v) of predicted
+        values.
+    :param mean_training_example_dict: Dictionary created by
+        `normalization.create_mean_example`, containing climatology over
+        training data for each target variable.
     :param get_mse: Boolean flag.  If True, will compute MSE and MSE skill score
         for each scalar target variable.
     :param get_mae: Boolean flag.  If True, will compute MAE and MAE skill score
@@ -298,10 +299,6 @@ def get_scores_all_variables(
         Used to find upper edge of last bin for reliability curves.  For each
         scalar target variable y, the upper edge of the last bin will be the
         [q]th percentile of y-values, where q = `max_bin_edge_percentile`.
-    :param vector_target_matrix: [used only if `is_cnn == True`]
-        numpy array (E x H x T_v) of target (actual) values.
-    :param vector_prediction_matrix: [used only if `is_cnn == True`]
-        numpy array (E x H x T_v) of predicted values.
 
     :return: evaluation_dict: Dictionary with the following keys (some may be
         missing, depending on input args).
@@ -309,36 +306,34 @@ def get_scores_all_variables(
         standard deviations for actual values.
     evaluation_dict['scalar_prediction_stdevs']: numpy array (length T_s) of
         standard deviations for predicted values.
-    evaluation_dict['vector_target_stdev_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of standard deviations for actual values.
-    evaluation_dict['vector_prediction_stdev_matrix']:
-        [None if `is_cnn == False`]
-        numpy array (H x T_v) of standard deviations for predicted values.
+    evaluation_dict['vector_target_stdev_matrix']: numpy array (H x T_v) of
+        standard deviations for actual values.
+    evaluation_dict['vector_prediction_stdev_matrix']: numpy array (H x T_v) of
+        standard deviations for predicted values.
     evaluation_dict['scalar_mse_values']: numpy array (length T_s) of mean
         squared errors.
     evaluation_dict['scalar_mse_skill_scores']: numpy array (length T_s) of MSE
         skill scores.
-    evaluation_dict['vector_mse_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of mean squared errors.
-    evaluation_dict['vector_mse_ss_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of MSE skill scores.
+    evaluation_dict['vector_mse_matrix']: numpy array (H x T_v) of mean squared
+        errors.
+    evaluation_dict['vector_mse_ss_matrix']: numpy array (H x T_v) of MSE skill
+        scores.
     evaluation_dict['scalar_mae_values']: numpy array (length T_s) of mean
         absolute errors.
     evaluation_dict['scalar_mae_skill_scores']: numpy array (length T_s) of MAE
         skill scores.
-    evaluation_dict['vector_mae_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of mean absolute errors.
-    evaluation_dict['vector_mae_ss_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of MAE skill scores.
+    evaluation_dict['vector_mae_matrix']: numpy array (H x T_v) of mean absolute
+        errors.
+    evaluation_dict['vector_mae_ss_matrix']: numpy array (H x T_v) of MAE skill
+        scores.
     evaluation_dict['scalar_biases']: numpy array (length T_s) of biases.
-    evaluation_dict['vector_bias_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of biases.
+    evaluation_dict['vector_bias_matrix']: numpy array (H x T_v) of biases.
     evaluation_dict['scalar_correlations']: numpy array (length T_s) of
         correlations.
-    evaluation_dict['vector_correlation_matrix']: [None if `is_cnn == False`]
-        numpy array (H x T_v) of correlations.
-    evaluation_dict['prmse_values']: [None if `is_cnn == False`]
-        numpy array (length T_v) of profile-RMSE values.
+    evaluation_dict['vector_correlation_matrix']: numpy array (H x T_v) of
+        correlations.
+    evaluation_dict['prmse_values']: numpy array (length T_v) of profile-RMSE
+        values.
     evaluation_dict['scalar_reliability_x_matrix']: numpy array (T_s x B) of
         x-coordinates for reliability curves.
     evaluation_dict['scalar_reliability_y_matrix']: Same but for y-coordinates.
@@ -351,14 +346,12 @@ def get_scores_all_variables(
         counts.
     """
 
-    # TODO(thunderhoser): Fix documentation for `mean_training_example_dict`.
     # TODO(thunderhoser): This method could use a unit test.
-    # TODO(thunderhoser): Allow this method to compute PRMSE for a dense net.
 
     _check_args(
         scalar_target_matrix=scalar_target_matrix,
         scalar_prediction_matrix=scalar_prediction_matrix,
-        mean_training_example_dict=mean_training_example_dict, is_cnn=is_cnn,
+        mean_training_example_dict=mean_training_example_dict,
         vector_target_matrix=vector_target_matrix,
         vector_prediction_matrix=vector_prediction_matrix
     )
@@ -370,8 +363,6 @@ def get_scores_all_variables(
     error_checking.assert_is_boolean(get_prmse)
     error_checking.assert_is_boolean(get_reliability_curve)
 
-    get_prmse = get_prmse and is_cnn
-
     if get_reliability_curve:
         error_checking.assert_is_integer(num_reliability_bins)
         error_checking.assert_is_geq(num_reliability_bins, 10)
@@ -379,36 +370,28 @@ def get_scores_all_variables(
         error_checking.assert_is_geq(max_bin_edge_percentile, 90.)
         error_checking.assert_is_leq(max_bin_edge_percentile, 100.)
 
-    if is_cnn:
-        scalar_prediction_matrix_climo = (
-            mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
-        )
-    else:
-        scalar_prediction_matrix_climo = (
-            neural_net.make_dense_net_target_matrix(mean_training_example_dict)
-        )
-
+    print(
+        'Computing standard deviations of target (actual) and predicted '
+        'values...'
+    )
     evaluation_dict = {
         SCALAR_TARGET_STDEV_KEY:
             numpy.std(scalar_target_matrix, axis=0, ddof=1),
         SCALAR_PREDICTION_STDEV_KEY:
-            numpy.std(scalar_prediction_matrix, axis=0, ddof=1)
+            numpy.std(scalar_prediction_matrix, axis=0, ddof=1),
+        VECTOR_TARGET_STDEV_KEY:
+            numpy.std(vector_target_matrix, axis=0, ddof=1),
+        VECTOR_PREDICTION_STDEV_KEY:
+            numpy.std(vector_prediction_matrix, axis=0, ddof=1)
     }
 
-    if is_cnn:
-        num_heights = vector_target_matrix.shape[1]
-        num_vector_targets = vector_target_matrix.shape[2]
-
-        evaluation_dict[VECTOR_TARGET_STDEV_KEY] = numpy.std(
-            vector_target_matrix, axis=0, ddof=1
-        )
-        evaluation_dict[VECTOR_PREDICTION_STDEV_KEY] = numpy.std(
-            vector_prediction_matrix, axis=0, ddof=1
-        )
-
-    num_scalar_targets = scalar_prediction_matrix_climo.shape[1]
+    num_heights = vector_target_matrix.shape[1]
+    num_vector_targets = vector_target_matrix.shape[2]
+    num_scalar_targets = scalar_target_matrix.shape[1]
 
     if get_mse:
+        print('Computing mean squared errors (MSE) and MSE skill scores...')
+
         scalar_mse_values = numpy.full(num_scalar_targets, numpy.nan)
         scalar_mse_skill_scores = numpy.full(num_scalar_targets, numpy.nan)
 
@@ -418,44 +401,49 @@ def get_scores_all_variables(
                 predicted_values=scalar_prediction_matrix[:, k]
             )
 
+            this_climo_value = mean_training_example_dict[
+                example_io.SCALAR_TARGET_VALS_KEY
+            ][0, k]
+
             scalar_mse_skill_scores[k] = _get_mse_ss_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k],
-                mean_training_target_value=scalar_prediction_matrix_climo[0, k]
+                mean_training_target_value=this_climo_value
             )
 
         evaluation_dict[SCALAR_MSE_KEY] = scalar_mse_values
         evaluation_dict[SCALAR_MSE_SKILL_KEY] = scalar_mse_skill_scores
 
-        if is_cnn:
-            vector_mse_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
-            vector_mse_ss_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
+        vector_mse_matrix = numpy.full(
+            (num_heights, num_vector_targets), numpy.nan
+        )
+        vector_mse_ss_matrix = numpy.full(
+            (num_heights, num_vector_targets), numpy.nan
+        )
 
-            for j in range(num_heights):
-                for k in range(num_vector_targets):
-                    vector_mse_matrix[j, k] = _get_mse_one_scalar(
-                        target_values=vector_target_matrix[:, j, k],
-                        predicted_values=vector_prediction_matrix[:, j, k]
-                    )
+        for j in range(num_heights):
+            for k in range(num_vector_targets):
+                vector_mse_matrix[j, k] = _get_mse_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k]
+                )
 
-                    this_climo_value = mean_training_example_dict[
-                        example_io.VECTOR_TARGET_VALS_KEY
-                    ][0, j, k]
+                this_climo_value = mean_training_example_dict[
+                    example_io.VECTOR_TARGET_VALS_KEY
+                ][0, j, k]
 
-                    vector_mse_ss_matrix[j, k] = _get_mse_ss_one_scalar(
-                        target_values=vector_target_matrix[:, j, k],
-                        predicted_values=vector_prediction_matrix[:, j, k],
-                        mean_training_target_value=this_climo_value
-                    )
+                vector_mse_ss_matrix[j, k] = _get_mse_ss_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k],
+                    mean_training_target_value=this_climo_value
+                )
 
-            evaluation_dict[VECTOR_MSE_KEY] = vector_mse_matrix
-            evaluation_dict[VECTOR_MSE_SKILL_KEY] = vector_mse_ss_matrix
+        evaluation_dict[VECTOR_MSE_KEY] = vector_mse_matrix
+        evaluation_dict[VECTOR_MSE_SKILL_KEY] = vector_mse_ss_matrix
 
     if get_mae:
+        print('Computing mean absolute errors (MAE) and MAE skill scores...')
+
         scalar_mae_values = numpy.full(num_scalar_targets, numpy.nan)
         scalar_mae_skill_scores = numpy.full(num_scalar_targets, numpy.nan)
 
@@ -465,44 +453,49 @@ def get_scores_all_variables(
                 predicted_values=scalar_prediction_matrix[:, k]
             )
 
+            this_climo_value = mean_training_example_dict[
+                example_io.SCALAR_TARGET_VALS_KEY
+            ][0, k]
+
             scalar_mae_skill_scores[k] = _get_mae_ss_one_scalar(
                 target_values=scalar_target_matrix[:, k],
                 predicted_values=scalar_prediction_matrix[:, k],
-                mean_training_target_value=scalar_prediction_matrix_climo[0, k]
+                mean_training_target_value=this_climo_value
             )
 
         evaluation_dict[SCALAR_MAE_KEY] = scalar_mae_values
         evaluation_dict[SCALAR_MAE_SKILL_KEY] = scalar_mae_skill_scores
 
-        if is_cnn:
-            vector_mae_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
-            vector_mae_ss_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
+        vector_mae_matrix = numpy.full(
+            (num_heights, num_vector_targets), numpy.nan
+        )
+        vector_mae_ss_matrix = numpy.full(
+            (num_heights, num_vector_targets), numpy.nan
+        )
 
-            for j in range(num_heights):
-                for k in range(num_vector_targets):
-                    vector_mae_matrix[j, k] = _get_mae_one_scalar(
-                        target_values=vector_target_matrix[:, j, k],
-                        predicted_values=vector_prediction_matrix[:, j, k]
-                    )
+        for j in range(num_heights):
+            for k in range(num_vector_targets):
+                vector_mae_matrix[j, k] = _get_mae_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k]
+                )
 
-                    this_climo_value = mean_training_example_dict[
-                        example_io.VECTOR_TARGET_VALS_KEY
-                    ][0, j, k]
+                this_climo_value = mean_training_example_dict[
+                    example_io.VECTOR_TARGET_VALS_KEY
+                ][0, j, k]
 
-                    vector_mae_ss_matrix[j, k] = _get_mae_ss_one_scalar(
-                        target_values=vector_target_matrix[:, j, k],
-                        predicted_values=vector_prediction_matrix[:, j, k],
-                        mean_training_target_value=this_climo_value
-                    )
+                vector_mae_ss_matrix[j, k] = _get_mae_ss_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k],
+                    mean_training_target_value=this_climo_value
+                )
 
-            evaluation_dict[VECTOR_MAE_KEY] = vector_mae_matrix
-            evaluation_dict[VECTOR_MAE_SKILL_KEY] = vector_mae_ss_matrix
+        evaluation_dict[VECTOR_MAE_KEY] = vector_mae_matrix
+        evaluation_dict[VECTOR_MAE_SKILL_KEY] = vector_mae_ss_matrix
 
     if get_bias:
+        print('Computing biases...')
+
         scalar_biases = numpy.full(num_scalar_targets, numpy.nan)
 
         for k in num_scalar_targets:
@@ -513,21 +506,22 @@ def get_scores_all_variables(
 
         evaluation_dict[SCALAR_BIAS_KEY] = scalar_biases
 
-        if is_cnn:
-            vector_bias_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
+        vector_bias_matrix = numpy.full(
+            (num_heights, num_vector_targets), numpy.nan
+        )
 
-            for j in range(num_heights):
-                for k in range(num_vector_targets):
-                    vector_bias_matrix[j, k] = _get_bias_one_scalar(
-                        target_values=vector_target_matrix[:, j, k],
-                        predicted_values=vector_prediction_matrix[:, j, k]
-                    )
+        for j in range(num_heights):
+            for k in range(num_vector_targets):
+                vector_bias_matrix[j, k] = _get_bias_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k]
+                )
 
-            evaluation_dict[VECTOR_BIAS_KEY] = vector_bias_matrix
+        evaluation_dict[VECTOR_BIAS_KEY] = vector_bias_matrix
 
     if get_correlation:
+        print('Computing correlations...')
+
         scalar_correlations = numpy.full(num_scalar_targets, numpy.nan)
 
         for k in num_scalar_targets:
@@ -538,23 +532,24 @@ def get_scores_all_variables(
 
         evaluation_dict[SCALAR_CORRELATION_KEY] = scalar_correlations
 
-        if is_cnn:
-            vector_correlation_matrix = numpy.full(
-                (num_heights, num_vector_targets), numpy.nan
-            )
+        vector_correlation_matrix = numpy.full(
+            (num_heights, num_vector_targets), numpy.nan
+        )
 
-            for j in range(num_heights):
-                for k in range(num_vector_targets):
-                    vector_correlation_matrix[j, k] = (
-                        _get_correlation_one_scalar(
-                            target_values=vector_target_matrix[:, j, k],
-                            predicted_values=vector_prediction_matrix[:, j, k]
-                        )
+        for j in range(num_heights):
+            for k in range(num_vector_targets):
+                vector_correlation_matrix[j, k] = (
+                    _get_correlation_one_scalar(
+                        target_values=vector_target_matrix[:, j, k],
+                        predicted_values=vector_prediction_matrix[:, j, k]
                     )
+                )
 
-            evaluation_dict[VECTOR_CORRELATION_KEY] = vector_correlation_matrix
+        evaluation_dict[VECTOR_CORRELATION_KEY] = vector_correlation_matrix
 
     if get_prmse:
+        print('Computing profile root mean squared errors (PRMSE)...')
+
         vector_prmse_values = numpy.full(num_vector_targets, numpy.nan)
 
         for k in range(num_vector_targets):
@@ -566,6 +561,8 @@ def get_scores_all_variables(
         evaluation_dict[VECTOR_PRMSE_KEY] = vector_prmse_values
 
     if get_reliability_curve:
+        print('Computing reliability curves...')
+
         these_dim = (num_scalar_targets, num_reliability_bins)
         scalar_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
         scalar_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
@@ -591,38 +588,90 @@ def get_scores_all_variables(
             scalar_reliability_count_matrix
         )
 
-        if is_cnn:
-            these_dim = (num_heights, num_vector_targets, num_reliability_bins)
-            vector_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-            vector_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-            vector_reliability_count_matrix = numpy.full(
-                these_dim, -1, dtype=int
-            )
+        these_dim = (num_heights, num_vector_targets, num_reliability_bins)
+        vector_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
+        vector_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
+        vector_reliability_count_matrix = numpy.full(
+            these_dim, -1, dtype=int
+        )
 
-            for j in range(num_heights):
-                for k in range(num_vector_targets):
-                    these_x, these_y, these_counts = _get_rel_curve_one_scalar(
-                        target_values=vector_target_matrix[:, j, k],
-                        predicted_values=vector_prediction_matrix[:, j, k],
-                        num_bins=num_reliability_bins,
-                        max_bin_edge=numpy.percentile(
-                            vector_prediction_matrix[:, j, k],
-                            max_bin_edge_percentile
-                        )
+        for j in range(num_heights):
+            for k in range(num_vector_targets):
+                these_x, these_y, these_counts = _get_rel_curve_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k],
+                    num_bins=num_reliability_bins,
+                    max_bin_edge=numpy.percentile(
+                        vector_prediction_matrix[:, j, k],
+                        max_bin_edge_percentile
                     )
+                )
 
-                    vector_reliability_x_matrix[j, k, :] = these_x
-                    vector_reliability_y_matrix[j, k, :] = these_y
-                    vector_reliability_count_matrix[j, k, :] = these_counts
+                vector_reliability_x_matrix[j, k, :] = these_x
+                vector_reliability_y_matrix[j, k, :] = these_y
+                vector_reliability_count_matrix[j, k, :] = these_counts
 
-            evaluation_dict[VECTOR_RELIABILITY_X_KEY] = (
-                vector_reliability_x_matrix
-            )
-            evaluation_dict[VECTOR_RELIABILITY_Y_KEY] = (
-                vector_reliability_y_matrix
-            )
-            evaluation_dict[VECTOR_RELIABILITY_COUNT_KEY] = (
-                vector_reliability_count_matrix
-            )
+        evaluation_dict[VECTOR_RELIABILITY_X_KEY] = (
+            vector_reliability_x_matrix
+        )
+        evaluation_dict[VECTOR_RELIABILITY_Y_KEY] = (
+            vector_reliability_y_matrix
+        )
+        evaluation_dict[VECTOR_RELIABILITY_COUNT_KEY] = (
+            vector_reliability_count_matrix
+        )
 
     return evaluation_dict
+
+
+def write_file(evaluation_dict, pickle_file_name):
+    """Writes evaluation results to Pickle file.
+
+    :param evaluation_dict: Dictionary created by `get_scores_all_variables`,
+        but with one extra key.
+    evaluation_dict['model_file_name']: Path to model used to generate
+        predictions (readable by `neural_net.read_model`).
+
+    :param pickle_file_name: Path to output file.
+    """
+
+    missing_keys = list(set(REQUIRED_KEYS) - set(evaluation_dict.keys()))
+
+    if len(missing_keys) != 0:
+        error_string = (
+            '\n{0:s}\nKeys listed above were expected, but not found, in '
+            'dictionary.'
+        ).format(str(missing_keys))
+
+        raise ValueError(error_string)
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
+
+    pickle_file_handle = open(pickle_file_name, 'wb')
+    pickle.dump(evaluation_dict, pickle_file_handle)
+    pickle_file_handle.close()
+
+
+def read_file(pickle_file_name):
+    """Reads evaluation results from Pickle file.
+
+    :param pickle_file_name: Path to input file.
+    :return: evaluation_dict: See doc for `write_file`.
+    """
+
+    error_checking.assert_file_exists(pickle_file_name)
+
+    pickle_file_handle = open(pickle_file_name, 'rb')
+    evaluation_dict = pickle.load(pickle_file_handle)
+    pickle_file_handle.close()
+
+    missing_keys = list(set(REQUIRED_KEYS) - set(evaluation_dict.keys()))
+    if len(missing_keys) == 0:
+        return evaluation_dict
+
+    error_string = (
+        '\n{0:s}\nKeys listed above were expected, but not found, in file '
+        '"{1:s}".'
+    ).format(str(missing_keys), pickle_file_name)
+
+    raise ValueError(error_string)

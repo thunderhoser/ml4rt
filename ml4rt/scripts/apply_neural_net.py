@@ -242,7 +242,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         apply_to_targets=True
     )
 
-    print('Writing predictions to: "{0:s}"...'.format(output_file_name))
+    print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
+        output_file_name
+    ))
 
     neural_net.write_predictions(
         netcdf_file_name=output_file_name,

@@ -422,6 +422,35 @@ EXAMPLE_DICT_MINMAX_BOTH_WITH_HEIGHT = {
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
 }
 
+# The following constants are used to test create_mean_example.
+MEAN_SCALAR_PREDICTOR_MATRIX = numpy.array([[0.75, 45]])
+MEAN_VECTOR_PREDICTOR_MATRIX = numpy.array([295, 290], dtype=float)
+MEAN_SCALAR_TARGET_MATRIX = numpy.array([[300]], dtype=float)
+MEAN_VECTOR_TARGET_MATRIX = numpy.array([
+    [300, 200],
+    [275, 175]
+], dtype=float)
+
+MEAN_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    MEAN_VECTOR_PREDICTOR_MATRIX, axis=0
+)
+MEAN_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    MEAN_VECTOR_PREDICTOR_MATRIX, axis=-1
+)
+MEAN_VECTOR_TARGET_MATRIX = numpy.expand_dims(MEAN_VECTOR_TARGET_MATRIX, axis=0)
+
+MEAN_EXAMPLE_DICT = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: MEAN_SCALAR_PREDICTOR_MATRIX,
+    example_io.SCALAR_TARGET_VALS_KEY: MEAN_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: MEAN_VECTOR_PREDICTOR_MATRIX,
+    example_io.VECTOR_TARGET_VALS_KEY: MEAN_VECTOR_TARGET_MATRIX
+}
+
 
 def _compare_example_dicts(first_example_dict, second_example_dict):
     """Compares two dictionaries with learning examples.
@@ -447,6 +476,7 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
                 first_example_dict[this_key], second_example_dict[this_key],
                 atol=TOLERANCE
         ):
+            print(this_key)
             return False
 
     return True
@@ -851,6 +881,18 @@ class NormalizationTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_DENORM
+        ))
+
+    def test_create_mean_example(self):
+        """Ensures correct output from create_mean_example."""
+
+        this_example_dict = normalization.create_mean_example(
+            example_dict=EXAMPLE_DICT_DENORM, normalization_file_name=None,
+            test_mode=True, normalization_table=NORM_TABLE_WITH_HEIGHT
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, MEAN_EXAMPLE_DICT
         ))
 
 

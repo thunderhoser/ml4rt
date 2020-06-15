@@ -460,3 +460,101 @@ def denormalize_data(
 
     example_dict[example_io.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
     return example_dict
+
+
+def create_mean_example(
+        example_dict, normalization_file_name, test_mode=False,
+        normalization_table=None):
+    """Creates mean example (with mean value for each variable/height pair).
+
+    :param example_dict: See doc for `normalize_data`.
+    :param normalization_file_name: Same.
+    :param test_mode: Same.
+    :param normalization_table: Same.
+    :return: mean_example_dict: See doc for `example_io.average_examples`.
+    """
+
+    error_checking.assert_is_boolean(test_mode)
+
+    if not test_mode:
+        normalization_table = normalization_params.read_file(
+            normalization_file_name
+        )[1]
+
+    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+
+    num_scalar_predictors = len(scalar_predictor_names)
+    num_scalar_targets = len(scalar_target_names)
+    num_vector_predictors = len(vector_predictor_names)
+    num_vector_targets = len(vector_target_names)
+    num_heights = len(heights_m_agl)
+
+    scalar_predictor_values = numpy.full(num_scalar_predictors, numpy.nan)
+    scalar_target_values = numpy.full(num_scalar_targets, numpy.nan)
+    vector_predictor_matrix = numpy.full(
+        (num_heights, num_vector_predictors), numpy.nan
+    )
+    vector_target_matrix = numpy.full(
+        (num_heights, num_vector_targets), numpy.nan
+    )
+
+    for k in range(num_scalar_predictors):
+        this_index = [(scalar_predictor_names[k], DUMMY_HEIGHT_M_AGL)]
+        this_mean_value = normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
+
+        if 'pandas' in str(type(this_mean_value)):
+            this_mean_value = this_mean_value.values[0]
+
+        scalar_predictor_values[k] = this_mean_value
+
+    for k in range(num_scalar_targets):
+        this_index = [(scalar_target_names[k], DUMMY_HEIGHT_M_AGL)]
+        this_mean_value = normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
+
+        if 'pandas' in str(type(this_mean_value)):
+            this_mean_value = this_mean_value.values[0]
+
+        scalar_target_values[k] = this_mean_value
+
+    for j in range(num_heights):
+        for k in range(num_vector_predictors):
+            this_index = [(vector_predictor_names[k], heights_m_agl[j])]
+            this_mean_value = (
+                normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
+            )
+
+            if 'pandas' in str(type(this_mean_value)):
+                this_mean_value = this_mean_value.values[0]
+
+            vector_predictor_matrix[j, k] = this_mean_value
+
+        for k in range(num_vector_targets):
+            this_index = [(vector_target_names[k], heights_m_agl[j])]
+            this_mean_value = (
+                normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
+            )
+
+            if 'pandas' in str(type(this_mean_value)):
+                this_mean_value = this_mean_value.values[0]
+
+            vector_target_matrix[j, k] = this_mean_value
+
+    return {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
+        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
+        example_io.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
+        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
+        example_io.HEIGHTS_KEY: heights_m_agl,
+        example_io.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.expand_dims(scalar_predictor_values, axis=0),
+        example_io.SCALAR_TARGET_VALS_KEY:
+            numpy.expand_dims(scalar_target_values, axis=0),
+        example_io.VECTOR_PREDICTOR_VALS_KEY:
+            numpy.expand_dims(vector_predictor_matrix, axis=0),
+        example_io.VECTOR_TARGET_VALS_KEY:
+            numpy.expand_dims(vector_target_matrix, axis=0)
+    }
