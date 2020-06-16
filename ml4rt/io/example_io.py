@@ -111,11 +111,11 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     ICE_WATER_CONTENT_NAME: 0.001
 }
 
-SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_K_s01'
-SHORTWAVE_DOWN_FLUX_NAME = 'shortwave_down_flux_W_m02'
-SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_W_m02'
-SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_W_m02'
-SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_W_m02'
+SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
+SHORTWAVE_DOWN_FLUX_NAME = 'shortwave_down_flux_w_m02'
+SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_w_m02'
+SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
+SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
 
 SCALAR_TARGET_NAMES = [
     SHORTWAVE_SURFACE_DOWN_FLUX_NAME, SHORTWAVE_TOA_UP_FLUX_NAME
@@ -132,14 +132,6 @@ TARGET_NAME_TO_ORIG = {
     SHORTWAVE_DOWN_FLUX_NAME: 'fluxd',
     SHORTWAVE_UP_FLUX_NAME: 'fluxu',
     SHORTWAVE_HEATING_RATE_NAME: 'hr'
-}
-
-TARGET_NAME_TO_CONV_FACTOR = {
-    SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 1.,
-    SHORTWAVE_TOA_UP_FLUX_NAME: 1.,
-    SHORTWAVE_DOWN_FLUX_NAME: 1.,
-    SHORTWAVE_UP_FLUX_NAME: 1.,
-    SHORTWAVE_HEATING_RATE_NAME: 1. / 86400
 }
 
 
@@ -392,19 +384,13 @@ def read_file(example_file_name):
 
     for k in range(num_scalar_targets):
         this_target_name_orig = TARGET_NAME_TO_ORIG[SCALAR_TARGET_NAMES[k]]
-        this_conversion_factor = (
-            TARGET_NAME_TO_CONV_FACTOR[SCALAR_TARGET_NAMES[k]]
-        )
-        scalar_target_matrix[:, k] = this_conversion_factor * numpy.array(
+        scalar_target_matrix[:, k] = numpy.array(
             dataset_object.variables[this_target_name_orig][:], dtype=float
         )
 
     for k in range(num_vector_targets):
         this_target_name_orig = TARGET_NAME_TO_ORIG[VECTOR_TARGET_NAMES[k]]
-        this_conversion_factor = (
-            TARGET_NAME_TO_CONV_FACTOR[VECTOR_TARGET_NAMES[k]]
-        )
-        vector_target_matrix[..., k] = this_conversion_factor * numpy.array(
+        vector_target_matrix[..., k] = numpy.array(
             dataset_object.variables[this_target_name_orig][:], dtype=float
         )
 

@@ -11,7 +11,6 @@ from ml4rt.io import example_io
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
 KG_TO_MILLIGRAMS = 1e6
-DAYS_TO_SECONDS = 86400.
 
 DEFAULT_LINE_WIDTH = 2
 FIGURE_WIDTH_INCHES = 8
@@ -234,13 +233,13 @@ def plot_targets(example_dict, example_index, use_log_scale,
     flux_axes_object = heating_rate_axes_object.twiny()
     heights_km_agl = METRES_TO_KM * example_dict[example_io.HEIGHTS_KEY]
 
-    heating_rates_kelvins_s01 = example_io.get_field_from_dict(
+    heating_rates_kelvins_day01 = example_io.get_field_from_dict(
         example_dict=example_dict,
         field_name=example_io.SHORTWAVE_HEATING_RATE_NAME
     )[example_index, ...]
 
     heating_rate_axes_object.plot(
-        DAYS_TO_SECONDS * heating_rates_kelvins_s01, heights_km_agl,
+        heating_rates_kelvins_day01, heights_km_agl,
         color=HEATING_RATE_COLOUR, linewidth=line_width, linestyle='solid'
     )
 

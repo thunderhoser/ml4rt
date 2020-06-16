@@ -17,11 +17,9 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 SCORE_NAME_TO_VERBOSE = {
     evaluation_plotting.MSE_NAME: 'Mean squared error',
-    evaluation_plotting.MSE_SKILL_SCORE_NAME:
-        'MSE (mean squared error) skill score',
+    evaluation_plotting.MSE_SKILL_SCORE_NAME: 'MSE skill score',
     evaluation_plotting.MAE_NAME: 'Mean absolute error',
-    evaluation_plotting.MAE_SKILL_SCORE_NAME:
-        'MAE (mean absolute error) skill score',
+    evaluation_plotting.MAE_SKILL_SCORE_NAME: 'MAE skill score',
     evaluation_plotting.BIAS_NAME: 'Bias',
     evaluation_plotting.CORRELATION_NAME: 'Correlation'
 }
@@ -33,14 +31,6 @@ SCORE_NAME_TO_PROFILE_KEY = {
     evaluation_plotting.MAE_SKILL_SCORE_NAME: evaluation.VECTOR_MAE_SKILL_KEY,
     evaluation_plotting.BIAS_NAME: evaluation.VECTOR_BIAS_KEY,
     evaluation_plotting.CORRELATION_NAME: evaluation.VECTOR_CORRELATION_KEY
-}
-
-TARGET_NAME_TO_CONV_RATIO = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 1.,
-    example_io.SHORTWAVE_UP_FLUX_NAME: 1.,
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 86400.,
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 1.,
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 1.
 }
 
 TARGET_NAME_TO_VERBOSE = {
@@ -151,7 +141,6 @@ def _run(input_file_name, output_dir_name):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
-        this_conv_ratio = TARGET_NAME_TO_CONV_RATIO[vector_target_names[k]]
 
         # Plot error profiles.
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
@@ -160,27 +149,16 @@ def _run(input_file_name, output_dir_name):
             )
 
             this_key = SCORE_NAME_TO_PROFILE_KEY[this_score_name]
-            this_prmse = (
-                this_conv_ratio *
-                evaluation_dict[evaluation.VECTOR_PRMSE_KEY][k]
-            )
-
-            these_profile_values = evaluation_dict[this_key][:, k]
-
-            if this_score_name in [
-                    evaluation_plotting.MAE_NAME, evaluation_plotting.BIAS_NAME
-            ]:
-                these_profile_values = these_profile_values * this_conv_ratio
-            elif this_score_name == evaluation_plotting.MSE_NAME:
-                these_profile_values *= this_conv_ratio ** 2
 
             evaluation_plotting.plot_score_profile(
-                heights_m_agl=HEIGHTS_M_AGL, score_values=these_profile_values,
+                heights_m_agl=HEIGHTS_M_AGL,
+                score_values=evaluation_dict[this_key][:, k],
                 score_name=this_score_name, line_colour=PROFILE_COLOUR,
                 line_width=2, use_log_scale=True, axes_object=this_axes_object
             )
 
             this_score_name_verbose = SCORE_NAME_TO_VERBOSE[this_score_name]
+            this_prmse = evaluation_dict[evaluation.VECTOR_PRMSE_KEY][k]
             this_title_string = '{0:s} for {1:s} ... PRMSE = {2:.2f}'.format(
                 this_score_name_verbose, this_target_name_verbose, this_prmse
             )
@@ -201,10 +179,10 @@ def _run(input_file_name, output_dir_name):
             pyplot.close(this_figure_object)
 
         # Plot reliability curves for all heights in the same figure.
-        this_mean_prediction_matrix = this_conv_ratio * (
+        this_mean_prediction_matrix = (
             evaluation_dict[evaluation.VECTOR_RELIABILITY_X_KEY][:, k, :]
         )
-        this_mean_target_matrix = this_conv_ratio * (
+        this_mean_target_matrix = (
             evaluation_dict[evaluation.VECTOR_RELIABILITY_Y_KEY][:, k, :]
         )
         this_combined_matrix = numpy.concatenate(
@@ -239,10 +217,10 @@ def _run(input_file_name, output_dir_name):
         pyplot.close(this_figure_object)
 
         # Plot Taylor diagram for all heights in the same figure.
-        these_target_stdevs = this_conv_ratio * (
+        these_target_stdevs = (
             evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][:, k]
         )
-        these_prediction_stdevs = this_conv_ratio * (
+        these_prediction_stdevs = (
             evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][:, k]
         )
         these_correlations = (
@@ -282,13 +260,12 @@ def _run(input_file_name, output_dir_name):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[scalar_target_names[k]]
         )
-        this_conv_ratio = TARGET_NAME_TO_CONV_RATIO[scalar_target_names[k]]
 
         # Plot attributes diagram.
-        these_mean_predictions = this_conv_ratio * (
+        these_mean_predictions = (
             evaluation_dict[evaluation.SCALAR_RELIABILITY_X_KEY][k, :]
         )
-        these_mean_targets = this_conv_ratio * (
+        these_mean_targets = (
             evaluation_dict[evaluation.SCALAR_RELIABILITY_Y_KEY][k, :]
         )
         these_example_counts = (
@@ -326,10 +303,10 @@ def _run(input_file_name, output_dir_name):
         pyplot.close(this_figure_object)
 
         # Plot Taylor diagram.
-        this_target_stdev = this_conv_ratio * (
+        this_target_stdev = (
             evaluation_dict[evaluation.SCALAR_TARGET_STDEV_KEY][k]
         )
-        this_prediction_stdev = this_conv_ratio * (
+        this_prediction_stdev = (
             evaluation_dict[evaluation.SCALAR_TARGET_STDEV_KEY][k]
         )
         this_correlation = evaluation_dict[evaluation.SCALAR_CORRELATION_KEY][k]
@@ -346,12 +323,11 @@ def _run(input_file_name, output_dir_name):
         )
 
         this_figure_object.suptitle(
-            'Taylor diagram for {0:s}'.format(this_target_name_verbose),
-            y=0.85
+            'Taylor diagram for {0:s}'.format(this_target_name_verbose)
         )
 
         this_file_name = '{0:s}/{1:s}_taylor.jpg'.format(
-            output_dir_name, vector_target_names[k].replace('_', '-')
+            output_dir_name, scalar_target_names[k].replace('_', '-')
         )
         print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
