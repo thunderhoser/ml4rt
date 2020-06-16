@@ -120,6 +120,7 @@ def _plot_reliability_curve(axes_object, mean_predictions, mean_observations,
 
     axes_object.set_xlabel('Prediction')
     axes_object.set_ylabel('Conditional mean observation')
+    print(max_value)
     axes_object.set_xlim(0., max_value)
     axes_object.set_ylim(0., max_value)
 
