@@ -5,6 +5,7 @@ import argparse
 import numpy
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.utils import normalization
 from ml4rt.utils import normalization_params
 
 SCALAR_FIELD_NAMES = (
@@ -26,9 +27,9 @@ FIELD_TO_ROUNDING_BASE_SCALAR = {
     example_io.LIQUID_WATER_CONTENT_NAME: 1e-8,
     example_io.ICE_WATER_CONTENT_NAME: 1e-11,
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 1e-3,
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 1e-3,
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 1e-6,
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 1e-3,
-    example_io.SHORTWAVE_UP_FLUX_NAME: 1e-3,
+    example_io.SHORTWAVE_UP_FLUX_NAME: 1e-6,
     example_io.SHORTWAVE_HEATING_RATE_NAME: 1e-6
 }
 
@@ -39,7 +40,7 @@ FIELD_TO_ROUNDING_BASE_VECTOR = {
     example_io.LIQUID_WATER_CONTENT_NAME: 1e-9,
     example_io.ICE_WATER_CONTENT_NAME: 1e-12,
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 1e-3,
-    example_io.SHORTWAVE_UP_FLUX_NAME: 1e-4,
+    example_io.SHORTWAVE_UP_FLUX_NAME: 1e-7,
     example_io.SHORTWAVE_HEATING_RATE_NAME: 1e-7
 }
 
@@ -173,6 +174,11 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                 example_dict=this_example_dict, field_name=this_field_name,
                 height_m_agl=None
             )
+
+            this_data_matrix = normalization.convert_to_log_if_necessary(
+                physical_values=this_data_matrix, field_name=this_field_name
+            )
+
             z_score_dict_no_height[this_field_name] = (
                 normalization_params.update_z_score_params(
                     z_score_param_dict=z_score_dict_no_height[this_field_name],
@@ -212,6 +218,9 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                 this_data_matrix = example_io.get_field_from_dict(
                     example_dict=this_example_dict, field_name=this_field_name,
                     height_m_agl=this_height_m_agl
+                )
+                this_data_matrix = normalization.convert_to_log_if_necessary(
+                    physical_values=this_data_matrix, field_name=this_field_name
                 )
 
                 this_dict = z_score_dict_with_height[

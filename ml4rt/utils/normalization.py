@@ -16,6 +16,14 @@ MINMAX_NORM_STRING = 'minmax'
 Z_SCORE_NORM_STRING = 'z_score'
 VALID_NORM_TYPE_STRINGS = [MINMAX_NORM_STRING, Z_SCORE_NORM_STRING]
 
+TARGET_NAME_TO_LOG_FLAG = {
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: False,
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: False,
+    example_io.SHORTWAVE_UP_FLUX_NAME: True,
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: True,
+    example_io.SHORTWAVE_HEATING_RATE_NAME: True
+}
+
 
 def _check_normalization_type(normalization_type_string):
     """Ensures that normalization type is valid.
@@ -125,6 +133,53 @@ def _denorm_one_variable(
     return denorm_values
 
 
+def convert_to_log_if_necessary(physical_values, field_name):
+    """If necessary, converts variable from physical scale to log scale.
+
+    :param physical_values: numpy array (any shape) with physical values.
+    :param field_name: Field name (must be accepted by
+        `example_io.check_field_name`).
+    :return: output_values: numpy array (same shape as `input_array`) with
+        either physical or log values.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(physical_values)
+    example_io.check_field_name(field_name)
+
+    if field_name not in TARGET_NAME_TO_LOG_FLAG:
+        return physical_values
+
+    if not TARGET_NAME_TO_LOG_FLAG[field_name]:
+        return physical_values
+
+    return numpy.log10(1. + physical_values)
+
+
+def convert_from_log_if_necessary(input_values, field_name):
+    """If necessary, converts variable from log scale to physical scale.
+
+    This method is the inverse of `convert_to_log_if_necessary`.
+
+    :param input_values: numpy array (any shape) with either physical or log
+        values.
+    :param field_name: Field name (must be accepted by
+        `example_io.check_field_name`).
+    :return: physical_values: numpy array (same shape as `input_array`) with
+        physical values.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(input_values)
+    example_io.check_field_name(field_name)
+
+    if field_name not in TARGET_NAME_TO_LOG_FLAG:
+        return input_values
+
+    if not TARGET_NAME_TO_LOG_FLAG[field_name]:
+        return input_values
+
+    return 10 ** input_values - 1.
+
+
 def normalize_data(
         example_dict, normalization_type_string, normalization_file_name,
         min_normalized_value=-1., max_normalized_value=1.,
@@ -216,6 +271,11 @@ def normalize_data(
         else:
             this_index = scalar_target_names[k]
 
+        scalar_target_matrix[..., k] = convert_to_log_if_necessary(
+            physical_values=scalar_target_matrix[..., k],
+            field_name=scalar_target_names[k]
+        )
+
         scalar_target_matrix[..., k] = _normalize_one_variable(
             orig_values=scalar_target_matrix[..., k],
             normalization_type_string=normalization_type_string,
@@ -274,6 +334,11 @@ def normalize_data(
     for k in range(len(vector_target_names)):
         if separate_heights:
             for j in range(num_heights):
+                vector_target_matrix[..., j, k] = convert_to_log_if_necessary(
+                    physical_values=vector_target_matrix[..., j, k],
+                    field_name=vector_target_names[k]
+                )
+
                 this_index = [(vector_target_names[k], heights_m_agl[j])]
 
                 vector_target_matrix[..., j, k] = _normalize_one_variable(
@@ -285,6 +350,11 @@ def normalize_data(
                     max_normalized_value=max_normalized_value
                 )
         else:
+            vector_target_matrix[..., k] = convert_to_log_if_necessary(
+                physical_values=vector_target_matrix[..., k],
+                field_name=vector_target_names[k]
+            )
+
             vector_target_matrix[..., k] = _normalize_one_variable(
                 orig_values=vector_target_matrix[..., k],
                 normalization_type_string=normalization_type_string,
@@ -388,6 +458,11 @@ def denormalize_data(
             max_normalized_value=max_normalized_value
         )
 
+        scalar_target_matrix[..., k] = convert_from_log_if_necessary(
+            input_values=scalar_target_matrix[..., k],
+            field_name=scalar_target_names[k]
+        )
+
     example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
 
     if apply_to_predictors:
@@ -448,6 +523,11 @@ def denormalize_data(
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
+
+                vector_target_matrix[..., j, k] = convert_from_log_if_necessary(
+                    input_values=vector_target_matrix[..., j, k],
+                    field_name=vector_target_names[k]
+                )
         else:
             vector_target_matrix[..., k] = _denorm_one_variable(
                 normalized_values=vector_target_matrix[..., k],
@@ -456,6 +536,11 @@ def denormalize_data(
                 normalization_table.loc[vector_target_names[k]],
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
+            )
+
+            vector_target_matrix[..., k] = convert_from_log_if_necessary(
+                input_values=vector_target_matrix[..., k],
+                field_name=vector_target_names[k]
             )
 
     example_dict[example_io.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
@@ -518,6 +603,11 @@ def create_mean_example(
         if 'pandas' in str(type(this_mean_value)):
             this_mean_value = this_mean_value.values[0]
 
+        this_mean_value = convert_from_log_if_necessary(
+            input_values=numpy.array([this_mean_value]),
+            field_name=scalar_target_names[k]
+        )[0]
+
         scalar_target_values[k] = this_mean_value
 
     for j in range(num_heights):
@@ -540,6 +630,11 @@ def create_mean_example(
 
             if 'pandas' in str(type(this_mean_value)):
                 this_mean_value = this_mean_value.values[0]
+
+            this_mean_value = convert_from_log_if_necessary(
+                input_values=numpy.array([this_mean_value]),
+                field_name=vector_target_names[k]
+            )[0]
 
             vector_target_matrix[j, k] = this_mean_value
 

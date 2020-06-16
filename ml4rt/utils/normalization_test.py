@@ -47,11 +47,13 @@ SHORTWAVE_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
 ], dtype=float)
 
 SHORTWAVE_UP_FLUX_MATRIX_W_M02 = numpy.array([
-    [150, 150],
-    [200, 150],
-    [300, 350],
-    [400, 100]
-], dtype=float)
+    [2.2, 2.2],
+    [2.3, 2.2],
+    [2.5, 2.55],
+    [2.6, 2]
+])
+
+SHORTWAVE_UP_FLUX_MATRIX_W_M02 = 10 ** SHORTWAVE_UP_FLUX_MATRIX_W_M02 - 1.
 
 VECTOR_TARGET_NAMES = [
     example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME
@@ -80,8 +82,7 @@ THIS_DICT = {
         numpy.array([300, 50, 0, 1000], dtype=float),
     example_io.SHORTWAVE_DOWN_FLUX_NAME:
         numpy.array([200, 100, 0, 1000], dtype=float),
-    example_io.SHORTWAVE_UP_FLUX_NAME:
-        numpy.array([150, 75, 0, 1000], dtype=float)
+    example_io.SHORTWAVE_UP_FLUX_NAME: numpy.array([2.1, 1.5, 0, 3])
 }
 NORM_TABLE_NO_HEIGHT = pandas.DataFrame.from_dict(THIS_DICT, orient='index')
 
@@ -123,11 +124,11 @@ THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
 ])
 
 THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
-    [0, 0],
-    [2, 0],
-    [6, 8],
-    [10, -2]
-], dtype=float) / 3
+    [0.1, 0.1],
+    [0.2, 0.1],
+    [0.4, 0.45],
+    [0.5, -0.1]
+]) / 1.5
 
 THIS_VECTOR_TARGET_MATRIX = numpy.stack(
     (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
@@ -199,11 +200,11 @@ THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
 ])
 
 THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
-    [0.15, 0.15],
-    [0.2, 0.15],
-    [0.3, 0.35],
-    [0.4, 0.1]
-])
+    [2.2, 2.2],
+    [2.3, 2.2],
+    [2.5, 2.55],
+    [2.6, 2]
+]) / 3
 
 THIS_VECTOR_TARGET_MATRIX = numpy.stack(
     (THIS_SHORTWAVE_DOWN_FLUX_MATRIX, THIS_SHORTWAVE_UP_FLUX_MATRIX), axis=-1
@@ -262,9 +263,8 @@ THIS_DICT = {
     (example_io.SHORTWAVE_DOWN_FLUX_NAME, 500):
         numpy.array([275, 125, 0, 800], dtype=float),
     (example_io.SHORTWAVE_UP_FLUX_NAME, 100):
-        numpy.array([200, 100, 0, 1000], dtype=float),
-    (example_io.SHORTWAVE_UP_FLUX_NAME, 500):
-        numpy.array([175, 75, 0, 900], dtype=float)
+        numpy.array([2, 1, 0, 3], dtype=float),
+    (example_io.SHORTWAVE_UP_FLUX_NAME, 500): numpy.array([1.5, 0.75, 0, 2.75])
 }
 NORM_TABLE_WITH_HEIGHT = pandas.DataFrame.from_dict(THIS_DICT, orient='index')
 NORM_TABLE_WITH_HEIGHT.rename(columns=COLUMN_DICT_OLD_TO_NEW, inplace=True)
@@ -300,10 +300,10 @@ THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
 ])
 
 THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
-    [-0.5, -1. / 3],
-    [0, -1. / 3],
-    [1, 7. / 3],
-    [2, -1]
+    [0.2, 0.7 / 0.75],
+    [0.3, 0.7 / 0.75],
+    [0.5, 1.05 / 0.75],
+    [0.6, 0.5 / 0.75]
 ], dtype=float)
 
 THIS_VECTOR_TARGET_MATRIX = numpy.stack(
@@ -376,10 +376,10 @@ THIS_SHORTWAVE_DOWN_FLUX_MATRIX = numpy.array([
 ])
 
 THIS_SHORTWAVE_UP_FLUX_MATRIX = numpy.array([
-    [0.15, 1.5 / 9],
-    [0.2, 1.5 / 9],
-    [0.3, 3.5 / 9],
-    [0.4, 1. / 9]
+    [2.2 / 3, 2.2 / 2.75],
+    [2.3 / 3, 2.2 / 2.75],
+    [2.5 / 3, 2.55 / 2.75],
+    [2.6 / 3, 2. / 2.75]
 ], dtype=float)
 
 THIS_VECTOR_TARGET_MATRIX = numpy.stack(
@@ -427,9 +427,9 @@ MEAN_SCALAR_PREDICTOR_MATRIX = numpy.array([[0.75, 45]])
 MEAN_VECTOR_PREDICTOR_MATRIX = numpy.array([295, 290], dtype=float)
 MEAN_SCALAR_TARGET_MATRIX = numpy.array([[300]], dtype=float)
 MEAN_VECTOR_TARGET_MATRIX = numpy.array([
-    [300, 200],
-    [275, 175]
-], dtype=float)
+    [300, 99],
+    [275, 10 ** 1.5 - 1]
+])
 
 MEAN_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
     MEAN_VECTOR_PREDICTOR_MATRIX, axis=0
@@ -476,7 +476,6 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
                 first_example_dict[this_key], second_example_dict[this_key],
                 atol=TOLERANCE
         ):
-            print(this_key)
             return False
 
     return True

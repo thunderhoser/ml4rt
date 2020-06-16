@@ -144,25 +144,6 @@ TARGET_NAME_TO_ORIG = {
 }
 
 
-def _check_field_name(field_name):
-    """Ensures that field name is valid (either predictor or target variable).
-
-    :param field_name: Field name.
-    :raises: ValueError: if `field_name not in PREDICTOR_NAMES + TARGET_NAMES`.
-    """
-
-    error_checking.assert_is_string(field_name)
-    if field_name in PREDICTOR_NAMES + TARGET_NAMES:
-        return
-
-    error_string = (
-        '\nField "{0:s}" is not valid predictor or target variable.  Valid '
-        'options listed below:\n{1:s}'
-    ).format(field_name, str(PREDICTOR_NAMES + TARGET_NAMES))
-
-    raise ValueError(error_string)
-
-
 def _match_heights(heights_m_agl, desired_height_m_agl):
     """Finds nearest available height to desired height.
 
@@ -189,6 +170,25 @@ def _match_heights(heights_m_agl, desired_height_m_agl):
         'Cannot find available height within 0.5 metres of desired height '
         '({0:.1f} m AGL).  Nearest available height is {1:.1f} m AGL.'
     ).format(desired_height_m_agl, heights_m_agl[matching_index])
+
+    raise ValueError(error_string)
+
+
+def check_field_name(field_name):
+    """Ensures that field name is valid (either predictor or target variable).
+
+    :param field_name: Field name.
+    :raises: ValueError: if `field_name not in PREDICTOR_NAMES + TARGET_NAMES`.
+    """
+
+    error_checking.assert_is_string(field_name)
+    if field_name in PREDICTOR_NAMES + TARGET_NAMES:
+        return
+
+    error_string = (
+        '\nField "{0:s}" is not valid predictor or target variable.  Valid '
+        'options listed below:\n{1:s}'
+    ).format(field_name, str(PREDICTOR_NAMES + TARGET_NAMES))
 
     raise ValueError(error_string)
 
@@ -497,7 +497,7 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     :return: data_matrix: numpy array with data values for given field.
     """
 
-    _check_field_name(field_name)
+    check_field_name(field_name)
 
     if field_name in SCALAR_PREDICTOR_NAMES:
         height_m_agl = None
@@ -626,7 +626,7 @@ def subset_by_field(example_dict, field_names):
     :param example_dict: Dictionary of examples (in the format returned by
         `read_file`).
     :param field_names: 1-D list of field names to keep (each must be accepted
-        by `_check_field_name`).
+        by `check_field_name`).
     :return: example_dict: Same as input but with fewer fields.
     """
 
@@ -640,7 +640,7 @@ def subset_by_field(example_dict, field_names):
     vector_target_indices = []
 
     for this_field_name in field_names:
-        _check_field_name(this_field_name)
+        check_field_name(this_field_name)
 
         if this_field_name in SCALAR_PREDICTOR_NAMES:
             scalar_predictor_indices.append(
