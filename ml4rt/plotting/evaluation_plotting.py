@@ -264,8 +264,10 @@ def _plot_attr_diagram_histogram(
 
     inset_axes_object = figure_object.add_axes([0.625, 0.175, 0.25, 0.25])
 
+    real_indices = numpy.where(numpy.invert(numpy.isnan(mean_predictions)))[0]
+
     inset_axes_object.bar(
-        mean_predictions, example_frequencies,
+        mean_predictions[real_indices], example_frequencies[real_indices],
         color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
@@ -334,8 +336,11 @@ def plot_attributes_diagram(
         max_value_in_plot=max_value_for_main_plot
     )
 
+    real_predictions = mean_predictions[
+        numpy.invert(numpy.isnan(mean_predictions))
+    ]
     max_value_for_histogram = (
-        numpy.max(mean_predictions) + 0.5 * numpy.diff(mean_predictions[-2:])
+        numpy.max(real_predictions) + 0.5 * numpy.diff(real_predictions[-2:])
     )
     _plot_attr_diagram_histogram(
         figure_object=figure_object, main_axes_object=axes_object,
@@ -447,21 +452,16 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
             linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
         )
 
+    finite_indices = numpy.where(numpy.isfinite(score_values))[0]
+
     axes_object.plot(
-        score_values, heights_km_agl,
+        score_values[finite_indices], heights_km_agl[finite_indices],
         color=line_colour, linestyle='solid', linewidth=line_width
     )
 
     if score_name in possibly_negative_score_names:
-        x_min = numpy.minimum(numpy.nanmin(score_values), 0.)
-        x_max = numpy.maximum(numpy.nanmax(score_values), 0.)
-
-        if numpy.isnan(x_min):
-            x_min = -1.
-        if numpy.isnan(x_max):
-            x_max = 1.
-
-        x_min = max([x_min, -2.])
+        x_min = numpy.minimum(numpy.min(score_values[finite_indices]), 0.)
+        x_max = numpy.maximum(numpy.max(score_values[finite_indices]), 0.)
         axes_object.set_xlim(x_min, x_max)
     else:
         axes_object.set_xlim(left=0.)
