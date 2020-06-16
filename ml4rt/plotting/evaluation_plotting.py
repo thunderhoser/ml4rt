@@ -81,8 +81,9 @@ def _check_score_name(score_name):
     raise ValueError(error_string)
 
 
-def _plot_reliability_curve(axes_object, mean_predictions, mean_observations,
-                            line_colour=RELIABILITY_LINE_COLOUR):
+def _plot_reliability_curve(
+        axes_object, mean_predictions, mean_observations,
+        line_colour=RELIABILITY_LINE_COLOUR, max_value_to_plot=None):
     """Plots reliability curve.
 
     B = number of bins
@@ -92,13 +93,20 @@ def _plot_reliability_curve(axes_object, mean_predictions, mean_observations,
     :param mean_predictions: length-B numpy array of mean predicted values.
     :param mean_observations: length-B numpy array of mean observed values.
     :param line_colour: Line colour (in any format accepted by matplotlib).
+    :param max_value_to_plot: Max value for both x- and y-axes.  If None, will
+        be determined automatically.
     """
 
-    max_value = numpy.maximum(
-        numpy.max(mean_predictions), numpy.max(mean_observations)
-    )
-    perfect_x_coords = numpy.array([0., max_value])
-    perfect_y_coords = numpy.array([0., max_value])
+    if max_value_to_plot is None:
+        max_value_to_plot = numpy.maximum(
+            numpy.nanmax(mean_predictions), numpy.nanmax(mean_observations)
+        )
+
+    if numpy.isnan(max_value_to_plot):
+        max_value_to_plot = 1.
+
+    perfect_x_coords = numpy.array([0., max_value_to_plot])
+    perfect_y_coords = numpy.array([0., max_value_to_plot])
 
     axes_object.plot(
         perfect_x_coords, perfect_y_coords, color=REFERENCE_LINE_COLOUR,
@@ -120,9 +128,8 @@ def _plot_reliability_curve(axes_object, mean_predictions, mean_observations,
 
     axes_object.set_xlabel('Prediction')
     axes_object.set_ylabel('Conditional mean observation')
-    print(max_value)
-    axes_object.set_xlim(0., max_value)
-    axes_object.set_ylim(0., max_value)
+    axes_object.set_xlim(0., max_value_to_plot)
+    axes_object.set_ylim(0., max_value_to_plot)
 
 
 def _get_positive_skill_area(mean_value_in_training, max_value_in_plot):
@@ -319,26 +326,27 @@ def plot_attributes_diagram(
 
     error_checking.assert_is_geq(mean_value_in_training, 0.)
 
-    this_max_value = numpy.maximum(
+    max_value_for_main_plot = numpy.maximum(
         numpy.max(mean_predictions), numpy.max(mean_observations)
     )
     _plot_attr_diagram_background(
         axes_object=axes_object, mean_value_in_training=mean_value_in_training,
-        max_value_in_plot=this_max_value
+        max_value_in_plot=max_value_for_main_plot
     )
 
-    this_max_value = (
+    max_value_for_histogram = (
         numpy.max(mean_predictions) + 0.5 * numpy.diff(mean_predictions[-2:])
     )
     _plot_attr_diagram_histogram(
         figure_object=figure_object, main_axes_object=axes_object,
         mean_predictions=mean_predictions, example_counts=example_counts,
-        max_prediction_in_plot=this_max_value
+        max_prediction_in_plot=max_value_for_histogram
     )
 
     _plot_reliability_curve(
         axes_object=axes_object, mean_predictions=mean_predictions,
-        mean_observations=mean_observations
+        mean_observations=mean_observations,
+        max_value_to_plot=max_value_for_main_plot
     )
 
 
@@ -518,7 +526,7 @@ def plot_rel_curve_many_heights(
             axes_object=axes_object,
             mean_predictions=mean_prediction_matrix[j, :],
             mean_observations=mean_target_matrix[j, :],
-            line_colour=this_colour
+            line_colour=this_colour, max_value_to_plot=max_value_to_plot
         )
 
     axes_object.set_xlim(0., max_value_to_plot)
