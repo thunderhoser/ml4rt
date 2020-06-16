@@ -1,5 +1,6 @@
 """Methods for building, training, and applying neural nets."""
 
+import sys
 import pickle
 import os.path
 import numpy
@@ -436,6 +437,8 @@ def predictors_dict_to_numpy(example_dict, for_cnn):
         scalar_predictor_matrix = numpy.repeat(
             scalar_predictor_matrix, repeats=num_heights, axis=1
         )
+
+        print(example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY][2])
 
         return numpy.concatenate((
             example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
@@ -1028,11 +1031,12 @@ def cnn_generator(option_dict, for_inference):
             this_vector_target_matrix = this_list[0]
             this_scalar_target_matrix = this_list[1]
 
-            print(numpy.any(numpy.isnan(this_predictor_matrix), axis=(0, 1)))
+            numpy.set_printoptions(threshold=sys.maxsize)
+            print(numpy.any(numpy.isnan(this_predictor_matrix[..., 2]), axis=0))
 
-            print('Min and max predictors = {0:f}, {1:f}'.format(numpy.min(this_predictor_matrix), numpy.max(this_predictor_matrix)))
-            print('Min and max vector targets = {0:f}, {1:f}'.format(numpy.min(this_vector_target_matrix), numpy.max(this_vector_target_matrix)))
-            print('Min and max scalar targets = {0:f}, {1:f}'.format(numpy.min(this_scalar_target_matrix), numpy.max(this_scalar_target_matrix)))
+            # print('Min and max predictors = {0:f}, {1:f}'.format(numpy.min(this_predictor_matrix), numpy.max(this_predictor_matrix)))
+            # print('Min and max vector targets = {0:f}, {1:f}'.format(numpy.min(this_vector_target_matrix), numpy.max(this_vector_target_matrix)))
+            # print('Min and max scalar targets = {0:f}, {1:f}'.format(numpy.min(this_scalar_target_matrix), numpy.max(this_scalar_target_matrix)))
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
