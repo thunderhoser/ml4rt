@@ -262,7 +262,7 @@ def _run(input_file_name, output_dir_name):
 
         this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose),
-            y=0.8
+            y=0.9
         )
 
         this_file_name = '{0:s}/{1:s}_taylor_profile.jpg'.format(
@@ -347,7 +347,7 @@ def _run(input_file_name, output_dir_name):
 
         this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose),
-            y=0.8
+            y=0.9
         )
 
         this_file_name = '{0:s}/{1:s}_taylor.jpg'.format(
