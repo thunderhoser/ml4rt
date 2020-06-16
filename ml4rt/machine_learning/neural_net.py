@@ -1027,8 +1027,8 @@ def cnn_generator(option_dict, for_inference):
             )
             this_vector_target_matrix = this_list[0]
             this_scalar_target_matrix = this_list[1]
-            
-            print(numpy.any(numpy.isnan(this_predictor_matrix), axis=1))
+
+            print(numpy.any(numpy.isnan(this_predictor_matrix), axis=(0, 1)))
 
             print('Min and max predictors = {0:f}, {1:f}'.format(numpy.min(this_predictor_matrix), numpy.max(this_predictor_matrix)))
             print('Min and max vector targets = {0:f}, {1:f}'.format(numpy.min(this_vector_target_matrix), numpy.max(this_vector_target_matrix)))
