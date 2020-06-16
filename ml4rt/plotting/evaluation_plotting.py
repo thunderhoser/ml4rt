@@ -297,13 +297,15 @@ def plot_attributes_diagram(
     :param mean_value_in_training: Mean of target variable in training data.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(mean_predictions)
+    # error_checking.assert_is_numpy_array_without_nan(mean_predictions)
     error_checking.assert_is_numpy_array(mean_predictions, num_dimensions=1)
 
     num_bins = len(mean_predictions)
     expected_dim = numpy.array([num_bins], dtype=int)
 
-    error_checking.assert_is_geq_numpy_array(mean_observations, 0.)
+    error_checking.assert_is_geq_numpy_array(
+        mean_observations, 0., allow_nan=True
+    )
     error_checking.assert_is_numpy_array(
         mean_observations, exact_dimensions=expected_dim
     )
@@ -354,8 +356,8 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
 
     error_checking.assert_is_geq(target_stdev, 0.)
     error_checking.assert_is_geq(prediction_stdev, 0.)
-    error_checking.assert_is_geq(correlation, -1.)
-    error_checking.assert_is_leq(correlation, 1.)
+    error_checking.assert_is_geq(correlation, -1., allow_nan=True)
+    error_checking.assert_is_leq(correlation, 1., allow_nan=True)
 
     taylor_diagram_object = taylor_diagram.TaylorDiagram(
         refstd=target_stdev, fig=figure_object, srange=(0, 2), extend=False
@@ -367,15 +369,16 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
     target_marker_object.set_markerfacecolor(marker_colour)
     target_marker_object.set_markeredgewidth(0)
 
-    taylor_diagram_object.add_sample(
-        stddev=prediction_stdev, corrcoef=correlation
-    )
+    if not numpy.isnan(correlation):
+        taylor_diagram_object.add_sample(
+            stddev=prediction_stdev, corrcoef=correlation
+        )
 
-    prediction_marker_object = taylor_diagram_object.samplePoints[-1]
-    prediction_marker_object.set_marker(TAYLOR_PREDICTION_MARKER_TYPE)
-    prediction_marker_object.set_markersize(TAYLOR_PREDICTION_MARKER_SIZE)
-    prediction_marker_object.set_markerfacecolor(marker_colour)
-    prediction_marker_object.set_markeredgewidth(0)
+        prediction_marker_object = taylor_diagram_object.samplePoints[-1]
+        prediction_marker_object.set_marker(TAYLOR_PREDICTION_MARKER_TYPE)
+        prediction_marker_object.set_markersize(TAYLOR_PREDICTION_MARKER_SIZE)
+        prediction_marker_object.set_markerfacecolor(marker_colour)
+        prediction_marker_object.set_markeredgewidth(0)
 
     crmse_contour_object = taylor_diagram_object.add_contours(
         levels=5, colors='0.5'
@@ -480,10 +483,12 @@ def plot_rel_curve_many_heights(
         similar).  Will be used to colour reliability curves by height.
     """
 
-    error_checking.assert_is_geq_numpy_array(mean_target_matrix, 0.)
+    error_checking.assert_is_geq_numpy_array(
+        mean_target_matrix, 0., allow_nan=True
+    )
     error_checking.assert_is_numpy_array(mean_target_matrix, num_dimensions=2)
 
-    error_checking.assert_is_numpy_array_without_nan(mean_prediction_matrix)
+    # error_checking.assert_is_numpy_array_without_nan(mean_prediction_matrix)
     error_checking.assert_is_numpy_array(
         mean_prediction_matrix,
         exact_dimensions=numpy.array(mean_target_matrix.shape, dtype=int)
@@ -563,8 +568,8 @@ def plot_taylor_diagram_many_heights(
         prediction_stdevs, exact_dimensions=expected_dim
     )
 
-    error_checking.assert_is_geq_numpy_array(correlations, -1.)
-    error_checking.assert_is_leq_numpy_array(correlations, 1.)
+    error_checking.assert_is_geq_numpy_array(correlations, -1., allow_nan=True)
+    error_checking.assert_is_leq_numpy_array(correlations, 1., allow_nan=True)
     error_checking.assert_is_numpy_array(
         correlations, exact_dimensions=expected_dim
     )
@@ -593,6 +598,9 @@ def plot_taylor_diagram_many_heights(
     this_marker_object.set_visible(False)
 
     for j in range(num_heights):
+        if numpy.isnan(correlations[j]):
+            continue
+
         this_colour = colour_map_object(colour_norm_object(
             heights_km_agl[j]
         ))
