@@ -136,8 +136,8 @@ def _run(prediction_file_name, evaluation_file_name):
 
     print(SEPARATOR_STRING)
 
-    for j in range(len(HEIGHTS_M_AGL)):
-        for k in range(len(vector_target_names)):
+    for k in range(len(vector_target_names)):
+        for j in range(len(HEIGHTS_M_AGL)):
             print((
                 'Variable = "{0:s}" at {1:d} m AGL ... '
                 'stdev of target and predicted values = {2:f}, {3:f} ... '
@@ -156,7 +156,7 @@ def _run(prediction_file_name, evaluation_file_name):
                 evaluation_dict[evaluation.VECTOR_CORRELATION_KEY][j, k]
             ))
 
-    print(SEPARATOR_STRING)
+        print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(evaluation_file_name))
     evaluation.write_file(

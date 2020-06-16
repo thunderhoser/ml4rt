@@ -12,8 +12,8 @@ DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
 
 SCALAR_TARGET_STDEV_KEY = 'scalar_target_stdevs'
 SCALAR_PREDICTION_STDEV_KEY = 'scalar_prediction_stdevs'
-VECTOR_TARGET_STDEV_KEY = 'vector_target_stdevs'
-VECTOR_PREDICTION_STDEV_KEY = 'vector_prediction_stdevs'
+VECTOR_TARGET_STDEV_KEY = 'vector_target_stdev_matrix'
+VECTOR_PREDICTION_STDEV_KEY = 'vector_prediction_stdev_matrix'
 SCALAR_MSE_KEY = 'scalar_mse_values'
 SCALAR_MSE_SKILL_KEY = 'scalar_mse_skill_scores'
 VECTOR_MSE_KEY = 'vector_mse_matrix'
