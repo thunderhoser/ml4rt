@@ -307,7 +307,7 @@ def _run(input_file_name, output_dir_name):
             evaluation_dict[evaluation.SCALAR_TARGET_STDEV_KEY][k]
         )
         this_prediction_stdev = (
-            evaluation_dict[evaluation.SCALAR_TARGET_STDEV_KEY][k]
+            evaluation_dict[evaluation.SCALAR_PREDICTION_STDEV_KEY][k]
         )
         this_correlation = evaluation_dict[evaluation.SCALAR_CORRELATION_KEY][k]
 
@@ -336,6 +336,112 @@ def _run(input_file_name, output_dir_name):
             pad_inches=0, bbox_inches='tight'
         )
         pyplot.close(this_figure_object)
+
+    print(SEPARATOR_STRING)
+
+    for k in range(len(vector_target_names)):
+        this_target_name_verbose = (
+            TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
+        )
+
+        for j in range(len(HEIGHTS_M_AGL)):
+
+            # Plot attributes diagram.
+            these_mean_predictions = (
+                evaluation_dict[evaluation.VECTOR_RELIABILITY_X_KEY][j, k, :]
+            )
+            these_mean_targets = (
+                evaluation_dict[evaluation.VECTOR_RELIABILITY_Y_KEY][j, k, :]
+            )
+            these_example_counts = (
+                evaluation_dict[
+                    evaluation.VECTOR_RELIABILITY_COUNT_KEY
+                ][j, k, :]
+            )
+            this_climo_value = (
+                mean_training_example_dict[
+                    example_io.VECTOR_TARGET_VALS_KEY
+                ][0, j, k]
+            )
+
+            this_figure_object, this_axes_object = pyplot.subplots(
+                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+            )
+
+            evaluation_plotting.plot_attributes_diagram(
+                figure_object=this_figure_object, axes_object=this_axes_object,
+                mean_predictions=these_mean_predictions,
+                mean_observations=these_mean_targets,
+                example_counts=these_example_counts,
+                mean_value_in_training=this_climo_value
+            )
+
+            this_height_string_unpadded = '{0:d}'.format(
+                int(numpy.round(HEIGHTS_M_AGL[j]))
+            )
+            this_height_string_padded = '{0:05d}'.format(
+                int(numpy.round(HEIGHTS_M_AGL[j]))
+            )
+
+            this_axes_object.set_title(
+                'Attributes diagram for {0:s} at {1:s} m AGL'.format(
+                    this_target_name_verbose, this_height_string_unpadded
+                )
+            )
+
+            this_file_name = '{0:s}/{1:s}_{2:s}metres_reliability.jpg'.format(
+                output_dir_name, scalar_target_names[k].replace('_', '-'),
+                this_height_string_padded
+            )
+            print('Saving figure to: "{0:s}"...'.format(this_file_name))
+
+            this_figure_object.savefig(
+                this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+                pad_inches=0, bbox_inches='tight'
+            )
+            pyplot.close(this_figure_object)
+
+            # Plot Taylor diagram.
+            this_target_stdev = (
+                evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][j, k]
+            )
+            this_prediction_stdev = (
+                evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][j, k]
+            )
+            this_correlation = (
+                evaluation_dict[evaluation.VECTOR_CORRELATION_KEY][j, k]
+            )
+
+            this_figure_object = pyplot.figure(
+                figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+            )
+
+            evaluation_plotting.plot_taylor_diagram(
+                target_stdev=this_target_stdev,
+                prediction_stdev=this_prediction_stdev,
+                correlation=this_correlation, marker_colour=TAYLOR_MARKER_COLOUR,
+                figure_object=this_figure_object
+            )
+
+            this_figure_object.suptitle(
+                'Taylor diagram for {0:s} at {1:s} m AGL'.format(
+                    this_target_name_verbose, this_height_string_unpadded
+                )
+            )
+
+            this_file_name = '{0:s}/{1:s}_{2:s}metres_taylor.jpg'.format(
+                output_dir_name, scalar_target_names[k].replace('_', '-'),
+                this_height_string_padded
+            )
+            print('Saving figure to: "{0:s}"...'.format(this_file_name))
+
+            this_figure_object.savefig(
+                this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+                pad_inches=0, bbox_inches='tight'
+            )
+            pyplot.close(this_figure_object)
+
+            print(SEPARATOR_STRING)
 
 
 if __name__ == '__main__':
