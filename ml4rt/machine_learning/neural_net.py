@@ -1227,7 +1227,7 @@ def train_neural_net(
         EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
     ]
 
-    for this_key in list(validation_option_dict.keys()):
+    for this_key in list(training_option_dict.keys()):
         if this_key in validation_keys_to_keep:
             continue
 
