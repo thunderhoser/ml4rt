@@ -453,8 +453,14 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
     )
 
     if score_name in possibly_negative_score_names:
-        x_min = numpy.minimum(numpy.min(score_values), 0.)
-        x_max = numpy.maximum(numpy.max(score_values), 0.)
+        x_min = numpy.minimum(numpy.nanmin(score_values), 0.)
+        x_max = numpy.maximum(numpy.nanmax(score_values), 0.)
+
+        if numpy.isnan(x_min):
+            x_min = -1.
+        if numpy.isnan(x_max):
+            x_max = 1.
+
         axes_object.set_xlim(x_min, x_max)
     else:
         axes_object.set_xlim(left=0.)
