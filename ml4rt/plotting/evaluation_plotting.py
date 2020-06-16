@@ -551,10 +551,9 @@ def plot_rel_curve_many_heights(
         font_size=FONT_SIZE
     )
 
-    tick_strings = profile_plotting.create_log_height_labels(
-        colour_bar_object.get_ticks()
-    )
-    print(tick_strings)
+    tick_values = colour_bar_object.get_ticks()
+    tick_strings = profile_plotting.create_log_height_labels(tick_values)
+    colour_bar_object.set_ticks(tick_values)
     colour_bar_object.set_ticklabels(tick_strings)
 
     colour_bar_object.set_label('Height (km AGL)', fontsize=FONT_SIZE)
@@ -665,10 +664,9 @@ def plot_taylor_diagram_many_heights(
         fraction_of_axis_length=0.85, font_size=FONT_SIZE
     )
 
-    tick_strings = profile_plotting.create_log_height_labels(
-        colour_bar_object.get_ticks()
-    )
-    print(tick_strings)
+    tick_values = colour_bar_object.get_ticks()
+    tick_strings = profile_plotting.create_log_height_labels(tick_values)
+    colour_bar_object.set_ticks(tick_values)
     colour_bar_object.set_ticklabels(tick_strings)
 
     colour_bar_object.set_label('Height (km AGL)', fontsize=FONT_SIZE)
