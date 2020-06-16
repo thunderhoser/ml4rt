@@ -39,6 +39,9 @@ def _get_standard_deviation(z_score_param_dict):
         z_score_param_dict[MEAN_VALUE_KEY] ** 2
     ))
 
+    if numpy.isnan(standard_deviation):
+        standard_deviation = 0.
+
     return numpy.maximum(standard_deviation, numpy.finfo(float).eps)
 
 

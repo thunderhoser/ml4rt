@@ -246,12 +246,6 @@ def _run(example_dir_name, first_year, last_year, min_percentile_level,
                     this_field_name, this_height_m_agl
                 ] = this_dict
 
-    print(
-        z_score_dict_with_height[
-            example_io.SPECIFIC_HUMIDITY_NAME, 30000
-        ]
-    )
-
     norm_table_no_height = normalization_params.finalize_params(
         z_score_dict_dict=z_score_dict_no_height,
         frequency_dict_dict=frequency_dict_no_height,
