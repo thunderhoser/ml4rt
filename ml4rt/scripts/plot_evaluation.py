@@ -249,8 +249,8 @@ def _run(input_file_name, output_dir_name):
             evaluation_dict[evaluation.VECTOR_CORRELATION_KEY][:, k]
         )
 
-        this_figure_object, this_axes_object = pyplot.subplots(
-            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        this_figure_object = pyplot.figure(
+            figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
         evaluation_plotting.plot_taylor_diagram_many_heights(
@@ -260,7 +260,7 @@ def _run(input_file_name, output_dir_name):
             figure_object=this_figure_object
         )
 
-        this_axes_object.set_title(
+        this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose)
         )
 
@@ -333,8 +333,8 @@ def _run(input_file_name, output_dir_name):
         )
         this_correlation = evaluation_dict[evaluation.SCALAR_CORRELATION_KEY][k]
 
-        this_figure_object, this_axes_object = pyplot.subplots(
-            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        this_figure_object = pyplot.figure(
+            figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
         evaluation_plotting.plot_taylor_diagram(
@@ -344,7 +344,7 @@ def _run(input_file_name, output_dir_name):
             figure_object=this_figure_object
         )
 
-        this_axes_object.set_title(
+        this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose)
         )
 
