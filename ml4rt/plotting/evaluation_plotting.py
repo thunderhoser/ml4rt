@@ -327,7 +327,7 @@ def plot_attributes_diagram(
     error_checking.assert_is_geq(mean_value_in_training, 0.)
 
     max_value_for_main_plot = numpy.maximum(
-        numpy.max(mean_predictions), numpy.max(mean_observations)
+        numpy.nanmax(mean_predictions), numpy.nanmax(mean_observations)
     )
     _plot_attr_diagram_background(
         axes_object=axes_object, mean_value_in_training=mean_value_in_training,
