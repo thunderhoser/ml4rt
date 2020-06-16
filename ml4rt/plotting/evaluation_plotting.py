@@ -461,9 +461,7 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         if numpy.isnan(x_max):
             x_max = 1.
 
-        print(x_min)
-        print(x_max)
-
+        x_min = max([x_min, -2.])
         axes_object.set_xlim(x_min, x_max)
     else:
         axes_object.set_xlim(left=0.)
