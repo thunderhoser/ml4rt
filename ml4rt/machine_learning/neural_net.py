@@ -1222,6 +1222,17 @@ def train_neural_net(
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
 
     training_option_dict = _check_generator_args(training_option_dict)
+
+    validation_keys_to_keep = [
+        EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
+    ]
+
+    for this_key in list(validation_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
     validation_option_dict = _check_generator_args(validation_option_dict)
 
     history_object = keras.callbacks.CSVLogger(
@@ -1249,16 +1260,6 @@ def train_neural_net(
     list_of_callback_objects = [
         history_object, checkpoint_object, early_stopping_object, plateau_object
     ]
-
-    validation_keys_to_keep = [
-        EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
-    ]
-
-    for this_key in list(validation_option_dict.keys()):
-        if this_key in validation_keys_to_keep:
-            continue
-
-        validation_option_dict[this_key] = training_option_dict[this_key]
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
