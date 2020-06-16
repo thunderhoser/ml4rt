@@ -15,6 +15,15 @@ DEG_TO_RADIANS = numpy.pi / 180
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
+DEFAULT_HEIGHTS_M_AGL = numpy.array([
+    10, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 350,
+    400, 450, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600,
+    1700, 1800, 1900, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600,
+    3800, 4000, 4200, 4400, 4600, 4800, 5000, 5500, 6000, 6500, 7000, 8000,
+    9000, 10000, 11000, 12000, 13000, 14000, 15000, 18000, 20000, 22000, 24000,
+    27000, 30000, 33000, 36000, 39000, 42000, 46000, 50000
+], dtype=float)
+
 SCALAR_PREDICTOR_VALS_KEY = 'scalar_predictor_matrix'
 SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
 VECTOR_PREDICTOR_VALS_KEY = 'vector_predictor_matrix'
@@ -682,6 +691,39 @@ def subset_by_field(example_dict, field_names):
     example_dict[VECTOR_TARGET_VALS_KEY] = (
         example_dict[VECTOR_TARGET_VALS_KEY][..., vector_target_indices]
     )
+
+    return example_dict
+
+
+def subset_by_height(example_dict, heights_m_agl):
+    """Subsets examples by height.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param heights_m_agl: 1-D numpy array of heights to keep (metres above
+        ground level).
+    :return: example_dict: Same as input but with fewer heights.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(heights_m_agl)
+    error_checking.assert_is_numpy_array(
+        numpy.array(heights_m_agl), num_dimensions=1
+    )
+
+    indices_to_keep = [
+        _match_heights(
+            heights_m_agl=example_dict[HEIGHTS_KEY], desired_height_m_agl=h
+        ) for h in heights_m_agl
+    ]
+    indices_to_keep = numpy.array(indices_to_keep, dtype=int)
+
+    example_dict[VECTOR_PREDICTOR_VALS_KEY] = (
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][:, indices_to_keep, :]
+    )
+    example_dict[VECTOR_TARGET_VALS_KEY] = (
+        example_dict[VECTOR_TARGET_VALS_KEY][:, indices_to_keep, :]
+    )
+    example_dict[HEIGHTS_KEY] = example_dict[HEIGHTS_KEY][indices_to_keep]
 
     return example_dict
 

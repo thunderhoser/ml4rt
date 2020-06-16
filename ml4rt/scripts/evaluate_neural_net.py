@@ -10,16 +10,6 @@ from ml4rt.machine_learning import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-# TODO(thunderhoser): This is a HACK.
-HEIGHTS_M_AGL = numpy.array([
-    10, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 350,
-    400, 450, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600,
-    1700, 1800, 1900, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600,
-    3800, 4000, 4200, 4400, 4600, 4800, 5000, 5500, 6000, 6500, 7000, 8000,
-    9000, 10000, 11000, 12000, 13000, 14000, 15000, 18000, 20000, 22000, 24000,
-    27000, 30000, 33000, 36000, 39000, 42000, 46000, 50000
-], dtype=float)
-
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 OUTPUT_FILE_ARG_NAME = 'output_eval_file_name'
 
@@ -64,29 +54,16 @@ def _run(prediction_file_name, evaluation_file_name):
     model_metadata_dict = neural_net.read_metadata(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    # TODO(thunderhoser): Make sure that variables end up in correct order.
-    all_target_names = generator_option_dict[neural_net.TARGET_NAMES_KEY]
-    scalar_target_names = [
-        t for t in all_target_names if t in example_io.SCALAR_TARGET_NAMES
-    ]
-    vector_target_names = [
-        t for t in all_target_names if t in example_io.VECTOR_TARGET_NAMES
-    ]
-
-    all_predictor_names = generator_option_dict[neural_net.PREDICTOR_NAMES_KEY]
-    scalar_predictor_names = [
-        p for p in all_predictor_names if p in example_io.SCALAR_PREDICTOR_NAMES
-    ]
-    vector_predictor_names = [
-        p for p in all_predictor_names if p in example_io.VECTOR_PREDICTOR_NAMES
-    ]
-
     example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
-        example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     mean_training_example_dict = normalization.create_mean_example(
@@ -108,6 +85,10 @@ def _run(prediction_file_name, evaluation_file_name):
     evaluation_dict[evaluation.MODEL_FILE_KEY] = model_file_name
     print(SEPARATOR_STRING)
 
+    scalar_target_names = (
+        generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+    )
+
     for k in range(len(scalar_target_names)):
         print((
             'Variable = "{0:s}" ... stdev of target and predicted values = '
@@ -128,6 +109,11 @@ def _run(prediction_file_name, evaluation_file_name):
 
     print(SEPARATOR_STRING)
 
+    vector_target_names = (
+        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+    )
+    heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+
     for k in range(len(vector_target_names)):
         print('Variable = "{0:s}" ... PRMSE = {1:f}'.format(
             vector_target_names[k],
@@ -137,7 +123,7 @@ def _run(prediction_file_name, evaluation_file_name):
     print(SEPARATOR_STRING)
 
     for k in range(len(vector_target_names)):
-        for j in range(len(HEIGHTS_M_AGL)):
+        for j in range(len(heights_m_agl)):
             print((
                 'Variable = "{0:s}" at {1:d} m AGL ... '
                 'stdev of target and predicted values = {2:f}, {3:f} ... '
@@ -145,7 +131,7 @@ def _run(prediction_file_name, evaluation_file_name):
                 'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
                 'correlation = {9:f}'
             ).format(
-                vector_target_names[k], int(numpy.round(HEIGHTS_M_AGL[j])),
+                vector_target_names[k], int(numpy.round(heights_m_agl[j])),
                 evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][j, k],
                 evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][j, k],
                 evaluation_dict[evaluation.VECTOR_MSE_KEY][j, k],

@@ -268,6 +268,24 @@ FIRST_EXAMPLE_DICT_SELECT_FIELDS = {
     example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
 }
 
+# The following constants are used to test subset_by_height.
+HEIGHTS_TO_KEEP_M_AGL = numpy.array([500, 100], dtype=float)
+
+FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: FIRST_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[:, ::-1, :],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX,
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[:, ::-1, :],
+    example_io.HEIGHTS_KEY: HEIGHTS_TO_KEEP_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
+}
+
 # The following constants are used to test average_examples.
 THIS_SCALAR_PREDICTOR_MATRIX = numpy.array([[1.5, 40.02]])
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.array([[288.5, 293.625]])
@@ -592,6 +610,18 @@ class ExampleIoTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SELECT_FIELDS
+        ))
+
+    def test_subset_by_height(self):
+        """Ensures correct output from subset_by_height."""
+
+        this_example_dict = example_io.subset_by_height(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            heights_m_agl=HEIGHTS_TO_KEEP_M_AGL
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_SELECT_HEIGHTS
         ))
 
     def test_average_examples(self):

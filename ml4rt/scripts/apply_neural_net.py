@@ -158,34 +158,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 vector_target_matrix = this_vector_target_matrix + 0.
                 vector_prediction_matrix = this_vector_prediction_matrix + 0.
 
-    # TODO(thunderhoser): Make sure that variables end up in correct order.
-    all_target_names = generator_option_dict[neural_net.TARGET_NAMES_KEY]
-    scalar_target_names = [
-        t for t in all_target_names if t in example_io.SCALAR_TARGET_NAMES
-    ]
-    vector_target_names = [
-        t for t in all_target_names if t in example_io.VECTOR_TARGET_NAMES
-    ]
-
-    # TODO(thunderhoser): This is kind of a HACK.
-    example_file_names = example_io.find_many_files(
-        example_dir_name=example_dir_name,
-        first_time_unix_sec=first_time_unix_sec,
-        last_time_unix_sec=last_time_unix_sec,
-        raise_error_if_any_missing=False
-    )
-
-    this_dict = example_io.read_file(example_file_names[0])
-    heights_m_agl = this_dict[example_io.HEIGHTS_KEY]
-
     print('Denormalizing target (actual) and predicted values...')
 
     target_example_dict = {
         example_io.SCALAR_PREDICTOR_VALS_KEY: None,
         example_io.VECTOR_PREDICTOR_VALS_KEY: None,
-        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.HEIGHTS_KEY: heights_m_agl
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     prediction_example_dict = copy.deepcopy(target_example_dict)
@@ -209,10 +191,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     # TODO(thunderhoser): Make `separate_heights` an option for neural-net
     # normalization.
 
-    # TODO(thunderhoser): Remove this HACK.
-    generator_option_dict = neural_net._check_generator_args(
-        generator_option_dict
-    )
+    # generator_option_dict = neural_net._check_generator_args(
+    #     generator_option_dict
+    # )
 
     target_example_dict = normalization.denormalize_data(
         example_dict=target_example_dict,

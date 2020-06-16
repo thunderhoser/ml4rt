@@ -39,8 +39,11 @@ DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA = 0.
 
 EXAMPLE_DIRECTORY_KEY = 'example_dir_name'
 BATCH_SIZE_KEY = 'num_examples_per_batch'
-PREDICTOR_NAMES_KEY = 'predictor_names'
-TARGET_NAMES_KEY = 'target_names'
+SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
+VECTOR_PREDICTOR_NAMES_KEY = 'vector_predictor_names'
+SCALAR_TARGET_NAMES_KEY = 'scalar_target_names'
+VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
+HEIGHTS_KEY = 'heights_m_agl'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
@@ -52,13 +55,11 @@ TARGET_MIN_NORM_VALUE_KEY = 'target_min_norm_value'
 TARGET_MAX_NORM_VALUE_KEY = 'target_max_norm_value'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
-    PREDICTOR_NAMES_KEY: (
-        example_io.SCALAR_PREDICTOR_NAMES_KEY +
-        example_io.VECTOR_PREDICTOR_NAMES_KEY
-    ),
-    TARGET_NAMES_KEY: (
-        example_io.SCALAR_TARGET_NAMES_KEY + example_io.VECTOR_TARGET_NAMES_KEY
-    ),
+    SCALAR_PREDICTOR_NAMES_KEY: example_io.SCALAR_PREDICTOR_NAMES,
+    VECTOR_PREDICTOR_NAMES_KEY: example_io.VECTOR_PREDICTOR_NAMES,
+    SCALAR_TARGET_NAMES_KEY: example_io.SCALAR_TARGET_NAMES,
+    VECTOR_TARGET_NAMES_KEY: example_io.VECTOR_TARGET_NAMES,
+    HEIGHTS_KEY: example_io.DEFAULT_HEIGHTS_M_AGL,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -248,12 +249,25 @@ def _check_generator_args(option_dict):
 
     error_checking.assert_is_integer(option_dict[BATCH_SIZE_KEY])
     error_checking.assert_is_geq(option_dict[BATCH_SIZE_KEY], 32)
+
     error_checking.assert_is_numpy_array(
-        numpy.array(option_dict[PREDICTOR_NAMES_KEY]), num_dimensions=1
+        numpy.array(option_dict[SCALAR_PREDICTOR_NAMES_KEY]), num_dimensions=1
     )
     error_checking.assert_is_numpy_array(
-        numpy.array(option_dict[TARGET_NAMES_KEY]), num_dimensions=1
+        numpy.array(option_dict[VECTOR_PREDICTOR_NAMES_KEY]), num_dimensions=1
     )
+    error_checking.assert_is_numpy_array(
+        numpy.array(option_dict[SCALAR_TARGET_NAMES_KEY]), num_dimensions=1
+    )
+    error_checking.assert_is_numpy_array(
+        numpy.array(option_dict[VECTOR_TARGET_NAMES_KEY]), num_dimensions=1
+    )
+
+    error_checking.assert_is_numpy_array(
+        option_dict[HEIGHTS_KEY], num_dimensions=1
+    )
+    error_checking.assert_is_geq_numpy_array(option_dict[HEIGHTS_KEY], 0.)
+
     error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
     error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
 
@@ -318,7 +332,7 @@ def _write_metadata(
 
 def _read_file_for_generator(
         example_file_name, num_examples_to_keep, first_time_unix_sec,
-        last_time_unix_sec, field_names, normalization_file_name,
+        last_time_unix_sec, field_names, heights_m_agl, normalization_file_name,
         predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, target_norm_type_string,
         target_min_norm_value, target_max_norm_value,
@@ -332,6 +346,8 @@ def _read_file_for_generator(
         `dense_net_generator`.
     :param last_time_unix_sec: Same.
     :param field_names: 1-D list of fields to keep.
+    :param heights_m_agl: 1-D numpy array of heights to keep (metres above
+        ground level).
     :param normalization_file_name: See doc for `cnn_generator` or
         `dense_net_generator`.
     :param predictor_norm_type_string: Same.
@@ -361,6 +377,9 @@ def _read_file_for_generator(
     )
     example_dict = example_io.subset_by_field(
         example_dict=example_dict, field_names=field_names
+    )
+    example_dict = example_io.subset_by_height(
+        example_dict=example_dict, heights_m_agl=heights_m_agl
     )
 
     print('Applying {0:s} normalization to predictors...'.format(
@@ -916,12 +935,18 @@ def cnn_generator(option_dict, for_inference):
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
-    predictor_names = option_dict[PREDICTOR_NAMES_KEY]
-    target_names = option_dict[TARGET_NAMES_KEY]
+    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
+    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = option_dict[HEIGHTS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
-    all_field_names = predictor_names + target_names
+    all_field_names = (
+        scalar_predictor_names + vector_predictor_names +
+        scalar_target_names + vector_target_names
+    )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
@@ -970,7 +995,7 @@ def cnn_generator(option_dict, for_inference):
                 num_examples_per_batch - num_examples_in_memory,
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
-                field_names=all_field_names,
+                field_names=all_field_names, heights_m_agl=heights_m_agl,
                 normalization_file_name=normalization_file_name,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
@@ -1048,12 +1073,18 @@ def dense_net_generator(option_dict, for_inference):
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
-    predictor_names = option_dict[PREDICTOR_NAMES_KEY]
-    target_names = option_dict[TARGET_NAMES_KEY]
+    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
+    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = option_dict[HEIGHTS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
-    all_field_names = predictor_names + target_names
+    all_field_names = (
+        scalar_predictor_names + vector_predictor_names +
+        scalar_target_names + vector_target_names
+    )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
@@ -1101,7 +1132,7 @@ def dense_net_generator(option_dict, for_inference):
                 num_examples_per_batch - num_examples_in_memory,
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
-                field_names=all_field_names,
+                field_names=all_field_names, heights_m_agl=heights_m_agl,
                 normalization_file_name=normalization_file_name,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,

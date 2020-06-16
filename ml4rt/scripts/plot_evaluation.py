@@ -42,16 +42,6 @@ TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'TOA upwelling flux (W m$^{-2}$)',
 }
 
-# TODO(thunderhoser): This is a HACK.
-HEIGHTS_M_AGL = numpy.array([
-    10, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 350,
-    400, 450, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600,
-    1700, 1800, 1900, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600,
-    3800, 4000, 4200, 4400, 4600, 4800, 5000, 5500, 6000, 6500, 7000, 8000,
-    9000, 10000, 11000, 12000, 13000, 14000, 15000, 18000, 20000, 22000, 24000,
-    27000, 30000, 33000, 36000, 39000, 42000, 46000, 50000
-], dtype=float)
-
 PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 TAYLOR_MARKER_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
@@ -106,29 +96,16 @@ def _run(input_file_name, output_dir_name):
     model_metadata_dict = neural_net.read_metadata(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    # TODO(thunderhoser): Make sure that variables end up in correct order.
-    all_target_names = generator_option_dict[neural_net.TARGET_NAMES_KEY]
-    scalar_target_names = [
-        t for t in all_target_names if t in example_io.SCALAR_TARGET_NAMES
-    ]
-    vector_target_names = [
-        t for t in all_target_names if t in example_io.VECTOR_TARGET_NAMES
-    ]
-
-    all_predictor_names = generator_option_dict[neural_net.PREDICTOR_NAMES_KEY]
-    scalar_predictor_names = [
-        p for p in all_predictor_names if p in example_io.SCALAR_PREDICTOR_NAMES
-    ]
-    vector_predictor_names = [
-        p for p in all_predictor_names if p in example_io.VECTOR_PREDICTOR_NAMES
-    ]
-
     example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
-        example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     mean_training_example_dict = normalization.create_mean_example(
@@ -136,6 +113,11 @@ def _run(input_file_name, output_dir_name):
         normalization_file_name=
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
+
+    vector_target_names = (
+        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+    )
+    heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
 
     for k in range(len(vector_target_names)):
         this_target_name_verbose = (
@@ -151,7 +133,7 @@ def _run(input_file_name, output_dir_name):
             this_key = SCORE_NAME_TO_PROFILE_KEY[this_score_name]
 
             evaluation_plotting.plot_score_profile(
-                heights_m_agl=HEIGHTS_M_AGL,
+                heights_m_agl=heights_m_agl,
                 score_values=evaluation_dict[this_key][:, k],
                 score_name=this_score_name, line_colour=PROFILE_COLOUR,
                 line_width=2, use_log_scale=True, axes_object=this_axes_object
@@ -197,7 +179,7 @@ def _run(input_file_name, output_dir_name):
         evaluation_plotting.plot_rel_curve_many_heights(
             mean_target_matrix=this_mean_target_matrix,
             mean_prediction_matrix=this_mean_prediction_matrix,
-            heights_m_agl=HEIGHTS_M_AGL, max_value_to_plot=this_max_value,
+            heights_m_agl=heights_m_agl, max_value_to_plot=this_max_value,
             axes_object=this_axes_object
         )
 
@@ -234,7 +216,7 @@ def _run(input_file_name, output_dir_name):
         evaluation_plotting.plot_taylor_diagram_many_heights(
             target_stdevs=these_target_stdevs,
             prediction_stdevs=these_prediction_stdevs,
-            correlations=these_correlations, heights_m_agl=HEIGHTS_M_AGL,
+            correlations=these_correlations, heights_m_agl=heights_m_agl,
             figure_object=this_figure_object
         )
 
@@ -255,6 +237,10 @@ def _run(input_file_name, output_dir_name):
         pyplot.close(this_figure_object)
 
         print(SEPARATOR_STRING)
+
+    scalar_target_names = (
+        generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+    )
 
     for k in range(len(scalar_target_names)):
         this_target_name_verbose = (
@@ -344,7 +330,7 @@ def _run(input_file_name, output_dir_name):
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
 
-        for j in range(len(HEIGHTS_M_AGL)):
+        for j in range(len(heights_m_agl)):
 
             # Plot attributes diagram.
             these_mean_predictions = (
@@ -377,10 +363,10 @@ def _run(input_file_name, output_dir_name):
             )
 
             this_height_string_unpadded = '{0:d}'.format(
-                int(numpy.round(HEIGHTS_M_AGL[j]))
+                int(numpy.round(heights_m_agl[j]))
             )
             this_height_string_padded = '{0:05d}'.format(
-                int(numpy.round(HEIGHTS_M_AGL[j]))
+                int(numpy.round(heights_m_agl[j]))
             )
 
             this_axes_object.set_title(
