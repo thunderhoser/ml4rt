@@ -2,9 +2,6 @@
 
 import keras.backend as K
 
-# TODO(thunderhoser): Probably need to generalize for multiple output tensors.
-# TODO(thunderhoser): Maybe allow for denormalization?
-
 
 def mean_bias(target_tensor, prediction_tensor):
     """Computes mean bias (mean signed error).

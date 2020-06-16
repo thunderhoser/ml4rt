@@ -188,13 +188,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     for this_key in TARGET_VALUE_KEYS:
         prediction_example_dict[this_key] = new_example_dict[this_key]
 
-    # TODO(thunderhoser): Make `separate_heights` an option for neural-net
-    # normalization.
-
-    # generator_option_dict = neural_net._check_generator_args(
-    #     generator_option_dict
-    # )
-
     target_example_dict = normalization.denormalize_data(
         example_dict=target_example_dict,
         normalization_type_string=

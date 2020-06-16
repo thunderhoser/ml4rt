@@ -468,7 +468,10 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         axes_object.set_xlim(left=0.)
 
     if use_log_scale:
-        profile_plotting.set_height_labels(axes_object)
+        axes_object.set_yticklabels(
+            profile_plotting.create_log_height_labels(axes_object.get_yticks())
+        )
+
         axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
     else:
         axes_object.set_ylim(0, max_height_km_agl)
@@ -546,6 +549,10 @@ def plot_rel_curve_many_heights(
         colour_norm_object=colour_norm_object,
         orientation_string='vertical', extend_min=False, extend_max=False,
         font_size=FONT_SIZE
+    )
+
+    colour_bar_object.set_ticklabels(
+        profile_plotting.create_log_height_labels(colour_bar_object.get_ticks())
     )
 
     colour_bar_object.set_label('Height (km AGL)', fontsize=FONT_SIZE)
@@ -654,6 +661,10 @@ def plot_taylor_diagram_many_heights(
         colour_norm_object=colour_norm_object,
         orientation_string='vertical', extend_min=False, extend_max=False,
         fraction_of_axis_length=0.85, font_size=FONT_SIZE
+    )
+
+    colour_bar_object.set_ticklabels(
+        profile_plotting.create_log_height_labels(colour_bar_object.get_ticks())
     )
 
     colour_bar_object.set_label('Height (km AGL)', fontsize=FONT_SIZE)

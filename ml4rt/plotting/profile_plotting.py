@@ -49,25 +49,25 @@ def _make_spines_invisible(axes_object):
         this_spine_object.set_visible(False)
 
 
-def set_height_labels(axes_object):
-    """Sets labels for height axis (y-axis).
+def create_log_height_labels(tick_values_km_agl):
+    """Creates labels for logarithmic height axis.
 
-    This method should be called only if height axis is logarithmic.
+    H = number of tick values
 
-    :param axes_object: Axes handle (instance of
-        `matplotlib.axes._subplots.AxesSubplot`).
+    :param tick_values_km_agl: length-H numpy array of tick values (km above
+        ground level).
+    :return: tick_strings: length-H list of text labels.
     """
 
-    # TODO(thunderhoser): Should probably put this method in a plotting_utils.py
-    # or something.
+    error_checking.assert_is_greater_numpy_array(tick_values_km_agl, 0.)
+    error_checking.assert_is_numpy_array(tick_values_km_agl, num_dimensions=1)
 
-    tick_values = axes_object.get_yticks()
-    num_ticks = len(tick_values)
+    num_ticks = len(tick_values_km_agl)
     tick_strings = ['foo'] * num_ticks
 
     for i in range(num_ticks):
         this_order_of_magnitude = int(numpy.floor(
-            numpy.log10(tick_values[i])
+            numpy.log10(tick_values_km_agl[i])
         ))
 
         if this_order_of_magnitude >= 0:
@@ -78,9 +78,9 @@ def set_height_labels(axes_object):
         this_format_string = (
             '{0:.' + '{0:d}'.format(this_num_decimal_places) + 'f}'
         )
-        tick_strings[i] = this_format_string.format(tick_values[i])
+        tick_strings[i] = this_format_string.format(tick_values_km_agl[i])
 
-    axes_object.set_yticklabels(tick_strings)
+    return tick_strings
 
 
 def plot_predictors(example_dict, example_index, plot_ice, use_log_scale,
@@ -184,7 +184,9 @@ def plot_predictors(example_dict, example_index, plot_ice, use_log_scale,
     ])
 
     if use_log_scale:
-        set_height_labels(temperature_axes_object)
+        temperature_axes_object.set_yticklabels(
+            create_log_height_labels(temperature_axes_object.get_yticks())
+        )
 
     temperature_axes_object.xaxis.label.set_color(TEMPERATURE_COLOUR)
     humidity_axes_object.xaxis.label.set_color(HUMIDITY_COLOUR)
@@ -276,7 +278,9 @@ def plot_targets(example_dict, example_index, use_log_scale,
     ])
 
     if use_log_scale:
-        set_height_labels(heating_rate_axes_object)
+        heating_rate_axes_object.set_yticklabels(
+            create_log_height_labels(heating_rate_axes_object.get_yticks())
+        )
 
     heating_rate_axes_object.xaxis.label.set_color(HEATING_RATE_COLOUR)
     flux_axes_object.xaxis.label.set_color(FLUX_COLOUR)
