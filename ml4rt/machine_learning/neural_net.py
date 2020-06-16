@@ -391,7 +391,7 @@ def _read_file_for_generator(
         normalization_file_name=normalization_file_name,
         min_normalized_value=predictor_min_norm_value,
         max_normalized_value=predictor_max_norm_value,
-        separate_heights=False,
+        separate_heights=True,
         apply_to_predictors=True, apply_to_targets=False
     )
 
@@ -404,7 +404,7 @@ def _read_file_for_generator(
         normalization_file_name=normalization_file_name,
         min_normalized_value=target_min_norm_value,
         max_normalized_value=target_max_norm_value,
-        separate_heights=False,
+        separate_heights=True,
         apply_to_predictors=False, apply_to_targets=True
     )
 

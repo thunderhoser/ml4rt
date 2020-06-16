@@ -205,7 +205,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
         max_normalized_value=
         generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
-        separate_heights=False, apply_to_predictors=False,
+        separate_heights=True, apply_to_predictors=False,
         apply_to_targets=True
     )
 
@@ -219,7 +219,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
         max_normalized_value=
         generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
-        separate_heights=False, apply_to_predictors=False,
+        separate_heights=True, apply_to_predictors=False,
         apply_to_targets=True
     )
 
