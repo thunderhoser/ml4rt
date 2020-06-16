@@ -211,6 +211,7 @@ def _run(input_file_name, output_dir_name):
             (this_mean_prediction_matrix, this_mean_target_matrix), axis=0
         )
         this_max_value = numpy.nanpercentile(this_combined_matrix, 99)
+        print(this_max_value)
 
         this_figure_object, this_axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
