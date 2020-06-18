@@ -1,11 +1,15 @@
 """Methods for normalizing predictor and target variables."""
 
 import numpy
+import scipy.stats
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.utils import normalization_params
 
 DUMMY_HEIGHT_M_AGL = 10
+
+MIN_CUMULATIVE_DENSITY = 1e-6
+MAX_CUMULATIVE_DENSITY = 1. - 1e-6
 
 MEAN_VALUE_COLUMN = normalization_params.MEAN_VALUE_COLUMN
 STANDARD_DEVIATION_COLUMN = normalization_params.STANDARD_DEVIATION_COLUMN
@@ -46,153 +50,179 @@ def _check_normalization_type(normalization_type_string):
         raise ValueError(error_string)
 
 
+def _orig_to_uniform_dist(orig_values_new, orig_values_training):
+    """Converts values from original to uniform distribution.
+
+    :param orig_values_new: numpy array of original (physical-scale) values to
+        convert.
+    :param orig_values_training: numpy array of original (physical-scale) values
+        in training data.
+    :return: uniform_values_new: numpy array (same shape as `orig_values_new`)
+        with rescaled values from 0...1.
+    """
+
+    # return 0.01 * numpy.array([
+    #     scipy.stats.percentileofscore(
+    #         orig_values_training, x, kind='rank'
+    #     )
+    #     for x in orig_values_new
+    # ])
+
+    orig_values_new_1d = numpy.ravel(orig_values_new)
+
+    indices = numpy.searchsorted(
+        numpy.sort(numpy.ravel(orig_values_training)), orig_values_new_1d,
+        side='left'
+    ).astype(float)
+
+    num_values = orig_values_training.size
+    uniform_values_new_1d = indices / (num_values - 1)
+    uniform_values_new_1d = numpy.minimum(uniform_values_new_1d, 1.)
+
+    return numpy.reshape(uniform_values_new_1d, orig_values_new.shape)
+
+
+def _uniform_to_orig_dist(uniform_values_new, orig_values_training):
+    """Converts values from uniform to original distribution.
+
+    This method is the inverse of `_orig_to_uniform_dist`.
+
+    :param uniform_values_new: See doc for `_orig_to_uniform_dist`.
+    :param orig_values_training: Same.
+    :return: orig_values_new: Same.
+    """
+
+    uniform_values_new_1d = numpy.ravel(uniform_values_new)
+
+    orig_values_new_1d = numpy.percentile(
+        numpy.ravel(orig_values_training), 100 * uniform_values_new_1d,
+        interpolation='midpoint'
+    )
+
+    return numpy.reshape(orig_values_new_1d, uniform_values_new.shape)
+
+
+def _orig_to_normal_dist(orig_values_new, orig_values_training):
+    """Converts values from original to normal distribution.
+
+    :param orig_values_new: See doc for `_orig_to_uniform_dist`.
+    :param orig_values_training: Same.
+    :return: normalized_values_new: numpy array (same shape as
+        `orig_values_new`) with normalized values (z-scores).
+    """
+
+    uniform_values_new = _orig_to_uniform_dist(
+        orig_values_new=orig_values_new,
+        orig_values_training=orig_values_training
+    )
+
+    uniform_values_new = numpy.maximum(
+        uniform_values_new, MIN_CUMULATIVE_DENSITY
+    )
+    uniform_values_new = numpy.minimum(
+        uniform_values_new, MAX_CUMULATIVE_DENSITY
+    )
+    return scipy.stats.norm.ppf(uniform_values_new, loc=0., scale=1.)
+
+
+def _normal_to_orig_dist(normalized_values_new, orig_values_training):
+    """Converts values from normal to original distribution.
+
+    This method is the inverse of `_orig_to_normal_dist`.
+
+    :param normalized_values_new: See doc for `_orig_to_normal_dist`.
+    :param orig_values_training: Same.
+    :return: orig_values_new: Same.
+    """
+
+    uniform_values_new = scipy.stats.norm.cdf(
+        normalized_values_new, loc=0., scale=1.
+    )
+
+    return _uniform_to_orig_dist(
+        uniform_values_new=uniform_values_new,
+        orig_values_training=orig_values_training
+    )
+
+
 def _normalize_one_variable(
-        orig_values, normalization_type_string, normalization_table_one_row,
+        orig_values_new, orig_values_training, normalization_type_string,
         min_normalized_value=None, max_normalized_value=None):
     """Normalizes one variable (either predictor or target variable).
 
-    :param orig_values: numpy array with original (not normalized) values.
+    :param orig_values_new: numpy array with original (unnormalized) values to
+        convert.
+    :param orig_values_training: numpy array with original (unnormalized) values
+        in training data.
     :param normalization_type_string: See doc for `normalize_data`.
-    :param normalization_table_one_row: One row of input `normalization_table`
-        to method `normalize_data`.
-    :param min_normalized_value: See doc for `normalize_data`.
+    :param min_normalized_value: Same.
     :param max_normalized_value: Same.
-    :return: normalized_values: numpy array with same shape as `orig_values`,
-        containing normalized values.
+    :return: normalized_values_new: numpy array with same shape as
+        `orig_values_new`, containing normalized values.
     """
 
     if normalization_type_string == MINMAX_NORM_STRING:
-        min_value = normalization_table_one_row[MIN_VALUE_COLUMN]
-        max_value = normalization_table_one_row[MAX_VALUE_COLUMN]
-
-        if 'pandas' in str(type(min_value)):
-            min_value = min_value.values[0]
-            max_value = max_value.values[0]
-
-        normalized_values = (
-            (orig_values - min_value) / (max_value - min_value)
+        normalized_values_new = _orig_to_uniform_dist(
+            orig_values_new=orig_values_new,
+            orig_values_training=orig_values_training
         )
-        normalized_values = min_normalized_value + normalized_values * (
+        normalized_values_new = min_normalized_value + normalized_values_new * (
             max_normalized_value - min_normalized_value
         )
     else:
-        mean_value = normalization_table_one_row[MEAN_VALUE_COLUMN]
-        standard_deviation = (
-            normalization_table_one_row[STANDARD_DEVIATION_COLUMN]
+        normalized_values_new = _orig_to_normal_dist(
+            orig_values_new=orig_values_new,
+            orig_values_training=orig_values_training
         )
 
-        if 'pandas' in str(type(mean_value)):
-            mean_value = mean_value.values[0]
-            standard_deviation = standard_deviation.values[0]
-
-        normalized_values = (orig_values - mean_value) / standard_deviation
-
-    return normalized_values
+    return normalized_values_new
 
 
 def _denorm_one_variable(
-        normalized_values, normalization_type_string,
-        normalization_table_one_row, min_normalized_value=None,
-        max_normalized_value=None):
+        normalized_values_new, orig_values_training, normalization_type_string,
+        min_normalized_value=None, max_normalized_value=None):
     """Denormalizes one variable (either predictor or target variable).
 
-    :param normalized_values: numpy array with normalized values.
-    :param normalization_type_string: See doc for `_normalize_one_variable`.
-    :param normalization_table_one_row: Same.
+    :param normalized_values_new: See doc for `_normalize_one_variable`.
+    :param orig_values_training: Same.
+    :param normalization_type_string: Same.
     :param min_normalized_value: Same.
     :param max_normalized_value: Same.
-    :return: denorm_values: numpy array with same shape as `normalized_values`,
-        containing denormalized values.
+    :return: denorm_values_new: numpy array with same shape as
+        `normalized_values_new`, containing denormalized values.
     """
 
     if normalization_type_string == MINMAX_NORM_STRING:
-        min_value = normalization_table_one_row[MIN_VALUE_COLUMN]
-        max_value = normalization_table_one_row[MAX_VALUE_COLUMN]
-
-        if 'pandas' in str(type(min_value)):
-            min_value = min_value.values[0]
-            max_value = max_value.values[0]
-
-        denorm_values = (
-            (normalized_values - min_normalized_value) /
+        normalized_values_new = (
+            (normalized_values_new - min_normalized_value) /
             (max_normalized_value - min_normalized_value)
         )
-        denorm_values = min_value + denorm_values * (max_value - min_value)
-    else:
-        mean_value = normalization_table_one_row[MEAN_VALUE_COLUMN]
-        standard_deviation = (
-            normalization_table_one_row[STANDARD_DEVIATION_COLUMN]
+        denorm_values = _uniform_to_orig_dist(
+            uniform_values_new=normalized_values_new,
+            orig_values_training=orig_values_training
         )
-
-        if 'pandas' in str(type(mean_value)):
-            mean_value = mean_value.values[0]
-            standard_deviation = standard_deviation.values[0]
-
-        denorm_values = mean_value + standard_deviation * normalized_values
+    else:
+        denorm_values = _normal_to_orig_dist(
+            normalized_values_new=normalized_values_new,
+            orig_values_training=orig_values_training
+        )
 
     return denorm_values
 
 
-def convert_to_log_if_necessary(physical_values, field_name):
-    """If necessary, converts variable from physical scale to log scale.
-
-    :param physical_values: numpy array (any shape) with physical values.
-    :param field_name: Field name (must be accepted by
-        `example_io.check_field_name`).
-    :return: output_values: numpy array (same shape as `input_array`) with
-        either physical or log values.
-    """
-
-    error_checking.assert_is_numpy_array_without_nan(physical_values)
-    example_io.check_field_name(field_name)
-
-    if field_name not in TARGET_NAME_TO_LOG_FLAG:
-        return physical_values
-
-    if not TARGET_NAME_TO_LOG_FLAG[field_name]:
-        return physical_values
-
-    return numpy.log10(1. + physical_values)
-
-
-def convert_from_log_if_necessary(input_values, field_name):
-    """If necessary, converts variable from log scale to physical scale.
-
-    This method is the inverse of `convert_to_log_if_necessary`.
-
-    :param input_values: numpy array (any shape) with either physical or log
-        values.
-    :param field_name: Field name (must be accepted by
-        `example_io.check_field_name`).
-    :return: physical_values: numpy array (same shape as `input_array`) with
-        physical values.
-    """
-
-    error_checking.assert_is_numpy_array_without_nan(input_values)
-    example_io.check_field_name(field_name)
-
-    if field_name not in TARGET_NAME_TO_LOG_FLAG:
-        return input_values
-
-    if not TARGET_NAME_TO_LOG_FLAG[field_name]:
-        return input_values
-
-    return 10 ** input_values - 1.
-
-
 def normalize_data(
-        example_dict, normalization_type_string, normalization_file_name,
+        new_example_dict, training_example_dict, normalization_type_string,
         min_normalized_value=-1., max_normalized_value=1.,
-        separate_heights=False, apply_to_predictors=True, apply_to_targets=True,
-        test_mode=False, normalization_table=None):
+        separate_heights=False, apply_to_predictors=True,
+        apply_to_targets=True):
     """Normalizes data (both predictor and target variables).
 
-    :param example_dict: Dictionary with learning examples (see doc for
+    :param new_example_dict: Dictionary with learning examples to be normalized
+        (see doc for `example_io.read_file`).
+    :param training_example_dict: Dictionary with training examples (see doc for
         `example_io.read_file`).
     :param normalization_type_string: Normalization type (must be accepted by
         `check_normalization_type`).
-    :param normalization_file_name: Path to file with normalization params (will
-        be read by `read_normalization_file`).
     :param min_normalized_value:
         [used only if normalization_type_string == 'minmax']
         Minimum value after normalization.
@@ -204,8 +234,6 @@ def normalize_data(
     :param apply_to_predictors: Boolean flag.  If True, will normalize
         predictors.
     :param apply_to_targets: Boolean flag.  If True, will normalize targets.
-    :param test_mode: For testing only.  Leave this alone.
-    :param normalization_table: For testing only.  Leave this alone.
     :return: example_dict: Same as input but with normalized values.
     :raises: ValueError: if `apply_to_predictors == apply_to_targets == False`.
     """
@@ -213,18 +241,12 @@ def normalize_data(
     error_checking.assert_is_boolean(separate_heights)
     error_checking.assert_is_boolean(apply_to_predictors)
     error_checking.assert_is_boolean(apply_to_targets)
-    error_checking.assert_is_boolean(test_mode)
 
     if not (apply_to_predictors or apply_to_targets):
         error_string = (
             'Either `apply_to_predictors` or `apply_to_targets` must be True.'
         )
         raise ValueError(error_string)
-
-    if not test_mode:
-        normalization_table = normalization_params.read_file(
-            normalization_file_name
-        )[int(separate_heights)]
 
     _check_normalization_type(normalization_type_string)
 
@@ -234,157 +256,176 @@ def normalize_data(
         )
 
     if apply_to_predictors:
-        scalar_predictor_names = example_dict[
-            example_io.SCALAR_PREDICTOR_NAMES_KEY
-        ]
+        scalar_predictor_names = (
+            new_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        )
     else:
         scalar_predictor_names = []
 
-    scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    new_scalar_predictor_matrix = (
+        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    )
 
     for k in range(len(scalar_predictor_names)):
-        if separate_heights:
-            this_index = [(scalar_predictor_names[k], DUMMY_HEIGHT_M_AGL)]
-        else:
-            this_index = scalar_predictor_names[k]
+        these_training_values = example_io.get_field_from_dict(
+            example_dict=training_example_dict,
+            field_name=scalar_predictor_names[k]
+        )
 
-        scalar_predictor_matrix[..., k] = _normalize_one_variable(
-            orig_values=scalar_predictor_matrix[..., k],
+        new_scalar_predictor_matrix[..., k] = _normalize_one_variable(
+            orig_values_new=new_scalar_predictor_matrix[..., k],
+            orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
-            normalization_table_one_row=normalization_table.loc[this_index],
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
 
-    example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = scalar_predictor_matrix
+    new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+        new_scalar_predictor_matrix
+    )
 
     if apply_to_targets:
-        scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+        scalar_target_names = (
+            new_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+        )
     else:
         scalar_target_names = []
 
-    scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    new_scalar_target_matrix = (
+        new_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    )
 
     for k in range(len(scalar_target_names)):
-        if separate_heights:
-            this_index = [(scalar_target_names[k], DUMMY_HEIGHT_M_AGL)]
-        else:
-            this_index = scalar_target_names[k]
-
-        scalar_target_matrix[..., k] = convert_to_log_if_necessary(
-            physical_values=scalar_target_matrix[..., k],
+        these_training_values = example_io.get_field_from_dict(
+            example_dict=training_example_dict,
             field_name=scalar_target_names[k]
         )
 
-        scalar_target_matrix[..., k] = _normalize_one_variable(
-            orig_values=scalar_target_matrix[..., k],
+        new_scalar_target_matrix[..., k] = _normalize_one_variable(
+            orig_values_new=new_scalar_target_matrix[..., k],
+            orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
-            normalization_table_one_row=normalization_table.loc[this_index],
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
 
-    example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
+    new_example_dict[example_io.SCALAR_TARGET_VALS_KEY] = (
+        new_scalar_target_matrix
+    )
 
     if apply_to_predictors:
-        vector_predictor_names = example_dict[
-            example_io.VECTOR_PREDICTOR_NAMES_KEY
-        ]
+        vector_predictor_names = (
+            new_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        )
     else:
         vector_predictor_names = []
 
-    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    new_vector_predictor_matrix = (
+        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    )
     heights_m_agl = (
-        numpy.round(example_dict[example_io.HEIGHTS_KEY]).astype(int)
+        numpy.round(new_example_dict[example_io.HEIGHTS_KEY]).astype(int)
     )
     num_heights = len(heights_m_agl)
 
     for k in range(len(vector_predictor_names)):
         if separate_heights:
             for j in range(num_heights):
-                this_index = [(vector_predictor_names[k], heights_m_agl[j])]
+                these_training_values = example_io.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=vector_predictor_names[k],
+                    height_m_agl=heights_m_agl[j]
+                )
 
-                vector_predictor_matrix[..., j, k] = _normalize_one_variable(
-                    orig_values=vector_predictor_matrix[..., j, k],
-                    normalization_type_string=normalization_type_string,
-                    normalization_table_one_row=
-                    normalization_table.loc[this_index],
-                    min_normalized_value=min_normalized_value,
-                    max_normalized_value=max_normalized_value
+                new_vector_predictor_matrix[..., j, k] = (
+                    _normalize_one_variable(
+                        orig_values_new=new_vector_predictor_matrix[..., j, k],
+                        orig_values_training=these_training_values,
+                        normalization_type_string=normalization_type_string,
+                        min_normalized_value=min_normalized_value,
+                        max_normalized_value=max_normalized_value
+                    )
                 )
         else:
-            vector_predictor_matrix[..., k] = _normalize_one_variable(
-                orig_values=vector_predictor_matrix[..., k],
+            these_training_values = example_io.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=vector_predictor_names[k]
+            )
+
+            new_vector_predictor_matrix[..., k] = _normalize_one_variable(
+                orig_values_new=new_vector_predictor_matrix[..., k],
+                orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
-                normalization_table_one_row=
-                normalization_table.loc[vector_predictor_names[k]],
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
 
-    example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = vector_predictor_matrix
+    new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+        new_vector_predictor_matrix
+    )
 
     if apply_to_targets:
-        vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        vector_target_names = (
+            new_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        )
     else:
         vector_target_names = []
 
-    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+    new_vector_target_matrix = (
+        new_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+    )
 
     for k in range(len(vector_target_names)):
         if separate_heights:
             for j in range(num_heights):
-                vector_target_matrix[..., j, k] = convert_to_log_if_necessary(
-                    physical_values=vector_target_matrix[..., j, k],
-                    field_name=vector_target_names[k]
+                these_training_values = example_io.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=vector_target_names[k],
+                    height_m_agl=heights_m_agl[j]
                 )
 
-                this_index = [(vector_target_names[k], heights_m_agl[j])]
-
-                vector_target_matrix[..., j, k] = _normalize_one_variable(
-                    orig_values=vector_target_matrix[..., j, k],
+                new_vector_target_matrix[..., j, k] = _normalize_one_variable(
+                    orig_values_new=new_vector_target_matrix[..., j, k],
+                    orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
-                    normalization_table_one_row=
-                    normalization_table.loc[this_index],
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
         else:
-            vector_target_matrix[..., k] = convert_to_log_if_necessary(
-                physical_values=vector_target_matrix[..., k],
+            these_training_values = example_io.get_field_from_dict(
+                example_dict=training_example_dict,
                 field_name=vector_target_names[k]
             )
 
-            vector_target_matrix[..., k] = _normalize_one_variable(
-                orig_values=vector_target_matrix[..., k],
+            new_vector_target_matrix[..., k] = _normalize_one_variable(
+                orig_values_new=new_vector_target_matrix[..., k],
+                orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
-                normalization_table_one_row=
-                normalization_table.loc[vector_target_names[k]],
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
 
-    example_dict[example_io.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
-    return example_dict
+    new_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+        new_vector_target_matrix
+    )
+    return new_example_dict
 
 
 def denormalize_data(
-        example_dict, normalization_type_string, normalization_file_name,
+        new_example_dict, training_example_dict, normalization_type_string,
         min_normalized_value=-1., max_normalized_value=1.,
-        separate_heights=False, apply_to_predictors=True, apply_to_targets=True,
-        test_mode=False, normalization_table=None):
+        separate_heights=False, apply_to_predictors=True,
+        apply_to_targets=True):
     """Denormalizes data (both predictor and target variables).
 
-    :param example_dict: See doc for `normalize_data`.
+    :param new_example_dict: See doc for `normalize_data`.
+    :param training_example_dict: Same.
     :param normalization_type_string: Same.
-    :param normalization_file_name: Same.
     :param min_normalized_value: Same.
     :param max_normalized_value: Same.
     :param separate_heights: Same.
     :param apply_to_predictors: Same.
     :param apply_to_targets: Same.
-    :param test_mode: Same.
-    :param normalization_table: Same.
     :return: example_dict: Same as input but with denormalized values.
     :raises: ValueError: if `apply_to_predictors == apply_to_targets == False`.
     """
@@ -392,18 +433,12 @@ def denormalize_data(
     error_checking.assert_is_boolean(separate_heights)
     error_checking.assert_is_boolean(apply_to_predictors)
     error_checking.assert_is_boolean(apply_to_targets)
-    error_checking.assert_is_boolean(test_mode)
 
     if not (apply_to_predictors or apply_to_targets):
         error_string = (
             'Either `apply_to_predictors` or `apply_to_targets` must be True.'
         )
         raise ValueError(error_string)
-
-    if not test_mode:
-        normalization_table = normalization_params.read_file(
-            normalization_file_name
-        )[int(separate_heights)]
 
     _check_normalization_type(normalization_type_string)
 
@@ -413,164 +448,176 @@ def denormalize_data(
         )
 
     if apply_to_predictors:
-        scalar_predictor_names = example_dict[
-            example_io.SCALAR_PREDICTOR_NAMES_KEY
-        ]
+        scalar_predictor_names = (
+            new_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        )
     else:
         scalar_predictor_names = []
 
-    scalar_predictor_matrix = example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    new_scalar_predictor_matrix = (
+        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    )
 
     for k in range(len(scalar_predictor_names)):
-        if separate_heights:
-            this_index = [(scalar_predictor_names[k], DUMMY_HEIGHT_M_AGL)]
-        else:
-            this_index = scalar_predictor_names[k]
+        these_training_values = example_io.get_field_from_dict(
+            example_dict=training_example_dict,
+            field_name=scalar_predictor_names[k]
+        )
 
-        scalar_predictor_matrix[..., k] = _denorm_one_variable(
-            normalized_values=scalar_predictor_matrix[..., k],
+        new_scalar_predictor_matrix[..., k] = _denorm_one_variable(
+            normalized_values_new=new_scalar_predictor_matrix[..., k],
+            orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
-            normalization_table_one_row=normalization_table.loc[this_index],
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
 
-    example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = scalar_predictor_matrix
+    new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+        new_scalar_predictor_matrix
+    )
 
     if apply_to_targets:
-        scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+        scalar_target_names = (
+            new_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+        )
     else:
         scalar_target_names = []
 
-    scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    new_scalar_target_matrix = (
+        new_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    )
 
     for k in range(len(scalar_target_names)):
-        if separate_heights:
-            this_index = [(scalar_target_names[k], DUMMY_HEIGHT_M_AGL)]
-        else:
-            this_index = scalar_target_names[k]
+        these_training_values = example_io.get_field_from_dict(
+            example_dict=training_example_dict,
+            field_name=scalar_target_names[k]
+        )
 
-        scalar_target_matrix[..., k] = _denorm_one_variable(
-            normalized_values=scalar_target_matrix[..., k],
+        new_scalar_target_matrix[..., k] = _denorm_one_variable(
+            normalized_values_new=new_scalar_target_matrix[..., k],
+            orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
-            normalization_table_one_row=normalization_table.loc[this_index],
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
 
-        scalar_target_matrix[..., k] = convert_from_log_if_necessary(
-            input_values=scalar_target_matrix[..., k],
-            field_name=scalar_target_names[k]
-        )
-
-    example_dict[example_io.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
+    new_example_dict[example_io.SCALAR_TARGET_VALS_KEY] = (
+        new_scalar_target_matrix
+    )
 
     if apply_to_predictors:
-        vector_predictor_names = example_dict[
-            example_io.VECTOR_PREDICTOR_NAMES_KEY
-        ]
+        vector_predictor_names = (
+            new_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        )
     else:
         vector_predictor_names = []
 
-    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    new_vector_predictor_matrix = (
+        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    )
     heights_m_agl = (
-        numpy.round(example_dict[example_io.HEIGHTS_KEY]).astype(int)
+        numpy.round(new_example_dict[example_io.HEIGHTS_KEY]).astype(int)
     )
     num_heights = len(heights_m_agl)
 
     for k in range(len(vector_predictor_names)):
         if separate_heights:
             for j in range(num_heights):
-                this_index = [(vector_predictor_names[k], heights_m_agl[j])]
+                these_training_values = example_io.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=vector_predictor_names[k],
+                    height_m_agl=heights_m_agl[j]
+                )
 
-                vector_predictor_matrix[..., j, k] = _denorm_one_variable(
-                    normalized_values=vector_predictor_matrix[..., j, k],
+                new_vector_predictor_matrix[..., j, k] = _denorm_one_variable(
+                    normalized_values_new=new_vector_predictor_matrix[..., j, k],
+                    orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
-                    normalization_table_one_row=
-                    normalization_table.loc[this_index],
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
         else:
-            vector_predictor_matrix[..., k] = _denorm_one_variable(
-                normalized_values=vector_predictor_matrix[..., k],
+            these_training_values = example_io.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=vector_predictor_names[k]
+            )
+
+            new_vector_predictor_matrix[..., k] = _denorm_one_variable(
+                normalized_values_new=new_vector_predictor_matrix[..., k],
+                orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
-                normalization_table_one_row=
-                normalization_table.loc[vector_predictor_names[k]],
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
 
-    example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = vector_predictor_matrix
+    new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+        new_vector_predictor_matrix
+    )
 
     if apply_to_targets:
-        vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        vector_target_names = (
+            new_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        )
     else:
         vector_target_names = []
 
-    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+    new_vector_target_matrix = (
+        new_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+    )
 
     for k in range(len(vector_target_names)):
         if separate_heights:
             for j in range(num_heights):
-                this_index = [(vector_target_names[k], heights_m_agl[j])]
+                these_training_values = example_io.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=vector_target_names[k],
+                    height_m_agl=heights_m_agl[j]
+                )
 
-                vector_target_matrix[..., j, k] = _denorm_one_variable(
-                    normalized_values=vector_target_matrix[..., j, k],
+                new_vector_target_matrix[..., j, k] = _denorm_one_variable(
+                    normalized_values_new=new_vector_target_matrix[..., j, k],
+                    orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
-                    normalization_table_one_row=
-                    normalization_table.loc[this_index],
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
-
-                vector_target_matrix[..., j, k] = convert_from_log_if_necessary(
-                    input_values=vector_target_matrix[..., j, k],
-                    field_name=vector_target_names[k]
-                )
         else:
-            vector_target_matrix[..., k] = _denorm_one_variable(
-                normalized_values=vector_target_matrix[..., k],
+            these_training_values = example_io.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=vector_target_names[k]
+            )
+
+            new_vector_target_matrix[..., k] = _denorm_one_variable(
+                normalized_values_new=new_vector_target_matrix[..., k],
+                orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
-                normalization_table_one_row=
-                normalization_table.loc[vector_target_names[k]],
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
 
-            vector_target_matrix[..., k] = convert_from_log_if_necessary(
-                input_values=vector_target_matrix[..., k],
-                field_name=vector_target_names[k]
-            )
-
-    example_dict[example_io.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
-    return example_dict
+    new_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+        new_vector_target_matrix
+    )
+    return new_example_dict
 
 
-def create_mean_example(
-        example_dict, normalization_file_name, test_mode=False,
-        normalization_table=None):
+def create_mean_example(new_example_dict, training_example_dict):
     """Creates mean example (with mean value for each variable/height pair).
 
-    :param example_dict: See doc for `normalize_data`.
-    :param normalization_file_name: Same.
-    :param test_mode: Same.
-    :param normalization_table: Same.
+    :param new_example_dict: See doc for `normalize_data`.
+    :param training_example_dict: Same.
     :return: mean_example_dict: See doc for `example_io.average_examples`.
     """
 
-    error_checking.assert_is_boolean(test_mode)
-
-    if not test_mode:
-        normalization_table = normalization_params.read_file(
-            normalization_file_name
-        )[1]
-
-    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
-    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
-    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
-    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+    scalar_predictor_names = (
+        new_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    )
+    scalar_target_names = new_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    vector_predictor_names = (
+        new_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    )
+    vector_target_names = new_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = new_example_dict[example_io.HEIGHTS_KEY]
 
     num_scalar_predictors = len(scalar_predictor_names)
     num_scalar_targets = len(scalar_target_names)
@@ -578,65 +625,47 @@ def create_mean_example(
     num_vector_targets = len(vector_target_names)
     num_heights = len(heights_m_agl)
 
-    scalar_predictor_values = numpy.full(num_scalar_predictors, numpy.nan)
-    scalar_target_values = numpy.full(num_scalar_targets, numpy.nan)
-    vector_predictor_matrix = numpy.full(
+    mean_scalar_predictor_values = numpy.full(num_scalar_predictors, numpy.nan)
+    mean_scalar_target_values = numpy.full(num_scalar_targets, numpy.nan)
+    mean_vector_predictor_matrix = numpy.full(
         (num_heights, num_vector_predictors), numpy.nan
     )
-    vector_target_matrix = numpy.full(
+    mean_vector_target_matrix = numpy.full(
         (num_heights, num_vector_targets), numpy.nan
     )
 
     for k in range(num_scalar_predictors):
-        this_index = [(scalar_predictor_names[k], DUMMY_HEIGHT_M_AGL)]
-        this_mean_value = normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
-
-        if 'pandas' in str(type(this_mean_value)):
-            this_mean_value = this_mean_value.values[0]
-
-        scalar_predictor_values[k] = this_mean_value
+        these_training_values = example_io.get_field_from_dict(
+            example_dict=training_example_dict,
+            field_name=scalar_predictor_names[k]
+        )
+        mean_scalar_predictor_values[k] = numpy.mean(these_training_values)
 
     for k in range(num_scalar_targets):
-        this_index = [(scalar_target_names[k], DUMMY_HEIGHT_M_AGL)]
-        this_mean_value = normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
-
-        if 'pandas' in str(type(this_mean_value)):
-            this_mean_value = this_mean_value.values[0]
-
-        this_mean_value = convert_from_log_if_necessary(
-            input_values=numpy.array([this_mean_value]),
+        these_training_values = example_io.get_field_from_dict(
+            example_dict=training_example_dict,
             field_name=scalar_target_names[k]
-        )[0]
-
-        scalar_target_values[k] = this_mean_value
+        )
+        mean_scalar_target_values[k] = numpy.mean(these_training_values)
 
     for j in range(num_heights):
         for k in range(num_vector_predictors):
-            this_index = [(vector_predictor_names[k], heights_m_agl[j])]
-            this_mean_value = (
-                normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
+            these_training_values = example_io.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=vector_predictor_names[k],
+                height_m_agl=heights_m_agl[j]
             )
-
-            if 'pandas' in str(type(this_mean_value)):
-                this_mean_value = this_mean_value.values[0]
-
-            vector_predictor_matrix[j, k] = this_mean_value
+            mean_vector_predictor_matrix[j, k] = numpy.mean(
+                these_training_values
+            )
 
         for k in range(num_vector_targets):
-            this_index = [(vector_target_names[k], heights_m_agl[j])]
-            this_mean_value = (
-                normalization_table.loc[this_index][MEAN_VALUE_COLUMN]
+            these_training_values = example_io.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=vector_target_names[k],
+                height_m_agl=heights_m_agl[j]
             )
-
-            if 'pandas' in str(type(this_mean_value)):
-                this_mean_value = this_mean_value.values[0]
-
-            this_mean_value = convert_from_log_if_necessary(
-                input_values=numpy.array([this_mean_value]),
-                field_name=vector_target_names[k]
-            )[0]
-
-            vector_target_matrix[j, k] = this_mean_value
+            mean_vector_target_matrix[j, k] = numpy.mean(these_training_values)
 
     return {
         example_io.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
@@ -645,11 +674,11 @@ def create_mean_example(
         example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
         example_io.HEIGHTS_KEY: heights_m_agl,
         example_io.SCALAR_PREDICTOR_VALS_KEY:
-            numpy.expand_dims(scalar_predictor_values, axis=0),
+            numpy.expand_dims(mean_scalar_predictor_values, axis=0),
         example_io.SCALAR_TARGET_VALS_KEY:
-            numpy.expand_dims(scalar_target_values, axis=0),
+            numpy.expand_dims(mean_scalar_target_values, axis=0),
         example_io.VECTOR_PREDICTOR_VALS_KEY:
-            numpy.expand_dims(vector_predictor_matrix, axis=0),
+            numpy.expand_dims(mean_vector_predictor_matrix, axis=0),
         example_io.VECTOR_TARGET_VALS_KEY:
-            numpy.expand_dims(vector_target_matrix, axis=0)
+            numpy.expand_dims(mean_vector_target_matrix, axis=0)
     }

@@ -376,7 +376,7 @@ def _run(input_file_name, output_dir_name):
             )
 
             this_file_name = '{0:s}/{1:s}_{2:s}metres_reliability.jpg'.format(
-                output_dir_name, scalar_target_names[k].replace('_', '-'),
+                output_dir_name, vector_target_names[k].replace('_', '-'),
                 this_height_string_padded
             )
             print('Saving figure to: "{0:s}"...'.format(this_file_name))
@@ -416,7 +416,7 @@ def _run(input_file_name, output_dir_name):
             )
 
             this_file_name = '{0:s}/{1:s}_{2:s}metres_taylor.jpg'.format(
-                output_dir_name, scalar_target_names[k].replace('_', '-'),
+                output_dir_name, vector_target_names[k].replace('_', '-'),
                 this_height_string_padded
             )
             print('Saving figure to: "{0:s}"...'.format(this_file_name))
