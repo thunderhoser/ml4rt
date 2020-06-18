@@ -33,12 +33,17 @@ SCORE_NAME_TO_PROFILE_KEY = {
     evaluation_plotting.CORRELATION_NAME: evaluation.VECTOR_CORRELATION_KEY
 }
 
+ORIG_UNIT_SCORE_NAMES = [
+    evaluation_plotting.MAE_NAME, evaluation_plotting.BIAS_NAME
+]
+SQUARED_UNIT_SCORE_NAMES = [evaluation_plotting.MSE_NAME]
+
 TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
     example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
     example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux'
 }
 
 TARGET_NAME_TO_UNITS = {
@@ -46,7 +51,15 @@ TARGET_NAME_TO_UNITS = {
     example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$'
+}
+
+TARGET_NAME_TO_SQUARED_UNITS = {
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_io.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
 PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -140,6 +153,7 @@ def _run(input_file_name, output_dir_name):
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
         this_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
+        this_squared_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
 
         # Plot error profiles.
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
@@ -165,9 +179,16 @@ def _run(input_file_name, output_dir_name):
                 this_unit_string
             )
 
-            this_axes_object.set_xlabel('{0:s} ({1:s})'.format(
-                this_score_name_verbose, this_unit_string
-            ))
+            this_x_label_string = '{0:s}'.format(this_score_name_verbose)
+
+            if this_score_name in SQUARED_UNIT_SCORE_NAMES:
+                this_x_label_string += ' ({0:s})'.format(
+                    this_squared_unit_string
+                )
+            elif this_score_name in ORIG_UNIT_SCORE_NAMES:
+                this_x_label_string += ' ({0:s})'.format(this_unit_string)
+
+            this_axes_object.set_xlabel(this_x_label_string)
             this_axes_object.set_title(this_title_string)
 
             this_file_name = '{0:s}/{1:s}_{2:s}_profile.jpg'.format(
