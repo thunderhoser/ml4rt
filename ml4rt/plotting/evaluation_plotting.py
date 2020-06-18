@@ -437,7 +437,6 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         axes_object.set_yscale('log')
 
     heights_km_agl = heights_m_agl * METRES_TO_KM
-    print(heights_km_agl)
     min_height_km_agl = numpy.min(heights_km_agl)
     max_height_km_agl = numpy.max(heights_km_agl)
 
@@ -469,11 +468,12 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         axes_object.set_xlim(left=0.)
 
     if use_log_scale:
+        print(min_height_km_agl)
+        print(max_height_km_agl)
+        axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
         axes_object.set_yticklabels(
             profile_plotting.create_log_height_labels(axes_object.get_yticks())
         )
-
-        axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
     else:
         axes_object.set_ylim(0, max_height_km_agl)
 
