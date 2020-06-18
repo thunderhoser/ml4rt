@@ -264,18 +264,20 @@ def _run(input_file_name, output_dir_name):
             figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
-        evaluation_plotting.plot_taylor_diagram_many_heights(
-            target_stdevs=these_target_stdevs,
-            prediction_stdevs=these_prediction_stdevs,
-            correlations=these_correlations, heights_m_agl=heights_m_agl,
-            figure_object=this_figure_object
+        this_taylor_diag_object = (
+            evaluation_plotting.plot_taylor_diagram_many_heights(
+                target_stdevs=these_target_stdevs,
+                prediction_stdevs=these_prediction_stdevs,
+                correlations=these_correlations, heights_m_agl=heights_m_agl,
+                figure_object=this_figure_object
+            )
         )
 
         this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose),
             y=0.85
         )
-        this_figure_object.axes[0].set_xlabel(
+        this_taylor_diag_object._ax.axis['left'].label.set_text(
             'Standard deviation ({0:s})'.format(this_unit_string)
         )
 
@@ -362,7 +364,7 @@ def _run(input_file_name, output_dir_name):
             figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
-        evaluation_plotting.plot_taylor_diagram(
+        this_taylor_diag_object = evaluation_plotting.plot_taylor_diagram(
             target_stdev=this_target_stdev,
             prediction_stdev=this_prediction_stdev,
             correlation=this_correlation, marker_colour=TAYLOR_MARKER_COLOUR,
@@ -372,7 +374,7 @@ def _run(input_file_name, output_dir_name):
         this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose)
         )
-        this_figure_object.axes[0].set_xlabel(
+        this_taylor_diag_object._ax.axis['left'].label.set_text(
             'Standard deviation ({0:s})'.format(this_unit_string)
         )
 
@@ -473,7 +475,7 @@ def _run(input_file_name, output_dir_name):
                 figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
-            evaluation_plotting.plot_taylor_diagram(
+            this_taylor_diag_object = evaluation_plotting.plot_taylor_diagram(
                 target_stdev=this_target_stdev,
                 prediction_stdev=this_prediction_stdev,
                 correlation=this_correlation, marker_colour=TAYLOR_MARKER_COLOUR,
@@ -485,7 +487,7 @@ def _run(input_file_name, output_dir_name):
                     this_target_name_verbose, this_height_string_unpadded
                 )
             )
-            this_figure_object.axes[0].set_xlabel(
+            this_taylor_diag_object._ax.axis['left'].label.set_text(
                 'Standard deviation ({0:s})'.format(this_unit_string)
             )
 

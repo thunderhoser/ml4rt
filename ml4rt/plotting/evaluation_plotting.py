@@ -367,6 +367,8 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
         matplotlib).
     :param figure_object: Will plot on this figure (instance of
         `matplotlib.figure.Figure`).
+    :return: taylor_diagram_object: Handle for Taylor diagram (instance of
+        `taylor_diagram.TaylorDiagram`).
     """
 
     error_checking.assert_is_geq(target_stdev, 0.)
@@ -402,6 +404,8 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
 
     taylor_diagram_object.add_grid()
     taylor_diagram_object._ax.axis[:].major_ticks.set_tick_out(True)
+
+    return taylor_diagram_object
 
 
 def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
@@ -581,6 +585,8 @@ def plot_taylor_diagram_many_heights(
         `matplotlib.figure.Figure`).
     :param colour_map_object: Colour map (instance of `matplotlib.pyplot.cm` or
         similar).  Will be used to colour points in Taylor diagram by height.
+    :return: taylor_diagram_object: Handle for Taylor diagram (instance of
+        `taylor_diagram.TaylorDiagram`).
     """
 
     error_checking.assert_is_geq_numpy_array(target_stdevs, 0.)
@@ -671,3 +677,5 @@ def plot_taylor_diagram_many_heights(
     colour_bar_object.set_ticklabels(tick_strings)
 
     colour_bar_object.set_label('Height (km AGL)', fontsize=FONT_SIZE)
+
+    return taylor_diagram_object
