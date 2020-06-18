@@ -153,7 +153,9 @@ def _run(input_file_name, output_dir_name):
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
         this_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
-        this_squared_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
+        this_squared_unit_string = (
+            TARGET_NAME_TO_SQUARED_UNITS[vector_target_names[k]]
+        )
 
         # Plot error profiles.
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
@@ -167,7 +169,7 @@ def _run(input_file_name, output_dir_name):
                 heights_m_agl=heights_m_agl,
                 score_values=evaluation_dict[this_key][:, k],
                 score_name=this_score_name, line_colour=PROFILE_COLOUR,
-                line_width=2, use_log_scale=True, axes_object=this_axes_object
+                line_width=2, use_log_scale=False, axes_object=this_axes_object
             )
 
             this_score_name_verbose = SCORE_NAME_TO_VERBOSE[this_score_name]
