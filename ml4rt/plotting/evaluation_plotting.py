@@ -472,8 +472,6 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         axes_object.set_xlim(left=0.)
 
     if use_log_scale:
-        print(min_height_km_agl)
-        print(max_height_km_agl)
         axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
         axes_object.set_yticklabels(
             profile_plotting.create_log_height_labels(axes_object.get_yticks())
