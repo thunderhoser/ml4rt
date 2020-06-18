@@ -34,12 +34,19 @@ SCORE_NAME_TO_PROFILE_KEY = {
 }
 
 TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'downwelling flux (W m$^{-2}$)',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'upwelling flux (W m$^{-2}$)',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'heating rate (K day$^{-1}$)',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
-        r'surface downwelling flux (W m$^{-2}$)',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'TOA upwelling flux (W m$^{-2}$)',
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
+    example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
+    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
+}
+
+TARGET_NAME_TO_UNITS = {
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
 }
 
 PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -132,6 +139,7 @@ def _run(input_file_name, output_dir_name):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
+        this_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
 
         # Plot error profiles.
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
@@ -150,11 +158,16 @@ def _run(input_file_name, output_dir_name):
 
             this_score_name_verbose = SCORE_NAME_TO_VERBOSE[this_score_name]
             this_prmse = evaluation_dict[evaluation.VECTOR_PRMSE_KEY][k]
-            this_title_string = '{0:s} for {1:s} ... PRMSE = {2:.2f}'.format(
-                this_score_name_verbose, this_target_name_verbose, this_prmse
+            this_title_string = (
+                '{0:s} for {1:s} (PRMSE = {2:.2f} {3:s})'
+            ).format(
+                this_score_name_verbose, this_target_name_verbose, this_prmse,
+                this_unit_string
             )
 
-            this_axes_object.set_xlabel(this_score_name_verbose)
+            this_axes_object.set_xlabel('{0:s} ({1:s})'.format(
+                this_score_name_verbose, this_unit_string
+            ))
             this_axes_object.set_title(this_title_string)
 
             this_file_name = '{0:s}/{1:s}_{2:s}_profile.jpg'.format(
@@ -195,6 +208,12 @@ def _run(input_file_name, output_dir_name):
         this_axes_object.set_title(
             'Reliability curves for {0:s}'.format(this_target_name_verbose)
         )
+        this_axes_object.set_xlabel(
+            'Prediction ({0:s})'.format(this_unit_string)
+        )
+        this_axes_object.set_ylabel(
+            'Conditional mean observation ({0:s})'.format(this_unit_string)
+        )
 
         this_file_name = '{0:s}/{1:s}_reliability_profile.jpg'.format(
             output_dir_name, vector_target_names[k].replace('_', '-')
@@ -233,6 +252,9 @@ def _run(input_file_name, output_dir_name):
             'Taylor diagram for {0:s}'.format(this_target_name_verbose),
             y=0.85
         )
+        this_figure_object.axes[0].set_xlabel(
+            'Standard deviation ({0:s})'.format(this_unit_string)
+        )
 
         this_file_name = '{0:s}/{1:s}_taylor_profile.jpg'.format(
             output_dir_name, vector_target_names[k].replace('_', '-')
@@ -255,6 +277,7 @@ def _run(input_file_name, output_dir_name):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[scalar_target_names[k]]
         )
+        this_unit_string = TARGET_NAME_TO_UNITS[scalar_target_names[k]]
 
         # Plot attributes diagram.
         these_mean_predictions = (
@@ -284,6 +307,12 @@ def _run(input_file_name, output_dir_name):
 
         this_axes_object.set_title(
             'Attributes diagram for {0:s}'.format(this_target_name_verbose)
+        )
+        this_axes_object.set_xlabel(
+            'Prediction ({0:s})'.format(this_unit_string)
+        )
+        this_axes_object.set_ylabel(
+            'Conditional mean observation ({0:s})'.format(this_unit_string)
         )
 
         this_file_name = '{0:s}/{1:s}_reliability.jpg'.format(
@@ -320,6 +349,9 @@ def _run(input_file_name, output_dir_name):
         this_figure_object.suptitle(
             'Taylor diagram for {0:s}'.format(this_target_name_verbose)
         )
+        this_figure_object.axes[0].set_xlabel(
+            'Standard deviation ({0:s})'.format(this_unit_string)
+        )
 
         this_file_name = '{0:s}/{1:s}_taylor.jpg'.format(
             output_dir_name, scalar_target_names[k].replace('_', '-')
@@ -338,6 +370,7 @@ def _run(input_file_name, output_dir_name):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
+        this_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
 
         for j in range(len(heights_m_agl)):
 
@@ -383,6 +416,12 @@ def _run(input_file_name, output_dir_name):
                     this_target_name_verbose, this_height_string_unpadded
                 )
             )
+            this_axes_object.set_xlabel(
+                'Prediction ({0:s})'.format(this_unit_string)
+            )
+            this_axes_object.set_ylabel(
+                'Conditional mean observation ({0:s})'.format(this_unit_string)
+            )
 
             this_file_name = '{0:s}/{1:s}_{2:s}metres_reliability.jpg'.format(
                 output_dir_name, vector_target_names[k].replace('_', '-'),
@@ -422,6 +461,9 @@ def _run(input_file_name, output_dir_name):
                 'Taylor diagram for {0:s} at {1:s} m AGL'.format(
                     this_target_name_verbose, this_height_string_unpadded
                 )
+            )
+            this_figure_object.axes[0].set_xlabel(
+                'Standard deviation ({0:s})'.format(this_unit_string)
             )
 
             this_file_name = '{0:s}/{1:s}_{2:s}metres_taylor.jpg'.format(
