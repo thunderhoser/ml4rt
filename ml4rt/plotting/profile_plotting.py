@@ -59,6 +59,8 @@ def create_log_height_labels(tick_values_km_agl):
     :return: tick_strings: length-H list of text labels.
     """
 
+    print(tick_values_km_agl)
+
     error_checking.assert_is_greater_numpy_array(tick_values_km_agl, 0.)
     error_checking.assert_is_numpy_array(tick_values_km_agl, num_dimensions=1)
 
