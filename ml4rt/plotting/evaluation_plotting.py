@@ -437,6 +437,7 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         axes_object.set_yscale('log')
 
     heights_km_agl = heights_m_agl * METRES_TO_KM
+    print(heights_km_agl)
     min_height_km_agl = numpy.min(heights_km_agl)
     max_height_km_agl = numpy.max(heights_km_agl)
 
