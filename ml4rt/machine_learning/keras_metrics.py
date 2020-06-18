@@ -22,6 +22,8 @@ def mean_absolute_error(target_tensor, prediction_tensor):
     :return: mean_absolute_error: Mean absolute error.
     """
 
+    print(prediction_tensor)
+
     return K.mean(K.abs(prediction_tensor - target_tensor))
 
 
