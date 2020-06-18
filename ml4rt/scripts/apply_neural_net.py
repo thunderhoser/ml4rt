@@ -158,8 +158,17 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 vector_target_matrix = this_vector_target_matrix + 0.
                 vector_prediction_matrix = this_vector_prediction_matrix + 0.
 
-    print('Denormalizing target (actual) and predicted values...')
+    normalization_file_name = (
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
 
+    print('Denormalizing target (actual) and predicted values...')
     target_example_dict = {
         example_io.SCALAR_PREDICTOR_VALS_KEY: None,
         example_io.VECTOR_PREDICTOR_VALS_KEY: None,
@@ -189,11 +198,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         prediction_example_dict[this_key] = new_example_dict[this_key]
 
     target_example_dict = normalization.denormalize_data(
-        example_dict=target_example_dict,
+        new_example_dict=target_example_dict,
+        training_example_dict=training_example_dict,
         normalization_type_string=
         generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY],
-        normalization_file_name=
-        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY],
         min_normalized_value=
         generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
         max_normalized_value=
@@ -203,11 +211,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
 
     prediction_example_dict = normalization.denormalize_data(
-        example_dict=prediction_example_dict,
+        new_example_dict=prediction_example_dict,
+        training_example_dict=training_example_dict,
         normalization_type_string=
         generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY],
-        normalization_file_name=
-        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY],
         min_normalized_value=
         generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
         max_normalized_value=

@@ -332,7 +332,7 @@ def _write_metadata(
 
 def _read_file_for_generator(
         example_file_name, num_examples_to_keep, first_time_unix_sec,
-        last_time_unix_sec, field_names, heights_m_agl, normalization_file_name,
+        last_time_unix_sec, field_names, heights_m_agl, training_example_dict,
         predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, target_norm_type_string,
         target_min_norm_value, target_max_norm_value,
@@ -348,8 +348,9 @@ def _read_file_for_generator(
     :param field_names: 1-D list of fields to keep.
     :param heights_m_agl: 1-D numpy array of heights to keep (metres above
         ground level).
-    :param normalization_file_name: See doc for `cnn_generator` or
-        `dense_net_generator`.
+    :param training_example_dict: Dictionary with training examples (in format
+        specified by `example_io.read_file`), which will be used for
+        normalization.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
@@ -386,9 +387,9 @@ def _read_file_for_generator(
         predictor_norm_type_string.upper()
     ))
     example_dict = normalization.normalize_data(
-        example_dict=example_dict,
+        new_example_dict=example_dict,
+        training_example_dict=training_example_dict,
         normalization_type_string=predictor_norm_type_string,
-        normalization_file_name=normalization_file_name,
         min_normalized_value=predictor_min_norm_value,
         max_normalized_value=predictor_max_norm_value,
         separate_heights=True,
@@ -399,9 +400,9 @@ def _read_file_for_generator(
         target_norm_type_string.upper()
     ))
     example_dict = normalization.normalize_data(
-        example_dict=example_dict,
+        new_example_dict=example_dict,
+        training_example_dict=training_example_dict,
         normalization_type_string=target_norm_type_string,
-        normalization_file_name=normalization_file_name,
         min_normalized_value=target_min_norm_value,
         max_normalized_value=target_max_norm_value,
         separate_heights=True,
@@ -903,9 +904,8 @@ def cnn_generator(option_dict, for_inference):
         before this time).
     option_dict['last_time_unix_sec']: End time (will not generate examples after
         this time).
-    option_dict['normalization_file_name']: File with normalization parameters
-        for both predictors and targets (will be read by
-        `normalization_params.read_file`).
+    option_dict['normalization_file_name']: File with training examples to use
+        for normalization (will be read by `example_io.read_file`).
     option_dict['predictor_norm_type_string']: Normalization type for predictors
         (must be accepted by `normalization._check_normalization_type`).
     option_dict['predictor_min_norm_value']: Minimum normalized value for
@@ -956,6 +956,14 @@ def cnn_generator(option_dict, for_inference):
     target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
     target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
 
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+
+    training_example_dict = example_io.read_file(normalization_file_name)
+
     example_file_names = example_io.find_many_files(
         example_dir_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
@@ -996,7 +1004,7 @@ def cnn_generator(option_dict, for_inference):
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
-                normalization_file_name=normalization_file_name,
+                training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,
@@ -1094,6 +1102,14 @@ def dense_net_generator(option_dict, for_inference):
     target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
     target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
 
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+
+    training_example_dict = example_io.read_file(normalization_file_name)
+
     example_file_names = example_io.find_many_files(
         example_dir_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
@@ -1133,7 +1149,7 @@ def dense_net_generator(option_dict, for_inference):
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
-                normalization_file_name=normalization_file_name,
+                training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,

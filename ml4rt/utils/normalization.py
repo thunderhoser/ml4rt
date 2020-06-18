@@ -4,17 +4,11 @@ import numpy
 import scipy.stats
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
-from ml4rt.utils import normalization_params
 
 DUMMY_HEIGHT_M_AGL = 10
 
 MIN_CUMULATIVE_DENSITY = 1e-6
 MAX_CUMULATIVE_DENSITY = 1. - 1e-6
-
-MEAN_VALUE_COLUMN = normalization_params.MEAN_VALUE_COLUMN
-STANDARD_DEVIATION_COLUMN = normalization_params.STANDARD_DEVIATION_COLUMN
-MIN_VALUE_COLUMN = normalization_params.MIN_VALUE_COLUMN
-MAX_VALUE_COLUMN = normalization_params.MAX_VALUE_COLUMN
 
 MINMAX_NORM_STRING = 'minmax'
 Z_SCORE_NORM_STRING = 'z_score'

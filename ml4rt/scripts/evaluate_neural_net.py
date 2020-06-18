@@ -66,10 +66,19 @@ def _run(prediction_file_name, evaluation_file_name):
         example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
-    mean_training_example_dict = normalization.create_mean_example(
-        example_dict=example_dict,
-        normalization_file_name=
+    normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+
+    mean_training_example_dict = normalization.create_mean_example(
+        new_example_dict=example_dict,
+        training_example_dict=training_example_dict
     )
 
     evaluation_dict = evaluation.get_scores_all_variables(
