@@ -102,6 +102,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     scalar_prediction_matrix = None
     vector_target_matrix = None
     vector_prediction_matrix = None
+    example_id_strings = []
 
     is_cnn = metadata_dict[neural_net.IS_CNN_KEY]
 
@@ -122,11 +123,17 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
         try:
             if is_cnn:
-                this_predictor_matrix, this_target_array = next(generator)
+                this_predictor_matrix, this_target_array, these_id_strings = (
+                    next(generator)
+                )
             else:
-                this_predictor_matrix, this_target_array = next(generator)
+                this_predictor_matrix, this_target_array, these_id_strings = (
+                    next(generator)
+                )
         except StopIteration:
             break
+
+        example_id_strings += these_id_strings
 
         if is_cnn:
             this_vector_target_matrix = this_target_array[0]
@@ -237,7 +244,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         prediction_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
         vector_prediction_matrix=
         prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
-        model_file_name=model_file_name
+        example_id_strings=example_id_strings, model_file_name=model_file_name
     )
 
 

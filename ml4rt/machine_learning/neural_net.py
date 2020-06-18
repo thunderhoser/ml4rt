@@ -142,12 +142,14 @@ EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
 VECTOR_TARGET_DIMENSION_KEY = 'vector_target'
 SCALAR_TARGET_DIMENSION_KEY = 'scalar_target'
+EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 
 MODEL_FILE_KEY = 'model_file_name'
 SCALAR_TARGETS_KEY = 'scalar_target_matrix'
 SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGETS_KEY = 'vector_target_matrix'
 VECTOR_PREDICTIONS_KEY = 'vector_prediction_matrix'
+EXAMPLE_IDS_KEY = 'example_id_strings'
 
 
 def _check_architecture_args(option_dict, is_cnn):
@@ -331,17 +333,20 @@ def _write_metadata(
 
 
 def _read_file_for_generator(
-        example_file_name, num_examples_to_keep, first_time_unix_sec,
-        last_time_unix_sec, field_names, heights_m_agl, training_example_dict,
-        predictor_norm_type_string, predictor_min_norm_value,
-        predictor_max_norm_value, target_norm_type_string,
-        target_min_norm_value, target_max_norm_value,
+        example_file_name, num_examples_to_keep, for_inference,
+        first_time_unix_sec, last_time_unix_sec, field_names, heights_m_agl,
+        training_example_dict, predictor_norm_type_string,
+        predictor_min_norm_value, predictor_max_norm_value,
+        target_norm_type_string, target_min_norm_value, target_max_norm_value,
         first_example_to_keep=None):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
         `example_io.read_file`).
     :param num_examples_to_keep: Number of examples to keep.
+    :param for_inference: Boolean flag.  If True, data are being used for
+        inference stage (applying trained model to new data).  If False, data
+        are being used for training or monitoring (on-the-fly validation).
     :param first_time_unix_sec: See doc for `cnn_generator` or
         `dense_net_generator`.
     :param last_time_unix_sec: Same.
@@ -362,10 +367,18 @@ def _read_file_for_generator(
         i = `first_example_to_keep` and N = `num_examples_to_keep`.  If None,
         this method will return N random examples.
     :return: example_dict: See doc for `example_io.read_file`.
+    :return: example_id_strings: 1-D list of IDs created by
+        `example_io.create_example_ids`.  If `for_inference == False`, this is
+        None.
     """
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
+
+    if for_inference:
+        example_id_strings = example_io.create_example_ids(example_dict)
+    else:
+        example_id_strings = None
 
     example_dict = example_io.reduce_sample_size(
         example_dict=example_dict, num_examples_to_keep=num_examples_to_keep,
@@ -409,7 +422,7 @@ def _read_file_for_generator(
         apply_to_predictors=False, apply_to_targets=True
     )
 
-    return example_dict
+    return example_dict, example_id_strings
 
 
 def predictors_dict_to_numpy(example_dict, for_cnn):
@@ -922,12 +935,18 @@ def cnn_generator(option_dict, for_inference):
         generator is being used for training or monitoring (on-the-fly
         validation).
 
+    If `for_inference == False`, this method does not return
+    `example_id_strings`.
+
     :return: predictor_matrix: E-by-H-by-P numpy array of predictor values.
     :return: target_list: List with 2 items.
     target_list[0] = vector_target_matrix: numpy array (E x H x T_v) of target
         values.
     target_list[1] = scalar_target_matrix: numpy array (E x T_s) of target
         values.
+
+    :return: example_id_strings: length-E list of example IDs created by
+        `example_io.create_example_ids`.
     """
 
     option_dict = _check_generator_args(option_dict)
@@ -986,6 +1005,7 @@ def cnn_generator(option_dict, for_inference):
         predictor_matrix = None
         vector_target_matrix = None
         scalar_target_matrix = None
+        example_id_strings = []
 
         while num_examples_in_memory < num_examples_per_batch:
             if file_index == len(example_file_names):
@@ -997,10 +1017,11 @@ def cnn_generator(option_dict, for_inference):
 
                 file_index = 0
 
-            this_example_dict = _read_file_for_generator(
+            this_example_dict, these_id_strings = _read_file_for_generator(
                 example_file_name=example_file_names[file_index],
                 num_examples_to_keep=
                 num_examples_per_batch - num_examples_in_memory,
+                for_inference=for_inference,
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
@@ -1024,6 +1045,8 @@ def cnn_generator(option_dict, for_inference):
                     example_index = 0
                 else:
                     example_index += this_num_examples
+
+                example_id_strings += these_id_strings
             else:
                 file_index += 1
 
@@ -1057,7 +1080,17 @@ def cnn_generator(option_dict, for_inference):
         vector_target_matrix = vector_target_matrix.astype('float32')
         scalar_target_matrix = scalar_target_matrix.astype('float32')
 
-        yield (predictor_matrix, [vector_target_matrix, scalar_target_matrix])
+        if for_inference:
+            yield (
+                predictor_matrix,
+                [vector_target_matrix, scalar_target_matrix],
+                example_id_strings
+            )
+        else:
+            yield (
+                predictor_matrix,
+                [vector_target_matrix, scalar_target_matrix]
+            )
 
 
 def dense_net_generator(option_dict, for_inference):
@@ -1072,8 +1105,14 @@ def dense_net_generator(option_dict, for_inference):
         inference stage (applying trained model to new data).  If False,
         generator is being used for training or monitoring (on-the-fly
         validation).
+
+    If `for_inference == False`, this method does not return
+    `example_id_strings`.
+
     :return: predictor_matrix: E-by-P numpy array of predictor values.
     :return: target_matrix: E-by-T numpy array of target values.
+    :return: example_id_strings: length-E list of example IDs created by
+        `example_io.create_example_ids`.
     """
 
     option_dict = _check_generator_args(option_dict)
@@ -1131,6 +1170,7 @@ def dense_net_generator(option_dict, for_inference):
         num_examples_in_memory = 0
         predictor_matrix = None
         target_matrix = None
+        example_id_strings = []
 
         while num_examples_in_memory < num_examples_per_batch:
             if file_index == len(example_file_names):
@@ -1142,10 +1182,11 @@ def dense_net_generator(option_dict, for_inference):
 
                 file_index = 0
 
-            this_example_dict = _read_file_for_generator(
+            this_example_dict, these_id_strings = _read_file_for_generator(
                 example_file_name=example_file_names[file_index],
                 num_examples_to_keep=
                 num_examples_per_batch - num_examples_in_memory,
+                for_inference=for_inference,
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
@@ -1169,6 +1210,8 @@ def dense_net_generator(option_dict, for_inference):
                     example_index = 0
                 else:
                     example_index += this_num_examples
+
+                example_id_strings += these_id_strings
             else:
                 file_index += 1
 
@@ -1192,10 +1235,17 @@ def dense_net_generator(option_dict, for_inference):
 
             num_examples_in_memory = predictor_matrix.shape[0]
 
-        yield (
-            predictor_matrix.astype('float32'),
-            target_matrix.astype('float32')
-        )
+        if for_inference:
+            yield (
+                predictor_matrix.astype('float32'),
+                target_matrix.astype('float32'),
+                example_id_strings
+            )
+        else:
+            yield (
+                predictor_matrix.astype('float32'),
+                target_matrix.astype('float32')
+            )
 
 
 def train_neural_net(
@@ -1509,7 +1559,8 @@ def read_metadata(pickle_file_name):
 
 def write_predictions(
         netcdf_file_name, scalar_target_matrix, vector_target_matrix,
-        scalar_prediction_matrix, vector_prediction_matrix, model_file_name):
+        scalar_prediction_matrix, vector_prediction_matrix, example_id_strings,
+        model_file_name):
     """Writes predictions to NetCDF file.
 
     E = number of examples
@@ -1526,6 +1577,8 @@ def write_predictions(
         predicted values.
     :param vector_prediction_matrix: Same as `vector_target_matrix` but with
         predicted values.
+    :param example_id_strings: length-E list of IDs created by
+        `example_io.create_example_ids`.
     :param model_file_name: Path to file with trained model (readable by
         `neural_net.read_model`).
     """
@@ -1557,6 +1610,12 @@ def write_predictions(
         exact_dimensions=numpy.array(vector_target_matrix.shape, dtype=int)
     )
 
+    error_checking.assert_is_numpy_array(
+        example_id_strings,
+        exact_dimensions=numpy.array([num_examples], dtype=int)
+    )
+    example_io.parse_example_ids(example_id_strings)
+
     error_checking.assert_is_string(model_file_name)
 
     # Write to NetCDF file.
@@ -1578,6 +1637,25 @@ def write_predictions(
     )
     dataset_object.createDimension(
         SCALAR_TARGET_DIMENSION_KEY, scalar_target_matrix.shape[1]
+    )
+
+    num_id_characters = numpy.max(numpy.array([
+        len(id) for id in example_id_strings
+    ]))
+
+    dataset_object.createDimension(EXAMPLE_ID_CHAR_DIM_KEY, num_id_characters)
+
+    this_string_format = 'S{0:d}'.format(num_id_characters)
+    example_ids_char_array = netCDF4.stringtochar(numpy.array(
+        example_id_strings, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        EXAMPLE_IDS_KEY, datatype='S1',
+        dimensions=(EXAMPLE_DIMENSION_KEY, EXAMPLE_ID_CHAR_DIM_KEY)
+    )
+    dataset_object.variables[EXAMPLE_IDS_KEY][:] = numpy.array(
+        example_ids_char_array
     )
 
     dataset_object.createVariable(
@@ -1623,6 +1701,7 @@ def read_predictions(netcdf_file_name):
     prediction_dict['scalar_prediction_matrix']: Same.
     prediction_dict['vector_target_matrix']: Same.
     prediction_dict['vector_prediction_matrix']: Same.
+    prediction_dict['example_id_strings']: Same.
     prediction_dict['model_file_name']: Same.
     """
 
@@ -1635,6 +1714,10 @@ def read_predictions(netcdf_file_name):
         VECTOR_TARGETS_KEY: dataset_object.variables[VECTOR_TARGETS_KEY][:],
         VECTOR_PREDICTIONS_KEY:
             dataset_object.variables[VECTOR_PREDICTIONS_KEY][:],
+        EXAMPLE_IDS_KEY: [
+            str(id) for id in
+            netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
+        ],
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
 

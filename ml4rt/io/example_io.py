@@ -485,6 +485,79 @@ def concat_examples(example_dicts):
     return example_dict
 
 
+def create_example_ids(example_dict):
+    """Creates example IDs (unique identifiers).
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: example_id_strings: 1-D list of example IDs.
+    """
+
+    latitudes_deg_n = get_field_from_dict(
+        example_dict=example_dict, field_name=LATITUDE_NAME
+    )
+    longitudes_deg_e = get_field_from_dict(
+        example_dict=example_dict, field_name=LONGITUDE_NAME
+    )
+    valid_times_unix_sec = example_dict[VALID_TIMES_KEY]
+    standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
+
+    return [
+        'lat={0:09.6f}_long={1:010.6f}_time={2:010d}_atmo={3:1d}'.format(
+            lat, long, t, f
+        )
+        for lat, long, t, f in
+        zip(
+            latitudes_deg_n, longitudes_deg_e, valid_times_unix_sec,
+            standard_atmo_flags
+        )
+    ]
+
+
+def parse_example_ids(example_id_strings):
+    """Parses example IDs.
+
+    E = number of examples
+
+    :param example_id_strings: length-E list of example IDs.
+    :return: latitudes_deg_n: length-E numpy array of latitudes (deg N).
+    :return: longitudes_deg_e: length-E numpy array of longitudes (deg E).
+    :return: valid_times_unix_sec: length-E numpy array of valid times.
+    :return: standard_atmo_flags: length-E numpy array of standard-atmosphere
+        flags (integers).
+    """
+
+    error_checking.assert_is_numpy_array(
+        numpy.array(example_id_strings), num_dimensions=1
+    )
+
+    num_examples = len(example_id_strings)
+    latitudes_deg_n = numpy.full(num_examples, numpy.nan)
+    longitudes_deg_e = numpy.full(num_examples, numpy.nan)
+    valid_times_unix_sec = numpy.full(num_examples, -1, dtype=int)
+    standard_atmo_flags = numpy.full(num_examples, -1, dtype=int)
+
+    for i in range(num_examples):
+        these_words = example_id_strings[i].split('_')
+
+        assert these_words[0].startswith('lat=')
+        latitudes_deg_n[i] = float(these_words[0].replace('lat=', ''))
+
+        assert these_words[1].startswith('long=')
+        longitudes_deg_e[i] = float(these_words[1].replace('long=', ''))
+
+        assert these_words[2].startswith('time=')
+        valid_times_unix_sec[i] = int(these_words[2].replace('time=', ''))
+
+        assert these_words[3].startswith('atmo=')
+        standard_atmo_flags[i] = int(these_words[3].replace('atmo=', ''))
+
+    return (
+        latitudes_deg_n, longitudes_deg_e, valid_times_unix_sec,
+        standard_atmo_flags
+    )
+
+
 def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     """Returns field from dictionary of examples.
 

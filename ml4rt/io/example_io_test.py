@@ -310,6 +310,46 @@ FIRST_EXAMPLE_DICT_AVERAGE = {
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL
 }
 
+# The following constants are used to test create_example_ids and
+# parse_example_ids.
+LATITUDES_FOR_IDS_DEG_N = numpy.array([40, 40.04, 53.5, 40.0381113])
+LONGITUDES_FOR_IDS_DEG_N = numpy.array([255, 254.74, 246.5, 254.7440276])
+TIMES_FOR_IDS_UNIX_SEC = numpy.array([
+    0, int(1e7), int(1e8), int(1e9)
+], dtype=int)
+
+STANDARD_ATMO_FLAGS_FOR_IDS = numpy.array([
+    example_io.MIDLATITUDE_WINTER_ENUM, example_io.MIDLATITUDE_WINTER_ENUM,
+    example_io.SUBARCTIC_WINTER_ENUM, example_io.MIDLATITUDE_WINTER_ENUM
+], dtype=int)
+
+THIS_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack((
+    LATITUDES_FOR_IDS_DEG_N, LONGITUDES_FOR_IDS_DEG_N
+)))
+
+EXAMPLE_DICT_FOR_IDS = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        [example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME],
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
+    example_io.VALID_TIMES_KEY: TIMES_FOR_IDS_UNIX_SEC,
+    example_io.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS_FOR_IDS
+}
+
+EXAMPLE_ID_STRINGS = [
+    'lat=40.000000_long=255.000000_time=0000000000_atmo={0:d}'.format(
+        example_io.MIDLATITUDE_WINTER_ENUM
+    ),
+    'lat=40.040000_long=254.740000_time=0010000000_atmo={0:d}'.format(
+        example_io.MIDLATITUDE_WINTER_ENUM
+    ),
+    'lat=53.500000_long=246.500000_time=0100000000_atmo={0:d}'.format(
+        example_io.SUBARCTIC_WINTER_ENUM
+    ),
+    'lat=40.038111_long=254.744028_time=1000000000_atmo={0:d}'.format(
+        example_io.MIDLATITUDE_WINTER_ENUM
+    )
+]
+
 
 def _compare_example_dicts(first_example_dict, second_example_dict):
     """Compares two dictionaries with learning examples.
@@ -633,6 +673,33 @@ class ExampleIoTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_AVERAGE
+        ))
+
+    def test_create_example_ids(self):
+        """Ensures correct output from create_example_ids."""
+
+        these_id_strings = example_io.create_example_ids(EXAMPLE_DICT_FOR_IDS)
+        self.assertTrue(these_id_strings == EXAMPLE_ID_STRINGS)
+
+    def test_parse_example_ids(self):
+        """Ensures correct output from parse_example_ids."""
+
+        (
+            these_latitudes_deg_n, these_longitudes_deg_e,
+            these_times_unix_sec, these_standard_atmo_flags
+        ) = example_io.parse_example_ids(EXAMPLE_ID_STRINGS)
+
+        self.assertTrue(numpy.allclose(
+            these_latitudes_deg_n, LATITUDES_FOR_IDS_DEG_N, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            these_longitudes_deg_e, LONGITUDES_FOR_IDS_DEG_N, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_times_unix_sec, TIMES_FOR_IDS_UNIX_SEC
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_standard_atmo_flags, STANDARD_ATMO_FLAGS_FOR_IDS
         ))
 
 
