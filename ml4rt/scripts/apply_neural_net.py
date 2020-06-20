@@ -133,6 +133,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         except StopIteration:
             break
 
+        print(this_predictor_matrix.shape)
+        print(len(these_id_strings))
+
         example_id_strings += these_id_strings
 
         if is_cnn:
