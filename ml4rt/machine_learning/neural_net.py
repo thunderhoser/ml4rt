@@ -375,11 +375,6 @@ def _read_file_for_generator(
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
 
-    if for_inference:
-        example_id_strings = example_io.create_example_ids(example_dict)
-    else:
-        example_id_strings = None
-
     example_dict = example_io.reduce_sample_size(
         example_dict=example_dict, num_examples_to_keep=num_examples_to_keep,
         first_example_to_keep=first_example_to_keep
@@ -421,6 +416,11 @@ def _read_file_for_generator(
         separate_heights=True,
         apply_to_predictors=False, apply_to_targets=True
     )
+
+    if for_inference:
+        example_id_strings = example_io.create_example_ids(example_dict)
+    else:
+        example_id_strings = None
 
     return example_dict, example_id_strings
 

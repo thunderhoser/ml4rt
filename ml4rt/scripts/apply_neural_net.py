@@ -3,6 +3,7 @@
 import copy
 import os.path
 import argparse
+import numpy
 from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 from ml4rt.utils import normalization
@@ -133,9 +134,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         except StopIteration:
             break
 
-        print(this_predictor_matrix.shape)
-        print(len(these_id_strings))
-
         example_id_strings += these_id_strings
 
         if is_cnn:
@@ -167,6 +165,23 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             if is_cnn:
                 vector_target_matrix = this_vector_target_matrix + 0.
                 vector_prediction_matrix = this_vector_prediction_matrix + 0.
+        else:
+            scalar_target_matrix = numpy.concatenate(
+                (scalar_target_matrix, this_scalar_target_matrix), axis=0
+            )
+            scalar_prediction_matrix = numpy.concatenate(
+                (scalar_prediction_matrix, this_scalar_prediction_matrix),
+                axis=0
+            )
+
+            if is_cnn:
+                vector_target_matrix = numpy.concatenate(
+                    (vector_target_matrix, this_vector_target_matrix), axis=0
+                )
+                vector_prediction_matrix = numpy.concatenate(
+                    (vector_prediction_matrix, this_vector_prediction_matrix),
+                    axis=0
+                )
 
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
