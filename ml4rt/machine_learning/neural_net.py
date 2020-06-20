@@ -1611,7 +1611,7 @@ def write_predictions(
     )
 
     error_checking.assert_is_numpy_array(
-        example_id_strings,
+        numpy.array(example_id_strings),
         exact_dimensions=numpy.array([num_examples], dtype=int)
     )
     example_io.parse_example_ids(example_id_strings)
