@@ -191,6 +191,9 @@ def _denorm_one_variable(
             (normalized_values_new - min_normalized_value) /
             (max_normalized_value - min_normalized_value)
         )
+        normalized_values_new = numpy.maximum(normalized_values_new, 0.)
+        normalized_values_new = numpy.minimum(normalized_values_new, 1.)
+
         denorm_values = _uniform_to_orig_dist(
             uniform_values_new=normalized_values_new,
             orig_values_training=orig_values_training
