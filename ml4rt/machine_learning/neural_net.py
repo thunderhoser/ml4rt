@@ -84,6 +84,8 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+NET_FLUX_WEIGHT_KEY = 'net_flux_loss_weight'
+LOSS_FUNCTION_KEY = 'loss_function'
 
 DEFAULT_CNN_ARCH_OPTION_DICT = {
     CONV_LAYER_CHANNEL_NUMS_KEY: DEFAULT_CONV_LAYER_CHANNEL_NUMS,
@@ -97,7 +99,8 @@ DEFAULT_CNN_ARCH_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
     L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
     L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    NET_FLUX_WEIGHT_KEY: 1.
 }
 
 DEFAULT_DNN_ARCH_OPTION_DICT = {
@@ -109,7 +112,9 @@ DEFAULT_DNN_ARCH_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
     L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
     L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    NET_FLUX_WEIGHT_KEY: 1.,
+    LOSS_FUNCTION_KEY: keras.losses.mse
 }
 
 METRIC_FUNCTION_LIST = [
@@ -235,6 +240,15 @@ def _check_architecture_args(option_dict, is_cnn):
 
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     error_checking.assert_is_boolean(use_batch_normalization)
+
+    if is_cnn:
+        net_flux_loss_weight = option_dict[NET_FLUX_WEIGHT_KEY]
+        if net_flux_loss_weight <= 0:
+            net_flux_loss_weight = None
+        if net_flux_loss_weight is not None:
+            error_checking.assert_is_not_nan(net_flux_loss_weight)
+
+        option_dict[NET_FLUX_WEIGHT_KEY] = net_flux_loss_weight
 
     return option_dict
 
@@ -685,6 +699,10 @@ def make_cnn(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
+    option_dict['net_flux_loss_weight']: Weight for mean squared error (MSE)
+        between predicted and actual net fluxes (downwelling surface flux minus
+        upwelling TOA flux).  The weight for all other MSEs is 1.0.  If you do
+        not want an extra term for net flux, make this negative or None.
 
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
@@ -707,6 +725,7 @@ def make_cnn(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    net_flux_loss_weight = option_dict[NET_FLUX_WEIGHT_KEY]
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -802,17 +821,24 @@ def make_cnn(option_dict):
         outputs=[conv_output_layer_object, dense_output_layer_object]
     )
 
-    loss_dict = {
-        'conv_output': keras.losses.mse,
-        'dense_output': custom_losses.constrained_mse_for_cnn(
-            toa_up_flux_index=0, surface_down_flux_index=1, net_flux_weight=1.
+    if net_flux_loss_weight is None:
+        model_object.compile(
+            loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+            metrics=METRIC_FUNCTION_LIST
         )
-    }
+    else:
+        loss_dict = {
+            'conv_output': keras.losses.mse,
+            'dense_output': custom_losses.constrained_mse_for_cnn(
+                toa_up_flux_index=0, surface_down_flux_index=1,
+                net_flux_weight=net_flux_loss_weight
+            )
+        }
 
-    model_object.compile(
-        loss=loss_dict, optimizer=keras.optimizers.Adam(),
-        metrics=METRIC_FUNCTION_LIST
-    )
+        model_object.compile(
+            loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            metrics=METRIC_FUNCTION_LIST
+        )
 
     model_object.summary()
     return model_object
@@ -832,6 +858,7 @@ def make_dense_net(option_dict):
     option_dict['l1_weight']: Same.
     option_dict['l2_weight']: Same.
     option_dict['use_batch_normalization']: Same.
+    option_dict['loss_function']: Loss function.
 
     :return: model_object: See doc for `make_cnn`.
     """
@@ -850,6 +877,7 @@ def make_dense_net(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    loss_function = option_dict[LOSS_FUNCTION_KEY]
 
     input_layer_object = keras.layers.Input(shape=(num_inputs,))
     regularizer_object = architecture_utils.get_weight_regularizer(
@@ -898,7 +926,7 @@ def make_dense_net(option_dict):
     )
 
     model_object.compile(
-        loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+        loss=loss_function, optimizer=keras.optimizers.Adam(),
         metrics=METRIC_FUNCTION_LIST
     )
 
