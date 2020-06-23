@@ -795,6 +795,8 @@ def make_cnn(option_dict):
                 )
             )
 
+    print(dir(conv_output_layer_object))
+
     conv_output_layer_object._name = 'conv_output'
     dense_output_layer_object._name = 'dense_output'
 
