@@ -84,7 +84,6 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
-NET_FLUX_WEIGHT_KEY = 'net_flux_loss_weight'
 LOSS_FUNCTION_KEY = 'loss_function'
 
 DEFAULT_CNN_ARCH_OPTION_DICT = {
@@ -99,8 +98,7 @@ DEFAULT_CNN_ARCH_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
     L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
     L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
-    USE_BATCH_NORM_KEY: True,
-    NET_FLUX_WEIGHT_KEY: 1.
+    USE_BATCH_NORM_KEY: True
 }
 
 DEFAULT_DNN_ARCH_OPTION_DICT = {
@@ -113,7 +111,6 @@ DEFAULT_DNN_ARCH_OPTION_DICT = {
     L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
     L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
     USE_BATCH_NORM_KEY: True,
-    NET_FLUX_WEIGHT_KEY: 1.,
     LOSS_FUNCTION_KEY: keras.losses.mse
 }
 
@@ -156,6 +153,14 @@ SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGETS_KEY = 'vector_target_matrix'
 VECTOR_PREDICTIONS_KEY = 'vector_prediction_matrix'
 EXAMPLE_IDS_KEY = 'example_id_strings'
+
+TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
+TOA_UP_FLUX_WEIGHT_KEY = 'toa_up_flux_weight'
+SURFACE_DOWN_FLUX_INDEX_KEY = 'surface_down_flux_index'
+SURFACE_DOWN_FLUX_WEIGHT_KEY = 'surface_down_flux_weight'
+UP_FLUX_CHANNEL_INDEX_KEY = 'up_flux_channel_index'
+DOWN_FLUX_CHANNEL_INDEX_KEY = 'down_flux_channel_index'
+NET_FLUX_WEIGHT_KEY = 'net_flux_weight'
 
 
 def _check_architecture_args(option_dict, is_cnn):
@@ -240,15 +245,6 @@ def _check_architecture_args(option_dict, is_cnn):
 
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     error_checking.assert_is_boolean(use_batch_normalization)
-
-    if is_cnn:
-        net_flux_loss_weight = option_dict[NET_FLUX_WEIGHT_KEY]
-        if net_flux_loss_weight <= 0:
-            net_flux_loss_weight = None
-        if net_flux_loss_weight is not None:
-            error_checking.assert_is_not_nan(net_flux_loss_weight)
-
-        option_dict[NET_FLUX_WEIGHT_KEY] = net_flux_loss_weight
 
     return option_dict
 
@@ -552,25 +548,53 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, for_cnn):
     }
 
 
-def targets_dict_to_numpy(example_dict, for_cnn):
+def targets_dict_to_numpy(example_dict, for_cnn, custom_loss_for_cnn=False):
     """Converts targets from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param for_cnn: Boolean flag.  If True, will return format required by CNN.
         If False, will return format required by dense neural net.
+    :param custom_loss_for_cnn: Boolean flag.  If True, using custom loss for
+        CNN.
     :return: target_matrices: If `for_cnn == True`, same as output from
         `cnn_generator`.  If `for_cnn == False`, same as output from
         `dense_net_generator` but in a one-element list.
     """
 
     error_checking.assert_is_boolean(for_cnn)
+    if not for_cnn:
+        custom_loss_for_cnn = False
+    error_checking.assert_is_boolean(custom_loss_for_cnn)
 
     if for_cnn:
-        return [
-            example_dict[example_io.VECTOR_TARGET_VALS_KEY],
-            example_dict[example_io.SCALAR_TARGET_VALS_KEY]
-        ]
+        if not custom_loss_for_cnn:
+            return [
+                example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+                example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+            ]
+
+        up_flux_channel_index = (
+            example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
+                example_io.SHORTWAVE_UP_FLUX_NAME
+            )
+        )
+        down_flux_channel_index = (
+            example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
+                example_io.SHORTWAVE_DOWN_FLUX_NAME
+            )
+        )
+
+        vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+
+        scalar_target_matrix = numpy.concatenate((
+            vector_target_matrix[:, -1, up_flux_channel_index],
+            vector_target_matrix[:, 0, down_flux_channel_index],
+            scalar_target_matrix
+        ), axis=0)
+
+        return [vector_target_matrix, scalar_target_matrix]
 
     vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
     num_examples = vector_target_matrix.shape[0]
@@ -656,7 +680,7 @@ def targets_numpy_to_dict(target_matrices, example_dict, for_cnn):
     }
 
 
-def make_cnn(option_dict):
+def make_cnn(option_dict, custom_loss_dict=None):
     """Makes CNN (convolutional neural net).
 
     This method only sets up the architecture, loss function, and optimizer,
@@ -704,12 +728,51 @@ def make_cnn(option_dict):
         upwelling TOA flux).  The weight for all other MSEs is 1.0.  If you do
         not want an extra term for net flux, make this negative or None.
 
+    :param custom_loss_dict: Dictionary with the following keys (if None, will
+        not use custom loss function).
+    custom_loss_dict['toa_up_flux_index']: Variable index (in scalar output
+        matrix) for top-of-atmosphere upwelling flux.
+    custom_loss_dict['toa_up_flux_weight']: Weight for top-of-atmosphere
+        upwelling flux.
+    custom_loss_dict['surface_down_flux_index']: Variable index (in scalar
+        output matrix) for surface downwelling flux.
+    custom_loss_dict['surface_down_flux_weight']: Weight for surface downwelling
+        flux.
+    custom_loss_dict['up_flux_channel_index']: Channel index (in vector target
+        matrix) for upwelling flux.
+    custom_loss_dict['down_flux_channel_index']: Channel index (in vector target
+        matrix) for downwelling flux.
+    custom_loss_dict['net_flux_weight']: Weight for net flux (surface minus
+        top-of-atmosphere).
+
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
     # TODO(thunderhoser): Allow for no dense layers.
 
     option_dict = _check_architecture_args(option_dict=option_dict, is_cnn=True)
+
+    use_custom_loss = custom_loss_dict is not None
+
+    if use_custom_loss:
+        toa_up_flux_index = custom_loss_dict[TOA_UP_FLUX_INDEX_KEY]
+        toa_up_flux_weight = custom_loss_dict[TOA_UP_FLUX_WEIGHT_KEY]
+        surface_down_flux_index = custom_loss_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
+        surface_down_flux_weight = (
+            custom_loss_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY]
+        )
+        up_flux_channel_index = custom_loss_dict[UP_FLUX_CHANNEL_INDEX_KEY]
+        down_flux_channel_index = custom_loss_dict[DOWN_FLUX_CHANNEL_INDEX_KEY]
+        net_flux_weight = custom_loss_dict[NET_FLUX_WEIGHT_KEY]
+
+        error_checking.assert_is_integer(toa_up_flux_index)
+        error_checking.assert_is_geq(toa_up_flux_index, 0)
+        error_checking.assert_is_integer(surface_down_flux_index)
+        error_checking.assert_is_geq(surface_down_flux_index, 0)
+        error_checking.assert_is_integer(up_flux_channel_index)
+        error_checking.assert_is_geq(up_flux_channel_index, 0)
+        error_checking.assert_is_integer(down_flux_channel_index)
+        error_checking.assert_is_geq(down_flux_channel_index, 0)
 
     num_heights = option_dict[NUM_HEIGHTS_KEY]
     num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
@@ -725,7 +788,6 @@ def make_cnn(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-    net_flux_loss_weight = option_dict[NET_FLUX_WEIGHT_KEY]
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -795,7 +857,7 @@ def make_cnn(option_dict):
                 activation_function_string=output_activ_function_name,
                 alpha_for_relu=output_activ_function_alpha,
                 alpha_for_elu=output_activ_function_alpha,
-                layer_name='dense_output'
+                layer_name=None if use_custom_loss else 'dense_output'
             )(dense_output_layer_object)
         else:
             dense_output_layer_object = architecture_utils.get_activation_layer(
@@ -816,34 +878,55 @@ def make_cnn(option_dict):
                 )
             )
 
-    foo = keras.layers.Lambda(lambda x: x[:, -1, :1])(conv_output_layer_object)
-    bar = keras.layers.Lambda(lambda x: x[:, 0, 1:2])(conv_output_layer_object)
+    if use_custom_loss:
+        k = up_flux_channel_index + 0
 
-    dense_output_layer_object = keras.layers.Concatenate(axis=-1)([foo, bar, dense_output_layer_object])
+        highest_up_flux_layer_object = keras.layers.Lambda(
+            lambda x: x[:, -1, k:(k + 1)]
+        )(conv_output_layer_object)
 
-    # dense_output_layer_object = concat_layer_object(dense_output_layer_object)
+        k = down_flux_channel_index + 0
+
+        lowest_down_flux_layer_object = keras.layers.Lambda(
+            lambda x: x[:, -0, k:(k + 1)]
+        )(conv_output_layer_object)
+
+        this_list = [
+            highest_up_flux_layer_object, lowest_down_flux_layer_object,
+            dense_output_layer_object
+        ]
+
+        dense_output_layer_object = keras.layers.Concatenate(
+            axis=-1, name='dense_output'
+        )(this_list)
 
     model_object = keras.models.Model(
         inputs=input_layer_object,
         outputs=[conv_output_layer_object, dense_output_layer_object]
     )
 
-    if net_flux_loss_weight is None:
-        model_object.compile(
-            loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
-            metrics=METRIC_FUNCTION_LIST
+    if use_custom_loss:
+        dense_loss_function = custom_losses.constrained_mse(
+            toa_up_flux_index=toa_up_flux_index + 2,
+            toa_up_flux_weight=toa_up_flux_weight,
+            surface_down_flux_index=surface_down_flux_index + 2,
+            surface_down_flux_weight=surface_down_flux_weight,
+            highest_up_flux_index=0, lowest_down_flux_index=1,
+            net_flux_weight=net_flux_weight, for_cnn=True
         )
-    else:
+
         loss_dict = {
             'conv_output': keras.losses.mse,
-            'dense_output': custom_losses.constrained_mse_for_cnn(
-                toa_up_flux_index=0, surface_down_flux_index=1,
-                net_flux_weight=net_flux_loss_weight
-            )
+            'dense_output': dense_loss_function
         }
 
         model_object.compile(
             loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            metrics=METRIC_FUNCTION_LIST
+        )
+    else:
+        model_object.compile(
+            loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
             metrics=METRIC_FUNCTION_LIST
         )
 
@@ -941,7 +1024,7 @@ def make_dense_net(option_dict):
     return model_object
 
 
-def cnn_generator(option_dict, for_inference):
+def cnn_generator(option_dict, for_inference, use_custom_loss):
     """Generates examples for CNN.
 
     E = number of examples per batch (batch size)
@@ -979,6 +1062,7 @@ def cnn_generator(option_dict, for_inference):
         inference stage (applying trained model to new data).  If False,
         generator is being used for training or monitoring (on-the-fly
         validation).
+    :param use_custom_loss: Boolean flag.  If True, using custom loss function.
 
     If `for_inference == False`, this method does not return
     `example_id_strings`.
@@ -996,6 +1080,7 @@ def cnn_generator(option_dict, for_inference):
 
     option_dict = _check_generator_args(option_dict)
     error_checking.assert_is_boolean(for_inference)
+    error_checking.assert_is_boolean(use_custom_loss)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -1099,7 +1184,8 @@ def cnn_generator(option_dict, for_inference):
                 example_dict=this_example_dict, for_cnn=True
             )
             this_list = targets_dict_to_numpy(
-                example_dict=this_example_dict, for_cnn=True
+                example_dict=this_example_dict, for_cnn=True,
+                custom_loss_for_cnn=use_custom_loss
             )
             this_vector_target_matrix = this_list[0]
             this_scalar_target_matrix = this_list[1]
@@ -1296,7 +1382,8 @@ def dense_net_generator(option_dict, for_inference):
 def train_neural_net(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
-        num_validation_batches_per_epoch, validation_option_dict, is_cnn):
+        num_validation_batches_per_epoch, validation_option_dict, is_cnn,
+        custom_loss_for_cnn=False):
     """Trains neural net (either CNN or dense net).
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1320,6 +1407,8 @@ def train_neural_net(
 
     :param is_cnn: Boolean flag.  If True, will assume that `model_object` is a
         CNN.  If False, will assume that it is a dense net.
+    :param custom_loss_for_cnn: Boolean flag.  If True, using custom loss for
+        CNN.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1385,10 +1474,12 @@ def train_neural_net(
 
     if is_cnn:
         training_generator = cnn_generator(
-            option_dict=training_option_dict, for_inference=False
+            option_dict=training_option_dict, for_inference=False,
+            use_custom_loss=custom_loss_for_cnn
         )
         validation_generator = cnn_generator(
-            option_dict=validation_option_dict, for_inference=False
+            option_dict=validation_option_dict, for_inference=False,
+            use_custom_loss=custom_loss_for_cnn
         )
     else:
         training_generator = dense_net_generator(
@@ -1408,7 +1499,8 @@ def train_neural_net(
 
 
 def apply_cnn(
-        model_object, predictor_matrix, num_examples_per_batch, verbose=False):
+        model_object, predictor_matrix, num_examples_per_batch, use_custom_loss,
+        verbose=False):
     """Applies trained CNN to data.
 
     E = number of examples per batch (batch size)
@@ -1420,12 +1512,15 @@ def apply_cnn(
         `keras.models.Sequential`).
     :param predictor_matrix: See output doc for `cnn_generator`.
     :param num_examples_per_batch: Batch size.
+    :param use_custom_loss: Boolean flag.  If True, used custom loss function.
     :param verbose: Boolean flag.  If True, will print progress messages.
     :return: vector_prediction_matrix: numpy array (E x H x T_v) of predicted
         values.
     :return: scalar_prediction_matrix: numpy array (E x T_s) of predicted
         values.
     """
+
+    error_checking.assert_is_boolean(use_custom_loss)
 
     num_examples_per_batch = _check_inference_args(
         predictor_matrix=predictor_matrix,
@@ -1469,6 +1564,9 @@ def apply_cnn(
 
     if verbose:
         print('Have applied CNN to all {0:d} examples!'.format(num_examples))
+
+    if use_custom_loss:
+        scalar_prediction_matrix = scalar_prediction_matrix[:, 2:]
 
     return vector_prediction_matrix, scalar_prediction_matrix
 

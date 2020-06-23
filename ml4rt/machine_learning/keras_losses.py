@@ -1,61 +1,17 @@
 """Custom loss functions for Keras models."""
 
+import numpy
 import keras.backend as K
 from gewittergefahr.gg_utils import error_checking
 
 
-def constrained_mse_for_cnn(
-        toa_up_flux_index, surface_down_flux_index, net_flux_weight):
-    """Constrained MSE (mean squared error) for convolutional neural net.
-
-    This loss function is applied only to the dense output later.
-
-    :param toa_up_flux_index: Array index for top-of-atmosphere upwelling flux.
-    :param surface_down_flux_index: Array index for surface downwelling flux.
-    :param net_flux_weight: Weight for part of loss function that deals with net
-        flux.
-    :return: loss: Loss function (defined below).
-    """
-
-    error_checking.assert_is_integer(toa_up_flux_index)
-    error_checking.assert_is_geq(toa_up_flux_index, 0)
-    error_checking.assert_is_integer(surface_down_flux_index)
-    error_checking.assert_is_geq(surface_down_flux_index, 0)
-    error_checking.assert_is_greater(net_flux_weight, 0.)
-
-    def loss(target_tensor, prediction_tensor):
-        """Computes loss (constrained MSE).
-
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Constrained MSE.
-        """
-
-        this_loss = K.mean(K.square(target_tensor - prediction_tensor))
-
-        # Add term for disagreement between target and predicted net fluxes.
-        target_net_flux_tensor = (
-            target_tensor[:, toa_up_flux_index] -
-            target_tensor[:, surface_down_flux_index]
-        )
-        predicted_net_flux_tensor = (
-            prediction_tensor[:, toa_up_flux_index] -
-            prediction_tensor[:, surface_down_flux_index]
-        )
-        this_loss += net_flux_weight * K.mean(K.square(
-            target_net_flux_tensor - predicted_net_flux_tensor
-        ))
-
-        return this_loss
-
-    return loss
-
-
-def constrained_mse_for_dense_net(
+def constrained_mse(
         toa_up_flux_index, toa_up_flux_weight, surface_down_flux_index,
         surface_down_flux_weight, highest_up_flux_index,
-        lowest_down_flux_index, net_flux_weight):
-    """Constrained MSE (mean squared error) for dense neural net.
+        lowest_down_flux_index, net_flux_weight, for_cnn):
+    """Physically constrained MSE (mean squared error).
+
+    This function can be applied only to a dense output layer.
 
     :param toa_up_flux_index: Array index for top-of-atmosphere upwelling flux.
     :param toa_up_flux_weight: Weight for corresponding part of loss function.
@@ -68,6 +24,9 @@ def constrained_mse_for_dense_net(
         vertical profile.
     :param net_flux_weight: Weight for part of loss function that deals with net
         flux.
+    :param for_cnn: Boolean flag.  If True, function will be applied to dense
+        output layer for CNN.  If False, will be applied to dense output layer
+        for dense net.
     :return: loss: Loss function (defined below).
     """
 
@@ -82,6 +41,7 @@ def constrained_mse_for_dense_net(
     error_checking.assert_is_greater(toa_up_flux_weight, 0.)
     error_checking.assert_is_greater(surface_down_flux_weight, 0.)
     error_checking.assert_is_greater(net_flux_weight, 0.)
+    error_checking.assert_is_boolean(for_cnn)
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss (constrained MSE).
@@ -91,7 +51,17 @@ def constrained_mse_for_dense_net(
         :return: loss: Constrained MSE.
         """
 
-        this_loss = K.mean(K.square(target_tensor - prediction_tensor))
+        if for_cnn:
+            these_indices = numpy.array(
+                [toa_up_flux_index, surface_down_flux_index], dtype=int
+            )
+
+            this_loss = K.mean(K.square(
+                target_tensor[:, these_indices] -
+                prediction_tensor[:, these_indices]
+            ))
+        else:
+            this_loss = K.mean(K.square(target_tensor - prediction_tensor))
 
         # Add term for disagreement between upwelling flux at TOA and top of
         # profile.
