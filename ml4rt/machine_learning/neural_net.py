@@ -816,7 +816,7 @@ def make_cnn(option_dict):
                 )
             )
 
-    dense_output_layer_object = keras.layers.Concatenate([conv_output_layer_object[:, -1, :1], conv_output_layer_object[:, 0, 1:2], dense_output_layer_object])
+    dense_output_layer_object = keras.layers.Concatenate([conv_output_layer_object[:, -1, :1], conv_output_layer_object[:, 0, 1:2], dense_output_layer_object])(dense_output_layer_object)
 
     # dense_output_layer_object = concat_layer_object(dense_output_layer_object)
 
