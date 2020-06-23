@@ -11,6 +11,7 @@ from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.io import example_io
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import keras_metrics as custom_metrics
+from ml4rt.machine_learning import keras_losses as custom_losses
 
 PLATEAU_PATIENCE_EPOCHS = 3
 PLATEAU_LEARNING_RATE_MULTIPLIER = 0.5
@@ -799,8 +800,13 @@ def make_cnn(option_dict):
         outputs=[conv_output_layer_object, dense_output_layer_object]
     )
 
+    loss_dict = {
+        conv_output_layer_object.name: keras.losses.mse,
+        dense_input_layer_object.name: custom_losses.constrained_mse_for_cnn(toa_up_flux_index=0, surface_down_flux_index=1, net_flux_weight=1.)
+    }
+
     model_object.compile(
-        loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+        loss=loss_dict, optimizer=keras.optimizers.Adam(),
         metrics=METRIC_FUNCTION_LIST
     )
 
