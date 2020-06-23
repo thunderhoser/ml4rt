@@ -4,6 +4,7 @@ import pickle
 import os.path
 import numpy
 import keras
+from keras import backend as K
 import netCDF4
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -799,8 +800,19 @@ def make_cnn(option_dict):
         outputs=[conv_output_layer_object, dense_output_layer_object]
     )
 
+    label_layer_1 = keras.layers.Input(
+        shape=(num_heights, conv_layer_channel_nums[-1])
+    )
+    label_layer_2 = keras.layers.Input(
+        shape=(dense_layer_neuron_nums[-1],)
+    )
+
+    loss = K.mean(keras.losses.mse(conv_output_layer_object, label_layer_2) * keras.losses.mse(dense_output_layer_object, label_layer_2))
+
+    model_object.add_loss(loss)
+
     model_object.compile(
-        loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+        optimizer=keras.optimizers.Adam(),
         metrics=METRIC_FUNCTION_LIST
     )
 
