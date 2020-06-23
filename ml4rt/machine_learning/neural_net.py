@@ -801,8 +801,8 @@ def make_cnn(option_dict):
     )
 
     loss_dict = {
-        conv_output_layer_object.name: keras.losses.mse,
-        dense_input_layer_object.name: custom_losses.constrained_mse_for_cnn(toa_up_flux_index=0, surface_down_flux_index=1, net_flux_weight=1.)
+        'leaky_re_lu_7': keras.losses.mse,
+        'leaky_re_lu_10': custom_losses.constrained_mse_for_cnn(toa_up_flux_index=0, surface_down_flux_index=1, net_flux_weight=1.)
     }
 
     model_object.compile(
