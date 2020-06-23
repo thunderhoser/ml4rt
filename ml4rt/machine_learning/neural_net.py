@@ -795,11 +795,6 @@ def make_cnn(option_dict):
                 )
             )
 
-    model_object = keras.models.Model(
-        inputs=input_layer_object,
-        outputs=[conv_output_layer_object, dense_output_layer_object]
-    )
-
     label_layer_1 = keras.layers.Input(
         shape=(num_heights, conv_layer_channel_nums[-1])
     )
@@ -807,7 +802,12 @@ def make_cnn(option_dict):
         shape=(dense_layer_neuron_nums[-1],)
     )
 
-    loss = K.mean(keras.losses.mse(conv_output_layer_object, label_layer_2) * keras.losses.mse(dense_output_layer_object, label_layer_2))
+    model_object = keras.models.Model(
+        inputs=[input_layer_object, label_layer_1, label_layer_2],
+        outputs=[conv_output_layer_object, dense_output_layer_object]
+    )
+
+    loss = K.mean(keras.losses.mse(conv_output_layer_object, label_layer_1) * keras.losses.mse(dense_output_layer_object, label_layer_2))
 
     model_object.add_loss(loss)
 
@@ -1094,14 +1094,12 @@ def cnn_generator(option_dict, for_inference):
 
         if for_inference:
             yield (
-                predictor_matrix,
-                [vector_target_matrix, scalar_target_matrix],
+                [predictor_matrix, vector_target_matrix, scalar_target_matrix],
                 example_id_strings
             )
         else:
             yield (
-                predictor_matrix,
-                [vector_target_matrix, scalar_target_matrix]
+                [predictor_matrix, vector_target_matrix, scalar_target_matrix]
             )
 
 
