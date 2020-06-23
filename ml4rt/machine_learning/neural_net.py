@@ -816,6 +816,8 @@ def make_cnn(option_dict):
                 )
             )
 
+    dense_output_layer_object = keras.layers.Concatenate(axis=-1)([conv_output_layer_object[:, -1, [0]], conv_output_layer_object[:, 0, [1]], dense_output_layer_object])
+
     model_object = keras.models.Model(
         inputs=input_layer_object,
         outputs=[conv_output_layer_object, dense_output_layer_object]
