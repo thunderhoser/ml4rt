@@ -799,6 +799,8 @@ def make_cnn(option_dict):
 
     conv_output_layer_object._name = 'conv_output'
     dense_output_layer_object._name = 'dense_output'
+    conv_output_layer_object.name = 'conv_output'
+    dense_output_layer_object.name = 'dense_output'
 
     model_object = keras.models.Model(
         inputs=input_layer_object,
