@@ -11,7 +11,9 @@ def mean_bias(target_tensor, prediction_tensor):
     :return: mean_bias: Mean bias.
     """
 
-    return K.mean(prediction_tensor[0] - target_tensor[0])
+    return prediction_tensor.get_shape()[0]
+
+    # return K.mean(prediction_tensor - target_tensor)
 
 
 def mean_absolute_error(target_tensor, prediction_tensor):
