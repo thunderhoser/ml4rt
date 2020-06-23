@@ -1094,12 +1094,12 @@ def cnn_generator(option_dict, for_inference):
 
         if for_inference:
             yield (
-                [predictor_matrix, vector_target_matrix, scalar_target_matrix],
+                [predictor_matrix, vector_target_matrix, scalar_target_matrix], [],
                 example_id_strings
             )
         else:
             yield (
-                [predictor_matrix, vector_target_matrix, scalar_target_matrix]
+                [predictor_matrix, vector_target_matrix, scalar_target_matrix], [],
             )
 
 
