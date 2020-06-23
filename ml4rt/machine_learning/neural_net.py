@@ -739,7 +739,8 @@ def make_cnn(option_dict):
             conv_output_layer_object = architecture_utils.get_activation_layer(
                 activation_function_string=output_activ_function_name,
                 alpha_for_relu=output_activ_function_alpha,
-                alpha_for_elu=output_activ_function_alpha
+                alpha_for_elu=output_activ_function_alpha,
+                layer_name='conv_output'
             )(conv_output_layer_object)
         else:
             conv_output_layer_object = architecture_utils.get_activation_layer(
@@ -774,7 +775,8 @@ def make_cnn(option_dict):
             dense_output_layer_object = architecture_utils.get_activation_layer(
                 activation_function_string=output_activ_function_name,
                 alpha_for_relu=output_activ_function_alpha,
-                alpha_for_elu=output_activ_function_alpha
+                alpha_for_elu=output_activ_function_alpha,
+                layer_name='dense_output'
             )(dense_output_layer_object)
         else:
             dense_output_layer_object = architecture_utils.get_activation_layer(
@@ -794,13 +796,6 @@ def make_cnn(option_dict):
                     dense_output_layer_object
                 )
             )
-
-    print(dir(conv_output_layer_object))
-
-    conv_output_layer_object._name = 'conv_output'
-    dense_output_layer_object._name = 'dense_output'
-    conv_output_layer_object.name = 'conv_output'
-    dense_output_layer_object.name = 'dense_output'
 
     model_object = keras.models.Model(
         inputs=input_layer_object,
