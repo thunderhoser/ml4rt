@@ -85,7 +85,6 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
-LOSS_FUNCTION_KEY = 'loss_function'
 
 DEFAULT_CNN_ARCH_OPTION_DICT = {
     CONV_LAYER_CHANNEL_NUMS_KEY: DEFAULT_CONV_LAYER_CHANNEL_NUMS,
@@ -111,8 +110,7 @@ DEFAULT_DNN_ARCH_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: DEFAULT_OUTPUT_ACTIV_FUNCTION_ALPHA,
     L1_WEIGHT_KEY: DEFAULT_L1_WEIGHT,
     L2_WEIGHT_KEY: DEFAULT_L2_WEIGHT,
-    USE_BATCH_NORM_KEY: True,
-    LOSS_FUNCTION_KEY: keras.losses.mse
+    USE_BATCH_NORM_KEY: True
 }
 
 METRIC_FUNCTION_LIST = [
@@ -136,12 +134,12 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 IS_CNN_KEY = 'is_cnn'
-CNN_CUSTOM_LOSS_KEY = 'cnn_custom_loss_dict'
+CUSTOM_LOSS_KEY = 'custom_loss_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY,
-    CNN_CUSTOM_LOSS_KEY
+    CUSTOM_LOSS_KEY
 ]
 
 EXAMPLE_DIMENSION_KEY = 'example'
@@ -163,6 +161,8 @@ SURFACE_DOWN_FLUX_INDEX_KEY = 'surface_down_flux_index'
 SURFACE_DOWN_FLUX_WEIGHT_KEY = 'surface_down_flux_weight'
 UP_FLUX_CHANNEL_INDEX_KEY = 'up_flux_channel_index'
 DOWN_FLUX_CHANNEL_INDEX_KEY = 'down_flux_channel_index'
+HIGHEST_UP_FLUX_INDEX_KEY = 'highest_up_flux_index'
+LOWEST_DOWN_FLUX_INDEX_KEY = 'lowest_down_flux_index'
 NET_FLUX_WEIGHT_KEY = 'net_flux_weight'
 
 
@@ -318,7 +318,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _write_metadata(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, is_cnn, cnn_custom_loss_dict):
+        validation_option_dict, is_cnn, custom_loss_dict):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -328,8 +328,7 @@ def _write_metadata(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param is_cnn: Same.
-    :param cnn_custom_loss_dict: See doc for `make_cnn`.  If model is not a CNN,
-        you can make this None.
+    :param custom_loss_dict: Same.
     """
 
     metadata_dict = {
@@ -339,7 +338,7 @@ def _write_metadata(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         IS_CNN_KEY: is_cnn,
-        CNN_CUSTOM_LOSS_KEY: cnn_custom_loss_dict
+        CUSTOM_LOSS_KEY: custom_loss_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -440,6 +439,96 @@ def _read_file_for_generator(
         example_id_strings = None
 
     return example_dict, example_id_strings
+
+
+def _get_custom_loss_function(custom_loss_dict, for_cnn):
+    """Creates custom loss function.
+
+    TOA = top of atmosphere
+
+    :param custom_loss_dict: Dictionary with the following keys.
+    custom_loss_dict['toa_up_flux_index']: Variable index (in scalar output
+        matrix) for TOA upwelling flux.
+    custom_loss_dict['toa_up_flux_weight']: Weight used to penalize difference
+        between TOA upwelling flux and upwelling flux at max height in profile.
+    custom_loss_dict['surface_down_flux_index']: Variable index (in scalar
+        output matrix) for surface downwelling flux.
+    custom_loss_dict['surface_down_flux_weight']: Weight used to penalize
+        difference between surface downwelling flux and downwelling flux at
+        lowest height in profile.
+    custom_loss_dict['net_flux_weight']: Weight used to penalize difference
+        between actual and predicted net flux (surface downwelling minus TOA
+        upwelling).
+
+    If `for_cnn == True`, expect the following keys.
+
+    custom_loss_dict['up_flux_channel_index']: Channel index (in vector target
+        matrix) for upwelling flux.
+    custom_loss_dict['down_flux_channel_index']: Channel index (in vector target
+        matrix) for downwelling flux.
+
+    If `for_cnn == False`, expect the following keys.
+
+    custom_loss_dict['highest_up_flux_index']: Variable index (in scalar output
+        matrix) for upwelling flux at max height in profile.
+    custom_loss_dict['lowest_down_flux_index']: Variable index (in scalar output
+        matrix) for downwelling flux at lowest height in profile.
+
+    :param for_cnn: Boolean flag.  If True, loss function is for a CNN.  If
+        False, loss function is for a dense net.
+    :return: loss_function: The function itself.
+    """
+
+    error_checking.assert_is_boolean(for_cnn)
+
+    toa_up_flux_index = custom_loss_dict[TOA_UP_FLUX_INDEX_KEY]
+    toa_up_flux_weight = custom_loss_dict[TOA_UP_FLUX_WEIGHT_KEY]
+    surface_down_flux_index = custom_loss_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
+    surface_down_flux_weight = (
+        custom_loss_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY]
+    )
+    net_flux_weight = custom_loss_dict[NET_FLUX_WEIGHT_KEY]
+
+    error_checking.assert_is_integer(toa_up_flux_index)
+    error_checking.assert_is_geq(toa_up_flux_index, 0)
+    error_checking.assert_is_integer(surface_down_flux_index)
+    error_checking.assert_is_geq(surface_down_flux_index, 0)
+
+    if for_cnn:
+        up_flux_channel_index = custom_loss_dict[UP_FLUX_CHANNEL_INDEX_KEY]
+        down_flux_channel_index = custom_loss_dict[DOWN_FLUX_CHANNEL_INDEX_KEY]
+
+        error_checking.assert_is_integer(up_flux_channel_index)
+        error_checking.assert_is_geq(up_flux_channel_index, 0)
+        error_checking.assert_is_integer(down_flux_channel_index)
+        error_checking.assert_is_geq(down_flux_channel_index, 0)
+
+        return custom_losses.constrained_mse(
+            toa_up_flux_index=toa_up_flux_index + 2,
+            toa_up_flux_weight=toa_up_flux_weight,
+            surface_down_flux_index=surface_down_flux_index + 2,
+            surface_down_flux_weight=surface_down_flux_weight,
+            highest_up_flux_index=0, lowest_down_flux_index=1,
+            net_flux_weight=net_flux_weight, for_cnn=True
+        )
+
+    highest_up_flux_index = custom_loss_dict[HIGHEST_UP_FLUX_INDEX_KEY]
+    lowest_down_flux_index = custom_loss_dict[LOWEST_DOWN_FLUX_INDEX_KEY]
+
+    error_checking.assert_is_integer(highest_up_flux_index)
+    error_checking.assert_is_geq(highest_up_flux_index, 0)
+    error_checking.assert_is_integer(lowest_down_flux_index)
+    error_checking.assert_is_geq(lowest_down_flux_index, 0)
+
+    return custom_losses.constrained_mse(
+        toa_up_flux_index=toa_up_flux_index,
+        toa_up_flux_weight=toa_up_flux_weight,
+        surface_down_flux_index=surface_down_flux_index,
+        surface_down_flux_weight=surface_down_flux_weight,
+        highest_up_flux_index=highest_up_flux_index,
+        lowest_down_flux_index=lowest_down_flux_index,
+        net_flux_weight=net_flux_weight, for_cnn=False
+    )
 
 
 def predictors_dict_to_numpy(example_dict, for_cnn):
@@ -732,28 +821,9 @@ def make_cnn(option_dict, custom_loss_dict=None):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
-    option_dict['net_flux_loss_weight']: Weight for mean squared error (MSE)
-        between predicted and actual net fluxes (downwelling surface flux minus
-        upwelling TOA flux).  The weight for all other MSEs is 1.0.  If you do
-        not want an extra term for net flux, make this negative or None.
 
-    :param custom_loss_dict: Dictionary with the following keys (if None, will
-        not use custom loss function).
-    custom_loss_dict['toa_up_flux_index']: Variable index (in scalar output
-        matrix) for top-of-atmosphere upwelling flux.
-    custom_loss_dict['toa_up_flux_weight']: Weight for top-of-atmosphere
-        upwelling flux.
-    custom_loss_dict['surface_down_flux_index']: Variable index (in scalar
-        output matrix) for surface downwelling flux.
-    custom_loss_dict['surface_down_flux_weight']: Weight for surface downwelling
-        flux.
-    custom_loss_dict['up_flux_channel_index']: Channel index (in vector target
-        matrix) for upwelling flux.
-    custom_loss_dict['down_flux_channel_index']: Channel index (in vector target
-        matrix) for downwelling flux.
-    custom_loss_dict['net_flux_weight']: Weight for net flux (surface minus
-        top-of-atmosphere).
-
+    :param custom_loss_dict: See doc for `_get_custom_loss_function`.  If you do
+        not want a custom loss function, make this None.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
@@ -764,24 +834,11 @@ def make_cnn(option_dict, custom_loss_dict=None):
     use_custom_loss = custom_loss_dict is not None
 
     if use_custom_loss:
-        toa_up_flux_index = custom_loss_dict[TOA_UP_FLUX_INDEX_KEY]
-        toa_up_flux_weight = custom_loss_dict[TOA_UP_FLUX_WEIGHT_KEY]
-        surface_down_flux_index = custom_loss_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
-        surface_down_flux_weight = (
-            custom_loss_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY]
+        dense_loss_function = _get_custom_loss_function(
+            custom_loss_dict=custom_loss_dict, for_cnn=True
         )
-        up_flux_channel_index = custom_loss_dict[UP_FLUX_CHANNEL_INDEX_KEY]
-        down_flux_channel_index = custom_loss_dict[DOWN_FLUX_CHANNEL_INDEX_KEY]
-        net_flux_weight = custom_loss_dict[NET_FLUX_WEIGHT_KEY]
-
-        error_checking.assert_is_integer(toa_up_flux_index)
-        error_checking.assert_is_geq(toa_up_flux_index, 0)
-        error_checking.assert_is_integer(surface_down_flux_index)
-        error_checking.assert_is_geq(surface_down_flux_index, 0)
-        error_checking.assert_is_integer(up_flux_channel_index)
-        error_checking.assert_is_geq(up_flux_channel_index, 0)
-        error_checking.assert_is_integer(down_flux_channel_index)
-        error_checking.assert_is_geq(down_flux_channel_index, 0)
+    else:
+        dense_loss_function = None
 
     num_heights = option_dict[NUM_HEIGHTS_KEY]
     num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
@@ -888,13 +945,13 @@ def make_cnn(option_dict, custom_loss_dict=None):
             )
 
     if use_custom_loss:
-        k = up_flux_channel_index + 0
+        k = custom_loss_dict[UP_FLUX_CHANNEL_INDEX_KEY] + 0
 
         highest_up_flux_layer_object = keras.layers.Lambda(
             lambda x: x[:, -1, k:(k + 1)]
         )(conv_output_layer_object)
 
-        k = down_flux_channel_index + 0
+        k = custom_loss_dict[DOWN_FLUX_CHANNEL_INDEX_KEY] + 0
 
         lowest_down_flux_layer_object = keras.layers.Lambda(
             lambda x: x[:, -0, k:(k + 1)]
@@ -915,15 +972,6 @@ def make_cnn(option_dict, custom_loss_dict=None):
     )
 
     if use_custom_loss:
-        dense_loss_function = custom_losses.constrained_mse(
-            toa_up_flux_index=toa_up_flux_index + 2,
-            toa_up_flux_weight=toa_up_flux_weight,
-            surface_down_flux_index=surface_down_flux_index + 2,
-            surface_down_flux_weight=surface_down_flux_weight,
-            highest_up_flux_index=0, lowest_down_flux_index=1,
-            net_flux_weight=net_flux_weight, for_cnn=True
-        )
-
         loss_dict = {
             'conv_output': keras.losses.mse,
             'dense_output': dense_loss_function
@@ -943,7 +991,7 @@ def make_cnn(option_dict, custom_loss_dict=None):
     return model_object
 
 
-def make_dense_net(option_dict):
+def make_dense_net(option_dict, custom_loss_dict):
     """Makes dense (fully connected) neural net.
 
     :param option_dict: Dictionary with the following keys.
@@ -957,7 +1005,9 @@ def make_dense_net(option_dict):
     option_dict['l1_weight']: Same.
     option_dict['l2_weight']: Same.
     option_dict['use_batch_normalization']: Same.
-    option_dict['loss_function']: Loss function.
+
+    :param custom_loss_dict: See doc for `_get_custom_loss_function`.  If you do
+        not want a custom loss function, make this None.
 
     :return: model_object: See doc for `make_cnn`.
     """
@@ -965,6 +1015,15 @@ def make_dense_net(option_dict):
     option_dict = _check_architecture_args(
         option_dict=option_dict, is_cnn=False
     )
+
+    use_custom_loss = custom_loss_dict is not None
+
+    if use_custom_loss:
+        loss_function = _get_custom_loss_function(
+            custom_loss_dict=custom_loss_dict, for_cnn=False
+        )
+    else:
+        loss_function = keras.losses.mse
 
     num_inputs = option_dict[NUM_INPUTS_KEY]
     dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
@@ -976,7 +1035,6 @@ def make_dense_net(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-    loss_function = option_dict[LOSS_FUNCTION_KEY]
 
     input_layer_object = keras.layers.Input(shape=(num_inputs,))
     regularizer_object = architecture_utils.get_weight_regularizer(
@@ -1393,7 +1451,7 @@ def train_neural_net(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict, is_cnn,
-        cnn_custom_loss_dict):
+        custom_loss_dict):
     """Trains neural net (either CNN or dense net).
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1417,8 +1475,8 @@ def train_neural_net(
 
     :param is_cnn: Boolean flag.  If True, will assume that `model_object` is a
         CNN.  If False, will assume that it is a dense net.
-    :param cnn_custom_loss_dict: See doc for `make_cnn`.  If model is not a CNN,
-        you can make this None.
+    :param custom_loss_dict: See doc for `_get_custom_loss_function`.  If the
+        neural net does not have a custom loss function, make this None.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1431,9 +1489,6 @@ def train_neural_net(
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
     error_checking.assert_is_boolean(is_cnn)
-
-    if not is_cnn:
-        cnn_custom_loss_dict = None
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1484,17 +1539,17 @@ def train_neural_net(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict, is_cnn=is_cnn,
-        cnn_custom_loss_dict=cnn_custom_loss_dict
+        custom_loss_dict=custom_loss_dict
     )
 
     if is_cnn:
         training_generator = cnn_generator(
             option_dict=training_option_dict, for_inference=False,
-            use_custom_loss=cnn_custom_loss_dict is not None
+            use_custom_loss=custom_loss_dict is not None
         )
         validation_generator = cnn_generator(
             option_dict=validation_option_dict, for_inference=False,
-            use_custom_loss=cnn_custom_loss_dict is not None
+            use_custom_loss=custom_loss_dict is not None
         )
     else:
         training_generator = dense_net_generator(
@@ -1670,21 +1725,14 @@ def read_model(hdf5_file_name):
     )
 
     metadata_dict = read_metadata(metafile_name)
-    custom_loss_dict = metadata_dict[CNN_CUSTOM_LOSS_KEY]
-
-    dense_loss_function = custom_losses.constrained_mse(
-        toa_up_flux_index=custom_loss_dict[TOA_UP_FLUX_INDEX_KEY] + 2,
-        toa_up_flux_weight=custom_loss_dict[TOA_UP_FLUX_WEIGHT_KEY],
-        surface_down_flux_index=
-        custom_loss_dict[SURFACE_DOWN_FLUX_INDEX_KEY] + 2,
-        surface_down_flux_weight=custom_loss_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY],
-        highest_up_flux_index=0, lowest_down_flux_index=1,
-        net_flux_weight=custom_loss_dict[NET_FLUX_WEIGHT_KEY],
+    dense_loss_function = _get_custom_loss_function(
+        custom_loss_dict=metadata_dict[CUSTOM_LOSS_KEY],
         for_cnn=metadata_dict[IS_CNN_KEY]
     )
-    
+
     this_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
     this_dict['loss'] = dense_loss_function
+
     return keras.models.load_model(hdf5_file_name, custom_objects=this_dict)
 
 
@@ -1731,8 +1779,8 @@ def read_metadata(pickle_file_name):
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
 
-    if CNN_CUSTOM_LOSS_KEY not in metadata_dict:
-        metadata_dict[CNN_CUSTOM_LOSS_KEY] = None
+    if CUSTOM_LOSS_KEY not in metadata_dict:
+        metadata_dict[CUSTOM_LOSS_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
