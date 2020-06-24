@@ -52,13 +52,14 @@ def constrained_mse(
         """
 
         if for_cnn:
-            these_indices = numpy.array(
-                [toa_up_flux_index, surface_down_flux_index], dtype=int
-            )
+            this_loss = 0.5 * K.mean(K.square(
+                target_tensor[:, toa_up_flux_index] -
+                prediction_tensor[:, toa_up_flux_index]
+            ))
 
-            this_loss = K.mean(K.square(
-                target_tensor[:, these_indices] -
-                prediction_tensor[:, these_indices]
+            this_loss += 0.5 * K.mean(K.square(
+                target_tensor[:, surface_down_flux_index] -
+                prediction_tensor[:, surface_down_flux_index]
             ))
         else:
             this_loss = K.mean(K.square(target_tensor - prediction_tensor))
