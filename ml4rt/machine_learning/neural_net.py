@@ -1,5 +1,6 @@
 """Methods for building, training, and applying neural nets."""
 
+import copy
 import pickle
 import os.path
 import numpy
@@ -135,12 +136,12 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 IS_CNN_KEY = 'is_cnn'
-CUSTOM_CNN_LOSS_KEY = 'used_custom_cnn_loss'
+CNN_CUSTOM_LOSS_KEY = 'cnn_custom_loss_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY,
-    CUSTOM_CNN_LOSS_KEY
+    CNN_CUSTOM_LOSS_KEY
 ]
 
 EXAMPLE_DIMENSION_KEY = 'example'
@@ -317,7 +318,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _write_metadata(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, is_cnn, used_custom_cnn_loss):
+        validation_option_dict, is_cnn, cnn_custom_loss_dict):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -327,7 +328,8 @@ def _write_metadata(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param is_cnn: Same.
-    :param used_custom_cnn_loss: Same.
+    :param cnn_custom_loss_dict: See doc for `make_cnn`.  If model is not a CNN,
+        you can make this None.
     """
 
     metadata_dict = {
@@ -337,7 +339,7 @@ def _write_metadata(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         IS_CNN_KEY: is_cnn,
-        CUSTOM_CNN_LOSS_KEY: used_custom_cnn_loss
+        CNN_CUSTOM_LOSS_KEY: cnn_custom_loss_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -1391,7 +1393,7 @@ def train_neural_net(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict, is_cnn,
-        use_custom_cnn_loss):
+        cnn_custom_loss_dict):
     """Trains neural net (either CNN or dense net).
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1415,8 +1417,8 @@ def train_neural_net(
 
     :param is_cnn: Boolean flag.  If True, will assume that `model_object` is a
         CNN.  If False, will assume that it is a dense net.
-    :param use_custom_cnn_loss: Boolean flag.  If True, using custom loss for
-        CNN.
+    :param cnn_custom_loss_dict: See doc for `make_cnn`.  If model is not a CNN,
+        you can make this None.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1428,6 +1430,10 @@ def train_neural_net(
     error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
+    error_checking.assert_is_boolean(is_cnn)
+
+    if not is_cnn:
+        cnn_custom_loss_dict = None
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1478,17 +1484,17 @@ def train_neural_net(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict, is_cnn=is_cnn,
-        used_custom_cnn_loss=use_custom_cnn_loss
+        cnn_custom_loss_dict=cnn_custom_loss_dict
     )
 
     if is_cnn:
         training_generator = cnn_generator(
             option_dict=training_option_dict, for_inference=False,
-            use_custom_loss=use_custom_cnn_loss
+            use_custom_loss=cnn_custom_loss_dict is not None
         )
         validation_generator = cnn_generator(
             option_dict=validation_option_dict, for_inference=False,
-            use_custom_loss=use_custom_cnn_loss
+            use_custom_loss=cnn_custom_loss_dict is not None
         )
     else:
         training_generator = dense_net_generator(
@@ -1650,9 +1656,36 @@ def read_model(hdf5_file_name):
     """
 
     error_checking.assert_file_exists(hdf5_file_name)
-    return keras.models.load_model(
-        hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
+
+    try:
+        return keras.models.load_model(
+            hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
+        )
+    except ValueError:
+        pass
+
+    metafile_name = find_metafile(
+        model_dir_name=os.path.split(hdf5_file_name)[0],
+        raise_error_if_missing=True
     )
+
+    metadata_dict = read_metadata(metafile_name)
+    custom_loss_dict = metadata_dict[CNN_CUSTOM_LOSS_KEY]
+
+    dense_loss_function = custom_losses.constrained_mse(
+        toa_up_flux_index=custom_loss_dict[TOA_UP_FLUX_INDEX_KEY] + 2,
+        toa_up_flux_weight=custom_loss_dict[TOA_UP_FLUX_WEIGHT_KEY],
+        surface_down_flux_index=
+        custom_loss_dict[SURFACE_DOWN_FLUX_INDEX_KEY] + 2,
+        surface_down_flux_weight=custom_loss_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY],
+        highest_up_flux_index=0, lowest_down_flux_index=1,
+        net_flux_weight=custom_loss_dict[NET_FLUX_WEIGHT_KEY],
+        for_cnn=metadata_dict[IS_CNN_KEY]
+    )
+    
+    this_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
+    this_dict['loss'] = dense_loss_function
+    return keras.models.load_model(hdf5_file_name, custom_objects=this_dict)
 
 
 def find_metafile(model_dir_name, raise_error_if_missing=True):
@@ -1698,8 +1731,8 @@ def read_metadata(pickle_file_name):
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
 
-    if CUSTOM_CNN_LOSS_KEY not in metadata_dict:
-        metadata_dict[CUSTOM_CNN_LOSS_KEY] = False
+    if CNN_CUSTOM_LOSS_KEY not in metadata_dict:
+        metadata_dict[CNN_CUSTOM_LOSS_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
