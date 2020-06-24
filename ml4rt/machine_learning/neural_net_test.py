@@ -204,7 +204,7 @@ class NeuralNetTests(unittest.TestCase):
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=True, custom_loss_for_cnn=False
+            example_dict=EXAMPLE_DICT, for_cnn=True, use_custom_cnn_loss=False
         )
 
         self.assertTrue(
@@ -224,7 +224,7 @@ class NeuralNetTests(unittest.TestCase):
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=True, custom_loss_for_cnn=True
+            example_dict=EXAMPLE_DICT, for_cnn=True, use_custom_cnn_loss=True
         )
 
         self.assertTrue(
@@ -244,7 +244,7 @@ class NeuralNetTests(unittest.TestCase):
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=False
+            example_dict=EXAMPLE_DICT, for_cnn=False, use_custom_cnn_loss=False
         )
 
         self.assertTrue(len(these_matrices) == len(DENSE_NET_TARGET_MATRICES))

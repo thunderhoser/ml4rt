@@ -146,7 +146,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                     num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
                     verbose=True,
                     used_custom_loss=
-                    metadata_dict[neural_net.CUSTOM_LOSS_FOR_CNN_KEY]
+                    metadata_dict[neural_net.CUSTOM_CNN_LOSS_KEY]
                 )
             )
         else:

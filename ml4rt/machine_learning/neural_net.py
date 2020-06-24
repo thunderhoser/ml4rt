@@ -135,12 +135,12 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 IS_CNN_KEY = 'is_cnn'
-CUSTOM_LOSS_FOR_CNN_KEY = 'custom_loss_for_cnn'
+CUSTOM_CNN_LOSS_KEY = 'used_custom_cnn_loss'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY,
-    CUSTOM_LOSS_FOR_CNN_KEY
+    CUSTOM_CNN_LOSS_KEY
 ]
 
 EXAMPLE_DIMENSION_KEY = 'example'
@@ -317,7 +317,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _write_metadata(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, is_cnn, custom_loss_for_cnn=False):
+        validation_option_dict, is_cnn, used_custom_cnn_loss):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -327,7 +327,7 @@ def _write_metadata(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param is_cnn: Same.
-    :param custom_loss_for_cnn: Same.
+    :param used_custom_cnn_loss: Same.
     """
 
     metadata_dict = {
@@ -337,7 +337,7 @@ def _write_metadata(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         IS_CNN_KEY: is_cnn,
-        CUSTOM_LOSS_FOR_CNN_KEY: custom_loss_for_cnn
+        CUSTOM_CNN_LOSS_KEY: used_custom_cnn_loss
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -552,14 +552,14 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, for_cnn):
     }
 
 
-def targets_dict_to_numpy(example_dict, for_cnn, custom_loss_for_cnn=False):
+def targets_dict_to_numpy(example_dict, for_cnn, use_custom_cnn_loss):
     """Converts targets from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param for_cnn: Boolean flag.  If True, will return format required by CNN.
         If False, will return format required by dense neural net.
-    :param custom_loss_for_cnn: Boolean flag.  If True, using custom loss for
+    :param use_custom_cnn_loss: Boolean flag.  If True, using custom loss for
         CNN.
     :return: target_matrices: If `for_cnn == True`, same as output from
         `cnn_generator`.  If `for_cnn == False`, same as output from
@@ -568,11 +568,11 @@ def targets_dict_to_numpy(example_dict, for_cnn, custom_loss_for_cnn=False):
 
     error_checking.assert_is_boolean(for_cnn)
     if not for_cnn:
-        custom_loss_for_cnn = False
-    error_checking.assert_is_boolean(custom_loss_for_cnn)
+        use_custom_cnn_loss = False
+    error_checking.assert_is_boolean(use_custom_cnn_loss)
 
     if for_cnn:
-        if not custom_loss_for_cnn:
+        if not use_custom_cnn_loss:
             return [
                 example_dict[example_io.VECTOR_TARGET_VALS_KEY],
                 example_dict[example_io.SCALAR_TARGET_VALS_KEY]
@@ -1192,7 +1192,7 @@ def cnn_generator(option_dict, for_inference, use_custom_loss):
             )
             this_list = targets_dict_to_numpy(
                 example_dict=this_example_dict, for_cnn=True,
-                custom_loss_for_cnn=use_custom_loss
+                use_custom_cnn_loss=use_custom_loss
             )
             this_vector_target_matrix = this_list[0]
             this_scalar_target_matrix = this_list[1]
@@ -1357,7 +1357,8 @@ def dense_net_generator(option_dict, for_inference):
                 example_dict=this_example_dict, for_cnn=False
             )
             this_target_matrix = targets_dict_to_numpy(
-                example_dict=this_example_dict, for_cnn=False
+                example_dict=this_example_dict, for_cnn=False,
+                use_custom_cnn_loss=False
             )[0]
 
             if predictor_matrix is None:
@@ -1390,7 +1391,7 @@ def train_neural_net(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict, is_cnn,
-        custom_loss_for_cnn):
+        use_custom_cnn_loss):
     """Trains neural net (either CNN or dense net).
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1414,7 +1415,7 @@ def train_neural_net(
 
     :param is_cnn: Boolean flag.  If True, will assume that `model_object` is a
         CNN.  If False, will assume that it is a dense net.
-    :param custom_loss_for_cnn: Boolean flag.  If True, using custom loss for
+    :param use_custom_cnn_loss: Boolean flag.  If True, using custom loss for
         CNN.
     """
 
@@ -1477,17 +1478,17 @@ def train_neural_net(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict, is_cnn=is_cnn,
-        custom_loss_for_cnn=custom_loss_for_cnn
+        used_custom_cnn_loss=use_custom_cnn_loss
     )
 
     if is_cnn:
         training_generator = cnn_generator(
             option_dict=training_option_dict, for_inference=False,
-            use_custom_loss=custom_loss_for_cnn
+            use_custom_loss=use_custom_cnn_loss
         )
         validation_generator = cnn_generator(
             option_dict=validation_option_dict, for_inference=False,
-            use_custom_loss=custom_loss_for_cnn
+            use_custom_loss=use_custom_cnn_loss
         )
     else:
         training_generator = dense_net_generator(
@@ -1697,8 +1698,8 @@ def read_metadata(pickle_file_name):
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
 
-    if CUSTOM_LOSS_FOR_CNN_KEY not in metadata_dict:
-        metadata_dict[CUSTOM_LOSS_FOR_CNN_KEY] = False
+    if CUSTOM_CNN_LOSS_KEY not in metadata_dict:
+        metadata_dict[CUSTOM_CNN_LOSS_KEY] = False
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:

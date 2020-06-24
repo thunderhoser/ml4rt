@@ -4,7 +4,7 @@ import copy
 import unittest
 import numpy
 import pandas
-from ml4rt.utils import normalization_params
+from ml4rt.dead_code import normalization_params
 
 TOLERANCE = 1e-6
 
