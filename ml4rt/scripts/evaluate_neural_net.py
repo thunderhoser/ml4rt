@@ -92,8 +92,6 @@ def _run(prediction_file_name, evaluation_file_name):
         mean_training_example_dict=mean_training_example_dict
     )
 
-    print(result_table_xarray)
-
     result_table_xarray.attrs[evaluation.MODEL_FILE_KEY] = model_file_name
     print(SEPARATOR_STRING)
 

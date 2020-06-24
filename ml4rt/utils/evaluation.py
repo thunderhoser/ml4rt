@@ -533,10 +533,11 @@ def get_scores_all_variables(
         aux_prediction_stdevs = numpy.std(aux_prediction_matrix, axis=0, ddof=1)
 
         these_dim = (AUX_TARGET_FIELD_DIM,)
-        main_data_dict = {
+        new_dict = {
             AUX_TARGET_STDEV_KEY: (these_dim, aux_target_stdevs),
             AUX_PREDICTION_STDEV_KEY: (these_dim, aux_prediction_stdevs)
         }
+        main_data_dict.update(new_dict)
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
