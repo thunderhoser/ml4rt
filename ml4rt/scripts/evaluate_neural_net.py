@@ -176,7 +176,7 @@ def _run(prediction_file_name, evaluation_file_name):
             result_table_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values
         )
         aux_predicted_field_names = (
-            result_table_xarray.coords[evaluation.AUX_PREDICTED_NAMES_KEY].values
+            result_table_xarray.coords[evaluation.AUX_PREDICTED_FIELD_DIM].values
         )
     except:
         aux_target_field_names = []
