@@ -266,7 +266,7 @@ def _plot_attr_diagram_histogram(
     inset_axes_object = figure_object.add_axes([0.625, 0.175, 0.25, 0.25])
 
     real_indices = numpy.where(numpy.invert(numpy.isnan(mean_predictions)))[0]
-    bin_width = numpy.nanmean(numpy.diff(mean_predictions))
+    bin_width = numpy.nanmin(numpy.diff(mean_predictions))
 
     inset_axes_object.bar(
         mean_predictions[real_indices], example_frequencies[real_indices],

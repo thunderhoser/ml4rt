@@ -443,6 +443,12 @@ def _run(input_file_name, output_dir_name):
                 evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, :]
         )
 
+        print('\n\n\n\n')
+        print(these_mean_predictions)
+        print('\n\n')
+        print(these_example_counts)
+        print('\n\n\n\n')
+
         if aux_target_field_names[k] == evaluation.NET_FLUX_NAME:
             surface_down_flux_index = scalar_target_names.index(
                 example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
