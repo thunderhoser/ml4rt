@@ -82,8 +82,8 @@ def _check_score_name(score_name):
 
 
 def _plot_reliability_curve(
-        axes_object, mean_predictions, mean_observations,
-        line_colour=RELIABILITY_LINE_COLOUR, max_value_to_plot=None):
+        axes_object, mean_predictions, mean_observations, min_value_to_plot,
+        max_value_to_plot, line_colour=RELIABILITY_LINE_COLOUR):
     """Plots reliability curve.
 
     B = number of bins
@@ -92,21 +92,13 @@ def _plot_reliability_curve(
         `matplotlib.axes._subplots.AxesSubplot`).
     :param mean_predictions: length-B numpy array of mean predicted values.
     :param mean_observations: length-B numpy array of mean observed values.
+    :param min_value_to_plot: See doc for `plot_attributes_diagram`.
+    :param max_value_to_plot: Same.
     :param line_colour: Line colour (in any format accepted by matplotlib).
-    :param max_value_to_plot: Max value for both x- and y-axes.  If None, will
-        be determined automatically.
     """
 
-    if max_value_to_plot is None:
-        max_value_to_plot = numpy.maximum(
-            numpy.nanmax(mean_predictions), numpy.nanmax(mean_observations)
-        )
-
-    if numpy.isnan(max_value_to_plot):
-        max_value_to_plot = 1.
-
-    perfect_x_coords = numpy.array([0., max_value_to_plot])
-    perfect_y_coords = numpy.array([0., max_value_to_plot])
+    perfect_x_coords = numpy.array([min_value_to_plot, max_value_to_plot])
+    perfect_y_coords = numpy.array([min_value_to_plot, max_value_to_plot])
 
     axes_object.plot(
         perfect_x_coords, perfect_y_coords, color=REFERENCE_LINE_COLOUR,
@@ -128,15 +120,17 @@ def _plot_reliability_curve(
 
     axes_object.set_xlabel('Prediction')
     axes_object.set_ylabel('Conditional mean observation')
-    axes_object.set_xlim(0., max_value_to_plot)
-    axes_object.set_ylim(0., max_value_to_plot)
+    axes_object.set_xlim(min_value_to_plot, max_value_to_plot)
+    axes_object.set_ylim(min_value_to_plot, max_value_to_plot)
 
 
-def _get_positive_skill_area(mean_value_in_training, max_value_in_plot):
+def _get_positive_skill_area(mean_value_in_training, min_value_in_plot,
+                             max_value_in_plot):
     """Returns positive-skill area (where BSS > 0) for attributes diagram.
 
     :param mean_value_in_training: Mean of target variable in training data.
-    :param max_value_in_plot: Max of target variable in plot.
+    :param min_value_in_plot: Minimum value in plot (for both x- and y-axes).
+    :param max_value_in_plot: Max value in plot (for both x- and y-axes).
     :return: x_coords_left: length-5 numpy array of x-coordinates for left part
         of positive-skill area.
     :return: y_coords_left: Same but for y-coordinates.
@@ -146,10 +140,12 @@ def _get_positive_skill_area(mean_value_in_training, max_value_in_plot):
     """
 
     x_coords_left = numpy.array([
-        0, mean_value_in_training, mean_value_in_training, 0, 0
+        min_value_in_plot, mean_value_in_training, mean_value_in_training,
+        min_value_in_plot, min_value_in_plot
     ])
     y_coords_left = numpy.array([
-        0, 0, mean_value_in_training, mean_value_in_training / 2, 0
+        min_value_in_plot, min_value_in_plot, mean_value_in_training,
+        (min_value_in_plot + mean_value_in_training) / 2, min_value_in_plot
     ])
 
     x_coords_right = numpy.array([
@@ -165,36 +161,39 @@ def _get_positive_skill_area(mean_value_in_training, max_value_in_plot):
     return x_coords_left, y_coords_left, x_coords_right, y_coords_right
 
 
-def _get_zero_skill_line(mean_value_in_training, max_value_in_plot):
+def _get_zero_skill_line(mean_value_in_training, min_value_in_plot,
+                         max_value_in_plot):
     """Returns zero-skill line (where BSS = 0) for attributes diagram.
 
     :param mean_value_in_training: Mean of target variable in training data.
-    :param max_value_in_plot: Max of target variable in plot.
+    :param min_value_in_plot: Minimum value in plot (for both x- and y-axes).
+    :param max_value_in_plot: Max value in plot (for both x- and y-axes).
     :return: x_coords: length-2 numpy array of x-coordinates.
     :return: y_coords: Same but for y-coordinates.
     """
 
-    x_coords = numpy.array([0, max_value_in_plot], dtype=float)
-    y_coords = 0.5 * numpy.array([
-        mean_value_in_training, max_value_in_plot + mean_value_in_training
-    ], dtype=float)
+    x_coords = numpy.array([min_value_in_plot, max_value_in_plot], dtype=float)
+    y_coords = 0.5 * (mean_value_in_training + x_coords)
 
     return x_coords, y_coords
 
 
-def _plot_attr_diagram_background(axes_object, mean_value_in_training,
-                                  max_value_in_plot):
+def _plot_attr_diagram_background(
+        axes_object, mean_value_in_training, min_value_in_plot,
+        max_value_in_plot):
     """Plots background (reference lines and polygons) of attributes diagram.
 
     :param axes_object: Will plot on these axes (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
     :param mean_value_in_training: Mean of target variable in training data.
-    :param max_value_in_plot: Max of target variable in plot.
+    :param min_value_in_plot: Minimum value in plot (for both x- and y-axes).
+    :param max_value_in_plot: Max value in plot (for both x- and y-axes).
     """
 
     x_coords_left, y_coords_left, x_coords_right, y_coords_right = (
         _get_positive_skill_area(
             mean_value_in_training=mean_value_in_training,
+            min_value_in_plot=min_value_in_plot,
             max_value_in_plot=max_value_in_plot
         )
     )
@@ -220,6 +219,7 @@ def _plot_attr_diagram_background(axes_object, mean_value_in_training,
 
     no_skill_x_coords, no_skill_y_coords = _get_zero_skill_line(
         mean_value_in_training=mean_value_in_training,
+        min_value_in_plot=min_value_in_plot,
         max_value_in_plot=max_value_in_plot
     )
 
@@ -229,7 +229,7 @@ def _plot_attr_diagram_background(axes_object, mean_value_in_training,
     )
 
     climo_x_coords = numpy.full(2, mean_value_in_training)
-    climo_y_coords = numpy.array([0, max_value_in_plot])
+    climo_y_coords = numpy.array([min_value_in_plot, max_value_in_plot])
     axes_object.plot(
         climo_x_coords, climo_y_coords, color=CLIMO_LINE_COLOUR,
         linestyle='dashed', linewidth=CLIMO_LINE_WIDTH
@@ -243,7 +243,7 @@ def _plot_attr_diagram_background(axes_object, mean_value_in_training,
 
 def _plot_attr_diagram_histogram(
         figure_object, main_axes_object, mean_predictions, example_counts,
-        max_prediction_in_plot):
+        min_prediction_to_plot, max_prediction_to_plot):
     """Plots inset histogram for attributes diagram.
 
     B = number of bins
@@ -255,7 +255,8 @@ def _plot_attr_diagram_histogram(
     :param mean_predictions: length-B numpy array of mean predictions.
     :param example_counts: length-B numpy array with number of examples in
         each bin.
-    :param max_prediction_in_plot: Maximum value on x-axis.
+    :param min_prediction_to_plot: Minimum prediction to plot.
+    :param max_prediction_to_plot: Max prediction to plot.
     """
 
     example_frequencies = (
@@ -287,12 +288,13 @@ def _plot_attr_diagram_histogram(
         'Prediction frequency', fontsize=HISTOGRAM_FONT_SIZE
     )
 
-    inset_axes_object.set_xlim(0., max_prediction_in_plot)
+    inset_axes_object.set_xlim(min_prediction_to_plot, max_prediction_to_plot)
 
 
 def plot_attributes_diagram(
         figure_object, axes_object, mean_predictions, mean_observations,
-        example_counts, mean_value_in_training):
+        example_counts, mean_value_in_training, min_value_to_plot,
+        max_value_to_plot):
     """Plots attributes diagram.
 
     B = number of bins
@@ -306,17 +308,16 @@ def plot_attributes_diagram(
     :param example_counts: length-B numpy array with number of examples in each
         bin.
     :param mean_value_in_training: Mean of target variable in training data.
+    :param min_value_to_plot: Minimum value in plot (for both x- and y-axes).
+    :param max_value_to_plot: Max value in plot (for both x- and y-axes).
+        If None, will be determined automatically.
     """
 
-    # error_checking.assert_is_numpy_array_without_nan(mean_predictions)
+    # Check input args.
     error_checking.assert_is_numpy_array(mean_predictions, num_dimensions=1)
 
     num_bins = len(mean_predictions)
     expected_dim = numpy.array([num_bins], dtype=int)
-
-    error_checking.assert_is_geq_numpy_array(
-        mean_observations, 0., allow_nan=True
-    )
     error_checking.assert_is_numpy_array(
         mean_observations, exact_dimensions=expected_dim
     )
@@ -327,32 +328,26 @@ def plot_attributes_diagram(
         example_counts, exact_dimensions=expected_dim
     )
 
-    error_checking.assert_is_geq(mean_value_in_training, 0.)
+    error_checking.assert_is_not_nan(mean_value_in_training)
+    error_checking.assert_is_greater(max_value_to_plot, min_value_to_plot)
 
-    max_value_for_main_plot = numpy.maximum(
-        numpy.nanmax(mean_predictions), numpy.nanmax(mean_observations)
-    )
     _plot_attr_diagram_background(
         axes_object=axes_object, mean_value_in_training=mean_value_in_training,
-        max_value_in_plot=max_value_for_main_plot
+        min_value_in_plot=min_value_to_plot, max_value_in_plot=max_value_to_plot
     )
 
-    real_predictions = mean_predictions[
-        numpy.invert(numpy.isnan(mean_predictions))
-    ]
-    max_value_for_histogram = (
-        numpy.max(real_predictions) + 0.5 * numpy.diff(real_predictions[-2:])
-    )
     _plot_attr_diagram_histogram(
         figure_object=figure_object, main_axes_object=axes_object,
         mean_predictions=mean_predictions, example_counts=example_counts,
-        max_prediction_in_plot=max_value_for_histogram
+        min_prediction_to_plot=min_value_to_plot,
+        max_prediction_to_plot=max_value_to_plot
     )
 
     _plot_reliability_curve(
         axes_object=axes_object, mean_predictions=mean_predictions,
         mean_observations=mean_observations,
-        max_value_to_plot=max_value_for_main_plot
+        min_value_to_plot=min_value_to_plot,
+        max_value_to_plot=max_value_to_plot
     )
 
 
@@ -484,7 +479,7 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
 
 def plot_rel_curve_many_heights(
         mean_target_matrix, mean_prediction_matrix, heights_m_agl,
-        max_value_to_plot, axes_object,
+        min_value_to_plot, max_value_to_plot, axes_object,
         colour_map_object=DEFAULT_HEIGHT_CMAP_OBJECT):
     """Plots reliability curves for many heights on the same axes.
 
@@ -499,19 +494,15 @@ def plot_rel_curve_many_heights(
     :param mean_prediction_matrix: H-by-B numpy array of mean predicted values.
     :param heights_m_agl: length-H numpy array of heights (metres above ground
         level).
-    :param max_value_to_plot: Maximum value to plot (for both x- and y-axes).
+    :param min_value_to_plot: Minimum value to plot (for both x- and y-axes).
+    :param max_value_to_plot: Max value to plot (for both x- and y-axes).
     :param axes_object: Will plot on these axes (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
     :param colour_map_object: Colour map (instance of `matplotlib.pyplot.cm` or
         similar).  Will be used to colour reliability curves by height.
     """
 
-    error_checking.assert_is_geq_numpy_array(
-        mean_target_matrix, 0., allow_nan=True
-    )
     error_checking.assert_is_numpy_array(mean_target_matrix, num_dimensions=2)
-
-    # error_checking.assert_is_numpy_array_without_nan(mean_prediction_matrix)
     error_checking.assert_is_numpy_array(
         mean_prediction_matrix,
         exact_dimensions=numpy.array(mean_target_matrix.shape, dtype=int)
@@ -524,7 +515,7 @@ def plot_rel_curve_many_heights(
         heights_m_agl, exact_dimensions=numpy.array([num_heights], dtype=int)
     )
 
-    error_checking.assert_is_greater(max_value_to_plot, 0.)
+    error_checking.assert_is_greater(max_value_to_plot, min_value_to_plot)
 
     heights_km_agl = heights_m_agl * METRES_TO_KM
     colour_norm_object = matplotlib.colors.LogNorm(
@@ -540,11 +531,12 @@ def plot_rel_curve_many_heights(
             axes_object=axes_object,
             mean_predictions=mean_prediction_matrix[j, :],
             mean_observations=mean_target_matrix[j, :],
-            line_colour=this_colour, max_value_to_plot=max_value_to_plot
+            line_colour=this_colour, min_value_to_plot=min_value_to_plot,
+            max_value_to_plot=max_value_to_plot
         )
 
-    axes_object.set_xlim(0., max_value_to_plot)
-    axes_object.set_ylim(0., max_value_to_plot)
+    axes_object.set_xlim(min_value_to_plot, max_value_to_plot)
+    axes_object.set_ylim(min_value_to_plot, max_value_to_plot)
 
     colour_bar_object = plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=heights_km_agl,

@@ -228,8 +228,8 @@ def _run(input_file_name, output_dir_name):
         evaluation_plotting.plot_rel_curve_many_heights(
             mean_target_matrix=this_mean_target_matrix,
             mean_prediction_matrix=this_mean_prediction_matrix,
-            heights_m_agl=heights_m_agl, max_value_to_plot=this_max_value,
-            axes_object=this_axes_object
+            heights_m_agl=heights_m_agl, min_value_to_plot=0.,
+            max_value_to_plot=this_max_value, axes_object=this_axes_object
         )
 
         this_axes_object.set_title(
@@ -325,6 +325,10 @@ def _run(input_file_name, output_dir_name):
         this_climo_value = (
             mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, k]
         )
+        this_max_value = numpy.nanpercentile(
+            numpy.concatenate((these_mean_predictions, these_mean_targets)),
+            99.
+        )
 
         this_figure_object, this_axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -335,7 +339,8 @@ def _run(input_file_name, output_dir_name):
             mean_predictions=these_mean_predictions,
             mean_observations=these_mean_targets,
             example_counts=these_example_counts,
-            mean_value_in_training=this_climo_value
+            mean_value_in_training=this_climo_value,
+            min_value_to_plot=0., max_value_to_plot=this_max_value
         )
 
         this_axes_object.set_title(
@@ -428,6 +433,10 @@ def _run(input_file_name, output_dir_name):
                     example_io.VECTOR_TARGET_VALS_KEY
                 ][0, j, k]
             )
+            this_max_value = numpy.nanpercentile(
+                numpy.concatenate((these_mean_predictions, these_mean_targets)),
+                99.
+            )
 
             this_figure_object, this_axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -438,7 +447,8 @@ def _run(input_file_name, output_dir_name):
                 mean_predictions=these_mean_predictions,
                 mean_observations=these_mean_targets,
                 example_counts=these_example_counts,
-                mean_value_in_training=this_climo_value
+                mean_value_in_training=this_climo_value,
+                min_value_to_plot=0., max_value_to_plot=this_max_value
             )
 
             this_height_string_unpadded = '{0:d}'.format(
@@ -493,7 +503,8 @@ def _run(input_file_name, output_dir_name):
             this_taylor_diag_object = evaluation_plotting.plot_taylor_diagram(
                 target_stdev=this_target_stdev,
                 prediction_stdev=this_prediction_stdev,
-                correlation=this_correlation, marker_colour=TAYLOR_MARKER_COLOUR,
+                correlation=this_correlation,
+                marker_colour=TAYLOR_MARKER_COLOUR,
                 figure_object=this_figure_object
             )
 
