@@ -9,6 +9,7 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.io import prediction_io
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
 
@@ -40,7 +41,7 @@ OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
     'Path to prediction file, containing both predicted and actual (target) '
-    'profiles.  Will be read by `neural_net.read_predictions`.'
+    'profiles.  Will be read by `prediction_io.read_file`.'
 )
 EXAMPLE_INDICES_HELP_STRING = (
     'Indices of examples to plot.  If you do not want to plot specific '
@@ -219,10 +220,10 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
         prediction_file_name
     ))
 
-    prediction_dict = neural_net.read_predictions(prediction_file_name)
-    vector_target_matrix = prediction_dict[neural_net.VECTOR_TARGETS_KEY]
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+    vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
     vector_prediction_matrix = (
-        prediction_dict[neural_net.VECTOR_PREDICTIONS_KEY]
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
 
     num_examples_total = vector_target_matrix.shape[0]
@@ -254,7 +255,7 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
             vector_prediction_matrix[example_indices, ...]
         )
 
-    model_file_name = prediction_dict[neural_net.MODEL_FILE_KEY]
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True

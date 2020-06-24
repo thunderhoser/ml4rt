@@ -4,6 +4,7 @@ import os.path
 import argparse
 import numpy
 from ml4rt.io import example_io
+from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
@@ -15,7 +16,7 @@ OUTPUT_FILE_ARG_NAME = 'output_eval_file_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing predicted and actual target values.  Will '
-    'be read by `neural_net.read_predictions`.'
+    'be read by `prediction_io.read_file`.'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file (will be written by `evaluation.write_file`).'
@@ -42,9 +43,9 @@ def _run(prediction_file_name, evaluation_file_name):
     """
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
-    prediction_dict = neural_net.read_predictions(prediction_file_name)
+    prediction_dict = prediction_io.read_file(prediction_file_name)
 
-    model_file_name = prediction_dict[neural_net.MODEL_FILE_KEY]
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
@@ -82,12 +83,12 @@ def _run(prediction_file_name, evaluation_file_name):
     )
 
     evaluation_dict = evaluation.get_scores_all_variables(
-        scalar_target_matrix=prediction_dict[neural_net.SCALAR_TARGETS_KEY],
+        scalar_target_matrix=prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         scalar_prediction_matrix=
-        prediction_dict[neural_net.SCALAR_PREDICTIONS_KEY],
-        vector_target_matrix=prediction_dict[neural_net.VECTOR_TARGETS_KEY],
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+        vector_target_matrix=prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
         vector_prediction_matrix=
-        prediction_dict[neural_net.VECTOR_PREDICTIONS_KEY],
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         mean_training_example_dict=mean_training_example_dict
     )
 

@@ -6,6 +6,7 @@ import argparse
 import numpy
 from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
+from ml4rt.io import prediction_io
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
@@ -36,7 +37,7 @@ TIME_HELP_STRING = (
 ).format(FIRST_TIME_ARG_NAME, LAST_TIME_ARG_NAME)
 
 OUTPUT_FILE_HELP_STRING = (
-    'Path to output file (will be written by `neural_net.write_predictions`).'
+    'Path to output file (will be written by `prediction_io.write_file`).'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -254,7 +255,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         output_file_name
     ))
 
-    neural_net.write_predictions(
+    prediction_io.write_file(
         netcdf_file_name=output_file_name,
         scalar_target_matrix=
         target_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
