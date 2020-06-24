@@ -165,17 +165,15 @@ def _run(prediction_file_name, evaluation_file_name):
             ))
 
         print(SEPARATOR_STRING)
-    
-    print(result_table_xarray.coords)
 
-    if evaluation.AUX_TARGET_NAMES_KEY in result_table_xarray.coords:
+    try:
         aux_target_field_names = (
             result_table_xarray[evaluation.AUX_TARGET_NAMES_KEY].values
         )
         aux_predicted_field_names = (
             result_table_xarray[evaluation.AUX_PREDICTED_NAMES_KEY].values
         )
-    else:
+    except:
         aux_target_field_names = []
         aux_predicted_field_names = []
 
