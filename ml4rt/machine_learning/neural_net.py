@@ -1217,6 +1217,7 @@ def cnn_generator(option_dict, for_inference, use_custom_loss):
         predictor_matrix = predictor_matrix.astype('float32')
         vector_target_matrix = vector_target_matrix.astype('float32')
         scalar_target_matrix = scalar_target_matrix.astype('float32')
+        print(scalar_target_matrix.shape)
 
         if for_inference:
             yield (
