@@ -1483,7 +1483,8 @@ def train_neural_net(
         directory_name=output_dir_name
     )
     error_checking.assert_is_integer(num_epochs)
-    error_checking.assert_is_geq(num_epochs, 10)
+    # error_checking.assert_is_geq(num_epochs, 10)
+    error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_integer(num_training_batches_per_epoch)
     error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
