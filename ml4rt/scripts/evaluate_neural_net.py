@@ -121,6 +121,38 @@ def _run(prediction_file_name, evaluation_file_name):
 
     print(SEPARATOR_STRING)
 
+    if evaluation.AUX_TARGET_NAMES_KEY in result_table_xarray:
+        aux_target_field_names = (
+            result_table_xarray[evaluation.AUX_TARGET_NAMES_KEY].values
+        )
+        aux_predicted_field_names = (
+            result_table_xarray[evaluation.AUX_PREDICTED_NAMES_KEY].values
+        )
+    else:
+        aux_target_field_names = []
+        aux_predicted_field_names = []
+
+    for k in range(len(aux_target_field_names)):
+        print((
+            'Target variable = "{0:s}" ... predicted variable = "{1:s}" ... '
+            'stdev of target and predicted values = {2:f}, {3:f} ... '
+            'MSE and skill score = {4:f}, {5:f} ... '
+            'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
+            'correlation = {9:f}'
+        ).format(
+            aux_target_field_names[k], aux_predicted_field_names[k],
+            result_table_xarray[evaluation.AUX_TARGET_STDEV_KEY].values[k],
+            result_table_xarray[evaluation.AUX_PREDICTION_STDEV_KEY].values[k],
+            result_table_xarray[evaluation.AUX_MSE_KEY].values[k],
+            result_table_xarray[evaluation.AUX_MSE_SKILL_KEY].values[k],
+            result_table_xarray[evaluation.AUX_MAE_KEY].values[k],
+            result_table_xarray[evaluation.AUX_MAE_SKILL_KEY].values[k],
+            result_table_xarray[evaluation.AUX_BIAS_KEY].values[k],
+            result_table_xarray[evaluation.AUX_CORRELATION_KEY].values[k]
+        ))
+
+    print(SEPARATOR_STRING)
+
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
