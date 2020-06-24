@@ -329,7 +329,9 @@ def plot_attributes_diagram(
     )
 
     error_checking.assert_is_not_nan(mean_value_in_training)
-    error_checking.assert_is_greater(max_value_to_plot, min_value_to_plot)
+    error_checking.assert_is_geq(max_value_to_plot, min_value_to_plot)
+    if max_value_to_plot == min_value_to_plot:
+        max_value_to_plot = min_value_to_plot + 1.
 
     _plot_attr_diagram_background(
         axes_object=axes_object, mean_value_in_training=mean_value_in_training,
