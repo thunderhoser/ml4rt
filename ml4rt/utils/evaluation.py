@@ -1,7 +1,7 @@
 """Methods for model evaluation."""
 
-import pickle
 import numpy
+import xarray
 from gewittergefahr.gg_utils import histograms
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -10,36 +10,36 @@ from ml4rt.io import example_io
 DEFAULT_NUM_RELIABILITY_BINS = 20
 DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
 
-SCALAR_TARGET_STDEV_KEY = 'scalar_target_stdevs'
-SCALAR_PREDICTION_STDEV_KEY = 'scalar_prediction_stdevs'
-VECTOR_TARGET_STDEV_KEY = 'vector_target_stdev_matrix'
-VECTOR_PREDICTION_STDEV_KEY = 'vector_prediction_stdev_matrix'
-SCALAR_MSE_KEY = 'scalar_mse_values'
-SCALAR_MSE_SKILL_KEY = 'scalar_mse_skill_scores'
-VECTOR_MSE_KEY = 'vector_mse_matrix'
-VECTOR_MSE_SKILL_KEY = 'vector_mse_ss_matrix'
-SCALAR_MAE_KEY = 'scalar_mae_values'
-SCALAR_MAE_SKILL_KEY = 'scalar_mae_skill_scores'
-VECTOR_MAE_KEY = 'vector_mae_matrix'
-VECTOR_MAE_SKILL_KEY = 'vector_mae_ss_matrix'
-SCALAR_BIAS_KEY = 'scalar_biases'
-VECTOR_BIAS_KEY = 'vector_bias_matrix'
-SCALAR_CORRELATION_KEY = 'scalar_correlations'
-VECTOR_CORRELATION_KEY = 'vector_correlation_matrix'
-VECTOR_PRMSE_KEY = 'vector_prmse_values'
-SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x_matrix'
-SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y_matrix'
-SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count_matrix'
-VECTOR_RELIABILITY_X_KEY = 'vector_reliability_x_matrix'
-VECTOR_RELIABILITY_Y_KEY = 'vector_reliability_y_matrix'
-VECTOR_RELIABILITY_COUNT_KEY = 'vector_reliability_count_matrix'
+SCALAR_FIELD_DIM = 'scalar_field'
+HEIGHT_DIM = 'height_m_agl'
+VECTOR_FIELD_DIM = 'vector_field'
+RELIABILITY_BIN_DIM = 'reliability_bin'
+
+SCALAR_TARGET_STDEV_KEY = 'scalar_target_stdev'
+SCALAR_PREDICTION_STDEV_KEY = 'scalar_prediction_stdev'
+VECTOR_TARGET_STDEV_KEY = 'vector_target_stdev'
+VECTOR_PREDICTION_STDEV_KEY = 'vector_prediction_stdev'
+SCALAR_MSE_KEY = 'scalar_mse'
+SCALAR_MSE_SKILL_KEY = 'scalar_mse_skill_score'
+VECTOR_MSE_KEY = 'vector_mse'
+VECTOR_MSE_SKILL_KEY = 'vector_mse_skill_score'
+SCALAR_MAE_KEY = 'scalar_mae'
+SCALAR_MAE_SKILL_KEY = 'scalar_mae_skill_score'
+VECTOR_MAE_KEY = 'vector_mae'
+VECTOR_MAE_SKILL_KEY = 'vector_mae_skill_score'
+SCALAR_BIAS_KEY = 'scalar_bias'
+VECTOR_BIAS_KEY = 'vector_bias'
+SCALAR_CORRELATION_KEY = 'scalar_correlation'
+VECTOR_CORRELATION_KEY = 'vector_correlation'
+VECTOR_PRMSE_KEY = 'vector_prmse'
+SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x'
+SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y'
+SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count'
+VECTOR_RELIABILITY_X_KEY = 'vector_reliability_x'
+VECTOR_RELIABILITY_Y_KEY = 'vector_reliability_y'
+VECTOR_RELIABILITY_COUNT_KEY = 'vector_reliability_count'
 
 MODEL_FILE_KEY = 'model_file_name'
-
-REQUIRED_KEYS = [
-    SCALAR_TARGET_STDEV_KEY, SCALAR_PREDICTION_STDEV_KEY,
-    VECTOR_TARGET_STDEV_KEY, VECTOR_PREDICTION_STDEV_KEY, MODEL_FILE_KEY
-]
 
 
 def _check_args(
@@ -270,7 +270,6 @@ def get_scores_all_variables(
     H = number of heights
     T_s = number of scalar targets
     T_v = number of vector targets
-    B = number of bins for reliability curve
 
     :param scalar_target_matrix: numpy array (E x T_s) of target (actual)
         values.
@@ -302,50 +301,8 @@ def get_scores_all_variables(
         scalar target variable y, the upper edge of the last bin will be the
         [q]th percentile of y-values, where q = `max_bin_edge_percentile`.
 
-    :return: evaluation_dict: Dictionary with the following keys (some may be
-        missing, depending on input args).
-    evaluation_dict['scalar_target_stdevs']: numpy array (length T_s) of
-        standard deviations for actual values.
-    evaluation_dict['scalar_prediction_stdevs']: numpy array (length T_s) of
-        standard deviations for predicted values.
-    evaluation_dict['vector_target_stdev_matrix']: numpy array (H x T_v) of
-        standard deviations for actual values.
-    evaluation_dict['vector_prediction_stdev_matrix']: numpy array (H x T_v) of
-        standard deviations for predicted values.
-    evaluation_dict['scalar_mse_values']: numpy array (length T_s) of mean
-        squared errors.
-    evaluation_dict['scalar_mse_skill_scores']: numpy array (length T_s) of MSE
-        skill scores.
-    evaluation_dict['vector_mse_matrix']: numpy array (H x T_v) of mean squared
-        errors.
-    evaluation_dict['vector_mse_ss_matrix']: numpy array (H x T_v) of MSE skill
-        scores.
-    evaluation_dict['scalar_mae_values']: numpy array (length T_s) of mean
-        absolute errors.
-    evaluation_dict['scalar_mae_skill_scores']: numpy array (length T_s) of MAE
-        skill scores.
-    evaluation_dict['vector_mae_matrix']: numpy array (H x T_v) of mean absolute
-        errors.
-    evaluation_dict['vector_mae_ss_matrix']: numpy array (H x T_v) of MAE skill
-        scores.
-    evaluation_dict['scalar_biases']: numpy array (length T_s) of biases.
-    evaluation_dict['vector_bias_matrix']: numpy array (H x T_v) of biases.
-    evaluation_dict['scalar_correlations']: numpy array (length T_s) of
-        correlations.
-    evaluation_dict['vector_correlation_matrix']: numpy array (H x T_v) of
-        correlations.
-    evaluation_dict['prmse_values']: numpy array (length T_v) of profile-RMSE
-        values.
-    evaluation_dict['scalar_reliability_x_matrix']: numpy array (T_s x B) of
-        x-coordinates for reliability curves.
-    evaluation_dict['scalar_reliability_y_matrix']: Same but for y-coordinates.
-    evaluation_dict['scalar_reliability_count_matrix']: Same but for example
-        counts.
-    evaluation_dict['vector_reliability_x_matrix']: numpy array (H x T_v x B) of
-        x-coordinates for reliability curves.
-    evaluation_dict['vector_reliability_y_matrix']: Same but for y-coordinates.
-    evaluation_dict['vector_reliability_count_matrix']: Same but for example
-        counts.
+    :return: result_table_xarray: xarray table with results (variable and
+        dimension names should make the table self-explanatory).
     """
 
     # TODO(thunderhoser): This method could use a unit test.
@@ -376,16 +333,28 @@ def get_scores_all_variables(
         'Computing standard deviations of target (actual) and predicted '
         'values...'
     )
-    evaluation_dict = {
-        SCALAR_TARGET_STDEV_KEY:
-            numpy.std(scalar_target_matrix, axis=0, ddof=1),
-        SCALAR_PREDICTION_STDEV_KEY:
-            numpy.std(scalar_prediction_matrix, axis=0, ddof=1),
-        VECTOR_TARGET_STDEV_KEY:
-            numpy.std(vector_target_matrix, axis=0, ddof=1),
-        VECTOR_PREDICTION_STDEV_KEY:
-            numpy.std(vector_prediction_matrix, axis=0, ddof=1)
+
+    scalar_target_stdevs = numpy.std(scalar_target_matrix, axis=0, ddof=1)
+    scalar_prediction_stdevs = numpy.std(
+        scalar_prediction_matrix, axis=0, ddof=1
+    )
+    vector_target_stdev_matrix = numpy.std(vector_target_matrix, axis=0, ddof=1)
+    vector_prediction_stdev_matrix = numpy.std(
+        vector_prediction_matrix, axis=0, ddof=1
+    )
+
+    these_dim = (SCALAR_FIELD_DIM,)
+    main_data_dict = {
+        SCALAR_TARGET_STDEV_KEY: (these_dim, scalar_target_stdevs),
+        SCALAR_PREDICTION_STDEV_KEY: (these_dim, scalar_prediction_stdevs)
     }
+
+    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
+    new_dict = {
+        VECTOR_TARGET_STDEV_KEY: (these_dim, vector_target_stdev_matrix),
+        VECTOR_PREDICTION_STDEV_KEY: (these_dim, vector_prediction_stdev_matrix)
+    }
+    main_data_dict.update(new_dict)
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
@@ -413,8 +382,12 @@ def get_scores_all_variables(
                 mean_training_target_value=this_climo_value
             )
 
-        evaluation_dict[SCALAR_MSE_KEY] = scalar_mse_values
-        evaluation_dict[SCALAR_MSE_SKILL_KEY] = scalar_mse_skill_scores
+        these_dim = (SCALAR_FIELD_DIM,)
+        new_dict = {
+            SCALAR_MSE_KEY: (these_dim, scalar_mse_values),
+            SCALAR_MSE_SKILL_KEY: (these_dim, scalar_mse_skill_scores)
+        }
+        main_data_dict.update(new_dict)
 
         vector_mse_matrix = numpy.full(
             (num_heights, num_vector_targets), numpy.nan
@@ -440,8 +413,12 @@ def get_scores_all_variables(
                     mean_training_target_value=this_climo_value
                 )
 
-        evaluation_dict[VECTOR_MSE_KEY] = vector_mse_matrix
-        evaluation_dict[VECTOR_MSE_SKILL_KEY] = vector_mse_ss_matrix
+        these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
+        new_dict = {
+            VECTOR_MSE_KEY: (these_dim, vector_mse_matrix),
+            VECTOR_MSE_SKILL_KEY: (these_dim, vector_mse_ss_matrix)
+        }
+        main_data_dict.update(new_dict)
 
     if get_mae:
         print('Computing mean absolute errors (MAE) and MAE skill scores...')
@@ -465,8 +442,12 @@ def get_scores_all_variables(
                 mean_training_target_value=this_climo_value
             )
 
-        evaluation_dict[SCALAR_MAE_KEY] = scalar_mae_values
-        evaluation_dict[SCALAR_MAE_SKILL_KEY] = scalar_mae_skill_scores
+        these_dim = (SCALAR_FIELD_DIM,)
+        new_dict = {
+            SCALAR_MAE_KEY: (these_dim, scalar_mae_values),
+            SCALAR_MAE_SKILL_KEY: (these_dim, scalar_mae_skill_scores)
+        }
+        main_data_dict.update(new_dict)
 
         vector_mae_matrix = numpy.full(
             (num_heights, num_vector_targets), numpy.nan
@@ -492,8 +473,12 @@ def get_scores_all_variables(
                     mean_training_target_value=this_climo_value
                 )
 
-        evaluation_dict[VECTOR_MAE_KEY] = vector_mae_matrix
-        evaluation_dict[VECTOR_MAE_SKILL_KEY] = vector_mae_ss_matrix
+        these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
+        new_dict = {
+            VECTOR_MAE_KEY: (these_dim, vector_mae_matrix),
+            VECTOR_MAE_SKILL_KEY: (these_dim, vector_mae_ss_matrix)
+        }
+        main_data_dict.update(new_dict)
 
     if get_bias:
         print('Computing biases...')
@@ -506,7 +491,11 @@ def get_scores_all_variables(
                 predicted_values=scalar_prediction_matrix[:, k]
             )
 
-        evaluation_dict[SCALAR_BIAS_KEY] = scalar_biases
+        these_dim = (SCALAR_FIELD_DIM,)
+        new_dict = {
+            SCALAR_BIAS_KEY: (these_dim, scalar_biases)
+        }
+        main_data_dict.update(new_dict)
 
         vector_bias_matrix = numpy.full(
             (num_heights, num_vector_targets), numpy.nan
@@ -519,7 +508,11 @@ def get_scores_all_variables(
                     predicted_values=vector_prediction_matrix[:, j, k]
                 )
 
-        evaluation_dict[VECTOR_BIAS_KEY] = vector_bias_matrix
+        these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
+        new_dict = {
+            VECTOR_BIAS_KEY: (these_dim, vector_bias_matrix)
+        }
+        main_data_dict.update(new_dict)
 
     if get_correlation:
         print('Computing correlations...')
@@ -532,7 +525,11 @@ def get_scores_all_variables(
                 predicted_values=scalar_prediction_matrix[:, k]
             )
 
-        evaluation_dict[SCALAR_CORRELATION_KEY] = scalar_correlations
+        these_dim = (SCALAR_FIELD_DIM,)
+        new_dict = {
+            SCALAR_CORRELATION_KEY: (these_dim, scalar_correlations)
+        }
+        main_data_dict.update(new_dict)
 
         vector_correlation_matrix = numpy.full(
             (num_heights, num_vector_targets), numpy.nan
@@ -547,7 +544,11 @@ def get_scores_all_variables(
                     )
                 )
 
-        evaluation_dict[VECTOR_CORRELATION_KEY] = vector_correlation_matrix
+        these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
+        new_dict = {
+            VECTOR_CORRELATION_KEY: (these_dim, vector_correlation_matrix)
+        }
+        main_data_dict.update(new_dict)
 
     if get_prmse:
         print('Computing profile root mean squared errors (PRMSE)...')
@@ -560,7 +561,11 @@ def get_scores_all_variables(
                 prediction_matrix=vector_prediction_matrix[..., k]
             )
 
-        evaluation_dict[VECTOR_PRMSE_KEY] = vector_prmse_values
+        these_dim = (VECTOR_FIELD_DIM,)
+        new_dict = {
+            VECTOR_PRMSE_KEY: (these_dim, vector_prmse_values)
+        }
+        main_data_dict.update(new_dict)
 
     if get_reliability_curve:
         print('Computing reliability curves...')
@@ -584,11 +589,14 @@ def get_scores_all_variables(
             scalar_reliability_y_matrix[k, :] = these_y
             scalar_reliability_count_matrix[k, :] = these_counts
 
-        evaluation_dict[SCALAR_RELIABILITY_X_KEY] = scalar_reliability_x_matrix
-        evaluation_dict[SCALAR_RELIABILITY_Y_KEY] = scalar_reliability_y_matrix
-        evaluation_dict[SCALAR_RELIABILITY_COUNT_KEY] = (
-            scalar_reliability_count_matrix
-        )
+        these_dim = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
+        new_dict = {
+            SCALAR_RELIABILITY_X_KEY: (these_dim, scalar_reliability_x_matrix),
+            SCALAR_RELIABILITY_Y_KEY: (these_dim, scalar_reliability_y_matrix),
+            SCALAR_RELIABILITY_COUNT_KEY:
+                (these_dim, scalar_reliability_count_matrix)
+        }
+        main_data_dict.update(new_dict)
 
         these_dim = (num_heights, num_vector_targets, num_reliability_bins)
         vector_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
@@ -613,67 +621,57 @@ def get_scores_all_variables(
                 vector_reliability_y_matrix[j, k, :] = these_y
                 vector_reliability_count_matrix[j, k, :] = these_counts
 
-        evaluation_dict[VECTOR_RELIABILITY_X_KEY] = (
-            vector_reliability_x_matrix
-        )
-        evaluation_dict[VECTOR_RELIABILITY_Y_KEY] = (
-            vector_reliability_y_matrix
-        )
-        evaluation_dict[VECTOR_RELIABILITY_COUNT_KEY] = (
-            vector_reliability_count_matrix
-        )
+        these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
+        new_dict = {
+            VECTOR_RELIABILITY_X_KEY: (these_dim, vector_reliability_x_matrix),
+            VECTOR_RELIABILITY_Y_KEY: (these_dim, vector_reliability_y_matrix),
+            VECTOR_RELIABILITY_COUNT_KEY:
+                (these_dim, vector_reliability_count_matrix)
+        }
+        main_data_dict.update(new_dict)
 
-    return evaluation_dict
+    bin_indices = numpy.linspace(
+        0, num_reliability_bins - 1, num=num_reliability_bins, dtype=int
+    )
+
+    metadata_dict = {
+        SCALAR_FIELD_DIM:
+            mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: mean_training_example_dict[example_io.HEIGHTS_KEY],
+        VECTOR_FIELD_DIM:
+            mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY],
+        RELIABILITY_BIN_DIM: bin_indices
+    }
+
+    return xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
 
 
-def write_file(evaluation_dict, pickle_file_name):
-    """Writes evaluation results to Pickle file.
+def write_file(result_table_xarray, netcdf_file_name):
+    """Writes evaluation results to NetCDF file.
 
-    :param evaluation_dict: Dictionary created by `get_scores_all_variables`,
-        but with one extra key.
-    evaluation_dict['model_file_name']: Path to model used to generate
-        predictions (readable by `neural_net.read_model`).
-
-    :param pickle_file_name: Path to output file.
+    :param result_table_xarray: xarray table produced by
+        `get_scores_all_variables`.
+    :param netcdf_file_name: Path to output file.
     """
 
-    missing_keys = list(set(REQUIRED_KEYS) - set(evaluation_dict.keys()))
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    # result_table_xarray.to_netcdf(
+    #     path=netcdf_file_name, mode='w', format='NETCDF3_64BIT_OFFSET'
+    # )
 
-    if len(missing_keys) != 0:
-        error_string = (
-            '\n{0:s}\nKeys listed above were expected, but not found, in '
-            'dictionary.'
-        ).format(str(missing_keys))
-
-        raise ValueError(error_string)
-
-    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
-
-    pickle_file_handle = open(pickle_file_name, 'wb')
-    pickle.dump(evaluation_dict, pickle_file_handle)
-    pickle_file_handle.close()
+    result_table_xarray.to_netcdf(
+        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    )
 
 
-def read_file(pickle_file_name):
-    """Reads evaluation results from Pickle file.
+def read_file(netcdf_file_name):
+    """Reads evaluation results from NetCDF file.
 
-    :param pickle_file_name: Path to input file.
-    :return: evaluation_dict: See doc for `write_file`.
+    :param netcdf_file_name: Path to input file.
+    :return: result_table_xarray: xarray table produced by
+        `get_scores_all_variables`.
     """
 
-    error_checking.assert_file_exists(pickle_file_name)
-
-    pickle_file_handle = open(pickle_file_name, 'rb')
-    evaluation_dict = pickle.load(pickle_file_handle)
-    pickle_file_handle.close()
-
-    missing_keys = list(set(REQUIRED_KEYS) - set(evaluation_dict.keys()))
-    if len(missing_keys) == 0:
-        return evaluation_dict
-
-    error_string = (
-        '\n{0:s}\nKeys listed above were expected, but not found, in file '
-        '"{1:s}".'
-    ).format(str(missing_keys), pickle_file_name)
-
-    raise ValueError(error_string)
+    return xarray.open_dataset(netcdf_file_name)

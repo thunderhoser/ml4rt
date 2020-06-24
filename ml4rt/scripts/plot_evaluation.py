@@ -104,9 +104,9 @@ def _run(input_file_name, output_dir_name):
     )
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
-    evaluation_dict = evaluation.read_file(input_file_name)
+    result_table_xarray = evaluation.read_file(input_file_name)
 
-    model_file_name = evaluation_dict[evaluation.MODEL_FILE_KEY]
+    model_file_name = result_table_xarray.attrs[evaluation.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
@@ -167,13 +167,15 @@ def _run(input_file_name, output_dir_name):
 
             evaluation_plotting.plot_score_profile(
                 heights_m_agl=heights_m_agl,
-                score_values=evaluation_dict[this_key][:, k],
+                score_values=result_table_xarray[this_key].values[:, k],
                 score_name=this_score_name, line_colour=PROFILE_COLOUR,
                 line_width=2, use_log_scale=False, axes_object=this_axes_object
             )
 
             this_score_name_verbose = SCORE_NAME_TO_VERBOSE[this_score_name]
-            this_prmse = evaluation_dict[evaluation.VECTOR_PRMSE_KEY][k]
+            this_prmse = (
+                result_table_xarray[evaluation.VECTOR_PRMSE_KEY].values[k]
+            )
             this_title_string = (
                 '{0:s} for {1:s} (PRMSE = {2:.2f} {3:s})'
             ).format(
@@ -207,10 +209,12 @@ def _run(input_file_name, output_dir_name):
 
         # Plot reliability curves for all heights in the same figure.
         this_mean_prediction_matrix = (
-            evaluation_dict[evaluation.VECTOR_RELIABILITY_X_KEY][:, k, :]
+            result_table_xarray[
+                evaluation.VECTOR_RELIABILITY_X_KEY].values[:, k, :]
         )
         this_mean_target_matrix = (
-            evaluation_dict[evaluation.VECTOR_RELIABILITY_Y_KEY][:, k, :]
+            result_table_xarray[
+                evaluation.VECTOR_RELIABILITY_Y_KEY].values[:, k, :]
         )
         this_combined_matrix = numpy.concatenate(
             (this_mean_prediction_matrix, this_mean_target_matrix), axis=0
@@ -251,13 +255,14 @@ def _run(input_file_name, output_dir_name):
 
         # Plot Taylor diagram for all heights in the same figure.
         these_target_stdevs = (
-            evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][:, k]
+            result_table_xarray[evaluation.VECTOR_TARGET_STDEV_KEY].values[:, k]
         )
         these_prediction_stdevs = (
-            evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][:, k]
+            result_table_xarray[
+                evaluation.VECTOR_PREDICTION_STDEV_KEY].values[:, k]
         )
         these_correlations = (
-            evaluation_dict[evaluation.VECTOR_CORRELATION_KEY][:, k]
+            result_table_xarray[evaluation.VECTOR_CORRELATION_KEY].values[:, k]
         )
 
         this_figure_object = pyplot.figure(
@@ -306,13 +311,16 @@ def _run(input_file_name, output_dir_name):
 
         # Plot attributes diagram.
         these_mean_predictions = (
-            evaluation_dict[evaluation.SCALAR_RELIABILITY_X_KEY][k, :]
+            result_table_xarray[
+                evaluation.SCALAR_RELIABILITY_X_KEY].values[k, :]
         )
         these_mean_targets = (
-            evaluation_dict[evaluation.SCALAR_RELIABILITY_Y_KEY][k, :]
+            result_table_xarray[
+                evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, :]
         )
         these_example_counts = (
-            evaluation_dict[evaluation.SCALAR_RELIABILITY_COUNT_KEY][k, :]
+            result_table_xarray[
+                evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[k, :]
         )
         this_climo_value = (
             mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, k]
@@ -353,12 +361,15 @@ def _run(input_file_name, output_dir_name):
 
         # Plot Taylor diagram.
         this_target_stdev = (
-            evaluation_dict[evaluation.SCALAR_TARGET_STDEV_KEY][k]
+            result_table_xarray[evaluation.SCALAR_TARGET_STDEV_KEY].values[k]
         )
         this_prediction_stdev = (
-            evaluation_dict[evaluation.SCALAR_PREDICTION_STDEV_KEY][k]
+            result_table_xarray[
+                evaluation.SCALAR_PREDICTION_STDEV_KEY].values[k]
         )
-        this_correlation = evaluation_dict[evaluation.SCALAR_CORRELATION_KEY][k]
+        this_correlation = (
+            result_table_xarray[evaluation.SCALAR_CORRELATION_KEY].values[k]
+        )
 
         this_figure_object = pyplot.figure(
             figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -401,15 +412,16 @@ def _run(input_file_name, output_dir_name):
 
             # Plot attributes diagram.
             these_mean_predictions = (
-                evaluation_dict[evaluation.VECTOR_RELIABILITY_X_KEY][j, k, :]
+                result_table_xarray[
+                    evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, :]
             )
             these_mean_targets = (
-                evaluation_dict[evaluation.VECTOR_RELIABILITY_Y_KEY][j, k, :]
+                result_table_xarray[
+                    evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, :]
             )
             these_example_counts = (
-                evaluation_dict[
-                    evaluation.VECTOR_RELIABILITY_COUNT_KEY
-                ][j, k, :]
+                result_table_xarray[
+                    evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :]
             )
             this_climo_value = (
                 mean_training_example_dict[
@@ -462,13 +474,16 @@ def _run(input_file_name, output_dir_name):
 
             # Plot Taylor diagram.
             this_target_stdev = (
-                evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][j, k]
+                result_table_xarray[
+                    evaluation.VECTOR_TARGET_STDEV_KEY].values[j, k]
             )
             this_prediction_stdev = (
-                evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][j, k]
+                result_table_xarray[
+                    evaluation.VECTOR_PREDICTION_STDEV_KEY].values[j, k]
             )
             this_correlation = (
-                evaluation_dict[evaluation.VECTOR_CORRELATION_KEY][j, k]
+                result_table_xarray[
+                    evaluation.VECTOR_CORRELATION_KEY].values[j, k]
             )
 
             this_figure_object = pyplot.figure(

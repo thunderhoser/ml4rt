@@ -82,7 +82,7 @@ def _run(prediction_file_name, evaluation_file_name):
         training_example_dict=training_example_dict
     )
 
-    evaluation_dict = evaluation.get_scores_all_variables(
+    result_table_xarray = evaluation.get_scores_all_variables(
         scalar_target_matrix=prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         scalar_prediction_matrix=
         prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
@@ -92,7 +92,7 @@ def _run(prediction_file_name, evaluation_file_name):
         mean_training_example_dict=mean_training_example_dict
     )
 
-    evaluation_dict[evaluation.MODEL_FILE_KEY] = model_file_name
+    result_table_xarray.attrs[evaluation.MODEL_FILE_KEY] = model_file_name
     print(SEPARATOR_STRING)
 
     scalar_target_names = (
@@ -107,14 +107,16 @@ def _run(prediction_file_name, evaluation_file_name):
             'correlation = {8:f}'
         ).format(
             scalar_target_names[k],
-            evaluation_dict[evaluation.SCALAR_TARGET_STDEV_KEY][k],
-            evaluation_dict[evaluation.SCALAR_PREDICTION_STDEV_KEY][k],
-            evaluation_dict[evaluation.SCALAR_MSE_KEY][k],
-            evaluation_dict[evaluation.SCALAR_MSE_SKILL_KEY][k],
-            evaluation_dict[evaluation.SCALAR_MAE_KEY][k],
-            evaluation_dict[evaluation.SCALAR_MAE_SKILL_KEY][k],
-            evaluation_dict[evaluation.SCALAR_BIAS_KEY][k],
-            evaluation_dict[evaluation.SCALAR_CORRELATION_KEY][k]
+            result_table_xarray[evaluation.SCALAR_TARGET_STDEV_KEY].values[k],
+            result_table_xarray[
+                evaluation.SCALAR_PREDICTION_STDEV_KEY
+            ].values[k],
+            result_table_xarray[evaluation.SCALAR_MSE_KEY].values[k],
+            result_table_xarray[evaluation.SCALAR_MSE_SKILL_KEY].values[k],
+            result_table_xarray[evaluation.SCALAR_MAE_KEY].values[k],
+            result_table_xarray[evaluation.SCALAR_MAE_SKILL_KEY].values[k],
+            result_table_xarray[evaluation.SCALAR_BIAS_KEY].values[k],
+            result_table_xarray[evaluation.SCALAR_CORRELATION_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
@@ -127,7 +129,7 @@ def _run(prediction_file_name, evaluation_file_name):
     for k in range(len(vector_target_names)):
         print('Variable = "{0:s}" ... PRMSE = {1:f}'.format(
             vector_target_names[k],
-            evaluation_dict[evaluation.VECTOR_PRMSE_KEY][k]
+            result_table_xarray[evaluation.VECTOR_PRMSE_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
@@ -142,22 +144,32 @@ def _run(prediction_file_name, evaluation_file_name):
                 'correlation = {9:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                evaluation_dict[evaluation.VECTOR_TARGET_STDEV_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_PREDICTION_STDEV_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_MSE_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_MSE_SKILL_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_MAE_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_MAE_SKILL_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_BIAS_KEY][j, k],
-                evaluation_dict[evaluation.VECTOR_CORRELATION_KEY][j, k]
+                result_table_xarray[
+                    evaluation.VECTOR_TARGET_STDEV_KEY
+                ].values[j, k],
+                result_table_xarray[
+                    evaluation.VECTOR_PREDICTION_STDEV_KEY
+                ].values[j, k],
+                result_table_xarray[evaluation.VECTOR_MSE_KEY].values[j, k],
+                result_table_xarray[
+                    evaluation.VECTOR_MSE_SKILL_KEY
+                ].values[j, k],
+                result_table_xarray[evaluation.VECTOR_MAE_KEY].values[j, k],
+                result_table_xarray[
+                    evaluation.VECTOR_MAE_SKILL_KEY
+                ].values[j, k],
+                result_table_xarray[evaluation.VECTOR_BIAS_KEY].values[j, k],
+                result_table_xarray[
+                    evaluation.VECTOR_CORRELATION_KEY
+                ].values[j, k]
             ))
 
         print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(evaluation_file_name))
     evaluation.write_file(
-        evaluation_dict=evaluation_dict,
-        pickle_file_name=evaluation_file_name
+        result_table_xarray=result_table_xarray,
+        netcdf_file_name=evaluation_file_name
     )
 
 
