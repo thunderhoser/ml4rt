@@ -1217,7 +1217,6 @@ def cnn_generator(option_dict, for_inference, use_custom_loss):
         predictor_matrix = predictor_matrix.astype('float32')
         vector_target_matrix = vector_target_matrix.astype('float32')
         scalar_target_matrix = scalar_target_matrix.astype('float32')
-        print(scalar_target_matrix.shape)
 
         if for_inference:
             yield (
@@ -1391,7 +1390,7 @@ def train_neural_net(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict, is_cnn,
-        custom_loss_for_cnn=False):
+        custom_loss_for_cnn):
     """Trains neural net (either CNN or dense net).
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
