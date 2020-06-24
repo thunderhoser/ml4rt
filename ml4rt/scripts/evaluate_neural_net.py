@@ -70,7 +70,7 @@ def _run(prediction_file_name, evaluation_file_name):
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
     print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
+        'Reading training examples (for climatology) from: "{0:s}"...'
     ).format(
         normalization_file_name
     ))

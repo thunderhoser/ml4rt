@@ -98,7 +98,20 @@ CNN_PREDICTOR_MATRIX = numpy.concatenate(
     (VECTOR_PREDICTOR_MATRIX, THIS_SCALAR_PREDICTOR_MATRIX), axis=-1
 )
 
-CNN_TARGET_MATRICES = [VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.]
+CNN_TARGET_MATRICES_DEFAULT_LOSS = [
+    VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.
+]
+
+THIS_SCALAR_TARGET_MATRIX = numpy.array([
+    [150, 300, 200],
+    [150, 500, 200],
+    [350, 450, 200],
+    [100, 200, 200]
+], dtype=float)
+
+CNN_TARGET_MATRICES_CUSTOM_LOSS = [
+    VECTOR_TARGET_MATRIX + 0., THIS_SCALAR_TARGET_MATRIX + 0.
+]
 
 DENSE_NET_PREDICTOR_MATRIX = numpy.array([
     [290, 295, 0.008, 0.009, 0, 40.02],
@@ -184,21 +197,44 @@ class NeuralNetTests(unittest.TestCase):
             SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
-    def test_targets_dict_to_numpy_cnn(self):
+    def test_targets_dict_to_numpy_cnn_default_loss(self):
         """Ensures correct output from targets_dict_to_numpy.
 
-        In this case, for CNN rather than dense net.
+        In this case, for CNN rather than dense net, with default loss function.
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=True
+            example_dict=EXAMPLE_DICT, for_cnn=True, custom_loss_for_cnn=False
         )
 
-        self.assertTrue(len(these_matrices) == len(CNN_TARGET_MATRICES))
+        self.assertTrue(
+            len(these_matrices) == len(CNN_TARGET_MATRICES_DEFAULT_LOSS)
+        )
 
         for i in range(len(these_matrices)):
             self.assertTrue(numpy.allclose(
-                these_matrices[i], CNN_TARGET_MATRICES[i], atol=TOLERANCE
+                these_matrices[i], CNN_TARGET_MATRICES_DEFAULT_LOSS[i],
+                atol=TOLERANCE
+            ))
+
+    def test_targets_dict_to_numpy_cnn_custom_loss(self):
+        """Ensures correct output from targets_dict_to_numpy.
+
+        In this case, for CNN rather than dense net, with custom loss function.
+        """
+
+        these_matrices = neural_net.targets_dict_to_numpy(
+            example_dict=EXAMPLE_DICT, for_cnn=True, custom_loss_for_cnn=True
+        )
+
+        self.assertTrue(
+            len(these_matrices) == len(CNN_TARGET_MATRICES_CUSTOM_LOSS)
+        )
+
+        for i in range(len(these_matrices)):
+            self.assertTrue(numpy.allclose(
+                these_matrices[i], CNN_TARGET_MATRICES_CUSTOM_LOSS[i],
+                atol=TOLERANCE
             ))
 
     def test_targets_dict_to_numpy_dense_net(self):
@@ -225,8 +261,8 @@ class NeuralNetTests(unittest.TestCase):
         """
 
         this_example_dict = neural_net.targets_numpy_to_dict(
-            target_matrices=CNN_TARGET_MATRICES, example_dict=EXAMPLE_DICT,
-            for_cnn=True
+            target_matrices=CNN_TARGET_MATRICES_DEFAULT_LOSS,
+            example_dict=EXAMPLE_DICT, for_cnn=True
         )
         self.assertTrue(numpy.allclose(
             this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],

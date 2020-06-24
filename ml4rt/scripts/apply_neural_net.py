@@ -97,8 +97,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    # TODO(thunderhoser): Allow generators to return example IDs.
-
     scalar_target_matrix = None
     scalar_prediction_matrix = None
     vector_target_matrix = None
@@ -109,7 +107,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     if is_cnn:
         generator = neural_net.cnn_generator(
-            option_dict=generator_option_dict, for_inference=True
+            option_dict=generator_option_dict, for_inference=True,
+            use_custom_loss=False
         )
     else:
         generator = neural_net.dense_net_generator(
@@ -144,7 +143,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 neural_net.apply_cnn(
                     model_object=model_object,
                     predictor_matrix=this_predictor_matrix,
-                    num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
+                    num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+                    verbose=True,
+                    used_custom_loss=
+                    metadata_dict[neural_net.CUSTOM_LOSS_FOR_CNN_KEY]
                 )
             )
         else:

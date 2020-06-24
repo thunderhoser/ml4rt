@@ -135,10 +135,12 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 IS_CNN_KEY = 'is_cnn'
+CUSTOM_LOSS_FOR_CNN_KEY = 'custom_loss_for_cnn'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
-    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY
+    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, IS_CNN_KEY,
+    CUSTOM_LOSS_FOR_CNN_KEY
 ]
 
 EXAMPLE_DIMENSION_KEY = 'example'
@@ -315,7 +317,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _write_metadata(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, is_cnn):
+        validation_option_dict, is_cnn, custom_loss_for_cnn=False):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -325,6 +327,7 @@ def _write_metadata(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param is_cnn: Same.
+    :param custom_loss_for_cnn: Same.
     """
 
     metadata_dict = {
@@ -333,7 +336,8 @@ def _write_metadata(
         TRAINING_OPTIONS_KEY: training_option_dict,
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
-        IS_CNN_KEY: is_cnn
+        IS_CNN_KEY: is_cnn,
+        CUSTOM_LOSS_FOR_CNN_KEY: custom_loss_for_cnn
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -588,11 +592,14 @@ def targets_dict_to_numpy(example_dict, for_cnn, custom_loss_for_cnn=False):
         vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
         scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
 
-        scalar_target_matrix = numpy.concatenate((
+        this_vector_target_matrix = numpy.stack((
             vector_target_matrix[:, -1, up_flux_channel_index],
             vector_target_matrix[:, 0, down_flux_channel_index],
-            scalar_target_matrix
-        ), axis=0)
+        ), axis=-1)
+
+        scalar_target_matrix = numpy.concatenate((
+            this_vector_target_matrix, scalar_target_matrix
+        ), axis=-1)
 
         return [vector_target_matrix, scalar_target_matrix]
 
@@ -1469,7 +1476,8 @@ def train_neural_net(
         num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
-        validation_option_dict=validation_option_dict, is_cnn=is_cnn
+        validation_option_dict=validation_option_dict, is_cnn=is_cnn,
+        custom_loss_for_cnn=custom_loss_for_cnn
     )
 
     if is_cnn:
@@ -1499,8 +1507,8 @@ def train_neural_net(
 
 
 def apply_cnn(
-        model_object, predictor_matrix, num_examples_per_batch, use_custom_loss,
-        verbose=False):
+        model_object, predictor_matrix, num_examples_per_batch,
+        used_custom_loss, verbose=False):
     """Applies trained CNN to data.
 
     E = number of examples per batch (batch size)
@@ -1512,7 +1520,8 @@ def apply_cnn(
         `keras.models.Sequential`).
     :param predictor_matrix: See output doc for `cnn_generator`.
     :param num_examples_per_batch: Batch size.
-    :param use_custom_loss: Boolean flag.  If True, used custom loss function.
+    :param used_custom_loss: Boolean flag.  If True, custom loss function was
+        used in training.
     :param verbose: Boolean flag.  If True, will print progress messages.
     :return: vector_prediction_matrix: numpy array (E x H x T_v) of predicted
         values.
@@ -1520,7 +1529,7 @@ def apply_cnn(
         values.
     """
 
-    error_checking.assert_is_boolean(use_custom_loss)
+    error_checking.assert_is_boolean(used_custom_loss)
 
     num_examples_per_batch = _check_inference_args(
         predictor_matrix=predictor_matrix,
@@ -1565,7 +1574,7 @@ def apply_cnn(
     if verbose:
         print('Have applied CNN to all {0:d} examples!'.format(num_examples))
 
-    if use_custom_loss:
+    if used_custom_loss:
         scalar_prediction_matrix = scalar_prediction_matrix[:, 2:]
 
     return vector_prediction_matrix, scalar_prediction_matrix
@@ -1687,6 +1696,9 @@ def read_metadata(pickle_file_name):
     pickle_file_handle = open(pickle_file_name, 'rb')
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
+
+    if CUSTOM_LOSS_FOR_CNN_KEY not in metadata_dict:
+        metadata_dict[CUSTOM_LOSS_FOR_CNN_KEY] = False
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
