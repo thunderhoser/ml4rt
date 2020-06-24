@@ -43,7 +43,8 @@ TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
     example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux'
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
+    evaluation.NET_FLUX_NAME: 'net flux'
 }
 
 TARGET_NAME_TO_UNITS = {
@@ -51,7 +52,8 @@ TARGET_NAME_TO_UNITS = {
     example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$'
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.NET_FLUX_NAME: r'W m$^{-2}$'
 }
 
 TARGET_NAME_TO_SQUARED_UNITS = {
@@ -59,7 +61,8 @@ TARGET_NAME_TO_SQUARED_UNITS = {
     example_io.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
 PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -406,6 +409,146 @@ def _run(input_file_name, output_dir_name):
         pyplot.close(this_figure_object)
 
     print(SEPARATOR_STRING)
+
+    try:
+        aux_target_field_names = (
+            result_table_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+        )
+        aux_predicted_field_names = (
+            result_table_xarray.coords[
+                evaluation.AUX_PREDICTED_FIELD_DIM].values
+        )
+    except:
+        aux_target_field_names = []
+        aux_predicted_field_names = []
+
+    for k in range(len(aux_target_field_names)):
+        this_target_field_name_verbose = (
+            TARGET_NAME_TO_VERBOSE[aux_target_field_names[k]]
+        )
+        this_predicted_field_name_verbose = (
+            TARGET_NAME_TO_VERBOSE[aux_predicted_field_names[k]]
+        )
+        this_unit_string = TARGET_NAME_TO_UNITS[aux_target_field_names[k]]
+
+        # Plot attributes diagram.
+        these_mean_predictions = (
+            result_table_xarray[evaluation.AUX_RELIABILITY_X_KEY].values[k, :]
+        )
+        these_mean_targets = (
+            result_table_xarray[evaluation.AUX_RELIABILITY_Y_KEY].values[k, :]
+        )
+        these_example_counts = (
+            result_table_xarray[
+                evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, :]
+        )
+
+        if aux_target_field_names[k] == evaluation.NET_FLUX_NAME:
+            surface_down_flux_index = scalar_target_names.index(
+                example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            toa_up_flux_index = scalar_target_names.index(
+                example_io.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+            this_climo_value = (
+                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
+                    0, surface_down_flux_index] -
+                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
+                    0, toa_up_flux_index]
+            )
+        else:
+            this_index = scalar_target_names.index(aux_target_field_names[k])
+            this_climo_value = (
+                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
+                    0, this_index]
+            )
+
+        this_min_value = numpy.nanpercentile(
+            numpy.concatenate((these_mean_predictions, these_mean_targets)),
+            1.
+        )
+        this_min_value = numpy.minimum(this_min_value, 0.)
+        this_max_value = numpy.nanpercentile(
+            numpy.concatenate((these_mean_predictions, these_mean_targets)),
+            99.
+        )
+
+        this_figure_object, this_axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+
+        evaluation_plotting.plot_attributes_diagram(
+            figure_object=this_figure_object, axes_object=this_axes_object,
+            mean_predictions=these_mean_predictions,
+            mean_observations=these_mean_targets,
+            example_counts=these_example_counts,
+            mean_value_in_training=this_climo_value,
+            min_value_to_plot=this_min_value, max_value_to_plot=this_max_value
+        )
+
+        this_axes_object.set_title('Attributes diagram')
+        this_axes_object.set_xlabel('Prediction for {0:s} ({1:s})'.format(
+            this_predicted_field_name_verbose, this_unit_string
+        ))
+        this_axes_object.set_ylabel(
+            'Conditional mean observation for {0:s} ({1:s})'.format(
+                this_target_field_name_verbose, this_unit_string
+            )
+        )
+
+        this_file_name = '{0:s}/aux_{1:s}_reliability.jpg'.format(
+            output_dir_name, aux_target_field_names[k].replace('_', '-')
+        )
+        print('Saving figure to: "{0:s}"...'.format(this_file_name))
+
+        this_figure_object.savefig(
+            this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(this_figure_object)
+
+        # Plot Taylor diagram.
+        this_target_stdev = (
+            result_table_xarray[evaluation.AUX_TARGET_STDEV_KEY].values[k]
+        )
+        this_prediction_stdev = (
+            result_table_xarray[evaluation.AUX_PREDICTION_STDEV_KEY].values[k]
+        )
+        this_correlation = (
+            result_table_xarray[evaluation.AUX_CORRELATION_KEY].values[k]
+        )
+
+        this_figure_object = pyplot.figure(
+            figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+
+        this_taylor_diag_object = evaluation_plotting.plot_taylor_diagram(
+            target_stdev=this_target_stdev,
+            prediction_stdev=this_prediction_stdev,
+            correlation=this_correlation, marker_colour=TAYLOR_MARKER_COLOUR,
+            figure_object=this_figure_object
+        )
+
+        this_figure_object.suptitle(
+            'Taylor diagram (target = {0:s}, prediction = {1:s})'.format(
+                this_target_field_name_verbose,
+                this_predicted_field_name_verbose
+            )
+        )
+        this_taylor_diag_object._ax.axis['left'].label.set_text(
+            'Standard deviation ({0:s})'.format(this_unit_string)
+        )
+
+        this_file_name = '{0:s}/aux_{1:s}_taylor.jpg'.format(
+            output_dir_name, aux_target_field_names[k].replace('_', '-')
+        )
+        print('Saving figure to: "{0:s}"...'.format(this_file_name))
+
+        this_figure_object.savefig(
+            this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(this_figure_object)
 
     for k in range(len(vector_target_names)):
         this_target_name_verbose = (
