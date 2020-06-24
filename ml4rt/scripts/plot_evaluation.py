@@ -44,7 +44,9 @@ TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
-    evaluation.NET_FLUX_NAME: 'net flux'
+    evaluation.NET_FLUX_NAME: 'net flux',
+    evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
+    evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
 }
 
 TARGET_NAME_TO_UNITS = {
@@ -53,7 +55,9 @@ TARGET_NAME_TO_UNITS = {
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.NET_FLUX_NAME: r'W m$^{-2}$'
+    evaluation.NET_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
 }
 
 TARGET_NAME_TO_SQUARED_UNITS = {
@@ -62,7 +66,9 @@ TARGET_NAME_TO_SQUARED_UNITS = {
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    evaluation.NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
+    evaluation.NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.HIGHEST_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
 PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -443,12 +449,6 @@ def _run(input_file_name, output_dir_name):
                 evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, :]
         )
 
-        print('\n\n\n\n')
-        print(these_mean_predictions)
-        print('\n\n')
-        print(these_example_counts)
-        print('\n\n\n\n')
-
         if aux_target_field_names[k] == evaluation.NET_FLUX_NAME:
             surface_down_flux_index = scalar_target_names.index(
                 example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
@@ -492,14 +492,18 @@ def _run(input_file_name, output_dir_name):
             min_value_to_plot=this_min_value, max_value_to_plot=this_max_value
         )
 
-        this_axes_object.set_title('Attributes diagram')
-        this_axes_object.set_xlabel('Prediction for {0:s} ({1:s})'.format(
-            this_predicted_field_name_verbose, this_unit_string
+        this_title_string = (
+            'Attributes diagram (prediction = {0:s};\nobservation = {1:s})'
+        ).format(
+            this_predicted_field_name_verbose, this_target_field_name_verbose
+        )
+
+        this_axes_object.set_title(this_title_string)
+        this_axes_object.set_xlabel('Prediction ({0:s})'.format(
+            this_unit_string
         ))
         this_axes_object.set_ylabel(
-            'Conditional mean observation for {0:s} ({1:s})'.format(
-                this_target_field_name_verbose, this_unit_string
-            )
+            'Conditional mean observation ({0:s})'.format(this_unit_string)
         )
 
         this_file_name = '{0:s}/aux_{1:s}_reliability.jpg'.format(
@@ -535,14 +539,17 @@ def _run(input_file_name, output_dir_name):
             figure_object=this_figure_object
         )
 
-        this_figure_object.suptitle(
-            'Taylor diagram (target = {0:s}, prediction = {1:s})'.format(
-                this_target_field_name_verbose,
-                this_predicted_field_name_verbose
-            )
+        this_title_string = (
+            'Taylor diagram (prediction = {0:s};\nobservation = {1:s})'
+        ).format(
+            this_predicted_field_name_verbose, this_target_field_name_verbose
         )
+
+        this_figure_object.suptitle(this_title_string)
         this_taylor_diag_object._ax.axis['left'].label.set_text(
-            'Standard deviation ({0:s})'.format(this_unit_string)
+            'Standard deviation for observation ({0:s})'.format(
+                this_unit_string
+            )
         )
 
         this_file_name = '{0:s}/aux_{1:s}_taylor.jpg'.format(

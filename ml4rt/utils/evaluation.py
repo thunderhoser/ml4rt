@@ -11,6 +11,9 @@ DEFAULT_NUM_RELIABILITY_BINS = 20
 DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
 
 NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
+LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
+HIGHEST_UP_FLUX_NAME = 'highest_shortwave_up_flux_w_m02'
+
 ASSUMED_TOA_HEIGHT_M_AGL = 50000
 ASSUMED_SURFACE_HEIGHT_M_AGL = 10
 
@@ -367,7 +370,7 @@ def _get_aux_fields(
             )
 
             aux_target_field_names.append(example_io.SHORTWAVE_TOA_UP_FLUX_NAME)
-            aux_predicted_field_names.append(example_io.SHORTWAVE_UP_FLUX_NAME)
+            aux_predicted_field_names.append(HIGHEST_UP_FLUX_NAME)
 
             this_target_matrix = (
                 scalar_prediction_matrix[:, [toa_up_flux_index]]
@@ -399,9 +402,7 @@ def _get_aux_fields(
             aux_target_field_names.append(
                 example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
             )
-            aux_predicted_field_names.append(
-                example_io.SHORTWAVE_DOWN_FLUX_NAME
-            )
+            aux_predicted_field_names.append(LOWEST_DOWN_FLUX_NAME)
 
             this_target_matrix = (
                 scalar_prediction_matrix[:, [surface_down_flux_index]]
