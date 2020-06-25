@@ -515,7 +515,8 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     }
 
 
-def targets_dict_to_numpy(example_dict, net_type_string, use_custom_cnn_loss):
+def targets_dict_to_numpy(example_dict, net_type_string,
+                          use_custom_cnn_loss=None):
     """Converts targets from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
@@ -532,7 +533,7 @@ def targets_dict_to_numpy(example_dict, net_type_string, use_custom_cnn_loss):
     _check_net_type(net_type_string)
 
     if net_type_string == U_NET_TYPE_STRING:
-        return example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        return [example_dict[example_io.VECTOR_TARGET_VALS_KEY]]
 
     if net_type_string == CNN_TYPE_STRING:
         error_checking.assert_is_boolean(use_custom_cnn_loss)

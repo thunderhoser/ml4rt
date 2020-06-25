@@ -97,10 +97,12 @@ THIS_SCALAR_PREDICTOR_MATRIX = numpy.stack(
 CNN_PREDICTOR_MATRIX = numpy.concatenate(
     (VECTOR_PREDICTOR_MATRIX, THIS_SCALAR_PREDICTOR_MATRIX), axis=-1
 )
+U_NET_PREDICTOR_MATRIX = CNN_PREDICTOR_MATRIX + 0.
 
 CNN_TARGET_MATRICES_DEFAULT_LOSS = [
     VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.
 ]
+U_NET_TARGET_MATRICES = [VECTOR_TARGET_MATRIX + 0.]
 
 THIS_SCALAR_TARGET_MATRIX = numpy.array([
     [150, 300, 200],
@@ -136,11 +138,12 @@ class NeuralNetTests(unittest.TestCase):
     def test_predictors_dict_to_numpy_cnn(self):
         """Ensures correct output from predictors_dict_to_numpy.
 
-        In this case, for CNN rather than dense net.
+        In this case, neural-net type is CNN.
         """
 
         this_matrix = neural_net.predictors_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=True
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.CNN_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
             this_matrix, CNN_PREDICTOR_MATRIX, atol=TOLERANCE
@@ -149,25 +152,40 @@ class NeuralNetTests(unittest.TestCase):
     def test_predictors_dict_to_numpy_dense_net(self):
         """Ensures correct output from predictors_dict_to_numpy.
 
-        In this case, for dense net rather than CNN.
+        In this case, neural-net type is dense.
         """
 
         this_matrix = neural_net.predictors_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=False
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
             this_matrix, DENSE_NET_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
+    def test_predictors_dict_to_numpy_u_net(self):
+        """Ensures correct output from predictors_dict_to_numpy.
+
+        In this case, neural-net type is U-net.
+        """
+
+        this_matrix = neural_net.predictors_dict_to_numpy(
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.U_NET_TYPE_STRING
+        )
+        self.assertTrue(numpy.allclose(
+            this_matrix, U_NET_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+
     def test_predictors_numpy_to_dict_cnn(self):
         """Ensures correct output from predictors_numpy_to_dict.
 
-        In this case, for CNN rather than dense net.
+        In this case, neural-net type is CNN.
         """
 
         this_example_dict = neural_net.predictors_numpy_to_dict(
             predictor_matrix=CNN_PREDICTOR_MATRIX, example_dict=EXAMPLE_DICT,
-            for_cnn=True
+            net_type_string=neural_net.CNN_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
             this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
@@ -181,12 +199,33 @@ class NeuralNetTests(unittest.TestCase):
     def test_predictors_numpy_to_dict_dense_net(self):
         """Ensures correct output from predictors_numpy_to_dict.
 
-        In this case, for dense net rather than CNN.
+        In this case, neural-net type is dense.
         """
 
         this_example_dict = neural_net.predictors_numpy_to_dict(
             predictor_matrix=DENSE_NET_PREDICTOR_MATRIX,
-            example_dict=EXAMPLE_DICT, for_cnn=False
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.DENSE_NET_TYPE_STRING
+        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            VECTOR_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY],
+            SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+
+    def test_predictors_numpy_to_dict_u_net(self):
+        """Ensures correct output from predictors_numpy_to_dict.
+
+        In this case, neural-net type is U-net.
+        """
+
+        this_example_dict = neural_net.predictors_numpy_to_dict(
+            predictor_matrix=U_NET_PREDICTOR_MATRIX,
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.U_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
             this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
@@ -200,11 +239,13 @@ class NeuralNetTests(unittest.TestCase):
     def test_targets_dict_to_numpy_cnn_default_loss(self):
         """Ensures correct output from targets_dict_to_numpy.
 
-        In this case, for CNN rather than dense net, with default loss function.
+        In this case, neural-net type is CNN with default loss function.
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=True, use_custom_cnn_loss=False
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.CNN_TYPE_STRING,
+            use_custom_cnn_loss=False
         )
 
         self.assertTrue(
@@ -220,11 +261,13 @@ class NeuralNetTests(unittest.TestCase):
     def test_targets_dict_to_numpy_cnn_custom_loss(self):
         """Ensures correct output from targets_dict_to_numpy.
 
-        In this case, for CNN rather than dense net, with custom loss function.
+        In this case, neural-net type is CNN with custom loss function.
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=True, use_custom_cnn_loss=True
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.CNN_TYPE_STRING,
+            use_custom_cnn_loss=True
         )
 
         self.assertTrue(
@@ -240,11 +283,12 @@ class NeuralNetTests(unittest.TestCase):
     def test_targets_dict_to_numpy_dense_net(self):
         """Ensures correct output from targets_dict_to_numpy.
 
-        In this case, for dense net rather than CNN.
+        In this case, neural-net type is dense.
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT, for_cnn=False, use_custom_cnn_loss=False
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
 
         self.assertTrue(len(these_matrices) == len(DENSE_NET_TARGET_MATRICES))
@@ -254,15 +298,34 @@ class NeuralNetTests(unittest.TestCase):
                 these_matrices[i], DENSE_NET_TARGET_MATRICES[i], atol=TOLERANCE
             ))
 
+    def test_targets_dict_to_numpy_u_net(self):
+        """Ensures correct output from targets_dict_to_numpy.
+
+        In this case, neural-net type is U-net.
+        """
+
+        these_matrices = neural_net.targets_dict_to_numpy(
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.U_NET_TYPE_STRING
+        )
+
+        self.assertTrue(len(these_matrices) == len(U_NET_TARGET_MATRICES))
+
+        for i in range(len(these_matrices)):
+            self.assertTrue(numpy.allclose(
+                these_matrices[i], U_NET_TARGET_MATRICES[i], atol=TOLERANCE
+            ))
+
     def test_targets_numpy_to_dict_cnn(self):
         """Ensures correct output from targets_numpy_to_dict.
 
-        In this case, for CNN rather than dense net.
+        In this case, neural-net type is CNN.
         """
 
         this_example_dict = neural_net.targets_numpy_to_dict(
             target_matrices=CNN_TARGET_MATRICES_DEFAULT_LOSS,
-            example_dict=EXAMPLE_DICT, for_cnn=True
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.CNN_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
             this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
@@ -276,12 +339,13 @@ class NeuralNetTests(unittest.TestCase):
     def test_targets_numpy_to_dict_dense_net(self):
         """Ensures correct output from targets_numpy_to_dict.
 
-        In this case, for dense net rather than CNN.
+        In this case, neural-net type is dense.
         """
 
         this_example_dict = neural_net.targets_numpy_to_dict(
             target_matrices=DENSE_NET_TARGET_MATRICES,
-            example_dict=EXAMPLE_DICT, for_cnn=False
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
             this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
@@ -291,6 +355,25 @@ class NeuralNetTests(unittest.TestCase):
             this_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
             SCALAR_TARGET_MATRIX, atol=TOLERANCE
         ))
+
+    def test_targets_numpy_to_dict_u_net(self):
+        """Ensures correct output from targets_numpy_to_dict.
+
+        In this case, neural-net type is U-net.
+        """
+
+        this_example_dict = neural_net.targets_numpy_to_dict(
+            target_matrices=U_NET_TARGET_MATRICES,
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.U_NET_TYPE_STRING
+        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            VECTOR_TARGET_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(
+            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY] is None
+        )
 
 
 if __name__ == '__main__':
