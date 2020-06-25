@@ -239,6 +239,20 @@ def find_file(example_dir_name, year, raise_error_if_missing=True):
     return example_file_name
 
 
+def file_name_to_year(example_file_name):
+    """Parses year from file name.
+
+    :param example_file_name: Path to example file (readable by `read_file`).
+    :return: year: Year (integer).
+    """
+
+    error_checking.assert_is_string(example_file_name)
+    pathless_file_name = os.path.split(example_file_name)[-1]
+    extensionless_file_name = os.path.splitext(pathless_file_name)[0]
+
+    return int(extensionless_file_name.split('_')[-1])
+
+
 def find_many_files(
         example_dir_name, first_time_unix_sec, last_time_unix_sec,
         raise_error_if_any_missing=True, raise_error_if_all_missing=True,

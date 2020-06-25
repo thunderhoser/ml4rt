@@ -8,7 +8,7 @@ from ml4rt.io import example_io
 
 TOLERANCE = 1e-6
 
-# The following constants are used to test find_file.
+# The following constants are used to test find_file and file_name_to_year.
 EXAMPLE_DIR_NAME = 'foo'
 YEAR = 2018
 EXAMPLE_FILE_NAME = 'foo/radiative_transfer_examples_2018.nc'
@@ -412,6 +412,12 @@ class ExampleIoTests(unittest.TestCase):
         )
 
         self.assertTrue(this_file_name == EXAMPLE_FILE_NAME)
+
+    def test_file_name_to_year(self):
+        """Ensures correct output from file_name_to_year."""
+
+        this_year = example_io.file_name_to_year(EXAMPLE_FILE_NAME)
+        self.assertTrue(this_year == YEAR)
 
     def test_find_many_files(self):
         """Ensures correct output from find_many_files."""
