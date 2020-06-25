@@ -52,7 +52,7 @@ def _run(prediction_file_name, evaluation_file_name):
     )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metadata(model_metafile_name)
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     example_dict = {

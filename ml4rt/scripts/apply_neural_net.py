@@ -90,7 +90,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
-    metadata_dict = neural_net.read_metadata(metafile_name)
+    metadata_dict = neural_net.read_metafile(metafile_name)
 
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
@@ -104,80 +104,69 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     vector_prediction_matrix = None
     example_id_strings = []
 
-    is_cnn = metadata_dict[neural_net.IS_CNN_KEY]
-
-    if is_cnn:
-        generator = neural_net.cnn_generator(
-            option_dict=generator_option_dict, for_inference=True,
-            use_custom_loss=False
-        )
-    else:
-        generator = neural_net.dense_net_generator(
-            option_dict=generator_option_dict, for_inference=True
-        )
+    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
+    generator = neural_net.data_generator(
+        option_dict=generator_option_dict, for_inference=True,
+        net_type_string=net_type_string, use_custom_cnn_loss=False
+    )
 
     print(SEPARATOR_STRING)
 
     while True:
+        this_scalar_target_matrix = None
+        this_scalar_prediction_matrix = None
         this_vector_target_matrix = None
         this_vector_prediction_matrix = None
 
         try:
-            if is_cnn:
-                this_predictor_matrix, this_target_array, these_id_strings = (
-                    next(generator)
-                )
-            else:
-                this_predictor_matrix, this_target_array, these_id_strings = (
-                    next(generator)
-                )
+            this_predictor_matrix, this_target_array, these_id_strings = (
+                next(generator)
+            )
         except StopIteration:
             break
 
-        example_id_strings += these_id_strings
-
-        if is_cnn:
-            this_vector_target_matrix = this_target_array[0]
-            this_scalar_target_matrix = this_target_array[1]
-
-            this_vector_prediction_matrix, this_scalar_prediction_matrix = (
-                neural_net.apply_cnn(
-                    model_object=model_object,
-                    predictor_matrix=this_predictor_matrix,
-                    num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-                    verbose=True,
-                    used_custom_loss=
-                    metadata_dict[neural_net.CUSTOM_LOSS_KEY] is not None
-                )
-            )
-        else:
-            this_scalar_target_matrix = this_target_array
-
-            this_scalar_prediction_matrix = neural_net.apply_dense_net(
-                model_object=model_object,
-                predictor_matrix=this_predictor_matrix,
-                num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
-            )
-
+        this_prediction_array = neural_net.apply_model(
+            model_object=model_object, predictor_matrix=this_predictor_matrix,
+            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+            net_type_string=net_type_string,
+            used_custom_cnn_loss=
+            metadata_dict[neural_net.CUSTOM_LOSS_KEY] is not None,
+            verbose=True
+        )
         print(SEPARATOR_STRING)
 
-        if scalar_target_matrix is None:
-            scalar_target_matrix = this_scalar_target_matrix + 0.
-            scalar_prediction_matrix = this_scalar_prediction_matrix + 0.
+        example_id_strings += these_id_strings
 
-            if is_cnn:
+        if net_type_string == neural_net.CNN_TYPE_STRING:
+            this_vector_target_matrix = this_target_array[0]
+            this_scalar_target_matrix = this_target_array[1]
+            this_vector_prediction_matrix = this_prediction_array[0]
+            this_scalar_prediction_matrix = this_prediction_array[1]
+        elif net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+            this_scalar_target_matrix = this_target_array
+            this_scalar_prediction_matrix = this_prediction_array[0]
+        else:
+            this_vector_target_matrix = this_target_array
+            this_vector_prediction_matrix = this_prediction_array[0]
+
+        if this_scalar_target_matrix is not None:
+            if scalar_target_matrix is None:
+                scalar_target_matrix = this_scalar_target_matrix + 0.
+                scalar_prediction_matrix = this_scalar_prediction_matrix + 0.
+            else:
+                scalar_target_matrix = numpy.concatenate(
+                    (scalar_target_matrix, this_scalar_target_matrix), axis=0
+                )
+                scalar_prediction_matrix = numpy.concatenate(
+                    (scalar_prediction_matrix, this_scalar_prediction_matrix),
+                    axis=0
+                )
+
+        if this_vector_target_matrix is not None:
+            if vector_target_matrix is None:
                 vector_target_matrix = this_vector_target_matrix + 0.
                 vector_prediction_matrix = this_vector_prediction_matrix + 0.
-        else:
-            scalar_target_matrix = numpy.concatenate(
-                (scalar_target_matrix, this_scalar_target_matrix), axis=0
-            )
-            scalar_prediction_matrix = numpy.concatenate(
-                (scalar_prediction_matrix, this_scalar_prediction_matrix),
-                axis=0
-            )
-
-            if is_cnn:
+            else:
                 vector_target_matrix = numpy.concatenate(
                     (vector_target_matrix, this_vector_target_matrix), axis=0
                 )
@@ -211,7 +200,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     new_example_dict = neural_net.targets_numpy_to_dict(
         target_matrices=[vector_target_matrix, scalar_target_matrix],
-        example_dict=target_example_dict, for_cnn=is_cnn
+        example_dict=target_example_dict, net_type_string=net_type_string
     )
 
     for this_key in TARGET_VALUE_KEYS:
@@ -219,7 +208,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     new_example_dict = neural_net.targets_numpy_to_dict(
         target_matrices=[vector_prediction_matrix, scalar_prediction_matrix],
-        example_dict=prediction_example_dict, for_cnn=is_cnn
+        example_dict=prediction_example_dict, net_type_string=net_type_string
     )
 
     for this_key in TARGET_VALUE_KEYS:

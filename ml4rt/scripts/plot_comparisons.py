@@ -262,7 +262,7 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
     )
 
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metadata(model_metafile_name)
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]

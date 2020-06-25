@@ -618,8 +618,12 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
             vector_target_matrix, num_dimensions=3
         )
 
+        scalar_target_matrix = numpy.full(
+            (vector_target_matrix.shape[0], 0), 0.
+        )
+
         return {
-            example_io.SCALAR_TARGET_VALS_KEY: None,
+            example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
             example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
         }
 
