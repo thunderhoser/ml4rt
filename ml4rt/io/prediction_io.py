@@ -106,9 +106,12 @@ def write_file(
     dataset_object.createDimension(
         VECTOR_TARGET_DIMENSION_KEY, vector_target_matrix.shape[2]
     )
-    dataset_object.createDimension(
-        SCALAR_TARGET_DIMENSION_KEY, scalar_target_matrix.shape[1]
-    )
+
+    num_scalar_targets = scalar_target_matrix.shape[1]
+    if num_scalar_targets > 0:
+        dataset_object.createDimension(
+            SCALAR_TARGET_DIMENSION_KEY, scalar_target_matrix.shape[1]
+        )
 
     num_id_characters = numpy.max(numpy.array([
         len(id) for id in example_id_strings
@@ -129,19 +132,20 @@ def write_file(
         example_ids_char_array
     )
 
-    dataset_object.createVariable(
-        SCALAR_TARGETS_KEY, datatype=numpy.float32,
-        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
-    )
-    dataset_object.variables[SCALAR_TARGETS_KEY][:] = scalar_target_matrix
+    if num_scalar_targets > 0:
+        dataset_object.createVariable(
+            SCALAR_TARGETS_KEY, datatype=numpy.float32,
+            dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
+        )
+        dataset_object.variables[SCALAR_TARGETS_KEY][:] = scalar_target_matrix
 
-    dataset_object.createVariable(
-        SCALAR_PREDICTIONS_KEY, datatype=numpy.float32,
-        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
-    )
-    dataset_object.variables[SCALAR_PREDICTIONS_KEY][:] = (
-        scalar_prediction_matrix
-    )
+        dataset_object.createVariable(
+            SCALAR_PREDICTIONS_KEY, datatype=numpy.float32,
+            dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
+        )
+        dataset_object.variables[SCALAR_PREDICTIONS_KEY][:] = (
+            scalar_prediction_matrix
+        )
 
     these_dimensions = (
         EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY
@@ -179,9 +183,6 @@ def read_file(netcdf_file_name):
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     prediction_dict = {
-        SCALAR_TARGETS_KEY: dataset_object.variables[SCALAR_TARGETS_KEY][:],
-        SCALAR_PREDICTIONS_KEY:
-            dataset_object.variables[SCALAR_PREDICTIONS_KEY][:],
         VECTOR_TARGETS_KEY: dataset_object.variables[VECTOR_TARGETS_KEY][:],
         VECTOR_PREDICTIONS_KEY:
             dataset_object.variables[VECTOR_PREDICTIONS_KEY][:],
@@ -191,6 +192,20 @@ def read_file(netcdf_file_name):
         ],
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
+
+    if SCALAR_TARGETS_KEY in dataset_object.variables:
+        prediction_dict[SCALAR_TARGETS_KEY] = (
+            dataset_object.variables[SCALAR_TARGETS_KEY][:]
+        )
+        prediction_dict[SCALAR_PREDICTIONS_KEY] = (
+            dataset_object.variables[SCALAR_PREDICTIONS_KEY][:]
+        )
+    else:
+        num_examples = prediction_dict[VECTOR_TARGETS_KEY].shape[0]
+        prediction_dict[SCALAR_TARGETS_KEY] = numpy.full((num_examples, 0), 0.)
+        prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.full(
+            (num_examples, 0), 0.
+        )
 
     dataset_object.close()
     return prediction_dict
