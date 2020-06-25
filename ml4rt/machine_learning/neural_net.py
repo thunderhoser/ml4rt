@@ -1275,9 +1275,8 @@ def make_u_net(option_dict):
         weight_regularizer=regularizer_object
     )(this_layer_object(conv_layer5_object))
 
-    merged_layer4_object = keras.layers.merge(
-        [conv_layer4_object, upconv_layer4_object],
-        mode='concat', concat_axis=-1
+    merged_layer4_object = keras.layers.Concatenate(axis=-1)(
+        [conv_layer4_object, upconv_layer4_object]
     )
 
     second_conv_layer4_object = None
@@ -1315,9 +1314,8 @@ def make_u_net(option_dict):
         weight_regularizer=regularizer_object
     )(this_layer_object(second_conv_layer4_object))
 
-    merged_layer3_object = keras.layers.merge(
-        [conv_layer3_object, upconv_layer3_object],
-        mode='concat', concat_axis=-1
+    merged_layer3_object = keras.layers.Concatenate(axis=-1)(
+        [conv_layer3_object, upconv_layer3_object]
     )
 
     second_conv_layer3_object = None
@@ -1355,9 +1353,8 @@ def make_u_net(option_dict):
         weight_regularizer=regularizer_object
     )(this_layer_object(second_conv_layer3_object))
 
-    merged_layer2_object = keras.layers.merge(
-        [conv_layer2_object, upconv_layer2_object],
-        mode='concat', concat_axis=-1
+    merged_layer2_object = keras.layers.Concatenate(axis=-1)(
+        [conv_layer2_object, upconv_layer2_object]
     )
 
     second_conv_layer2_object = None
@@ -1395,9 +1392,8 @@ def make_u_net(option_dict):
         weight_regularizer=regularizer_object
     )(this_layer_object(second_conv_layer2_object))
 
-    merged_layer1_object = keras.layers.merge(
-        [conv_layer1_object, upconv_layer1_object],
-        mode='concat', concat_axis=-1
+    merged_layer1_object = keras.layers.Concatenate(axis=-1)(
+        [conv_layer1_object, upconv_layer1_object]
     )
 
     second_conv_layer1_object = None
