@@ -57,7 +57,7 @@ def _check_architecture_args(option_dict):
     return option_dict
 
 
-def make_u_net(option_dict):
+def create_model(option_dict):
     """Creates U-net.
 
     This method sets up the architecture, loss function, and optimizer -- and
