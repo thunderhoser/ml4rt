@@ -171,7 +171,8 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
         num_examples_per_batch = num_examples + 0
     else:
         error_checking.assert_is_integer(num_examples_per_batch)
-        error_checking.assert_is_geq(num_examples_per_batch, 100)
+        # error_checking.assert_is_geq(num_examples_per_batch, 100)
+        error_checking.assert_is_geq(num_examples_per_batch, 1)
 
     num_examples_per_batch = min([num_examples_per_batch, num_examples])
     error_checking.assert_is_boolean(verbose)
