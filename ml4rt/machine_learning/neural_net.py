@@ -1077,6 +1077,382 @@ def make_dense_net(option_dict, custom_loss_dict):
     return model_object
 
 
+def make_u_net(option_dict):
+    """Makes U-net.
+
+    :param option_dict: Dictionary with the following keys.
+    option_dict['num_heights']: See doc for `make_cnn`.
+    option_dict['num_input_channels']: Same.
+    option_dict['inner_activ_function_name']: Same.
+    option_dict['inner_activ_function_alpha']: Same.
+    option_dict['output_activ_function_name']: Same.
+    option_dict['output_activ_function_alpha']: Same.
+    option_dict['l1_weight']: Same.
+    option_dict['l2_weight']: Same.
+    option_dict['use_batch_normalization']: Same.
+
+    :return: model_object: Instance of `keras.models.Model`, with the
+        aforementioned architecture.
+    """
+
+    # TODO(thunderhoser): Check input args.
+
+    num_heights = option_dict[NUM_HEIGHTS_KEY]
+    num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
+    inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
+    inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
+    output_activ_function_name = option_dict[OUTPUT_ACTIV_FUNCTION_KEY]
+    output_activ_function_alpha = option_dict[OUTPUT_ACTIV_FUNCTION_ALPHA_KEY]
+    l1_weight = option_dict[L1_WEIGHT_KEY]
+    l2_weight = option_dict[L2_WEIGHT_KEY]
+    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+
+    input_layer_object = keras.layers.Input(
+        shape=(num_heights, num_input_channels)
+    )
+    regularizer_object = architecture_utils.get_weight_regularizer(
+        l1_weight=l1_weight, l2_weight=l2_weight
+    )
+
+    conv_layer1_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = input_layer_object
+        else:
+            this_input_layer_object = conv_layer1_object
+
+        conv_layer1_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=64,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        conv_layer1_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(conv_layer1_object)
+
+        if use_batch_normalization:
+            conv_layer1_object = architecture_utils.get_batch_norm_layer()(
+                conv_layer1_object
+            )
+
+    pooling_layer1_object = architecture_utils.get_1d_pooling_layer(
+        num_rows_in_window=2, num_rows_per_stride=2,
+        pooling_type_string=architecture_utils.MAX_POOLING_STRING
+    )(conv_layer1_object)
+
+    conv_layer2_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = pooling_layer1_object
+        else:
+            this_input_layer_object = conv_layer2_object
+
+        conv_layer2_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=128,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        conv_layer2_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(conv_layer2_object)
+
+        if use_batch_normalization:
+            conv_layer2_object = architecture_utils.get_batch_norm_layer()(
+                conv_layer2_object
+            )
+
+    pooling_layer2_object = architecture_utils.get_1d_pooling_layer(
+        num_rows_in_window=2, num_rows_per_stride=2,
+        pooling_type_string=architecture_utils.MAX_POOLING_STRING
+    )(conv_layer2_object)
+
+    conv_layer3_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = pooling_layer2_object
+        else:
+            this_input_layer_object = conv_layer3_object
+
+        conv_layer3_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=256,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        conv_layer3_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(conv_layer3_object)
+
+        if use_batch_normalization:
+            conv_layer3_object = architecture_utils.get_batch_norm_layer()(
+                conv_layer3_object
+            )
+
+    pooling_layer3_object = architecture_utils.get_1d_pooling_layer(
+        num_rows_in_window=2, num_rows_per_stride=2,
+        pooling_type_string=architecture_utils.MAX_POOLING_STRING
+    )(conv_layer3_object)
+
+    conv_layer4_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = pooling_layer3_object
+        else:
+            this_input_layer_object = conv_layer4_object
+
+        conv_layer4_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=512,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        conv_layer4_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(conv_layer4_object)
+
+        conv_layer4_object = architecture_utils.get_dropout_layer(
+            dropout_fraction=0.5
+        )(conv_layer4_object)
+
+        if use_batch_normalization:
+            conv_layer4_object = architecture_utils.get_batch_norm_layer()(
+                conv_layer4_object
+            )
+
+    pooling_layer4_object = architecture_utils.get_1d_pooling_layer(
+        num_rows_in_window=2, num_rows_per_stride=2,
+        pooling_type_string=architecture_utils.MAX_POOLING_STRING
+    )(conv_layer4_object)
+
+    conv_layer5_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = pooling_layer4_object
+        else:
+            this_input_layer_object = conv_layer5_object
+
+        conv_layer5_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=1024,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        conv_layer5_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(conv_layer5_object)
+
+        conv_layer5_object = architecture_utils.get_dropout_layer(
+            dropout_fraction=0.5
+        )(conv_layer5_object)
+
+        if use_batch_normalization:
+            conv_layer5_object = architecture_utils.get_batch_norm_layer()(
+                conv_layer5_object
+            )
+
+    this_layer_object = keras.layers.UpSampling1D(size=(2,))
+
+    upconv_layer4_object = architecture_utils.get_1d_conv_layer(
+        num_kernel_rows=2, num_rows_per_stride=1, num_filters=512,
+        padding_type_string=architecture_utils.YES_PADDING_STRING,
+        weight_regularizer=regularizer_object
+    )(this_layer_object)(conv_layer5_object)
+
+    merged_layer4_object = keras.layers.merge(
+        [conv_layer4_object, upconv_layer4_object],
+        mode='concat', concat_axis=-1
+    )
+
+    second_conv_layer4_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = merged_layer4_object
+        else:
+            this_input_layer_object = second_conv_layer4_object
+
+        second_conv_layer4_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=512,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        second_conv_layer4_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(second_conv_layer4_object)
+
+        if use_batch_normalization:
+            second_conv_layer4_object = (
+                architecture_utils.get_batch_norm_layer()(
+                    second_conv_layer4_object
+                )
+            )
+
+    this_layer_object = keras.layers.UpSampling1D(size=(2,))
+
+    upconv_layer3_object = architecture_utils.get_1d_conv_layer(
+        num_kernel_rows=2, num_rows_per_stride=1, num_filters=256,
+        padding_type_string=architecture_utils.YES_PADDING_STRING,
+        weight_regularizer=regularizer_object
+    )(this_layer_object)(second_conv_layer4_object)
+
+    merged_layer3_object = keras.layers.merge(
+        [conv_layer3_object, upconv_layer3_object],
+        mode='concat', concat_axis=-1
+    )
+
+    second_conv_layer3_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = merged_layer3_object
+        else:
+            this_input_layer_object = second_conv_layer3_object
+
+        second_conv_layer3_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=256,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        second_conv_layer3_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(second_conv_layer3_object)
+
+        if use_batch_normalization:
+            second_conv_layer3_object = (
+                architecture_utils.get_batch_norm_layer()(
+                    second_conv_layer3_object
+                )
+            )
+
+    this_layer_object = keras.layers.UpSampling1D(size=(2,))
+
+    upconv_layer2_object = architecture_utils.get_1d_conv_layer(
+        num_kernel_rows=2, num_rows_per_stride=1, num_filters=128,
+        padding_type_string=architecture_utils.YES_PADDING_STRING,
+        weight_regularizer=regularizer_object
+    )(this_layer_object)(second_conv_layer3_object)
+
+    merged_layer2_object = keras.layers.merge(
+        [conv_layer2_object, upconv_layer2_object],
+        mode='concat', concat_axis=-1
+    )
+
+    second_conv_layer2_object = None
+
+    for i in range(2):
+        if i == 0:
+            this_input_layer_object = merged_layer2_object
+        else:
+            this_input_layer_object = second_conv_layer2_object
+
+        second_conv_layer2_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1, num_filters=128,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        second_conv_layer2_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(second_conv_layer2_object)
+
+        if use_batch_normalization:
+            second_conv_layer2_object = (
+                architecture_utils.get_batch_norm_layer()(
+                    second_conv_layer2_object
+                )
+            )
+
+    this_layer_object = keras.layers.UpSampling1D(size=(2,))
+
+    upconv_layer1_object = architecture_utils.get_1d_conv_layer(
+        num_kernel_rows=2, num_rows_per_stride=1, num_filters=64,
+        padding_type_string=architecture_utils.YES_PADDING_STRING,
+        weight_regularizer=regularizer_object
+    )(this_layer_object)(second_conv_layer2_object)
+
+    merged_layer1_object = keras.layers.merge(
+        [conv_layer1_object, upconv_layer1_object],
+        mode='concat', concat_axis=-1
+    )
+
+    second_conv_layer1_object = None
+
+    for i in range(3):
+        if i == 0:
+            this_input_layer_object = merged_layer1_object
+        else:
+            this_input_layer_object = second_conv_layer1_object
+
+        second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=3, num_rows_per_stride=1,
+            num_filters=6 if i == 2 else 3,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object
+        )(this_input_layer_object)
+
+        second_conv_layer1_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(second_conv_layer1_object)
+
+        if use_batch_normalization:
+            second_conv_layer1_object = (
+                architecture_utils.get_batch_norm_layer()(
+                    second_conv_layer1_object
+                )
+            )
+
+    second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
+        num_kernel_rows=1, num_rows_per_stride=1, num_filters=3,
+        padding_type_string=architecture_utils.YES_PADDING_STRING,
+        weight_regularizer=regularizer_object
+    )(second_conv_layer1_object)
+
+    second_conv_layer1_object = architecture_utils.get_activation_layer(
+        activation_function_string=output_activ_function_name,
+        alpha_for_relu=output_activ_function_alpha,
+        alpha_for_elu=output_activ_function_alpha
+    )(second_conv_layer1_object)
+
+    model_object = keras.models.Model(
+        input=input_layer_object, output=second_conv_layer1_object
+    )
+
+    model_object.compile(
+        loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+        metrics=METRIC_FUNCTION_LIST
+    )
+
+    model_object.summary()
+    return model_object
+
+
 def cnn_generator(option_dict, for_inference, use_custom_loss):
     """Generates examples for CNN.
 
