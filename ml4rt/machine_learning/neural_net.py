@@ -1267,13 +1267,13 @@ def make_u_net(option_dict):
                 conv_layer5_object
             )
 
-    this_layer_object = keras.layers.UpSampling1D(size=(2))
-
     upconv_layer4_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=2, num_rows_per_stride=1, num_filters=512,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object
-    )(this_layer_object)(conv_layer5_object)
+    )(
+        keras.layers.UpSampling1D(size=2)
+    )(conv_layer5_object)
 
     merged_layer4_object = keras.layers.merge(
         [conv_layer4_object, upconv_layer4_object],
@@ -1307,7 +1307,7 @@ def make_u_net(option_dict):
                 )
             )
 
-    this_layer_object = keras.layers.UpSampling1D(size=(2))
+    this_layer_object = keras.layers.UpSampling1D(size=2)
 
     upconv_layer3_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=2, num_rows_per_stride=1, num_filters=256,
@@ -1347,7 +1347,7 @@ def make_u_net(option_dict):
                 )
             )
 
-    this_layer_object = keras.layers.UpSampling1D(size=(2))
+    this_layer_object = keras.layers.UpSampling1D(size=2)
 
     upconv_layer2_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=2, num_rows_per_stride=1, num_filters=128,
@@ -1387,7 +1387,7 @@ def make_u_net(option_dict):
                 )
             )
 
-    this_layer_object = keras.layers.UpSampling1D(size=(2))
+    this_layer_object = keras.layers.UpSampling1D(size=2)
 
     upconv_layer1_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=2, num_rows_per_stride=1, num_filters=64,
