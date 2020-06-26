@@ -238,6 +238,11 @@ def _read_file_for_generator(
         example_dict=example_dict, heights_m_agl=heights_m_agl
     )
 
+    if for_inference:
+        example_id_strings = example_io.create_example_ids(example_dict)
+    else:
+        example_id_strings = None
+
     print('Applying {0:s} normalization to predictors...'.format(
         predictor_norm_type_string.upper()
     ))
@@ -263,11 +268,6 @@ def _read_file_for_generator(
         separate_heights=True,
         apply_to_predictors=False, apply_to_targets=True
     )
-
-    if for_inference:
-        example_id_strings = example_io.create_example_ids(example_dict)
-    else:
-        example_id_strings = None
 
     return example_dict, example_id_strings
 

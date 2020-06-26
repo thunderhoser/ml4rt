@@ -140,6 +140,7 @@ def _plot_feature_maps_one_layer(
         here.
     """
 
+    error_checking.assert_is_numpy_array(feature_matrix, num_dimensions=3)
     num_examples = feature_matrix.shape[0]
 
     # TODO(thunderhoser): Maybe define colour limits differently?
@@ -169,8 +170,8 @@ def _plot_feature_maps_one_layer(
         )
         this_figure_object.suptitle(this_title_string, fontsize=25)
 
-        this_file_name = '{0:s}/example={1:s}.jpg'.format(
-            output_dir_name, example_id_strings[i].replace('_', '-')
+        this_file_name = '{0:s}/{1:s}.jpg'.format(
+            output_dir_name, example_id_strings[i]
         )
 
         print('Saving figure to: "{0:s}"...'.format(this_file_name))
@@ -193,6 +194,7 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     :param example_indices: Same.
     :param num_examples: Same.
     :param output_dir_name: Same.
+    :raises: ValueError: if neural-net type is not CNN or U-net.
     """
 
     example_dict = example_io.read_file(example_file_name)
@@ -214,6 +216,19 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
 
+    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
+    valid_net_type_strings = [
+        neural_net.CNN_TYPE_STRING, neural_net.U_NET_TYPE_STRING
+    ]
+
+    if net_type_string not in valid_net_type_strings:
+        error_string = (
+            '\nThis script does not work for net type "{0:s}".  Works only for '
+            'those listed below:\n{1:s}'
+        ).format(net_type_string, str(valid_net_type_strings))
+
+        raise ValueError(error_string)
+
     year = example_io.file_name_to_year(example_file_name)
     first_time_unix_sec, last_time_unix_sec = (
         time_conversion.first_and_last_times_in_year(year)
@@ -227,7 +242,6 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     generator = neural_net.data_generator(
         option_dict=generator_option_dict, for_inference=True,
         net_type_string=net_type_string, use_custom_cnn_loss=False
