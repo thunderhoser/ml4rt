@@ -130,6 +130,10 @@ def create_model(option_dict):
             alpha_for_elu=inner_activ_function_alpha
         )(conv_layer1_object)
 
+        conv_layer1_object = architecture_utils.get_dropout_layer(
+            dropout_fraction=0.5
+        )(conv_layer1_object)
+
         if use_batch_normalization:
             conv_layer1_object = architecture_utils.get_batch_norm_layer()(
                 conv_layer1_object
@@ -160,6 +164,10 @@ def create_model(option_dict):
             alpha_for_elu=inner_activ_function_alpha
         )(conv_layer2_object)
 
+        conv_layer2_object = architecture_utils.get_dropout_layer(
+            dropout_fraction=0.5
+        )(conv_layer2_object)
+
         if use_batch_normalization:
             conv_layer2_object = architecture_utils.get_batch_norm_layer()(
                 conv_layer2_object
@@ -188,6 +196,10 @@ def create_model(option_dict):
             activation_function_string=inner_activ_function_name,
             alpha_for_relu=inner_activ_function_alpha,
             alpha_for_elu=inner_activ_function_alpha
+        )(conv_layer3_object)
+
+        conv_layer3_object = architecture_utils.get_dropout_layer(
+            dropout_fraction=0.5
         )(conv_layer3_object)
 
         if use_batch_normalization:
@@ -402,7 +414,7 @@ def create_model(option_dict):
 
         second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=6 if i == 2 else 3,
+            num_filters=6 if i == 2 else 64,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object
         )(this_input_layer_object)
