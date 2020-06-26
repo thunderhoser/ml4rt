@@ -372,7 +372,7 @@ class NeuralNetTests(unittest.TestCase):
             VECTOR_TARGET_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(
-            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY] is None
+            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY].size == 0
         )
 
 
