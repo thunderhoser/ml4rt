@@ -18,7 +18,7 @@ def negative_mse_skill_score():
         :return: loss: Negative MSE skill score.
         """
 
-        num_examples = K.shape(target_tensor).as_list()[0]
+        num_examples = K.shape(target_tensor)[0]
 
         # num_examples = target_tensor.get_shape().as_list()[0]
 
