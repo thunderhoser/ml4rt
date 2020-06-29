@@ -125,7 +125,7 @@ def create_model(option_dict, custom_loss_dict):
             net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
     elif use_msess_loss:
-        loss_function = custom_losses.negative_mse_skill_score
+        loss_function = custom_losses.negative_mse_skill_score()
     else:
         loss_function = keras.losses.mse
 
