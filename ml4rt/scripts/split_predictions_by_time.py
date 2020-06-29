@@ -10,21 +10,17 @@ from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
 
 MIN_ZENITH_ANGLE_RAD = 0.
-MAX_ZENITH_ANGLE_RAD = 90.
-DEGREES_TO_RADIANS = numpy.pi / 180
+MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
-ANGLE_SPACING_ARG_NAME = 'zenith_angle_spacing_deg'
+NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing predictions for all times of day/year.  '
     'Will be read by `prediction_io.read_file`.'
 )
-ANGLE_SPACING_HELP_STRING = (
-    'Bin width for solar zenith angle (degrees).  Keep in mind that solar '
-    'zenith angle varies from 0-90 deg.'
-)
+NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Temporally split predictions will be written '
     'here by `prediction_io.write_file`.'
@@ -36,8 +32,8 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + ANGLE_SPACING_ARG_NAME, type=float, required=False, default=10.,
-    help=ANGLE_SPACING_HELP_STRING
+    '--' + NUM_ANGLE_BINS_ARG_NAME, type=int, required=False, default=9,
+    help=NUM_ANGLE_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -45,37 +41,33 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, zenith_angle_spacing_deg, output_dir_name):
+def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
     """Splits predictions by time of day and time of year.
 
     This is effectively the main method.
 
     :param input_file_name: See documentation at top of file.
-    :param zenith_angle_spacing_deg: Same.
+    :param num_zenith_angle_bins: Same.
     :param output_dir_name: Same.
     """
 
     # Process input args.
-    error_checking.assert_is_greater(zenith_angle_spacing_deg, 0.)
-    error_checking.assert_is_leq(zenith_angle_spacing_deg, 45.)
-    zenith_angle_spacing_rad = zenith_angle_spacing_deg * DEGREES_TO_RADIANS
-
-    num_angle_bins = int(numpy.ceil(
-        (MAX_ZENITH_ANGLE_RAD - MIN_ZENITH_ANGLE_RAD) / zenith_angle_spacing_rad
-    ))
+    error_checking.assert_is_geq(num_zenith_angle_bins, 2)
     bin_edge_angles_rad = numpy.linspace(
-        MIN_ZENITH_ANGLE_RAD, MAX_ZENITH_ANGLE_RAD, num=num_angle_bins + 1,
-        dtype=float
+        MIN_ZENITH_ANGLE_RAD, MAX_ZENITH_ANGLE_RAD,
+        num=num_zenith_angle_bins + 1, dtype=float
     )
     bin_min_angles_rad = bin_edge_angles_rad[:-1]
     bin_max_angles_rad = bin_edge_angles_rad[1:]
+
+    print(bin_edge_angles_rad)
 
     # Read data.
     print('Reading data from: "{0:s}"...\n'.format(input_file_name))
     prediction_dict = prediction_io.read_file(input_file_name)
 
     # Split by solar zenith angle.
-    for k in range(num_angle_bins):
+    for k in range(num_zenith_angle_bins):
         this_prediction_dict = prediction_io.subset_by_zenith_angle(
             prediction_dict=prediction_dict,
             min_zenith_angle_rad=bin_min_angles_rad[k],
@@ -143,8 +135,8 @@ if __name__ == '__main__':
 
     _run(
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
-        zenith_angle_spacing_deg=getattr(
-            INPUT_ARG_OBJECT, ANGLE_SPACING_ARG_NAME
+        num_zenith_angle_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
