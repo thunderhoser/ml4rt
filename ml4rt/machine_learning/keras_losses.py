@@ -4,6 +4,32 @@ import keras.backend as K
 from gewittergefahr.gg_utils import error_checking
 
 
+def negative_mse_skill_score():
+    """Negative MSE (mean squared error) skill score.
+
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (negative MSE skill score).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Negative MSE skill score.
+        """
+
+        mean_target_tensor = K.mean(target_tensor, axis=0, keepdims=True)
+        mean_target_tensor = K.repeat_elements(
+            mean_target_tensor, rep=K.shape(target_tensor)[0], axis=0
+        )
+
+        mse_actual = K.mean((prediction_tensor - target_tensor) ** 2)
+        mse_climo = K.mean((prediction_tensor - mean_target_tensor) ** 2)
+        return (mse_actual - mse_climo) / mse_climo
+
+    return loss
+
+
 def constrained_mse(
         toa_up_flux_index, toa_up_flux_weight, surface_down_flux_index,
         surface_down_flux_weight, highest_up_flux_index,

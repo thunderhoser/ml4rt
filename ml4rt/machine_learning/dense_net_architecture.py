@@ -5,6 +5,7 @@ import keras
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
+from ml4rt.machine_learning import keras_losses as custom_losses
 
 NUM_INPUTS_KEY = 'num_inputs'
 DENSE_LAYER_NEURON_NUMS_KEY = 'dense_layer_neuron_nums'
@@ -16,6 +17,7 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+USE_MSESS_LOSS_KEY = 'use_msess_loss'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     DENSE_LAYER_NEURON_NUMS_KEY: numpy.array([1000, 605, 366, 221], dtype=int),
@@ -26,7 +28,8 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    USE_MSESS_LOSS_KEY: False
 }
 
 
@@ -41,9 +44,8 @@ def _check_architecture_args(option_dict):
     option_dict = DEFAULT_ARCHITECTURE_OPTION_DICT.copy()
     option_dict.update(orig_option_dict)
 
-    num_inputs = option_dict[NUM_INPUTS_KEY]
-    error_checking.assert_is_integer(num_inputs)
-    error_checking.assert_is_geq(num_inputs, 10)
+    error_checking.assert_is_integer(option_dict[NUM_INPUTS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_INPUTS_KEY], 10)
 
     dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
     error_checking.assert_is_integer_numpy_array(dense_layer_neuron_nums)
@@ -63,14 +65,10 @@ def _check_architecture_args(option_dict):
         dense_layer_dropout_rates, 1., allow_nan=True
     )
 
-    l1_weight = option_dict[L1_WEIGHT_KEY]
-    error_checking.assert_is_geq(l1_weight, 0.)
-
-    l2_weight = option_dict[L2_WEIGHT_KEY]
-    error_checking.assert_is_geq(l2_weight, 0.)
-
-    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-    error_checking.assert_is_boolean(use_batch_normalization)
+    error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
+    error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
+    error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_boolean(option_dict[USE_MSESS_LOSS_KEY])
 
     return option_dict
 
@@ -107,6 +105,8 @@ def create_model(option_dict, custom_loss_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
+    option_dict['use_msess_loss']: Boolean flag.  If True, will use MSE (mean
+        squared error) skill score as loss function.
 
     :param custom_loss_dict: See doc for `neural_net.get_custom_loss_function`.
         If you do not want a custom loss function, make this None.
@@ -115,6 +115,8 @@ def create_model(option_dict, custom_loss_dict):
     """
 
     option_dict = _check_architecture_args(option_dict=option_dict)
+
+    use_msess_loss = option_dict[USE_MSESS_LOSS_KEY]
     use_custom_loss = custom_loss_dict is not None
 
     if use_custom_loss:
@@ -122,6 +124,8 @@ def create_model(option_dict, custom_loss_dict):
             custom_loss_dict=custom_loss_dict,
             net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
+    elif use_msess_loss:
+        loss_function = custom_losses.negative_mse_skill_score
     else:
         loss_function = keras.losses.mse
 

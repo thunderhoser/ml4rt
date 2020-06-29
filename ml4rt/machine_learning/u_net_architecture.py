@@ -4,6 +4,7 @@ import keras
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
+from ml4rt.machine_learning import keras_losses as custom_losses
 
 NUM_HEIGHTS_KEY = 'num_heights'
 NUM_INPUT_CHANNELS_KEY = 'num_input_channels'
@@ -14,6 +15,7 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+USE_MSESS_LOSS_KEY = 'use_msess_loss'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
@@ -22,7 +24,8 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    USE_MSESS_LOSS_KEY: False
 }
 
 
@@ -37,22 +40,14 @@ def _check_architecture_args(option_dict):
     option_dict = DEFAULT_ARCHITECTURE_OPTION_DICT.copy()
     option_dict.update(orig_option_dict)
 
-    num_heights = option_dict[NUM_HEIGHTS_KEY]
-    error_checking.assert_is_integer(num_heights)
-    error_checking.assert_is_geq(num_heights, 10)
-
-    num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
-    error_checking.assert_is_integer(num_input_channels)
-    error_checking.assert_is_geq(num_input_channels, 1)
-
-    l1_weight = option_dict[L1_WEIGHT_KEY]
-    error_checking.assert_is_geq(l1_weight, 0.)
-
-    l2_weight = option_dict[L2_WEIGHT_KEY]
-    error_checking.assert_is_geq(l2_weight, 0.)
-
-    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-    error_checking.assert_is_boolean(use_batch_normalization)
+    error_checking.assert_is_integer(option_dict[NUM_HEIGHTS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_HEIGHTS_KEY], 10)
+    error_checking.assert_is_integer(option_dict[NUM_INPUT_CHANNELS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_INPUT_CHANNELS_KEY], 1)
+    error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
+    error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
+    error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_boolean(option_dict[USE_MSESS_LOSS_KEY])
 
     return option_dict
 
@@ -84,6 +79,8 @@ def create_model(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
+    option_dict['use_msess_loss']: Boolean flag.  If True, will use MSE (mean
+        squared error) skill score as loss function.
 
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
@@ -102,6 +99,7 @@ def create_model(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    use_msess_loss = option_dict[USE_MSESS_LOSS_KEY]
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -448,8 +446,13 @@ def create_model(option_dict):
         input=input_layer_object, output=second_conv_layer1_object
     )
 
+    loss_function = (
+        custom_losses.negative_mse_skill_score if use_msess_loss
+        else keras.losses.mse
+    )
+
     model_object.compile(
-        loss=keras.losses.mse, optimizer=keras.optimizers.Adam(),
+        loss=loss_function, optimizer=keras.optimizers.Adam(),
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
 

@@ -17,7 +17,7 @@ PLATEAU_PATIENCE_EPOCHS = 3
 PLATEAU_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
 EARLY_STOPPING_PATIENCE_EPOCHS = 15
-LOSS_PATIENCE = 0.005
+LOSS_PATIENCE = 0.
 
 CNN_TYPE_STRING = 'cnn'
 DENSE_NET_TYPE_STRING = 'dense_net'
@@ -88,12 +88,13 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 NET_TYPE_KEY = 'net_type_string'
+USE_MSESS_LOSS_KEY = 'use_msess_loss'
 CUSTOM_LOSS_KEY = 'custom_loss_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
-    CUSTOM_LOSS_KEY
+    USE_MSESS_LOSS_KEY, CUSTOM_LOSS_KEY
 ]
 
 
@@ -275,7 +276,8 @@ def _read_file_for_generator(
 def _write_metafile(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, net_type_string, custom_loss_dict):
+        validation_option_dict, net_type_string, use_msess_loss,
+        custom_loss_dict):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -285,6 +287,7 @@ def _write_metafile(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param net_type_string: Same.
+    :param use_msess_loss: Same.
     :param custom_loss_dict: Same.
     """
 
@@ -295,6 +298,7 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         NET_TYPE_KEY: net_type_string,
+        USE_MSESS_LOSS_KEY: use_msess_loss,
         CUSTOM_LOSS_KEY: custom_loss_dict
     }
 
@@ -916,7 +920,7 @@ def train_model(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict,
-        net_type_string, custom_loss_dict):
+        net_type_string, use_msess_loss, custom_loss_dict):
     """Trains any kind of neural net.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -939,6 +943,8 @@ def train_model(
 
     :param net_type_string: Neural-net type (must be accepted by
         `_check_net_type`).
+    :param use_msess_loss: Boolean flag.  If True, model uses MSE (mean squared
+        error) skill score as loss function.
     :param custom_loss_dict: See doc for `get_custom_loss_function`.  If the
         neural net does not have a custom loss function, make this None.
     """
@@ -955,8 +961,9 @@ def train_model(
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
     _check_net_type(net_type_string)
+    error_checking.assert_is_boolean(use_msess_loss)
 
-    if net_type_string == U_NET_TYPE_STRING:
+    if net_type_string == U_NET_TYPE_STRING or use_msess_loss:
         custom_loss_dict = None
 
     training_option_dict = _check_generator_args(training_option_dict)
@@ -978,10 +985,13 @@ def train_model(
         separator=',', append=False
     )
 
+    model_file_name = (
+        output_dir_name + '/model_epoch={epoch:02d}_val-loss={val_loss:.6f}.h5'
+    )
+
     checkpoint_object = keras.callbacks.ModelCheckpoint(
-        filepath='{0:s}/model.h5'.format(output_dir_name),
-        monitor='val_loss', verbose=1, save_best_only=True,
-        save_weights_only=False, mode='min', period=1
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min', period=1
     )
 
     early_stopping_object = keras.callbacks.EarlyStopping(
@@ -1008,7 +1018,8 @@ def train_model(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string, custom_loss_dict=custom_loss_dict
+        net_type_string=net_type_string,
+        use_msess_loss=use_msess_loss, custom_loss_dict=custom_loss_dict
     )
 
     use_custom_cnn_loss = (
@@ -1055,15 +1066,22 @@ def read_model(hdf5_file_name):
     )
 
     metadata_dict = read_metafile(metafile_name)
-    dense_loss_function = get_custom_loss_function(
-        custom_loss_dict=metadata_dict[CUSTOM_LOSS_KEY],
-        net_type_string=metadata_dict[NET_TYPE_KEY]
+    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
+
+    # TODO(thunderhoser): This code is hacky.
+    if metadata_dict[USE_MSESS_LOSS_KEY]:
+        custom_object_dict['loss'] = custom_losses.negative_mse_skill_score
+    else:
+        dense_loss_function = get_custom_loss_function(
+            custom_loss_dict=metadata_dict[CUSTOM_LOSS_KEY],
+            net_type_string=metadata_dict[NET_TYPE_KEY]
+        )
+
+        custom_object_dict['loss'] = dense_loss_function
+
+    return keras.models.load_model(
+        hdf5_file_name, custom_objects=custom_object_dict
     )
-
-    this_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
-    this_dict['loss'] = dense_loss_function
-
-    return keras.models.load_model(hdf5_file_name, custom_objects=this_dict)
 
 
 def find_metafile(model_dir_name, raise_error_if_missing=True):
@@ -1115,6 +1133,8 @@ def read_metafile(pickle_file_name):
             else DENSE_NET_TYPE_STRING
         )
 
+    if USE_MSESS_LOSS_KEY not in metadata_dict:
+        metadata_dict[USE_MSESS_LOSS_KEY] = False
     if CUSTOM_LOSS_KEY not in metadata_dict:
         metadata_dict[CUSTOM_LOSS_KEY] = None
 
