@@ -161,9 +161,8 @@ def write_file(
 
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
 
-    dataset_object.createDimension(
-        EXAMPLE_DIMENSION_KEY, vector_target_matrix.shape[0]
-    )
+    num_examples = vector_target_matrix.shape[0]
+    dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
     dataset_object.createDimension(
         HEIGHT_DIMENSION_KEY, vector_target_matrix.shape[1]
     )
@@ -177,9 +176,12 @@ def write_file(
             SCALAR_TARGET_DIMENSION_KEY, scalar_target_matrix.shape[1]
         )
 
-    num_id_characters = numpy.max(numpy.array([
-        len(id) for id in example_id_strings
-    ]))
+    if num_examples == 0:
+        num_id_characters = 1
+    else:
+        num_id_characters = numpy.max(numpy.array([
+            len(id) for id in example_id_strings
+        ]))
 
     dataset_object.createDimension(EXAMPLE_ID_CHAR_DIM_KEY, num_id_characters)
 
