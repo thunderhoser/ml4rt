@@ -658,8 +658,13 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
 
     num_scalar_targets = len(example_dict[example_io.SCALAR_TARGET_NAMES_KEY])
-    scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
-    vector_target_matrix = target_matrix[:, :-num_scalar_targets]
+
+    if num_scalar_targets == 0:
+        scalar_target_matrix = target_matrix[:, :0]
+        vector_target_matrix = target_matrix + 0.
+    else:
+        scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
+        vector_target_matrix = target_matrix[:, :-num_scalar_targets]
 
     num_heights = len(example_dict[example_io.HEIGHTS_KEY])
     num_vector_targets = len(
