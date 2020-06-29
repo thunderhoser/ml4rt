@@ -92,12 +92,14 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, standard_atmo_enum,
         max_pmm_percentile_level=max_pmm_percentile_level
     )
 
-    dummy_predictor_matrix = numpy.array([0, 0], dtype=float)
+    dummy_predictor_matrix = numpy.array([0, 0, 0], dtype=float)
     dummy_predictor_matrix = numpy.expand_dims(dummy_predictor_matrix, axis=0)
 
     dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
-            [example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME],
+        example_io.SCALAR_PREDICTOR_NAMES_KEY: [
+            example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
+            example_io.ZENITH_ANGLE_NAME
+        ],
         example_io.SCALAR_PREDICTOR_VALS_KEY: dummy_predictor_matrix,
         example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int),
         example_io.STANDARD_ATMO_FLAGS_KEY:

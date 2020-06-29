@@ -313,7 +313,9 @@ FIRST_EXAMPLE_DICT_AVERAGE = {
 # The following constants are used to test create_example_ids and
 # parse_example_ids.
 LATITUDES_FOR_IDS_DEG_N = numpy.array([40, 40.04, 53.5, 40.0381113])
-LONGITUDES_FOR_IDS_DEG_N = numpy.array([255, 254.74, 246.5, 254.7440276])
+LONGITUDES_FOR_IDS_DEG_E = numpy.array([255, 254.74, 246.5, 254.7440276])
+ZENITH_ANGLES_FOR_IDS_RAD = numpy.array([0.5, 0.666, 0.7777777, 1])
+
 TIMES_FOR_IDS_UNIX_SEC = numpy.array([
     0, int(1e7), int(1e8), int(1e9)
 ], dtype=int)
@@ -324,28 +326,34 @@ STANDARD_ATMO_FLAGS_FOR_IDS = numpy.array([
 ], dtype=int)
 
 THIS_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack((
-    LATITUDES_FOR_IDS_DEG_N, LONGITUDES_FOR_IDS_DEG_N
+    LATITUDES_FOR_IDS_DEG_N, LONGITUDES_FOR_IDS_DEG_E, ZENITH_ANGLES_FOR_IDS_RAD
 )))
 
 EXAMPLE_DICT_FOR_IDS = {
-    example_io.SCALAR_PREDICTOR_NAMES_KEY:
-        [example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME],
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: [
+        example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
+        example_io.ZENITH_ANGLE_NAME
+    ],
     example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
     example_io.VALID_TIMES_KEY: TIMES_FOR_IDS_UNIX_SEC,
     example_io.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS_FOR_IDS
 }
 
 EXAMPLE_ID_STRINGS = [
-    'lat=40.000000_long=255.000000_time=0000000000_atmo={0:d}'.format(
+    'lat=40.000000_long=255.000000_zenith-angle-rad=0.500000_'
+    'time=0000000000_atmo={0:d}'.format(
         example_io.MIDLATITUDE_WINTER_ENUM
     ),
-    'lat=40.040000_long=254.740000_time=0010000000_atmo={0:d}'.format(
+    'lat=40.040000_long=254.740000_zenith-angle-rad=0.666000_'
+    'time=0010000000_atmo={0:d}'.format(
         example_io.MIDLATITUDE_WINTER_ENUM
     ),
-    'lat=53.500000_long=246.500000_time=0100000000_atmo={0:d}'.format(
+    'lat=53.500000_long=246.500000_zenith-angle-rad=0.777778_'
+    'time=0100000000_atmo={0:d}'.format(
         example_io.SUBARCTIC_WINTER_ENUM
     ),
-    'lat=40.038111_long=254.744028_time=1000000000_atmo={0:d}'.format(
+    'lat=40.038111_long=254.744028_zenith-angle-rad=1.000000_'
+    'time=1000000000_atmo={0:d}'.format(
         example_io.MIDLATITUDE_WINTER_ENUM
     )
 ]
@@ -690,16 +698,23 @@ class ExampleIoTests(unittest.TestCase):
     def test_parse_example_ids(self):
         """Ensures correct output from parse_example_ids."""
 
-        (
-            these_latitudes_deg_n, these_longitudes_deg_e,
-            these_times_unix_sec, these_standard_atmo_flags
-        ) = example_io.parse_example_ids(EXAMPLE_ID_STRINGS)
+        metadata_dict = example_io.parse_example_ids(EXAMPLE_ID_STRINGS)
+        these_latitudes_deg_n = metadata_dict[example_io.LATITUDES_KEY]
+        these_longitudes_deg_e = metadata_dict[example_io.LONGITUDES_KEY]
+        these_zenith_angles_rad = metadata_dict[example_io.ZENITH_ANGLES_KEY]
+        these_times_unix_sec = metadata_dict[example_io.VALID_TIMES_KEY]
+        these_standard_atmo_flags = (
+            metadata_dict[example_io.STANDARD_ATMO_FLAGS_KEY]
+        )
 
         self.assertTrue(numpy.allclose(
             these_latitudes_deg_n, LATITUDES_FOR_IDS_DEG_N, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            these_longitudes_deg_e, LONGITUDES_FOR_IDS_DEG_N, atol=TOLERANCE
+            these_longitudes_deg_e, LONGITUDES_FOR_IDS_DEG_E, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            these_zenith_angles_rad, ZENITH_ANGLES_FOR_IDS_RAD, atol=TOLERANCE
         ))
         self.assertTrue(numpy.array_equal(
             these_times_unix_sec, TIMES_FOR_IDS_UNIX_SEC

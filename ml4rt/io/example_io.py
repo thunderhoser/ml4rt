@@ -36,6 +36,10 @@ VALID_TIMES_KEY = 'valid_times_unix_sec'
 HEIGHTS_KEY = 'heights_m_agl'
 STANDARD_ATMO_FLAGS_KEY = 'standard_atmo_flags'
 
+LATITUDES_KEY = 'latitudes_deg_n'
+LONGITUDES_KEY = 'longitudes_deg_e'
+ZENITH_ANGLES_KEY = 'zenith_angles_rad'
+
 DICTIONARY_KEYS = [
     SCALAR_PREDICTOR_VALS_KEY, SCALAR_PREDICTOR_NAMES_KEY,
     VECTOR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_NAMES_KEY,
@@ -220,6 +224,8 @@ def find_file(example_dir_name, year, raise_error_if_missing=True):
         `raise_error_if_missing == True`, will throw error.  If file is missing
         and `raise_error_if_missing == False`, will return *expected* file path.
     :return: example_file_name: File path.
+    :raises: ValueError: if file is missing
+        and `raise_error_if_missing == True`.
     """
 
     error_checking.assert_is_string(example_dir_name)
@@ -513,17 +519,21 @@ def create_example_ids(example_dict):
     longitudes_deg_e = get_field_from_dict(
         example_dict=example_dict, field_name=LONGITUDE_NAME
     )
+    zenith_angles_rad = get_field_from_dict(
+        example_dict=example_dict, field_name=ZENITH_ANGLE_NAME
+    )
     valid_times_unix_sec = example_dict[VALID_TIMES_KEY]
     standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
 
     return [
-        'lat={0:09.6f}_long={1:010.6f}_time={2:010d}_atmo={3:1d}'.format(
-            lat, long, t, f
+        'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_' \
+        'time={3:010d}_atmo={4:1d}'.format(
+            lat, long, theta, t, f
         )
-        for lat, long, t, f in
+        for lat, long, theta, t, f in
         zip(
-            latitudes_deg_n, longitudes_deg_e, valid_times_unix_sec,
-            standard_atmo_flags
+            latitudes_deg_n, longitudes_deg_e, zenith_angles_rad,
+            valid_times_unix_sec, standard_atmo_flags
         )
     ]
 
@@ -534,11 +544,15 @@ def parse_example_ids(example_id_strings):
     E = number of examples
 
     :param example_id_strings: length-E list of example IDs.
-    :return: latitudes_deg_n: length-E numpy array of latitudes (deg N).
-    :return: longitudes_deg_e: length-E numpy array of longitudes (deg E).
-    :return: valid_times_unix_sec: length-E numpy array of valid times.
-    :return: standard_atmo_flags: length-E numpy array of standard-atmosphere
-        flags (integers).
+    :return: metadata_dict: Dictionary with the following keys.
+    metadata_dict['latitudes_deg_n']: length-E numpy array of latitudes (deg N).
+    metadata_dict['longitudes_deg_e']: length-E numpy array of longitudes
+        (deg E).
+    metadata_dict['zenith_angles_rad']: length-E numpy array of solar zenith
+        angles (radians).
+    metadata_dict['valid_times_unix_sec']: length-E numpy array of valid times.
+    metadata_dict['standard_atmo_flags']: length-E numpy array of standard-
+        atmosphere flags (integers).
     """
 
     error_checking.assert_is_numpy_array(
@@ -548,6 +562,7 @@ def parse_example_ids(example_id_strings):
     num_examples = len(example_id_strings)
     latitudes_deg_n = numpy.full(num_examples, numpy.nan)
     longitudes_deg_e = numpy.full(num_examples, numpy.nan)
+    zenith_angles_rad = numpy.full(num_examples, numpy.nan)
     valid_times_unix_sec = numpy.full(num_examples, -1, dtype=int)
     standard_atmo_flags = numpy.full(num_examples, -1, dtype=int)
 
@@ -560,16 +575,24 @@ def parse_example_ids(example_id_strings):
         assert these_words[1].startswith('long=')
         longitudes_deg_e[i] = float(these_words[1].replace('long=', ''))
 
-        assert these_words[2].startswith('time=')
-        valid_times_unix_sec[i] = int(these_words[2].replace('time=', ''))
+        assert these_words[2].startswith('zenith-angle-rad=')
+        zenith_angles_rad[i] = float(
+            these_words[2].replace('zenith-angle-rad=', '')
+        )
 
-        assert these_words[3].startswith('atmo=')
-        standard_atmo_flags[i] = int(these_words[3].replace('atmo=', ''))
+        assert these_words[3].startswith('time=')
+        valid_times_unix_sec[i] = int(these_words[3].replace('time=', ''))
 
-    return (
-        latitudes_deg_n, longitudes_deg_e, valid_times_unix_sec,
-        standard_atmo_flags
-    )
+        assert these_words[4].startswith('atmo=')
+        standard_atmo_flags[i] = int(these_words[4].replace('atmo=', ''))
+
+    return {
+        LATITUDES_KEY: latitudes_deg_n,
+        LONGITUDES_KEY: longitudes_deg_e,
+        ZENITH_ANGLES_KEY: zenith_angles_rad,
+        VALID_TIMES_KEY: valid_times_unix_sec,
+        STANDARD_ATMO_FLAGS_KEY: standard_atmo_flags
+    }
 
 
 def get_field_from_dict(example_dict, field_name, height_m_agl=None):

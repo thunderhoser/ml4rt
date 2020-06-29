@@ -34,8 +34,10 @@ def mae_skill_score(target_tensor, prediction_tensor):
     :return: mae_skill_score: MAE skill score.
     """
 
+    mean_target_tensor = K.mean(target_tensor, axis=0, keepdims=True)
+
     mae_actual = mean_absolute_error(target_tensor, prediction_tensor)
-    mae_climo = mean_absolute_error(target_tensor, K.mean(target_tensor))
+    mae_climo = mean_absolute_error(target_tensor, mean_target_tensor)
     return (mae_climo - mae_actual) / mae_climo
 
 
@@ -58,8 +60,10 @@ def mse_skill_score(target_tensor, prediction_tensor):
     :return: mse_skill_score: MSE skill score.
     """
 
+    mean_target_tensor = K.mean(target_tensor, axis=0, keepdims=True)
+
     mse_actual = mean_squared_error(target_tensor, prediction_tensor)
-    mse_climo = mean_squared_error(target_tensor, K.mean(target_tensor))
+    mse_climo = mean_squared_error(target_tensor, mean_target_tensor)
     return (mse_climo - mse_actual) / mse_climo
 
 

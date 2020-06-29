@@ -1,7 +1,9 @@
 """Input/output methods for model predictions."""
 
+import os.path
 import numpy
 import netCDF4
+from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -26,6 +28,68 @@ ONE_PER_EXAMPLE_KEYS = [
 ]
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
+MAX_ZENITH_ANGLE_RADIANS = numpy.pi / 2
+
+
+def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
+              grid_column=None, raise_error_if_missing=True):
+    """Finds NetCDF file with predictions.
+
+    :param directory_name: Name of directory where file is expected.
+    :param zenith_angle_bin: Zenith-angle bin (non-negative integer).  If file
+        does not contain predictions for a specific zenith-angle bin, leave this
+        alone.
+    :param month: Month (integer from 1...12).  If file does not contain
+        predictions for a specific month, leave this alone.
+    :param grid_row: Grid row (non-negative integer).  If file does not contain
+        predictions for a specific spatial region, leave this alone.
+    :param grid_column: Same but for grid column.
+    :param raise_error_if_missing: Boolean flag.  If file is missing and
+        `raise_error_if_missing == True`, will throw error.  If file is missing
+        and `raise_error_if_missing == False`, will return *expected* file path.
+    :return: netcdf_file_name: File path.
+    :raises: ValueError: if file is missing
+        and `raise_error_if_missing == True`.
+    """
+
+    error_checking.assert_is_string(directory_name)
+
+    if zenith_angle_bin is not None:
+        error_checking.assert_is_integer(zenith_angle_bin)
+        error_checking.assert_is_geq(zenith_angle_bin, 0)
+        netcdf_file_name = (
+            '{0:s}/predictions_zenith-angle-bin={1:03d}.nc'
+        ).format(directory_name, zenith_angle_bin)
+
+    elif month is not None:
+        error_checking.assert_is_integer(month)
+        error_checking.assert_is_geq(month, 1)
+        error_checking.assert_is_leq(month, 12)
+        netcdf_file_name = '{0:s}/predictions_month={1:02d}.nc'.format(
+            directory_name, month
+        )
+
+    elif grid_row is not None or grid_column is not None:
+        error_checking.assert_is_integer(grid_row)
+        error_checking.assert_is_geq(grid_row, 0)
+        error_checking.assert_is_integer(grid_column)
+        error_checking.assert_is_geq(grid_column, 0)
+        netcdf_file_name = (
+            '{0:s}/predictions_row={1:03d}_column={2:03d}.nc'
+        ).format(directory_name, grid_row, grid_column)
+
+    else:
+        netcdf_file_name = '{0:s}/predictions.nc'.format(
+            directory_name, grid_row, grid_column
+        )
+
+    if raise_error_if_missing and not os.path.isfile(netcdf_file_name):
+        error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
+            netcdf_file_name
+        )
+        raise ValueError(error_string)
+
+    return netcdf_file_name
 
 
 def write_file(
@@ -307,9 +371,93 @@ def subset_by_standard_atmo(prediction_dict, standard_atmo_enum):
 
     all_standard_atmo_enums = example_io.parse_example_ids(
         prediction_dict[EXAMPLE_IDS_KEY]
-    )[-1]
+    )[example_io.STANDARD_ATMO_FLAGS_KEY]
 
     good_indices = numpy.where(all_standard_atmo_enums == standard_atmo_enum)[0]
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        if isinstance(prediction_dict[this_key], list):
+            prediction_dict[this_key] = [
+                prediction_dict[this_key][k] for k in good_indices
+            ]
+        else:
+            prediction_dict[this_key] = (
+                prediction_dict[this_key][good_indices, ...]
+            )
+
+    return prediction_dict
+
+
+def subset_by_zenith_angle(
+        prediction_dict, min_zenith_angle_rad, max_zenith_angle_rad,
+        max_inclusive=None):
+    """Subsets examples by solar zenith angle.
+
+    :param prediction_dict: See doc for `write_file`.
+    :param min_zenith_angle_rad: Minimum zenith angle (radians).
+    :param max_zenith_angle_rad: Max zenith angle (radians).
+    :param max_inclusive: Boolean flag.  If True (False), `max_zenith_angle_rad`
+        will be included in subset.
+    :return: prediction_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_geq(min_zenith_angle_rad, 0.)
+    error_checking.assert_is_leq(max_zenith_angle_rad, MAX_ZENITH_ANGLE_RADIANS)
+    error_checking.assert_is_greater(max_zenith_angle_rad, min_zenith_angle_rad)
+
+    if max_inclusive is None:
+        max_inclusive = max_zenith_angle_rad == MAX_ZENITH_ANGLE_RADIANS
+
+    error_checking.assert_is_boolean(max_inclusive)
+
+    all_zenith_angles_rad = example_io.parse_example_ids(
+        prediction_dict[EXAMPLE_IDS_KEY]
+    )[example_io.ZENITH_ANGLES_KEY]
+
+    min_flags = all_zenith_angles_rad >= min_zenith_angle_rad
+
+    if max_inclusive:
+        max_flags = all_zenith_angles_rad <= max_zenith_angle_rad
+    else:
+        max_flags = all_zenith_angles_rad < max_zenith_angle_rad
+
+    good_indices = numpy.where(numpy.logical_and(min_flags, max_flags))[0]
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        if isinstance(prediction_dict[this_key], list):
+            prediction_dict[this_key] = [
+                prediction_dict[this_key][k] for k in good_indices
+            ]
+        else:
+            prediction_dict[this_key] = (
+                prediction_dict[this_key][good_indices, ...]
+            )
+
+    return prediction_dict
+
+
+def subset_by_month(prediction_dict, desired_month):
+    """Subsets examples by month.
+
+    :param prediction_dict: See doc for `write_file`.
+    :param desired_month: Desired month (integer from 1...12).
+    :return: prediction_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_integer(desired_month)
+    error_checking.assert_is_geq(desired_month, 1)
+    error_checking.assert_is_leq(desired_month, 12)
+
+    all_times_unix_sec = example_io.parse_example_ids(
+        prediction_dict[EXAMPLE_IDS_KEY]
+    )[example_io.VALID_TIMES_KEY]
+
+    all_months = numpy.array([
+        int(time_conversion.unix_sec_to_string(t, '%m'))
+        for t in all_times_unix_sec
+    ], dtype=int)
+
+    good_indices = numpy.where(all_months == desired_month)[0]
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
         if isinstance(prediction_dict[this_key], list):

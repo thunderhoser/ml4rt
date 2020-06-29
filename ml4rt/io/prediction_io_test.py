@@ -65,12 +65,12 @@ VECTOR_PREDICTION_MATRIX = numpy.stack(
 )
 
 DUMMY_PREDICTOR_MATRIX = numpy.array([
-    [0, 1],
-    [2, 3],
-    [4, 5],
-    [6, 7],
-    [8, 9]
-], dtype=float)
+    [0, 1, 0.5],
+    [2, 3, 0.6],
+    [4, 5, 0.7],
+    [6, 7, 0.8],
+    [8, 9, 0.9]
+])
 
 DUMMY_STANDARD_ATMO_ENUMS = numpy.array([
     example_io.MIDLATITUDE_WINTER_ENUM, example_io.MIDLATITUDE_SUMMER_ENUM,
@@ -79,11 +79,13 @@ DUMMY_STANDARD_ATMO_ENUMS = numpy.array([
 ])
 
 DUMMY_EXAMPLE_DICT = {
-    example_io.SCALAR_PREDICTOR_NAMES_KEY:
-        [example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME],
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: [
+        example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
+        example_io.ZENITH_ANGLE_NAME
+    ],
     example_io.SCALAR_PREDICTOR_VALS_KEY: DUMMY_PREDICTOR_MATRIX,
     example_io.VALID_TIMES_KEY:
-        numpy.array([300, 600, 900, 1200, 1500], dtype=int),
+        numpy.array([1e9, 1.1e9, 1.2e9, 1.3e9, 1.4e9], dtype=int),
     example_io.STANDARD_ATMO_FLAGS_KEY: DUMMY_STANDARD_ATMO_ENUMS
 }
 
@@ -99,10 +101,11 @@ PREDICTION_DICT = {
     prediction_io.EXAMPLE_IDS_KEY: EXAMPLE_ID_STRINGS
 }
 
-DESIRED_STANDARD_ATMO_ENUM = example_io.MIDLATITUDE_WINTER_ENUM + 0
+# The following constants are used to test subset_by_standard_atmo.
+STANDARD_ATMO_ENUM = example_io.MIDLATITUDE_WINTER_ENUM + 0
 THESE_INDICES = numpy.array([0, 3], dtype=int)
 
-PREDICTION_DICT_MIDLAT_WINTER = {
+PREDICTION_DICT_SUBSET_BY_ATMO = {
     prediction_io.SCALAR_TARGETS_KEY:
         SCALAR_TARGET_MATRIX[THESE_INDICES, ...],
     prediction_io.SCALAR_PREDICTIONS_KEY:
@@ -117,6 +120,46 @@ PREDICTION_DICT_MIDLAT_WINTER = {
     ]
 }
 
+# The following constants are used to test subset_by_zenith_angle.
+MIN_ZENITH_ANGLE_RAD = 0.666
+MAX_ZENITH_ANGLE_RAD = 0.9
+THESE_INDICES = numpy.array([2, 3], dtype=int)
+
+PREDICTION_DICT_SUBSET_BY_ANGLE = {
+    prediction_io.SCALAR_TARGETS_KEY:
+        SCALAR_TARGET_MATRIX[THESE_INDICES, ...],
+    prediction_io.SCALAR_PREDICTIONS_KEY:
+        SCALAR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.VECTOR_TARGETS_KEY:
+        VECTOR_TARGET_MATRIX[THESE_INDICES, ...],
+    prediction_io.VECTOR_PREDICTIONS_KEY:
+        VECTOR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
+    prediction_io.EXAMPLE_IDS_KEY: [
+        EXAMPLE_ID_STRINGS[k] for k in THESE_INDICES
+    ]
+}
+
+# The following constants are used to test subset_by_month.
+DESIRED_MONTH = 11
+THESE_INDICES = numpy.array([1], dtype=int)
+
+PREDICTION_DICT_SUBSET_BY_MONTH = {
+    prediction_io.SCALAR_TARGETS_KEY:
+        SCALAR_TARGET_MATRIX[THESE_INDICES, ...],
+    prediction_io.SCALAR_PREDICTIONS_KEY:
+        SCALAR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.VECTOR_TARGETS_KEY:
+        VECTOR_TARGET_MATRIX[THESE_INDICES, ...],
+    prediction_io.VECTOR_PREDICTIONS_KEY:
+        VECTOR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
+    prediction_io.EXAMPLE_IDS_KEY: [
+        EXAMPLE_ID_STRINGS[k] for k in THESE_INDICES
+    ]
+}
+
+# The following constants are used to test average_predictions.
 MEAN_SCALAR_TARGET_MATRIX = numpy.array([[165, 250]], dtype=float)
 MEAN_SCALAR_PREDICTION_MATRIX = numpy.array([[255, 325]], dtype=float)
 
@@ -203,10 +246,33 @@ class PredictionIoTests(unittest.TestCase):
 
         this_prediction_dict = prediction_io.subset_by_standard_atmo(
             prediction_dict=copy.deepcopy(PREDICTION_DICT),
-            standard_atmo_enum=DESIRED_STANDARD_ATMO_ENUM
+            standard_atmo_enum=STANDARD_ATMO_ENUM
         )
         self.assertTrue(_compare_prediction_dicts(
-            this_prediction_dict, PREDICTION_DICT_MIDLAT_WINTER
+            this_prediction_dict, PREDICTION_DICT_SUBSET_BY_ATMO
+        ))
+
+    def test_subset_by_zenith_angle(self):
+        """Ensures correct output from subset_by_zenith_angle."""
+
+        this_prediction_dict = prediction_io.subset_by_zenith_angle(
+            prediction_dict=copy.deepcopy(PREDICTION_DICT),
+            min_zenith_angle_rad=MIN_ZENITH_ANGLE_RAD,
+            max_zenith_angle_rad=MAX_ZENITH_ANGLE_RAD
+        )
+        self.assertTrue(_compare_prediction_dicts(
+            this_prediction_dict, PREDICTION_DICT_SUBSET_BY_ANGLE
+        ))
+
+    def test_subset_by_month(self):
+        """Ensures correct output from subset_by_month."""
+
+        this_prediction_dict = prediction_io.subset_by_month(
+            prediction_dict=copy.deepcopy(PREDICTION_DICT),
+            desired_month=DESIRED_MONTH
+        )
+        self.assertTrue(_compare_prediction_dicts(
+            this_prediction_dict, PREDICTION_DICT_SUBSET_BY_MONTH
         ))
 
 
