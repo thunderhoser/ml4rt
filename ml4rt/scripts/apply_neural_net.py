@@ -261,12 +261,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
     ))
-
-    print(target_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
-    print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
-    print('\n\n\n')
-    print(generator_option_dict)
-
     prediction_io.write_file(
         netcdf_file_name=output_file_name,
         scalar_target_matrix=

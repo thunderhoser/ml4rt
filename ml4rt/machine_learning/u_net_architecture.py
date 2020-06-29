@@ -412,7 +412,7 @@ def create_model(option_dict):
 
         second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=6 if i == 2 else 64,
+            num_filters=2 if i == 2 else 64,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object
         )(this_input_layer_object)
@@ -431,7 +431,7 @@ def create_model(option_dict):
             )
 
     second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
-        num_kernel_rows=1, num_rows_per_stride=1, num_filters=3,
+        num_kernel_rows=1, num_rows_per_stride=1, num_filters=1,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object
     )(second_conv_layer1_object)
