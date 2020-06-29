@@ -263,7 +263,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     ))
 
     print(target_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
-    print(target_example_dict[example_io.SCALAR_TARGET_VALS_KEY].shape)
+    print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
     print('\n\n\n')
     print(generator_option_dict)
 
