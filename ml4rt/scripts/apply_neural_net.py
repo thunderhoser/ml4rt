@@ -198,16 +198,34 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     prediction_example_dict = copy.deepcopy(target_example_dict)
 
+    # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
+    if net_type_string == neural_net.CNN_TYPE_STRING:
+        these_target_matrices = [vector_target_matrix, scalar_target_matrix]
+    elif net_type_string == neural_net.U_NET_TYPE_STRING:
+        these_target_matrices = [vector_target_matrix]
+    else:
+        these_target_matrices = [scalar_target_matrix]
+
     new_example_dict = neural_net.targets_numpy_to_dict(
-        target_matrices=[vector_target_matrix, scalar_target_matrix],
+        target_matrices=these_target_matrices,
         example_dict=target_example_dict, net_type_string=net_type_string
     )
 
     for this_key in TARGET_VALUE_KEYS:
         target_example_dict[this_key] = new_example_dict[this_key]
 
+    # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
+    if net_type_string == neural_net.CNN_TYPE_STRING:
+        these_prediction_matrices = [
+            vector_prediction_matrix, scalar_prediction_matrix
+        ]
+    elif net_type_string == neural_net.U_NET_TYPE_STRING:
+        these_prediction_matrices = [vector_prediction_matrix]
+    else:
+        these_prediction_matrices = [scalar_prediction_matrix]
+
     new_example_dict = neural_net.targets_numpy_to_dict(
-        target_matrices=[vector_prediction_matrix, scalar_prediction_matrix],
+        target_matrices=these_prediction_matrices,
         example_dict=prediction_example_dict, net_type_string=net_type_string
     )
 
