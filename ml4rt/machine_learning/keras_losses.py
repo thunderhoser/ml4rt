@@ -18,9 +18,11 @@ def negative_mse_skill_score():
         :return: loss: Negative MSE skill score.
         """
 
+        num_examples = target_tensor.get_shape().as_list()[0]
+
         mean_target_tensor = K.mean(target_tensor, axis=0, keepdims=True)
         mean_target_tensor = K.repeat_elements(
-            mean_target_tensor, rep=K.shape(target_tensor)[0], axis=0
+            mean_target_tensor, rep=num_examples, axis=0
         )
 
         mse_actual = K.mean((prediction_tensor - target_tensor) ** 2)

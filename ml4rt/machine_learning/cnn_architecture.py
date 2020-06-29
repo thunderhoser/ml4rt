@@ -318,7 +318,7 @@ def create_model(option_dict, custom_loss_dict=None):
         )
     else:
         loss_function = (
-            custom_losses.negative_mse_skill_score if use_msess_loss
+            custom_losses.negative_mse_skill_score() if use_msess_loss
             else keras.losses.mse
         )
 
