@@ -1070,7 +1070,7 @@ def read_model(hdf5_file_name):
 
     # TODO(thunderhoser): This code is hacky.
     if metadata_dict[USE_MSESS_LOSS_KEY]:
-        custom_object_dict['loss'] = custom_losses.negative_mse_skill_score
+        custom_object_dict['loss'] = custom_losses.negative_mse_skill_score()
     else:
         dense_loss_function = get_custom_loss_function(
             custom_loss_dict=metadata_dict[CUSTOM_LOSS_KEY],
