@@ -60,8 +60,6 @@ def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
     bin_min_angles_rad = bin_edge_angles_rad[:-1]
     bin_max_angles_rad = bin_edge_angles_rad[1:]
 
-    print(bin_edge_angles_rad)
-
     # Read data.
     print('Reading data from: "{0:s}"...\n'.format(input_file_name))
     prediction_dict = prediction_io.read_file(input_file_name)
@@ -79,9 +77,10 @@ def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
             raise_error_if_missing=False
         )
         print((
-            'Writing data for zenith angles [{0:.4f}, {1:.4f}] rad to: '
-            '"{2:s}"...'
+            'Writing {0:d} examples (with zenith angles {1:.4f}...{2:.4f} rad) '
+            'to: "{3:s}"...'
         ).format(
+            len(this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]),
             bin_min_angles_rad[k], bin_max_angles_rad[k], this_output_file_name
         ))
 
@@ -112,7 +111,10 @@ def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
             directory_name=output_dir_name, month=k,
             raise_error_if_missing=False
         )
-        print('Writing data to: "{0:s}"...'.format(this_output_file_name))
+        print('Writing {0:d} examples to: "{1:s}"...'.format(
+            len(this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]),
+            this_output_file_name
+        ))
 
         prediction_io.write_file(
             netcdf_file_name=this_output_file_name,
