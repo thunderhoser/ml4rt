@@ -436,7 +436,7 @@ def _get_score_keys_one_field(evaluation_table_xarray, field_name,
         ]
 
         return score_keys, field_index, None
-    except KeyError:
+    except ValueError:
         pass
 
     try:
@@ -452,7 +452,7 @@ def _get_score_keys_one_field(evaluation_table_xarray, field_name,
         ]
 
         return score_keys, field_index, None
-    except KeyError:
+    except:
         pass
 
     vector_field_names = evaluation_table_xarray.coords[
