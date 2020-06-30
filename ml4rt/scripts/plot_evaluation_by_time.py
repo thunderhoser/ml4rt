@@ -254,6 +254,7 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
         )
         axes_object.add_patch(patch_object)
 
+    axes_object.set_xticks(x_values)
     axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
     )
@@ -417,7 +418,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             evaluation.find_file(directory_name=evaluation_dir_name, month=k)
             for k in months
         ]
-
+        
         x_tick_label_strings = MONTH_STRINGS
         x_axis_label_string = ''
     else:
