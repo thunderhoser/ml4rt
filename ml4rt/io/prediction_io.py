@@ -93,7 +93,7 @@ def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
         error_checking.assert_is_geq(grid_column, 0)
 
         prediction_file_name = (
-            '{0:s}/predictions_{1:s}={2:03d}_{3:s}={4:03d}.nc'
+            '{0:s}/{1:s}={2:03d}/predictions_{1:s}={2:03d}_{3:s}={4:03d}.nc'
         ).format(
             directory_name, GRID_ROW_KEY.replace('_', '-'), grid_row,
             GRID_COLUMN_KEY.replace('_', '-'), grid_column
