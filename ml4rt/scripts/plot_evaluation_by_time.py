@@ -522,32 +522,35 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
 
     print(SEPARATOR_STRING)
 
-    aux_field_names = (
-        evaluation_tables_xarray[0].coords[
-            evaluation.AUX_TARGET_FIELD_DIM
-        ].values
-    )
-    aux_mae_matrix = numpy.vstack([
-        t[evaluation.AUX_MAE_KEY].values for t in evaluation_tables_xarray
-    ])
-    aux_rmse_matrix = numpy.sqrt(numpy.vstack([
-        t[evaluation.AUX_MSE_KEY].values for t in evaluation_tables_xarray
-    ]))
-    aux_bias_matrix = numpy.vstack([
-        t[evaluation.AUX_BIAS_KEY].values for t in evaluation_tables_xarray
-    ])
-    aux_mae_skill_matrix = numpy.vstack([
-        t[evaluation.AUX_MAE_SKILL_KEY].values
-        for t in evaluation_tables_xarray
-    ])
-    aux_mse_skill_matrix = numpy.vstack([
-        t[evaluation.AUX_MSE_SKILL_KEY].values
-        for t in evaluation_tables_xarray
-    ])
-    aux_correlation_matrix = numpy.vstack([
-        t[evaluation.AUX_CORRELATION_KEY].values
-        for t in evaluation_tables_xarray
-    ])
+    try:
+        aux_field_names = (
+            evaluation_tables_xarray[0].coords[
+                evaluation.AUX_TARGET_FIELD_DIM
+            ].values
+        )
+        aux_mae_matrix = numpy.vstack([
+            t[evaluation.AUX_MAE_KEY].values for t in evaluation_tables_xarray
+        ])
+        aux_rmse_matrix = numpy.sqrt(numpy.vstack([
+            t[evaluation.AUX_MSE_KEY].values for t in evaluation_tables_xarray
+        ]))
+        aux_bias_matrix = numpy.vstack([
+            t[evaluation.AUX_BIAS_KEY].values for t in evaluation_tables_xarray
+        ])
+        aux_mae_skill_matrix = numpy.vstack([
+            t[evaluation.AUX_MAE_SKILL_KEY].values
+            for t in evaluation_tables_xarray
+        ])
+        aux_mse_skill_matrix = numpy.vstack([
+            t[evaluation.AUX_MSE_SKILL_KEY].values
+            for t in evaluation_tables_xarray
+        ])
+        aux_correlation_matrix = numpy.vstack([
+            t[evaluation.AUX_CORRELATION_KEY].values
+            for t in evaluation_tables_xarray
+        ])
+    except KeyError:
+        aux_field_names = []
 
     for k in range(len(aux_field_names)):
         figure_object, axes_object = _plot_scores_with_units(
