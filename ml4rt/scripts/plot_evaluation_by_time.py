@@ -250,10 +250,9 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
         )
         axes_object.add_patch(patch_object)
 
-    # axes_object.set_ylabel('AUC or CSI')
-    axes_object.set_xlim([
+    axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
-    ])
+    )
 
     if plot_legend:
         axes_object.legend(
@@ -295,22 +294,17 @@ def _plot_unitless_scores(
     x_values = numpy.linspace(
         0, num_time_chunks - 1, num=num_time_chunks, dtype=float
     )
-    y_min = 1.
 
     # Plot mean MAE skill score.
-    these_y_values = numpy.mean(mae_skill_score_matrix, axis=1)
-    if not numpy.all(numpy.isnan(these_y_values)):
-        y_min = numpy.minimum(y_min, numpy.nanmin(these_y_values))
-
     this_handle = axes_object.plot(
-        x_values, these_y_values, color=MAE_SKILL_COLOUR, linewidth=LINE_WIDTH,
-        marker=MARKER_TYPE, markersize=MARKER_SIZE,
-        markerfacecolor=MAE_SKILL_COLOUR, markeredgecolor=MAE_SKILL_COLOUR,
-        markeredgewidth=0
+        x_values, numpy.mean(mae_skill_score_matrix, axis=1),
+        color=MAE_SKILL_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
+        markersize=MARKER_SIZE, markerfacecolor=MAE_SKILL_COLOUR,
+        markeredgecolor=MAE_SKILL_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles = [this_handle]
-    legend_strings = ['MAE skill score']
+    legend_strings = ['MAE skill']
 
     # Plot confidence interval for MAE skill score.
     if num_bootstrap_reps > 1:
@@ -318,10 +312,6 @@ def _plot_unitless_scores(
             x_values=x_values, y_value_matrix=mae_skill_score_matrix,
             confidence_level=confidence_level
         )
-
-        these_y_values = numpy.array(polygon_object.exterior.xy[1])
-        if not numpy.all(numpy.isnan(these_y_values)):
-            y_min = numpy.minimum(y_min, numpy.nanmin(these_y_values))
 
         polygon_colour = matplotlib.colors.to_rgba(
             MAE_SKILL_COLOUR, POLYGON_OPACITY
@@ -332,19 +322,15 @@ def _plot_unitless_scores(
         axes_object.add_patch(patch_object)
 
     # Plot mean MSE skill score.
-    these_y_values = numpy.mean(mse_skill_score_matrix, axis=1)
-    if not numpy.all(numpy.isnan(these_y_values)):
-        y_min = numpy.minimum(y_min, numpy.nanmin(these_y_values))
-
     this_handle = axes_object.plot(
-        x_values, these_y_values, color=MSE_SKILL_COLOUR, linewidth=LINE_WIDTH,
-        marker=MARKER_TYPE, markersize=MARKER_SIZE,
-        markerfacecolor=MSE_SKILL_COLOUR, markeredgecolor=MSE_SKILL_COLOUR,
-        markeredgewidth=0
+        x_values, numpy.mean(mse_skill_score_matrix, axis=1),
+        color=MSE_SKILL_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
+        markersize=MARKER_SIZE, markerfacecolor=MSE_SKILL_COLOUR,
+        markeredgecolor=MSE_SKILL_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles.append(this_handle)
-    legend_strings.append('MSE skill score')
+    legend_strings.append('MSE skill')
 
     # Plot confidence interval for MSE skill score.
     if num_bootstrap_reps > 1:
@@ -352,10 +338,6 @@ def _plot_unitless_scores(
             x_values=x_values, y_value_matrix=mse_skill_score_matrix,
             confidence_level=confidence_level
         )
-
-        these_y_values = numpy.array(polygon_object.exterior.xy[1])
-        if not numpy.all(numpy.isnan(these_y_values)):
-            y_min = numpy.minimum(y_min, numpy.nanmin(these_y_values))
 
         polygon_colour = matplotlib.colors.to_rgba(
             MSE_SKILL_COLOUR, POLYGON_OPACITY
@@ -366,15 +348,11 @@ def _plot_unitless_scores(
         axes_object.add_patch(patch_object)
 
     # Plot mean correlation.
-    these_y_values = numpy.mean(correlation_matrix, axis=1)
-    if not numpy.all(numpy.isnan(these_y_values)):
-        y_min = numpy.minimum(y_min, numpy.nanmin(these_y_values))
-
     this_handle = axes_object.plot(
-        x_values, these_y_values, color=CORRELATION_COLOUR,
-        linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
-        markerfacecolor=CORRELATION_COLOUR, markeredgecolor=CORRELATION_COLOUR,
-        markeredgewidth=0
+        x_values, numpy.mean(correlation_matrix, axis=1),
+        color=CORRELATION_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
+        markersize=MARKER_SIZE, markerfacecolor=CORRELATION_COLOUR,
+        markeredgecolor=CORRELATION_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles.append(this_handle)
@@ -387,10 +365,6 @@ def _plot_unitless_scores(
             confidence_level=confidence_level
         )
 
-        these_y_values = numpy.array(polygon_object.exterior.xy[1])
-        if not numpy.all(numpy.isnan(these_y_values)):
-            y_min = numpy.minimum(y_min, numpy.nanmin(these_y_values))
-
         polygon_colour = matplotlib.colors.to_rgba(
             CORRELATION_COLOUR, POLYGON_OPACITY
         )
@@ -399,12 +373,14 @@ def _plot_unitless_scores(
         )
         axes_object.add_patch(patch_object)
 
-    y_min = numpy.maximum(y_min - 0.01, -1.)
-    axes_object.set_ylim(bottom=y_min)
+    y_min, y_max = axes_object.get_ylim()
+    y_min = numpy.maximum(y_min, -1.)
+    y_max = numpy.minimum(y_max, 1.)
+    axes_object.set_ylim(y_min, y_max)
 
-    axes_object.set_xlim([
+    axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
-    ])
+    )
 
     if plot_legend:
         axes_object.legend(
