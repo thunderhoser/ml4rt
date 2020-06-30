@@ -149,10 +149,10 @@ def _plot_score_one_field(
         basemap_object=basemap_object, axes_object=axes_object,
         line_colour=BORDER_COLOUR, line_width=0.5
     )
-    plotting_utils.plot_countries(
-        basemap_object=basemap_object, axes_object=axes_object,
-        line_colour=BORDER_COLOUR, line_width=0.5
-    )
+    # plotting_utils.plot_countries(
+    #     basemap_object=basemap_object, axes_object=axes_object,
+    #     line_colour=BORDER_COLOUR, line_width=0.5
+    # )
     # plotting_utils.plot_states_and_provinces(
     #     basemap_object=basemap_object, axes_object=axes_object,
     #     line_colour=BORDER_COLOUR
