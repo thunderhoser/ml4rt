@@ -30,6 +30,12 @@ ONE_PER_EXAMPLE_KEYS = [
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 MAX_ZENITH_ANGLE_RADIANS = numpy.pi / 2
 
+ZENITH_ANGLE_BIN_KEY = 'zenith_angle_bin'
+MONTH_KEY = 'month'
+GRID_ROW_KEY = 'grid_row'
+GRID_COLUMN_KEY = 'grid_column'
+METADATA_KEYS = [ZENITH_ANGLE_BIN_KEY, MONTH_KEY, GRID_ROW_KEY, GRID_COLUMN_KEY]
+
 
 def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
               grid_column=None, raise_error_if_missing=True):
@@ -47,7 +53,7 @@ def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
     :param raise_error_if_missing: Boolean flag.  If file is missing and
         `raise_error_if_missing == True`, will throw error.  If file is missing
         and `raise_error_if_missing == False`, will return *expected* file path.
-    :return: netcdf_file_name: File path.
+    :return: prediction_file_name: File path.
     :raises: ValueError: if file is missing
         and `raise_error_if_missing == True`.
     """
@@ -57,16 +63,21 @@ def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
     if zenith_angle_bin is not None:
         error_checking.assert_is_integer(zenith_angle_bin)
         error_checking.assert_is_geq(zenith_angle_bin, 0)
-        netcdf_file_name = (
-            '{0:s}/predictions_zenith-angle-bin={1:03d}.nc'
-        ).format(directory_name, zenith_angle_bin)
+
+        prediction_file_name = (
+            '{0:s}/predictions_{1:s}={2:03d}.nc'
+        ).format(
+            directory_name, ZENITH_ANGLE_BIN_KEY.replace('_', '-'),
+            zenith_angle_bin
+        )
 
     elif month is not None:
         error_checking.assert_is_integer(month)
         error_checking.assert_is_geq(month, 1)
         error_checking.assert_is_leq(month, 12)
-        netcdf_file_name = '{0:s}/predictions_month={1:02d}.nc'.format(
-            directory_name, month
+
+        prediction_file_name = '{0:s}/predictions_{1:s}={2:02d}.nc'.format(
+            directory_name, MONTH_KEY.replace('_', '-'), month
         )
 
     elif grid_row is not None or grid_column is not None:
@@ -74,22 +85,68 @@ def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
         error_checking.assert_is_geq(grid_row, 0)
         error_checking.assert_is_integer(grid_column)
         error_checking.assert_is_geq(grid_column, 0)
-        netcdf_file_name = (
-            '{0:s}/predictions_row={1:03d}_column={2:03d}.nc'
-        ).format(directory_name, grid_row, grid_column)
+
+        prediction_file_name = (
+            '{0:s}/predictions_{1:s}={2:03d}_{3:s}={4:03d}.nc'
+        ).format(
+            directory_name, GRID_ROW_KEY.replace('_', '-'), grid_row,
+            GRID_COLUMN_KEY.replace('_', '-'), grid_column
+        )
 
     else:
-        netcdf_file_name = '{0:s}/predictions.nc'.format(
+        prediction_file_name = '{0:s}/predictions.nc'.format(
             directory_name, grid_row, grid_column
         )
 
-    if raise_error_if_missing and not os.path.isfile(netcdf_file_name):
+    if raise_error_if_missing and not os.path.isfile(prediction_file_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
-            netcdf_file_name
+            prediction_file_name
         )
         raise ValueError(error_string)
 
-    return netcdf_file_name
+    return prediction_file_name
+
+
+def file_name_to_metadata(prediction_file_name):
+    """Parses metadata from file name.
+
+    This method is the inverse of `find_file`.
+
+    :param prediction_file_name: Path to NetCDF file with predictions.
+    :return: metadata_dict: Dictionary with the following keys.
+    metadata_dict['zenith_angle_bin']: See input doc for `find_file`.
+    metadata_dict['month']: Same.
+    metadata_dict['grid_row']: Same.
+    metadata_dict['grid_column']: Same.
+    """
+
+    error_checking.assert_is_string(prediction_file_name)
+
+    metadata_dict = dict()
+    for this_key in METADATA_KEYS:
+        metadata_dict[this_key] = None
+
+    pathless_file_name = os.path.split(prediction_file_name)[-1]
+    extensionless_file_name = os.path.splitext(pathless_file_name)[0]
+    words = extensionless_file_name.split('_')
+
+    for this_key in METADATA_KEYS:
+        this_key_with_dashes = this_key.replace('_', '-')
+        if this_key_with_dashes not in words[-1]:
+            continue
+
+        metadata_dict[this_key] = int(
+            words[-1].replace(this_key_with_dashes + '=', '')
+        )
+        break
+
+    if metadata_dict[GRID_COLUMN_KEY] is not None:
+        this_key_with_dashes = GRID_ROW_KEY.replace('_', '-')
+        metadata_dict[GRID_ROW_KEY] = int(
+            words[-2].replace(this_key_with_dashes + '=', '')
+        )
+
+    return metadata_dict
 
 
 def write_file(

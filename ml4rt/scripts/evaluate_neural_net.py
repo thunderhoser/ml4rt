@@ -12,14 +12,16 @@ from ml4rt.machine_learning import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
-OUTPUT_FILE_ARG_NAME = 'output_eval_file_name'
+OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing predicted and actual target values.  Will '
     'be read by `prediction_io.read_file`.'
 )
-OUTPUT_FILE_HELP_STRING = (
-    'Path to output file (will be written by `evaluation.write_file`).'
+OUTPUT_DIR_HELP_STRING = (
+    'Name of output directory.  Evaluation scores will be written here by '
+    '`evaluation.write_file`, to a file name determined by '
+    '`evaluation.find_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -28,19 +30,31 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
-    help=OUTPUT_FILE_HELP_STRING
+    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
+    help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _run(prediction_file_name, evaluation_file_name):
+def _run(prediction_file_name, output_dir_name):
     """Evaluates trained neural net.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
-    :param evaluation_file_name: Same.
+    :param output_dir_name: Same.
     """
+
+    file_metadata_dict = prediction_io.file_name_to_metadata(
+        prediction_file_name
+    )
+    output_file_name = evaluation.find_file(
+        directory_name=output_dir_name,
+        zenith_angle_bin=file_metadata_dict[prediction_io.ZENITH_ANGLE_BIN_KEY],
+        month=file_metadata_dict[prediction_io.MONTH_KEY],
+        grid_row=file_metadata_dict[prediction_io.GRID_ROW_KEY],
+        grid_column=file_metadata_dict[prediction_io.GRID_COLUMN_KEY],
+        raise_error_if_missing=False
+    )
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
@@ -199,10 +213,10 @@ def _run(prediction_file_name, evaluation_file_name):
 
     print(SEPARATOR_STRING)
 
-    print('Writing results to: "{0:s}"...'.format(evaluation_file_name))
+    print('Writing results to: "{0:s}"...'.format(output_file_name))
     evaluation.write_file(
         result_table_xarray=result_table_xarray,
-        netcdf_file_name=evaluation_file_name
+        netcdf_file_name=output_file_name
     )
 
 
@@ -211,5 +225,5 @@ if __name__ == '__main__':
 
     _run(
         prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
-        evaluation_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
+        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

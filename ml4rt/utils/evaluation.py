@@ -1,11 +1,13 @@
 """Methods for model evaluation."""
 
+import os.path
 import numpy
 import xarray
 from gewittergefahr.gg_utils import histograms
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.io import prediction_io
 
 DEFAULT_NUM_RELIABILITY_BINS = 20
 DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
@@ -967,6 +969,35 @@ def get_scores_all_variables(
 
     return xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict
+    )
+
+
+def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
+              grid_column=None, raise_error_if_missing=True):
+    """Finds NetCDF file with evaluation results.
+
+    :param directory_name: See doc for `prediction_io.find_file`.
+    :param zenith_angle_bin: Same.
+    :param month: Same.
+    :param grid_row: Same.
+    :param grid_column: Same.
+    :param raise_error_if_missing: Same.
+    :return: evaluation_file_name: File path.
+    """
+
+    prediction_file_name = prediction_io.find_file(
+        directory_name=directory_name, zenith_angle_bin=zenith_angle_bin,
+        month=month, grid_row=grid_row, grid_column=grid_column,
+        raise_error_if_missing=raise_error_if_missing
+    )
+
+    pathless_file_name = os.path.split(prediction_file_name)[-1].replace(
+        'predictions', 'evaluation'
+    )
+
+    return '{0:s}/{1:s}'.format(
+        os.path.split(prediction_file_name)[0],
+        pathless_file_name
     )
 
 

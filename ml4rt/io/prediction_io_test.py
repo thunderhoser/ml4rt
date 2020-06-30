@@ -8,6 +8,7 @@ from ml4rt.io import prediction_io
 
 TOLERANCE = 1e-6
 
+# The following constants are used for many unit tests.
 SCALAR_TARGET_MATRIX = numpy.array([
     [0, 100],
     [100, 200],
@@ -183,6 +184,46 @@ MEAN_PREDICTION_DICT = {
     prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME
 }
 
+# The following constants are used to test find_file and file_name_to_metadata.
+DIRECTORY_NAME = 'foo'
+GRID_ROW = 0
+GRID_COLUMN = 666
+ZENITH_ANGLE_BIN = 99
+FILE_MONTH = 12
+
+FILE_NAME_DEFAULT = 'foo/predictions.nc'
+FILE_NAME_SPATIAL = 'foo/predictions_grid-row=000_grid-column=666.nc'
+FILE_NAME_ANGULAR = 'foo/predictions_zenith-angle-bin=099.nc'
+FILE_NAME_MONTHLY = 'foo/predictions_month=12.nc'
+
+METADATA_DICT_DEFAULT = {
+    prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.MONTH_KEY: None,
+    prediction_io.GRID_ROW_KEY: None,
+    prediction_io.GRID_COLUMN_KEY: None
+}
+
+METADATA_DICT_SPATIAL = {
+    prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.MONTH_KEY: None,
+    prediction_io.GRID_ROW_KEY: 0,
+    prediction_io.GRID_COLUMN_KEY: 666
+}
+
+METADATA_DICT_ANGULAR = {
+    prediction_io.ZENITH_ANGLE_BIN_KEY: 99,
+    prediction_io.MONTH_KEY: None,
+    prediction_io.GRID_ROW_KEY: None,
+    prediction_io.GRID_COLUMN_KEY: None
+}
+
+METADATA_DICT_MONTHLY = {
+    prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.MONTH_KEY: 12,
+    prediction_io.GRID_ROW_KEY: None,
+    prediction_io.GRID_COLUMN_KEY: None
+}
+
 
 def _compare_prediction_dicts(first_prediction_dict, second_prediction_dict):
     """Compares two dictionaries with predicted and actual target values.
@@ -274,6 +315,97 @@ class PredictionIoTests(unittest.TestCase):
         self.assertTrue(_compare_prediction_dicts(
             this_prediction_dict, PREDICTION_DICT_SUBSET_BY_MONTH
         ))
+
+    def test_find_file_default(self):
+        """Ensures correct output from find_file.
+
+        In this case, using default metadata (no splitting by time or space).
+        """
+
+        this_file_name = prediction_io.find_file(
+            directory_name=DIRECTORY_NAME, raise_error_if_missing=False
+        )
+        self.assertTrue(this_file_name == FILE_NAME_DEFAULT)
+
+    def test_find_file_spatial(self):
+        """Ensures correct output from find_file.
+
+        In this case, splitting by space.
+        """
+
+        this_file_name = prediction_io.find_file(
+            directory_name=DIRECTORY_NAME, grid_row=GRID_ROW,
+            grid_column=GRID_COLUMN, raise_error_if_missing=False
+        )
+        self.assertTrue(this_file_name == FILE_NAME_SPATIAL)
+
+    def test_find_file_angular(self):
+        """Ensures correct output from find_file.
+
+        In this case, splitting by solar zenith angle.
+        """
+
+        this_file_name = prediction_io.find_file(
+            directory_name=DIRECTORY_NAME, zenith_angle_bin=ZENITH_ANGLE_BIN,
+            raise_error_if_missing=False
+        )
+        self.assertTrue(this_file_name == FILE_NAME_ANGULAR)
+
+    def test_find_file_monthly(self):
+        """Ensures correct output from find_file.
+
+        In this case, splitting by month.
+        """
+
+        this_file_name = prediction_io.find_file(
+            directory_name=DIRECTORY_NAME, month=FILE_MONTH,
+            raise_error_if_missing=False
+        )
+        self.assertTrue(this_file_name == FILE_NAME_MONTHLY)
+
+    def test_file_name_to_metadata_default(self):
+        """Ensures correct output from file_name_to_metadata.
+
+        In this case, using default metadata (no splitting by time or space).
+        """
+
+        this_metadata_dict = prediction_io.file_name_to_metadata(
+            FILE_NAME_DEFAULT
+        )
+        self.assertTrue(this_metadata_dict == METADATA_DICT_DEFAULT)
+
+    def test_file_name_to_metadata_spatial(self):
+        """Ensures correct output from file_name_to_metadata.
+
+        In this case, splitting by space.
+        """
+
+        this_metadata_dict = prediction_io.file_name_to_metadata(
+            FILE_NAME_SPATIAL
+        )
+        self.assertTrue(this_metadata_dict == METADATA_DICT_SPATIAL)
+
+    def test_file_name_to_metadata_angular(self):
+        """Ensures correct output from file_name_to_metadata.
+
+        In this case, splitting by solar zenith angle.
+        """
+
+        this_metadata_dict = prediction_io.file_name_to_metadata(
+            FILE_NAME_ANGULAR
+        )
+        self.assertTrue(this_metadata_dict == METADATA_DICT_ANGULAR)
+
+    def test_file_name_to_metadata_monthly(self):
+        """Ensures correct output from file_name_to_metadata.
+
+        In this case, splitting by month.
+        """
+
+        this_metadata_dict = prediction_io.file_name_to_metadata(
+            FILE_NAME_MONTHLY
+        )
+        self.assertTrue(this_metadata_dict == METADATA_DICT_MONTHLY)
 
 
 if __name__ == '__main__':
