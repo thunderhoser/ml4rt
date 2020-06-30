@@ -589,8 +589,8 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             plot_legend=True
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
-            TARGET_NAME_TO_VERBOSE[scalar_field_names[k]],
-            TARGET_NAME_TO_UNITS[scalar_field_names[k]]
+            TARGET_NAME_TO_VERBOSE[aux_field_names[k]],
+            TARGET_NAME_TO_UNITS[aux_field_names[k]]
         ))
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
         axes_object.set_xlabel(x_axis_label_string)
@@ -667,8 +667,8 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             )
 
             title_string = 'Scores for {0:s} ({1:s}) at {2:d} m AGL'.format(
-                TARGET_NAME_TO_VERBOSE[scalar_field_names[k]],
-                TARGET_NAME_TO_UNITS[scalar_field_names[k]],
+                TARGET_NAME_TO_VERBOSE[vector_field_names[k]],
+                TARGET_NAME_TO_UNITS[vector_field_names[k]],
                 heights_m_agl[j]
             )
 
