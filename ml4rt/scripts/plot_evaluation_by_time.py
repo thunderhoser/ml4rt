@@ -462,7 +462,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         x_tick_label_strings = ['foo'] * num_zenith_angle_bins
 
         for k in range(num_zenith_angle_bins):
-            x_tick_label_strings[k] = '[{0:s}, {1:s}'.format(
+            x_tick_label_strings[k] = '[{0:.1f}, {1:.1f}'.format(
                 bin_edge_angles_deg[k], bin_edge_angles_deg[k + 1]
             )
 
