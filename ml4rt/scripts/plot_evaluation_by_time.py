@@ -285,8 +285,8 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
 
     if plot_legend:
         axes_object.legend(
-            legend_handles, legend_strings, loc='lower center',
-            bbox_to_anchor=(0.5, 0), fancybox=True, shadow=True, ncol=1
+            legend_handles, legend_strings, loc='upper left',
+            bbox_to_anchor=(0, 1), fancybox=True, shadow=True, ncol=1
         )
 
     return figure_object, axes_object
@@ -332,7 +332,7 @@ def _plot_unitless_scores(
     )[0]
 
     legend_handles = [this_handle]
-    legend_strings = ['MAE skill']
+    legend_strings = ['MAE skill score']
 
     # Plot confidence interval for MAE skill score.
     if num_bootstrap_reps > 1:
@@ -358,7 +358,7 @@ def _plot_unitless_scores(
     )[0]
 
     legend_handles.append(this_handle)
-    legend_strings.append('MSE skill')
+    legend_strings.append('MSE skill score')
 
     # Plot confidence interval for MSE skill score.
     if num_bootstrap_reps > 1:
@@ -413,9 +413,8 @@ def _plot_unitless_scores(
 
     if plot_legend:
         axes_object.legend(
-            legend_handles, legend_strings, loc='lower center',
-            bbox_to_anchor=(0.5, 1), fancybox=True, shadow=True,
-            ncol=len(legend_handles)
+            legend_handles, legend_strings, loc='lower left',
+            bbox_to_anchor=(0, 0), fancybox=True, shadow=True, ncol=1
         )
 
     return figure_object, axes_object
@@ -535,6 +534,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             correlation_matrix=scalar_correlation_matrix[:, [k]],
             plot_legend=True
         )
+        axes_object.set_title('Scores for {0:s}'.format(
+            TARGET_NAME_TO_VERBOSE[scalar_field_names[k]]
+        ))
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
         axes_object.set_xlabel(x_axis_label_string)
 
@@ -612,6 +614,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             correlation_matrix=aux_correlation_matrix[:, [k]],
             plot_legend=True
         )
+        axes_object.set_title('Scores for {0:s}'.format(
+            TARGET_NAME_TO_VERBOSE[aux_field_names[k]]
+        ))
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
         axes_object.set_xlabel(x_axis_label_string)
 
@@ -696,6 +701,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
                 correlation_matrix=vector_correlation_matrix[:, j, [k]],
                 plot_legend=True
             )
+            axes_object.set_title('Scores for {0:s} at {1:d} m AGL'.format(
+                TARGET_NAME_TO_VERBOSE[vector_field_names[k]], heights_m_agl[j]
+            ))
             axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
             axes_object.set_xlabel(x_axis_label_string)
 
