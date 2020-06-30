@@ -19,7 +19,7 @@ MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
-# TODO(thunderhoser): Put this is a nice method somewhere.
+# TODO(thunderhoser): Put this in a nice method somewhere.
 TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
     example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
@@ -662,8 +662,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         for t in evaluation_tables_xarray
     ], axis=0)
 
-    # for j in range(len(heights_m_agl)):
-    for j in range(10):
+    for j in range(len(heights_m_agl)):
         for k in range(len(vector_field_names)):
             figure_object, axes_object = _plot_scores_with_units(
                 mae_matrix=vector_mae_matrix[:, j, [k]],

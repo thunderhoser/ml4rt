@@ -529,3 +529,31 @@ def subset_by_month(prediction_dict, desired_month):
             )
 
     return prediction_dict
+
+
+def subset_by_index(prediction_dict, desired_indices):
+    """Subsets examples by index.
+
+    :param prediction_dict: See doc for `write_file`.
+    :param desired_indices: 1-D numpy array of desired indices.
+    :return: prediction_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_numpy_array(desired_indices, num_dimensions=1)
+    error_checking.assert_is_integer_numpy_array(desired_indices)
+    error_checking.assert_is_geq_numpy_array(desired_indices, 0)
+    error_checking.assert_is_less_than_numpy_array(
+        desired_indices, len(prediction_dict[EXAMPLE_IDS_KEY])
+    )
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        if isinstance(prediction_dict[this_key], list):
+            prediction_dict[this_key] = [
+                prediction_dict[this_key][k] for k in desired_indices
+            ]
+        else:
+            prediction_dict[this_key] = (
+                prediction_dict[this_key][desired_indices, ...]
+            )
+
+    return prediction_dict
