@@ -239,8 +239,8 @@ def _plot_all_scores_one_field(
     panel_file_names = []
 
     # Plot MAE.
-    this_min_value = numpy.percentile(mae_matrix, MIN_COLOUR_PERCENTILE)
-    this_max_value = numpy.percentile(mae_matrix, MAX_COLOUR_PERCENTILE)
+    this_min_value = numpy.nanpercentile(mae_matrix, MIN_COLOUR_PERCENTILE)
+    this_max_value = numpy.nanpercentile(mae_matrix, MAX_COLOUR_PERCENTILE)
 
     figure_object, axes_object = _plot_score_one_field(
         latitude_matrix_deg=latitude_matrix_deg,
@@ -266,8 +266,8 @@ def _plot_all_scores_one_field(
     pyplot.close(figure_object)
 
     # Plot RMSE.
-    this_min_value = numpy.percentile(rmse_matrix, MIN_COLOUR_PERCENTILE)
-    this_max_value = numpy.percentile(rmse_matrix, MAX_COLOUR_PERCENTILE)
+    this_min_value = numpy.nanpercentile(rmse_matrix, MIN_COLOUR_PERCENTILE)
+    this_max_value = numpy.nanpercentile(rmse_matrix, MAX_COLOUR_PERCENTILE)
 
     figure_object, axes_object = _plot_score_one_field(
         latitude_matrix_deg=latitude_matrix_deg,
@@ -293,7 +293,7 @@ def _plot_all_scores_one_field(
     pyplot.close(figure_object)
 
     # Plot bias.
-    this_max_value = numpy.percentile(
+    this_max_value = numpy.nanpercentile(
         numpy.absolute(bias_matrix), MAX_COLOUR_PERCENTILE
     )
     this_min_value = -1 * this_max_value
@@ -321,10 +321,10 @@ def _plot_all_scores_one_field(
     pyplot.close(figure_object)
 
     # Plot MAE skill score.
-    this_min_value = numpy.percentile(
+    this_min_value = numpy.nanpercentile(
         mae_skill_score_matrix, MIN_COLOUR_PERCENTILE
     )
-    this_max_value = numpy.percentile(
+    this_max_value = numpy.nanpercentile(
         mae_skill_score_matrix, MAX_COLOUR_PERCENTILE
     )
 
@@ -351,10 +351,10 @@ def _plot_all_scores_one_field(
     pyplot.close(figure_object)
 
     # Plot MSE skill score.
-    this_min_value = numpy.percentile(
+    this_min_value = numpy.nanpercentile(
         mse_skill_score_matrix, MIN_COLOUR_PERCENTILE
     )
-    this_max_value = numpy.percentile(
+    this_max_value = numpy.nanpercentile(
         mse_skill_score_matrix, MAX_COLOUR_PERCENTILE
     )
 
@@ -381,8 +381,12 @@ def _plot_all_scores_one_field(
     pyplot.close(figure_object)
 
     # Plot correlation.
-    this_min_value = numpy.percentile(correlation_matrix, MIN_COLOUR_PERCENTILE)
-    this_max_value = numpy.percentile(correlation_matrix, MAX_COLOUR_PERCENTILE)
+    this_min_value = numpy.nanpercentile(
+        correlation_matrix, MIN_COLOUR_PERCENTILE
+    )
+    this_max_value = numpy.nanpercentile(
+        correlation_matrix, MAX_COLOUR_PERCENTILE
+    )
 
     figure_object, axes_object = _plot_score_one_field(
         latitude_matrix_deg=latitude_matrix_deg,
