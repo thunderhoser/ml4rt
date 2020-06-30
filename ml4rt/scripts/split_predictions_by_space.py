@@ -159,6 +159,12 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
                 prediction_dict=copy.deepcopy(prediction_dict),
                 desired_indices=these_indices
             )
+            this_num_examples = len(
+                this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
+            )
+
+            if this_num_examples == 0:
+                continue
 
             this_output_file_name = prediction_io.find_file(
                 directory_name=output_dir_name, grid_row=i, grid_column=j,
@@ -184,9 +190,6 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
                 model_file_name=
                 this_prediction_dict[prediction_io.MODEL_FILE_KEY]
             )
-
-        if i != num_grid_rows - 1:
-            print('\n')
 
     print(SEPARATOR_STRING)
 

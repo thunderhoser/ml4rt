@@ -457,55 +457,84 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
 
     # Read evaluation files.
     eval_table_matrix_xarray = numpy.full(
-        (num_grid_rows, num_grid_columns), '', dtype=object
+        (num_grid_rows, num_grid_columns), None, dtype=object
     )
+
+    scalar_field_names = None
+    aux_field_names = None
+    vector_field_names = None
+    heights_m_agl = None
 
     for i in range(num_grid_rows):
         for j in range(num_grid_columns):
             this_file_name = evaluation.find_file(
                 directory_name=evaluation_dir_name, grid_row=i, grid_column=j,
-                raise_error_if_missing=True
+                raise_error_if_missing=False
             )
+
+            if not os.path.isfile(this_file_name):
+                continue
 
             print('Reading data from: "{0:s}"...'.format(this_file_name))
             eval_table_matrix_xarray[i, j] = evaluation.read_file(
                 this_file_name
             )
 
-        if i == num_grid_rows - 1:
-            print(SEPARATOR_STRING)
-        else:
-            print('\n')
+            if scalar_field_names is not None:
+                continue
+
+            this_table = eval_table_matrix_xarray[i, j]
+
+            scalar_field_names = (
+                this_table.coords[evaluation.SCALAR_FIELD_DIM].values
+            )
+            vector_field_names = (
+                this_table.coords[evaluation.VECTOR_FIELD_DIM].values
+            )
+            heights_m_agl = numpy.round(
+                this_table.coords[evaluation.HEIGHT_DIM].values
+            ).astype(int)
+
+            try:
+                aux_field_names = (
+                    this_table.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+                )
+            except KeyError:
+                aux_field_names = []
+
+    print(SEPARATOR_STRING)
 
     evaluation_tables_xarray = numpy.reshape(
         eval_table_matrix_xarray, num_grid_rows * num_grid_columns
     )
-    grid_dim_tuple = (num_grid_rows, num_grid_columns)
+    nan_array = numpy.full(len(scalar_field_names), numpy.nan)
 
-    scalar_field_names = (
-        evaluation_tables_xarray[0].coords[evaluation.SCALAR_FIELD_DIM].values
-    )
     scalar_mae_matrix = numpy.vstack([
-        t[evaluation.SCALAR_MAE_KEY].values for t in evaluation_tables_xarray
+        nan_array if t is None else t[evaluation.SCALAR_MAE_KEY].values
+        for t in evaluation_tables_xarray
     ])
     scalar_rmse_matrix = numpy.sqrt(numpy.vstack([
-        t[evaluation.SCALAR_MSE_KEY].values for t in evaluation_tables_xarray
+        nan_array if t is None else t[evaluation.SCALAR_MSE_KEY].values
+        for t in evaluation_tables_xarray
     ]))
     scalar_bias_matrix = numpy.vstack([
-        t[evaluation.SCALAR_BIAS_KEY].values for t in evaluation_tables_xarray
+        nan_array if t is None else t[evaluation.SCALAR_BIAS_KEY].values
+        for t in evaluation_tables_xarray
     ])
     scalar_mae_skill_matrix = numpy.vstack([
-        t[evaluation.SCALAR_MAE_SKILL_KEY].values
+        nan_array if t is None else t[evaluation.SCALAR_MAE_SKILL_KEY].values
         for t in evaluation_tables_xarray
     ])
     scalar_mse_skill_matrix = numpy.vstack([
-        t[evaluation.SCALAR_MSE_SKILL_KEY].values
+        nan_array if t is None else t[evaluation.SCALAR_MSE_SKILL_KEY].values
         for t in evaluation_tables_xarray
     ])
     scalar_correlation_matrix = numpy.vstack([
-        t[evaluation.SCALAR_CORRELATION_KEY].values
+        nan_array if t is None else t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ])
+
+    grid_dim_tuple = (num_grid_rows, num_grid_columns)
 
     for k in range(len(scalar_field_names)):
         _plot_all_scores_one_field(
@@ -531,35 +560,33 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         else:
             print('\n')
 
-    try:
-        aux_field_names = (
-            evaluation_tables_xarray[0].coords[
-                evaluation.AUX_TARGET_FIELD_DIM
-            ].values
-        )
+    if len(aux_field_names) > 0:
+        nan_array = numpy.full(len(aux_field_names), numpy.nan)
+
         aux_mae_matrix = numpy.vstack([
-            t[evaluation.AUX_MAE_KEY].values for t in evaluation_tables_xarray
+            nan_array if t is None else t[evaluation.AUX_MAE_KEY].values
+            for t in evaluation_tables_xarray
         ])
         aux_rmse_matrix = numpy.sqrt(numpy.vstack([
-            t[evaluation.AUX_MSE_KEY].values for t in evaluation_tables_xarray
+            nan_array if t is None else t[evaluation.AUX_MSE_KEY].values
+            for t in evaluation_tables_xarray
         ]))
         aux_bias_matrix = numpy.vstack([
-            t[evaluation.AUX_BIAS_KEY].values for t in evaluation_tables_xarray
+            nan_array if t is None else t[evaluation.AUX_BIAS_KEY].values
+            for t in evaluation_tables_xarray
         ])
         aux_mae_skill_matrix = numpy.vstack([
-            t[evaluation.AUX_MAE_SKILL_KEY].values
+            nan_array if t is None else t[evaluation.AUX_MAE_SKILL_KEY].values
             for t in evaluation_tables_xarray
         ])
         aux_mse_skill_matrix = numpy.vstack([
-            t[evaluation.AUX_MSE_SKILL_KEY].values
+            nan_array if t is None else t[evaluation.AUX_MSE_SKILL_KEY].values
             for t in evaluation_tables_xarray
         ])
         aux_correlation_matrix = numpy.vstack([
-            t[evaluation.AUX_CORRELATION_KEY].values
+            nan_array if t is None else t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
         ])
-    except KeyError:
-        aux_field_names = []
 
     for k in range(len(aux_field_names)):
         _plot_all_scores_one_field(
@@ -585,32 +612,32 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         else:
             print('\n')
 
-    vector_field_names = (
-        evaluation_tables_xarray[0].coords[evaluation.VECTOR_FIELD_DIM].values
+    nan_array = numpy.full(
+        (len(heights_m_agl), len(vector_field_names)), numpy.nan
     )
-    heights_m_agl = numpy.round(
-        evaluation_tables_xarray[0].coords[evaluation.HEIGHT_DIM].values
-    ).astype(int)
 
     vector_mae_matrix = numpy.stack([
-        t[evaluation.VECTOR_MAE_KEY].values for t in evaluation_tables_xarray
+        nan_array if t is None else t[evaluation.VECTOR_MAE_KEY].values
+        for t in evaluation_tables_xarray
     ], axis=0)
     vector_rmse_matrix = numpy.sqrt(numpy.stack([
-        t[evaluation.VECTOR_MSE_KEY].values for t in evaluation_tables_xarray
+        nan_array if t is None else t[evaluation.VECTOR_MSE_KEY].values
+        for t in evaluation_tables_xarray
     ], axis=0))
     vector_bias_matrix = numpy.stack([
-        t[evaluation.VECTOR_BIAS_KEY].values for t in evaluation_tables_xarray
+        nan_array if t is None else t[evaluation.VECTOR_BIAS_KEY].values
+        for t in evaluation_tables_xarray
     ], axis=0)
     vector_mae_skill_matrix = numpy.stack([
-        t[evaluation.VECTOR_MAE_SKILL_KEY].values
+        nan_array if t is None else t[evaluation.VECTOR_MAE_SKILL_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
     vector_mse_skill_matrix = numpy.stack([
-        t[evaluation.VECTOR_MSE_SKILL_KEY].values
+        nan_array if t is None else t[evaluation.VECTOR_MSE_SKILL_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
     vector_correlation_matrix = numpy.stack([
-        t[evaluation.VECTOR_CORRELATION_KEY].values
+        nan_array if t is None else t[evaluation.VECTOR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
 
