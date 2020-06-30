@@ -49,7 +49,8 @@ BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap('seismic')
 NUM_PARALLELS = 8
 NUM_MERIDIANS = 6
 RESOLUTION_STRING = 'l'
-BORDER_COLOUR = numpy.full(3, 0.)
+BORDER_COLOUR = numpy.full(3, 152. / 255)
+BORDER_WIDTH = 0.25
 
 FIGURE_RESOLUTION_DPI = 300
 CONCAT_FIGURE_SIZE_PX = int(1e7)
@@ -147,12 +148,12 @@ def _plot_score_one_field(
 
     plotting_utils.plot_coastlines(
         basemap_object=basemap_object, axes_object=axes_object,
-        line_colour=BORDER_COLOUR, line_width=0.5
+        line_colour=BORDER_COLOUR, line_width=BORDER_WIDTH
     )
-    # plotting_utils.plot_countries(
-    #     basemap_object=basemap_object, axes_object=axes_object,
-    #     line_colour=BORDER_COLOUR, line_width=0.5
-    # )
+    plotting_utils.plot_countries(
+        basemap_object=basemap_object, axes_object=axes_object,
+        line_colour=BORDER_COLOUR, line_width=BORDER_WIDTH
+    )
     # plotting_utils.plot_states_and_provinces(
     #     basemap_object=basemap_object, axes_object=axes_object,
     #     line_colour=BORDER_COLOUR
