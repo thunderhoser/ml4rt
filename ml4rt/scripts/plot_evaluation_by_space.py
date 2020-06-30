@@ -128,7 +128,7 @@ def _plot_score_one_field(
     longitude_spacing_deg = (
         longitude_matrix_deg[0, 1] - longitude_matrix_deg[0, 0]
     )
-
+    
     print(numpy.sum(numpy.invert(numpy.isnan(score_matrix))))
 
     (
@@ -147,11 +147,11 @@ def _plot_score_one_field(
 
     plotting_utils.plot_coastlines(
         basemap_object=basemap_object, axes_object=axes_object,
-        line_colour=BORDER_COLOUR
+        line_colour=BORDER_COLOUR, line_width=0.5
     )
     plotting_utils.plot_countries(
         basemap_object=basemap_object, axes_object=axes_object,
-        line_colour=BORDER_COLOUR
+        line_colour=BORDER_COLOUR, line_width=0.5
     )
     # plotting_utils.plot_states_and_provinces(
     #     basemap_object=basemap_object, axes_object=axes_object,
@@ -159,11 +159,11 @@ def _plot_score_one_field(
     # )
     plotting_utils.plot_parallels(
         basemap_object=basemap_object, axes_object=axes_object,
-        num_parallels=NUM_PARALLELS
+        num_parallels=NUM_PARALLELS, line_width=0
     )
     plotting_utils.plot_meridians(
         basemap_object=basemap_object, axes_object=axes_object,
-        num_meridians=NUM_MERIDIANS
+        num_meridians=NUM_MERIDIANS, line_width=0
     )
 
     pyplot.pcolormesh(
