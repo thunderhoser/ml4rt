@@ -864,14 +864,20 @@ def get_scores_all_variables(
     scalar_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
     scalar_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
 
+    num_examples = scalar_target_matrix.shape[0]
+
     for k in range(num_scalar_targets):
+        if num_examples == 0:
+            max_bin_edge = 1.
+        else:
+            max_bin_edge = numpy.percentile(
+                scalar_prediction_matrix[:, k], max_bin_edge_percentile
+            )
+
         these_x, these_y, these_counts = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins,
-            max_bin_edge=numpy.percentile(
-                scalar_prediction_matrix[:, k], max_bin_edge_percentile
-            )
+            num_bins=num_reliability_bins, max_bin_edge=max_bin_edge
         )
 
         scalar_reliability_x_matrix[k, :] = these_x
@@ -897,14 +903,17 @@ def get_scores_all_variables(
 
     for j in range(num_heights):
         for k in range(num_vector_targets):
+            if num_examples == 0:
+                max_bin_edge = 1.
+            else:
+                max_bin_edge = numpy.percentile(
+                    vector_prediction_matrix[:, j, k], max_bin_edge_percentile
+                )
+
             these_x, these_y, these_counts = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins,
-                max_bin_edge=numpy.percentile(
-                    vector_prediction_matrix[:, j, k],
-                    max_bin_edge_percentile
-                )
+                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge
             )
 
             vector_reliability_x_matrix[j, k, :] = these_x
@@ -928,13 +937,17 @@ def get_scores_all_variables(
         aux_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
 
         for k in range(num_aux_targets):
+            if num_examples == 0:
+                max_bin_edge = 1.
+            else:
+                max_bin_edge = numpy.percentile(
+                    aux_prediction_matrix[:, k], max_bin_edge_percentile
+                )
+
             these_x, these_y, these_counts = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins,
-                max_bin_edge=numpy.percentile(
-                    aux_prediction_matrix[:, k], max_bin_edge_percentile
-                )
+                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge
             )
 
             aux_reliability_x_matrix[k, :] = these_x
