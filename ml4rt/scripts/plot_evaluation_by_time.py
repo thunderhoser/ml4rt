@@ -481,9 +481,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
 
     for k in range(len(scalar_field_names)):
         figure_object, axes_object = _plot_scores_with_units(
-            mae_matrix=scalar_mae_matrix[:, k],
-            rmse_matrix=scalar_rmse_matrix[:, k],
-            bias_matrix=scalar_bias_matrix[:, k],
+            mae_matrix=scalar_mae_matrix[:, [k]],
+            rmse_matrix=scalar_rmse_matrix[:, [k]],
+            bias_matrix=scalar_bias_matrix[:, [k]],
             plot_legend=True
         )
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
@@ -501,9 +501,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         pyplot.close(figure_object)
 
         figure_object, axes_object = _plot_unitless_scores(
-            mae_skill_score_matrix=scalar_mae_skill_matrix[:, k],
-            mse_skill_score_matrix=scalar_mse_skill_matrix[:, k],
-            correlation_matrix=scalar_correlation_matrix[:, k],
+            mae_skill_score_matrix=scalar_mae_skill_matrix[:, [k]],
+            mse_skill_score_matrix=scalar_mse_skill_matrix[:, [k]],
+            correlation_matrix=scalar_correlation_matrix[:, [k]],
             plot_legend=True
         )
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
@@ -554,9 +554,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
 
     for k in range(len(aux_field_names)):
         figure_object, axes_object = _plot_scores_with_units(
-            mae_matrix=aux_mae_matrix[:, k],
-            rmse_matrix=aux_rmse_matrix[:, k],
-            bias_matrix=aux_bias_matrix[:, k],
+            mae_matrix=aux_mae_matrix[:, [k]],
+            rmse_matrix=aux_rmse_matrix[:, [k]],
+            bias_matrix=aux_bias_matrix[:, [k]],
             plot_legend=True
         )
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
@@ -574,9 +574,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         pyplot.close(figure_object)
 
         figure_object, axes_object = _plot_unitless_scores(
-            mae_skill_score_matrix=aux_mae_skill_matrix[:, k],
-            mse_skill_score_matrix=aux_mse_skill_matrix[:, k],
-            correlation_matrix=aux_correlation_matrix[:, k],
+            mae_skill_score_matrix=aux_mae_skill_matrix[:, [k]],
+            mse_skill_score_matrix=aux_mse_skill_matrix[:, [k]],
+            correlation_matrix=aux_correlation_matrix[:, [k]],
             plot_legend=True
         )
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
@@ -627,9 +627,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
     for j in range(len(heights_m_agl)):
         for k in range(len(vector_field_names)):
             figure_object, axes_object = _plot_scores_with_units(
-                mae_matrix=vector_mae_matrix[:, j, k],
-                rmse_matrix=vector_rmse_matrix[:, j, k],
-                bias_matrix=vector_bias_matrix[:, j, k],
+                mae_matrix=vector_mae_matrix[:, j, [k]],
+                rmse_matrix=vector_rmse_matrix[:, j, [k]],
+                bias_matrix=vector_bias_matrix[:, j, [k]],
                 plot_legend=True
             )
             axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
@@ -650,9 +650,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             pyplot.close(figure_object)
 
             figure_object, axes_object = _plot_unitless_scores(
-                mae_skill_score_matrix=vector_mae_skill_matrix[:, j, k],
-                mse_skill_score_matrix=vector_mse_skill_matrix[:, j, k],
-                correlation_matrix=vector_correlation_matrix[:, j, k],
+                mae_skill_score_matrix=vector_mae_skill_matrix[:, j, [k]],
+                mse_skill_score_matrix=vector_mse_skill_matrix[:, j, [k]],
+                correlation_matrix=vector_correlation_matrix[:, j, [k]],
                 plot_legend=True
             )
             axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
