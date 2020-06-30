@@ -285,8 +285,8 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
 
     if plot_legend:
         axes_object.legend(
-            legend_handles, legend_strings, loc='lower right',
-            bbox_to_anchor=(0.5, 1), fancybox=True, shadow=True, ncol=1
+            legend_handles, legend_strings, loc='lower center',
+            bbox_to_anchor=(0.5, 0), fancybox=True, shadow=True, ncol=1
         )
 
     return figure_object, axes_object
