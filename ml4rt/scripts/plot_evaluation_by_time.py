@@ -13,7 +13,10 @@ from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.utils import evaluation
 
-# TODO(thunderhoser): Allow different target variable to be read in.
+# TODO(thunderhoser): Make confidence level input arg to script (once evaluation
+# files deal with bootstrapping).
+
+# TODO(thunderhoser): Include reference to prediction file in evaluation files.
 
 MARKER_TYPE = 'o'
 MARKER_SIZE = 16
@@ -26,7 +29,6 @@ BIAS_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 MAE_SKILL_COLOUR = MAE_COLOUR
 MSE_SKILL_COLOUR = RMSE_COLOUR
 CORRELATION_COLOUR = BIAS_COLOUR
-
 POLYGON_OPACITY = 0.5
 
 MONTH_INDICES = numpy.linspace(1, 12, num=12, dtype=int)
@@ -38,6 +40,15 @@ MONTH_STRINGS = [
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
+
+FONT_SIZE = 30
+pyplot.rc('font', size=FONT_SIZE)
+pyplot.rc('axes', titlesize=FONT_SIZE)
+pyplot.rc('axes', labelsize=FONT_SIZE)
+pyplot.rc('xtick', labelsize=FONT_SIZE)
+pyplot.rc('ytick', labelsize=FONT_SIZE)
+pyplot.rc('legend', fontsize=FONT_SIZE)
+pyplot.rc('figure', titlesize=FONT_SIZE)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
@@ -272,8 +283,6 @@ def _plot_unitless_scores(
     :return: figure_object: Same.
     :return: axes_object: Same.
     """
-
-    # TODO(thunderhoser): Include reference to prediction file in evaluation files.
 
     # Housekeeping.
     figure_object, axes_object = pyplot.subplots(
@@ -573,9 +582,6 @@ def _plot_all_scores_by_month(evaluation_dir_name, confidence_level,
     :param confidence_level: Same.
     :param output_dir_name: Same.
     """
-
-    # TODO(thunderhoser): Make confidence level input arg to script.
-    # TODO(thunderhoser): Allow this method to read in multiple bootstrap reps.
 
     months = numpy.linspace(1, 12, num=12, dtype=int)
     evaluation_file_names = [
