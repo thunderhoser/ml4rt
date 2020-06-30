@@ -10,8 +10,13 @@ from descartes import PolygonPatch
 from gewittergefahr.gg_utils import polygons
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
 from ml4rt.utils import evaluation
+
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+MIN_ZENITH_ANGLE_RAD = 0.
+MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
+RADIANS_TO_DEGREES = 180. / numpy.pi
 
 # TODO(thunderhoser): Make confidence level input arg to script (once evaluation
 # files deal with bootstrapping).
@@ -31,7 +36,6 @@ MSE_SKILL_COLOUR = RMSE_COLOUR
 CORRELATION_COLOUR = BIAS_COLOUR
 POLYGON_OPACITY = 0.5
 
-MONTH_INDICES = numpy.linspace(1, 12, num=12, dtype=int)
 MONTH_STRINGS = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
     'Dec'
@@ -148,7 +152,7 @@ def _confidence_interval_to_polygon(x_values, y_value_matrix, confidence_level):
 
 def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
                             confidence_level=None):
-    """Plots scores with physical units.
+    """Plots scores with physical units, for one time split and one field.
 
     B = number of bootstrap replicates
     T = number of time chunks
@@ -267,7 +271,7 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
 def _plot_unitless_scores(
         mae_skill_score_matrix, mse_skill_score_matrix, correlation_matrix,
         plot_legend, confidence_level=None):
-    """Plots scores without physical units.
+    """Plots scores without physical units, for one time split and one field.
 
     B = number of bootstrap replicates
     T = number of time chunks
@@ -392,262 +396,278 @@ def _plot_unitless_scores(
     return figure_object, axes_object
 
 
-def _get_score_keys_one_field(evaluation_table_xarray, field_name,
-                              height_m_agl=None):
-    """Returns keys to extract scores for one field from evaluation table.
-
-    :param evaluation_table_xarray: Single xarray table with evaluation scores.
-    :param field_name: Name of field (target variable) for which to read scores.
-    :param height_m_agl: Height (metres above ground level).  If field is not a
-        vector (vertical profile), leave this argument alone.
-    :return: score_keys: Keys in table (`evaluation_table_xarray`) with scores
-        for desired field.
-    :return: field_index: Index of desired field in numpy arrays stored in
-        table.
-    :return: height_index: Index of desired height in numpy arrays stored in
-        table.  If `height_m_agl is None`, this is also None.
-    """
-
-    scalar_field_names = evaluation_table_xarray.coords[
-        evaluation.SCALAR_FIELD_DIM
-    ].values.tolist()
-
-    try:
-        field_index = scalar_field_names.index(field_name)
-        score_keys = [
-            evaluation.SCALAR_MAE_KEY, evaluation.SCALAR_MSE_KEY,
-            evaluation.SCALAR_BIAS_KEY, evaluation.SCALAR_MAE_SKILL_KEY,
-            evaluation.SCALAR_MSE_SKILL_KEY, evaluation.SCALAR_CORRELATION_KEY
-        ]
-
-        return score_keys, field_index, None
-    except ValueError:
-        pass
-
-    try:
-        aux_field_names = evaluation_table_xarray.coords[
-            evaluation.AUX_TARGET_FIELD_DIM
-        ].values.tolist()
-
-        field_index = aux_field_names.index(field_name)
-        score_keys = [
-            evaluation.AUX_MAE_KEY, evaluation.AUX_MSE_KEY,
-            evaluation.AUX_BIAS_KEY, evaluation.AUX_MAE_SKILL_KEY,
-            evaluation.AUX_MSE_SKILL_KEY, evaluation.AUX_CORRELATION_KEY
-        ]
-
-        return score_keys, field_index, None
-    except:
-        pass
-
-    vector_field_names = evaluation_table_xarray.coords[
-        evaluation.VECTOR_FIELD_DIM
-    ].values.tolist()
-
-    field_index = vector_field_names.index(field_name)
-
-    height_index = example_io._match_heights(
-        heights_m_agl=
-        evaluation_table_xarray.coords[evaluation.HEIGHT_DIM].values,
-        desired_height_m_agl=height_m_agl
-    )
-
-    score_keys = [
-        evaluation.VECTOR_MAE_KEY, evaluation.VECTOR_MSE_KEY,
-        evaluation.VECTOR_BIAS_KEY, evaluation.VECTOR_MAE_SKILL_KEY,
-        evaluation.VECTOR_MSE_SKILL_KEY, evaluation.VECTOR_CORRELATION_KEY
-    ]
-
-    return score_keys, field_index, height_index
-
-
-def _read_scores_one_split_one_var(
-        evaluation_tables_xarray, field_name, height_m_agl=None):
-    """Reads scores for one time split and one field.
-
-    T = number of time chunks
-
-    :param evaluation_tables_xarray: length-T list of xarray tables with
-        results.
-    :param field_name: Name of field (target variable) for which to read scores.
-    :param height_m_agl: Height (metres above ground level).  If field is not a
-        vector (vertical profile), leave this argument alone.
-    :return: score_dict: Dictionary with the following keys.
-    score_dict['mae_matrix']: T-by-1 numpy array of MAE (mean absolute error)
-        values.
-    score_dict['rmse_matrix']: T-by-1 numpy array of RMSE (root mean squared
-        error) values.
-    score_dict['bias_matrix']: T-by-1 numpy array of biases.
-    score_dict['mae_skill_score_matrix']: T-by-1 numpy array of MAE skill
-        scores.
-    score_dict['mse_skill_score_matrix']: T-by-1 numpy array of MSE skill
-        scores.
-    score_dict['correlation_matrix']: T-by-1 numpy array of Pearson
-        correlations.
-    """
-
-    # TODO(thunderhoser): This code is disgusting and should be cleaned up.
-
-    score_keys, field_index, height_index = _get_score_keys_one_field(
-        evaluation_table_xarray=evaluation_tables_xarray[0],
-        field_name=field_name, height_m_agl=height_m_agl
-    )
-
-    num_time_chunks = len(evaluation_tables_xarray)
-
-    mae_matrix = numpy.full((num_time_chunks, 1), numpy.nan)
-    rmse_matrix = numpy.full((num_time_chunks, 1), numpy.nan)
-    bias_matrix = numpy.full((num_time_chunks, 1), numpy.nan)
-    mae_skill_score_matrix = numpy.full((num_time_chunks, 1), numpy.nan)
-    mse_skill_score_matrix = numpy.full((num_time_chunks, 1), numpy.nan)
-    correlation_matrix = numpy.full((num_time_chunks, 1), numpy.nan)
-
-    for i in range(num_time_chunks):
-        this_table = evaluation_tables_xarray[i]
-
-        if height_index is None:
-            mae_matrix[i, 0] = this_table[score_keys[0]].values[field_index]
-            rmse_matrix[i, 0] = this_table[score_keys[1]].values[field_index]
-            bias_matrix[i, 0] = this_table[score_keys[2]].values[field_index]
-            mae_skill_score_matrix[i, 0] = (
-                this_table[score_keys[3]].values[field_index]
-            )
-            mse_skill_score_matrix[i, 0] = (
-                this_table[score_keys[4]].values[field_index]
-            )
-            correlation_matrix[i, 0] = (
-                this_table[score_keys[5]].values[field_index]
-            )
-        else:
-            mae_matrix[i, 0] = (
-                this_table[score_keys[0]].values[height_index, field_index]
-            )
-            rmse_matrix[i, 0] = (
-                this_table[score_keys[1]].values[height_index, field_index]
-            )
-            bias_matrix[i, 0] = (
-                this_table[score_keys[2]].values[height_index, field_index]
-            )
-            mae_skill_score_matrix[i, 0] = (
-                this_table[score_keys[3]].values[height_index, field_index]
-            )
-            mse_skill_score_matrix[i, 0] = (
-                this_table[score_keys[4]].values[height_index, field_index]
-            )
-            correlation_matrix[i, 0] = (
-                this_table[score_keys[5]].values[height_index, field_index]
-            )
-
-    rmse_matrix = numpy.sqrt(rmse_matrix)
-
-    return {
-        'mae_matrix': mae_matrix,
-        'rmse_matrix': rmse_matrix,
-        'bias_matrix': bias_matrix,
-        'mae_skill_score_matrix': mae_skill_score_matrix,
-        'mse_skill_score_matrix': mse_skill_score_matrix,
-        'correlation_matrix': correlation_matrix
-    }
-
-
-def _plot_all_scores_by_month(evaluation_dir_name, confidence_level,
-                              output_dir_name):
-    """Plots all evaluation scores by month.
+def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
+                               num_zenith_angle_bins=None):
+    """Plots all scores for one time split.
 
     :param evaluation_dir_name: See documentation at top of file.
-    :param confidence_level: Same.
     :param output_dir_name: Same.
+    :param by_month: Boolean flag.  If True (False), will plot scores by month
+        (solar zenith angle).
+    :param num_zenith_angle_bins: See documentation at top of file.
     """
 
-    months = numpy.linspace(1, 12, num=12, dtype=int)
-    evaluation_file_names = [
-        evaluation.find_file(directory_name=evaluation_dir_name, month=k)
-        for k in months
-    ]
-    evaluation_tables_xarray = _read_files_one_split(evaluation_file_names)
-
-    scalar_field_names = evaluation_tables_xarray[0].coords[
-        evaluation.SCALAR_FIELD_DIM
-    ].values.tolist()
-
-    vector_field_names = evaluation_tables_xarray[0].coords[
-        evaluation.VECTOR_FIELD_DIM
-    ].values.tolist()
-
-    try:
-        aux_field_names = evaluation_tables_xarray[0].coords[
-            evaluation.AUX_TARGET_FIELD_DIM
-        ].values.tolist()
-    except KeyError:
-        aux_field_names = []
-
-    all_field_names = scalar_field_names + vector_field_names + aux_field_names
-    heights_m_agl = (
-        evaluation_tables_xarray[0].coords[evaluation.HEIGHT_DIM].values
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
     )
 
-    for this_field_name in all_field_names:
-        if this_field_name in vector_field_names:
-            these_heights_m_agl = heights_m_agl + 0
-        else:
-            these_heights_m_agl = None
+    if by_month:
+        months = numpy.linspace(1, 12, num=12, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(directory_name=evaluation_dir_name, month=k)
+            for k in months
+        ]
 
-        for this_height_m_agl in these_heights_m_agl:
-            this_score_dict = _read_scores_one_split_one_var(
-                evaluation_tables_xarray=evaluation_tables_xarray,
-                field_name=this_field_name, height_m_agl=this_height_m_agl
+        x_tick_label_strings = MONTH_STRINGS
+        x_axis_label_string = ''
+    else:
+        bin_indices = numpy.linspace(
+            0, num_zenith_angle_bins - 1, num=num_zenith_angle_bins, dtype=int
+        )
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, zenith_angle_bin=k
+            ) for k in bin_indices
+        ]
+
+        bin_edge_angles_deg = RADIANS_TO_DEGREES * numpy.linspace(
+            MIN_ZENITH_ANGLE_RAD, MAX_ZENITH_ANGLE_RAD,
+            num=num_zenith_angle_bins + 1, dtype=float
+        )
+
+        x_tick_label_strings = ['foo'] * num_zenith_angle_bins
+
+        for k in range(num_zenith_angle_bins):
+            x_tick_label_strings[k] = '[{0:s}, {1:s}'.format(
+                bin_edge_angles_deg[k], bin_edge_angles_deg[k + 1]
             )
 
-            this_figure_object, this_axes_object = _plot_scores_with_units(
-                mae_matrix=this_score_dict['mae_matrix'],
-                rmse_matrix=this_score_dict['rmse_matrix'],
-                bias_matrix=this_score_dict['bias_matrix'],
-                plot_legend=True
-            )
-            this_axes_object.set_xticks(MONTH_INDICES)
-            this_axes_object.set_xticklabels(MONTH_STRINGS, rotation=90.)
-
-            if this_height_m_agl is None:
-                this_file_name = '{0:s}/{1:s}_scores_with_units.jpg'.format(
-                    output_dir_name, this_field_name.replace('_', '-')
-                )
+            if k == num_zenith_angle_bins - 1:
+                x_tick_label_strings[k] += ']'
             else:
-                this_file_name = (
-                    '{0:s}/{1:s}_{2:05d}metres_scores_with_units.jpg'
-                ).format(
-                    output_dir_name, this_field_name.replace('_', '-'),
-                    int(numpy.round(this_height_m_agl))
-                )
+                x_tick_label_strings[k] += ')'
 
-            print('Saving figure to: "{0:s}"...'.format(this_file_name))
+            x_tick_label_strings[k] += r'$^{\circ}$'
 
-            this_figure_object.savefig(
-                this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-                bbox_inches='tight'
-            )
-            pyplot.close(this_figure_object)
+        x_axis_label_string = 'Solar zenith angle'
 
-            this_figure_object, this_axes_object = _plot_unitless_scores(
-                mae_skill_score_matrix=
-                this_score_dict['mae_skill_score_matrix'],
-                mse_skill_score_matrix=
-                this_score_dict['mse_skill_score_matrix'],
-                correlation_matrix=this_score_dict['correlation_matrix'],
+    evaluation_tables_xarray = _read_files_one_split(evaluation_file_names)
+    print(SEPARATOR_STRING)
+
+    scalar_field_names = (
+        evaluation_tables_xarray[0].coords[evaluation.SCALAR_FIELD_DIM].values
+    )
+    scalar_mae_matrix = numpy.vstack([
+        t[evaluation.SCALAR_MAE_KEY].values for t in evaluation_tables_xarray
+    ])
+    scalar_rmse_matrix = numpy.sqrt(numpy.vstack([
+        t[evaluation.SCALAR_MSE_KEY].values for t in evaluation_tables_xarray
+    ]))
+    scalar_bias_matrix = numpy.vstack([
+        t[evaluation.SCALAR_BIAS_KEY].values for t in evaluation_tables_xarray
+    ])
+    scalar_mae_skill_matrix = numpy.vstack([
+        t[evaluation.SCALAR_MAE_SKILL_KEY].values
+        for t in evaluation_tables_xarray
+    ])
+    scalar_mse_skill_matrix = numpy.vstack([
+        t[evaluation.SCALAR_MSE_SKILL_KEY].values
+        for t in evaluation_tables_xarray
+    ])
+    scalar_correlation_matrix = numpy.vstack([
+        t[evaluation.SCALAR_CORRELATION_KEY].values
+        for t in evaluation_tables_xarray
+    ])
+
+    for k in range(len(scalar_field_names)):
+        figure_object, axes_object = _plot_scores_with_units(
+            mae_matrix=scalar_mae_matrix[:, k],
+            rmse_matrix=scalar_rmse_matrix[:, k],
+            bias_matrix=scalar_bias_matrix[:, k],
+            plot_legend=True
+        )
+        axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
+        axes_object.set_xlabel(x_axis_label_string)
+
+        figure_file_name = '{0:s}/{1:s}_scores_with_units.jpg'.format(
+            output_dir_name, scalar_field_names[k].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = _plot_unitless_scores(
+            mae_skill_score_matrix=scalar_mae_skill_matrix[:, k],
+            mse_skill_score_matrix=scalar_mse_skill_matrix[:, k],
+            correlation_matrix=scalar_correlation_matrix[:, k],
+            plot_legend=True
+        )
+        axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
+        axes_object.set_xlabel(x_axis_label_string)
+
+        figure_file_name = '{0:s}/{1:s}_scores_without_units.jpg'.format(
+            output_dir_name, scalar_field_names[k].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    print(SEPARATOR_STRING)
+
+    aux_field_names = (
+        evaluation_tables_xarray[0].coords[
+            evaluation.AUX_TARGET_FIELD_DIM
+        ].values
+    )
+    aux_mae_matrix = numpy.vstack([
+        t[evaluation.AUX_MAE_KEY].values for t in evaluation_tables_xarray
+    ])
+    aux_rmse_matrix = numpy.sqrt(numpy.vstack([
+        t[evaluation.AUX_MSE_KEY].values for t in evaluation_tables_xarray
+    ]))
+    aux_bias_matrix = numpy.vstack([
+        t[evaluation.AUX_BIAS_KEY].values for t in evaluation_tables_xarray
+    ])
+    aux_mae_skill_matrix = numpy.vstack([
+        t[evaluation.AUX_MAE_SKILL_KEY].values
+        for t in evaluation_tables_xarray
+    ])
+    aux_mse_skill_matrix = numpy.vstack([
+        t[evaluation.AUX_MSE_SKILL_KEY].values
+        for t in evaluation_tables_xarray
+    ])
+    aux_correlation_matrix = numpy.vstack([
+        t[evaluation.AUX_CORRELATION_KEY].values
+        for t in evaluation_tables_xarray
+    ])
+
+    for k in range(len(aux_field_names)):
+        figure_object, axes_object = _plot_scores_with_units(
+            mae_matrix=aux_mae_matrix[:, k],
+            rmse_matrix=aux_rmse_matrix[:, k],
+            bias_matrix=aux_bias_matrix[:, k],
+            plot_legend=True
+        )
+        axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
+        axes_object.set_xlabel(x_axis_label_string)
+
+        figure_file_name = '{0:s}/{1:s}_scores_with_units.jpg'.format(
+            output_dir_name, aux_field_names[k].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = _plot_unitless_scores(
+            mae_skill_score_matrix=aux_mae_skill_matrix[:, k],
+            mse_skill_score_matrix=aux_mse_skill_matrix[:, k],
+            correlation_matrix=aux_correlation_matrix[:, k],
+            plot_legend=True
+        )
+        axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
+        axes_object.set_xlabel(x_axis_label_string)
+
+        figure_file_name = '{0:s}/{1:s}_scores_without_units.jpg'.format(
+            output_dir_name, aux_field_names[k].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    print(SEPARATOR_STRING)
+
+    vector_field_names = (
+        evaluation_tables_xarray[0].coords[evaluation.VECTOR_FIELD_DIM].values
+    )
+    heights_m_agl = numpy.round(
+        evaluation_tables_xarray[0].coords[evaluation.HEIGHT_DIM].values
+    ).astype(int)
+
+    vector_mae_matrix = numpy.stack([
+        t[evaluation.VECTOR_MAE_KEY].values for t in evaluation_tables_xarray
+    ], axis=0)
+    vector_rmse_matrix = numpy.sqrt(numpy.stack([
+        t[evaluation.VECTOR_MSE_KEY].values for t in evaluation_tables_xarray
+    ], axis=0))
+    vector_bias_matrix = numpy.stack([
+        t[evaluation.VECTOR_BIAS_KEY].values for t in evaluation_tables_xarray
+    ], axis=0)
+    vector_mae_skill_matrix = numpy.stack([
+        t[evaluation.VECTOR_MAE_SKILL_KEY].values
+        for t in evaluation_tables_xarray
+    ], axis=0)
+    vector_mse_skill_matrix = numpy.stack([
+        t[evaluation.VECTOR_MSE_SKILL_KEY].values
+        for t in evaluation_tables_xarray
+    ], axis=0)
+    vector_correlation_matrix = numpy.stack([
+        t[evaluation.VECTOR_CORRELATION_KEY].values
+        for t in evaluation_tables_xarray
+    ], axis=0)
+
+    for j in range(len(heights_m_agl)):
+        for k in range(len(vector_field_names)):
+            figure_object, axes_object = _plot_scores_with_units(
+                mae_matrix=vector_mae_matrix[:, j, k],
+                rmse_matrix=vector_rmse_matrix[:, j, k],
+                bias_matrix=vector_bias_matrix[:, j, k],
                 plot_legend=True
             )
-            this_axes_object.set_xticks(MONTH_INDICES)
-            this_axes_object.set_xticklabels(MONTH_STRINGS, rotation=90.)
+            axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
+            axes_object.set_xlabel(x_axis_label_string)
 
-            this_file_name = this_file_name.replace(
-                'scores_with_units', 'scores_without_units'
+            figure_file_name = (
+                '{0:s}/{1:s}_{2:05d}metres_scores_with_units.jpg'
+            ).format(
+                output_dir_name, vector_field_names[k].replace('_', '-'),
+                heights_m_agl[j]
             )
-            print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
-            this_figure_object.savefig(
-                this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+            figure_object.savefig(
+                figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
                 bbox_inches='tight'
             )
-            pyplot.close(this_figure_object)
+            pyplot.close(figure_object)
+
+            figure_object, axes_object = _plot_unitless_scores(
+                mae_skill_score_matrix=vector_mae_skill_matrix[:, j, k],
+                mse_skill_score_matrix=vector_mse_skill_matrix[:, j, k],
+                correlation_matrix=vector_correlation_matrix[:, j, k],
+                plot_legend=True
+            )
+            axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
+            axes_object.set_xlabel(x_axis_label_string)
+
+            figure_file_name = (
+                '{0:s}/{1:s}_{2:05d}metres_scores_without_units.jpg'
+            ).format(
+                output_dir_name, vector_field_names[k].replace('_', '-'),
+                heights_m_agl[j]
+            )
+
+            print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+            figure_object.savefig(
+                figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+                bbox_inches='tight'
+            )
+            pyplot.close(figure_object)
 
 
 def _run(evaluation_dir_name, num_zenith_angle_bins, top_output_dir_name):
@@ -662,23 +682,17 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, top_output_dir_name):
 
     error_checking.assert_is_geq(num_zenith_angle_bins, 2)
 
-    # bin_indices = numpy.linspace(
-    #     0, num_zenith_angle_bins - 1, num=num_zenith_angle_bins, dtype=int
-    # )
-    # file_name_by_angle_bin = [
-    #     evaluation.find_file(
-    #         directory_name=evaluation_dir_name, zenith_angle_bin=k
-    #     ) for k in bin_indices
-    # ]
-
-    month_output_dir_name = '{0:s}/by_month'.format(top_output_dir_name)
-    file_system_utils.mkdir_recursive_if_necessary(
-        directory_name=month_output_dir_name
+    _plot_all_scores_one_split(
+        evaluation_dir_name=evaluation_dir_name,
+        output_dir_name='{0:s}/by_month'.format(top_output_dir_name),
+        by_month=True
     )
+    print(SEPARATOR_STRING)
 
-    _plot_all_scores_by_month(
-        evaluation_dir_name=evaluation_dir_name, confidence_level=0.95,
-        output_dir_name=month_output_dir_name
+    _plot_all_scores_one_split(
+        evaluation_dir_name=evaluation_dir_name,
+        output_dir_name='{0:s}/by_zenith_angle'.format(top_output_dir_name),
+        by_month=False, num_zenith_angle_bins=num_zenith_angle_bins
     )
 
 
