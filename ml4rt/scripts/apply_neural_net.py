@@ -122,7 +122,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_predictor_matrix, this_target_array, these_id_strings = (
                 next(generator)
             )
-        except StopIteration:
+        except RuntimeError:
             break
 
         this_prediction_array = neural_net.apply_model(
@@ -133,15 +133,20 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             metadata_dict[neural_net.CUSTOM_LOSS_KEY] is not None,
             verbose=True
         )
+        # print(this_prediction_array[0].shape)
+        # print(this_prediction_array[1].shape)
         print(SEPARATOR_STRING)
 
         example_id_strings += these_id_strings
 
         if net_type_string == neural_net.CNN_TYPE_STRING:
             this_vector_target_matrix = this_target_array[0]
-            this_scalar_target_matrix = this_target_array[1]
             this_vector_prediction_matrix = this_prediction_array[0]
-            this_scalar_prediction_matrix = this_prediction_array[1]
+
+            if len(this_target_array) == 2:
+                this_scalar_target_matrix = this_target_array[1]
+                this_scalar_prediction_matrix = this_prediction_array[1]
+
         elif net_type_string == neural_net.DENSE_NET_TYPE_STRING:
             this_scalar_target_matrix = this_target_array
             this_scalar_prediction_matrix = this_prediction_array[0]
@@ -200,7 +205,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
     if net_type_string == neural_net.CNN_TYPE_STRING:
-        these_target_matrices = [vector_target_matrix, scalar_target_matrix]
+        these_target_matrices = [vector_target_matrix]
+
+        if scalar_target_matrix is not None:
+            these_target_matrices.append(scalar_target_matrix)
+
     elif net_type_string == neural_net.U_NET_TYPE_STRING:
         these_target_matrices = [vector_target_matrix]
     else:
@@ -216,9 +225,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
     if net_type_string == neural_net.CNN_TYPE_STRING:
-        these_prediction_matrices = [
-            vector_prediction_matrix, scalar_prediction_matrix
-        ]
+        these_prediction_matrices = [vector_prediction_matrix]
+
+        if scalar_prediction_matrix is not None:
+            these_prediction_matrices.append(scalar_prediction_matrix)
+
     elif net_type_string == neural_net.U_NET_TYPE_STRING:
         these_prediction_matrices = [vector_prediction_matrix]
     else:

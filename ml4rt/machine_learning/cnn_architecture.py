@@ -24,10 +24,12 @@ USE_BATCH_NORM_KEY = 'use_batch_normalization'
 USE_MSESS_LOSS_KEY = 'use_msess_loss'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
-    CONV_LAYER_CHANNEL_NUMS_KEY: numpy.array([80, 80, 80, 3], dtype=int),
-    CONV_LAYER_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, numpy.nan]),
-    CONV_LAYER_FILTER_SIZES_KEY: numpy.array([5, 5, 5, 5], dtype=int),
-    DENSE_LAYER_NEURON_NUMS_KEY: numpy.array([409, 29, 2], dtype=int),
+    CONV_LAYER_CHANNEL_NUMS_KEY:
+        numpy.array([32, 32, 64, 64, 128, 128, 3], dtype=int),
+    CONV_LAYER_DROPOUT_RATES_KEY:
+        numpy.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, numpy.nan]),
+    CONV_LAYER_FILTER_SIZES_KEY: numpy.array([3, 3, 3, 3, 3, 3, 3], dtype=int),
+    DENSE_LAYER_NEURON_NUMS_KEY: numpy.array([559, 33, 2], dtype=int),
     DENSE_LAYER_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, numpy.nan]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
@@ -74,7 +76,6 @@ def _check_architecture_args(option_dict):
         conv_layer_dropout_rates, 1., allow_nan=True
     )
 
-    # TODO(thunderhoser): Also make sure filter sizes are odd?
     conv_layer_filter_sizes = option_dict[CONV_LAYER_FILTER_SIZES_KEY]
     error_checking.assert_is_integer_numpy_array(conv_layer_filter_sizes)
     error_checking.assert_is_numpy_array(
@@ -82,23 +83,34 @@ def _check_architecture_args(option_dict):
     )
     error_checking.assert_is_geq_numpy_array(conv_layer_filter_sizes, 3)
 
+    # Make sure filter sizes are odd.
+    these_filter_sizes = (
+        2 * numpy.floor(conv_layer_filter_sizes.astype(float) / 2) + 1
+    ).astype(int)
+    assert numpy.array_equal(these_filter_sizes, conv_layer_filter_sizes)
+
     dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
-    error_checking.assert_is_integer_numpy_array(dense_layer_neuron_nums)
-    error_checking.assert_is_numpy_array(
-        dense_layer_neuron_nums, num_dimensions=1
-    )
-    error_checking.assert_is_geq_numpy_array(dense_layer_neuron_nums, 1)
-
-    num_dense_layers = len(dense_layer_neuron_nums)
-    these_dimensions = numpy.array([num_dense_layers], dtype=int)
-
     dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
-    error_checking.assert_is_numpy_array(
-        dense_layer_dropout_rates, exact_dimensions=these_dimensions
+    has_dense_layers = not (
+        dense_layer_neuron_nums is None and dense_layer_dropout_rates is None
     )
-    error_checking.assert_is_leq_numpy_array(
-        dense_layer_dropout_rates, 1., allow_nan=True
-    )
+
+    if has_dense_layers:
+        error_checking.assert_is_integer_numpy_array(dense_layer_neuron_nums)
+        error_checking.assert_is_numpy_array(
+            dense_layer_neuron_nums, num_dimensions=1
+        )
+        error_checking.assert_is_geq_numpy_array(dense_layer_neuron_nums, 1)
+
+        num_dense_layers = len(dense_layer_neuron_nums)
+        these_dimensions = numpy.array([num_dense_layers], dtype=int)
+
+        error_checking.assert_is_numpy_array(
+            dense_layer_dropout_rates, exact_dimensions=these_dimensions
+        )
+        error_checking.assert_is_leq_numpy_array(
+            dense_layer_dropout_rates, 1., allow_nan=True
+        )
 
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
@@ -116,6 +128,9 @@ def create_model(option_dict, custom_loss_dict=None):
 
     C = number of convolutional layers
     D = number of dense layers
+
+    If you do not want dense layers, make `dense_layer_neuron_nums` and
+    `dense_layer_dropout_rates` be None.
 
     :param option_dict: Dictionary with the following keys.
     option_dict['num_heights']: Number of height levels.
@@ -159,21 +174,7 @@ def create_model(option_dict, custom_loss_dict=None):
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
-    # TODO(thunderhoser): Allow for no dense layers.
-
     option_dict = _check_architecture_args(option_dict)
-
-    use_msess_loss = option_dict[USE_MSESS_LOSS_KEY]
-    use_custom_loss = custom_loss_dict is not None
-
-    if use_custom_loss:
-        dense_loss_function = neural_net.get_custom_loss_function(
-            custom_loss_dict=custom_loss_dict,
-            net_type_string=neural_net.CNN_TYPE_STRING
-        )
-        use_msess_loss = False
-    else:
-        dense_loss_function = None
 
     num_heights = option_dict[NUM_HEIGHTS_KEY]
     num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
@@ -189,6 +190,22 @@ def create_model(option_dict, custom_loss_dict=None):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    use_msess_loss = option_dict[USE_MSESS_LOSS_KEY]
+
+    any_dense_layers = dense_layer_neuron_nums is not None
+    if not any_dense_layers:
+        custom_loss_dict = None
+
+    use_custom_loss = custom_loss_dict is not None
+
+    if use_custom_loss:
+        dense_loss_function = neural_net.get_custom_loss_function(
+            custom_loss_dict=custom_loss_dict,
+            net_type_string=neural_net.CNN_TYPE_STRING
+        )
+        use_msess_loss = False
+    else:
+        dense_loss_function = None
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -243,41 +260,50 @@ def create_model(option_dict, custom_loss_dict=None):
                 )
             )
 
-    num_dense_layers = len(dense_layer_neuron_nums)
-    dense_output_layer_object = architecture_utils.get_flattening_layer()(
-        dense_input_layer_object
-    )
+    if any_dense_layers:
+        num_dense_layers = len(dense_layer_neuron_nums)
+        dense_output_layer_object = architecture_utils.get_flattening_layer()(
+            dense_input_layer_object
+        )
 
-    for i in range(num_dense_layers):
-        dense_output_layer_object = architecture_utils.get_dense_layer(
-            num_output_units=dense_layer_neuron_nums[i]
-        )(dense_output_layer_object)
-
-        if i == num_dense_layers - 1:
-            dense_output_layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=output_activ_function_name,
-                alpha_for_relu=output_activ_function_alpha,
-                alpha_for_elu=output_activ_function_alpha,
-                layer_name=None if use_custom_loss else 'dense_output'
-            )(dense_output_layer_object)
-        else:
-            dense_output_layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=inner_activ_function_name,
-                alpha_for_relu=inner_activ_function_alpha,
-                alpha_for_elu=inner_activ_function_alpha
+        for i in range(num_dense_layers):
+            dense_output_layer_object = architecture_utils.get_dense_layer(
+                num_output_units=dense_layer_neuron_nums[i]
             )(dense_output_layer_object)
 
-        if dense_layer_dropout_rates[i] > 0:
-            dense_output_layer_object = architecture_utils.get_dropout_layer(
-                dropout_fraction=dense_layer_dropout_rates[i]
-            )(dense_output_layer_object)
-
-        if use_batch_normalization and i != num_dense_layers - 1:
-            dense_output_layer_object = (
-                architecture_utils.get_batch_norm_layer()(
-                    dense_output_layer_object
+            if i == num_dense_layers - 1:
+                dense_output_layer_object = (
+                    architecture_utils.get_activation_layer(
+                        activation_function_string=output_activ_function_name,
+                        alpha_for_relu=output_activ_function_alpha,
+                        alpha_for_elu=output_activ_function_alpha,
+                        layer_name=None if use_custom_loss else 'dense_output'
+                    )(dense_output_layer_object)
                 )
-            )
+            else:
+                dense_output_layer_object = (
+                    architecture_utils.get_activation_layer(
+                        activation_function_string=inner_activ_function_name,
+                        alpha_for_relu=inner_activ_function_alpha,
+                        alpha_for_elu=inner_activ_function_alpha
+                    )(dense_output_layer_object)
+                )
+
+            if dense_layer_dropout_rates[i] > 0:
+                dense_output_layer_object = (
+                    architecture_utils.get_dropout_layer(
+                        dropout_fraction=dense_layer_dropout_rates[i]
+                    )(dense_output_layer_object)
+                )
+
+            if use_batch_normalization and i != num_dense_layers - 1:
+                dense_output_layer_object = (
+                    architecture_utils.get_batch_norm_layer()(
+                        dense_output_layer_object
+                    )
+                )
+    else:
+        dense_output_layer_object = None
 
     if use_custom_loss:
         k = custom_loss_dict[neural_net.UP_FLUX_CHANNEL_INDEX_KEY] + 0
@@ -301,10 +327,15 @@ def create_model(option_dict, custom_loss_dict=None):
             axis=-1, name='dense_output'
         )(this_list)
 
-    model_object = keras.models.Model(
-        inputs=input_layer_object,
-        outputs=[conv_output_layer_object, dense_output_layer_object]
-    )
+    if any_dense_layers:
+        model_object = keras.models.Model(
+            inputs=input_layer_object,
+            outputs=[conv_output_layer_object, dense_output_layer_object]
+        )
+    else:
+        model_object = keras.models.Model(
+            inputs=input_layer_object, outputs=conv_output_layer_object
+        )
 
     if use_custom_loss:
         loss_dict = {

@@ -541,56 +541,59 @@ def targets_dict_to_numpy(example_dict, net_type_string,
     if net_type_string == U_NET_TYPE_STRING:
         return [example_dict[example_io.VECTOR_TARGET_VALS_KEY]]
 
-    if net_type_string == CNN_TYPE_STRING:
-        error_checking.assert_is_boolean(use_custom_cnn_loss)
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        num_examples = vector_target_matrix.shape[0]
+        num_heights = vector_target_matrix.shape[1]
+        num_fields = vector_target_matrix.shape[2]
 
-        if not use_custom_cnn_loss:
-            return [
-                example_dict[example_io.VECTOR_TARGET_VALS_KEY],
-                example_dict[example_io.SCALAR_TARGET_VALS_KEY]
-            ]
-
-        up_flux_channel_index = (
-            example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
-                example_io.SHORTWAVE_UP_FLUX_NAME
-            )
-        )
-        down_flux_channel_index = (
-            example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
-                example_io.SHORTWAVE_DOWN_FLUX_NAME
-            )
+        vector_target_matrix = numpy.reshape(
+            vector_target_matrix, (num_examples, num_heights * num_fields),
+            order='F'
         )
 
+        target_matrix = numpy.concatenate((
+            vector_target_matrix,
+            example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+        ), axis=-1)
+
+        return [target_matrix]
+
+    error_checking.assert_is_boolean(use_custom_cnn_loss)
+
+    if not use_custom_cnn_loss:
         vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
         scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
 
-        this_vector_target_matrix = numpy.stack((
-            vector_target_matrix[:, -1, up_flux_channel_index],
-            vector_target_matrix[:, 0, down_flux_channel_index],
-        ), axis=-1)
-
-        scalar_target_matrix = numpy.concatenate((
-            this_vector_target_matrix, scalar_target_matrix
-        ), axis=-1)
+        if scalar_target_matrix.size == 0:
+            return [vector_target_matrix]
 
         return [vector_target_matrix, scalar_target_matrix]
 
-    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
-    num_examples = vector_target_matrix.shape[0]
-    num_heights = vector_target_matrix.shape[1]
-    num_fields = vector_target_matrix.shape[2]
-
-    vector_target_matrix = numpy.reshape(
-        vector_target_matrix, (num_examples, num_heights * num_fields),
-        order='F'
+    up_flux_channel_index = (
+        example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
+            example_io.SHORTWAVE_UP_FLUX_NAME
+        )
+    )
+    down_flux_channel_index = (
+        example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
+            example_io.SHORTWAVE_DOWN_FLUX_NAME
+        )
     )
 
-    target_matrix = numpy.concatenate((
-        vector_target_matrix,
-        example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+    scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+
+    this_vector_target_matrix = numpy.stack((
+        vector_target_matrix[:, -1, up_flux_channel_index],
+        vector_target_matrix[:, 0, down_flux_channel_index],
     ), axis=-1)
 
-    return [target_matrix]
+    scalar_target_matrix = numpy.concatenate((
+        this_vector_target_matrix, scalar_target_matrix
+    ), axis=-1)
+
+    return [vector_target_matrix, scalar_target_matrix]
 
 
 def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
@@ -633,18 +636,33 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
             example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
         }
 
-    if net_type_string == CNN_TYPE_STRING:
-        vector_target_matrix = target_matrices[0]
-        scalar_target_matrix = target_matrices[1]
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        target_matrix = target_matrices[0]
 
-        error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-        error_checking.assert_is_numpy_array(
-            vector_target_matrix, num_dimensions=3
+        error_checking.assert_is_numpy_array_without_nan(target_matrix)
+        error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
+
+        num_scalar_targets = len(
+            example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
         )
 
-        error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
-        error_checking.assert_is_numpy_array(
-            scalar_target_matrix, num_dimensions=2
+        if num_scalar_targets == 0:
+            scalar_target_matrix = target_matrix[:, :0]
+            vector_target_matrix = target_matrix + 0.
+        else:
+            scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
+            vector_target_matrix = target_matrix[:, :-num_scalar_targets]
+
+        num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+        num_vector_targets = len(
+            example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        )
+        num_examples = vector_target_matrix.shape[0]
+
+        vector_target_matrix = numpy.reshape(
+            vector_target_matrix,
+            (num_examples, num_heights, num_vector_targets),
+            order='F'
         )
 
         return {
@@ -652,29 +670,22 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
             example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
         }
 
-    target_matrix = target_matrices[0]
-
-    error_checking.assert_is_numpy_array_without_nan(target_matrix)
-    error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
-
-    num_scalar_targets = len(example_dict[example_io.SCALAR_TARGET_NAMES_KEY])
-
-    if num_scalar_targets == 0:
-        scalar_target_matrix = target_matrix[:, :0]
-        vector_target_matrix = target_matrix + 0.
-    else:
-        scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
-        vector_target_matrix = target_matrix[:, :-num_scalar_targets]
-
-    num_heights = len(example_dict[example_io.HEIGHTS_KEY])
-    num_vector_targets = len(
-        example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    vector_target_matrix = target_matrices[0]
+    error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
+    error_checking.assert_is_numpy_array(
+        vector_target_matrix, num_dimensions=3
     )
-    num_examples = vector_target_matrix.shape[0]
 
-    vector_target_matrix = numpy.reshape(
-        vector_target_matrix, (num_examples, num_heights, num_vector_targets),
-        order='F'
+    if len(target_matrices) == 1:
+        scalar_target_matrix = numpy.full(
+            (vector_target_matrix.shape[0], 0), 0.
+        )
+    else:
+        scalar_target_matrix = target_matrices[1]
+
+    error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
+    error_checking.assert_is_numpy_array(
+        scalar_target_matrix, num_dimensions=2
     )
 
     return {
@@ -870,8 +881,12 @@ def data_generator(option_dict, for_inference, net_type_string,
 
             if net_type_string == CNN_TYPE_STRING:
                 this_vector_target_matrix = this_list[0]
-                this_scalar_target_matrix = this_list[1]
                 this_target_matrix = None
+
+                if len(this_list) == 1:
+                    this_scalar_target_matrix = None
+                else:
+                    this_scalar_target_matrix = this_list[1]
             else:
                 this_vector_target_matrix = None
                 this_scalar_target_matrix = None
@@ -880,27 +895,30 @@ def data_generator(option_dict, for_inference, net_type_string,
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
 
-                if net_type_string == CNN_TYPE_STRING:
-                    vector_target_matrix = this_vector_target_matrix + 0.
-                    scalar_target_matrix = this_scalar_target_matrix + 0.
-                else:
+                if this_target_matrix is not None:
                     target_matrix = this_target_matrix + 0.
+                if this_vector_target_matrix is not None:
+                    vector_target_matrix = this_vector_target_matrix + 0.
+                if this_scalar_target_matrix is not None:
+                    scalar_target_matrix = this_scalar_target_matrix + 0.
             else:
                 predictor_matrix = numpy.concatenate(
                     (predictor_matrix, this_predictor_matrix), axis=0
                 )
 
-                if net_type_string == CNN_TYPE_STRING:
-                    vector_target_matrix = numpy.concatenate((
-                        vector_target_matrix, this_vector_target_matrix
-                    ), axis=0)
-
-                    scalar_target_matrix = numpy.concatenate((
-                        scalar_target_matrix, this_scalar_target_matrix
-                    ), axis=0)
-                else:
+                if this_target_matrix is not None:
                     target_matrix = numpy.concatenate(
                         (target_matrix, this_target_matrix), axis=0
+                    )
+                if this_vector_target_matrix is not None:
+                    vector_target_matrix = numpy.concatenate(
+                        (vector_target_matrix, this_vector_target_matrix),
+                        axis=0
+                    )
+                if this_scalar_target_matrix is not None:
+                    scalar_target_matrix = numpy.concatenate(
+                        (scalar_target_matrix, this_scalar_target_matrix),
+                        axis=0
                     )
 
             num_examples_in_memory = predictor_matrix.shape[0]
@@ -908,10 +926,10 @@ def data_generator(option_dict, for_inference, net_type_string,
         predictor_matrix = predictor_matrix.astype('float32')
 
         if net_type_string == CNN_TYPE_STRING:
-            second_output = [
-                vector_target_matrix.astype('float32'),
-                scalar_target_matrix.astype('float32')
-            ]
+            second_output = [vector_target_matrix.astype('float32')]
+
+            if scalar_target_matrix is not None:
+                second_output.append(scalar_target_matrix.astype('float32'))
         else:
             second_output = target_matrix.astype('float32')
 
@@ -1237,16 +1255,23 @@ def apply_model(
         )
 
         if net_type_string == CNN_TYPE_STRING:
+            if not isinstance(this_output, list):
+                this_output = [this_output]
+
             if vector_prediction_matrix is None:
                 vector_prediction_matrix = this_output[0] + 0.
-                scalar_prediction_matrix = this_output[1] + 0.
+
+                if len(this_output) == 2:
+                    scalar_prediction_matrix = this_output[1] + 0.
             else:
                 vector_prediction_matrix = numpy.concatenate(
                     (vector_prediction_matrix, this_output[0]), axis=0
                 )
-                scalar_prediction_matrix = numpy.concatenate(
-                    (scalar_prediction_matrix, this_output[1]), axis=0
-                )
+
+                if len(this_output) == 2:
+                    scalar_prediction_matrix = numpy.concatenate(
+                        (scalar_prediction_matrix, this_output[1]), axis=0
+                    )
         else:
             if prediction_matrix is None:
                 prediction_matrix = this_output + 0.
@@ -1264,6 +1289,11 @@ def apply_model(
         scalar_prediction_matrix = scalar_prediction_matrix[:, 2:]
 
     if net_type_string == CNN_TYPE_STRING:
+        if scalar_prediction_matrix is None:
+            scalar_prediction_matrix = numpy.full(
+                (vector_prediction_matrix.shape[0], 0), 0.
+            )
+
         return [vector_prediction_matrix, scalar_prediction_matrix]
 
     return [prediction_matrix]

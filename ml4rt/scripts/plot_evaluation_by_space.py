@@ -129,7 +129,7 @@ def _plot_score_one_field(
     longitude_spacing_deg = (
         longitude_matrix_deg[0, 1] - longitude_matrix_deg[0, 0]
     )
-    
+
     print(numpy.sum(numpy.invert(numpy.isnan(score_matrix))))
 
     (
@@ -187,7 +187,7 @@ def _plot_score_one_field(
         tick_strings = [
             '{0:d}'.format(int(numpy.round(10 ** v))) for v in tick_values
         ]
-    elif numpy.nanmax(score_matrix) >= 6:
+    elif numpy.nanmax(numpy.absolute(score_matrix)) >= 6:
         tick_strings = [
             '{0:d}'.format(int(numpy.round(v))) for v in tick_values
         ]
