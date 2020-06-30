@@ -129,6 +129,8 @@ def _plot_score_one_field(
         longitude_matrix_deg[0, 1] - longitude_matrix_deg[0, 0]
     )
 
+    print(numpy.sum(numpy.invert(numpy.isnan(score_matrix))))
+
     (
         score_matrix_at_edges, grid_edge_latitudes_deg, grid_edge_longitudes_deg
     ) = grids.latlng_field_grid_points_to_edges(
