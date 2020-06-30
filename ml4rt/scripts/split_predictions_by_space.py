@@ -4,9 +4,9 @@ import copy
 import argparse
 import numpy
 from gewittergefahr.gg_utils import grids
-from gewittergefahr.gg_utils import projections
 from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import misc
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -15,7 +15,8 @@ MIN_LATITUDE_ARG_NAME = 'min_latitude_deg'
 MAX_LATITUDE_ARG_NAME = 'max_latitude_deg'
 MIN_LONGITUDE_ARG_NAME = 'min_longitude_deg'
 MAX_LONGITUDE_ARG_NAME = 'max_longitude_deg'
-GRID_SPACING_ARG_NAME = 'grid_spacing_metres'
+LATITUDE_SPACING_ARG_NAME = 'latitude_spacing_deg'
+LONGITUDE_SPACING_ARG_NAME = 'longitude_spacing_deg'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -38,7 +39,8 @@ MAX_LONGITUDE_HELP_STRING = (
     'Max longitude (deg E) in equidistant grid.  To let max longitude be '
     'determined from data, leave this argument alone.'
 )
-GRID_SPACING_HELP_SPACING = 'Spacing for equidistant grid.'
+LATITUDE_SPACING_HELP_SPACING = 'Meridional grid spacing (degrees).'
+LONGITUDE_SPACING_HELP_SPACING = 'Zonal grid spacing (degrees).'
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Spatially split predictions will be written '
     'here by `prediction_io.write_file`.'
@@ -66,8 +68,12 @@ INPUT_ARG_PARSER.add_argument(
     default=numpy.nan, help=MAX_LONGITUDE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + GRID_SPACING_ARG_NAME, type=float, required=False, default=1e5,
-    help=GRID_SPACING_HELP_SPACING
+    '--' + LATITUDE_SPACING_ARG_NAME, type=float, required=False, default=1.,
+    help=LATITUDE_SPACING_HELP_SPACING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LONGITUDE_SPACING_ARG_NAME, type=float, required=False, default=1.,
+    help=LONGITUDE_SPACING_HELP_SPACING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -75,8 +81,8 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, min_latitude_deg, max_latitude_deg,
-         min_longitude_deg, max_longitude_deg, grid_spacing_metres,
+def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
+         max_longitude_deg, latitude_spacing_deg, longitude_spacing_deg,
          output_dir_name):
     """Splits predictions by spatial region.
 
@@ -87,42 +93,10 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg,
     :param max_latitude_deg: Same.
     :param min_longitude_deg: Same.
     :param max_longitude_deg: Same.
-    :param grid_spacing_metres: Same.
+    :param latitude_spacing_deg: Same.
+    :param longitude_spacing_deg: Same.
     :param output_dir_name: Same.
     """
-
-    # Create grid.
-    equidistant_grid_dict = grids.create_equidistant_grid(
-        min_latitude_deg=min_latitude_deg, max_latitude_deg=max_latitude_deg,
-        min_longitude_deg=min_longitude_deg,
-        max_longitude_deg=max_longitude_deg,
-        x_spacing_metres=grid_spacing_metres,
-        y_spacing_metres=grid_spacing_metres, azimuthal=False
-    )
-
-    grid_metafile_name = grids.find_equidistant_metafile(
-        directory_name=output_dir_name, raise_error_if_missing=False
-    )
-
-    print('Writing metadata for equidistant grid to: "{0:s}"...'.format(
-        grid_metafile_name
-    ))
-    grids.write_equidistant_metafile(
-        grid_dict=equidistant_grid_dict, pickle_file_name=grid_metafile_name
-    )
-
-    grid_points_x_metres = equidistant_grid_dict[grids.X_COORDS_KEY]
-    grid_points_y_metres = equidistant_grid_dict[grids.Y_COORDS_KEY]
-    projection_object = equidistant_grid_dict[grids.PROJECTION_KEY]
-
-    grid_edges_x_metres = numpy.append(
-        grid_points_x_metres - 0.5 * grid_spacing_metres,
-        grid_points_x_metres[-1] + 0.5 * grid_spacing_metres
-    )
-    grid_edges_y_metres = numpy.append(
-        grid_points_y_metres - 0.5 * grid_spacing_metres,
-        grid_points_y_metres[-1] + 0.5 * grid_spacing_metres
-    )
 
     # Read data.
     print('Reading data from: "{0:s}"...'.format(input_file_name))
@@ -134,23 +108,49 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg,
     example_latitudes_deg = example_metadata_dict[example_io.LATITUDES_KEY]
     example_longitudes_deg = example_metadata_dict[example_io.LONGITUDES_KEY]
 
-    examples_x_metres, examples_y_metres = projections.project_latlng_to_xy(
-        latitudes_deg=example_latitudes_deg,
-        longitudes_deg=example_longitudes_deg,
-        projection_object=projection_object
+    these_limits_deg = numpy.array([
+        min_latitude_deg, max_latitude_deg, min_longitude_deg, max_longitude_deg
+    ])
+    if numpy.any(numpy.isnan(these_limits_deg)):
+        min_latitude_deg = numpy.min(example_latitudes_deg)
+        max_latitude_deg = numpy.max(example_latitudes_deg)
+        min_longitude_deg = numpy.min(example_longitudes_deg)
+        max_longitude_deg = numpy.max(example_longitudes_deg)
+
+    # Create grid.
+    grid_point_latitudes_deg, grid_point_longitudes_deg = (
+        misc.create_latlng_grid(
+            min_latitude_deg=min_latitude_deg,
+            max_latitude_deg=max_latitude_deg,
+            latitude_spacing_deg=latitude_spacing_deg,
+            min_longitude_deg=min_longitude_deg,
+            max_longitude_deg=max_longitude_deg,
+            longitude_spacing_deg=longitude_spacing_deg
+        )
     )
 
-    num_grid_rows = len(grid_points_y_metres)
-    num_grid_columns = len(grid_points_x_metres)
+    num_grid_rows = len(grid_point_latitudes_deg)
+    num_grid_columns = len(grid_point_longitudes_deg)
+
+    grid_edge_latitudes_deg, grid_edge_longitudes_deg = (
+        grids.get_latlng_grid_cell_edges(
+            min_latitude_deg=grid_point_latitudes_deg[0],
+            min_longitude_deg=grid_point_longitudes_deg[0],
+            lat_spacing_deg=numpy.diff(grid_point_latitudes_deg[:2])[0],
+            lng_spacing_deg=numpy.diff(grid_point_longitudes_deg[:2])[0],
+            num_rows=num_grid_rows, num_columns=num_grid_columns
+        )
+    )
+
     print(SEPARATOR_STRING)
 
     for i in range(num_grid_rows):
         for j in range(num_grid_columns):
             these_indices = grids.find_events_in_grid_cell(
-                event_x_coords_metres=examples_x_metres,
-                event_y_coords_metres=examples_y_metres,
-                grid_edge_x_coords_metres=grid_edges_x_metres,
-                grid_edge_y_coords_metres=grid_edges_y_metres,
+                event_x_coords_metres=example_longitudes_deg,
+                event_y_coords_metres=example_latitudes_deg,
+                grid_edge_x_coords_metres=grid_edge_longitudes_deg,
+                grid_edge_y_coords_metres=grid_edge_latitudes_deg,
                 row_index=i, column_index=j, verbose=False
             )
 
@@ -194,6 +194,11 @@ if __name__ == '__main__':
         max_latitude_deg=getattr(INPUT_ARG_OBJECT, MAX_LATITUDE_ARG_NAME),
         min_longitude_deg=getattr(INPUT_ARG_OBJECT, MIN_LONGITUDE_ARG_NAME),
         max_longitude_deg=getattr(INPUT_ARG_OBJECT, MAX_LONGITUDE_ARG_NAME),
-        grid_spacing_metres=getattr(INPUT_ARG_OBJECT, GRID_SPACING_ARG_NAME),
+        latitude_spacing_deg=getattr(
+            INPUT_ARG_OBJECT, LATITUDE_SPACING_ARG_NAME
+        ),
+        longitude_spacing_deg=getattr(
+            INPUT_ARG_OBJECT, LONGITUDE_SPACING_ARG_NAME
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
