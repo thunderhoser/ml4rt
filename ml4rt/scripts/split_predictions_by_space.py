@@ -43,7 +43,8 @@ LATITUDE_SPACING_HELP_SPACING = 'Meridional grid spacing (degrees).'
 LONGITUDE_SPACING_HELP_SPACING = 'Zonal grid spacing (degrees).'
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Spatially split predictions will be written '
-    'here by `prediction_io.write_file`.'
+    'here by `prediction_io.write_file`, and grid metadata will be written here'
+    ' by `prediction_io.write_grid_metafile`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -183,6 +184,22 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
                 model_file_name=
                 this_prediction_dict[prediction_io.MODEL_FILE_KEY]
             )
+
+        if i != num_grid_rows - 1:
+            print('\n')
+
+    print(SEPARATOR_STRING)
+
+    grid_metafile_name = prediction_io.find_grid_metafile(
+        prediction_dir_name=output_dir_name, raise_error_if_missing=False
+    )
+
+    print('Writing grid metadata to: "{0:s}"...'.format(grid_metafile_name))
+    prediction_io.write_grid_metafile(
+        grid_point_latitudes_deg=grid_point_latitudes_deg,
+        grid_point_longitudes_deg=grid_point_longitudes_deg,
+        netcdf_file_name=grid_metafile_name
+    )
 
 
 if __name__ == '__main__':

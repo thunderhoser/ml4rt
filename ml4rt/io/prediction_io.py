@@ -5,6 +5,7 @@ import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
@@ -35,6 +36,11 @@ MONTH_KEY = 'month'
 GRID_ROW_KEY = 'grid_row'
 GRID_COLUMN_KEY = 'grid_column'
 METADATA_KEYS = [ZENITH_ANGLE_BIN_KEY, MONTH_KEY, GRID_ROW_KEY, GRID_COLUMN_KEY]
+
+GRID_ROW_DIMENSION_KEY = 'row'
+GRID_COLUMN_DIMENSION_KEY = 'column'
+LATITUDES_KEY = 'latitude_deg_n'
+LONGITUDES_KEY = 'longitude_deg_e'
 
 
 def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
@@ -332,6 +338,107 @@ def read_file(netcdf_file_name):
 
     dataset_object.close()
     return prediction_dict
+
+
+def find_grid_metafile(prediction_dir_name, raise_error_if_missing=True):
+    """Finds file with metadata for grid.
+
+    This file is needed only if prediction files are split by space (one per
+    grid cell).
+
+    :param prediction_dir_name: Name of directory with prediction files.  The
+        metafile is expected here.
+    :param raise_error_if_missing: Boolean flag.  If file is missing and
+        `raise_error_if_missing == True`, will throw error.  If file is missing
+        and `raise_error_if_missing == False`, will return *expected* file path.
+    :return: grid_metafile_name: File path.
+    :raises: ValueError: if file is missing
+        and `raise_error_if_missing == True`.
+    """
+
+    error_checking.assert_is_string(prediction_dir_name)
+    grid_metafile_name = '{0:s}/grid_metadata.nc'.format(prediction_dir_name)
+
+    if raise_error_if_missing and not os.path.isfile(grid_metafile_name):
+        error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
+            grid_metafile_name
+        )
+        raise ValueError(error_string)
+
+    return grid_metafile_name
+
+
+def write_grid_metafile(grid_point_latitudes_deg, grid_point_longitudes_deg,
+                        netcdf_file_name):
+    """Writes metadata for grid to NetCDF file.
+
+    This file is needed only if prediction files are split by space (one per
+    grid cell).
+
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param grid_point_latitudes_deg: length-M numpy array of latitudes (deg N).
+    :param grid_point_longitudes_deg: length-N numpy array of longitudes
+        (deg E).
+    :param netcdf_file_name: Path to output file.
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array(
+        grid_point_latitudes_deg, num_dimensions=1
+    )
+    error_checking.assert_is_valid_lat_numpy_array(grid_point_latitudes_deg)
+
+    error_checking.assert_is_numpy_array(
+        grid_point_longitudes_deg, num_dimensions=1
+    )
+    grid_point_longitudes_deg = lng_conversion.convert_lng_positive_in_west(
+        grid_point_longitudes_deg
+    )
+
+    # Write to NetCDF file.
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    dataset_object = netCDF4.Dataset(
+        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+    )
+
+    dataset_object.createDimension(
+        GRID_ROW_DIMENSION_KEY, len(grid_point_latitudes_deg)
+    )
+    dataset_object.createDimension(
+        GRID_COLUMN_DIMENSION_KEY, len(grid_point_longitudes_deg)
+    )
+
+    dataset_object.createVariable(
+        LATITUDES_KEY, datatype=numpy.float32, dimensions=GRID_ROW_DIMENSION_KEY
+    )
+    dataset_object.variables[LATITUDES_KEY][:] = grid_point_latitudes_deg
+
+    dataset_object.createVariable(
+        LONGITUDES_KEY, datatype=numpy.float32,
+        dimensions=GRID_COLUMN_DIMENSION_KEY
+    )
+    dataset_object.variables[LONGITUDES_KEY][:] = grid_point_longitudes_deg
+
+    dataset_object.close()
+
+
+def read_grid_metafile(netcdf_file_name):
+    """Reads metadata for grid from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: grid_point_latitudes_deg: See doc for `write_grid_metafile`.
+    :return: grid_point_longitudes_deg: Same.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    grid_point_latitudes_deg = dataset_object.variables[LATITUDES_KEY][:]
+    grid_point_longitudes_deg = dataset_object.variables[LONGITUDES_KEY][:]
+    dataset_object.close()
+
+    return grid_point_latitudes_deg, grid_point_longitudes_deg
 
 
 def average_predictions(
