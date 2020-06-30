@@ -66,11 +66,15 @@ def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
 
     # Split by solar zenith angle.
     for k in range(num_zenith_angle_bins):
+        print(len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY]))
+        print('\n\n\n')
         this_prediction_dict = prediction_io.subset_by_zenith_angle(
             prediction_dict=prediction_dict,
             min_zenith_angle_rad=bin_min_angles_rad[k],
             max_zenith_angle_rad=bin_max_angles_rad[k]
         )
+        print(this_prediction_dict)
+        print('\n\n\n')
 
         this_output_file_name = prediction_io.find_file(
             directory_name=output_dir_name, zenith_angle_bin=k,
