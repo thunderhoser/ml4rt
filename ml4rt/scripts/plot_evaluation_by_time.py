@@ -10,6 +10,7 @@ from descartes import PolygonPatch
 from gewittergefahr.gg_utils import polygons
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
 from ml4rt.utils import evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -17,6 +18,29 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 RADIANS_TO_DEGREES = 180. / numpy.pi
+
+# TODO(thunderhoser): Put this is a nice method somewhere.
+TARGET_NAME_TO_VERBOSE = {
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
+    example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
+    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
+    evaluation.NET_FLUX_NAME: 'net flux',
+    evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
+    evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
+}
+
+TARGET_NAME_TO_UNITS = {
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.NET_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
+}
 
 # TODO(thunderhoser): Make confidence level input arg to script (once evaluation
 # files deal with bootstrapping).
@@ -261,9 +285,8 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
 
     if plot_legend:
         axes_object.legend(
-            legend_handles, legend_strings, loc='lower center',
-            bbox_to_anchor=(0.5, 1), fancybox=True, shadow=True,
-            ncol=len(legend_handles)
+            legend_handles, legend_strings, loc='lower right',
+            bbox_to_anchor=(0.5, 1), fancybox=True, shadow=True, ncol=1
         )
 
     return figure_object, axes_object
@@ -383,6 +406,7 @@ def _plot_unitless_scores(
     y_max = numpy.minimum(y_max, 1.)
     axes_object.set_ylim(y_min, y_max)
 
+    axes_object.set_xticks(x_values)
     axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
     )
@@ -418,7 +442,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             evaluation.find_file(directory_name=evaluation_dir_name, month=k)
             for k in months
         ]
-        
+
         x_tick_label_strings = MONTH_STRINGS
         x_axis_label_string = ''
     else:
@@ -487,6 +511,10 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             bias_matrix=scalar_bias_matrix[:, [k]],
             plot_legend=True
         )
+        axes_object.set_title('Scores for {0:s} ({1:s})'.format(
+            TARGET_NAME_TO_VERBOSE[scalar_field_names[k]],
+            TARGET_NAME_TO_UNITS[scalar_field_names[k]]
+        ))
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
         axes_object.set_xlabel(x_axis_label_string)
 
@@ -560,6 +588,10 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             bias_matrix=aux_bias_matrix[:, [k]],
             plot_legend=True
         )
+        axes_object.set_title('Scores for {0:s} ({1:s})'.format(
+            TARGET_NAME_TO_VERBOSE[scalar_field_names[k]],
+            TARGET_NAME_TO_UNITS[scalar_field_names[k]]
+        ))
         axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
         axes_object.set_xlabel(x_axis_label_string)
 
@@ -633,6 +665,14 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
                 bias_matrix=vector_bias_matrix[:, j, [k]],
                 plot_legend=True
             )
+
+            title_string = 'Scores for {0:s} ({1:s}) at {2:d} m AGL'.format(
+                TARGET_NAME_TO_VERBOSE[scalar_field_names[k]],
+                TARGET_NAME_TO_UNITS[scalar_field_names[k]],
+                heights_m_agl[j]
+            )
+
+            axes_object.set_title(title_string)
             axes_object.set_xticklabels(x_tick_label_strings, rotation=90.)
             axes_object.set_xlabel(x_axis_label_string)
 
