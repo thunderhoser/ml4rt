@@ -383,7 +383,7 @@ def _plot_scores_with_units(
     if plot_legend:
         main_axes_object.legend(
             legend_handles, legend_strings, loc='upper left',
-            bbox_to_anchor=(0, 1), fancybox=True, shadow=True,
+            bbox_to_anchor=(0, 1), fancybox=True, shadow=False,
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
