@@ -514,28 +514,30 @@ def _augment_eval_table(result_table_xarray):
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
 
-    result_table_xarray.attrs[NUM_EXAMPLES_KEY] = len(
-        prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
-    )
+    num_examples = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
+    result_table_xarray.attrs[NUM_EXAMPLES_KEY] = num_examples
 
-    scalar_skewness_matrix = scipy.stats.skew(
-        prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
-        axis=0, bias=False, nan_policy='omit'
-    )
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    if scalar_target_matrix.size == 0:
+        scalar_skewness_matrix = numpy.full(0, 0.)
+    else:
+        scalar_skewness_matrix = scipy.stats.skew(
+            scalar_target_matrix, axis=0, bias=False, nan_policy='omit'
+        )
 
     these_dim = (evaluation.SCALAR_FIELD_DIM,)
     result_table_xarray.update({
         SCALAR_SKEWNESS_KEY: (these_dim, scalar_skewness_matrix)
     })
 
-    this_vector_skewness_matrix = scipy.stats.skew(
+    vector_skewness_matrix = scipy.stats.skew(
         prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
         axis=0, bias=False, nan_policy='omit'
     )
 
     these_dim = (evaluation.HEIGHT_DIM, evaluation.VECTOR_FIELD_DIM)
     result_table_xarray.update({
-        VECTOR_SKEWNESS_KEY: (these_dim, this_vector_skewness_matrix)
+        VECTOR_SKEWNESS_KEY: (these_dim, vector_skewness_matrix)
     })
 
     try:
