@@ -293,17 +293,17 @@ def _plot_scores_with_units(
     legend_strings = []
 
     for i in range(num_time_chunks):
-        this_handle = axes_object.boxplot(
+        this_dict = axes_object.boxplot(
             target_matrices[i], widths=1., notch=False, sym='', whis=(5, 95),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
             positions=x_values[[i]]
-        )[0]
+        )
 
         if i != 0:
             continue
 
-        legend_handles.append(this_handle)
+        legend_handles.append(this_dict['boxes'][0])
         legend_strings.append('Boxplot of\nactual values')
 
     # Plot mean MAE.
