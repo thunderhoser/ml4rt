@@ -248,8 +248,9 @@ def _confidence_interval_to_polygon(x_values, y_value_matrix, confidence_level):
     )
 
 
-def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
-                            confidence_level=None):
+def _plot_scores_with_units(
+        mae_matrix, rmse_matrix, bias_matrix, target_matrices, plot_legend,
+        confidence_level=None):
     """Plots scores with physical units, for one time split and one field.
 
     B = number of bootstrap replicates
@@ -259,6 +260,8 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
     :param rmse_matrix: T-by-B numpy array of RMSE (root mean squared error)
         values.
     :param bias_matrix: T-by-B numpy array of biases.
+    :param target_matrices: length-T list of numpy arrays.  The [i]th array has
+        length E_i, where E_i = number of examples for [i]th time chunk.
     :param plot_legend: Boolean flag.  If True, will plot legend above figure.
     :param confidence_level: [used only if B > 1]
         Level for confidence intervals (in range 0...1).
@@ -269,9 +272,13 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
     """
 
     # Housekeeping.
-    figure_object, axes_object = pyplot.subplots(
+    figure_object, main_axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
+
+    boxplot_axes_object = main_axes_object.twinx()
+    main_axes_object.set_zorder(boxplot_axes_object.get_zorder() + 1)
+    main_axes_object.patch.set_visible(False)
 
     num_time_chunks = mae_matrix.shape[0]
     num_bootstrap_reps = mae_matrix.shape[1]
@@ -281,7 +288,7 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
     )
 
     # Plot mean MAE.
-    this_handle = axes_object.plot(
+    this_handle = main_axes_object.plot(
         x_values, numpy.mean(mae_matrix, axis=1), color=MAE_COLOUR,
         linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
         markerfacecolor=MAE_COLOUR, markeredgecolor=MAE_COLOUR,
@@ -302,10 +309,10 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        axes_object.add_patch(patch_object)
+        main_axes_object.add_patch(patch_object)
 
     # Plot mean RMSE.
-    this_handle = axes_object.plot(
+    this_handle = main_axes_object.plot(
         x_values, numpy.mean(rmse_matrix, axis=1), color=RMSE_COLOUR,
         linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
         markerfacecolor=RMSE_COLOUR, markeredgecolor=RMSE_COLOUR,
@@ -326,10 +333,10 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        axes_object.add_patch(patch_object)
+        main_axes_object.add_patch(patch_object)
 
     # Plot mean bias.
-    this_handle = axes_object.plot(
+    this_handle = main_axes_object.plot(
         x_values, numpy.mean(bias_matrix, axis=1), color=BIAS_COLOUR,
         linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
         markerfacecolor=BIAS_COLOUR, markeredgecolor=BIAS_COLOUR,
@@ -350,20 +357,30 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        axes_object.add_patch(patch_object)
+        main_axes_object.add_patch(patch_object)
 
-    axes_object.set_xticks(x_values)
-    axes_object.set_xlim(
+    main_axes_object.set_xticks(x_values)
+    main_axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
     )
 
-    if plot_legend:
-        axes_object.legend(
-            legend_handles, legend_strings, loc='upper left',
-            bbox_to_anchor=(0, 1), fancybox=True, shadow=True, ncol=1
+    for i in range(num_time_chunks):
+        boxplot_axes_object.boxplot(
+            target_matrices[i], notch=False, sym='', whis=(5, 95),
+            medianprops={'color': 'k'}, positions=x_values[[i]]
         )
 
-    return figure_object, axes_object
+    boxplot_axes_object.set_ylabel('Boxplot of actual target values')
+    main_axes_object.set_ylabel('Scores')
+
+    if plot_legend:
+        main_axes_object.legend(
+            legend_handles, legend_strings, loc='upper left',
+            bbox_to_anchor=(0, 1), fancybox=True, shadow=True, framealpha=0.5,
+            ncol=1
+        )
+
+    return figure_object, main_axes_object
 
 
 def _plot_unitless_scores(
@@ -494,14 +511,11 @@ def _plot_unitless_scores(
     # Plot histogram of example counts.
     y_values = numpy.maximum(numpy.log10(num_examples_array), 0.)
 
-    this_handle = histogram_axes_object.bar(
+    histogram_axes_object.bar(
         x=x_values, height=y_values, width=1., color=HISTOGRAM_FACE_COLOUR,
         edgecolor=HISTOGRAM_EDGE_COLOUR, linewidth=HISTOGRAM_EDGE_WIDTH
-    )[0]
-
-    legend_handles.append(this_handle)
-    legend_strings.append(r'Number of examples')
-    histogram_axes_object.set_ylabel(r'Number of examples')
+    )
+    histogram_axes_object.set_ylabel('Number of examples')
 
     tick_values = histogram_axes_object.get_yticks()
     tick_strings = [
@@ -516,7 +530,8 @@ def _plot_unitless_scores(
     if plot_legend:
         main_axes_object.legend(
             legend_handles, legend_strings, loc='lower left',
-            bbox_to_anchor=(0, 0), fancybox=True, shadow=True, ncol=1
+            bbox_to_anchor=(0, 0), fancybox=True, shadow=True, framealpha=0.5,
+            ncol=1
         )
 
     return figure_object, main_axes_object
@@ -616,7 +631,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_matrix=scalar_mae_matrix[:, [k]],
             rmse_matrix=scalar_rmse_matrix[:, [k]],
             bias_matrix=scalar_bias_matrix[:, [k]],
-            # target_matrix=scalar_target_matrix[..., k],
+            target_matrices=[a[..., k] for a in scalar_target_matrices],
             plot_legend=True
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
@@ -700,7 +715,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_matrix=aux_mae_matrix[:, [k]],
             rmse_matrix=aux_rmse_matrix[:, [k]],
             bias_matrix=aux_bias_matrix[:, [k]],
-            # target_matrix=aux_target_matrix[..., k],
+            target_matrices=[a[..., k] for a in aux_target_matrices],
             plot_legend=True
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
@@ -784,7 +799,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
                 mae_matrix=vector_mae_matrix[:, j, [k]],
                 rmse_matrix=vector_rmse_matrix[:, j, [k]],
                 bias_matrix=vector_bias_matrix[:, j, [k]],
-                # target_matrix=vector_target_matrix[..., j, k],
+                target_matrices=[a[..., j, k] for a in vector_target_matrices],
                 plot_legend=True
             )
 
