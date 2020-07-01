@@ -604,9 +604,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ])
-    scalar_target_matrix = numpy.stack([
+    scalar_target_matrices = [
         t[SCALAR_TARGET_KEY].values for t in evaluation_tables_xarray
-    ], axis=0)
+    ]
     num_examples_array = numpy.array([
         t.attrs[NUM_EXAMPLES_KEY] for t in evaluation_tables_xarray
     ], dtype=int)
@@ -689,9 +689,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
         ])
-        aux_target_matrix = numpy.stack([
+        aux_target_matrices = [
             t[AUX_TARGET_KEY].values for t in evaluation_tables_xarray
-        ], axis=0)
+        ]
     except KeyError:
         aux_field_names = []
 
@@ -774,9 +774,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         t[evaluation.VECTOR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
-    vector_target_matrix = numpy.stack([
+    vector_target_matrices = [
         t[VECTOR_TARGET_KEY].values for t in evaluation_tables_xarray
-    ], axis=0)
+    ]
 
     for j in range(len(heights_m_agl)):
         for k in range(len(vector_field_names)):
