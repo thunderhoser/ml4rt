@@ -1,5 +1,6 @@
 """Unit tests for neural_net.py."""
 
+import copy
 import unittest
 import numpy
 from ml4rt.io import example_io
@@ -114,6 +115,7 @@ THIS_SCALAR_TARGET_MATRIX = numpy.array([
 CNN_TARGET_MATRICES_CUSTOM_LOSS = [
     VECTOR_TARGET_MATRIX + 0., THIS_SCALAR_TARGET_MATRIX + 0.
 ]
+CNN_TARGET_MATRICES_NO_SCALARS = [VECTOR_TARGET_MATRIX + 0.]
 
 DENSE_NET_PREDICTOR_MATRIX = numpy.array([
     [290, 295, 0.008, 0.009, 0, 40.02],
@@ -280,6 +282,40 @@ class NeuralNetTests(unittest.TestCase):
                 atol=TOLERANCE
             ))
 
+    def test_targets_dict_to_numpy_cnn_no_scalars(self):
+        """Ensures correct output from targets_dict_to_numpy.
+
+        In this case, neural-net type is CNN with no scalar outputs.
+        """
+
+        this_scalar_target_matrix = (
+            EXAMPLE_DICT[example_io.SCALAR_TARGET_VALS_KEY] + 0.
+        )
+        this_scalar_target_matrix = numpy.full(
+            (this_scalar_target_matrix.shape[0], 0), 0.
+        )
+
+        this_example_dict = copy.deepcopy(EXAMPLE_DICT)
+        this_example_dict[example_io.SCALAR_TARGET_VALS_KEY] = (
+            this_scalar_target_matrix
+        )
+
+        these_matrices = neural_net.targets_dict_to_numpy(
+            example_dict=this_example_dict,
+            net_type_string=neural_net.CNN_TYPE_STRING,
+            use_custom_cnn_loss=False
+        )
+
+        self.assertTrue(
+            len(these_matrices) == len(CNN_TARGET_MATRICES_NO_SCALARS)
+        )
+
+        for i in range(len(these_matrices)):
+            self.assertTrue(numpy.allclose(
+                these_matrices[i], CNN_TARGET_MATRICES_NO_SCALARS[i],
+                atol=TOLERANCE
+            ))
+
     def test_targets_dict_to_numpy_dense_net(self):
         """Ensures correct output from targets_dict_to_numpy.
 
@@ -316,10 +352,10 @@ class NeuralNetTests(unittest.TestCase):
                 these_matrices[i], U_NET_TARGET_MATRICES[i], atol=TOLERANCE
             ))
 
-    def test_targets_numpy_to_dict_cnn(self):
+    def test_targets_numpy_to_dict_cnn_default(self):
         """Ensures correct output from targets_numpy_to_dict.
 
-        In this case, neural-net type is CNN.
+        In this case, neural-net type is default CNN.
         """
 
         this_example_dict = neural_net.targets_numpy_to_dict(
@@ -335,6 +371,25 @@ class NeuralNetTests(unittest.TestCase):
             this_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
             SCALAR_TARGET_MATRIX, atol=TOLERANCE
         ))
+
+    def test_targets_numpy_to_dict_cnn_no_scalars(self):
+        """Ensures correct output from targets_numpy_to_dict.
+
+        In this case, neural-net type is CNN with no scalar outputs.
+        """
+
+        this_example_dict = neural_net.targets_numpy_to_dict(
+            target_matrices=CNN_TARGET_MATRICES_NO_SCALARS,
+            example_dict=EXAMPLE_DICT,
+            net_type_string=neural_net.CNN_TYPE_STRING
+        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            VECTOR_TARGET_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(
+            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY].size == 0
+        )
 
     def test_targets_numpy_to_dict_dense_net(self):
         """Ensures correct output from targets_numpy_to_dict.
