@@ -3,6 +3,7 @@
 import os
 import argparse
 import numpy
+import scipy.stats
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
@@ -15,6 +16,10 @@ from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+SCALAR_SKEWNESS_KEY = 'scalar_skewness'
+VECTOR_SKEWNESS_KEY = 'vector_skewness'
+AUX_SKEWNESS_KEY = 'aux_skewness'
 
 # TODO(thunderhoser): Put this somewhere general.
 TARGET_NAME_TO_VERBOSE = {
@@ -45,18 +50,20 @@ MAX_COLOUR_PERCENTILE = 99.
 DEFAULT_COLOUR_MAP_OBJECT = pyplot.get_cmap('plasma')
 COUNT_COLOUR_MAP_OBJECT = pyplot.get_cmap('viridis')
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap('seismic')
+SKEWNESS_COLOUR_MAP_OBJECT = pyplot.get_cmap('seismic')
+
+COLOUR_BAR_FONT_SIZE = 16
+TITLE_FONT_SIZE = 24
+PANEL_LETTER_FONT_SIZE = 36
 
 NUM_PARALLELS = 8
 NUM_MERIDIANS = 6
 RESOLUTION_STRING = 'l'
-BORDER_COLOUR = numpy.full(3, 152. / 255)
 BORDER_WIDTH = 0.25
+BORDER_COLOUR = numpy.full(3, 152. / 255)
 
 FIGURE_RESOLUTION_DPI = 300
 CONCAT_FIGURE_SIZE_PX = int(1e7)
-
-# TODO(thunderhoser): Might not need `input_grid_metafile_name` after I put
-# pointer to prediction file in evaluation file.
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 GRID_METAFILE_ARG_NAME = 'input_grid_metafile_name'
@@ -178,7 +185,8 @@ def _plot_score_one_field(
         axes_object_or_matrix=axes_object, data_matrix=score_matrix,
         colour_map_object=colour_map_object, min_value=min_colour_value,
         max_value=max_colour_value, orientation_string='horizontal',
-        extend_min=taper_cbar_bottom, extend_max=taper_cbar_top, padding=0.05
+        extend_min=taper_cbar_bottom, extend_max=taper_cbar_top,
+        padding=0.02, font_size=COLOUR_BAR_FONT_SIZE
     )
 
     tick_values = colour_bar_object.get_ticks()
@@ -203,7 +211,8 @@ def _plot_score_one_field(
 def _plot_all_scores_one_field(
         latitude_matrix_deg, longitude_matrix_deg, mae_matrix, rmse_matrix,
         bias_matrix, mae_skill_score_matrix, mse_skill_score_matrix,
-        correlation_matrix, field_name, output_dir_name, height_m_agl=None):
+        correlation_matrix, skewness_matrix, field_name, output_dir_name,
+        height_m_agl=None):
     """Plots all evaluation scores for one field.
 
     M = number of rows in grid
@@ -217,6 +226,7 @@ def _plot_all_scores_one_field(
     :param mae_skill_score_matrix: Same but for MAE skill score.
     :param mse_skill_score_matrix: Same but for MSE skill score.
     :param correlation_matrix: Same but for correlation.
+    :param skewness_matrix: Same but for skewness.
     :param field_name: Name of field for which scores are being plotted.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
@@ -254,10 +264,14 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    axes_object.set_title('MAE ({0:s}) for {1:s}'.format(
+    title_string = 'MAE ({0:s}) for {1:s}'.format(
         TARGET_NAME_TO_UNITS[field_name], title_suffix
-    ))
-    plotting_utils.label_axes(axes_object=axes_object, label_string='(a)')
+    )
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(a)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
 
     panel_file_names.append('{0:s}_mae.jpg'.format(out_file_name_prefix))
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
@@ -281,10 +295,14 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    axes_object.set_title('RMSE ({0:s}) for {1:s}'.format(
+    title_string = 'RMSE ({0:s}) for {1:s}'.format(
         TARGET_NAME_TO_UNITS[field_name], title_suffix
-    ))
-    plotting_utils.label_axes(axes_object=axes_object, label_string='(b)')
+    )
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(b)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
 
     panel_file_names.append('{0:s}_rmse.jpg'.format(out_file_name_prefix))
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
@@ -309,10 +327,14 @@ def _plot_all_scores_one_field(
         taper_cbar_top=True, taper_cbar_bottom=True, log_scale=False
     )
 
-    axes_object.set_title('Bias ({0:s}) for {1:s}'.format(
+    title_string = 'Bias ({0:s}) for {1:s}'.format(
         TARGET_NAME_TO_UNITS[field_name], title_suffix
-    ))
-    plotting_utils.label_axes(axes_object=axes_object, label_string='(c)')
+    )
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(c)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
 
     panel_file_names.append('{0:s}_bias.jpg'.format(out_file_name_prefix))
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
@@ -341,8 +363,12 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    axes_object.set_title('MAE skill score for {0:s}'.format(title_suffix))
-    plotting_utils.label_axes(axes_object=axes_object, label_string='(d)')
+    title_string = 'MAE skill score for {0:s}'.format(title_suffix)
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(d)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
 
     panel_file_names.append('{0:s}_maess.jpg'.format(out_file_name_prefix))
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
@@ -371,8 +397,12 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    axes_object.set_title('MSE skill score for {0:s}'.format(title_suffix))
-    plotting_utils.label_axes(axes_object=axes_object, label_string='(e)')
+    title_string = 'MSE skill score for {0:s}'.format(title_suffix)
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(e)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
 
     panel_file_names.append('{0:s}_msess.jpg'.format(out_file_name_prefix))
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
@@ -402,12 +432,46 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    axes_object.set_title('Correlation for {0:s}'.format(title_suffix))
-    plotting_utils.label_axes(axes_object=axes_object, label_string='(f)')
+    title_string = 'Correlation for {0:s}'.format(title_suffix)
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(f)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
 
     panel_file_names.append('{0:s}_correlation.jpg'.format(
         out_file_name_prefix
     ))
+    print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
+
+    figure_object.savefig(
+        panel_file_names[-1], dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    # Plot skewness.
+    this_max_value = numpy.nanpercentile(
+        numpy.absolute(skewness_matrix), MAX_COLOUR_PERCENTILE
+    )
+    this_min_value = -1 * this_max_value
+
+    figure_object, axes_object = _plot_score_one_field(
+        latitude_matrix_deg=latitude_matrix_deg,
+        longitude_matrix_deg=longitude_matrix_deg, score_matrix=skewness_matrix,
+        colour_map_object=SKEWNESS_COLOUR_MAP_OBJECT,
+        min_colour_value=this_min_value, max_colour_value=this_max_value,
+        taper_cbar_top=True, taper_cbar_bottom=True, log_scale=False
+    )
+
+    title_string = 'Skewness of actual values for {0:s}'.format(title_suffix)
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(g)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
+
+    panel_file_names.append('{0:s}_skewness.jpg'.format(out_file_name_prefix))
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
 
     figure_object.savefig(
@@ -421,7 +485,7 @@ def _plot_all_scores_one_field(
 
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names, output_file_name=concat_file_name,
-        num_panel_rows=2, num_panel_columns=3
+        num_panel_rows=3, num_panel_columns=3
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_file_name, output_file_name=concat_file_name,
@@ -430,6 +494,68 @@ def _plot_all_scores_one_field(
 
     for this_file_name in panel_file_names:
         os.remove(this_file_name)
+
+
+def _add_skewness_to_table(result_table_xarray):
+    """Adds skewness to evaluation table.
+
+    :param result_table_xarray: Table returned by `evaluation.read_file`.
+    :return: result_table_xarray: Same but skewness for each target variable.
+    """
+
+    prediction_file_name = (
+        result_table_xarray.attrs[evaluation.PREDICTION_FILE_KEY]
+    )
+
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    scalar_skewness_matrix = scipy.stats.skew(
+        prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
+        axis=0, bias=False, nan_policy='omit'
+    )
+
+    these_dim = (evaluation.SCALAR_FIELD_DIM,)
+    result_table_xarray.update({
+        SCALAR_SKEWNESS_KEY: (these_dim, scalar_skewness_matrix)
+    })
+
+    this_vector_skewness_matrix = scipy.stats.skew(
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
+        axis=0, bias=False, nan_policy='omit'
+    )
+
+    these_dim = (evaluation.HEIGHT_DIM, evaluation.VECTOR_FIELD_DIM)
+    result_table_xarray.update({
+        VECTOR_SKEWNESS_KEY: (these_dim, this_vector_skewness_matrix)
+    })
+
+    try:
+        _ = result_table_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+    except KeyError:
+        return result_table_xarray
+
+    example_dict = {
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values,
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            result_table_xarray.coords[evaluation.VECTOR_FIELD_DIM].values,
+        example_io.HEIGHTS_KEY:
+            numpy.round(
+                result_table_xarray.coords[evaluation.HEIGHT_DIM].values
+            ).astype(int)
+    }
+
+    aux_skewness_matrix = evaluation.get_aux_fields(
+        prediction_dict=prediction_dict, example_dict=example_dict
+    )[evaluation.AUX_TARGET_VALS_KEY]
+
+    these_dim = (evaluation.AUX_TARGET_FIELD_DIM,)
+    result_table_xarray.update({
+        AUX_SKEWNESS_KEY: (these_dim, aux_skewness_matrix)
+    })
+
+    return result_table_xarray
 
 
 def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
@@ -486,28 +612,29 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             eval_table_matrix_xarray[i, j] = evaluation.read_file(
                 this_file_name
             )
-
-            if scalar_field_names is not None:
-                continue
-
-            this_table = eval_table_matrix_xarray[i, j]
-
-            scalar_field_names = (
-                this_table.coords[evaluation.SCALAR_FIELD_DIM].values
+            eval_table_matrix_xarray[i, j] = _add_skewness_to_table(
+                eval_table_matrix_xarray[i, j]
             )
-            vector_field_names = (
-                this_table.coords[evaluation.VECTOR_FIELD_DIM].values
-            )
-            heights_m_agl = numpy.round(
-                this_table.coords[evaluation.HEIGHT_DIM].values
-            ).astype(int)
 
-            try:
-                aux_field_names = (
-                    this_table.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+            if scalar_field_names is None:
+                t = eval_table_matrix_xarray[i, j]
+
+                scalar_field_names = (
+                    t.coords[evaluation.SCALAR_FIELD_DIM].values
                 )
-            except KeyError:
-                aux_field_names = []
+                vector_field_names = (
+                    t.coords[evaluation.VECTOR_FIELD_DIM].values
+                )
+                heights_m_agl = numpy.round(
+                    t.coords[evaluation.HEIGHT_DIM].values
+                ).astype(int)
+
+                try:
+                    aux_field_names = (
+                        t.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+                    )
+                except KeyError:
+                    aux_field_names = []
 
     print(SEPARATOR_STRING)
 
@@ -540,6 +667,10 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         nan_array if t is None else t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ])
+    scalar_skewness_matrix = numpy.vstack([
+        nan_array if t is None else t[SCALAR_SKEWNESS_KEY].values
+        for t in evaluation_tables_xarray
+    ])
 
     grid_dim_tuple = (num_grid_rows, num_grid_columns)
 
@@ -558,6 +689,9 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             ),
             correlation_matrix=numpy.reshape(
                 scalar_correlation_matrix[:, k], grid_dim_tuple
+            ),
+            skewness_matrix=numpy.reshape(
+                scalar_skewness_matrix[:, k], grid_dim_tuple
             ),
             field_name=scalar_field_names[k], output_dir_name=output_dir_name
         )
@@ -594,6 +728,10 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             nan_array if t is None else t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
         ])
+        aux_skewness_matrix = numpy.vstack([
+            nan_array if t is None else t[AUX_SKEWNESS_KEY].values
+            for t in evaluation_tables_xarray
+        ])
 
     for k in range(len(aux_field_names)):
         _plot_all_scores_one_field(
@@ -610,6 +748,9 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             ),
             correlation_matrix=numpy.reshape(
                 aux_correlation_matrix[:, k], grid_dim_tuple
+            ),
+            skewness_matrix=numpy.reshape(
+                aux_skewness_matrix[:, k], grid_dim_tuple
             ),
             field_name=aux_field_names[k], output_dir_name=output_dir_name
         )
@@ -647,6 +788,10 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         nan_array if t is None else t[evaluation.VECTOR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
+    vector_skewness_matrix = numpy.stack([
+        nan_array if t is None else t[VECTOR_SKEWNESS_KEY].values
+        for t in evaluation_tables_xarray
+    ], axis=0)
 
     for k in range(len(vector_field_names)):
         for j in range(len(heights_m_agl)):
@@ -671,12 +816,19 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
                 correlation_matrix=numpy.reshape(
                     vector_correlation_matrix[:, j, k], grid_dim_tuple
                 ),
+                skewness_matrix=numpy.reshape(
+                    vector_skewness_matrix[:, j, k], grid_dim_tuple
+                ),
                 field_name=vector_field_names[k], height_m_agl=heights_m_agl[j],
                 output_dir_name=output_dir_name
             )
 
-        if k != len(vector_field_names) - 1:
+        if k == len(vector_field_names) - 1:
+            print(SEPARATOR_STRING)
+        else:
             print('\n')
+
+    # num_examples_matrix = numpy.full((num_grid_rows, num_grid_columns), numpy.nan)
 
 
 if __name__ == '__main__':

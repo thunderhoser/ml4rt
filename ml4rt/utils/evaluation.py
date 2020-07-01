@@ -289,18 +289,19 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
     return mean_predictions, mean_observations, example_counts
 
 
-def _get_aux_fields(
-        scalar_target_matrix, scalar_prediction_matrix,
-        vector_prediction_matrix, mean_training_example_dict):
+def get_aux_fields(prediction_dict, example_dict):
     """Returns auxiliary fields.
 
     F = number of pairs of auxiliary fields
     E = number of examples
 
-    :param scalar_target_matrix: See doc for `get_scores_all_variables`.
-    :param scalar_prediction_matrix: Same.
-    :param vector_prediction_matrix: Same.
-    :param mean_training_example_dict: Same.
+    :param prediction_dict: See doc for `prediction_io.read_file`.
+    :param example_dict: Dictionary with the following keys (details for each
+        key in documentation for `example_io.read_file`).
+    example_dict['scalar_target_names']
+    example_dict['vector_target_names']
+    example_dict['heights_m_agl']
+
     :return: aux_prediction_dict: Dictionary with the following keys.
     aux_prediction_dict['aux_target_field_names']: length-F list with names of
         target fields.
@@ -318,10 +319,15 @@ def _get_aux_fields(
         available, this is -1.
     """
 
-    scalar_target_names = (
-        mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    scalar_prediction_matrix = (
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+    )
+    vector_prediction_matrix = (
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
 
+    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
     aux_target_field_names = []
     aux_predicted_field_names = []
 
@@ -359,10 +365,8 @@ def _get_aux_fields(
         surface_down_flux_index = -1
         toa_up_flux_index = -1
 
-    vector_target_names = (
-        mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-    )
-    heights_m_agl = mean_training_example_dict[example_io.HEIGHTS_KEY]
+    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
 
     if toa_up_flux_index >= 0:
         try:
@@ -456,6 +460,13 @@ def get_scores_all_variables(
         dimension names should make the table self-explanatory).
     """
 
+    error_checking.assert_is_string(prediction_file_name)
+    error_checking.assert_is_integer(num_reliability_bins)
+    error_checking.assert_is_geq(num_reliability_bins, 10)
+    error_checking.assert_is_leq(num_reliability_bins, 1000)
+    error_checking.assert_is_geq(max_bin_edge_percentile, 90.)
+    error_checking.assert_is_leq(max_bin_edge_percentile, 100.)
+
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
 
@@ -505,27 +516,9 @@ def get_scores_all_variables(
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
 
-    _check_args(
-        scalar_target_matrix=scalar_target_matrix,
-        scalar_prediction_matrix=scalar_prediction_matrix,
-        mean_training_example_dict=mean_training_example_dict,
-        vector_target_matrix=vector_target_matrix,
-        vector_prediction_matrix=vector_prediction_matrix
+    aux_prediction_dict = get_aux_fields(
+        prediction_dict=prediction_dict, example_dict=example_dict
     )
-
-    error_checking.assert_is_integer(num_reliability_bins)
-    error_checking.assert_is_geq(num_reliability_bins, 10)
-    error_checking.assert_is_leq(num_reliability_bins, 1000)
-    error_checking.assert_is_geq(max_bin_edge_percentile, 90.)
-    error_checking.assert_is_leq(max_bin_edge_percentile, 100.)
-
-    aux_prediction_dict = _get_aux_fields(
-        scalar_target_matrix=scalar_target_matrix,
-        scalar_prediction_matrix=scalar_prediction_matrix,
-        vector_prediction_matrix=vector_prediction_matrix,
-        mean_training_example_dict=mean_training_example_dict
-    )
-
     aux_target_field_names = aux_prediction_dict[AUX_TARGET_NAMES_KEY]
     aux_predicted_field_names = aux_prediction_dict[AUX_PREDICTED_NAMES_KEY]
     aux_target_matrix = aux_prediction_dict[AUX_TARGET_VALS_KEY]
