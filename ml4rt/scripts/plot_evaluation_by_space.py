@@ -20,6 +20,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 SCALAR_SKEWNESS_KEY = 'scalar_skewness'
 VECTOR_SKEWNESS_KEY = 'vector_skewness'
 AUX_SKEWNESS_KEY = 'aux_skewness'
+NUM_EXAMPLES_KEY = 'num_examples'
 
 # TODO(thunderhoser): Put this somewhere general.
 TARGET_NAME_TO_VERBOSE = {
@@ -496,11 +497,14 @@ def _plot_all_scores_one_field(
         os.remove(this_file_name)
 
 
-def _add_skewness_to_table(result_table_xarray):
-    """Adds skewness to evaluation table.
+def _augment_eval_table(result_table_xarray):
+    """Augments evaluation table.
+
+    Specifically, adds number of examples and skewness for each target variable.
 
     :param result_table_xarray: Table returned by `evaluation.read_file`.
-    :return: result_table_xarray: Same but skewness for each target variable.
+    :return: result_table_xarray: Same but number of examples and skewness for
+        each target variable.
     """
 
     prediction_file_name = (
@@ -509,6 +513,10 @@ def _add_skewness_to_table(result_table_xarray):
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    result_table_xarray.attrs[NUM_EXAMPLES_KEY] = len(
+        prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
+    )
 
     scalar_skewness_matrix = scipy.stats.skew(
         prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
@@ -612,7 +620,7 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             eval_table_matrix_xarray[i, j] = evaluation.read_file(
                 this_file_name
             )
-            eval_table_matrix_xarray[i, j] = _add_skewness_to_table(
+            eval_table_matrix_xarray[i, j] = _augment_eval_table(
                 eval_table_matrix_xarray[i, j]
             )
 
@@ -828,7 +836,33 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         else:
             print('\n')
 
-    # num_examples_matrix = numpy.full((num_grid_rows, num_grid_columns), numpy.nan)
+    num_examples_array = numpy.array([
+        numpy.nan if t is None else t.attrs[NUM_EXAMPLES_KEY]
+        for t in evaluation_tables_xarray
+    ])
+    num_examples_matrix = numpy.reshape(num_examples_array, grid_dim_tuple)
+    max_colour_value = numpy.nanpercentile(
+        num_examples_matrix, MAX_COLOUR_PERCENTILE
+    )
+
+    figure_object, axes_object = _plot_score_one_field(
+        latitude_matrix_deg=latitude_matrix_deg,
+        longitude_matrix_deg=longitude_matrix_deg,
+        score_matrix=num_examples_matrix,
+        colour_map_object=COUNT_COLOUR_MAP_OBJECT,
+        min_colour_value=0., max_colour_value=max_colour_value,
+        taper_cbar_top=True, taper_cbar_bottom=False, log_scale=False
+    )
+
+    axes_object.set_title('Number of examples', fontsize=TITLE_FONT_SIZE)
+    figure_file_name = '{0:s}/num_examples.jpg'.format(output_dir_name)
+
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
 
 
 if __name__ == '__main__':
