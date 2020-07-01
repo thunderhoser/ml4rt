@@ -366,7 +366,7 @@ def _plot_scores_with_units(
 
     for i in range(num_time_chunks):
         boxplot_axes_object.boxplot(
-            target_matrices[i], notch=False, sym='', whis=(5, 95),
+            target_matrices[i], widths=0.98, notch=False, sym='', whis=(5, 95),
             medianprops={'color': 'k'}, positions=x_values[[i]]
         )
 
