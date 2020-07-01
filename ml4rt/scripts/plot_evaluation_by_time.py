@@ -364,10 +364,18 @@ def _plot_scores_with_units(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
     )
 
+    boxplot_style_dict = {
+        'color': 'k',
+        'linewidth': 2
+    }
+
     for i in range(num_time_chunks):
         boxplot_axes_object.boxplot(
-            target_matrices[i], widths=0.98, notch=False, sym='', whis=(5, 95),
-            medianprops={'color': 'k'}, positions=x_values[[i]]
+            target_matrices[i], widths=1., notch=False, sym='', whis=(5, 95),
+            medianprops=boxplot_style_dict,
+            boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict,
+            positions=x_values[[i]]
         )
 
     boxplot_axes_object.set_ylabel('Boxplot of actual target values')
