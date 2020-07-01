@@ -8,6 +8,8 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import normalization
+from ml4rt.machine_learning import neural_net
 
 DEFAULT_NUM_RELIABILITY_BINS = 20
 DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
@@ -62,6 +64,7 @@ AUX_RELIABILITY_Y_KEY = 'aux_reliability_y'
 AUX_RELIABILITY_COUNT_KEY = 'aux_reliability_count'
 
 MODEL_FILE_KEY = 'model_file_name'
+PREDICTION_FILE_KEY = 'prediction_file_name'
 
 AUX_TARGET_NAMES_KEY = 'aux_target_field_names'
 AUX_PREDICTED_NAMES_KEY = 'aux_predicted_field_names'
@@ -434,28 +437,13 @@ def _get_aux_fields(
 
 
 def get_scores_all_variables(
-        scalar_target_matrix, scalar_prediction_matrix,
-        vector_target_matrix, vector_prediction_matrix,
-        mean_training_example_dict,
+        prediction_file_name,
         num_reliability_bins=DEFAULT_NUM_RELIABILITY_BINS,
         max_bin_edge_percentile=DEFAULT_MAX_BIN_EDGE_PERCENTILE):
     """Computes desired scores for all target variables.
 
-    E = number of examples
-    H = number of heights
-    T_s = number of scalar targets
-    T_v = number of vector targets
-
-    :param scalar_target_matrix: numpy array (E x T_s) of target (actual)
-        values.
-    :param scalar_prediction_matrix: numpy array (E x T_s) of predicted values.
-    :param vector_target_matrix: numpy array (E x H x T_v) of target (actual)
-        values.
-    :param vector_prediction_matrix: numpy array (E x H x T_v) of predicted
-        values.
-    :param mean_training_example_dict: Dictionary created by
-        `normalization.create_mean_example`, containing climatology over
-        training data for each target variable.
+    :param prediction_file_name: Path to file with predictions that will be
+        evaluated.  This file will be read by `prediction_io.read_file`.
     :param num_reliability_bins: [used only if `get_reliability_curve == True`]
         Number of bins for each reliability curve.
     :param max_bin_edge_percentile:
@@ -468,7 +456,54 @@ def get_scores_all_variables(
         dimension names should make the table self-explanatory).
     """
 
-    # TODO(thunderhoser): This method could use a unit test.
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    example_dict = {
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
+
+    normalization_file_name = (
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+    print((
+        'Reading training examples (for climatology) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+
+    mean_training_example_dict = normalization.create_mean_example(
+        new_example_dict=example_dict,
+        training_example_dict=training_example_dict
+    )
+
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    scalar_prediction_matrix = (
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+    )
+    vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
+    vector_prediction_matrix = (
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
+    )
 
     _check_args(
         scalar_target_matrix=scalar_target_matrix,
@@ -980,9 +1015,13 @@ def get_scores_all_variables(
         metadata_dict[AUX_TARGET_FIELD_DIM] = aux_target_field_names
         metadata_dict[AUX_PREDICTED_FIELD_DIM] = aux_predicted_field_names
 
-    return xarray.Dataset(
+    result_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict
     )
+    result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
+    result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+
+    return result_table_xarray
 
 
 def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,

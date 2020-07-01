@@ -1,13 +1,9 @@
 """Evaluates trained neural net."""
 
-import os.path
 import argparse
 import numpy
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
-from ml4rt.utils import normalization
-from ml4rt.machine_learning import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -56,61 +52,13 @@ def _run(prediction_file_name, output_dir_name):
         raise_error_if_missing=False
     )
 
-    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
-    prediction_dict = prediction_io.read_file(prediction_file_name)
-
-    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
-    model_metafile_name = neural_net.find_metafile(
-        model_dir_name=os.path.split(model_file_name)[0],
-        raise_error_if_missing=True
-    )
-
-    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
-    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-
-    example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-        example_io.VECTOR_TARGET_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
-    }
-
-    normalization_file_name = (
-        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
-    )
-    print((
-        'Reading training examples (for climatology) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-
-    mean_training_example_dict = normalization.create_mean_example(
-        new_example_dict=example_dict,
-        training_example_dict=training_example_dict
-    )
-
     result_table_xarray = evaluation.get_scores_all_variables(
-        scalar_target_matrix=prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_target_matrix=prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        vector_prediction_matrix=
-        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
-        mean_training_example_dict=mean_training_example_dict
+        prediction_file_name=prediction_file_name
     )
-
-    result_table_xarray.attrs[evaluation.MODEL_FILE_KEY] = model_file_name
     print(SEPARATOR_STRING)
 
     scalar_target_names = (
-        generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+        result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
     )
 
     for k in range(len(scalar_target_names)):
@@ -136,9 +84,9 @@ def _run(prediction_file_name, output_dir_name):
     print(SEPARATOR_STRING)
 
     vector_target_names = (
-        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+        result_table_xarray.coords[evaluation.VECTOR_FIELD_DIM].values
     )
-    heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+    heights_m_agl = result_table_xarray.coords[evaluation.HEIGHT_DIM].values
 
     for k in range(len(vector_target_names)):
         print('Variable = "{0:s}" ... PRMSE = {1:f}'.format(
