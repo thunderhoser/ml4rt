@@ -23,17 +23,6 @@ AUX_SKEWNESS_KEY = 'aux_skewness'
 NUM_EXAMPLES_KEY = 'num_examples'
 
 # TODO(thunderhoser): Put this somewhere general.
-TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
-    evaluation.NET_FLUX_NAME: 'net flux',
-    evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
-    evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
-}
-
 TARGET_NAME_TO_UNITS = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
@@ -65,6 +54,14 @@ BORDER_COLOUR = numpy.full(3, 152. / 255)
 
 FIGURE_RESOLUTION_DPI = 300
 CONCAT_FIGURE_SIZE_PX = int(1e7)
+
+pyplot.rc('font', size=TITLE_FONT_SIZE)
+pyplot.rc('axes', titlesize=TITLE_FONT_SIZE)
+pyplot.rc('axes', labelsize=TITLE_FONT_SIZE)
+pyplot.rc('xtick', labelsize=TITLE_FONT_SIZE)
+pyplot.rc('ytick', labelsize=TITLE_FONT_SIZE)
+pyplot.rc('legend', fontsize=TITLE_FONT_SIZE)
+pyplot.rc('figure', titlesize=TITLE_FONT_SIZE)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 GRID_METAFILE_ARG_NAME = 'input_grid_metafile_name'
@@ -187,7 +184,7 @@ def _plot_score_one_field(
         colour_map_object=colour_map_object, min_value=min_colour_value,
         max_value=max_colour_value, orientation_string='horizontal',
         extend_min=taper_cbar_bottom, extend_max=taper_cbar_top,
-        padding=0.02, font_size=COLOUR_BAR_FONT_SIZE
+        padding=0.05, font_size=COLOUR_BAR_FONT_SIZE
     )
 
     tick_values = colour_bar_object.get_ticks()
@@ -235,12 +232,6 @@ def _plot_all_scores_one_field(
         scalar field, leave this argument alone.
     """
 
-    title_suffix = TARGET_NAME_TO_VERBOSE[field_name]
-    if height_m_agl is not None:
-        title_suffix += ' at {0:d} m AGL'.format(
-            int(numpy.round(height_m_agl))
-        )
-
     out_file_name_prefix = '{0:s}/{1:s}'.format(
         output_dir_name, field_name.replace('_', '-')
     )
@@ -265,9 +256,7 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    title_string = 'MAE ({0:s}) for {1:s}'.format(
-        TARGET_NAME_TO_UNITS[field_name], title_suffix
-    )
+    title_string = 'MAE ({0:s})'.format(TARGET_NAME_TO_UNITS[field_name])
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(a)',
@@ -296,9 +285,7 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    title_string = 'RMSE ({0:s}) for {1:s}'.format(
-        TARGET_NAME_TO_UNITS[field_name], title_suffix
-    )
+    title_string = 'RMSE ({0:s})'.format(TARGET_NAME_TO_UNITS[field_name])
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(b)',
@@ -328,9 +315,7 @@ def _plot_all_scores_one_field(
         taper_cbar_top=True, taper_cbar_bottom=True, log_scale=False
     )
 
-    title_string = 'Bias ({0:s}) for {1:s}'.format(
-        TARGET_NAME_TO_UNITS[field_name], title_suffix
-    )
+    title_string = 'Bias ({0:s})'.format(TARGET_NAME_TO_UNITS[field_name])
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(c)',
@@ -364,8 +349,7 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    title_string = 'MAE skill score for {0:s}'.format(title_suffix)
-    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    axes_object.set_title('MAE skill score', fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(d)',
         font_size=PANEL_LETTER_FONT_SIZE
@@ -398,8 +382,7 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    title_string = 'MSE skill score for {0:s}'.format(title_suffix)
-    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    axes_object.set_title('MSE skill score', fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(e)',
         font_size=PANEL_LETTER_FONT_SIZE
@@ -433,8 +416,7 @@ def _plot_all_scores_one_field(
         log_scale=False
     )
 
-    title_string = 'Correlation for {0:s}'.format(title_suffix)
-    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    axes_object.set_title('Correlation', fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(f)',
         font_size=PANEL_LETTER_FONT_SIZE
@@ -465,8 +447,7 @@ def _plot_all_scores_one_field(
         taper_cbar_top=True, taper_cbar_bottom=True, log_scale=False
     )
 
-    title_string = 'Skewness of actual values for {0:s}'.format(title_suffix)
-    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    axes_object.set_title('Skewness of actual values', fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
         axes_object=axes_object, label_string='(g)',
         font_size=PANEL_LETTER_FONT_SIZE
@@ -503,8 +484,8 @@ def _augment_eval_table(result_table_xarray):
     Specifically, adds number of examples and skewness for each target variable.
 
     :param result_table_xarray: Table returned by `evaluation.read_file`.
-    :return: result_table_xarray: Same but number of examples and skewness for
-        each target variable.
+    :return: result_table_xarray: Same but with number of examples and skewness
+        for each target variable.
     """
 
     prediction_file_name = (
@@ -556,9 +537,13 @@ def _augment_eval_table(result_table_xarray):
             ).astype(int)
     }
 
-    aux_skewness_matrix = evaluation.get_aux_fields(
+    aux_target_matrix = evaluation.get_aux_fields(
         prediction_dict=prediction_dict, example_dict=example_dict
     )[evaluation.AUX_TARGET_VALS_KEY]
+
+    aux_skewness_matrix = scipy.stats.skew(
+        aux_target_matrix, axis=0, bias=False, nan_policy='omit'
+    )
 
     these_dim = (evaluation.AUX_TARGET_FIELD_DIM,)
     result_table_xarray.update({

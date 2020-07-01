@@ -11,13 +11,23 @@ from gewittergefahr.gg_utils import polygons
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
+
+# TODO(thunderhoser): Make confidence level input arg to script (once evaluation
+# files deal with bootstrapping).
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 RADIANS_TO_DEGREES = 180. / numpy.pi
+
+EXAMPLE_DIM = 'example'
+SCALAR_TARGET_KEY = 'scalar_target_value'
+VECTOR_TARGET_KEY = 'vector_target_value'
+AUX_TARGET_KEY = 'aux_target_value'
+NUM_EXAMPLES_KEY = 'num_examples'
 
 # TODO(thunderhoser): Put this in a nice method somewhere.
 TARGET_NAME_TO_VERBOSE = {
@@ -42,11 +52,6 @@ TARGET_NAME_TO_UNITS = {
     evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
 }
 
-# TODO(thunderhoser): Make confidence level input arg to script (once evaluation
-# files deal with bootstrapping).
-
-# TODO(thunderhoser): Include reference to prediction file in evaluation files.
-
 MARKER_TYPE = 'o'
 MARKER_SIZE = 16
 LINE_WIDTH = 4
@@ -59,6 +64,10 @@ MAE_SKILL_COLOUR = MAE_COLOUR
 MSE_SKILL_COLOUR = RMSE_COLOUR
 CORRELATION_COLOUR = BIAS_COLOUR
 POLYGON_OPACITY = 0.5
+
+HISTOGRAM_EDGE_WIDTH = 1.5
+HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
+HISTOGRAM_FACE_COLOUR = numpy.full(3, 152. / 255)
 
 MONTH_STRINGS = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
@@ -107,6 +116,69 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _augment_eval_table(result_table_xarray):
+    """Augments evaluation table.
+
+    Specifically, adds number of examples and actual values for each target
+    variable.
+
+    :param result_table_xarray: Table returned by `evaluation.read_file`.
+    :return: result_table_xarray: Same but with number of examples and actual
+        values for each target variable.
+    """
+
+    prediction_file_name = (
+        result_table_xarray.attrs[evaluation.PREDICTION_FILE_KEY]
+    )
+
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    num_examples = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
+    result_table_xarray.attrs[NUM_EXAMPLES_KEY] = num_examples
+
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    these_dim = (EXAMPLE_DIM, evaluation.SCALAR_FIELD_DIM)
+    result_table_xarray.update({
+        SCALAR_TARGET_KEY: (these_dim, scalar_target_matrix)
+    })
+
+    vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
+    these_dim = (
+        EXAMPLE_DIM, evaluation.HEIGHT_DIM, evaluation.VECTOR_FIELD_DIM
+    )
+    result_table_xarray.update({
+        VECTOR_TARGET_KEY: (these_dim, vector_target_matrix)
+    })
+
+    try:
+        _ = result_table_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+    except KeyError:
+        return result_table_xarray
+
+    example_dict = {
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values,
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            result_table_xarray.coords[evaluation.VECTOR_FIELD_DIM].values,
+        example_io.HEIGHTS_KEY:
+            numpy.round(
+                result_table_xarray.coords[evaluation.HEIGHT_DIM].values
+            ).astype(int)
+    }
+
+    aux_target_matrix = evaluation.get_aux_fields(
+        prediction_dict=prediction_dict, example_dict=example_dict
+    )[evaluation.AUX_TARGET_VALS_KEY]
+
+    these_dim = (EXAMPLE_DIM, evaluation.AUX_TARGET_FIELD_DIM)
+    result_table_xarray.update({
+        AUX_TARGET_KEY: (these_dim, aux_target_matrix)
+    })
+
+    return result_table_xarray
+
+
 def _read_files_one_split(evaluation_file_names):
     """Reads evaluation files for one time split.
 
@@ -122,9 +194,11 @@ def _read_files_one_split(evaluation_file_names):
 
     for i in range(num_time_chunks):
         print('Reading data from: "{0:s}"...'.format(evaluation_file_names[i]))
-        evaluation_tables_xarray.append(evaluation.read_file(
-            evaluation_file_names[i]
-        ))
+
+        this_table = _augment_eval_table(
+            evaluation.read_file(evaluation_file_names[i])
+        )
+        evaluation_tables_xarray.append(this_table)
 
     return evaluation_tables_xarray
 
@@ -294,7 +368,7 @@ def _plot_scores_with_units(mae_matrix, rmse_matrix, bias_matrix, plot_legend,
 
 def _plot_unitless_scores(
         mae_skill_score_matrix, mse_skill_score_matrix, correlation_matrix,
-        plot_legend, confidence_level=None):
+        num_examples_array, plot_legend, confidence_level=None):
     """Plots scores without physical units, for one time split and one field.
 
     B = number of bootstrap replicates
@@ -305,6 +379,8 @@ def _plot_unitless_scores(
     :param mse_skill_score_matrix: T-by-B numpy array of MSE (mean squared
         error) skill scores.
     :param correlation_matrix: T-by-B numpy array of correlations.
+    :param num_examples_array: length-T numpy array with number of examples for
+        each time chunk.
     :param plot_legend: See doc for `_plot_scores_with_units`.
     :param confidence_level: Same.
     :return: figure_object: Same.
@@ -312,9 +388,13 @@ def _plot_unitless_scores(
     """
 
     # Housekeeping.
-    figure_object, axes_object = pyplot.subplots(
+    figure_object, main_axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
+
+    histogram_axes_object = main_axes_object.twinx()
+    main_axes_object.set_zorder(histogram_axes_object.get_zorder() + 1)
+    main_axes_object.patch.set_visible(False)
 
     num_time_chunks = mae_skill_score_matrix.shape[0]
     num_bootstrap_reps = mae_skill_score_matrix.shape[1]
@@ -324,7 +404,7 @@ def _plot_unitless_scores(
     )
 
     # Plot mean MAE skill score.
-    this_handle = axes_object.plot(
+    this_handle = main_axes_object.plot(
         x_values, numpy.mean(mae_skill_score_matrix, axis=1),
         color=MAE_SKILL_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
         markersize=MARKER_SIZE, markerfacecolor=MAE_SKILL_COLOUR,
@@ -347,10 +427,10 @@ def _plot_unitless_scores(
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        axes_object.add_patch(patch_object)
+        main_axes_object.add_patch(patch_object)
 
     # Plot mean MSE skill score.
-    this_handle = axes_object.plot(
+    this_handle = main_axes_object.plot(
         x_values, numpy.mean(mse_skill_score_matrix, axis=1),
         color=MSE_SKILL_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
         markersize=MARKER_SIZE, markerfacecolor=MSE_SKILL_COLOUR,
@@ -373,10 +453,10 @@ def _plot_unitless_scores(
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        axes_object.add_patch(patch_object)
+        main_axes_object.add_patch(patch_object)
 
     # Plot mean correlation.
-    this_handle = axes_object.plot(
+    this_handle = main_axes_object.plot(
         x_values, numpy.mean(correlation_matrix, axis=1),
         color=CORRELATION_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
         markersize=MARKER_SIZE, markerfacecolor=CORRELATION_COLOUR,
@@ -399,25 +479,47 @@ def _plot_unitless_scores(
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        axes_object.add_patch(patch_object)
+        main_axes_object.add_patch(patch_object)
 
-    y_min, y_max = axes_object.get_ylim()
+    y_min, y_max = main_axes_object.get_ylim()
     y_min = numpy.maximum(y_min, -1.)
     y_max = numpy.minimum(y_max, 1.)
-    axes_object.set_ylim(y_min, y_max)
+    main_axes_object.set_ylim(y_min, y_max)
 
-    axes_object.set_xticks(x_values)
-    axes_object.set_xlim(
+    main_axes_object.set_xticks(x_values)
+    main_axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
     )
 
+    # Plot histogram of example counts.
+    y_values = numpy.maximum(numpy.log10(num_examples_array), 0.)
+
+    this_handle = histogram_axes_object.bar(
+        x=x_values, height=y_values, width=1., color=HISTOGRAM_FACE_COLOUR,
+        edgecolor=HISTOGRAM_EDGE_COLOUR, linewidth=HISTOGRAM_EDGE_WIDTH
+    )[0]
+
+    legend_handles.append(this_handle)
+    legend_strings.append(r'Number of examples')
+    histogram_axes_object.set_ylabel(r'Number of examples')
+
+    tick_values = histogram_axes_object.get_yticks()
+    tick_strings = [
+        '{0:d}'.format(int(numpy.round(10 ** v))) for v in tick_values
+    ]
+    histogram_axes_object.set_yticklabels(tick_strings)
+
+    print('Number of examples by chunk: {0:s}'.format(
+        str(num_examples_array)
+    ))
+
     if plot_legend:
-        axes_object.legend(
+        main_axes_object.legend(
             legend_handles, legend_strings, loc='lower left',
             bbox_to_anchor=(0, 0), fancybox=True, shadow=True, ncol=1
         )
 
-    return figure_object, axes_object
+    return figure_object, main_axes_object
 
 
 def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
@@ -502,12 +604,19 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ])
+    scalar_target_matrix = numpy.stack([
+        t[SCALAR_TARGET_KEY].values for t in evaluation_tables_xarray
+    ], axis=0)
+    num_examples_array = numpy.array([
+        t.attrs[NUM_EXAMPLES_KEY] for t in evaluation_tables_xarray
+    ], dtype=int)
 
     for k in range(len(scalar_field_names)):
         figure_object, axes_object = _plot_scores_with_units(
             mae_matrix=scalar_mae_matrix[:, [k]],
             rmse_matrix=scalar_rmse_matrix[:, [k]],
             bias_matrix=scalar_bias_matrix[:, [k]],
+            # target_matrix=scalar_target_matrix[..., k],
             plot_legend=True
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
@@ -532,7 +641,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_skill_score_matrix=scalar_mae_skill_matrix[:, [k]],
             mse_skill_score_matrix=scalar_mse_skill_matrix[:, [k]],
             correlation_matrix=scalar_correlation_matrix[:, [k]],
-            plot_legend=True
+            num_examples_array=num_examples_array, plot_legend=True
         )
         axes_object.set_title('Scores for {0:s}'.format(
             TARGET_NAME_TO_VERBOSE[scalar_field_names[k]]
@@ -580,6 +689,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
         ])
+        aux_target_matrix = numpy.stack([
+            t[AUX_TARGET_KEY].values for t in evaluation_tables_xarray
+        ], axis=0)
     except KeyError:
         aux_field_names = []
 
@@ -588,6 +700,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_matrix=aux_mae_matrix[:, [k]],
             rmse_matrix=aux_rmse_matrix[:, [k]],
             bias_matrix=aux_bias_matrix[:, [k]],
+            # target_matrix=aux_target_matrix[..., k],
             plot_legend=True
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
@@ -612,7 +725,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_skill_score_matrix=aux_mae_skill_matrix[:, [k]],
             mse_skill_score_matrix=aux_mse_skill_matrix[:, [k]],
             correlation_matrix=aux_correlation_matrix[:, [k]],
-            plot_legend=True
+            num_examples_array=num_examples_array, plot_legend=True
         )
         axes_object.set_title('Scores for {0:s}'.format(
             TARGET_NAME_TO_VERBOSE[aux_field_names[k]]
@@ -661,6 +774,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         t[evaluation.VECTOR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
+    vector_target_matrix = numpy.stack([
+        t[VECTOR_TARGET_KEY].values for t in evaluation_tables_xarray
+    ], axis=0)
 
     for j in range(len(heights_m_agl)):
         for k in range(len(vector_field_names)):
@@ -668,6 +784,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
                 mae_matrix=vector_mae_matrix[:, j, [k]],
                 rmse_matrix=vector_rmse_matrix[:, j, [k]],
                 bias_matrix=vector_bias_matrix[:, j, [k]],
+                # target_matrix=vector_target_matrix[..., j, k],
                 plot_legend=True
             )
 
@@ -699,7 +816,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
                 mae_skill_score_matrix=vector_mae_skill_matrix[:, j, [k]],
                 mse_skill_score_matrix=vector_mse_skill_matrix[:, j, [k]],
                 correlation_matrix=vector_correlation_matrix[:, j, [k]],
-                plot_legend=True
+                num_examples_array=num_examples_array, plot_legend=True
             )
             axes_object.set_title('Scores for {0:s} at {1:d} m AGL'.format(
                 TARGET_NAME_TO_VERBOSE[vector_field_names[k]], heights_m_agl[j]
