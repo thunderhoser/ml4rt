@@ -272,13 +272,9 @@ def _plot_scores_with_units(
     """
 
     # Housekeeping.
-    figure_object, main_axes_object = pyplot.subplots(
+    figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
-
-    boxplot_axes_object = main_axes_object.twinx()
-    main_axes_object.set_zorder(boxplot_axes_object.get_zorder() + 1)
-    main_axes_object.patch.set_visible(False)
 
     num_time_chunks = mae_matrix.shape[0]
     num_bootstrap_reps = mae_matrix.shape[1]
@@ -287,16 +283,39 @@ def _plot_scores_with_units(
         0, num_time_chunks - 1, num=num_time_chunks, dtype=float
     )
 
+    # Plot boxplots.
+    boxplot_style_dict = {
+        'color': 'k',
+        'linewidth': 2
+    }
+
+    legend_handles = []
+    legend_strings = []
+
+    for i in range(num_time_chunks):
+        this_handle = axes_object.boxplot(
+            target_matrices[i], widths=1., notch=False, sym='', whis=(5, 95),
+            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+            positions=x_values[[i]]
+        )[0]
+
+        if i != 0:
+            continue
+
+        legend_handles.append(this_handle)
+        legend_strings.append('Boxplot of\nactual values')
+
     # Plot mean MAE.
-    this_handle = main_axes_object.plot(
+    this_handle = axes_object.plot(
         x_values, numpy.mean(mae_matrix, axis=1), color=MAE_COLOUR,
         linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
         markerfacecolor=MAE_COLOUR, markeredgecolor=MAE_COLOUR,
         markeredgewidth=0
     )[0]
 
-    legend_handles = [this_handle]
-    legend_strings = ['MAE']
+    legend_handles.append(this_handle)
+    legend_strings.append('MAE')
 
     # Plot confidence interval for MAE.
     if num_bootstrap_reps > 1:
@@ -309,10 +328,10 @@ def _plot_scores_with_units(
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        main_axes_object.add_patch(patch_object)
+        axes_object.add_patch(patch_object)
 
     # Plot mean RMSE.
-    this_handle = main_axes_object.plot(
+    this_handle = axes_object.plot(
         x_values, numpy.mean(rmse_matrix, axis=1), color=RMSE_COLOUR,
         linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
         markerfacecolor=RMSE_COLOUR, markeredgecolor=RMSE_COLOUR,
@@ -333,10 +352,10 @@ def _plot_scores_with_units(
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        main_axes_object.add_patch(patch_object)
+        axes_object.add_patch(patch_object)
 
     # Plot mean bias.
-    this_handle = main_axes_object.plot(
+    this_handle = axes_object.plot(
         x_values, numpy.mean(bias_matrix, axis=1), color=BIAS_COLOUR,
         linewidth=LINE_WIDTH, marker=MARKER_TYPE, markersize=MARKER_SIZE,
         markerfacecolor=BIAS_COLOUR, markeredgecolor=BIAS_COLOUR,
@@ -357,37 +376,21 @@ def _plot_scores_with_units(
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
-        main_axes_object.add_patch(patch_object)
+        axes_object.add_patch(patch_object)
 
-    main_axes_object.set_xticks(x_values)
-    main_axes_object.set_xlim(
+    axes_object.set_xticks(x_values)
+    axes_object.set_xlim(
         numpy.min(x_values) - 0.5, numpy.max(x_values) + 0.5
     )
 
-    boxplot_style_dict = {
-        'color': 'k',
-        'linewidth': 2
-    }
-
-    for i in range(num_time_chunks):
-        boxplot_axes_object.boxplot(
-            target_matrices[i], widths=1., notch=False, sym='', whis=(5, 95),
-            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
-            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[i]]
-        )
-
-    boxplot_axes_object.set_ylabel('Boxplot of actual target values')
-    main_axes_object.set_ylabel('Scores')
-
     if plot_legend:
-        main_axes_object.legend(
+        axes_object.legend(
             legend_handles, legend_strings, loc='upper left',
             bbox_to_anchor=(0, 1), fancybox=True, shadow=False,
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
-    return figure_object, main_axes_object
+    return figure_object, axes_object
 
 
 def _plot_unitless_scores(
