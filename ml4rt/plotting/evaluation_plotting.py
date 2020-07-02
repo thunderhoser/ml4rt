@@ -293,7 +293,7 @@ def _plot_inset_histogram(
         fontsize=HISTOGRAM_FONT_SIZE
     )
 
-    inset_axes_object.set_xlim(min_x_to_plot, max_x_to_plot)
+    # inset_axes_object.set_xlim(min_x_to_plot, max_x_to_plot)
 
 
 def plot_attributes_diagram(

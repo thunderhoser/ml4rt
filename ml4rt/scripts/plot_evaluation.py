@@ -364,7 +364,7 @@ def _run(input_file_name, plot_by_height, output_dir_name):
         )
         this_max_value = numpy.nanpercentile(
             numpy.concatenate((these_mean_predictions, these_mean_targets)),
-            99.
+            99.9
         )
 
         this_figure_object, this_axes_object = pyplot.subplots(
@@ -516,7 +516,7 @@ def _run(input_file_name, plot_by_height, output_dir_name):
         this_min_value = numpy.minimum(this_min_value, 0.)
         this_max_value = numpy.nanpercentile(
             numpy.concatenate((these_mean_predictions, these_mean_targets)),
-            99.
+            99.9
         )
 
         this_figure_object, this_axes_object = pyplot.subplots(
@@ -650,7 +650,7 @@ def _run(input_file_name, plot_by_height, output_dir_name):
             )
             this_max_value = numpy.nanpercentile(
                 numpy.concatenate((these_mean_predictions, these_mean_targets)),
-                99.
+                99.9
             )
 
             this_figure_object, this_axes_object = pyplot.subplots(
