@@ -57,6 +57,10 @@ def _run(prediction_file_name, output_dir_name):
     )
     print(SEPARATOR_STRING)
 
+    a = result_table_xarray[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values
+    b = result_table_xarray[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values
+    print(numpy.nanmax(numpy.absolute(a - b)))
+
     scalar_target_names = (
         result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
     )
