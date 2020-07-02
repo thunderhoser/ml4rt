@@ -996,7 +996,7 @@ def get_scores_all_variables(
                 invert=False
             )
 
-            print(vector_reliability_y_matrix[j, k, :])
+            print(vector_reliability_x_matrix[j, k, :])
             print(vector_reliability_count_matrix[j, k, :])
             print('\n')
 
