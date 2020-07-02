@@ -247,7 +247,7 @@ class NeuralNetTests(unittest.TestCase):
         these_matrices = neural_net.targets_dict_to_numpy(
             example_dict=EXAMPLE_DICT,
             net_type_string=neural_net.CNN_TYPE_STRING,
-            use_custom_cnn_loss=False
+            is_loss_constrained_mse=False
         )
 
         self.assertTrue(
@@ -269,7 +269,7 @@ class NeuralNetTests(unittest.TestCase):
         these_matrices = neural_net.targets_dict_to_numpy(
             example_dict=EXAMPLE_DICT,
             net_type_string=neural_net.CNN_TYPE_STRING,
-            use_custom_cnn_loss=True
+            is_loss_constrained_mse=True
         )
 
         self.assertTrue(
@@ -303,7 +303,7 @@ class NeuralNetTests(unittest.TestCase):
         these_matrices = neural_net.targets_dict_to_numpy(
             example_dict=this_example_dict,
             net_type_string=neural_net.CNN_TYPE_STRING,
-            use_custom_cnn_loss=False
+            is_loss_constrained_mse=False
         )
 
         self.assertTrue(

@@ -4,6 +4,29 @@ import keras.backend as K
 from gewittergefahr.gg_utils import error_checking
 
 
+def weighted_mse():
+    """Weighted MSE (mean squared error).
+
+    Weight = magnitude of target value.
+
+    :return: loss: Loss function (defined below).
+    """
+
+    # TODO(thunderhoser): Maybe apply weights only to heating rate?
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (weighted MSE).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Weighted MSE.
+        """
+
+        return K.mean(target_tensor * (prediction_tensor - target_tensor) ** 2)
+
+    return loss
+
+
 def negative_mse_skill_score():
     """Negative MSE (mean squared error) skill score.
 
@@ -19,7 +42,7 @@ def negative_mse_skill_score():
         """
 
         mean_target_tensor = K.mean(target_tensor, axis=0, keepdims=True)
-        
+
         mse_actual = K.mean((prediction_tensor - target_tensor) ** 2)
         mse_climo = K.mean((prediction_tensor - mean_target_tensor) ** 2)
         return (mse_actual - mse_climo) / mse_climo

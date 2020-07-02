@@ -92,6 +92,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
 
+    loss_option_dict = metadata_dict[neural_net.LOSS_OPTIONS_KEY]
+    is_loss_constrained_mse = (
+        loss_option_dict[neural_net.CONSTRAINED_MSE_OPTIONS_KEY] is not None
+    )
+
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     generator_option_dict[neural_net.BATCH_SIZE_KEY] = NUM_EXAMPLES_PER_BATCH
@@ -107,7 +112,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     generator = neural_net.data_generator(
         option_dict=generator_option_dict, for_inference=True,
-        net_type_string=net_type_string, use_custom_cnn_loss=False
+        net_type_string=net_type_string, is_loss_constrained_mse=False
     )
 
     print(SEPARATOR_STRING)
@@ -129,12 +134,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             model_object=model_object, predictor_matrix=this_predictor_matrix,
             num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
             net_type_string=net_type_string,
-            used_custom_cnn_loss=
-            metadata_dict[neural_net.CUSTOM_LOSS_KEY] is not None,
-            verbose=True
+            is_loss_constrained_mse=is_loss_constrained_mse, verbose=True
         )
-        # print(this_prediction_array[0].shape)
-        # print(this_prediction_array[1].shape)
         print(SEPARATOR_STRING)
 
         example_id_strings += these_id_strings

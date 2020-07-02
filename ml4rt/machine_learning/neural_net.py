@@ -26,6 +26,10 @@ VALID_NET_TYPE_STRINGS = [
     CNN_TYPE_STRING, DENSE_NET_TYPE_STRING, U_NET_TYPE_STRING
 ]
 
+USE_MSE_SKILL_KEY = 'use_mse_skill_score'
+USE_WEIGHTED_MSE_KEY = 'use_weighted_mse'
+CONSTRAINED_MSE_OPTIONS_KEY = 'constrained_mse_dict'
+
 TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
 TOA_UP_FLUX_WEIGHT_KEY = 'toa_up_flux_weight'
 SURFACE_DOWN_FLUX_INDEX_KEY = 'surface_down_flux_index'
@@ -88,13 +92,12 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 NET_TYPE_KEY = 'net_type_string'
-USE_MSESS_LOSS_KEY = 'use_msess_loss'
-CUSTOM_LOSS_KEY = 'custom_loss_dict'
+LOSS_OPTIONS_KEY = 'loss_option_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
-    USE_MSESS_LOSS_KEY, CUSTOM_LOSS_KEY
+    LOSS_OPTIONS_KEY
 ]
 
 
@@ -276,8 +279,7 @@ def _read_file_for_generator(
 def _write_metafile(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, net_type_string, use_msess_loss,
-        custom_loss_dict):
+        validation_option_dict, net_type_string, loss_option_dict):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -287,8 +289,7 @@ def _write_metafile(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param net_type_string: Same.
-    :param use_msess_loss: Same.
-    :param custom_loss_dict: Same.
+    :param loss_option_dict: Same.
     """
 
     metadata_dict = {
@@ -298,8 +299,7 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         NET_TYPE_KEY: net_type_string,
-        USE_MSESS_LOSS_KEY: use_msess_loss,
-        CUSTOM_LOSS_KEY: custom_loss_dict
+        LOSS_OPTIONS_KEY: loss_option_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -309,63 +309,104 @@ def _write_metafile(
     pickle_file_handle.close()
 
 
-def get_custom_loss_function(custom_loss_dict, net_type_string):
-    """Creates custom loss function.
+def get_loss_function(loss_option_dict, net_type_string=None):
+    """Creates loss function.
 
-    TOA = top of atmosphere
+    If dictionary key 'use_mse_skill_score' is True, the following keys will be
+    ignored.
 
-    :param custom_loss_dict: Dictionary with the following keys.
-    custom_loss_dict['toa_up_flux_index']: Variable index (in scalar output
-        matrix) for TOA upwelling flux.
-    custom_loss_dict['toa_up_flux_weight']: Weight used to penalize difference
-        between TOA upwelling flux and upwelling flux at max height in profile.
-    custom_loss_dict['surface_down_flux_index']: Variable index (in scalar
-        output matrix) for surface downwelling flux.
-    custom_loss_dict['surface_down_flux_weight']: Weight used to penalize
-        difference between surface downwelling flux and downwelling flux at
-        lowest height in profile.
-    custom_loss_dict['net_flux_weight']: Weight used to penalize difference
-        between actual and predicted net flux (surface downwelling minus TOA
-        upwelling).
+    If dictionary key 'use_weighted_mse' is True, the following keys will be
+    ignored.
 
-    If net type is CNN, expect the following keys.
+    If `use_mse_skill_score == use_weighted_mse == False` and
+    `constrained_mse_dict is None`, loss function will default to MSE (meqn
+    squared error).
 
-    custom_loss_dict['up_flux_channel_index']: Channel index (in vector target
-        matrix) for upwelling flux.
-    custom_loss_dict['down_flux_channel_index']: Channel index (in vector target
-        matrix) for downwelling flux.
+    :param loss_option_dict: Dictionary with the following keys.
+    'use_mse_skill_score': Boolean flag.  If True, loss function will be
+        negative MSE skill score.
+    'use_weighted_mse' Boolean flag.  If True, loss function will be weighted
+        MSE, where weight = magnitude of target value.
+    'constrained_mse_dict': Dictionary with the following keys.
 
-    If net type is dense net, expect the following keys.
+        'toa_up_flux_index': Variable index (in scalar output matrix) for TOA
+            upwelling flux.
+        'toa_up_flux_weight': Weight used to penalize difference between TOA
+            upwelling flux and upwelling flux at max height in profile.
+        'surface_down_flux_index': Variable index (in scalar output matrix) for
+            surface downwelling flux.
+        'surface_down_flux_weight': Weight used to penalize difference between
+            surface downwelling flux and downwelling flux at lowest height in
+            profile.
+        'net_flux_weight': Weight used to penalize difference between actual and
+            predicted net flux (surface downwelling minus TOA upwelling).
 
-    custom_loss_dict['highest_up_flux_index']: Variable index (in scalar output
-        matrix) for upwelling flux at max height in profile.
-    custom_loss_dict['lowest_down_flux_index']: Variable index (in scalar output
-        matrix) for downwelling flux at lowest height in profile.
+        If net type is CNN, expect the following keys.
+
+        'up_flux_channel_index': Channel index (in vector target matrix) for
+            upwelling flux.
+        'down_flux_channel_index': Channel index (in vector target matrix) for
+            downwelling flux.
+
+        If net type is dense, expect the following keys.
+
+        'highest_up_flux_index': Variable index (in scalar output matrix) for
+            upwelling flux at max height in profile.
+        'lowest_down_flux_index': Variable index (in scalar output matrix) for
+            downwelling flux at lowest height in profile.
 
     :param net_type_string: Type of neural net (must be accepted by
         `_check_net_type`).
     :return: loss_function: The function itself.
-    :raises: ValueError: if net type is neither CNN nor dense net.
+    :return: loss_option_dict: Same as input but maybe with different values.
+    :raises: ValueError: if you try to use constrained MSE for a U-net.
     """
+
+    if loss_option_dict is None:
+        loss_option_dict = {
+            USE_MSE_SKILL_KEY: False,
+            USE_WEIGHTED_MSE_KEY: False,
+            CONSTRAINED_MSE_OPTIONS_KEY: None
+        }
+
+    use_mse_skill_score = loss_option_dict[USE_MSE_SKILL_KEY]
+    error_checking.assert_is_boolean(use_mse_skill_score)
+
+    if use_mse_skill_score:
+        loss_option_dict[USE_WEIGHTED_MSE_KEY] = False
+        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
+        return custom_losses.negative_mse_skill_score(), loss_option_dict
+
+    use_weighted_mse = loss_option_dict[USE_WEIGHTED_MSE_KEY]
+    error_checking.assert_is_boolean(use_weighted_mse)
+
+    if use_weighted_mse:
+        loss_option_dict[USE_MSE_SKILL_KEY] = False
+        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
+        return custom_losses.weighted_mse(), loss_option_dict
+
+    constrained_mse_dict = loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY]
+    if constrained_mse_dict is None:
+        return keras.losses.mse, loss_option_dict
 
     error_checking.assert_is_string(net_type_string)
     valid_net_type_strings = [CNN_TYPE_STRING, DENSE_NET_TYPE_STRING]
 
     if net_type_string not in valid_net_type_strings:
         error_string = (
-            '\nThis method does not work for net type "{0:s}".  Works only for '
-            'those listed below:\n{1:s}'
+            '\nConstrained MSE is not available for net type "{0:s}".  '
+            'Available only for net types listed below:\n{1:s}'
         ).format(net_type_string, str(valid_net_type_strings))
 
         raise ValueError(error_string)
 
-    toa_up_flux_index = custom_loss_dict[TOA_UP_FLUX_INDEX_KEY]
-    toa_up_flux_weight = custom_loss_dict[TOA_UP_FLUX_WEIGHT_KEY]
-    surface_down_flux_index = custom_loss_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
+    toa_up_flux_index = constrained_mse_dict[TOA_UP_FLUX_INDEX_KEY]
+    toa_up_flux_weight = constrained_mse_dict[TOA_UP_FLUX_WEIGHT_KEY]
+    surface_down_flux_index = constrained_mse_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
     surface_down_flux_weight = (
-        custom_loss_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY]
+        constrained_mse_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY]
     )
-    net_flux_weight = custom_loss_dict[NET_FLUX_WEIGHT_KEY]
+    net_flux_weight = constrained_mse_dict[NET_FLUX_WEIGHT_KEY]
 
     error_checking.assert_is_integer(toa_up_flux_index)
     error_checking.assert_is_geq(toa_up_flux_index, 0)
@@ -373,15 +414,17 @@ def get_custom_loss_function(custom_loss_dict, net_type_string):
     error_checking.assert_is_geq(surface_down_flux_index, 0)
 
     if net_type_string == CNN_TYPE_STRING:
-        up_flux_channel_index = custom_loss_dict[UP_FLUX_CHANNEL_INDEX_KEY]
-        down_flux_channel_index = custom_loss_dict[DOWN_FLUX_CHANNEL_INDEX_KEY]
+        up_flux_channel_index = constrained_mse_dict[UP_FLUX_CHANNEL_INDEX_KEY]
+        down_flux_channel_index = (
+            constrained_mse_dict[DOWN_FLUX_CHANNEL_INDEX_KEY]
+        )
 
         error_checking.assert_is_integer(up_flux_channel_index)
         error_checking.assert_is_geq(up_flux_channel_index, 0)
         error_checking.assert_is_integer(down_flux_channel_index)
         error_checking.assert_is_geq(down_flux_channel_index, 0)
 
-        return custom_losses.constrained_mse(
+        loss_function = custom_losses.constrained_mse(
             toa_up_flux_index=toa_up_flux_index + 2,
             toa_up_flux_weight=toa_up_flux_weight,
             surface_down_flux_index=surface_down_flux_index + 2,
@@ -389,16 +432,17 @@ def get_custom_loss_function(custom_loss_dict, net_type_string):
             highest_up_flux_index=0, lowest_down_flux_index=1,
             net_flux_weight=net_flux_weight, for_cnn=True
         )
+        return loss_function, loss_option_dict
 
-    highest_up_flux_index = custom_loss_dict[HIGHEST_UP_FLUX_INDEX_KEY]
-    lowest_down_flux_index = custom_loss_dict[LOWEST_DOWN_FLUX_INDEX_KEY]
+    highest_up_flux_index = constrained_mse_dict[HIGHEST_UP_FLUX_INDEX_KEY]
+    lowest_down_flux_index = constrained_mse_dict[LOWEST_DOWN_FLUX_INDEX_KEY]
 
     error_checking.assert_is_integer(highest_up_flux_index)
     error_checking.assert_is_geq(highest_up_flux_index, 0)
     error_checking.assert_is_integer(lowest_down_flux_index)
     error_checking.assert_is_geq(lowest_down_flux_index, 0)
 
-    return custom_losses.constrained_mse(
+    loss_function = custom_losses.constrained_mse(
         toa_up_flux_index=toa_up_flux_index,
         toa_up_flux_weight=toa_up_flux_weight,
         surface_down_flux_index=surface_down_flux_index,
@@ -407,6 +451,7 @@ def get_custom_loss_function(custom_loss_dict, net_type_string):
         lowest_down_flux_index=lowest_down_flux_index,
         net_flux_weight=net_flux_weight, for_cnn=False
     )
+    return loss_function, loss_option_dict
 
 
 def predictors_dict_to_numpy(example_dict, net_type_string):
@@ -522,15 +567,14 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
 
 
 def targets_dict_to_numpy(example_dict, net_type_string,
-                          use_custom_cnn_loss=None):
+                          is_loss_constrained_mse=None):
     """Converts targets from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param net_type_string: Type of neural net (must be accepted by
         `_check_net_type`).
-    :param use_custom_cnn_loss: Boolean flag.  If True, using custom loss for
-        CNN.
+    :param is_loss_constrained_mse: See doc for `data_generator`.
     :return: target_matrices: If net type is CNN, same as output from
         `data_generator`.  Otherwise, same as output from `data_generator` but
         in a one-element list.
@@ -559,9 +603,9 @@ def targets_dict_to_numpy(example_dict, net_type_string,
 
         return [target_matrix]
 
-    error_checking.assert_is_boolean(use_custom_cnn_loss)
+    error_checking.assert_is_boolean(is_loss_constrained_mse)
 
-    if not use_custom_cnn_loss:
+    if not is_loss_constrained_mse:
         vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
         scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
 
@@ -695,7 +739,7 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
 
 
 def data_generator(option_dict, for_inference, net_type_string,
-                   use_custom_cnn_loss=None):
+                   is_loss_constrained_mse=None):
     """Generates examples for any kind of neural net.
 
     E = number of examples per batch (batch size)
@@ -736,8 +780,9 @@ def data_generator(option_dict, for_inference, net_type_string,
         validation).
     :param net_type_string: Type of neural net (must be accepted by
         `_check_net_type`).
-    :param use_custom_cnn_loss: Boolean flag.  If True, using CNN with custom
-        loss function.
+    :param is_loss_constrained_mse: [used only if net type is CNN]
+        Boolean flag.  If True, loss function is constrained MSE (mean squared
+        error).
 
     If net type is CNN...
 
@@ -769,9 +814,9 @@ def data_generator(option_dict, for_inference, net_type_string,
     _check_net_type(net_type_string)
 
     if net_type_string != CNN_TYPE_STRING:
-        use_custom_cnn_loss = False
+        is_loss_constrained_mse = False
 
-    error_checking.assert_is_boolean(use_custom_cnn_loss)
+    error_checking.assert_is_boolean(is_loss_constrained_mse)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -876,7 +921,7 @@ def data_generator(option_dict, for_inference, net_type_string,
             )
             this_list = targets_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string,
-                use_custom_cnn_loss=use_custom_cnn_loss
+                is_loss_constrained_mse=is_loss_constrained_mse
             )
 
             if net_type_string == CNN_TYPE_STRING:
@@ -943,7 +988,7 @@ def train_model(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict,
-        net_type_string, use_msess_loss, custom_loss_dict):
+        net_type_string, loss_option_dict):
     """Trains any kind of neural net.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -966,10 +1011,7 @@ def train_model(
 
     :param net_type_string: Neural-net type (must be accepted by
         `_check_net_type`).
-    :param use_msess_loss: Boolean flag.  If True, model uses MSE (mean squared
-        error) skill score as loss function.
-    :param custom_loss_dict: See doc for `get_custom_loss_function`.  If the
-        neural net does not have a custom loss function, make this None.
+    :param loss_option_dict: See doc for `get_loss_function`.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -984,10 +1026,6 @@ def train_model(
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
     _check_net_type(net_type_string)
-    error_checking.assert_is_boolean(use_msess_loss)
-
-    if net_type_string == U_NET_TYPE_STRING or use_msess_loss:
-        custom_loss_dict = None
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1035,26 +1073,32 @@ def train_model(
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
 
+    loss_option_dict = get_loss_function(
+        loss_option_dict=loss_option_dict, net_type_string=net_type_string
+    )[1]
+
     _write_metafile(
         pickle_file_name=metafile_name, num_epochs=num_epochs,
         num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string,
-        use_msess_loss=use_msess_loss, custom_loss_dict=custom_loss_dict
+        net_type_string=net_type_string, loss_option_dict=loss_option_dict
     )
 
-    use_custom_cnn_loss = (
-        net_type_string == CNN_TYPE_STRING and custom_loss_dict is not None
+    is_loss_constrained_mse = (
+        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] is not None
     )
+
     training_generator = data_generator(
         option_dict=training_option_dict, for_inference=False,
-        net_type_string=net_type_string, use_custom_cnn_loss=use_custom_cnn_loss
+        net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse
     )
     validation_generator = data_generator(
         option_dict=validation_option_dict, for_inference=False,
-        net_type_string=net_type_string, use_custom_cnn_loss=use_custom_cnn_loss
+        net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse
     )
 
     model_object.fit_generator(
@@ -1091,16 +1135,11 @@ def read_model(hdf5_file_name):
     metadata_dict = read_metafile(metafile_name)
     custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
 
-    # TODO(thunderhoser): This code is hacky.
-    if metadata_dict[USE_MSESS_LOSS_KEY]:
-        custom_object_dict['loss'] = custom_losses.negative_mse_skill_score()
-    else:
-        dense_loss_function = get_custom_loss_function(
-            custom_loss_dict=metadata_dict[CUSTOM_LOSS_KEY],
-            net_type_string=metadata_dict[NET_TYPE_KEY]
-        )
-
-        custom_object_dict['loss'] = dense_loss_function
+    loss_function = get_loss_function(
+        loss_option_dict=metadata_dict[LOSS_OPTIONS_KEY],
+        net_type_string=metadata_dict[NET_TYPE_KEY]
+    )[0]
+    custom_object_dict['loss'] = loss_function
 
     return keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
@@ -1156,10 +1195,8 @@ def read_metafile(pickle_file_name):
             else DENSE_NET_TYPE_STRING
         )
 
-    if USE_MSESS_LOSS_KEY not in metadata_dict:
-        metadata_dict[USE_MSESS_LOSS_KEY] = False
-    if CUSTOM_LOSS_KEY not in metadata_dict:
-        metadata_dict[CUSTOM_LOSS_KEY] = None
+    if LOSS_OPTIONS_KEY not in metadata_dict:
+        metadata_dict[LOSS_OPTIONS_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
@@ -1175,7 +1212,7 @@ def read_metafile(pickle_file_name):
 
 def apply_model(
         model_object, predictor_matrix, num_examples_per_batch, net_type_string,
-        used_custom_cnn_loss=None, verbose=False):
+        is_loss_constrained_mse=None, verbose=False):
     """Applies trained neural net (of any kind) to new data.
 
     E = number of examples
@@ -1190,8 +1227,7 @@ def apply_model(
     :param num_examples_per_batch: Batch size.
     :param net_type_string: Type of neural net (must be accepted by
         `_check_net_type`).
-    :param used_custom_cnn_loss: Boolean flag.  If True, used custom loss for
-        CNN.
+    :param is_loss_constrained_mse: See doc for `data_generator`.
     :param verbose: Boolean flag.  If True, will print progress messages.
 
     If net type is CNN...
@@ -1217,9 +1253,9 @@ def apply_model(
 
     _check_net_type(net_type_string)
     if net_type_string != CNN_TYPE_STRING:
-        used_custom_cnn_loss = False
+        is_loss_constrained_mse = False
 
-    error_checking.assert_is_boolean(used_custom_cnn_loss)
+    error_checking.assert_is_boolean(is_loss_constrained_mse)
 
     num_examples_per_batch = _check_inference_args(
         predictor_matrix=predictor_matrix,
@@ -1285,7 +1321,7 @@ def apply_model(
             net_type_string.upper(), num_examples
         ))
 
-    if used_custom_cnn_loss:
+    if is_loss_constrained_mse:
         scalar_prediction_matrix = scalar_prediction_matrix[:, 2:]
 
     if net_type_string == CNN_TYPE_STRING:

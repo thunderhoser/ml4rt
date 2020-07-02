@@ -5,7 +5,6 @@ import keras
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
-from ml4rt.machine_learning import keras_losses as custom_losses
 
 NUM_HEIGHTS_KEY = 'num_heights'
 NUM_INPUT_CHANNELS_KEY = 'num_input_channels'
@@ -21,7 +20,6 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
-USE_MSESS_LOSS_KEY = 'use_msess_loss'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     CONV_LAYER_CHANNEL_NUMS_KEY:
@@ -37,8 +35,7 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True,
-    USE_MSESS_LOSS_KEY: False
+    USE_BATCH_NORM_KEY: True
 }
 
 
@@ -115,12 +112,11 @@ def _check_architecture_args(option_dict):
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
-    error_checking.assert_is_boolean(option_dict[USE_MSESS_LOSS_KEY])
 
     return option_dict
 
 
-def create_model(option_dict, custom_loss_dict=None):
+def create_model(option_dict, loss_option_dict):
     """Creates CNN (convolutional neural net).
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -166,11 +162,8 @@ def create_model(option_dict, custom_loss_dict=None):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
-    option_dict['use_msess_loss']: Boolean flag.  If True, will use MSE (mean
-        squared error) skill score as loss function.
 
-    :param custom_loss_dict: See doc for `neural_net.get_custom_loss_function`.
-        If you do not want a custom loss function, make this None.
+    :param loss_option_dict: See doc for `neural_net.get_loss_function`.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
@@ -190,22 +183,18 @@ def create_model(option_dict, custom_loss_dict=None):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-    use_msess_loss = option_dict[USE_MSESS_LOSS_KEY]
 
     any_dense_layers = dense_layer_neuron_nums is not None
     if not any_dense_layers:
-        custom_loss_dict = None
+        loss_option_dict[neural_net.CONSTRAINED_MSE_OPTIONS_KEY] = None
 
-    use_custom_loss = custom_loss_dict is not None
-
-    if use_custom_loss:
-        dense_loss_function = neural_net.get_custom_loss_function(
-            custom_loss_dict=custom_loss_dict,
-            net_type_string=neural_net.CNN_TYPE_STRING
-        )
-        use_msess_loss = False
-    else:
-        dense_loss_function = None
+    loss_function, loss_option_dict = neural_net.get_loss_function(
+        loss_option_dict=loss_option_dict,
+        net_type_string=neural_net.CNN_TYPE_STRING
+    )
+    is_loss_constrained_mse = (
+        loss_option_dict[neural_net.CONSTRAINED_MSE_OPTIONS_KEY] is not None
+    )
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -277,7 +266,8 @@ def create_model(option_dict, custom_loss_dict=None):
                         activation_function_string=output_activ_function_name,
                         alpha_for_relu=output_activ_function_alpha,
                         alpha_for_elu=output_activ_function_alpha,
-                        layer_name=None if use_custom_loss else 'dense_output'
+                        layer_name=
+                        None if is_loss_constrained_mse else 'dense_output'
                     )(dense_output_layer_object)
                 )
             else:
@@ -305,14 +295,14 @@ def create_model(option_dict, custom_loss_dict=None):
     else:
         dense_output_layer_object = None
 
-    if use_custom_loss:
-        k = custom_loss_dict[neural_net.UP_FLUX_CHANNEL_INDEX_KEY] + 0
+    if is_loss_constrained_mse:
+        k = loss_option_dict[neural_net.UP_FLUX_CHANNEL_INDEX_KEY] + 0
 
         highest_up_flux_layer_object = keras.layers.Lambda(
             lambda x: x[:, -1, k:(k + 1)]
         )(conv_output_layer_object)
 
-        k = custom_loss_dict[neural_net.DOWN_FLUX_CHANNEL_INDEX_KEY] + 0
+        k = loss_option_dict[neural_net.DOWN_FLUX_CHANNEL_INDEX_KEY] + 0
 
         lowest_down_flux_layer_object = keras.layers.Lambda(
             lambda x: x[:, -0, k:(k + 1)]
@@ -337,10 +327,10 @@ def create_model(option_dict, custom_loss_dict=None):
             inputs=input_layer_object, outputs=conv_output_layer_object
         )
 
-    if use_custom_loss:
+    if is_loss_constrained_mse:
         loss_dict = {
             'conv_output': keras.losses.mse,
-            'dense_output': dense_loss_function
+            'dense_output': loss_function
         }
 
         model_object.compile(
@@ -348,11 +338,6 @@ def create_model(option_dict, custom_loss_dict=None):
             metrics=neural_net.METRIC_FUNCTION_LIST
         )
     else:
-        loss_function = (
-            custom_losses.negative_mse_skill_score() if use_msess_loss
-            else keras.losses.mse
-        )
-
         model_object.compile(
             loss=loss_function, optimizer=keras.optimizers.Adam(),
             metrics=neural_net.METRIC_FUNCTION_LIST

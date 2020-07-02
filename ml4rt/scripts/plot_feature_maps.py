@@ -244,7 +244,7 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
 
     generator = neural_net.data_generator(
         option_dict=generator_option_dict, for_inference=True,
-        net_type_string=net_type_string, use_custom_cnn_loss=False
+        net_type_string=net_type_string, is_loss_constrained_mse=False
     )
 
     print(SEPARATOR_STRING)
