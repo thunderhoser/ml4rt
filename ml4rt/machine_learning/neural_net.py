@@ -1214,6 +1214,8 @@ def read_metafile(pickle_file_name):
     if 'use_msess_loss' in metadata_dict:
         loss_option_dict[USE_MSE_SKILL_KEY] = metadata_dict['use_msess_loss']
 
+    metadata_dict[LOSS_OPTIONS_KEY] = loss_option_dict
+
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
         return metadata_dict
