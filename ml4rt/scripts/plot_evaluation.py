@@ -13,6 +13,8 @@ from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import evaluation_plotting
 
+# TODO(thunderhoser): Probably want to modularize the code in this script.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 SCORE_NAME_TO_VERBOSE = {
@@ -229,11 +231,13 @@ def _run(input_file_name, plot_by_height, output_dir_name):
         # Plot reliability curves for all heights in the same figure.
         this_mean_prediction_matrix = (
             result_table_xarray[
-                evaluation.VECTOR_RELIABILITY_X_KEY].values[:, k, :]
+                evaluation.VECTOR_RELIABILITY_X_KEY
+            ].values[:, k, :]
         )
         this_mean_target_matrix = (
             result_table_xarray[
-                evaluation.VECTOR_RELIABILITY_Y_KEY].values[:, k, :]
+                evaluation.VECTOR_RELIABILITY_Y_KEY
+            ].values[:, k, :]
         )
         this_combined_matrix = numpy.concatenate(
             (this_mean_prediction_matrix, this_mean_target_matrix), axis=0
@@ -331,16 +335,30 @@ def _run(input_file_name, plot_by_height, output_dir_name):
         # Plot attributes diagram.
         these_mean_predictions = (
             result_table_xarray[
-                evaluation.SCALAR_RELIABILITY_X_KEY].values[k, :]
+                evaluation.SCALAR_RELIABILITY_X_KEY
+            ].values[k, :]
         )
         these_mean_targets = (
             result_table_xarray[
-                evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, :]
+                evaluation.SCALAR_RELIABILITY_Y_KEY
+            ].values[k, :]
         )
         these_example_counts = (
             result_table_xarray[
-                evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[k, :]
+                evaluation.SCALAR_RELIABILITY_COUNT_KEY
+            ].values[k, :]
         )
+        these_inv_mean_targets = (
+            result_table_xarray[
+                evaluation.SCALAR_INV_RELIABILITY_X_KEY
+            ].values[k, :]
+        )
+        these_inv_example_counts = (
+            result_table_xarray[
+                evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY
+            ].values[k, :]
+        )
+
         this_climo_value = (
             mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, k]
         )
@@ -359,7 +377,9 @@ def _run(input_file_name, plot_by_height, output_dir_name):
             mean_observations=these_mean_targets,
             example_counts=these_example_counts,
             mean_value_in_training=this_climo_value,
-            min_value_to_plot=0., max_value_to_plot=this_max_value
+            min_value_to_plot=0., max_value_to_plot=this_max_value,
+            inv_mean_observations=these_inv_mean_targets,
+            inv_example_counts=these_inv_example_counts
         )
 
         this_axes_object.set_title(
@@ -458,6 +478,16 @@ def _run(input_file_name, plot_by_height, output_dir_name):
             result_table_xarray[
                 evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, :]
         )
+        these_inv_mean_targets = (
+            result_table_xarray[
+                evaluation.AUX_INV_RELIABILITY_X_KEY
+            ].values[k, :]
+        )
+        these_inv_example_counts = (
+            result_table_xarray[
+                evaluation.AUX_INV_RELIABILITY_COUNT_KEY
+            ].values[k, :]
+        )
 
         if aux_target_field_names[k] == evaluation.NET_FLUX_NAME:
             surface_down_flux_index = scalar_target_names.index(
@@ -499,7 +529,9 @@ def _run(input_file_name, plot_by_height, output_dir_name):
             mean_observations=these_mean_targets,
             example_counts=these_example_counts,
             mean_value_in_training=this_climo_value,
-            min_value_to_plot=this_min_value, max_value_to_plot=this_max_value
+            min_value_to_plot=this_min_value, max_value_to_plot=this_max_value,
+            inv_mean_observations=these_inv_mean_targets,
+            inv_example_counts=these_inv_example_counts
         )
 
         this_title_string = (
@@ -600,6 +632,17 @@ def _run(input_file_name, plot_by_height, output_dir_name):
                 result_table_xarray[
                     evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :]
             )
+            these_inv_mean_targets = (
+                result_table_xarray[
+                    evaluation.VECTOR_INV_RELIABILITY_X_KEY
+                ].values[j, k, :]
+            )
+            these_inv_example_counts = (
+                result_table_xarray[
+                    evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY
+                ].values[j, k, :]
+            )
+
             this_climo_value = (
                 mean_training_example_dict[
                     example_io.VECTOR_TARGET_VALS_KEY
@@ -620,7 +663,9 @@ def _run(input_file_name, plot_by_height, output_dir_name):
                 mean_observations=these_mean_targets,
                 example_counts=these_example_counts,
                 mean_value_in_training=this_climo_value,
-                min_value_to_plot=0., max_value_to_plot=this_max_value
+                min_value_to_plot=0., max_value_to_plot=this_max_value,
+                inv_mean_observations=these_inv_mean_targets,
+                inv_example_counts=these_inv_example_counts
             )
 
             this_height_string_unpadded = '{0:d}'.format(

@@ -56,12 +56,21 @@ VECTOR_PRMSE_KEY = 'vector_prmse'
 SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x'
 SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y'
 SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count'
+SCALAR_INV_RELIABILITY_X_KEY = 'scalar_reliability_x'
+SCALAR_INV_RELIABILITY_Y_KEY = 'scalar_reliability_y'
+SCALAR_INV_RELIABILITY_COUNT_KEY = 'scalar_reliability_count'
 VECTOR_RELIABILITY_X_KEY = 'vector_reliability_x'
 VECTOR_RELIABILITY_Y_KEY = 'vector_reliability_y'
 VECTOR_RELIABILITY_COUNT_KEY = 'vector_reliability_count'
+VECTOR_INV_RELIABILITY_X_KEY = 'vector_reliability_x'
+VECTOR_INV_RELIABILITY_Y_KEY = 'vector_reliability_y'
+VECTOR_INV_RELIABILITY_COUNT_KEY = 'vector_reliability_count'
 AUX_RELIABILITY_X_KEY = 'aux_reliability_x'
 AUX_RELIABILITY_Y_KEY = 'aux_reliability_y'
 AUX_RELIABILITY_COUNT_KEY = 'aux_reliability_count'
+AUX_INV_RELIABILITY_X_KEY = 'aux_reliability_x'
+AUX_INV_RELIABILITY_Y_KEY = 'aux_reliability_y'
+AUX_INV_RELIABILITY_COUNT_KEY = 'aux_reliability_count'
 
 MODEL_FILE_KEY = 'model_file_name'
 PREDICTION_FILE_KEY = 'prediction_file_name'
@@ -252,7 +261,7 @@ def _get_prmse_one_variable(target_matrix, prediction_matrix):
 
 
 def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
-                              max_bin_edge):
+                              max_bin_edge, invert=False):
     """Computes reliability curve for one scalar target variable.
 
     B = number of bins
@@ -261,6 +270,11 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
     :param predicted_values: Same.
     :param num_bins: Number of bins (points in curve).
     :param max_bin_edge: Value at upper edge of last bin.
+    :param invert: Boolean flag.  If True, will return inverted reliability
+        curve, which bins by target value and relates target value to
+        conditional mean prediction.  If False, will return normal reliability
+        curve, which bins by predicted value and relates predicted value to
+        conditional mean observation (target).
     :return: mean_predictions: length-B numpy array of x-coordinates.
     :return: mean_observations: length-B numpy array of y-coordinates.
     :return: example_counts: length-B numpy array with num examples in each bin.
@@ -269,8 +283,8 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
     max_bin_edge = max([max_bin_edge, numpy.finfo(float).eps])
 
     bin_index_by_example = histograms.create_histogram(
-        input_values=predicted_values, num_bins=num_bins, min_value=0.,
-        max_value=max_bin_edge
+        input_values=target_values if invert else predicted_values,
+        num_bins=num_bins, min_value=0., max_value=max_bin_edge
     )[0]
 
     mean_predictions = numpy.full(num_bins, numpy.nan)
@@ -891,6 +905,9 @@ def get_scores_all_variables(
     scalar_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
     scalar_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
     scalar_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
+    scalar_inv_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
+    scalar_inv_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
+    scalar_inv_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
 
     num_examples = scalar_target_matrix.shape[0]
 
@@ -905,19 +922,37 @@ def get_scores_all_variables(
         these_x, these_y, these_counts = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins, max_bin_edge=max_bin_edge
+            num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
+            invert=False
         )
 
         scalar_reliability_x_matrix[k, :] = these_x
         scalar_reliability_y_matrix[k, :] = these_y
         scalar_reliability_count_matrix[k, :] = these_counts
 
+        these_y, these_x, these_counts = _get_rel_curve_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k],
+            num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
+            invert=True
+        )
+
+        scalar_inv_reliability_x_matrix[k, :] = these_x
+        scalar_inv_reliability_y_matrix[k, :] = these_y
+        scalar_inv_reliability_count_matrix[k, :] = these_counts
+
     these_dim = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
     new_dict = {
         SCALAR_RELIABILITY_X_KEY: (these_dim, scalar_reliability_x_matrix),
         SCALAR_RELIABILITY_Y_KEY: (these_dim, scalar_reliability_y_matrix),
         SCALAR_RELIABILITY_COUNT_KEY:
-            (these_dim, scalar_reliability_count_matrix)
+            (these_dim, scalar_reliability_count_matrix),
+        SCALAR_INV_RELIABILITY_X_KEY:
+            (these_dim, scalar_inv_reliability_x_matrix),
+        SCALAR_INV_RELIABILITY_Y_KEY:
+            (these_dim, scalar_inv_reliability_y_matrix),
+        SCALAR_INV_RELIABILITY_COUNT_KEY:
+            (these_dim, scalar_inv_reliability_count_matrix)
     }
     main_data_dict.update(new_dict)
 
@@ -926,6 +961,11 @@ def get_scores_all_variables(
     vector_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
     vector_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
     vector_reliability_count_matrix = numpy.full(
+        these_dim, -1, dtype=int
+    )
+    vector_inv_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
+    vector_inv_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
+    vector_inv_reliability_count_matrix = numpy.full(
         these_dim, -1, dtype=int
     )
 
@@ -941,19 +981,37 @@ def get_scores_all_variables(
             these_x, these_y, these_counts = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge
+                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
+                invert=False
             )
 
             vector_reliability_x_matrix[j, k, :] = these_x
             vector_reliability_y_matrix[j, k, :] = these_y
             vector_reliability_count_matrix[j, k, :] = these_counts
 
+            these_y, these_x, these_counts = _get_rel_curve_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k],
+                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
+                invert=True
+            )
+
+            vector_inv_reliability_x_matrix[j, k, :] = these_x
+            vector_inv_reliability_y_matrix[j, k, :] = these_y
+            vector_inv_reliability_count_matrix[j, k, :] = these_counts
+
     these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
     new_dict = {
         VECTOR_RELIABILITY_X_KEY: (these_dim, vector_reliability_x_matrix),
         VECTOR_RELIABILITY_Y_KEY: (these_dim, vector_reliability_y_matrix),
         VECTOR_RELIABILITY_COUNT_KEY:
-            (these_dim, vector_reliability_count_matrix)
+            (these_dim, vector_reliability_count_matrix),
+        VECTOR_INV_RELIABILITY_X_KEY:
+            (these_dim, vector_inv_reliability_x_matrix),
+        VECTOR_INV_RELIABILITY_Y_KEY:
+            (these_dim, vector_inv_reliability_y_matrix),
+        VECTOR_INV_RELIABILITY_COUNT_KEY:
+            (these_dim, vector_inv_reliability_count_matrix)
     }
     main_data_dict.update(new_dict)
 
@@ -963,6 +1021,9 @@ def get_scores_all_variables(
         aux_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
         aux_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
         aux_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
+        aux_inv_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
+        aux_inv_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
+        aux_inv_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
 
         for k in range(num_aux_targets):
             if num_examples == 0:
@@ -975,18 +1036,37 @@ def get_scores_all_variables(
             these_x, these_y, these_counts = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge
+                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
+                invert=False
             )
 
             aux_reliability_x_matrix[k, :] = these_x
             aux_reliability_y_matrix[k, :] = these_y
             aux_reliability_count_matrix[k, :] = these_counts
 
+            these_y, these_x, these_counts = _get_rel_curve_one_scalar(
+                target_values=aux_target_matrix[:, k],
+                predicted_values=aux_prediction_matrix[:, k],
+                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
+                invert=True
+            )
+
+            aux_inv_reliability_x_matrix[k, :] = these_x
+            aux_inv_reliability_y_matrix[k, :] = these_y
+            aux_inv_reliability_count_matrix[k, :] = these_counts
+
         these_dim = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
         new_dict = {
             AUX_RELIABILITY_X_KEY: (these_dim, aux_reliability_x_matrix),
             AUX_RELIABILITY_Y_KEY: (these_dim, aux_reliability_y_matrix),
-            AUX_RELIABILITY_COUNT_KEY: (these_dim, aux_reliability_count_matrix)
+            AUX_RELIABILITY_COUNT_KEY:
+                (these_dim, aux_reliability_count_matrix),
+            AUX_INV_RELIABILITY_X_KEY:
+                (these_dim, aux_inv_reliability_x_matrix),
+            AUX_INV_RELIABILITY_Y_KEY:
+                (these_dim, aux_inv_reliability_y_matrix),
+            AUX_INV_RELIABILITY_COUNT_KEY:
+                (these_dim, aux_inv_reliability_count_matrix)
         }
         main_data_dict.update(new_dict)
 

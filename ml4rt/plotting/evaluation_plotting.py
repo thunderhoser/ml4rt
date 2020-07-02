@@ -43,7 +43,7 @@ POSITIVE_SKILL_AREA_OPACITY = 0.2
 HISTOGRAM_FACE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
 HISTOGRAM_EDGE_WIDTH = 2.
-HISTOGRAM_FONT_SIZE = 20
+HISTOGRAM_FONT_SIZE = 16
 
 TAYLOR_TARGET_MARKER_TYPE = '*'
 TAYLOR_TARGET_MARKER_SIZE = 24
@@ -241,10 +241,10 @@ def _plot_attr_diagram_background(
     )
 
 
-def _plot_attr_diagram_histogram(
-        figure_object, main_axes_object, mean_predictions, example_counts,
-        min_prediction_to_plot, max_prediction_to_plot):
-    """Plots inset histogram for attributes diagram.
+def _plot_inset_histogram(
+        figure_object, main_axes_object, bin_centers, bin_counts,
+        min_x_to_plot, max_x_to_plot, has_predictions):
+    """Plots histogram as inset in attributes diagram.
 
     B = number of bins
 
@@ -252,24 +252,28 @@ def _plot_attr_diagram_histogram(
         `matplotlib.figure.Figure`).
     :param main_axes_object: Main axes for attributes diagram (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
-    :param mean_predictions: length-B numpy array of mean predictions.
-    :param example_counts: length-B numpy array with number of examples in
-        each bin.
-    :param min_prediction_to_plot: Minimum prediction to plot.
-    :param max_prediction_to_plot: Max prediction to plot.
+    :param bin_centers: length-B numpy array with value at center of each bin.
+        These values will be plotted on the x-axis.
+    :param bin_counts: length-B numpy array with number of examples in each bin.
+        These values will be plotted on the y-axis.
+    :param min_x_to_plot: Minimum x-value to plot.
+    :param max_x_to_plot: Max v-value to plot.
+    :param has_predictions: Boolean flag.  If True, histogram will contain
+        prediction frequencies.  If False, will contain observation frequencies.
     """
 
-    example_frequencies = (
-        example_counts.astype(float) / numpy.sum(example_counts)
-    )
+    bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
 
-    inset_axes_object = figure_object.add_axes([0.625, 0.175, 0.25, 0.25])
+    if has_predictions:
+        inset_axes_object = figure_object.add_axes([0.675, 0.1625, 0.2, 0.2])
+    else:
+        inset_axes_object = figure_object.add_axes([0.175, 0.65, 0.2, 0.2])
 
-    real_indices = numpy.where(numpy.invert(numpy.isnan(mean_predictions)))[0]
-    bin_width = numpy.nanmin(numpy.diff(mean_predictions))
+    real_indices = numpy.where(numpy.invert(numpy.isnan(bin_centers)))[0]
+    bin_width = numpy.nanmean(numpy.diff(bin_centers))
 
     inset_axes_object.bar(
-        mean_predictions[real_indices], example_frequencies[real_indices],
+        bin_centers[real_indices], bin_frequencies[real_indices],
         bin_width, color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
@@ -285,17 +289,22 @@ def _plot_attr_diagram_histogram(
         this_tick_object.label.set_fontsize(HISTOGRAM_FONT_SIZE)
 
     inset_axes_object.set_title(
-        'Prediction frequency', fontsize=HISTOGRAM_FONT_SIZE
+        'Prediction frequency' if has_predictions else 'Observation frequency',
+        fontsize=HISTOGRAM_FONT_SIZE
     )
 
-    inset_axes_object.set_xlim(min_prediction_to_plot, max_prediction_to_plot)
+    inset_axes_object.set_xlim(min_x_to_plot, max_x_to_plot)
 
 
 def plot_attributes_diagram(
         figure_object, axes_object, mean_predictions, mean_observations,
         example_counts, mean_value_in_training, min_value_to_plot,
-        max_value_to_plot):
+        max_value_to_plot, inv_mean_observations=None, inv_example_counts=None):
     """Plots attributes diagram.
+
+    If `inv_mean_observations is None` and `inv_example_counts is None`, this
+    method will plot only the histogram of predicted values, not the histogram
+    of observed values.
 
     B = number of bins
 
@@ -311,6 +320,10 @@ def plot_attributes_diagram(
     :param min_value_to_plot: Minimum value in plot (for both x- and y-axes).
     :param max_value_to_plot: Max value in plot (for both x- and y-axes).
         If None, will be determined automatically.
+    :param inv_mean_observations: length-B numpy array of mean observed values
+        for inverted reliability curve.
+    :param inv_example_counts: length-B numpy array of example counts for
+        inverted reliability curve.
     """
 
     # Check input args.
@@ -333,17 +346,40 @@ def plot_attributes_diagram(
     if max_value_to_plot == min_value_to_plot:
         max_value_to_plot = min_value_to_plot + 1.
 
+    plot_obs_histogram = not(
+        inv_mean_observations is None and inv_example_counts is None
+    )
+
+    if plot_obs_histogram:
+        error_checking.assert_is_numpy_array(
+            inv_mean_observations, exact_dimensions=expected_dim
+        )
+
+        error_checking.assert_is_integer_numpy_array(inv_example_counts)
+        error_checking.assert_is_geq_numpy_array(inv_example_counts, 0)
+        error_checking.assert_is_numpy_array(
+            inv_example_counts, exact_dimensions=expected_dim
+        )
+
     _plot_attr_diagram_background(
         axes_object=axes_object, mean_value_in_training=mean_value_in_training,
         min_value_in_plot=min_value_to_plot, max_value_in_plot=max_value_to_plot
     )
 
-    _plot_attr_diagram_histogram(
+    _plot_inset_histogram(
         figure_object=figure_object, main_axes_object=axes_object,
-        mean_predictions=mean_predictions, example_counts=example_counts,
-        min_prediction_to_plot=min_value_to_plot,
-        max_prediction_to_plot=max_value_to_plot
+        bin_centers=mean_predictions, bin_counts=example_counts,
+        min_x_to_plot=min_value_to_plot, max_x_to_plot=max_value_to_plot,
+        has_predictions=True
     )
+
+    if plot_obs_histogram:
+        _plot_inset_histogram(
+            figure_object=figure_object, main_axes_object=axes_object,
+            bin_centers=inv_mean_observations, bin_counts=inv_example_counts,
+            min_x_to_plot=min_value_to_plot, max_x_to_plot=max_value_to_plot,
+            has_predictions=False
+        )
 
     _plot_reliability_curve(
         axes_object=axes_object, mean_predictions=mean_predictions,
