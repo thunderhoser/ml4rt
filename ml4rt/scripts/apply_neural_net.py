@@ -127,7 +127,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_predictor_matrix, this_target_array, these_id_strings = (
                 next(generator)
             )
-        except RuntimeError:
+        except (RuntimeError, StopIteration):
             break
 
         this_prediction_array = neural_net.apply_model(
