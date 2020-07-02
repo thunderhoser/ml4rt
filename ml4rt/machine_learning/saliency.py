@@ -199,3 +199,43 @@ def write_standard_file(
 
     dataset_object.variables[SALIENCY_KEY][:] = saliency_matrix
     dataset_object.close()
+
+
+def read_standard_file(netcdf_file_name):
+    """Reads standard (non-averaged) saliency maps from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: saliency_dict: Dictionary with the following keys.
+    saliency_dict['saliency_matrix']: See doc for `write_standard_file`.
+    saliency_dict['example_id_strings']: Same.
+    saliency_dict['model_file_name']: Same.
+    saliency_dict['layer_name']: Same.
+    saliency_dict['neuron_indices']: Same.
+    saliency_dict['ideal_activation']: Same.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    saliency_dict = {
+        SALIENCY_KEY: dataset_object.variables[SALIENCY_KEY][:],
+        EXAMPLE_IDS_KEY: [
+            str(id) for id in
+            netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
+        ],
+        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY)),
+        LAYER_NAME_KEY: str(getattr(dataset_object, LAYER_NAME_KEY)),
+        NEURON_INDICES_KEY: numpy.array(
+            getattr(dataset_object, NEURON_INDICES_KEY), dtype=int
+        ),
+        IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
+    }
+
+    print(saliency_dict[IDEAL_ACTIVATION_KEY])
+
+    if numpy.isnan(saliency_dict[IDEAL_ACTIVATION_KEY]):
+        saliency_dict[IDEAL_ACTIVATION_KEY] = None
+
+    print(saliency_dict[IDEAL_ACTIVATION_KEY])
+
+    dataset_object.close()
+    return saliency_dict
