@@ -1180,7 +1180,8 @@ def read_metafile(pickle_file_name):
     metadata_dict['training_option_dict']: Same.
     metadata_dict['num_validation_batches_per_epoch']: Same.
     metadata_dict['validation_option_dict']: Same.
-    metadata_dict['is_cnn']: Same.
+    metadata_dict['net_type_string']: Same.
+    metadata_dict['loss_option_dict']: Same.
     """
 
     error_checking.assert_file_exists(pickle_file_name)
@@ -1195,8 +1196,23 @@ def read_metafile(pickle_file_name):
             else DENSE_NET_TYPE_STRING
         )
 
-    if LOSS_OPTIONS_KEY not in metadata_dict:
-        metadata_dict[LOSS_OPTIONS_KEY] = None
+    if LOSS_OPTIONS_KEY in metadata_dict:
+        loss_option_dict = metadata_dict[LOSS_OPTIONS_KEY]
+    elif 'custom_loss_dict' in metadata_dict:
+        loss_option_dict = {
+            USE_MSE_SKILL_KEY: False,
+            USE_WEIGHTED_MSE_KEY: False,
+            CONSTRAINED_MSE_OPTIONS_KEY: metadata_dict['custom_loss_dict']
+        }
+    else:
+        loss_option_dict = {
+            USE_MSE_SKILL_KEY: False,
+            USE_WEIGHTED_MSE_KEY: False,
+            CONSTRAINED_MSE_OPTIONS_KEY: None
+        }
+
+    if 'use_msess_loss' in metadata_dict:
+        loss_option_dict[USE_MSE_SKILL_KEY] = metadata_dict['use_msess_loss']
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
