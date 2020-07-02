@@ -79,10 +79,15 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_ARG_NAME = 'input_eval_file_name'
+PLOT_BY_HEIGHT_ARG_NAME = 'plot_by_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file (will be read by `evaluation.write_file`).'
+)
+PLOT_BY_HEIGHT_HELP_STRING = (
+    'Boolean flag.  If 1, will plot Taylor diagram and attributes diagram for '
+    'each vector field at each height.  If 0, will not plot these things.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
@@ -94,17 +99,22 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_BY_HEIGHT_ARG_NAME, type=int, required=False, default=1,
+    help=PLOT_BY_HEIGHT_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _run(input_file_name, output_dir_name):
+def _run(input_file_name, plot_by_height, output_dir_name):
     """Plots model evaluation.
 
     This is effectively the main method.
 
     :param input_file_name: See documentation at top of file.
+    :param plot_by_height: Same.
     :param output_dir_name: Same.
     """
 
@@ -306,7 +316,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(this_figure_object)
 
-        print(SEPARATOR_STRING)
+    print(SEPARATOR_STRING)
 
     scalar_target_names = (
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
@@ -563,6 +573,12 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(this_figure_object)
 
+    if not plot_by_height:
+        return
+
+    if len(aux_target_field_names) > 0:
+        print(SEPARATOR_STRING)
+
     for k in range(len(vector_target_names)):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
@@ -685,7 +701,8 @@ def _run(input_file_name, output_dir_name):
             )
             pyplot.close(this_figure_object)
 
-            print(SEPARATOR_STRING)
+            if j != len(heights_m_agl) - 1:
+                print(SEPARATOR_STRING)
 
 
 if __name__ == '__main__':
@@ -693,5 +710,6 @@ if __name__ == '__main__':
 
     _run(
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
