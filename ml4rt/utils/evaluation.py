@@ -930,6 +930,13 @@ def get_scores_all_variables(
         scalar_reliability_y_matrix[k, :] = these_y
         scalar_reliability_count_matrix[k, :] = these_counts
 
+        if num_examples == 0:
+            max_bin_edge = 1.
+        else:
+            max_bin_edge = numpy.percentile(
+                scalar_target_matrix[:, k], max_bin_edge_percentile
+            )
+
         these_y, these_x, these_counts = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
@@ -988,6 +995,15 @@ def get_scores_all_variables(
             vector_reliability_x_matrix[j, k, :] = these_x
             vector_reliability_y_matrix[j, k, :] = these_y
             vector_reliability_count_matrix[j, k, :] = these_counts
+            print(these_counts)
+            print('\n')
+
+            if num_examples == 0:
+                max_bin_edge = 1.
+            else:
+                max_bin_edge = numpy.percentile(
+                    vector_target_matrix[:, j, k], max_bin_edge_percentile
+                )
 
             these_y, these_x, these_counts = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
@@ -999,6 +1015,8 @@ def get_scores_all_variables(
             vector_inv_reliability_x_matrix[j, k, :] = these_x
             vector_inv_reliability_y_matrix[j, k, :] = these_y
             vector_inv_reliability_count_matrix[j, k, :] = these_counts
+            print(these_counts)
+            print('\n\n\n*************\n\n\n')
 
     these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
     new_dict = {
@@ -1043,6 +1061,13 @@ def get_scores_all_variables(
             aux_reliability_x_matrix[k, :] = these_x
             aux_reliability_y_matrix[k, :] = these_y
             aux_reliability_count_matrix[k, :] = these_counts
+
+            if num_examples == 0:
+                max_bin_edge = 1.
+            else:
+                max_bin_edge = numpy.percentile(
+                    aux_target_matrix[:, k], max_bin_edge_percentile
+                )
 
             these_y, these_x, these_counts = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
