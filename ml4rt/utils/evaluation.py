@@ -919,16 +919,16 @@ def get_scores_all_variables(
                 scalar_prediction_matrix[:, k], max_bin_edge_percentile
             )
 
-        these_x, these_y, these_counts = _get_rel_curve_one_scalar(
+        (
+            scalar_reliability_x_matrix[k, :],
+            scalar_reliability_y_matrix[k, :],
+            scalar_reliability_count_matrix[k, :]
+        ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
             num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
             invert=False
         )
-
-        scalar_reliability_x_matrix[k, :] = these_x
-        scalar_reliability_y_matrix[k, :] = these_y
-        scalar_reliability_count_matrix[k, :] = these_counts
 
         if num_examples == 0:
             max_bin_edge = 1.
@@ -937,16 +937,16 @@ def get_scores_all_variables(
                 scalar_target_matrix[:, k], max_bin_edge_percentile
             )
 
-        these_y, these_x, these_counts = _get_rel_curve_one_scalar(
+        (
+            scalar_inv_reliability_y_matrix[k, :],
+            scalar_inv_reliability_x_matrix[k, :],
+            scalar_inv_reliability_count_matrix[k, :]
+        ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
             num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
             invert=True
         )
-
-        scalar_inv_reliability_x_matrix[k, :] = these_x
-        scalar_inv_reliability_y_matrix[k, :] = these_y
-        scalar_inv_reliability_count_matrix[k, :] = these_counts
 
     these_dim = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
     new_dict = {
@@ -985,18 +985,16 @@ def get_scores_all_variables(
                     vector_prediction_matrix[:, j, k], max_bin_edge_percentile
                 )
 
-            these_x, these_y, these_counts = _get_rel_curve_one_scalar(
+            (
+                vector_reliability_x_matrix[j, k, :],
+                vector_reliability_y_matrix[j, k, :],
+                vector_reliability_count_matrix[j, k, :]
+            ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
                 num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
                 invert=False
             )
-
-            vector_reliability_x_matrix[j, k, :] = these_x
-            vector_reliability_y_matrix[j, k, :] = these_y
-            vector_reliability_count_matrix[j, k, :] = these_counts
-            print(these_counts)
-            print('\n')
 
             if num_examples == 0:
                 max_bin_edge = 1.
@@ -1005,18 +1003,16 @@ def get_scores_all_variables(
                     vector_target_matrix[:, j, k], max_bin_edge_percentile
                 )
 
-            these_y, these_x, these_counts = _get_rel_curve_one_scalar(
+            (
+                vector_inv_reliability_y_matrix[j, k, :],
+                vector_inv_reliability_x_matrix[j, k, :],
+                vector_inv_reliability_count_matrix[j, k, :]
+            ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
                 num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
                 invert=True
             )
-
-            vector_inv_reliability_x_matrix[j, k, :] = these_x
-            vector_inv_reliability_y_matrix[j, k, :] = these_y
-            vector_inv_reliability_count_matrix[j, k, :] = these_counts
-            print(these_counts)
-            print('\n\n\n*************\n\n\n')
 
     these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
     new_dict = {
@@ -1051,16 +1047,16 @@ def get_scores_all_variables(
                     aux_prediction_matrix[:, k], max_bin_edge_percentile
                 )
 
-            these_x, these_y, these_counts = _get_rel_curve_one_scalar(
+            (
+                aux_reliability_x_matrix[k, :],
+                aux_reliability_y_matrix[k, :],
+                aux_reliability_count_matrix[k, :]
+            ) = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
                 num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
                 invert=False
             )
-
-            aux_reliability_x_matrix[k, :] = these_x
-            aux_reliability_y_matrix[k, :] = these_y
-            aux_reliability_count_matrix[k, :] = these_counts
 
             if num_examples == 0:
                 max_bin_edge = 1.
@@ -1069,16 +1065,16 @@ def get_scores_all_variables(
                     aux_target_matrix[:, k], max_bin_edge_percentile
                 )
 
-            these_y, these_x, these_counts = _get_rel_curve_one_scalar(
+            (
+                aux_inv_reliability_y_matrix[k, :],
+                aux_inv_reliability_x_matrix[k, :],
+                aux_inv_reliability_count_matrix[k, :]
+            ) = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
                 num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
                 invert=True
             )
-
-            aux_inv_reliability_x_matrix[k, :] = these_x
-            aux_inv_reliability_y_matrix[k, :] = these_y
-            aux_inv_reliability_count_matrix[k, :] = these_counts
 
         these_dim = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
         new_dict = {
