@@ -996,6 +996,10 @@ def get_scores_all_variables(
                 invert=False
             )
 
+            print(vector_reliability_y_matrix[j, k, :])
+            print(vector_reliability_count_matrix[j, k, :])
+            print('\n')
+
             if num_examples == 0:
                 max_bin_edge = 1.
             else:
@@ -1013,6 +1017,10 @@ def get_scores_all_variables(
                 num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
                 invert=True
             )
+
+            print(vector_inv_reliability_x_matrix[j, k, :])
+            print(vector_inv_reliability_count_matrix[j, k, :])
+            print('\n\n\n*************\n\n\n')
 
     these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
     new_dict = {
