@@ -146,7 +146,10 @@ def write_standard_file(
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
     dataset_object.setncattr(LAYER_NAME_KEY, layer_name)
     dataset_object.setncattr(NEURON_INDICES_KEY, neuron_indices)
-    dataset_object.setncattr(IDEAL_ACTIVATION_KEY, ideal_activation)
+    dataset_object.setncattr(
+        IDEAL_ACTIVATION_KEY,
+        numpy.nan if ideal_activation is None else ideal_activation
+    )
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
     dataset_object.createDimension(
