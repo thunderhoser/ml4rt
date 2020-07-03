@@ -28,6 +28,7 @@ VALID_NET_TYPE_STRINGS = [
 
 USE_MSE_SKILL_KEY = 'use_mse_skill_score'
 USE_WEIGHTED_MSE_KEY = 'use_weighted_mse'
+USE_DUAL_WEIGHTED_MSE_KEY = 'use_dual_weighted_mse'
 CONSTRAINED_MSE_OPTIONS_KEY = 'constrained_mse_dict'
 
 TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
@@ -312,14 +313,18 @@ def _write_metafile(
 def get_loss_function(loss_option_dict, net_type_string=None):
     """Creates loss function.
 
-    If dictionary key 'use_mse_skill_score' is True, the following keys will be
+    If dictionary key 'use_mse_skill_score' is True, all keys after it will be
     ignored.
 
-    If dictionary key 'use_weighted_mse' is True, the following keys will be
+    If dictionary key 'use_weighted_mse' is True, all keys after it will be
     ignored.
 
-    If `use_mse_skill_score == use_weighted_mse == False` and
-    `constrained_mse_dict is None`, loss function will default to MSE (meqn
+    If dictionary key 'use_dual_weighted_mse' is True, all keys after it will be
+    ignored.
+
+    If
+    `use_mse_skill_score == use_weighted_mse == use_dual_weighted_mse == False`
+    and `constrained_mse_dict is None`, loss function will default to MSE (meqn
     squared error).
 
     :param loss_option_dict: Dictionary with the following keys.
@@ -327,6 +332,9 @@ def get_loss_function(loss_option_dict, net_type_string=None):
         negative MSE skill score.
     'use_weighted_mse' Boolean flag.  If True, loss function will be weighted
         MSE, where weight = magnitude of target value.
+    'use_dual_weighted_mse' Boolean flag.  If True, loss function will be
+        dual-weighted MSE, where weight = max(magnitude of target value,
+        magnitude of predicted value).
     'constrained_mse_dict': Dictionary with the following keys.
 
         'toa_up_flux_index': Variable index (in scalar output matrix) for TOA
@@ -366,6 +374,7 @@ def get_loss_function(loss_option_dict, net_type_string=None):
         loss_option_dict = {
             USE_MSE_SKILL_KEY: False,
             USE_WEIGHTED_MSE_KEY: False,
+            USE_DUAL_WEIGHTED_MSE_KEY: False,
             CONSTRAINED_MSE_OPTIONS_KEY: None
         }
 
@@ -374,6 +383,7 @@ def get_loss_function(loss_option_dict, net_type_string=None):
 
     if use_mse_skill_score:
         loss_option_dict[USE_WEIGHTED_MSE_KEY] = False
+        loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY] = False
         loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
         return custom_losses.negative_mse_skill_score(), loss_option_dict
 
@@ -382,8 +392,18 @@ def get_loss_function(loss_option_dict, net_type_string=None):
 
     if use_weighted_mse:
         loss_option_dict[USE_MSE_SKILL_KEY] = False
+        loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY] = False
         loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
         return custom_losses.weighted_mse(), loss_option_dict
+
+    use_dual_weighted_mse = loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY]
+    error_checking.assert_is_boolean(use_dual_weighted_mse)
+
+    if use_dual_weighted_mse:
+        loss_option_dict[USE_MSE_SKILL_KEY] = False
+        loss_option_dict[USE_WEIGHTED_MSE_KEY] = False
+        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
+        return custom_losses.dual_weighted_mse(), loss_option_dict
 
     constrained_mse_dict = loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY]
     if constrained_mse_dict is None:
@@ -1202,17 +1222,22 @@ def read_metafile(pickle_file_name):
         loss_option_dict = {
             USE_MSE_SKILL_KEY: False,
             USE_WEIGHTED_MSE_KEY: False,
+            USE_DUAL_WEIGHTED_MSE_KEY: False,
             CONSTRAINED_MSE_OPTIONS_KEY: metadata_dict['custom_loss_dict']
         }
     else:
         loss_option_dict = {
             USE_MSE_SKILL_KEY: False,
             USE_WEIGHTED_MSE_KEY: False,
+            USE_DUAL_WEIGHTED_MSE_KEY: False,
             CONSTRAINED_MSE_OPTIONS_KEY: None
         }
 
     if 'use_msess_loss' in metadata_dict:
         loss_option_dict[USE_MSE_SKILL_KEY] = metadata_dict['use_msess_loss']
+
+    if USE_DUAL_WEIGHTED_MSE_KEY not in loss_option_dict:
+        loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY] = False
 
     metadata_dict[LOSS_OPTIONS_KEY] = loss_option_dict
 

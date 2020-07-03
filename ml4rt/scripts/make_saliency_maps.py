@@ -9,6 +9,9 @@ from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
 
+# TODO(thunderhoser): Put saliency matrix in shape of original examples (the
+# format stored in example files, not that fed into the neural net).
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 SENTINEL_VALUE = -123456.
 

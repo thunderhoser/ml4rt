@@ -27,6 +27,30 @@ def weighted_mse():
     return loss
 
 
+def dual_weighted_mse():
+    """dual-weighted MSE (mean squared error).
+
+    Weight = max(magnitude of target value, magnitude of predicted value).
+
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (dual-weighted MSE).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Dual-weighted MSE.
+        """
+
+        return K.mean(
+            K.maximum(target_tensor, prediction_tensor) *
+            (prediction_tensor - target_tensor) ** 2
+        )
+
+    return loss
+
+
 def negative_mse_skill_score():
     """Negative MSE (mean squared error) skill score.
 

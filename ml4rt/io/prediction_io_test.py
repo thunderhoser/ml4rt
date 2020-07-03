@@ -192,7 +192,9 @@ ZENITH_ANGLE_BIN = 99
 FILE_MONTH = 12
 
 FILE_NAME_DEFAULT = 'foo/predictions.nc'
-FILE_NAME_SPATIAL = 'foo/predictions_grid-row=000_grid-column=666.nc'
+FILE_NAME_SPATIAL = (
+    'foo/grid-row=000/predictions_grid-row=000_grid-column=666.nc'
+)
 FILE_NAME_ANGULAR = 'foo/predictions_zenith-angle-bin=099.nc'
 FILE_NAME_MONTHLY = 'foo/predictions_month=12.nc'
 
