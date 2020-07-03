@@ -235,7 +235,5 @@ def read_standard_file(netcdf_file_name):
     if numpy.isnan(saliency_dict[IDEAL_ACTIVATION_KEY]):
         saliency_dict[IDEAL_ACTIVATION_KEY] = None
 
-    print(saliency_dict[IDEAL_ACTIVATION_KEY])
-
     dataset_object.close()
     return saliency_dict
