@@ -173,7 +173,9 @@ def _plot_saliency_one_example(
         legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[vector_predictor_names[k]]
 
     x_min = numpy.percentile(vector_saliency_matrix, 1)
+    print(x_min)
     x_max = numpy.percentile(vector_saliency_matrix, 90)
+    print(x_max)
     axes_object.set_xlim(x_min, x_max)
     axes_object.set_xlim(y_min, y_max)
 
