@@ -177,7 +177,7 @@ def _plot_saliency_one_example(
     x_max = numpy.percentile(vector_saliency_matrix, 90)
     print(x_max)
     axes_object.set_xlim(x_min, x_max)
-    axes_object.set_xlim(y_min, y_max)
+    axes_object.set_ylim(y_min, y_max)
 
     axes_object.set_xlabel('Saliency')
     axes_object.set_ylabel('Height (km AGL)')
