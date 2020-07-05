@@ -203,7 +203,7 @@ def _plot_saliency_one_example(
         '\nactual and predicted target values = {0:.2f}, {1:.2f}'
     ).format(actual_target_value, predicted_target_value)
 
-    axes_object.set_title(title_string, TITLE_FONT_SIZE)
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
     output_file_name = '{0:s}/{1:s}.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
