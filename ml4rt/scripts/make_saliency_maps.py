@@ -168,6 +168,9 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     model_object.summary()
+    print('\n\n\n')
+    print(dir(model_object.get_layer(name='conv1d_7')))
+    print('\n\n\n')
     print(dir(model_object.get_layer(name=layer_name)))
 
     is_layer_output = (
