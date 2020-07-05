@@ -133,6 +133,47 @@ DENSE_NET_TARGET_MATRIX = numpy.array([
 
 DENSE_NET_TARGET_MATRICES = [DENSE_NET_TARGET_MATRIX]
 
+# The following constants are used to test neuron_indices_to_target_var.
+CNN_NEURON_INDICES_LIST = [
+    numpy.array([0, 0], dtype=int),
+    numpy.array([0, 1], dtype=int),
+    numpy.array([1, 0], dtype=int),
+    numpy.array([1, 1], dtype=int),
+    numpy.array([0], dtype=int)
+]
+CNN_HEIGHTS_M_AGL = [100, 100, 500, 500, None]
+CNN_TARGET_NAMES = [
+    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
+    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+]
+
+DENSE_NET_NEURON_INDICES_LIST = [
+    numpy.array([0], dtype=int),
+    numpy.array([1], dtype=int),
+    numpy.array([2], dtype=int),
+    numpy.array([3], dtype=int),
+    numpy.array([4], dtype=int)
+]
+DENSE_NET_HEIGHTS_M_AGL = [100, 500, 100, 500, None]
+DENSE_NET_TARGET_NAMES = [
+    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+]
+
+U_NET_NEURON_INDICES_LIST = [
+    numpy.array([0, 0], dtype=int),
+    numpy.array([0, 1], dtype=int),
+    numpy.array([1, 0], dtype=int),
+    numpy.array([1, 1], dtype=int)
+]
+U_NET_HEIGHTS_M_AGL = [100, 100, 500, 500]
+U_NET_TARGET_NAMES = [
+    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
+    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME
+]
+
 
 class NeuralNetTests(unittest.TestCase):
     """Each method is a unit test for neural_net.py."""
@@ -429,6 +470,66 @@ class NeuralNetTests(unittest.TestCase):
         self.assertTrue(
             this_example_dict[example_io.SCALAR_TARGET_VALS_KEY].size == 0
         )
+
+    def test_neuron_indices_to_target_var_cnn(self):
+        """Ensures correct output from neuron_indices_to_target_var.
+
+        In this case, neural-net type is CNN.
+        """
+
+        num_tests = len(CNN_NEURON_INDICES_LIST)
+
+        for i in range(num_tests):
+            this_target_name, this_height_m_agl = (
+                neural_net.neuron_indices_to_target_var(
+                    neuron_indices=CNN_NEURON_INDICES_LIST[i],
+                    example_dict=copy.deepcopy(EXAMPLE_DICT),
+                    net_type_string=neural_net.CNN_TYPE_STRING
+                )
+            )
+
+            self.assertTrue(this_target_name == CNN_TARGET_NAMES[i])
+            self.assertTrue(this_height_m_agl == CNN_HEIGHTS_M_AGL[i])
+
+    def test_neuron_indices_to_target_var_dense_net(self):
+        """Ensures correct output from neuron_indices_to_target_var.
+
+        In this case, neural-net type is dense.
+        """
+
+        num_tests = len(DENSE_NET_NEURON_INDICES_LIST)
+
+        for i in range(num_tests):
+            this_target_name, this_height_m_agl = (
+                neural_net.neuron_indices_to_target_var(
+                    neuron_indices=DENSE_NET_NEURON_INDICES_LIST[i],
+                    example_dict=copy.deepcopy(EXAMPLE_DICT),
+                    net_type_string=neural_net.DENSE_NET_TYPE_STRING
+                )
+            )
+
+            self.assertTrue(this_target_name == DENSE_NET_TARGET_NAMES[i])
+            self.assertTrue(this_height_m_agl == DENSE_NET_HEIGHTS_M_AGL[i])
+
+    def test_neuron_indices_to_target_var_u_net(self):
+        """Ensures correct output from neuron_indices_to_target_var.
+
+        In this case, neural-net type is U-net.
+        """
+
+        num_tests = len(U_NET_NEURON_INDICES_LIST)
+
+        for i in range(num_tests):
+            this_target_name, this_height_m_agl = (
+                neural_net.neuron_indices_to_target_var(
+                    neuron_indices=U_NET_NEURON_INDICES_LIST[i],
+                    example_dict=copy.deepcopy(EXAMPLE_DICT),
+                    net_type_string=neural_net.U_NET_TYPE_STRING
+                )
+            )
+
+            self.assertTrue(this_target_name == U_NET_TARGET_NAMES[i])
+            self.assertTrue(this_height_m_agl == U_NET_HEIGHTS_M_AGL[i])
 
 
 if __name__ == '__main__':

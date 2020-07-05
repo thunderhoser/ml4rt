@@ -1,5 +1,6 @@
 """Makes saliency map for each example, according to one model."""
 
+import copy
 import os.path
 import argparse
 import numpy
@@ -164,13 +165,40 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
+    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    is_layer_output = (
+        len(model_object.get_layer(name=layer_name).outbound_nodes) == 0
+    )
+    dummy_example_dict = {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
+
+    if is_layer_output:
+        target_field_name, target_height_m_agl = (
+            neural_net.neuron_indices_to_target_var(
+                neuron_indices=neuron_indices,
+                example_dict=copy.deepcopy(dummy_example_dict),
+                net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
+            )
+        )
+    else:
+        target_field_name = None
+        target_height_m_agl = None
+
+    print('Target field and height = {0:s}, {1:s}'.format(
+        str(target_field_name), str(target_height_m_agl)
+    ))
 
     year = example_io.file_name_to_year(example_file_name)
     first_time_unix_sec, last_time_unix_sec = (
         time_conversion.first_and_last_times_in_year(year)
     )
 
-    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
         os.path.split(example_file_name)[0]
     )
@@ -200,19 +228,10 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         ideal_activation=ideal_activation
     )
 
-    dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
-    }
-
     dummy_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=saliency_matrix, example_dict=dummy_example_dict,
         net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
     )
-
     scalar_saliency_matrix = (
         dummy_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )
@@ -227,7 +246,8 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         vector_saliency_matrix=vector_saliency_matrix,
         example_id_strings=example_id_strings, model_file_name=model_file_name,
         layer_name=layer_name, neuron_indices=neuron_indices,
-        ideal_activation=ideal_activation
+        ideal_activation=ideal_activation, target_field_name=target_field_name,
+        target_height_m_agl=target_height_m_agl
     )
 
 

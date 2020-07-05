@@ -6,6 +6,7 @@ from keras import backend as K
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import saliency_maps as saliency_utils
+from ml4rt.io import example_io
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
@@ -17,6 +18,8 @@ MODEL_FILE_KEY = 'model_file_name'
 LAYER_NAME_KEY = 'layer_name'
 NEURON_INDICES_KEY = 'neuron_indices'
 IDEAL_ACTIVATION_KEY = 'ideal_activation'
+TARGET_FIELD_KEY = 'target_field_name'
+TARGET_HEIGHT_KEY = 'target_height_m_agl'
 
 EXAMPLE_IDS_KEY = 'example_id_strings'
 SCALAR_SALIENCY_KEY = 'scalar_saliency_matrix'
@@ -98,7 +101,8 @@ def get_saliency_one_neuron(
 def write_standard_file(
         netcdf_file_name, scalar_saliency_matrix, vector_saliency_matrix,
         example_id_strings, model_file_name, layer_name, neuron_indices,
-        ideal_activation=None):
+        ideal_activation=None, target_field_name=None,
+        target_height_m_agl=None):
     """Writes standard (non-averaged) saliency maps to NetCDF file.
 
     E = number of examples
@@ -117,6 +121,11 @@ def write_standard_file(
     :param layer_name: See doc for `check_metadata`.
     :param neuron_indices: Same.
     :param ideal_activation: Same.
+    :param target_field_name: Name of target variable predicted by relevant
+        neuron.  If relevant neuron is *not* an output neuron, leave this alone.
+    :param target_height_m_agl: Height of target variable predicted by relevant
+        neuron.  If relevant neuron is *not* an output neuron or if the target
+        variable is scalar, leave this alone.
     """
 
     # Check input args.
@@ -155,6 +164,15 @@ def write_standard_file(
 
     error_checking.assert_is_string(model_file_name)
 
+    if target_field_name is None:
+        target_height_m_agl = None
+    else:
+        example_io.check_field_name(target_field_name)
+
+    if target_height_m_agl is not None:
+        target_height_m_agl = int(numpy.round(target_height_m_agl))
+        error_checking.assert_is_geq(target_height_m_agl, 0)
+
     # Write to NetCDF file.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
     dataset_object = netCDF4.Dataset(
@@ -167,6 +185,14 @@ def write_standard_file(
     dataset_object.setncattr(
         IDEAL_ACTIVATION_KEY,
         numpy.nan if ideal_activation is None else ideal_activation
+    )
+    dataset_object.setncattr(
+        TARGET_FIELD_KEY,
+        '' if target_field_name is None else target_field_name
+    )
+    dataset_object.setncattr(
+        TARGET_HEIGHT_KEY,
+        -1 if target_height_m_agl is None else target_height_m_agl
     )
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
@@ -231,6 +257,8 @@ def read_standard_file(netcdf_file_name):
     saliency_dict['layer_name']: Same.
     saliency_dict['neuron_indices']: Same.
     saliency_dict['ideal_activation']: Same.
+    saliency_dict['target_field_name']: Same.
+    saliency_dict['target_height_m_agl']: Same.
     """
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
@@ -247,11 +275,17 @@ def read_standard_file(netcdf_file_name):
         NEURON_INDICES_KEY: numpy.array(
             getattr(dataset_object, NEURON_INDICES_KEY), dtype=int
         ),
-        IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
+        IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY),
+        TARGET_FIELD_KEY: getattr(dataset_object, TARGET_FIELD_KEY),
+        TARGET_HEIGHT_KEY: getattr(dataset_object, TARGET_HEIGHT_KEY)
     }
 
     if numpy.isnan(saliency_dict[IDEAL_ACTIVATION_KEY]):
         saliency_dict[IDEAL_ACTIVATION_KEY] = None
+    if saliency_dict[TARGET_FIELD_KEY] == '':
+        saliency_dict[TARGET_FIELD_KEY] = None
+    if saliency_dict[TARGET_HEIGHT_KEY] < 0:
+        saliency_dict[TARGET_HEIGHT_KEY] = None
 
     dataset_object.close()
     return saliency_dict

@@ -13,6 +13,8 @@ from ml4rt.utils import normalization
 from ml4rt.machine_learning import keras_metrics as custom_metrics
 from ml4rt.machine_learning import keras_losses as custom_losses
 
+SENTINEL_VALUE = -9999.
+
 PLATEAU_PATIENCE_EPOCHS = 3
 PLATEAU_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
@@ -100,25 +102,6 @@ METADATA_KEYS = [
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
     LOSS_OPTIONS_KEY
 ]
-
-
-def _check_net_type(net_type_string):
-    """Ensures that neural-net type is valid.
-
-    :param net_type_string: Neural-net type.
-    :raises: ValueError: if `net_type_string not in VALID_NET_TYPE_STRINGS`.
-    """
-
-    error_checking.assert_is_string(net_type_string)
-    if net_type_string in VALID_NET_TYPE_STRINGS:
-        return
-
-    error_string = (
-        '\nField "{0:s}" is not valid neural-net type.  Valid options listed '
-        'below:\n{1:s}'
-    ).format(net_type_string, str(VALID_NET_TYPE_STRINGS))
-
-    raise ValueError(error_string)
 
 
 def _check_generator_args(option_dict):
@@ -310,6 +293,25 @@ def _write_metafile(
     pickle_file_handle.close()
 
 
+def check_net_type(net_type_string):
+    """Ensures that neural-net type is valid.
+
+    :param net_type_string: Neural-net type.
+    :raises: ValueError: if `net_type_string not in VALID_NET_TYPE_STRINGS`.
+    """
+
+    error_checking.assert_is_string(net_type_string)
+    if net_type_string in VALID_NET_TYPE_STRINGS:
+        return
+
+    error_string = (
+        '\nField "{0:s}" is not valid neural-net type.  Valid options listed '
+        'below:\n{1:s}'
+    ).format(net_type_string, str(VALID_NET_TYPE_STRINGS))
+
+    raise ValueError(error_string)
+
+
 def get_loss_function(loss_option_dict, net_type_string=None):
     """Creates loss function.
 
@@ -364,7 +366,7 @@ def get_loss_function(loss_option_dict, net_type_string=None):
             downwelling flux at lowest height in profile.
 
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
     :return: loss_function: The function itself.
     :return: loss_option_dict: Same as input but maybe with different values.
     :raises: ValueError: if you try to use constrained MSE for a U-net.
@@ -480,11 +482,11 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
     :return: predictor_matrix: See output doc for `data_generator`.
     """
 
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
 
     if net_type_string != DENSE_NET_TYPE_STRING:
         num_heights = len(example_dict[example_io.HEIGHTS_KEY])
@@ -535,7 +537,7 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     example_dict['heights_m_agl']
 
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
 
     :return: example_dict: Dictionary with the following keys.  See doc for
         `example_io.read_file` for details on each key.
@@ -544,7 +546,7 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     """
 
     error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
 
     num_scalar_predictors = len(
         example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
@@ -593,14 +595,14 @@ def targets_dict_to_numpy(example_dict, net_type_string,
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
     :param is_loss_constrained_mse: See doc for `data_generator`.
     :return: target_matrices: If net type is CNN, same as output from
         `data_generator`.  Otherwise, same as output from `data_generator` but
         in a one-element list.
     """
 
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
 
     if net_type_string == U_NET_TYPE_STRING:
         return [example_dict[example_io.VECTOR_TARGET_VALS_KEY]]
@@ -673,7 +675,7 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     example_dict['heights_m_agl']
 
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
 
     :return: example_dict: Dictionary with the following keys.  See doc for
         `example_io.read_file` for details on each key.
@@ -681,7 +683,7 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     example_dict['vector_target_matrix']
     """
 
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
 
     if net_type_string == U_NET_TYPE_STRING:
         vector_target_matrix = target_matrices[0]
@@ -758,6 +760,105 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     }
 
 
+def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
+    """Converts indices of output neuron to metadata for target variable.
+
+    :param neuron_indices: 1-D numpy array with indices of output neuron.  Must
+        have length of either 1 (for scalar target variable) or 2 (for vector
+        target variable).
+    :param example_dict: See doc for `targets_numpy_to_dict`.
+    :param net_type_string: Same.
+    :return: target_name: Name of target variable.
+    :return: height_m_agl: Height (metres above ground level) of target
+        variable.  If target variable is scalar, this will be None.
+    """
+
+    error_checking.assert_is_integer_numpy_array(neuron_indices)
+    error_checking.assert_is_geq_numpy_array(neuron_indices, 0)
+    check_net_type(net_type_string)
+
+    if net_type_string == U_NET_TYPE_STRING:
+        min_num_indices = 2
+        max_num_indices = 2
+    elif net_type_string == DENSE_NET_TYPE_STRING:
+        min_num_indices = 1
+        max_num_indices = 1
+    else:
+        min_num_indices = 1
+        max_num_indices = 2
+
+    num_indices = len(neuron_indices)
+    error_checking.assert_is_geq(num_indices, min_num_indices)
+    error_checking.assert_is_leq(num_indices, max_num_indices)
+
+    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+
+    if num_indices == 2:
+        return (
+            vector_target_names[neuron_indices[1]],
+            heights_m_agl[neuron_indices[0]]
+        )
+
+    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    num_scalar_targets = len(scalar_target_names)
+    num_vector_targets = len(vector_target_names)
+    num_heights = len(heights_m_agl)
+
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        num_output_neurons = (
+            num_scalar_targets + num_vector_targets * num_heights
+        )
+        target_matrix_keras = numpy.full((1, num_output_neurons), 0.)
+        target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
+
+        example_dict = targets_numpy_to_dict(
+            target_matrices=[target_matrix_keras],
+            example_dict=example_dict, net_type_string=net_type_string
+        )
+        scalar_target_matrix_orig = (
+            example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, ...]
+        )
+        vector_target_matrix_orig = (
+            example_dict[example_io.VECTOR_TARGET_VALS_KEY][0, ...]
+        )
+
+        these_indices = numpy.where(
+            scalar_target_matrix_orig < SENTINEL_VALUE + 1
+        )[0]
+        if len(these_indices) > 0:
+            return scalar_target_names[these_indices[0]], None
+
+        these_height_indices, these_field_indices = numpy.where(
+            vector_target_matrix_orig < SENTINEL_VALUE + 1
+        )
+        return (
+            vector_target_names[these_field_indices[0]],
+            heights_m_agl[these_height_indices[0]]
+        )
+
+    # If execution reaches this point, the net is a CNN.
+    vector_target_matrix_keras = numpy.full(
+        (1, num_heights, num_vector_targets), 0.
+    )
+    scalar_target_matrix_keras = numpy.full((1, num_scalar_targets), 0.)
+    scalar_target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
+
+    example_dict = targets_numpy_to_dict(
+        target_matrices=
+        [vector_target_matrix_keras, scalar_target_matrix_keras],
+        example_dict=example_dict, net_type_string=net_type_string
+    )
+    scalar_target_matrix_orig = (
+        example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, ...]
+    )
+
+    these_indices = numpy.where(
+        scalar_target_matrix_orig < SENTINEL_VALUE + 1
+    )[0]
+    return scalar_target_names[these_indices[0]], None
+
+
 def data_generator(option_dict, for_inference, net_type_string,
                    is_loss_constrained_mse=None):
     """Generates examples for any kind of neural net.
@@ -799,7 +900,7 @@ def data_generator(option_dict, for_inference, net_type_string,
         generator is being used for training or monitoring (on-the-fly
         validation).
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
     :param is_loss_constrained_mse: [used only if net type is CNN]
         Boolean flag.  If True, loss function is constrained MSE (mean squared
         error).
@@ -831,7 +932,7 @@ def data_generator(option_dict, for_inference, net_type_string,
 
     option_dict = _check_generator_args(option_dict)
     error_checking.assert_is_boolean(for_inference)
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
 
     if net_type_string != CNN_TYPE_STRING:
         is_loss_constrained_mse = False
@@ -1030,7 +1131,7 @@ def train_model(
     validation_option_dict['last_time_unix_sec']
 
     :param net_type_string: Neural-net type (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
     :param loss_option_dict: See doc for `get_loss_function`.
     """
 
@@ -1045,7 +1146,7 @@ def train_model(
     error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1269,7 +1370,7 @@ def apply_model(
     :param predictor_matrix: See output doc for `data_generator`.
     :param num_examples_per_batch: Batch size.
     :param net_type_string: Type of neural net (must be accepted by
-        `_check_net_type`).
+        `check_net_type`).
     :param is_loss_constrained_mse: See doc for `data_generator`.
     :param verbose: Boolean flag.  If True, will print progress messages.
 
@@ -1294,7 +1395,7 @@ def apply_model(
         values.
     """
 
-    _check_net_type(net_type_string)
+    check_net_type(net_type_string)
     if net_type_string != CNN_TYPE_STRING:
         is_loss_constrained_mse = False
 
