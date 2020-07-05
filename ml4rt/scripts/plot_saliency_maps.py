@@ -187,19 +187,17 @@ def _plot_saliency_one_example(
     )
 
     num_scalar_predictors = len(scalar_predictor_names)
-    title_string = None
+    title_string = ''
 
     for k in range(num_scalar_predictors):
-        if k == 0:
-            title_string = '{0:s}: {1:.2f}'.format(
-                scalar_predictor_names[k], scalar_saliency_values[k]
-            )
-            continue
-
         if k == 3:
             title_string += '\n'
+        elif k == 0:
+            pass
+        else:
+            title_string += ' ... '
 
-        title_string += ' ... {0:s}: {1:.2f}'.format(
+        title_string += '{0:s}: {1:.2f}'.format(
             scalar_predictor_names[k], scalar_saliency_values[k]
         )
 
