@@ -9,9 +9,6 @@ from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
 
-# TODO(thunderhoser): Put saliency matrix in shape of original examples (the
-# format stored in example files, not that fed into the neural net).
-
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 SENTINEL_VALUE = -123456.
 
@@ -149,8 +146,8 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     :param output_file_name: Same.
     """
 
-    example_dict = example_io.read_file(example_file_name)
-    num_examples_total = len(example_dict[example_io.VALID_TIMES_KEY])
+    this_example_dict = example_io.read_file(example_file_name)
+    num_examples_total = len(this_example_dict[example_io.VALID_TIMES_KEY])
 
     example_indices = _subset_examples(
         indices_to_keep=example_indices, num_examples_to_keep=num_examples,
@@ -203,8 +200,30 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         ideal_activation=ideal_activation
     )
 
+    dummy_example_dict = {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
+
+    dummy_example_dict = neural_net.predictors_numpy_to_dict(
+        predictor_matrix=saliency_matrix, example_dict=dummy_example_dict,
+        net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
+    )
+
+    scalar_saliency_matrix = (
+        dummy_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    )
+    vector_saliency_matrix = (
+        dummy_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    )
+
     saliency.write_standard_file(
-        netcdf_file_name=output_file_name, saliency_matrix=saliency_matrix,
+        netcdf_file_name=output_file_name,
+        scalar_saliency_matrix=scalar_saliency_matrix,
+        vector_saliency_matrix=vector_saliency_matrix,
         example_id_strings=example_id_strings, model_file_name=model_file_name,
         layer_name=layer_name, neuron_indices=neuron_indices,
         ideal_activation=ideal_activation

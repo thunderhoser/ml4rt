@@ -9,7 +9,8 @@ from gewittergefahr.deep_learning import saliency_maps as saliency_utils
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
-CHANNEL_DIMENSION_KEY = 'channel'
+SCALAR_PREDICTOR_DIM_KEY = 'scalar_predictor'
+VECTOR_PREDICTOR_DIM_KEY = 'vector_predictor'
 EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 
 MODEL_FILE_KEY = 'model_file_name'
@@ -18,7 +19,8 @@ NEURON_INDICES_KEY = 'neuron_indices'
 IDEAL_ACTIVATION_KEY = 'ideal_activation'
 
 EXAMPLE_IDS_KEY = 'example_id_strings'
-SALIENCY_KEY = 'saliency_matrix'
+SCALAR_SALIENCY_KEY = 'scalar_saliency_matrix'
+VECTOR_SALIENCY_KEY = 'vector_saliency_matrix'
 
 
 def check_metadata(layer_name, neuron_indices, ideal_activation=None):
@@ -94,15 +96,21 @@ def get_saliency_one_neuron(
 
 
 def write_standard_file(
-        netcdf_file_name, saliency_matrix, example_id_strings, model_file_name,
-        layer_name, neuron_indices, ideal_activation=None):
+        netcdf_file_name, scalar_saliency_matrix, vector_saliency_matrix,
+        example_id_strings, model_file_name, layer_name, neuron_indices,
+        ideal_activation=None):
     """Writes standard (non-averaged) saliency maps to NetCDF file.
 
     E = number of examples
+    H = number of heights
+    P_s = number of scalar predictors
+    P_v = number of vector predictors
 
     :param netcdf_file_name: Path to output file.
-    :param saliency_matrix: numpy array (either 2-D or 3-D) of saliency values,
-        where the first axis has length E.
+    :param scalar_saliency_matrix: numpy array (E x P_s) with saliency values
+        for scalar predictors.
+    :param vector_saliency_matrix: numpy array (E x H x P_v) with saliency
+        values for vector predictors.
     :param example_id_strings: length-E list of example IDs.
     :param model_file_name: Path to file with neural net used to create saliency
         maps (readable by `neural_net.read_model`).
@@ -121,18 +129,28 @@ def write_standard_file(
     error_checking.assert_is_numpy_array(
         numpy.array(example_id_strings), num_dimensions=1
     )
-
-    error_checking.assert_is_numpy_array_without_nan(saliency_matrix)
-    num_saliency_dim = len(saliency_matrix.shape)
-    error_checking.assert_is_geq(num_saliency_dim, 2)
-    error_checking.assert_is_leq(num_saliency_dim, 3)
-
     num_examples = len(example_id_strings)
+
+    error_checking.assert_is_numpy_array_without_nan(scalar_saliency_matrix)
+    error_checking.assert_is_numpy_array(
+        scalar_saliency_matrix, num_dimensions=2
+    )
     expected_dim = numpy.array(
-        (num_examples,) + saliency_matrix.shape[1:], dtype=int
+        (num_examples,) + scalar_saliency_matrix.shape[1:], dtype=int
     )
     error_checking.assert_is_numpy_array(
-        saliency_matrix, exact_dimensions=expected_dim
+        scalar_saliency_matrix, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_numpy_array_without_nan(vector_saliency_matrix)
+    error_checking.assert_is_numpy_array(
+        vector_saliency_matrix, num_dimensions=3
+    )
+    expected_dim = numpy.array(
+        (num_examples,) + vector_saliency_matrix.shape[1:], dtype=int
+    )
+    error_checking.assert_is_numpy_array(
+        vector_saliency_matrix, exact_dimensions=expected_dim
     )
 
     error_checking.assert_is_string(model_file_name)
@@ -153,13 +171,14 @@ def write_standard_file(
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
     dataset_object.createDimension(
-        CHANNEL_DIMENSION_KEY, saliency_matrix.shape[-1]
+        SCALAR_PREDICTOR_DIM_KEY, scalar_saliency_matrix.shape[1]
     )
-
-    if num_saliency_dim == 3:
-        dataset_object.createDimension(
-            HEIGHT_DIMENSION_KEY, saliency_matrix.shape[1]
-        )
+    dataset_object.createDimension(
+        HEIGHT_DIMENSION_KEY, vector_saliency_matrix.shape[1]
+    )
+    dataset_object.createDimension(
+        VECTOR_PREDICTOR_DIM_KEY, vector_saliency_matrix.shape[2]
+    )
 
     if num_examples == 0:
         num_id_characters = 1
@@ -183,21 +202,20 @@ def write_standard_file(
         example_ids_char_array
     )
 
-    if num_saliency_dim == 2:
-        dataset_object.createVariable(
-            SALIENCY_KEY, datatype=numpy.float32,
-            dimensions=(EXAMPLE_DIMENSION_KEY, CHANNEL_DIMENSION_KEY)
-        )
-    else:
-        dataset_object.createVariable(
-            SALIENCY_KEY, datatype=numpy.float32,
-            dimensions=(
-                EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
-                CHANNEL_DIMENSION_KEY
-            )
-        )
+    dataset_object.createVariable(
+        SCALAR_SALIENCY_KEY, datatype=numpy.float32,
+        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY)
+    )
+    dataset_object.variables[SCALAR_SALIENCY_KEY][:] = scalar_saliency_matrix
 
-    dataset_object.variables[SALIENCY_KEY][:] = saliency_matrix
+    these_dim = (
+        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_PREDICTOR_DIM_KEY
+    )
+    dataset_object.createVariable(
+        VECTOR_SALIENCY_KEY, datatype=numpy.float32, dimensions=these_dim
+    )
+    dataset_object.variables[VECTOR_SALIENCY_KEY][:] = vector_saliency_matrix
+
     dataset_object.close()
 
 
@@ -206,7 +224,8 @@ def read_standard_file(netcdf_file_name):
 
     :param netcdf_file_name: Path to input file.
     :return: saliency_dict: Dictionary with the following keys.
-    saliency_dict['saliency_matrix']: See doc for `write_standard_file`.
+    saliency_dict['scalar_saliency_matrix']: See doc for `write_standard_file`.
+    saliency_dict['vector_saliency_matrix']: Same.
     saliency_dict['example_id_strings']: Same.
     saliency_dict['model_file_name']: Same.
     saliency_dict['layer_name']: Same.
@@ -217,7 +236,8 @@ def read_standard_file(netcdf_file_name):
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     saliency_dict = {
-        SALIENCY_KEY: dataset_object.variables[SALIENCY_KEY][:],
+        SCALAR_SALIENCY_KEY: dataset_object.variables[SCALAR_SALIENCY_KEY][:],
+        VECTOR_SALIENCY_KEY: dataset_object.variables[VECTOR_SALIENCY_KEY][:],
         EXAMPLE_IDS_KEY: [
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
@@ -229,8 +249,6 @@ def read_standard_file(netcdf_file_name):
         ),
         IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
     }
-
-    print(saliency_dict[IDEAL_ACTIVATION_KEY])
 
     if numpy.isnan(saliency_dict[IDEAL_ACTIVATION_KEY]):
         saliency_dict[IDEAL_ACTIVATION_KEY] = None
