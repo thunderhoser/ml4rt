@@ -182,15 +182,15 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     metadata_dict = neural_net.read_metafile(metafile_name)
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
-    }
-
     if is_layer_output:
+        dummy_example_dict = {
+            example_io.SCALAR_TARGET_NAMES_KEY:
+                generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+            example_io.VECTOR_TARGET_NAMES_KEY:
+                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+            example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        }
+
         target_field_name, target_height_m_agl = (
             neural_net.neuron_indices_to_target_var(
                 neuron_indices=neuron_indices,
@@ -239,6 +239,14 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         layer_name=layer_name, neuron_indices=neuron_indices,
         ideal_activation=ideal_activation
     )
+
+    dummy_example_dict = {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
 
     dummy_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=saliency_matrix, example_dict=dummy_example_dict,
