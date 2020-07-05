@@ -167,6 +167,8 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     metadata_dict = neural_net.read_metafile(metafile_name)
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
+    print(dir(model_object.get_layer(name=layer_name)))
+
     is_layer_output = (
         len(model_object.get_layer(name=layer_name).outbound_nodes) == 0
     )
