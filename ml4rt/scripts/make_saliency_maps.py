@@ -169,9 +169,9 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
 
     model_object.summary()
     print('\n\n\n')
-    print(dir(model_object.get_layer(name='conv1d_7')))
+    print(model_object.get_layer(name='conv1d_7').losses)
     print('\n\n\n')
-    print(dir(model_object.get_layer(name=layer_name)))
+    print(model_object.get_layer(name=layer_name).losses)
 
     is_layer_output = (
         len(model_object.get_layer(name=layer_name).outbound_nodes) == 0
