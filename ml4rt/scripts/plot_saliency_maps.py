@@ -147,18 +147,22 @@ def _plot_saliency_one_example(
     y_min = numpy.min(heights_km_agl)
     y_max = numpy.max(heights_km_agl)
 
-    these_x = numpy.array([0, 0])
-    these_y = numpy.array([y_min, y_max])
-    axes_object.plot(
-        these_x, these_y, color=REFERENCE_LINE_COLOUR,
-        linewidth=2, linestyle='dashed'
-    )
+    # these_x = numpy.array([0, 0])
+    # these_y = numpy.array([y_min, y_max])
+    # axes_object.plot(
+    #     these_x, these_y, color=REFERENCE_LINE_COLOUR,
+    #     linewidth=2, linestyle='dashed'
+    # )
 
     num_vector_predictors = len(vector_predictor_names)
     legend_handles = [None] * num_vector_predictors
     legend_strings = [None] * num_vector_predictors
 
     for k in range(num_vector_predictors):
+        print(vector_predictor_names[k])
+        print(vector_saliency_matrix[:, k])
+        print('\n\n')
+
         legend_handles[k] = axes_object.plot(
             vector_saliency_matrix[:, k], heights_km_agl,
             color=PREDICTOR_NAME_TO_COLOUR[vector_predictor_names[k]],
@@ -169,7 +173,7 @@ def _plot_saliency_one_example(
         legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[vector_predictor_names[k]]
 
     x_min = numpy.percentile(vector_saliency_matrix, 1)
-    x_max = numpy.percentile(vector_saliency_matrix, 99)
+    x_max = numpy.percentile(vector_saliency_matrix, 90)
     axes_object.set_xlim(x_min, x_max)
     axes_object.set_xlim(y_min, y_max)
 
