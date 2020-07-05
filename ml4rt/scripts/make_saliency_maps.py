@@ -10,6 +10,9 @@ from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
 
+# TODO(thunderhoser): The input arg `is_layer_output` is a HACK.  I can't find a
+# reasonable automated way to determine if a layer is output, because Keras.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 SENTINEL_VALUE = -123456.
 
@@ -18,6 +21,7 @@ EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
 EXAMPLE_INDICES_ARG_NAME = 'example_indices'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
 LAYER_ARG_NAME = 'layer_name'
+IS_LAYER_OUTPUT_ARG_NAME = 'is_layer_output'
 NEURON_INDICES_ARG_NAME = 'neuron_indices'
 IDEAL_ACTIVATION_ARG_NAME = 'ideal_activation'
 OUTPUT_FILE_ARG_NAME = 'output_saliency_file_name'
@@ -39,6 +43,11 @@ NUM_EXAMPLES_HELP_STRING = (
 ).format(EXAMPLE_INDICES_ARG_NAME)
 
 LAYER_HELP_STRING = 'See doc for `saliency.check_metadata`.'
+IS_LAYER_OUTPUT_HELP_STRING = (
+    'Boolean flag.  If 1, `{0:s}` is an output layer.  If 0, it is not an '
+    'output layer.'
+).format(LAYER_ARG_NAME)
+
 NEURON_INDICES_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 IDEAL_ACTIVATION_HELP_STRING = (
     'See doc for `saliency.check_metadata`.  For no ideal activation, leave '
@@ -67,6 +76,10 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + LAYER_ARG_NAME, type=str, required=True, help=LAYER_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + IS_LAYER_OUTPUT_ARG_NAME, type=int, required=True,
+    help=IS_LAYER_OUTPUT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NEURON_INDICES_ARG_NAME, type=int, nargs='+', required=True,
@@ -132,7 +145,8 @@ def _subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
 
 
 def _run(model_file_name, example_file_name, example_indices, num_examples,
-         layer_name, neuron_indices, ideal_activation, output_file_name):
+         layer_name, is_layer_output, neuron_indices, ideal_activation,
+         output_file_name):
     """Makes saliency map for each example, according to one model.
 
     This is effectively the main method.
@@ -142,6 +156,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     :param example_indices: Same.
     :param num_examples: Same.
     :param layer_name: Same.
+    :param is_layer_output: Same.
     :param neuron_indices: Same.
     :param ideal_activation: Same.
     :param output_file_name: Same.
@@ -167,15 +182,6 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     metadata_dict = neural_net.read_metafile(metafile_name)
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    model_object.summary()
-    print('\n\n\n')
-    print(model_object.get_layer(name='conv1d_7').losses)
-    print('\n\n\n')
-    print(model_object.get_layer(name=layer_name).losses)
-
-    is_layer_output = (
-        len(model_object.get_layer(name=layer_name).outbound_nodes) == 0
-    )
     dummy_example_dict = {
         example_io.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
@@ -268,6 +274,9 @@ if __name__ == '__main__':
         ),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         layer_name=getattr(INPUT_ARG_OBJECT, LAYER_ARG_NAME),
+        is_layer_output=bool(
+            getattr(INPUT_ARG_OBJECT, IS_LAYER_OUTPUT_ARG_NAME)
+        ),
         neuron_indices=numpy.array(
             getattr(INPUT_ARG_OBJECT, NEURON_INDICES_ARG_NAME), dtype=int
         ),
