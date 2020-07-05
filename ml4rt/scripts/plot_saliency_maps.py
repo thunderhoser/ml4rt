@@ -11,6 +11,7 @@ from ml4rt.io import prediction_io
 from ml4rt.io import example_io
 from ml4rt.machine_learning import saliency
 from ml4rt.machine_learning import neural_net
+from ml4rt.plotting import profile_plotting
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -124,6 +125,7 @@ def _plot_saliency_one_example(
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
+    axes_object.set_yscale('log')
 
     scalar_saliency_values = (
         saliency_dict[saliency.SCALAR_SALIENCY_KEY][example_index, :]
@@ -159,10 +161,6 @@ def _plot_saliency_one_example(
     legend_strings = [None] * num_vector_predictors
 
     for k in range(num_vector_predictors):
-        print(vector_predictor_names[k])
-        print(vector_saliency_matrix[:, k])
-        print('\n\n')
-
         legend_handles[k] = axes_object.plot(
             vector_saliency_matrix[:, k], heights_km_agl,
             color=PREDICTOR_NAME_TO_COLOUR[vector_predictor_names[k]],
@@ -173,11 +171,12 @@ def _plot_saliency_one_example(
         legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[vector_predictor_names[k]]
 
     x_min = numpy.percentile(vector_saliency_matrix, 1)
-    print(x_min)
     x_max = numpy.percentile(vector_saliency_matrix, 90)
-    print(x_max)
     axes_object.set_xlim(x_min, x_max)
-    axes_object.set_ylim(y_min, y_max)
+
+    axes_object.set_yticklabels(
+        profile_plotting.create_log_height_labels(axes_object.get_yticks())
+    )
 
     axes_object.set_xlabel('Saliency')
     axes_object.set_ylabel('Height (km AGL)')
