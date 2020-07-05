@@ -172,7 +172,7 @@ def _plot_saliency_one_example(
 
     x_min = numpy.percentile(vector_saliency_matrix, 1)
     x_max = numpy.percentile(vector_saliency_matrix, 90)
-    axes_object.set_xlim(x_min, x_max)
+    # axes_object.set_xlim(x_min, x_max)
 
     axes_object.set_yticklabels(
         profile_plotting.create_log_height_labels(axes_object.get_yticks())
