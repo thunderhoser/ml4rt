@@ -1067,7 +1067,7 @@ def train_model(
     )
 
     model_file_name = (
-        output_dir_name + '/model_epoch={epoch:02d}_val-loss={val_loss:.6f}.h5'
+        output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
     )
 
     checkpoint_object = keras.callbacks.ModelCheckpoint(

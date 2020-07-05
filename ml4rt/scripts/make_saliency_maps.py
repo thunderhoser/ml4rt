@@ -220,6 +220,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         dummy_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
 
+    print('Writing saliency maps to: "{0:s}"...'.format(output_file_name))
     saliency.write_standard_file(
         netcdf_file_name=output_file_name,
         scalar_saliency_matrix=scalar_saliency_matrix,

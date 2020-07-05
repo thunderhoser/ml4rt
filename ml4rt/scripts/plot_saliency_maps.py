@@ -252,10 +252,12 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
     ], dtype=int)
 
     actual_target_values = (
-        prediction_dict[prediction_io.SCALAR_TARGETS_KEY][these_indices, 0]
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][these_indices, 0, 0]
     )
     predicted_target_values = (
-        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][these_indices, 0]
+        prediction_dict[
+            prediction_io.VECTOR_PREDICTIONS_KEY
+        ][these_indices, 0, 0]
     )
 
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
