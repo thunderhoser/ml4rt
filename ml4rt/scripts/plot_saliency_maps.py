@@ -86,7 +86,8 @@ PREDICTION_FILE_HELP_STRING = (
     'Path to prediction file (will be read by `prediction_io.read_file`).  For '
     'each example in the saliency file, this script will find the predicted/'
     'actual target values in the prediction file and include these in the '
-    'legend of the saliency plot.'
+    'legend of the saliency plot.  If saliency file contains values for '
+    'non-output neuron, this file is not needed.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
@@ -98,7 +99,7 @@ INPUT_ARG_PARSER.add_argument(
     help=SALIENCY_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + PREDICTION_FILE_ARG_NAME, type=str, required=True,
+    '--' + PREDICTION_FILE_ARG_NAME, type=str, required=False, default='',
     help=PREDICTION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -107,17 +108,94 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _get_target_values(
+        prediction_file_name, model_metadata_dict, example_id_strings,
+        target_field_name, target_height_m_agl):
+    """Returns predicted and actual target values.
+
+    E = number of examples
+
+    :param prediction_file_name: See documentation at top of file.
+    :param model_metadata_dict: Dictionary returned by
+        `neural_net.read_metafile`.
+    :param example_id_strings: length-E list of example IDs.  Will return target
+        values only for these examples.
+    :param target_field_name: Name of target variable.
+    :param target_height_m_agl: Height of target variable (metres above ground
+        level).
+    :return: predicted_values: length-E numpy array of predicted target values.
+    :return: actual_values: length-E numpy array of actual target values.
+    """
+
+    print((
+        'Reading predicted and actual target values from: "{0:s}"...'
+    ).format(
+        prediction_file_name
+    ))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    example_indices = numpy.array([
+        prediction_dict[prediction_io.EXAMPLE_IDS_KEY].index(id)
+        for id in example_id_strings
+    ], dtype=int)
+
+    generator_option_dict = (
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
+
+    if target_height_m_agl is None:
+        scalar_target_names = (
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+        )
+        channel_index = scalar_target_names.index(target_field_name)
+
+        actual_values = (
+            prediction_dict[prediction_io.SCALAR_TARGETS_KEY][
+                example_indices, channel_index
+            ]
+        )
+        predicted_values = (
+            prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][
+                example_indices, channel_index
+            ]
+        )
+
+        return predicted_values, actual_values
+
+    vector_target_names = (
+        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+    )
+    channel_index = vector_target_names.index(target_field_name)
+
+    height_index = example_io._match_heights(
+        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY],
+        desired_height_m_agl=target_height_m_agl
+    )
+
+    actual_values = (
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][
+            example_indices, height_index, channel_index
+        ]
+    )
+    predicted_values = (
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][
+            example_indices, height_index, channel_index
+        ]
+    )
+
+    return predicted_values, actual_values
+
+
 def _plot_saliency_one_example(
-        saliency_dict, example_index, model_metadata_dict,
-        predicted_target_value, actual_target_value, output_dir_name):
+        saliency_dict, example_index, model_metadata_dict, title_suffix,
+        output_dir_name):
     """Plots saliency map for one example.
 
     :param saliency_dict: Dictionary read by `saliency.read_standard_file`.
     :param example_index: Will plot saliency map for example with this array
         index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
-    :param predicted_target_value: Predicted target value.
-    :param actual_target_value: Actual target value.
+    :param title_suffix: End of figure title.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
@@ -146,9 +224,9 @@ def _plot_saliency_one_example(
         generator_option_dict[neural_net.HEIGHTS_KEY]
     )
 
-    y_min = numpy.min(heights_km_agl)
-    y_max = numpy.max(heights_km_agl)
-
+    # y_min = numpy.min(heights_km_agl)
+    # y_max = numpy.max(heights_km_agl)
+    #
     # these_x = numpy.array([0, 0])
     # these_y = numpy.array([y_min, y_max])
     # axes_object.plot(
@@ -170,8 +248,8 @@ def _plot_saliency_one_example(
 
         legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[vector_predictor_names[k]]
 
-    x_min = numpy.percentile(vector_saliency_matrix, 1)
-    x_max = numpy.percentile(vector_saliency_matrix, 90)
+    # x_min = numpy.percentile(vector_saliency_matrix, 1)
+    # x_max = numpy.percentile(vector_saliency_matrix, 90)
     # axes_object.set_xlim(x_min, x_max)
 
     axes_object.set_yticklabels(
@@ -202,10 +280,7 @@ def _plot_saliency_one_example(
             scalar_predictor_names[k], scalar_saliency_values[k]
         )
 
-    title_string += (
-        '\nactual and predicted target values = {0:.2f}, {1:.2f}'
-    ).format(actual_target_value, predicted_target_value)
-
+    title_string += title_suffix
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
     output_file_name = '{0:s}/{1:s}.jpg'.format(
@@ -237,44 +312,53 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
     print('Reading saliency values from: "{0:s}"...'.format(saliency_file_name))
     saliency_dict = saliency.read_standard_file(saliency_file_name)
 
+    target_field_name = saliency_dict[saliency.TARGET_FIELD_KEY]
+    target_height_m_agl = saliency_dict[saliency.TARGET_HEIGHT_KEY]
     example_id_strings = saliency_dict[saliency.EXAMPLE_IDS_KEY]
     model_file_name = saliency_dict[saliency.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0]
     )
 
-    print('Reading predicted and actual target values from: "{0:s}"...'.format(
-        prediction_file_name
-    ))
-    prediction_dict = prediction_io.read_file(prediction_file_name)
-
-    # TODO(thunderhoser): Need to find the right target variable as well.
-    these_indices = numpy.array([
-        prediction_dict[prediction_io.EXAMPLE_IDS_KEY].index(id)
-        for id in example_id_strings
-    ], dtype=int)
-
-    actual_target_values = (
-        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][these_indices, 0, 0]
-    )
-    predicted_target_values = (
-        prediction_dict[
-            prediction_io.VECTOR_PREDICTIONS_KEY
-        ][these_indices, 0, 0]
-    )
-
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    num_examples = len(example_id_strings)
+
+    if target_field_name is None:
+        predicted_target_values = [None] * num_examples
+        actual_target_values = [None] * num_examples
+    else:
+        predicted_target_values, actual_target_values = _get_target_values(
+            prediction_file_name=prediction_file_name,
+            model_metadata_dict=model_metadata_dict,
+            example_id_strings=example_id_strings,
+            target_field_name=target_field_name,
+            target_height_m_agl=target_height_m_agl
+        )
 
     print(SEPARATOR_STRING)
 
     for k in range(len(example_id_strings)):
+        if target_field_name is None:
+            this_title_suffix = ''
+        else:
+            this_title_suffix = '\nactual and predicted {0:s}'.format(
+                target_field_name
+            )
+
+            if target_height_m_agl is not None:
+                this_title_suffix += ' at {0:f} km AGL'.format(
+                    METRES_TO_KM * target_height_m_agl
+                )
+
+            this_title_suffix += ' = {0:.2f}, {1:.2f}'.format(
+                actual_target_values[k], predicted_target_values[k]
+            )
+
         _plot_saliency_one_example(
             saliency_dict=saliency_dict, example_index=k,
             model_metadata_dict=model_metadata_dict,
-            predicted_target_value=predicted_target_values[k],
-            actual_target_value=actual_target_values[k],
-            output_dir_name=output_dir_name
+            title_suffix=this_title_suffix, output_dir_name=output_dir_name
         )
 
 
