@@ -451,52 +451,58 @@ def write_all_targets_file(
         example_ids_char_array
     )
 
-    these_dim = (
-        EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY, SCALAR_TARGET_DIM_KEY
-    )
-    dataset_object.createVariable(
-        SALIENCY_SCALAR_P_SCALAR_T_KEY, datatype=numpy.float32,
-        dimensions=these_dim
-    )
-    dataset_object.variables[SALIENCY_SCALAR_P_SCALAR_T_KEY][:] = (
-        saliency_matrix_scalar_p_scalar_t
-    )
+    if saliency_matrix_scalar_p_scalar_t.size > 0:
+        these_dim = (
+            EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY,
+            SCALAR_TARGET_DIM_KEY
+        )
+        dataset_object.createVariable(
+            SALIENCY_SCALAR_P_SCALAR_T_KEY, datatype=numpy.float32,
+            dimensions=these_dim
+        )
+        dataset_object.variables[SALIENCY_SCALAR_P_SCALAR_T_KEY][:] = (
+            saliency_matrix_scalar_p_scalar_t
+        )
 
-    these_dim = (
-        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_PREDICTOR_DIM_KEY,
-        SCALAR_TARGET_DIM_KEY
-    )
-    dataset_object.createVariable(
-        SALIENCY_VECTOR_P_SCALAR_T_KEY, datatype=numpy.float32,
-        dimensions=these_dim
-    )
-    dataset_object.variables[SALIENCY_VECTOR_P_SCALAR_T_KEY][:] = (
-        saliency_matrix_vector_p_scalar_t
-    )
+    if saliency_matrix_vector_p_scalar_t.size > 0:
+        these_dim = (
+            EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+            VECTOR_PREDICTOR_DIM_KEY, SCALAR_TARGET_DIM_KEY
+        )
+        dataset_object.createVariable(
+            SALIENCY_VECTOR_P_SCALAR_T_KEY, datatype=numpy.float32,
+            dimensions=these_dim
+        )
+        dataset_object.variables[SALIENCY_VECTOR_P_SCALAR_T_KEY][:] = (
+            saliency_matrix_vector_p_scalar_t
+        )
 
-    these_dim = (
-        EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY, HEIGHT_DIMENSION_KEY,
-        VECTOR_TARGET_DIM_KEY
-    )
-    dataset_object.createVariable(
-        SALIENCY_SCALAR_P_VECTOR_T_KEY, datatype=numpy.float32,
-        dimensions=these_dim
-    )
-    dataset_object.variables[SALIENCY_SCALAR_P_VECTOR_T_KEY][:] = (
-        saliency_matrix_scalar_p_vector_t
-    )
+    if saliency_matrix_scalar_p_vector_t.size > 0:
+        these_dim = (
+            EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY,
+            HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIM_KEY
+        )
+        dataset_object.createVariable(
+            SALIENCY_SCALAR_P_VECTOR_T_KEY, datatype=numpy.float32,
+            dimensions=these_dim
+        )
+        dataset_object.variables[SALIENCY_SCALAR_P_VECTOR_T_KEY][:] = (
+            saliency_matrix_scalar_p_vector_t
+        )
 
-    these_dim = (
-        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_PREDICTOR_DIM_KEY,
-        HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIM_KEY
-    )
-    dataset_object.createVariable(
-        SALIENCY_VECTOR_P_VECTOR_T_KEY, datatype=numpy.float32,
-        dimensions=these_dim
-    )
-    dataset_object.variables[SALIENCY_VECTOR_P_VECTOR_T_KEY][:] = (
-        saliency_matrix_vector_p_vector_t
-    )
+    if saliency_matrix_vector_p_vector_t.size > 0:
+        these_dim = (
+            EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+            VECTOR_PREDICTOR_DIM_KEY, HEIGHT_DIMENSION_KEY,
+            VECTOR_TARGET_DIM_KEY
+        )
+        dataset_object.createVariable(
+            SALIENCY_VECTOR_P_VECTOR_T_KEY, datatype=numpy.float32,
+            dimensions=these_dim
+        )
+        dataset_object.variables[SALIENCY_VECTOR_P_VECTOR_T_KEY][:] = (
+            saliency_matrix_vector_p_vector_t
+        )
 
     dataset_object.close()
 
@@ -519,14 +525,6 @@ def read_all_targets_file(netcdf_file_name):
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     saliency_dict = {
-        SALIENCY_SCALAR_P_SCALAR_T_KEY:
-            dataset_object.variables[SALIENCY_SCALAR_P_SCALAR_T_KEY][:],
-        SALIENCY_VECTOR_P_SCALAR_T_KEY:
-            dataset_object.variables[SALIENCY_VECTOR_P_SCALAR_T_KEY][:],
-        SALIENCY_SCALAR_P_VECTOR_T_KEY:
-            dataset_object.variables[SALIENCY_SCALAR_P_VECTOR_T_KEY][:],
-        SALIENCY_VECTOR_P_VECTOR_T_KEY:
-            dataset_object.variables[SALIENCY_VECTOR_P_VECTOR_T_KEY][:],
         EXAMPLE_IDS_KEY: [
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
@@ -534,6 +532,60 @@ def read_all_targets_file(netcdf_file_name):
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY)),
         IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
     }
+
+    num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY]
+    num_scalar_predictors = dataset_object.dimensions[SCALAR_PREDICTOR_DIM_KEY]
+    num_vector_predictors = dataset_object.dimensions[VECTOR_PREDICTOR_DIM_KEY]
+    num_heights = dataset_object.dimensions[HEIGHT_DIMENSION_KEY]
+    num_scalar_targets = dataset_object.dimensions[SCALAR_TARGET_DIM_KEY]
+    num_vector_targets = dataset_object.dimensions[VECTOR_TARGET_DIM_KEY]
+
+    if SALIENCY_SCALAR_P_SCALAR_T_KEY in dataset_object.variables:
+        saliency_dict[SALIENCY_SCALAR_P_SCALAR_T_KEY] = (
+            dataset_object.variables[SALIENCY_SCALAR_P_SCALAR_T_KEY][:]
+        )
+    else:
+        these_dim = (num_examples, num_scalar_predictors, num_scalar_targets)
+        saliency_dict[SALIENCY_SCALAR_P_SCALAR_T_KEY] = numpy.full(
+            these_dim, 0.
+        )
+
+    if SALIENCY_VECTOR_P_SCALAR_T_KEY in dataset_object.variables:
+        saliency_dict[SALIENCY_VECTOR_P_SCALAR_T_KEY] = (
+            dataset_object.variables[SALIENCY_VECTOR_P_SCALAR_T_KEY][:]
+        )
+    else:
+        these_dim = (
+            num_examples, num_heights, num_vector_predictors, num_scalar_targets
+        )
+        saliency_dict[SALIENCY_VECTOR_P_SCALAR_T_KEY] = numpy.full(
+            these_dim, 0.
+        )
+
+    if SALIENCY_SCALAR_P_VECTOR_T_KEY in dataset_object.variables:
+        saliency_dict[SALIENCY_SCALAR_P_VECTOR_T_KEY] = (
+            dataset_object.variables[SALIENCY_SCALAR_P_VECTOR_T_KEY][:]
+        )
+    else:
+        these_dim = (
+            num_examples, num_scalar_predictors, num_heights, num_vector_targets
+        )
+        saliency_dict[SALIENCY_SCALAR_P_VECTOR_T_KEY] = numpy.full(
+            these_dim, 0.
+        )
+
+    if SALIENCY_VECTOR_P_VECTOR_T_KEY in dataset_object.variables:
+        saliency_dict[SALIENCY_VECTOR_P_VECTOR_T_KEY] = (
+            dataset_object.variables[SALIENCY_VECTOR_P_VECTOR_T_KEY][:]
+        )
+    else:
+        these_dim = (
+            num_examples, num_heights, num_vector_predictors,
+            num_heights, num_vector_targets
+        )
+        saliency_dict[SALIENCY_VECTOR_P_VECTOR_T_KEY] = numpy.full(
+            these_dim, 0.
+        )
 
     if numpy.isnan(saliency_dict[IDEAL_ACTIVATION_KEY]):
         saliency_dict[IDEAL_ACTIVATION_KEY] = None
