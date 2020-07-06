@@ -410,15 +410,12 @@ def _plot_saliency_one_example(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
-            print(saliency_matrix_vector_p_vector_t[:, j, :, k].shape)
-            print(saliency_matrix_vector_p_vector_t[:, j, :, k])
-            print('\n\n\n********\n\n\n')
-
             max_colour_value = numpy.percentile(
                 saliency_matrix_vector_p_vector_t[:, j, :, k],
                 max_colour_percentile
             )
             min_colour_value = -1 * max_colour_value
+            saliency_matrix_vector_p_vector_t[0, j, 72, k] = 10.
 
             axes_object.imshow(
                 numpy.transpose(saliency_matrix_vector_p_vector_t[:, j, :, k]),
