@@ -191,24 +191,30 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         ideal_activation=ideal_activation
     )
 
-    dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
-    }
+    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
-    dummy_example_dict = neural_net.predictors_numpy_to_dict(
-        predictor_matrix=saliency_matrix, example_dict=dummy_example_dict,
-        net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
-    )
-    scalar_saliency_matrix = (
-        dummy_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-    )
-    vector_saliency_matrix = (
-        dummy_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
-    )
+    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+        dummy_example_dict = {
+            example_io.SCALAR_PREDICTOR_NAMES_KEY:
+                generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+            example_io.VECTOR_PREDICTOR_NAMES_KEY:
+                generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+            example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        }
+
+        dummy_example_dict = neural_net.predictors_numpy_to_dict(
+            predictor_matrix=saliency_matrix, example_dict=dummy_example_dict,
+            net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
+        )
+        scalar_saliency_matrix = (
+            dummy_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        )
+        vector_saliency_matrix = (
+            dummy_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        )
+    else:
+        scalar_saliency_matrix = numpy.full((len(example_id_strings), 0), 0.)
+        vector_saliency_matrix = saliency_matrix
 
     print('Writing saliency maps to: "{0:s}"...'.format(output_file_name))
     saliency.write_standard_file(
