@@ -213,8 +213,11 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             dummy_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
         )
     else:
-        scalar_saliency_matrix = numpy.full((len(example_id_strings), 0), 0.)
-        vector_saliency_matrix = saliency_matrix
+        num_scalar_predictors = len(
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY]
+        )
+        scalar_saliency_matrix = saliency_matrix[..., -num_scalar_predictors:]
+        vector_saliency_matrix = saliency_matrix[..., :-num_scalar_predictors]
 
     print('Writing saliency maps to: "{0:s}"...'.format(output_file_name))
     saliency.write_standard_file(

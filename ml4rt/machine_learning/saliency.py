@@ -1,5 +1,6 @@
 """Methods for computing, reading, and writing saliency maps."""
 
+import os.path
 import numpy
 import netCDF4
 from keras import backend as K
@@ -7,6 +8,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import saliency_maps as saliency_utils
 from ml4rt.io import example_io
+from ml4rt.machine_learning import neural_net
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
@@ -117,8 +119,9 @@ def write_standard_file(
     P_v = number of vector predictors
 
     :param netcdf_file_name: Path to output file.
-    :param scalar_saliency_matrix: numpy array (E x P_s) with saliency values
-        for scalar predictors.
+    :param scalar_saliency_matrix: numpy array with saliency values for scalar
+        predictors.  If neural-net type is dense, this array should be E x P_s.
+        Otherwise, this array should be E x H x P_s.
     :param vector_saliency_matrix: numpy array (E x H x P_v) with saliency
         values for vector predictors.
     :param example_id_strings: length-E list of example IDs.
@@ -146,17 +149,6 @@ def write_standard_file(
     )
     num_examples = len(example_id_strings)
 
-    error_checking.assert_is_numpy_array_without_nan(scalar_saliency_matrix)
-    error_checking.assert_is_numpy_array(
-        scalar_saliency_matrix, num_dimensions=2
-    )
-    expected_dim = numpy.array(
-        (num_examples,) + scalar_saliency_matrix.shape[1:], dtype=int
-    )
-    error_checking.assert_is_numpy_array(
-        scalar_saliency_matrix, exact_dimensions=expected_dim
-    )
-
     error_checking.assert_is_numpy_array_without_nan(vector_saliency_matrix)
     error_checking.assert_is_numpy_array(
         vector_saliency_matrix, num_dimensions=3
@@ -166,6 +158,26 @@ def write_standard_file(
     )
     error_checking.assert_is_numpy_array(
         vector_saliency_matrix, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_numpy_array_without_nan(scalar_saliency_matrix)
+    num_scalar_dim = len(scalar_saliency_matrix.shape)
+    error_checking.assert_is_geq(num_scalar_dim, 2)
+    error_checking.assert_is_leq(num_scalar_dim, 3)
+
+    if num_scalar_dim == 2 or vector_saliency_matrix.size == 0:
+        expected_dim = numpy.array(
+            (num_examples,) + scalar_saliency_matrix.shape[1:], dtype=int
+        )
+    else:
+        num_heights = vector_saliency_matrix.shape[1]
+        num_scalar_predictors = scalar_saliency_matrix.shape[2]
+        expected_dim = numpy.array(
+            [num_examples, num_heights, num_scalar_predictors], dtype=int
+        )
+
+    error_checking.assert_is_numpy_array(
+        scalar_saliency_matrix, exact_dimensions=expected_dim
     )
 
     error_checking.assert_is_string(model_file_name)
@@ -203,7 +215,7 @@ def write_standard_file(
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
     dataset_object.createDimension(
-        SCALAR_PREDICTOR_DIM_KEY, scalar_saliency_matrix.shape[1]
+        SCALAR_PREDICTOR_DIM_KEY, scalar_saliency_matrix.shape[-1]
     )
     dataset_object.createDimension(
         HEIGHT_DIMENSION_KEY, vector_saliency_matrix.shape[1]
@@ -234,19 +246,37 @@ def write_standard_file(
         example_ids_char_array
     )
 
-    dataset_object.createVariable(
-        SCALAR_SALIENCY_KEY, datatype=numpy.float32,
-        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY)
-    )
-    dataset_object.variables[SCALAR_SALIENCY_KEY][:] = scalar_saliency_matrix
+    if scalar_saliency_matrix.size > 0:
+        if num_scalar_dim == 2:
+            dataset_object.createVariable(
+                SCALAR_SALIENCY_KEY, datatype=numpy.float32,
+                dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY)
+            )
+        else:
+            these_dim = (
+                EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+                SCALAR_PREDICTOR_DIM_KEY
+            )
+            dataset_object.createVariable(
+                SCALAR_SALIENCY_KEY, datatype=numpy.float32,
+                dimensions=these_dim
+            )
 
-    these_dim = (
-        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_PREDICTOR_DIM_KEY
-    )
-    dataset_object.createVariable(
-        VECTOR_SALIENCY_KEY, datatype=numpy.float32, dimensions=these_dim
-    )
-    dataset_object.variables[VECTOR_SALIENCY_KEY][:] = vector_saliency_matrix
+        dataset_object.variables[SCALAR_SALIENCY_KEY][:] = (
+            scalar_saliency_matrix
+        )
+
+    if vector_saliency_matrix.size > 0:
+        these_dim = (
+            EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+            VECTOR_PREDICTOR_DIM_KEY
+        )
+        dataset_object.createVariable(
+            VECTOR_SALIENCY_KEY, datatype=numpy.float32, dimensions=these_dim
+        )
+        dataset_object.variables[VECTOR_SALIENCY_KEY][:] = (
+            vector_saliency_matrix
+        )
 
     dataset_object.close()
 
@@ -270,8 +300,6 @@ def read_standard_file(netcdf_file_name):
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     saliency_dict = {
-        SCALAR_SALIENCY_KEY: dataset_object.variables[SCALAR_SALIENCY_KEY][:],
-        VECTOR_SALIENCY_KEY: dataset_object.variables[VECTOR_SALIENCY_KEY][:],
         EXAMPLE_IDS_KEY: [
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
@@ -292,6 +320,41 @@ def read_standard_file(netcdf_file_name):
         saliency_dict[TARGET_FIELD_KEY] = None
     if saliency_dict[TARGET_HEIGHT_KEY] < 0:
         saliency_dict[TARGET_HEIGHT_KEY] = None
+
+    num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY].size
+    num_scalar_predictors = (
+        dataset_object.dimensions[SCALAR_PREDICTOR_DIM_KEY].size
+    )
+    num_vector_predictors = (
+        dataset_object.dimensions[VECTOR_PREDICTOR_DIM_KEY].size
+    )
+    num_heights = dataset_object.dimensions[HEIGHT_DIMENSION_KEY].size
+
+    if SCALAR_SALIENCY_KEY in dataset_object.variables:
+        saliency_dict[SCALAR_SALIENCY_KEY] = (
+            dataset_object.variables[SCALAR_SALIENCY_KEY][:]
+        )
+    else:
+        model_metafile_name = neural_net.find_metafile(
+            model_dir_name=os.path.split(saliency_dict[MODEL_FILE_KEY])[0]
+        )
+        model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+        net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+
+        if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+            these_dim = (num_examples, num_scalar_predictors)
+        else:
+            these_dim = (num_examples, num_heights, num_scalar_predictors)
+
+        saliency_dict[SCALAR_SALIENCY_KEY] = numpy.full(these_dim, 0.)
+
+    if VECTOR_SALIENCY_KEY in dataset_object.variables:
+        saliency_dict[VECTOR_SALIENCY_KEY] = (
+            dataset_object.variables[VECTOR_SALIENCY_KEY][:]
+        )
+    else:
+        these_dim = (num_examples, num_heights, num_vector_predictors)
+        saliency_dict[VECTOR_SALIENCY_KEY] = numpy.full(these_dim, 0.)
 
     dataset_object.close()
     return saliency_dict

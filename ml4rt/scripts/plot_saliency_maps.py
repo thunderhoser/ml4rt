@@ -26,7 +26,13 @@ PREDICTOR_NAME_TO_COLOUR = {
     example_io.SPECIFIC_HUMIDITY_NAME: ORANGE_COLOUR,
     example_io.PRESSURE_NAME: PURPLE_COLOUR,
     example_io.LIQUID_WATER_CONTENT_NAME: GREEN_COLOUR,
-    example_io.ICE_WATER_CONTENT_NAME: GREEN_COLOUR
+    example_io.ICE_WATER_CONTENT_NAME: GREEN_COLOUR,
+    example_io.ZENITH_ANGLE_NAME: ORANGE_COLOUR,
+    example_io.ALBEDO_NAME: ORANGE_COLOUR,
+    example_io.LATITUDE_NAME: PURPLE_COLOUR,
+    example_io.LONGITUDE_NAME: PURPLE_COLOUR,
+    example_io.LIQUID_WATER_PATH_NAME: GREEN_COLOUR,
+    example_io.ICE_WATER_PATH_NAME: GREEN_COLOUR
 }
 
 PREDICTOR_NAME_TO_LINE_STYLE = {
@@ -34,7 +40,13 @@ PREDICTOR_NAME_TO_LINE_STYLE = {
     example_io.SPECIFIC_HUMIDITY_NAME: 'dashed',
     example_io.PRESSURE_NAME: 'solid',
     example_io.LIQUID_WATER_CONTENT_NAME: 'solid',
-    example_io.ICE_WATER_CONTENT_NAME: 'dashed'
+    example_io.ICE_WATER_CONTENT_NAME: 'dashed',
+    example_io.ZENITH_ANGLE_NAME: 'solid',
+    example_io.ALBEDO_NAME: 'dashed',
+    example_io.LATITUDE_NAME: 'solid',
+    example_io.LONGITUDE_NAME: 'dashed',
+    example_io.LIQUID_WATER_PATH_NAME: 'solid',
+    example_io.ICE_WATER_PATH_NAME: 'dashed'
 }
 
 PREDICTOR_NAME_TO_LINE_WIDTH = {
@@ -42,7 +54,13 @@ PREDICTOR_NAME_TO_LINE_WIDTH = {
     example_io.SPECIFIC_HUMIDITY_NAME: 4,
     example_io.PRESSURE_NAME: 2,
     example_io.LIQUID_WATER_CONTENT_NAME: 2,
-    example_io.ICE_WATER_CONTENT_NAME: 4
+    example_io.ICE_WATER_CONTENT_NAME: 4,
+    example_io.ZENITH_ANGLE_NAME: 4,
+    example_io.ALBEDO_NAME: 2,
+    example_io.LATITUDE_NAME: 4,
+    example_io.LONGITUDE_NAME: 2,
+    example_io.LIQUID_WATER_PATH_NAME: 4,
+    example_io.ICE_WATER_PATH_NAME: 2
 }
 
 PREDICTOR_NAME_TO_VERBOSE = {
@@ -205,8 +223,8 @@ def _plot_saliency_one_example(
     )
     axes_object.set_yscale('log')
 
-    scalar_saliency_values = (
-        saliency_dict[saliency.SCALAR_SALIENCY_KEY][example_index, :]
+    scalar_saliency_matrix = (
+        saliency_dict[saliency.SCALAR_SALIENCY_KEY][example_index, ...]
     )
     vector_saliency_matrix = (
         saliency_dict[saliency.VECTOR_SALIENCY_KEY][example_index, ...]
@@ -223,16 +241,6 @@ def _plot_saliency_one_example(
     heights_km_agl = METRES_TO_KM * (
         generator_option_dict[neural_net.HEIGHTS_KEY]
     )
-
-    # y_min = numpy.min(heights_km_agl)
-    # y_max = numpy.max(heights_km_agl)
-    #
-    # these_x = numpy.array([0, 0])
-    # these_y = numpy.array([y_min, y_max])
-    # axes_object.plot(
-    #     these_x, these_y, color=REFERENCE_LINE_COLOUR,
-    #     linewidth=2, linestyle='dashed'
-    # )
 
     num_vector_predictors = len(vector_predictor_names)
     legend_handles = [None] * num_vector_predictors
@@ -266,25 +274,78 @@ def _plot_saliency_one_example(
         facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
     )
 
+    num_scalar_dim = len(scalar_saliency_matrix.shape)
     num_scalar_predictors = len(scalar_predictor_names)
     title_string = ''
 
-    for k in range(num_scalar_predictors):
-        if k == 3:
-            title_string += '\n'
-        elif k == 0:
-            pass
-        else:
-            title_string += ' ... '
+    if num_scalar_dim == 1:
+        for k in range(num_scalar_predictors):
+            if k == 3:
+                title_string += '\n'
+            elif k == 0:
+                pass
+            else:
+                title_string += ' ... '
 
-        title_string += '{0:s}: {1:.2f}'.format(
-            scalar_predictor_names[k], scalar_saliency_values[k]
-        )
+            title_string += '{0:s}: {1:.2f}'.format(
+                scalar_predictor_names[k], scalar_saliency_matrix[k]
+            )
 
-    title_string += title_suffix
+        title_string += '\n' + title_suffix
+    else:
+        title_string = title_suffix[0].upper() + title_suffix[1:]
+
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
-    output_file_name = '{0:s}/{1:s}.jpg'.format(
+    output_file_name = '{0:s}/{1:s}_vector-predictors.jpg'.format(
+        output_dir_name, example_id_string.replace('_', '-')
+    )
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    if num_scalar_dim == 1:
+        return
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    axes_object.set_yscale('log')
+
+    num_scalar_predictors = len(scalar_predictor_names)
+    legend_handles = [None] * num_vector_predictors
+    legend_strings = [None] * num_vector_predictors
+
+    for k in range(num_scalar_predictors):
+        legend_handles[k] = axes_object.plot(
+            scalar_saliency_matrix[:, k], heights_km_agl,
+            color=PREDICTOR_NAME_TO_COLOUR[scalar_predictor_names[k]],
+            linewidth=PREDICTOR_NAME_TO_LINE_WIDTH[scalar_predictor_names[k]],
+            linestyle=PREDICTOR_NAME_TO_LINE_STYLE[scalar_predictor_names[k]]
+        )[0]
+
+        legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[scalar_predictor_names[k]]
+
+    y_tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=axes_object.get_yticks(), use_log_scale=True
+    )
+    axes_object.set_yticklabels(y_tick_strings)
+
+    axes_object.set_xlabel('Saliency')
+    axes_object.set_ylabel('Height (km AGL)')
+
+    axes_object.legend(
+        legend_handles, legend_strings, loc='upper left',
+        bbox_to_anchor=(0, 1), fancybox=True, shadow=False,
+        facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
+    )
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+
+    output_file_name = '{0:s}/{1:s}_scalar-predictors.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
     )
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
@@ -343,7 +404,7 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
         if target_field_name is None:
             this_title_suffix = ''
         else:
-            this_title_suffix = '\nactual and predicted {0:s}'.format(
+            this_title_suffix = 'actual and predicted {0:s}'.format(
                 target_field_name
             )
 
