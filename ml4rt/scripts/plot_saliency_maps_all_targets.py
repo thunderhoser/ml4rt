@@ -183,6 +183,7 @@ def _plot_saliency_one_example(
         max_colour_value = numpy.percentile(
             saliency_matrix_scalar_p_scalar_t, max_colour_percentile
         )
+        max_colour_value = numpy.maximum(max_colour_value, 0.001)
         min_colour_value = -1 * max_colour_value
 
         axes_object.imshow(
@@ -229,7 +230,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
-            padding=0.1 if orientation_string == 'horizontal' else 0.01,
+            padding=0.125 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -264,6 +265,7 @@ def _plot_saliency_one_example(
         max_colour_value = numpy.percentile(
             saliency_matrix_vector_p_scalar_t[..., k], max_colour_percentile
         )
+        max_colour_value = numpy.maximum(max_colour_value, 0.001)
         min_colour_value = -1 * max_colour_value
 
         axes_object.imshow(
@@ -305,7 +307,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
-            padding=0.1 if orientation_string == 'horizontal' else 0.01,
+            padding=0.125 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -341,6 +343,7 @@ def _plot_saliency_one_example(
         max_colour_value = numpy.percentile(
             saliency_matrix_scalar_p_vector_t[..., k], max_colour_percentile
         )
+        max_colour_value = numpy.maximum(max_colour_value, 0.001)
         min_colour_value = -1 * max_colour_value
 
         axes_object.imshow(
@@ -383,7 +386,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
-            padding=0.1 if orientation_string == 'horizontal' else 0.01,
+            padding=0.125 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -421,6 +424,7 @@ def _plot_saliency_one_example(
                 saliency_matrix_vector_p_vector_t[:, j, :, k],
                 max_colour_percentile
             )
+            max_colour_value = numpy.maximum(max_colour_value, 0.001)
             min_colour_value = -1 * max_colour_value
 
             axes_object.imshow(
@@ -456,7 +460,7 @@ def _plot_saliency_one_example(
                 data_matrix=saliency_matrix_vector_p_vector_t[:, j, :, k],
                 colour_map_object=colour_map_object,
                 min_value=min_colour_value, max_value=max_colour_value,
-                orientation_string='horizontal', padding=0.1,
+                orientation_string='horizontal', padding=0.125,
                 extend_min=True, extend_max=True,
                 fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
             )
