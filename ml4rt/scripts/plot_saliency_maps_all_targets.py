@@ -386,7 +386,7 @@ def _run(saliency_file_name, colour_map_name, max_colour_percentile,
     )
 
     print('Reading saliency values from: "{0:s}"...'.format(saliency_file_name))
-    saliency_dict = saliency.read_standard_file(saliency_file_name)
+    saliency_dict = saliency.read_all_targets_file(saliency_file_name)
 
     model_file_name = saliency_dict[saliency.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
