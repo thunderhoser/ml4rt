@@ -68,18 +68,21 @@ def _make_spines_invisible(axes_object):
         this_spine_object.set_visible(False)
 
 
-def create_log_height_labels(tick_values_km_agl):
-    """Creates labels for logarithmic height axis.
+def create_height_labels(tick_values_km_agl, use_log_scale):
+    """Creates labels for height axis.
 
     H = number of tick values
 
     :param tick_values_km_agl: length-H numpy array of tick values (km above
         ground level).
+    :param use_log_scale: Boolean flag.  If True, will assume that height axis is
+        logarithmic.
     :return: tick_strings: length-H list of text labels.
     """
 
     error_checking.assert_is_greater_numpy_array(tick_values_km_agl, 0.)
     error_checking.assert_is_numpy_array(tick_values_km_agl, num_dimensions=1)
+    error_checking.assert_is_boolean(use_log_scale)
 
     num_ticks = len(tick_values_km_agl)
     tick_strings = ['foo'] * num_ticks
@@ -93,6 +96,9 @@ def create_log_height_labels(tick_values_km_agl):
             this_num_decimal_places = 1
         else:
             this_num_decimal_places = numpy.absolute(this_order_of_magnitude)
+
+            if not use_log_scale:
+                this_num_decimal_places += 1
 
         this_format_string = (
             '{0:.' + '{0:d}'.format(this_num_decimal_places) + 'f}'
@@ -226,10 +232,11 @@ def plot_predictors(
             numpy.min(heights_km_agl), numpy.max(heights_km_agl)
         ])
 
-        if use_log_scale:
-            temperature_axes_object.set_yticklabels(
-                create_log_height_labels(temperature_axes_object.get_yticks())
-            )
+        height_strings = create_height_labels(
+            tick_values_km_agl=temperature_axes_object.get_yticks(),
+            use_log_scale=use_log_scale
+        )
+        temperature_axes_object.set_yticklabels(height_strings)
 
         temperature_axes_object.xaxis.label.set_color(TEMPERATURE_COLOUR)
         humidity_axes_object.xaxis.label.set_color(HUMIDITY_COLOUR)
@@ -354,10 +361,11 @@ def plot_targets(
             numpy.min(heights_km_agl), numpy.max(heights_km_agl)
         ])
 
-        if use_log_scale:
-            heating_rate_axes_object.set_yticklabels(
-                create_log_height_labels(heating_rate_axes_object.get_yticks())
-            )
+        height_strings = create_height_labels(
+            tick_values_km_agl=heating_rate_axes_object.get_yticks(),
+            use_log_scale=use_log_scale
+        )
+        heating_rate_axes_object.set_yticklabels(height_strings)
 
         heating_rate_axes_object.xaxis.label.set_color(HEATING_RATE_COLOUR)
         down_flux_axes_object.xaxis.label.set_color(DOWNWELLING_FLUX_COLOUR)
@@ -463,12 +471,14 @@ def plot_one_variable(
 
     if use_log_scale:
         axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
-        axes_object.set_yticklabels(
-            create_log_height_labels(axes_object.get_yticks())
-        )
     else:
         axes_object.set_ylim(0, max_height_km_agl)
 
+    height_strings = create_height_labels(
+        tick_values_km_agl=axes_object.get_yticks(),
+        use_log_scale=use_log_scale
+    )
+    axes_object.set_yticklabels(height_strings)
     axes_object.set_ylabel('Height (km AGL)')
 
     return figure_object, axes_object

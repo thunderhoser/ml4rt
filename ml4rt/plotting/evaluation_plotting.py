@@ -506,12 +506,14 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
 
     if use_log_scale:
         axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
-        axes_object.set_yticklabels(
-            profile_plotting.create_log_height_labels(axes_object.get_yticks())
-        )
     else:
         axes_object.set_ylim(0, max_height_km_agl)
 
+    y_tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=axes_object.get_yticks(),
+        use_log_scale=use_log_scale
+    )
+    axes_object.set_yticklabels(y_tick_strings)
     axes_object.set_ylabel('Height (km AGL)')
 
 
@@ -585,7 +587,9 @@ def plot_rel_curve_many_heights(
     )
 
     tick_values = colour_bar_object.get_ticks()
-    tick_strings = profile_plotting.create_log_height_labels(tick_values)
+    tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=tick_values, use_log_scale=True
+    )
     colour_bar_object.set_ticks(tick_values)
     colour_bar_object.set_ticklabels(tick_strings)
 
@@ -700,7 +704,9 @@ def plot_taylor_diagram_many_heights(
     )
 
     tick_values = colour_bar_object.get_ticks()
-    tick_strings = profile_plotting.create_log_height_labels(tick_values)
+    tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=tick_values, use_log_scale=True
+    )
     colour_bar_object.set_ticks(tick_values)
     colour_bar_object.set_ticklabels(tick_strings)
 

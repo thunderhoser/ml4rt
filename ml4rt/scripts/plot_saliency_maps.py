@@ -252,9 +252,10 @@ def _plot_saliency_one_example(
     # x_max = numpy.percentile(vector_saliency_matrix, 90)
     # axes_object.set_xlim(x_min, x_max)
 
-    axes_object.set_yticklabels(
-        profile_plotting.create_log_height_labels(axes_object.get_yticks())
+    y_tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=axes_object.get_yticks(), use_log_scale=True
     )
+    axes_object.set_yticklabels(y_tick_strings)
 
     axes_object.set_xlabel('Saliency')
     axes_object.set_ylabel('Height (km AGL)')

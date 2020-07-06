@@ -8,6 +8,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from gewittergefahr.plotting import plotting_utils
 from ml4rt.io import example_io
 from ml4rt.machine_learning import saliency
 from ml4rt.machine_learning import neural_net
@@ -141,7 +142,9 @@ def _plot_saliency_one_example(
     heights_km_agl = (
         METRES_TO_KM * generator_option_dict[neural_net.HEIGHTS_KEY]
     )
-    height_labels = profile_plotting.create_log_height_labels(heights_km_agl)
+    height_labels = profile_plotting.create_height_labels(
+        tick_values_km_agl=heights_km_agl, use_log_scale=True
+    )[::3]
 
     num_scalar_predictors = len(scalar_predictor_names)
     num_scalar_targets = len(scalar_target_names)
@@ -207,6 +210,31 @@ def _plot_saliency_one_example(
         axes_object.set_xlabel('Predictor')
         axes_object.set_ylabel('Target')
 
+        orientation_string = (
+            'horizontal' if len(x_tick_values) >= len(y_tick_values)
+            else 'vertical'
+        )
+
+        colour_bar_object = plotting_utils.plot_linear_colour_bar(
+            axes_object_or_matrix=axes_object,
+            data_matrix=saliency_matrix_scalar_p_scalar_t,
+            colour_map_object=colour_map_object,
+            min_value=min_colour_value, max_value=max_colour_value,
+            orientation_string=orientation_string,
+            extend_min=True, extend_max=True,
+            fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
+        )
+
+        tick_values = colour_bar_object.get_ticks()
+        tick_strings = ['{0:.1f}'.format(v) for v in tick_values]
+        colour_bar_object.set_ticks(tick_values)
+        colour_bar_object.set_ticklabels(tick_strings)
+
+        axes_object.set_title(
+            'Saliency for scalar targets wrt scalar predictors',
+            fontsize=DEFAULT_FONT_SIZE
+        )
+
         output_file_name = '{0:s}/{1:s}_scalars.jpg'.format(
             output_dir_name, example_id_string.replace('_', '-')
         )
@@ -256,6 +284,31 @@ def _plot_saliency_one_example(
         axes_object.set_xlabel('Predictor variable')
         axes_object.set_ylabel('Predictor height (km AGL)')
 
+        orientation_string = (
+            'horizontal' if len(x_tick_values) >= len(y_tick_values)
+            else 'vertical'
+        )
+
+        colour_bar_object = plotting_utils.plot_linear_colour_bar(
+            axes_object_or_matrix=axes_object,
+            data_matrix=saliency_matrix_vector_p_scalar_t[..., k],
+            colour_map_object=colour_map_object,
+            min_value=min_colour_value, max_value=max_colour_value,
+            orientation_string=orientation_string,
+            extend_min=True, extend_max=True,
+            fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
+        )
+
+        tick_values = colour_bar_object.get_ticks()
+        tick_strings = ['{0:.1f}'.format(v) for v in tick_values]
+        colour_bar_object.set_ticks(tick_values)
+        colour_bar_object.set_ticklabels(tick_strings)
+
+        title_string = 'Saliency for {0:s}'.format(
+            scalar_target_names_verbose[k]
+        )
+        axes_object.set_title(title_string, fontsize=DEFAULT_FONT_SIZE)
+
         output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
             output_dir_name, example_id_string.replace('_', '-'),
             scalar_target_names[k].replace('_', '-')
@@ -268,23 +321,24 @@ def _plot_saliency_one_example(
         )
         pyplot.close(figure_object)
 
-    for j in range(num_scalar_predictors):
+    for k in range(num_vector_targets):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
         max_colour_value = numpy.percentile(
-            saliency_matrix_scalar_p_vector_t[j, ...], max_colour_percentile
+            saliency_matrix_scalar_p_vector_t[..., k], max_colour_percentile
         )
         min_colour_value = -1 * max_colour_value
 
         axes_object.imshow(
-            saliency_matrix_scalar_p_vector_t[j, ...], cmap=colour_map_object,
-            vmin=min_colour_value, vmax=max_colour_value, origin='lower'
+            numpy.transpose(saliency_matrix_scalar_p_vector_t[..., k]),
+            cmap=colour_map_object, vmin=min_colour_value,
+            vmax=max_colour_value, origin='lower'
         )
 
         x_tick_values = numpy.linspace(
-            0, num_vector_targets - 1, num=num_vector_targets, dtype=float
+            0, num_scalar_predictors - 1, num=num_scalar_predictors, dtype=float
         )
         y_tick_values = numpy.linspace(
             0, num_heights - 1, num=num_heights, dtype=float
@@ -294,7 +348,7 @@ def _plot_saliency_one_example(
 
         x_tick_labels = [
             '{0:s}{1:s}'.format(n[0].upper(), n[1:])
-            for n in vector_target_names_verbose
+            for n in scalar_predictor_names_verbose
         ]
         axes_object.set_xticklabels(
             x_tick_labels, fontsize=TICK_LABEL_FONT_SIZE, rotation=90.
@@ -303,12 +357,37 @@ def _plot_saliency_one_example(
             height_labels, fontsize=TICK_LABEL_FONT_SIZE
         )
 
-        axes_object.set_xlabel('Target variable')
+        axes_object.set_xlabel('Predictor variable')
         axes_object.set_ylabel('Target height (km AGL)')
+
+        orientation_string = (
+            'horizontal' if len(x_tick_values) >= len(y_tick_values)
+            else 'vertical'
+        )
+
+        colour_bar_object = plotting_utils.plot_linear_colour_bar(
+            axes_object_or_matrix=axes_object,
+            data_matrix=saliency_matrix_scalar_p_vector_t[..., k],
+            colour_map_object=colour_map_object,
+            min_value=min_colour_value, max_value=max_colour_value,
+            orientation_string=orientation_string,
+            extend_min=True, extend_max=True,
+            fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
+        )
+
+        tick_values = colour_bar_object.get_ticks()
+        tick_strings = ['{0:.1f}'.format(v) for v in tick_values]
+        colour_bar_object.set_ticks(tick_values)
+        colour_bar_object.set_ticklabels(tick_strings)
+
+        title_string = 'Saliency for {0:s}'.format(
+            vector_target_names_verbose[k]
+        )
+        axes_object.set_title(title_string, fontsize=DEFAULT_FONT_SIZE)
 
         output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
             output_dir_name, example_id_string.replace('_', '-'),
-            scalar_predictor_names[j].replace('_', '-')
+            vector_target_names[k].replace('_', '-')
         )
         print('Saving figure to: "{0:s}"...'.format(output_file_name))
 
@@ -351,6 +430,27 @@ def _plot_saliency_one_example(
 
             axes_object.set_xlabel('Predictor height (km AGL)')
             axes_object.set_ylabel('Target height (km AGL)')
+
+            colour_bar_object = plotting_utils.plot_linear_colour_bar(
+                axes_object_or_matrix=axes_object,
+                data_matrix=saliency_matrix_vector_p_vector_t[:, j, :, k],
+                colour_map_object=colour_map_object,
+                min_value=min_colour_value, max_value=max_colour_value,
+                orientation_string='horizontal',
+                extend_min=True, extend_max=True,
+                fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
+            )
+
+            tick_values = colour_bar_object.get_ticks()
+            tick_strings = ['{0:.1f}'.format(v) for v in tick_values]
+            colour_bar_object.set_ticks(tick_values)
+            colour_bar_object.set_ticklabels(tick_strings)
+
+            title_string = 'Saliency for {0:s} wrt {1:s}'.format(
+                vector_target_names_verbose[k],
+                vector_predictor_names_verbose[j]
+            )
+            axes_object.set_title(title_string, fontsize=DEFAULT_FONT_SIZE)
 
             output_file_name = '{0:s}/{1:s}_{2:s}_{3:s}.jpg'.format(
                 output_dir_name, example_id_string.replace('_', '-'),

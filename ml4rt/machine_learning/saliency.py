@@ -534,8 +534,6 @@ def read_all_targets_file(netcdf_file_name):
     }
 
     num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY].size
-    print(num_examples)
-    print(type(num_examples))
     num_scalar_predictors = (
         dataset_object.dimensions[SCALAR_PREDICTOR_DIM_KEY].size
     )
