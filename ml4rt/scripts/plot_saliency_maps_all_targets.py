@@ -42,6 +42,9 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.ICE_WATER_PATH_NAME: 'IWP'
 }
 
+REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
+REFERENCE_LINE_WIDTH = 2
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -143,7 +146,7 @@ def _plot_saliency_one_example(
         METRES_TO_KM * generator_option_dict[neural_net.HEIGHTS_KEY]
     )
     height_labels = profile_plotting.create_height_labels(
-        tick_values_km_agl=heights_km_agl, use_log_scale=True
+        tick_values_km_agl=heights_km_agl, use_log_scale=False
     )
     height_labels = [
         height_labels[k] if numpy.mod(k, 4) == 0 else ' '
@@ -171,6 +174,7 @@ def _plot_saliency_one_example(
         saliency_dict[saliency.SALIENCY_VECTOR_P_VECTOR_T_KEY][i, ...]
     )
 
+    # Plot saliency map for scalar targets wrt scalar predictors.
     if saliency_matrix_scalar_p_scalar_t.size > 0:
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -251,6 +255,7 @@ def _plot_saliency_one_example(
         )
         pyplot.close(figure_object)
 
+    # Plot saliency map for each scalar target wrt vector predictors.
     for k in range(num_scalar_targets):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -327,6 +332,7 @@ def _plot_saliency_one_example(
         )
         pyplot.close(figure_object)
 
+    # Plot saliency map for each vector target wrt scalar predictors.
     for k in range(num_vector_targets):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -404,6 +410,7 @@ def _plot_saliency_one_example(
         )
         pyplot.close(figure_object)
 
+    # Plot saliency map for each pair of vector target and vector predictor.
     for j in range(num_vector_predictors):
         for k in range(num_vector_targets):
             figure_object, axes_object = pyplot.subplots(
@@ -415,7 +422,6 @@ def _plot_saliency_one_example(
                 max_colour_percentile
             )
             min_colour_value = -1 * max_colour_value
-            saliency_matrix_vector_p_vector_t[0, j, 72, k] = 10.
 
             axes_object.imshow(
                 numpy.transpose(saliency_matrix_vector_p_vector_t[:, j, :, k]),
@@ -438,6 +444,12 @@ def _plot_saliency_one_example(
 
             axes_object.set_xlabel('Predictor height (km AGL)')
             axes_object.set_ylabel('Target height (km AGL)')
+
+            axes_object.plot(
+                axes_object.get_xlim(), axes_object.get_ylim(),
+                color=REFERENCE_LINE_COLOUR, linestyle='dashed',
+                linewidth=REFERENCE_LINE_WIDTH
+            )
 
             colour_bar_object = plotting_utils.plot_linear_colour_bar(
                 axes_object_or_matrix=axes_object,
