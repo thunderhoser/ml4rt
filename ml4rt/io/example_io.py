@@ -148,7 +148,7 @@ TARGET_NAME_TO_ORIG = {
 }
 
 
-def _match_heights(heights_m_agl, desired_height_m_agl):
+def match_heights(heights_m_agl, desired_height_m_agl):
     """Finds nearest available height to desired height.
 
     :param heights_m_agl: 1-D numpy array of available heights (metres above
@@ -627,7 +627,7 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     if height_m_agl is None:
         return data_matrix
 
-    height_index = _match_heights(
+    height_index = match_heights(
         heights_m_agl=example_dict[HEIGHTS_KEY],
         desired_height_m_agl=height_m_agl
     )
@@ -821,7 +821,7 @@ def subset_by_height(example_dict, heights_m_agl):
     )
 
     indices_to_keep = [
-        _match_heights(
+        match_heights(
             heights_m_agl=example_dict[HEIGHTS_KEY], desired_height_m_agl=h
         ) for h in heights_m_agl
     ]

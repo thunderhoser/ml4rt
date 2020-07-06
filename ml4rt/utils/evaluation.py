@@ -387,7 +387,7 @@ def get_aux_fields(prediction_dict, example_dict):
             this_field_index = vector_target_names.index(
                 example_io.SHORTWAVE_UP_FLUX_NAME
             )
-            this_height_index = example_io._match_heights(
+            this_height_index = example_io.match_heights(
                 heights_m_agl=heights_m_agl,
                 desired_height_m_agl=ASSUMED_TOA_HEIGHT_M_AGL
             )
@@ -417,7 +417,7 @@ def get_aux_fields(prediction_dict, example_dict):
             this_field_index = vector_target_names.index(
                 example_io.SHORTWAVE_DOWN_FLUX_NAME
             )
-            this_height_index = example_io._match_heights(
+            this_height_index = example_io.match_heights(
                 heights_m_agl=heights_m_agl,
                 desired_height_m_agl=ASSUMED_SURFACE_HEIGHT_M_AGL
             )

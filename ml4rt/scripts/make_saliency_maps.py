@@ -5,8 +5,8 @@ import os.path
 import argparse
 import numpy
 from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
 
@@ -95,55 +95,6 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
-    """Subsets examples.
-
-    :param indices_to_keep: 1-D numpy array with indices to keep.  If None, will
-        use `num_examples_to_keep` instead.
-    :param num_examples_to_keep: Number of examples to keep.  If None, will use
-        `indices_to_keep` instead.
-    :param num_examples_total: Total number of examples available.
-    :return: indices_to_keep: See input doc.
-    :raises: ValueError: if both `indices_to_keep` and `num_examples_to_keep`
-        are None.
-    """
-
-    # TODO(thunderhoser): Put this method somewhere more general.
-
-    if len(indices_to_keep) == 1 and indices_to_keep[0] < 0:
-        indices_to_keep = None
-    if indices_to_keep is not None:
-        num_examples_to_keep = None
-    if num_examples_to_keep < 1:
-        num_examples_to_keep = None
-
-    if indices_to_keep is None and num_examples_to_keep is None:
-        error_string = (
-            'Input args {0:s} and {1:s} cannot both be empty.'
-        ).format(EXAMPLE_INDICES_ARG_NAME, NUM_EXAMPLES_ARG_NAME)
-
-        raise ValueError(error_string)
-
-    if indices_to_keep is not None:
-        error_checking.assert_is_geq_numpy_array(indices_to_keep, 0)
-        error_checking.assert_is_less_than_numpy_array(
-            indices_to_keep, num_examples_total
-        )
-
-        return indices_to_keep
-
-    indices_to_keep = numpy.linspace(
-        0, num_examples_total - 1, num=num_examples_total, dtype=int
-    )
-
-    if num_examples_to_keep >= num_examples_total:
-        return indices_to_keep
-
-    return numpy.random.choice(
-        indices_to_keep, size=num_examples_to_keep, replace=False
-    )
-
-
 def _run(model_file_name, example_file_name, example_indices, num_examples,
          layer_name, is_layer_output, neuron_indices, ideal_activation,
          output_file_name):
@@ -165,7 +116,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     this_example_dict = example_io.read_file(example_file_name)
     num_examples_total = len(this_example_dict[example_io.VALID_TIMES_KEY])
 
-    example_indices = _subset_examples(
+    example_indices = misc_utils.subset_examples(
         indices_to_keep=example_indices, num_examples_to_keep=num_examples,
         num_examples_total=num_examples_total
     )

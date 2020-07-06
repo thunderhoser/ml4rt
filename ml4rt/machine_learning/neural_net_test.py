@@ -133,7 +133,8 @@ DENSE_NET_TARGET_MATRIX = numpy.array([
 
 DENSE_NET_TARGET_MATRICES = [DENSE_NET_TARGET_MATRIX]
 
-# The following constants are used to test neuron_indices_to_target_var.
+# The following constants are used to test neuron_indices_to_target_var and
+# target_var_to_neuron_indices.
 CNN_NEURON_INDICES_LIST = [
     numpy.array([0, 0], dtype=int),
     numpy.array([0, 1], dtype=int),
@@ -530,6 +531,66 @@ class NeuralNetTests(unittest.TestCase):
 
             self.assertTrue(this_target_name == U_NET_TARGET_NAMES[i])
             self.assertTrue(this_height_m_agl == U_NET_HEIGHTS_M_AGL[i])
+
+    def test_target_var_to_neuron_indices_cnn(self):
+        """Ensures correct output from target_var_to_neuron_indices.
+
+        In this case, neural-net type is CNN.
+        """
+
+        num_tests = len(CNN_NEURON_INDICES_LIST)
+
+        for i in range(num_tests):
+            these_neuron_indices = neural_net.target_var_to_neuron_indices(
+                example_dict=copy.deepcopy(EXAMPLE_DICT),
+                net_type_string=neural_net.CNN_TYPE_STRING,
+                target_name=CNN_TARGET_NAMES[i],
+                height_m_agl=CNN_HEIGHTS_M_AGL[i]
+            )
+
+            self.assertTrue(numpy.array_equal(
+                these_neuron_indices, CNN_NEURON_INDICES_LIST[i]
+            ))
+
+    def test_target_var_to_neuron_indices_dense_net(self):
+        """Ensures correct output from target_var_to_neuron_indices.
+
+        In this case, neural-net type is dense.
+        """
+
+        num_tests = len(DENSE_NET_NEURON_INDICES_LIST)
+
+        for i in range(num_tests):
+            these_neuron_indices = neural_net.target_var_to_neuron_indices(
+                example_dict=copy.deepcopy(EXAMPLE_DICT),
+                net_type_string=neural_net.DENSE_NET_TYPE_STRING,
+                target_name=DENSE_NET_TARGET_NAMES[i],
+                height_m_agl=DENSE_NET_HEIGHTS_M_AGL[i]
+            )
+
+            self.assertTrue(numpy.array_equal(
+                these_neuron_indices, DENSE_NET_NEURON_INDICES_LIST[i]
+            ))
+
+    def test_target_var_to_neuron_indices_u_net(self):
+        """Ensures correct output from target_var_to_neuron_indices.
+
+        In this case, neural-net type is U-net.
+        """
+
+        num_tests = len(U_NET_NEURON_INDICES_LIST)
+
+        for i in range(num_tests):
+            these_neuron_indices = neural_net.target_var_to_neuron_indices(
+                example_dict=copy.deepcopy(EXAMPLE_DICT),
+                net_type_string=neural_net.U_NET_TYPE_STRING,
+                target_name=U_NET_TARGET_NAMES[i],
+                height_m_agl=U_NET_HEIGHTS_M_AGL[i]
+            )
+
+            self.assertTrue(numpy.array_equal(
+                these_neuron_indices, U_NET_NEURON_INDICES_LIST[i]
+            ))
 
 
 if __name__ == '__main__':

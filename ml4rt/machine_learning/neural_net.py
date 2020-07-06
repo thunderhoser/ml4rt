@@ -859,6 +859,88 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
     return scalar_target_names[these_indices[0]], None
 
 
+def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
+                                 height_m_agl=None):
+    """Converts metadata for target variable to indices of output neuron.
+
+    This method is the inverse of `neuron_indices_to_target_var`.
+
+    :param example_dict: See doc for `neuron_indices_to_target_var`.
+    :param net_type_string: Same.
+    :param target_name: Same.
+    :param height_m_agl: Same.
+    :return: neuron_indices: Same.
+    """
+
+    check_net_type(net_type_string)
+    error_checking.assert_is_string(target_name)
+
+    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+
+    num_scalar_targets = len(scalar_target_names)
+    num_vector_targets = len(vector_target_names)
+    num_heights = len(heights_m_agl)
+
+    vector_target_matrix_orig = numpy.full(
+        (1, num_heights, num_vector_targets), 0.
+    )
+    scalar_target_matrix_orig = numpy.full((1, num_scalar_targets), 0.)
+
+    if height_m_agl is None:
+        channel_index = scalar_target_names.index(target_name)
+        scalar_target_matrix_orig[:, channel_index] = SENTINEL_VALUE
+
+        new_example_dict = {
+            example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
+            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
+        }
+
+        scalar_target_matrix_keras = targets_dict_to_numpy(
+            example_dict=new_example_dict, net_type_string=net_type_string,
+            is_loss_constrained_mse=False
+        )[-1][0, ...]
+
+        neuron_index = numpy.where(
+            scalar_target_matrix_keras < SENTINEL_VALUE + 1
+        )[0][0]
+
+        return numpy.array([neuron_index], dtype=int)
+
+    channel_index = vector_target_names.index(target_name)
+    height_index = example_io.match_heights(
+        heights_m_agl=heights_m_agl, desired_height_m_agl=height_m_agl
+    )
+    vector_target_matrix_orig[:, height_index, channel_index] = SENTINEL_VALUE
+
+    new_example_dict = {
+        example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
+        example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
+    }
+
+    target_matrices_keras = targets_dict_to_numpy(
+        example_dict=new_example_dict, net_type_string=net_type_string,
+        is_loss_constrained_mse=False
+    )
+
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        scalar_target_matrix_keras = target_matrices_keras[0][0, ...]
+
+        neuron_index = numpy.where(
+            scalar_target_matrix_keras < SENTINEL_VALUE + 1
+        )[0][0]
+
+        return numpy.array([neuron_index], dtype=int)
+
+    vector_target_matrix_keras = target_matrices_keras[0][0, ...]
+    height_indices, field_indices = numpy.where(
+        vector_target_matrix_keras < SENTINEL_VALUE + 1
+    )
+
+    return numpy.array([height_indices[0], field_indices[0]], dtype=int)
+
+
 def data_generator(option_dict, for_inference, net_type_string,
                    is_loss_constrained_mse=None):
     """Generates examples for any kind of neural net.

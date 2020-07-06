@@ -167,7 +167,7 @@ def _get_target_values(
     )
     channel_index = vector_target_names.index(target_field_name)
 
-    height_index = example_io._match_heights(
+    height_index = example_io.match_heights(
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY],
         desired_height_m_agl=target_height_m_agl
     )
@@ -347,7 +347,7 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
             )
 
             if target_height_m_agl is not None:
-                this_title_suffix += ' at {0:f} km AGL'.format(
+                this_title_suffix += ' at {0:.2f} km AGL'.format(
                     METRES_TO_KM * target_height_m_agl
                 )
 
