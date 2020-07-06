@@ -100,6 +100,8 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
             if not use_log_scale:
                 this_num_decimal_places += 1
 
+        this_num_decimal_places = numpy.minimum(this_num_decimal_places, 2)
+
         this_format_string = (
             '{0:.' + '{0:d}'.format(this_num_decimal_places) + 'f}'
         )
