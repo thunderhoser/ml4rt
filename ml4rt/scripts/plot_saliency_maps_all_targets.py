@@ -144,7 +144,11 @@ def _plot_saliency_one_example(
     )
     height_labels = profile_plotting.create_height_labels(
         tick_values_km_agl=heights_km_agl, use_log_scale=True
-    )[::3]
+    )
+    height_labels = [
+        height_labels[k] if numpy.mod(k, 4) == 0 else ' '
+        for k in range(len(height_labels))
+    ]
 
     num_scalar_predictors = len(scalar_predictor_names)
     num_scalar_targets = len(scalar_target_names)
@@ -221,6 +225,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
+            padding=0.05 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -295,6 +300,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
+            padding=0.05 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -371,6 +377,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
+            padding=0.05 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -422,7 +429,7 @@ def _plot_saliency_one_example(
             axes_object.set_yticks(tick_values)
 
             axes_object.set_xticklabels(
-                height_labels, fontsize=TICK_LABEL_FONT_SIZE
+                height_labels, fontsize=TICK_LABEL_FONT_SIZE, rotation=90.
             )
             axes_object.set_yticklabels(
                 height_labels, fontsize=TICK_LABEL_FONT_SIZE
@@ -436,7 +443,7 @@ def _plot_saliency_one_example(
                 data_matrix=saliency_matrix_vector_p_vector_t[:, j, :, k],
                 colour_map_object=colour_map_object,
                 min_value=min_colour_value, max_value=max_colour_value,
-                orientation_string='horizontal',
+                orientation_string='horizontal', padding=0.05,
                 extend_min=True, extend_max=True,
                 fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
             )
