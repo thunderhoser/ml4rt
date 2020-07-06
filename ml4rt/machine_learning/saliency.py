@@ -533,6 +533,8 @@ def read_all_targets_file(netcdf_file_name):
         IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
     }
 
+    print(dataset_object.dimensions[EXAMPLE_DIMENSION_KEY])
+    print(dir(dataset_object.dimensions[EXAMPLE_DIMENSION_KEY]))
     num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY]
     num_scalar_predictors = dataset_object.dimensions[SCALAR_PREDICTOR_DIM_KEY]
     num_vector_predictors = dataset_object.dimensions[VECTOR_PREDICTOR_DIM_KEY]
