@@ -3,12 +3,13 @@
 import os.path
 import numpy
 import netCDF4
-from keras import backend as K
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import saliency_maps as saliency_utils
 from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
+
+DEFAULT_IDEAL_ACTIVATION = 1e6
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
@@ -34,7 +35,7 @@ SALIENCY_SCALAR_P_VECTOR_T_KEY = 'saliency_matrix_scalar_p_vector_t'
 SALIENCY_VECTOR_P_VECTOR_T_KEY = 'saliency_matrix_vector_p_vector_t'
 
 
-def check_metadata(layer_name, neuron_indices, ideal_activation=None):
+def check_metadata(layer_name, neuron_indices, ideal_activation):
     """Checks metadata for errors.
 
     The "relevant neuron" is that whose activation will be used in the numerator
@@ -49,23 +50,19 @@ def check_metadata(layer_name, neuron_indices, ideal_activation=None):
         `None` in Keras.
     :param ideal_activation: Ideal neuron activation, used to define loss
         function.  If you specify this, the loss function will be
-        (neuron_activation - ideal_activation)**2.  If you leave this as None,
-        the loss function will be
-        -sign(neuron_activation) * neuron_activation**2.
+        (neuron_activation - ideal_activation)**2.
     """
 
     error_checking.assert_is_string(layer_name)
     error_checking.assert_is_integer_numpy_array(neuron_indices)
     error_checking.assert_is_geq_numpy_array(neuron_indices, 0)
     error_checking.assert_is_numpy_array(neuron_indices, num_dimensions=1)
-
-    if ideal_activation is not None:
-        error_checking.assert_is_not_nan(ideal_activation)
+    error_checking.assert_is_not_nan(ideal_activation)
 
 
 def get_saliency_one_neuron(
         model_object, predictor_matrix, layer_name, neuron_indices,
-        ideal_activation=None):
+        ideal_activation):
     """Computes saliency maps with respect to activation of one neuron.
 
     :param model_object: Trained neural net (instance of `keras.models.Model` or
@@ -95,10 +92,10 @@ def get_saliency_one_neuron(
         else:
             activation_tensor = activation_tensor[..., k]
 
-    if ideal_activation is None:
-        loss_tensor = -K.sign(activation_tensor) * activation_tensor ** 2
-    else:
-        loss_tensor = (activation_tensor - ideal_activation) ** 2
+    # if ideal_activation is None:
+    #     loss_tensor = -K.sign(activation_tensor) * activation_tensor ** 2
+
+    loss_tensor = (activation_tensor - ideal_activation) ** 2
 
     return saliency_utils.do_saliency_calculations(
         model_object=model_object, loss_tensor=loss_tensor,
@@ -109,8 +106,7 @@ def get_saliency_one_neuron(
 def write_standard_file(
         netcdf_file_name, scalar_saliency_matrix, vector_saliency_matrix,
         example_id_strings, model_file_name, layer_name, neuron_indices,
-        ideal_activation=None, target_field_name=None,
-        target_height_m_agl=None):
+        ideal_activation, target_field_name=None, target_height_m_agl=None):
     """Writes standard (non-averaged) saliency maps to NetCDF file.
 
     E = number of examples
@@ -161,11 +157,13 @@ def write_standard_file(
     )
 
     error_checking.assert_is_numpy_array_without_nan(scalar_saliency_matrix)
+
     num_scalar_dim = len(scalar_saliency_matrix.shape)
+    is_net_dense = num_scalar_dim == 2
     error_checking.assert_is_geq(num_scalar_dim, 2)
     error_checking.assert_is_leq(num_scalar_dim, 3)
 
-    if num_scalar_dim == 2 or vector_saliency_matrix.size == 0:
+    if is_net_dense or vector_saliency_matrix.size == 0:
         expected_dim = numpy.array(
             (num_examples,) + scalar_saliency_matrix.shape[1:], dtype=int
         )
@@ -200,10 +198,7 @@ def write_standard_file(
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
     dataset_object.setncattr(LAYER_NAME_KEY, layer_name)
     dataset_object.setncattr(NEURON_INDICES_KEY, neuron_indices)
-    dataset_object.setncattr(
-        IDEAL_ACTIVATION_KEY,
-        numpy.nan if ideal_activation is None else ideal_activation
-    )
+    dataset_object.setncattr(IDEAL_ACTIVATION_KEY, ideal_activation)
     dataset_object.setncattr(
         TARGET_FIELD_KEY,
         '' if target_field_name is None else target_field_name
@@ -247,7 +242,7 @@ def write_standard_file(
     )
 
     if scalar_saliency_matrix.size > 0:
-        if num_scalar_dim == 2:
+        if is_net_dense:
             dataset_object.createVariable(
                 SCALAR_SALIENCY_KEY, datatype=numpy.float32,
                 dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY)
@@ -364,7 +359,7 @@ def write_all_targets_file(
         netcdf_file_name, saliency_matrix_scalar_p_scalar_t,
         saliency_matrix_vector_p_scalar_t, saliency_matrix_scalar_p_vector_t,
         saliency_matrix_vector_p_vector_t, example_id_strings, model_file_name,
-        ideal_activation=None):
+        ideal_activation):
     """Writes saliency maps for all target variables to NetCDF file.
 
     E = number of examples
@@ -375,15 +370,17 @@ def write_all_targets_file(
     T_v = number of vector targets
 
     :param netcdf_file_name: Path to output file.
-    :param saliency_matrix_scalar_p_scalar_t: numpy array (E x P_s x T_s) with
-        saliency maps for each scalar target with respect to each scalar
-        predictor.
+    :param saliency_matrix_scalar_p_scalar_t: numpy array with saliency maps for
+        each scalar target with respect to each scalar predictor.  If neural-net
+        type is dense, this array should be E x P_s x T_s.  Otherwise, should be
+        E x H x P_s x T_s.
     :param saliency_matrix_vector_p_scalar_t: numpy array (E x H x P_v x T_s)
         with saliency maps for each scalar target with respect to each vector
         predictor.
-    :param saliency_matrix_scalar_p_vector_t: numpy array (E x P_s x H x T_v)
-        with saliency maps for each vector target with respect to each scalar
-        predictor.
+    :param saliency_matrix_scalar_p_vector_t: numpy array with saliency maps for
+        each vector target with respect to each scalar predictor.  If neural-net
+        type is dense, this array should be E x P_s x H x T_v.  Otherwise,
+        should be E x H x P_s x H x T_v.
     :param saliency_matrix_vector_p_vector_t: numpy array
         (E x H x P_v x H x T_v) with saliency maps for each vector target with
         respect to each vector predictor.
@@ -392,29 +389,15 @@ def write_all_targets_file(
     :param ideal_activation: Same.
     """
 
+    # Check simple input args.
     error_checking.assert_is_string_list(example_id_strings)
     error_checking.assert_is_numpy_array(
         numpy.array(example_id_strings), num_dimensions=1
     )
+    error_checking.assert_is_string(model_file_name)
+    error_checking.assert_is_not_nan(ideal_activation)
 
-    error_checking.assert_is_numpy_array_without_nan(
-        saliency_matrix_scalar_p_scalar_t
-    )
-    error_checking.assert_is_numpy_array(
-        saliency_matrix_scalar_p_scalar_t, num_dimensions=3
-    )
-
-    num_examples = len(example_id_strings)
-    num_scalar_predictors = saliency_matrix_scalar_p_scalar_t.shape[1]
-    num_scalar_targets = saliency_matrix_scalar_p_scalar_t.shape[2]
-
-    expected_dim = numpy.array(
-        [num_examples, num_scalar_predictors, num_scalar_targets], dtype=int
-    )
-    error_checking.assert_is_numpy_array(
-        saliency_matrix_scalar_p_scalar_t, exact_dimensions=expected_dim
-    )
-
+    # Check saliency for scalar targets wrt vector predictors.
     error_checking.assert_is_numpy_array_without_nan(
         saliency_matrix_vector_p_scalar_t
     )
@@ -422,8 +405,10 @@ def write_all_targets_file(
         saliency_matrix_vector_p_scalar_t, num_dimensions=4
     )
 
+    num_examples = len(example_id_strings)
     num_heights = saliency_matrix_vector_p_scalar_t.shape[1]
     num_vector_predictors = saliency_matrix_vector_p_scalar_t.shape[2]
+    num_scalar_targets = saliency_matrix_vector_p_scalar_t.shape[3]
 
     expected_dim = numpy.array(
         [num_examples, num_heights, num_vector_predictors, num_scalar_targets],
@@ -433,29 +418,40 @@ def write_all_targets_file(
         saliency_matrix_vector_p_scalar_t, exact_dimensions=expected_dim
     )
 
+    # Check saliency for scalar targets wrt scalar predictors.
     error_checking.assert_is_numpy_array_without_nan(
-        saliency_matrix_scalar_p_vector_t
+        saliency_matrix_scalar_p_scalar_t
     )
+
+    this_num_dim = len(saliency_matrix_scalar_p_scalar_t.shape)
+    is_net_dense = this_num_dim == 3
+    error_checking.assert_is_geq(this_num_dim, 3)
+    error_checking.assert_is_leq(this_num_dim, 4)
+
+    num_scalar_predictors = saliency_matrix_scalar_p_scalar_t.shape[1]
+
+    if is_net_dense:
+        expected_dim = numpy.array(
+            [num_examples, num_scalar_predictors, num_scalar_targets], dtype=int
+        )
+    else:
+        expected_dim = numpy.array([
+            num_examples, num_heights, num_scalar_predictors, num_scalar_targets
+        ], dtype=int)
+
     error_checking.assert_is_numpy_array(
-        saliency_matrix_scalar_p_vector_t, num_dimensions=4
+        saliency_matrix_scalar_p_scalar_t, exact_dimensions=expected_dim
     )
 
-    num_vector_targets = saliency_matrix_scalar_p_vector_t.shape[3]
-
-    expected_dim = numpy.array(
-        [num_examples, num_scalar_predictors, num_heights, num_vector_targets],
-        dtype=int
-    )
-    error_checking.assert_is_numpy_array(
-        saliency_matrix_scalar_p_vector_t, exact_dimensions=expected_dim
-    )
-
+    # Check saliency for vector targets wrt vector predictors.
     error_checking.assert_is_numpy_array_without_nan(
         saliency_matrix_vector_p_vector_t
     )
     error_checking.assert_is_numpy_array(
         saliency_matrix_vector_p_vector_t, num_dimensions=5
     )
+
+    num_vector_targets = saliency_matrix_vector_p_vector_t.shape[-1]
 
     expected_dim = numpy.array([
         num_examples, num_heights, num_vector_predictors, num_heights,
@@ -465,9 +461,24 @@ def write_all_targets_file(
         saliency_matrix_vector_p_vector_t, exact_dimensions=expected_dim
     )
 
-    error_checking.assert_is_string(model_file_name)
-    if ideal_activation is not None:
-        error_checking.assert_is_not_nan(ideal_activation)
+    # Check saliency for vector targets wrt scalar predictors.
+    error_checking.assert_is_numpy_array_without_nan(
+        saliency_matrix_scalar_p_vector_t
+    )
+
+    if is_net_dense:
+        expected_dim = numpy.array([
+            num_examples, num_scalar_predictors, num_heights, num_vector_targets
+        ], dtype=int)
+    else:
+        expected_dim = numpy.array([
+            num_examples, num_heights, num_scalar_predictors, num_heights,
+            num_vector_targets
+        ], dtype=int)
+
+    error_checking.assert_is_numpy_array(
+        saliency_matrix_scalar_p_vector_t, exact_dimensions=expected_dim
+    )
 
     # Write to NetCDF file.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
@@ -476,10 +487,7 @@ def write_all_targets_file(
     )
 
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
-    dataset_object.setncattr(
-        IDEAL_ACTIVATION_KEY,
-        numpy.nan if ideal_activation is None else ideal_activation
-    )
+    dataset_object.setncattr(IDEAL_ACTIVATION_KEY, ideal_activation)
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
     dataset_object.createDimension(
@@ -515,10 +523,17 @@ def write_all_targets_file(
     )
 
     if saliency_matrix_scalar_p_scalar_t.size > 0:
-        these_dim = (
-            EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY,
-            SCALAR_TARGET_DIM_KEY
-        )
+        if is_net_dense:
+            these_dim = (
+                EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY,
+                SCALAR_TARGET_DIM_KEY
+            )
+        else:
+            these_dim = (
+                EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+                SCALAR_PREDICTOR_DIM_KEY, SCALAR_TARGET_DIM_KEY
+            )
+
         dataset_object.createVariable(
             SALIENCY_SCALAR_P_SCALAR_T_KEY, datatype=numpy.float32,
             dimensions=these_dim
@@ -541,10 +556,18 @@ def write_all_targets_file(
         )
 
     if saliency_matrix_scalar_p_vector_t.size > 0:
-        these_dim = (
-            EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY,
-            HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIM_KEY
-        )
+        if is_net_dense:
+            these_dim = (
+                EXAMPLE_DIMENSION_KEY, SCALAR_PREDICTOR_DIM_KEY,
+                HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIM_KEY
+            )
+        else:
+            these_dim = (
+                EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+                SCALAR_PREDICTOR_DIM_KEY, HEIGHT_DIMENSION_KEY,
+                VECTOR_TARGET_DIM_KEY
+            )
+
         dataset_object.createVariable(
             SALIENCY_SCALAR_P_VECTOR_T_KEY, datatype=numpy.float32,
             dimensions=these_dim
@@ -612,7 +635,22 @@ def read_all_targets_file(netcdf_file_name):
             dataset_object.variables[SALIENCY_SCALAR_P_SCALAR_T_KEY][:]
         )
     else:
-        these_dim = (num_examples, num_scalar_predictors, num_scalar_targets)
+        model_metafile_name = neural_net.find_metafile(
+            model_dir_name=os.path.split(saliency_dict[MODEL_FILE_KEY])[0]
+        )
+        model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+        net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+
+        if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+            these_dim = (
+                num_examples, num_scalar_predictors, num_scalar_targets
+            )
+        else:
+            these_dim = (
+                num_examples, num_heights, num_scalar_predictors,
+                num_scalar_targets
+            )
+
         saliency_dict[SALIENCY_SCALAR_P_SCALAR_T_KEY] = numpy.full(
             these_dim, 0.
         )
@@ -634,9 +672,23 @@ def read_all_targets_file(netcdf_file_name):
             dataset_object.variables[SALIENCY_SCALAR_P_VECTOR_T_KEY][:]
         )
     else:
-        these_dim = (
-            num_examples, num_scalar_predictors, num_heights, num_vector_targets
+        model_metafile_name = neural_net.find_metafile(
+            model_dir_name=os.path.split(saliency_dict[MODEL_FILE_KEY])[0]
         )
+        model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+        net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+
+        if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+            these_dim = (
+                num_examples, num_scalar_predictors, num_heights,
+                num_vector_targets
+            )
+        else:
+            these_dim = (
+                num_examples, num_heights, num_scalar_predictors, num_heights,
+                num_vector_targets
+            )
+
         saliency_dict[SALIENCY_SCALAR_P_VECTOR_T_KEY] = numpy.full(
             these_dim, 0.
         )

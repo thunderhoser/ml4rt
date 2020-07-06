@@ -14,7 +14,6 @@ from ml4rt.machine_learning import saliency
 # reasonable automated way to determine if a layer is output, because Keras.
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
-SENTINEL_VALUE = -123456.
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
@@ -49,10 +48,7 @@ IS_LAYER_OUTPUT_HELP_STRING = (
 ).format(LAYER_ARG_NAME)
 
 NEURON_INDICES_HELP_STRING = 'See doc for `saliency.check_metadata`.'
-IDEAL_ACTIVATION_HELP_STRING = (
-    'See doc for `saliency.check_metadata`.  For no ideal activation, leave '
-    'this alone.'
-)
+IDEAL_ACTIVATION_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file.  Will be written by `saliency.write_standard_file`.'
 )
@@ -87,7 +83,7 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + IDEAL_ACTIVATION_ARG_NAME, type=float, required=False,
-    default=SENTINEL_VALUE, help=IDEAL_ACTIVATION_HELP_STRING
+    default=saliency.DEFAULT_IDEAL_ACTIVATION, help=IDEAL_ACTIVATION_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,

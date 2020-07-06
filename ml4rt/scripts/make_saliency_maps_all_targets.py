@@ -12,7 +12,6 @@ from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
-SENTINEL_VALUE = -123456.
 
 MODEL_FILE_ARG_NAME = make_saliency_maps.MODEL_FILE_ARG_NAME
 EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
@@ -60,7 +59,7 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + IDEAL_ACTIVATION_ARG_NAME, type=float, required=False,
-    default=SENTINEL_VALUE, help=IDEAL_ACTIVATION_HELP_STRING
+    default=saliency.DEFAULT_IDEAL_ACTIVATION, help=IDEAL_ACTIVATION_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + SCALAR_LAYER_ARG_NAME, type=str, required=False, default='',
@@ -161,17 +160,34 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     num_heights = len(heights_m_agl)
     num_examples = len(example_id_strings)
 
-    saliency_matrix_scalar_p_scalar_t = numpy.full(
-        (num_examples, num_scalar_predictors, num_scalar_targets), numpy.nan
-    )
+    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+        saliency_matrix_scalar_p_scalar_t = numpy.full(
+            (num_examples, num_scalar_predictors, num_scalar_targets), numpy.nan
+        )
+    else:
+        saliency_matrix_scalar_p_scalar_t = numpy.full(
+            (num_examples, num_heights, num_scalar_predictors,
+             num_scalar_targets),
+            numpy.nan
+        )
+
     saliency_matrix_vector_p_scalar_t = numpy.full(
         (num_examples, num_heights, num_vector_predictors, num_scalar_targets),
         numpy.nan
     )
-    saliency_matrix_scalar_p_vector_t = numpy.full(
-        (num_examples, num_scalar_predictors, num_heights, num_vector_targets),
-        numpy.nan
-    )
+
+    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+        saliency_matrix_scalar_p_vector_t = numpy.full(
+            (num_examples, num_scalar_predictors, num_heights, num_vector_targets),
+            numpy.nan
+        )
+    else:
+        saliency_matrix_scalar_p_vector_t = numpy.full(
+            (num_examples, num_heights, num_scalar_predictors, num_heights,
+             num_vector_targets),
+            numpy.nan
+        )
+
     saliency_matrix_vector_p_vector_t = numpy.full(
         (num_examples, num_heights, num_vector_predictors, num_heights,
          num_vector_targets),
@@ -203,17 +219,25 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             ideal_activation=ideal_activation
         )
 
-        new_example_dict = neural_net.predictors_numpy_to_dict(
-            predictor_matrix=this_saliency_matrix,
-            example_dict=copy.deepcopy(dummy_example_dict),
-            net_type_string=net_type_string
-        )
-        saliency_matrix_scalar_p_scalar_t[..., k] = (
-            new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-        )
-        saliency_matrix_vector_p_scalar_t[..., k] = (
-            new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
-        )
+        if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+            new_example_dict = neural_net.predictors_numpy_to_dict(
+                predictor_matrix=this_saliency_matrix,
+                example_dict=copy.deepcopy(dummy_example_dict),
+                net_type_string=net_type_string
+            )
+            saliency_matrix_scalar_p_scalar_t[..., k] = (
+                new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+            )
+            saliency_matrix_vector_p_scalar_t[..., k] = (
+                new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+            )
+        else:
+            saliency_matrix_scalar_p_scalar_t[..., k] = (
+                this_saliency_matrix[..., -num_scalar_predictors:]
+            )
+            saliency_matrix_vector_p_scalar_t[..., k] = (
+                this_saliency_matrix[..., :-num_scalar_predictors]
+            )
 
     print(SEPARATOR_STRING)
 
@@ -242,17 +266,25 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
                 ideal_activation=ideal_activation
             )
 
-            new_example_dict = neural_net.predictors_numpy_to_dict(
-                predictor_matrix=this_saliency_matrix,
-                example_dict=copy.deepcopy(dummy_example_dict),
-                net_type_string=net_type_string
-            )
-            saliency_matrix_scalar_p_vector_t[..., j, k] = (
-                new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-            )
-            saliency_matrix_vector_p_vector_t[..., j, k] = (
-                new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
-            )
+            if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+                new_example_dict = neural_net.predictors_numpy_to_dict(
+                    predictor_matrix=this_saliency_matrix,
+                    example_dict=copy.deepcopy(dummy_example_dict),
+                    net_type_string=net_type_string
+                )
+                saliency_matrix_scalar_p_vector_t[..., j, k] = (
+                    new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+                )
+                saliency_matrix_vector_p_vector_t[..., j, k] = (
+                    new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+                )
+            else:
+                saliency_matrix_scalar_p_vector_t[..., j, k] = (
+                    this_saliency_matrix[..., -num_scalar_predictors:]
+                )
+                saliency_matrix_vector_p_vector_t[..., j, k] = (
+                    this_saliency_matrix[..., :-num_scalar_predictors]
+                )
 
         print(SEPARATOR_STRING)
 
