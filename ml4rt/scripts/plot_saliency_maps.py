@@ -321,6 +321,9 @@ def _plot_saliency_one_example(
     legend_strings = [None] * num_vector_predictors
 
     for k in range(num_scalar_predictors):
+        print(scalar_saliency_matrix.shape)
+        print(scalar_saliency_matrix[:, k].shape)
+
         legend_handles[k] = axes_object.plot(
             scalar_saliency_matrix[:, k], heights_km_agl,
             color=PREDICTOR_NAME_TO_COLOUR[scalar_predictor_names[k]],
