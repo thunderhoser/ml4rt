@@ -225,7 +225,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
-            padding=0.05 if orientation_string == 'horizontal' else 0.01,
+            padding=0.1 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -236,7 +236,7 @@ def _plot_saliency_one_example(
         colour_bar_object.set_ticklabels(tick_strings)
 
         axes_object.set_title(
-            'Saliency for scalar targets wrt scalar predictors',
+            'Saliency for scalar targets with respect to scalar predictors',
             fontsize=DEFAULT_FONT_SIZE
         )
 
@@ -300,7 +300,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
-            padding=0.05 if orientation_string == 'horizontal' else 0.01,
+            padding=0.1 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -377,7 +377,7 @@ def _plot_saliency_one_example(
             colour_map_object=colour_map_object,
             min_value=min_colour_value, max_value=max_colour_value,
             orientation_string=orientation_string,
-            padding=0.05 if orientation_string == 'horizontal' else 0.01,
+            padding=0.1 if orientation_string == 'horizontal' else 0.01,
             extend_min=True, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
@@ -409,6 +409,10 @@ def _plot_saliency_one_example(
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
+
+            print(saliency_matrix_vector_p_vector_t[:, j, :, k].shape)
+            print(saliency_matrix_vector_p_vector_t[:, j, :, k])
+            print('\n\n\n********\n\n\n')
 
             max_colour_value = numpy.percentile(
                 saliency_matrix_vector_p_vector_t[:, j, :, k],
@@ -443,7 +447,7 @@ def _plot_saliency_one_example(
                 data_matrix=saliency_matrix_vector_p_vector_t[:, j, :, k],
                 colour_map_object=colour_map_object,
                 min_value=min_colour_value, max_value=max_colour_value,
-                orientation_string='horizontal', padding=0.05,
+                orientation_string='horizontal', padding=0.1,
                 extend_min=True, extend_max=True,
                 fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
             )
@@ -453,7 +457,7 @@ def _plot_saliency_one_example(
             colour_bar_object.set_ticks(tick_values)
             colour_bar_object.set_ticklabels(tick_strings)
 
-            title_string = 'Saliency for {0:s} wrt {1:s}'.format(
+            title_string = 'Saliency for {0:s} with respect to {1:s}'.format(
                 vector_target_names_verbose[k],
                 vector_predictor_names_verbose[j]
             )
