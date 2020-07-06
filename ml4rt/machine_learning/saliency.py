@@ -428,7 +428,7 @@ def write_all_targets_file(
     error_checking.assert_is_geq(this_num_dim, 3)
     error_checking.assert_is_leq(this_num_dim, 4)
 
-    num_scalar_predictors = saliency_matrix_scalar_p_scalar_t.shape[1]
+    num_scalar_predictors = saliency_matrix_scalar_p_scalar_t.shape[-2]
 
     if is_net_dense:
         expected_dim = numpy.array(
