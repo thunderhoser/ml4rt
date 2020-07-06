@@ -533,14 +533,18 @@ def read_all_targets_file(netcdf_file_name):
         IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
     }
 
-    print(dataset_object.dimensions[EXAMPLE_DIMENSION_KEY])
-    print(dir(dataset_object.dimensions[EXAMPLE_DIMENSION_KEY]))
-    num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY]
-    num_scalar_predictors = dataset_object.dimensions[SCALAR_PREDICTOR_DIM_KEY]
-    num_vector_predictors = dataset_object.dimensions[VECTOR_PREDICTOR_DIM_KEY]
-    num_heights = dataset_object.dimensions[HEIGHT_DIMENSION_KEY]
-    num_scalar_targets = dataset_object.dimensions[SCALAR_TARGET_DIM_KEY]
-    num_vector_targets = dataset_object.dimensions[VECTOR_TARGET_DIM_KEY]
+    num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY].size
+    print(num_examples)
+    print(type(num_examples))
+    num_scalar_predictors = (
+        dataset_object.dimensions[SCALAR_PREDICTOR_DIM_KEY].size
+    )
+    num_vector_predictors = (
+        dataset_object.dimensions[VECTOR_PREDICTOR_DIM_KEY].size
+    )
+    num_heights = dataset_object.dimensions[HEIGHT_DIMENSION_KEY].size
+    num_scalar_targets = dataset_object.dimensions[SCALAR_TARGET_DIM_KEY].size
+    num_vector_targets = dataset_object.dimensions[VECTOR_TARGET_DIM_KEY].size
 
     if SALIENCY_SCALAR_P_SCALAR_T_KEY in dataset_object.variables:
         saliency_dict[SALIENCY_SCALAR_P_SCALAR_T_KEY] = (
