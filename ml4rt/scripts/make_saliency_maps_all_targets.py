@@ -256,6 +256,17 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
 
         print(SEPARATOR_STRING)
 
+    print('Writing saliency maps to: "{0:s}"...'.format(output_file_name))
+    saliency.write_all_targets_file(
+        netcdf_file_name=output_file_name,
+        saliency_matrix_scalar_p_scalar_t=saliency_matrix_scalar_p_scalar_t,
+        saliency_matrix_vector_p_scalar_t=saliency_matrix_vector_p_scalar_t,
+        saliency_matrix_scalar_p_vector_t=saliency_matrix_scalar_p_vector_t,
+        saliency_matrix_vector_p_vector_t=saliency_matrix_vector_p_vector_t,
+        example_id_strings=example_id_strings, model_file_name=model_file_name,
+        ideal_activation=ideal_activation
+    )
+
 
 if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
