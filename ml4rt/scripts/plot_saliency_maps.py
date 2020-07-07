@@ -400,7 +400,7 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
 
     print(SEPARATOR_STRING)
 
-    for k in range(len(example_id_strings)):
+    for i in range(num_examples):
         if target_field_name is None:
             this_title_suffix = ''
         else:
@@ -414,11 +414,11 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
                 )
 
             this_title_suffix += ' = {0:.2f}, {1:.2f}'.format(
-                actual_target_values[k], predicted_target_values[k]
+                actual_target_values[i], predicted_target_values[i]
             )
 
         _plot_saliency_one_example(
-            saliency_dict=saliency_dict, example_index=k,
+            saliency_dict=saliency_dict, example_index=i,
             model_metadata_dict=model_metadata_dict,
             title_suffix=this_title_suffix, output_dir_name=output_dir_name
         )
