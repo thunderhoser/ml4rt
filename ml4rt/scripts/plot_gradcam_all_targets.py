@@ -125,7 +125,6 @@ def _plot_gradcam_one_example(
 
     for k in range(num_targets):
         class_activation_matrix_2d = class_activation_matrix_3d[..., k]
-        class_activation_matrix_2d[0, 72] = 10.
 
         max_colour_value = numpy.percentile(
             class_activation_matrix_2d, max_colour_percentile
