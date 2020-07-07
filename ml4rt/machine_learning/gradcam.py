@@ -127,7 +127,7 @@ def run_gradcam(
 
     # Compute class-activation map in activation layer's space.
     mean_weight_by_filter = numpy.mean(gradient_matrix, axis=0)
-    class_activations = numpy.ones(layer_activation_matrix.shape[0])
+    class_activations = numpy.full(layer_activation_matrix.shape[0], 0.)
     num_filters = len(mean_weight_by_filter)
 
     for k in range(num_filters):

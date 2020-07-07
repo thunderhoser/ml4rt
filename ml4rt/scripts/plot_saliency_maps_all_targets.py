@@ -76,6 +76,7 @@ MAX_PERCENTILE_HELP_STRING = (
     ' in colour bar will be [q]th percentile of all values in plot, where '
     'q = `{0:s}`.'
 ).format(MAX_PERCENTILE_ARG_NAME)
+
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
 )
@@ -124,7 +125,9 @@ def _plot_saliency_scalar_p_scalar_t(
         TARGET_NAME_TO_VERBOSE[n] for n in target_names
     ]
 
-    max_colour_value = numpy.percentile(saliency_matrix, max_colour_percentile)
+    max_colour_value = numpy.percentile(
+        numpy.absolute(saliency_matrix), max_colour_percentile
+    )
     max_colour_value = numpy.maximum(max_colour_value, 0.001)
     min_colour_value = -1 * max_colour_value
 
@@ -233,7 +236,7 @@ def _plot_saliency_vector_p_scalar_t(
 
     for k in range(num_targets):
         max_colour_value = numpy.percentile(
-            saliency_matrix[..., k], max_colour_percentile
+            numpy.absolute(saliency_matrix[..., k]), max_colour_percentile
         )
         max_colour_value = numpy.maximum(max_colour_value, 0.001)
         min_colour_value = -1 * max_colour_value
@@ -339,7 +342,7 @@ def _plot_saliency_scalar_p_vector_t(
 
     for k in range(num_targets):
         max_colour_value = numpy.percentile(
-            saliency_matrix[..., k], max_colour_percentile
+            numpy.absolute(saliency_matrix[..., k]), max_colour_percentile
         )
         max_colour_value = numpy.maximum(max_colour_value, 0.001)
         min_colour_value = -1 * max_colour_value
@@ -447,7 +450,7 @@ def _plot_saliency_vector_p_vector_t(
     for j in range(num_predictors):
         for k in range(num_targets):
             max_colour_value = numpy.percentile(
-                saliency_matrix[:, j, :, k], max_colour_percentile
+                numpy.abs(saliency_matrix[:, j, :, k]), max_colour_percentile
             )
             max_colour_value = numpy.maximum(max_colour_value, 0.001)
             min_colour_value = -1 * max_colour_value
