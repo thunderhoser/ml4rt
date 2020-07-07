@@ -49,7 +49,7 @@ def check_metadata(layer_name, neuron_indices, ideal_activation):
         The first dimension is the batch dimension, which always has length
         `None` in Keras.
     :param ideal_activation: Ideal neuron activation, used to define loss
-        function.  If you specify this, the loss function will be
+        function.  The loss function will be
         (neuron_activation - ideal_activation)**2.
     """
 
