@@ -17,6 +17,7 @@ IDEAL_ACTIVATION_KEY = 'ideal_activation'
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
+TARGET_DIMENSION_KEY = 'target'
 EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 
 EXAMPLE_IDS_KEY = 'example_id_strings'
@@ -81,6 +82,9 @@ def run_gradcam(
     :return: class_activations: length-H numpy array of class activations.
     """
 
+    # TODO(thunderhoser): Eventually make this work for dense (scalar) output
+    # layers as well.
+
     # Check input args.
     error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
     error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=2)
@@ -98,7 +102,9 @@ def run_gradcam(
         name=vector_output_layer_name
     ).output[:, output_neuron_indices[0], output_neuron_indices[1]]
 
-    loss_tensor = (output_tensor - ideal_activation) ** 2
+    # TODO(thunderhoser): Is this right?
+    # loss_tensor = (output_tensor - ideal_activation) ** 2
+    loss_tensor = output_tensor
 
     # Set up gradient function.
     layer_activation_tensor = (
@@ -264,6 +270,143 @@ def read_standard_file(netcdf_file_name):
         OUTPUT_NEURONS_KEY: numpy.array(
             getattr(dataset_object, OUTPUT_NEURONS_KEY), dtype=int
         ),
+        IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
+    }
+
+    dataset_object.close()
+    return gradcam_dict
+
+
+def write_all_targets_file(
+        netcdf_file_name, class_activation_matrix, example_id_strings,
+        model_file_name, activation_layer_name, vector_output_layer_name,
+        ideal_activation):
+    """Writes class-activation maps for all target variables to NetCDF file.
+
+    E = number of examples
+    H = number of heights
+    T_v = number of vector targets
+
+    :param netcdf_file_name: Path to output file.
+    :param class_activation_matrix: numpy array (E x H x H x T_v) of class
+        activations.  class_activation_matrix[:, :, j, k] is the
+        class-activation map for the [k]th target variable at the [j]th height.
+    :param example_id_strings: See doc for `write_standard_file`.
+    :param model_file_name: Same.
+    :param activation_layer_name: Same.
+    :param vector_output_layer_name: Same.
+    :param ideal_activation: Same.
+    """
+
+    # Check input args.
+    check_metadata(
+        activation_layer_name=activation_layer_name,
+        vector_output_layer_name=vector_output_layer_name,
+        output_neuron_indices=numpy.array([0, 0], dtype=int),
+        ideal_activation=ideal_activation
+    )
+
+    error_checking.assert_is_string(model_file_name)
+
+    error_checking.assert_is_string_list(example_id_strings)
+    error_checking.assert_is_numpy_array(
+        numpy.array(example_id_strings), num_dimensions=1
+    )
+
+    error_checking.assert_is_geq_numpy_array(class_activation_matrix, 0.)
+    error_checking.assert_is_numpy_array(
+        class_activation_matrix, num_dimensions=4
+    )
+
+    num_examples = len(example_id_strings)
+    expected_dim = numpy.array(
+        (num_examples,) + class_activation_matrix.shape[1:], dtype=int
+    )
+    error_checking.assert_is_numpy_array(
+        class_activation_matrix, exact_dimensions=expected_dim
+    )
+
+    # Write to NetCDF file.
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    dataset_object = netCDF4.Dataset(
+        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+    )
+
+    dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
+    dataset_object.setncattr(ACTIVATION_LAYER_KEY, activation_layer_name)
+    dataset_object.setncattr(VECTOR_OUT_LAYER_KEY, vector_output_layer_name)
+    dataset_object.setncattr(IDEAL_ACTIVATION_KEY, ideal_activation)
+
+    num_heights = class_activation_matrix.shape[1]
+    num_targets = class_activation_matrix.shape[-1]
+    dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
+    dataset_object.createDimension(HEIGHT_DIMENSION_KEY, num_heights)
+    dataset_object.createDimension(TARGET_DIMENSION_KEY, num_targets)
+
+    if num_examples == 0:
+        num_id_characters = 1
+    else:
+        num_id_characters = numpy.max(numpy.array([
+            len(id) for id in example_id_strings
+        ]))
+
+    dataset_object.createDimension(EXAMPLE_ID_CHAR_DIM_KEY, num_id_characters)
+
+    this_string_format = 'S{0:d}'.format(num_id_characters)
+    example_ids_char_array = netCDF4.stringtochar(numpy.array(
+        example_id_strings, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        EXAMPLE_IDS_KEY, datatype='S1',
+        dimensions=(EXAMPLE_DIMENSION_KEY, EXAMPLE_ID_CHAR_DIM_KEY)
+    )
+    dataset_object.variables[EXAMPLE_IDS_KEY][:] = numpy.array(
+        example_ids_char_array
+    )
+
+    these_dim = (
+        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+        TARGET_DIMENSION_KEY
+    )
+    dataset_object.createVariable(
+        CLASS_ACTIVATIONS_KEY, datatype=numpy.float32, dimensions=these_dim
+    )
+    dataset_object.variables[CLASS_ACTIVATIONS_KEY][:] = (
+        class_activation_matrix
+    )
+
+    dataset_object.close()
+
+
+def read_all_targets_file(netcdf_file_name):
+    """Reads class-activation maps for all target variables from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: gradcam_dict: Dictionary with the following keys.
+    gradcam_dict['class_activation_matrix']: See doc for
+        `write_all_targets_file`.
+    gradcam_dict['example_id_strings']: Same.
+    gradcam_dict['model_file_name']: Same.
+    gradcam_dict['activation_layer_name']: Same.
+    gradcam_dict['vector_output_layer_name']: Same.
+    gradcam_dict['ideal_activation']: Same.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    gradcam_dict = {
+        CLASS_ACTIVATIONS_KEY:
+            dataset_object.variables[CLASS_ACTIVATIONS_KEY][:],
+        EXAMPLE_IDS_KEY: [
+            str(id) for id in
+            netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
+        ],
+        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY)),
+        ACTIVATION_LAYER_KEY:
+            str(getattr(dataset_object, ACTIVATION_LAYER_KEY)),
+        VECTOR_OUT_LAYER_KEY:
+            str(getattr(dataset_object, VECTOR_OUT_LAYER_KEY)),
         IDEAL_ACTIVATION_KEY: getattr(dataset_object, IDEAL_ACTIVATION_KEY)
     }
 
