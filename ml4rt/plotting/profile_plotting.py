@@ -80,7 +80,7 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
     :return: tick_strings: length-H list of text labels.
     """
 
-    error_checking.assert_is_greater_numpy_array(tick_values_km_agl, 0.)
+    error_checking.assert_is_geq_numpy_array(tick_values_km_agl, 0.)
     error_checking.assert_is_numpy_array(tick_values_km_agl, num_dimensions=1)
     error_checking.assert_is_boolean(use_log_scale)
 
@@ -88,9 +88,12 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
     tick_strings = ['foo'] * num_ticks
 
     for i in range(num_ticks):
-        this_order_of_magnitude = int(numpy.floor(
-            numpy.log10(tick_values_km_agl[i])
-        ))
+        try:
+            this_order_of_magnitude = int(numpy.floor(
+                numpy.log10(tick_values_km_agl[i])
+            ))
+        except OverflowError:
+            this_order_of_magnitude = -1
 
         if this_order_of_magnitude >= 0:
             this_num_decimal_places = 1

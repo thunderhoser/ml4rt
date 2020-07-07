@@ -125,15 +125,7 @@ def _plot_gradcam_one_example(
 
     for k in range(num_targets):
         class_activation_matrix_2d = class_activation_matrix_3d[..., k]
-        print(numpy.min(class_activation_matrix_2d))
-        print(numpy.percentile(class_activation_matrix_2d, 1.))
-        print(numpy.percentile(class_activation_matrix_2d, 5.))
-        print(numpy.percentile(class_activation_matrix_2d, 25.))
-        print(numpy.median(class_activation_matrix_2d))
-        print(numpy.percentile(class_activation_matrix_2d, 75.))
-        print(numpy.percentile(class_activation_matrix_2d, 95.))
-        print(numpy.percentile(class_activation_matrix_2d, 99.))
-        print(numpy.max(class_activation_matrix_2d))
+        class_activation_matrix_2d[0, 72] = 10.
 
         max_colour_value = numpy.percentile(
             class_activation_matrix_2d, max_colour_percentile
@@ -178,7 +170,7 @@ def _plot_gradcam_one_example(
             colour_map_object=colour_map_object,
             min_value=0., max_value=max_colour_value,
             orientation_string='horizontal', padding=0.1,
-            extend_min=True, extend_max=True,
+            extend_min=False, extend_max=True,
             fraction_of_axis_length=0.8, font_size=DEFAULT_FONT_SIZE
         )
 
