@@ -172,7 +172,8 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             ))
 
         class_activation_matrix[i, :] = gradcam.run_gradcam(
-            model_object=model_object, predictor_matrix=predictor_matrix,
+            model_object=model_object,
+            predictor_matrix=predictor_matrix[i, ...],
             activation_layer_name=activation_layer_name,
             vector_output_layer_name=vector_output_layer_name,
             output_neuron_indices=output_neuron_indices,
