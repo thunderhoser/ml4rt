@@ -71,7 +71,7 @@ INPUT_ARG_PARSER.add_argument(
     help=GRADCAM_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + COLOUR_MAP_ARG_NAME, type=str, required=False, default='seismic',
+    '--' + COLOUR_MAP_ARG_NAME, type=str, required=False, default='cividis',
     help=COLOUR_MAP_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -125,6 +125,15 @@ def _plot_gradcam_one_example(
 
     for k in range(num_targets):
         class_activation_matrix_2d = class_activation_matrix_3d[..., k]
+        print(numpy.min(class_activation_matrix_2d))
+        print(numpy.percentile(class_activation_matrix_2d, 1.))
+        print(numpy.percentile(class_activation_matrix_2d, 5.))
+        print(numpy.percentile(class_activation_matrix_2d, 25.))
+        print(numpy.median(class_activation_matrix_2d))
+        print(numpy.percentile(class_activation_matrix_2d, 75.))
+        print(numpy.percentile(class_activation_matrix_2d, 95.))
+        print(numpy.percentile(class_activation_matrix_2d, 99.))
+        print(numpy.max(class_activation_matrix_2d))
 
         max_colour_value = numpy.percentile(
             class_activation_matrix_2d, max_colour_percentile
