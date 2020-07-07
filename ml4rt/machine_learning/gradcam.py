@@ -103,8 +103,8 @@ def run_gradcam(
     ).output[:, output_neuron_indices[0], output_neuron_indices[1]]
 
     # TODO(thunderhoser): Is this right?
-    loss_tensor = (output_tensor - ideal_activation) ** 2
-    # loss_tensor = output_tensor
+    # loss_tensor = (output_tensor - ideal_activation) ** 2
+    loss_tensor = output_tensor
 
     # Set up gradient function.
     layer_activation_tensor = (
