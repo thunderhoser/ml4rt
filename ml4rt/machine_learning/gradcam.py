@@ -2,7 +2,6 @@
 
 import numpy
 from keras import backend as K
-import tensorflow
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import gradcam as gradcam_utils
 
@@ -69,7 +68,7 @@ def run_gradcam(
         model_object.get_layer(name=activation_layer_name).output
     )
     gradient_tensor = (
-        tensorflow.gradients(loss_tensor, [layer_activation_tensor])[0]
+        K.gradients(loss_tensor, [layer_activation_tensor])[0]
     )
     gradient_tensor = _normalize_tensor(gradient_tensor)
     gradient_function = K.function(
