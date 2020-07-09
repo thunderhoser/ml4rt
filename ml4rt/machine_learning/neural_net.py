@@ -484,44 +484,102 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
     :param net_type_string: Type of neural net (must be accepted by
         `check_net_type`).
     :return: predictor_matrix: See output doc for `data_generator`.
+    :return: predictor_name_matrix: numpy array of predictor names (strings), in
+        the same shape as predictor_matrix[0, ...].
+    :return: height_matrix_m_agl: numpy array of heights (metres above ground
+        level), in the same shape as predictor_matrix[0, ...].  For scalar
+        variables, the matrix entry will be NaN.
     """
 
     check_net_type(net_type_string)
 
-    if net_type_string != DENSE_NET_TYPE_STRING:
-        num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+    vector_predictor_names = numpy.array(
+        example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    )
+    scalar_predictor_names = numpy.array(
+        example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    )
 
-        scalar_predictor_matrix = (
-            example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-        )
+    num_heights = len(heights_m_agl)
+    num_vector_predictors = len(vector_predictor_names)
+    num_scalar_predictors = len(scalar_predictor_names)
+
+    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    vector_height_matrix_m_agl = numpy.reshape(
+        heights_m_agl, (num_heights, 1)
+    )
+    vector_height_matrix_m_agl = numpy.repeat(
+        vector_height_matrix_m_agl, repeats=num_vector_predictors, axis=1
+    )
+    vector_predictor_name_matrix = numpy.reshape(
+        vector_predictor_names, (1, num_vector_predictors)
+    )
+    vector_predictor_name_matrix = numpy.repeat(
+        vector_predictor_name_matrix, repeats=num_heights, axis=0
+    )
+
+    scalar_predictor_matrix = (
+        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    )
+
+    if net_type_string != DENSE_NET_TYPE_STRING:
         scalar_predictor_matrix = numpy.expand_dims(
             scalar_predictor_matrix, axis=1
         )
         scalar_predictor_matrix = numpy.repeat(
             scalar_predictor_matrix, repeats=num_heights, axis=1
         )
+        scalar_height_matrix_m_agl = numpy.full(
+            scalar_predictor_matrix.shape[1:], numpy.nan
+        )
+        scalar_predictor_name_matrix = numpy.reshape(
+            scalar_predictor_names, (1, num_scalar_predictors)
+        )
+        scalar_predictor_name_matrix = numpy.repeat(
+            scalar_predictor_name_matrix, repeats=num_heights, axis=0
+        )
 
-        return numpy.concatenate((
-            example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
-            scalar_predictor_matrix
+        predictor_matrix = numpy.concatenate(
+            (vector_predictor_matrix, scalar_predictor_matrix), axis=-1
+        )
+        height_matrix_m_agl = numpy.concatenate(
+            (vector_height_matrix_m_agl, scalar_height_matrix_m_agl), axis=-1
+        )
+        predictor_name_matrix = numpy.concatenate((
+            vector_predictor_name_matrix, scalar_predictor_name_matrix
         ), axis=-1)
 
-    vector_predictor_matrix = (
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
-    )
+        return predictor_matrix, predictor_name_matrix, height_matrix_m_agl
+
     num_examples = vector_predictor_matrix.shape[0]
-    num_heights = vector_predictor_matrix.shape[1]
-    num_fields = vector_predictor_matrix.shape[2]
 
     vector_predictor_matrix = numpy.reshape(
-        vector_predictor_matrix, (num_examples, num_heights * num_fields),
+        vector_predictor_matrix,
+        (num_examples, num_heights * num_vector_predictors),
+        order='F'
+    )
+    vector_predictor_name_matrix = numpy.reshape(
+        vector_predictor_name_matrix, num_heights * num_vector_predictors,
+        order='F'
+    )
+    vector_height_matrix_m_agl = numpy.reshape(
+        vector_height_matrix_m_agl, num_heights * num_vector_predictors,
         order='F'
     )
 
-    return numpy.concatenate((
-        vector_predictor_matrix,
-        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
-    ), axis=-1)
+    predictor_matrix = numpy.concatenate(
+        (vector_predictor_matrix, scalar_predictor_matrix), axis=-1
+    )
+    scalar_height_matrix_m_agl = numpy.full(num_scalar_predictors, numpy.nan)
+    height_matrix_m_agl = numpy.concatenate(
+        (vector_height_matrix_m_agl, scalar_height_matrix_m_agl), axis=0
+    )
+    predictor_name_matrix = numpy.concatenate(
+        (vector_predictor_name_matrix, scalar_predictor_names), axis=0
+    )
+
+    return predictor_matrix, predictor_name_matrix, height_matrix_m_agl
 
 
 def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
@@ -1121,7 +1179,7 @@ def data_generator(option_dict, for_inference, net_type_string,
 
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string
-            )
+            )[0]
             this_list = targets_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string,
                 is_loss_constrained_mse=is_loss_constrained_mse

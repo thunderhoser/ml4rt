@@ -98,7 +98,20 @@ THIS_SCALAR_PREDICTOR_MATRIX = numpy.stack(
 CNN_PREDICTOR_MATRIX = numpy.concatenate(
     (VECTOR_PREDICTOR_MATRIX, THIS_SCALAR_PREDICTOR_MATRIX), axis=-1
 )
+CNN_PREDICTOR_NAME_MATRIX = numpy.array([
+    [example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
+     example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME],
+    [example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
+     example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME]
+])
+CNN_HEIGHT_MATRIX_M_AGL = numpy.array([
+    [100, 100, numpy.nan, numpy.nan],
+    [500, 500, numpy.nan, numpy.nan]
+])
+
 U_NET_PREDICTOR_MATRIX = CNN_PREDICTOR_MATRIX + 0.
+U_NET_PREDICTOR_NAME_MATRIX = copy.deepcopy(CNN_PREDICTOR_NAME_MATRIX)
+U_NET_HEIGHT_MATRIX_M_AGL = CNN_HEIGHT_MATRIX_M_AGL + 0
 
 CNN_TARGET_MATRICES_DEFAULT_LOSS = [
     VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.
@@ -123,6 +136,14 @@ DENSE_NET_PREDICTOR_MATRIX = numpy.array([
     [288, 293, 0.005, 0.006, 2, 40.02],
     [287, 292.5, 0.0075, 0.01, 3, 40.02]
 ])
+DENSE_NET_PREDICTOR_NAME_MATRIX = numpy.array([
+    example_io.TEMPERATURE_NAME, example_io.TEMPERATURE_NAME,
+    example_io.SPECIFIC_HUMIDITY_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
+    example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME
+])
+DENSE_NET_HEIGHT_MATRIX_M_AGL = numpy.array(
+    [100, 500, 100, 500, numpy.nan, numpy.nan]
+)
 
 DENSE_NET_TARGET_MATRIX = numpy.array([
     [300, 200, 150, 150, 200],
@@ -185,12 +206,23 @@ class NeuralNetTests(unittest.TestCase):
         In this case, neural-net type is CNN.
         """
 
-        this_matrix = neural_net.predictors_dict_to_numpy(
+        (
+            this_predictor_matrix, this_predictor_name_matrix,
+            this_height_matrix_m_agl
+        ) = neural_net.predictors_dict_to_numpy(
             example_dict=EXAMPLE_DICT,
             net_type_string=neural_net.CNN_TYPE_STRING
         )
+
         self.assertTrue(numpy.allclose(
-            this_matrix, CNN_PREDICTOR_MATRIX, atol=TOLERANCE
+            this_predictor_matrix, CNN_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.array_equal(
+            this_predictor_name_matrix, CNN_PREDICTOR_NAME_MATRIX
+        ))
+        self.assertTrue(numpy.allclose(
+            this_height_matrix_m_agl, CNN_HEIGHT_MATRIX_M_AGL,
+            atol=TOLERANCE, equal_nan=True
         ))
 
     def test_predictors_dict_to_numpy_dense_net(self):
@@ -199,12 +231,23 @@ class NeuralNetTests(unittest.TestCase):
         In this case, neural-net type is dense.
         """
 
-        this_matrix = neural_net.predictors_dict_to_numpy(
+        (
+            this_predictor_matrix, this_predictor_name_matrix,
+            this_height_matrix_m_agl
+        ) = neural_net.predictors_dict_to_numpy(
             example_dict=EXAMPLE_DICT,
             net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
+
         self.assertTrue(numpy.allclose(
-            this_matrix, DENSE_NET_PREDICTOR_MATRIX, atol=TOLERANCE
+            this_predictor_matrix, DENSE_NET_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.array_equal(
+            this_predictor_name_matrix, DENSE_NET_PREDICTOR_NAME_MATRIX
+        ))
+        self.assertTrue(numpy.allclose(
+            this_height_matrix_m_agl, DENSE_NET_HEIGHT_MATRIX_M_AGL,
+            atol=TOLERANCE, equal_nan=True
         ))
 
     def test_predictors_dict_to_numpy_u_net(self):
@@ -213,12 +256,23 @@ class NeuralNetTests(unittest.TestCase):
         In this case, neural-net type is U-net.
         """
 
-        this_matrix = neural_net.predictors_dict_to_numpy(
+        (
+            this_predictor_matrix, this_predictor_name_matrix,
+            this_height_matrix_m_agl
+        ) = neural_net.predictors_dict_to_numpy(
             example_dict=EXAMPLE_DICT,
             net_type_string=neural_net.U_NET_TYPE_STRING
         )
+
         self.assertTrue(numpy.allclose(
-            this_matrix, U_NET_PREDICTOR_MATRIX, atol=TOLERANCE
+            this_predictor_matrix, U_NET_PREDICTOR_MATRIX, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.array_equal(
+            this_predictor_name_matrix, U_NET_PREDICTOR_NAME_MATRIX
+        ))
+        self.assertTrue(numpy.allclose(
+            this_height_matrix_m_agl, U_NET_HEIGHT_MATRIX_M_AGL,
+            atol=TOLERANCE, equal_nan=True
         ))
 
     def test_predictors_numpy_to_dict_cnn(self):

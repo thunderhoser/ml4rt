@@ -1,8 +1,12 @@
 """IO and helper methods for permutation-based importance test."""
 
+import copy
 import numpy
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
+
+MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
 DEFAULT_NUM_BOOTSTRAP_REPS = 1000
 
@@ -14,6 +18,14 @@ PERMUTED_COSTS_KEY = 'permuted_cost_matrix'
 DEPERMUTED_CHANNELS_KEY = 'depermuted_channel_indices'
 DEPERMUTED_HEIGHTS_KEY = 'depermuted_height_indices'
 DEPERMUTED_COSTS_KEY = 'depermuted_cost_matrix'
+
+ORIGINAL_COST_KEY = 'orig_cost_estimates'
+BEST_PREDICTORS_KEY = 'best_predictor_names'
+BEST_HEIGHTS_KEY = 'best_heights_m_agl'
+BEST_COSTS_KEY = 'best_cost_matrix'
+STEP1_PREDICTORS_KEY = 'step1_predictor_names'
+STEP1_HEIGHTS_KEY = 'step1_heights_m_agl'
+STEP1_COSTS_KEY = 'step1_cost_matrix'
 
 
 def _permute_values(
@@ -402,7 +414,9 @@ def run_backwards_test_one_step(
         depermuted_height_indices = None
     else:
         num_depermutations = numpy.sum(permuted_flag_matrix)
-        depermuted_height_indices = numpy.full(num_depermutations, -1, dtype=int)
+        depermuted_height_indices = numpy.full(
+            num_depermutations, -1, dtype=int
+        )
 
     if num_depermutations == 0:
         return None
@@ -534,6 +548,54 @@ def _make_prediction_function(model_object, net_type_string):
     return prediction_function
 
 
+def _predictor_indices_to_metadata(
+        all_predictor_name_matrix, all_height_matrix_m_agl,
+        one_step_result_dict):
+    """Converts predictor indices to metadata (name and height).
+
+    N = number of permutations or depermutations
+
+    :param all_predictor_name_matrix: See output doc for
+        `neural_net.predictors_dict_to_numpy`.
+    :param all_height_matrix_m_agl: Same.
+    :param one_step_result_dict: Dictionary created by
+        `run_forward_test_one_step` or `run_backwards_test_one_step`.
+    :return: predictor_names: length-N list of predictor names, in the order
+        that they were (de)permuted.
+    :return: heights_m_agl: length-N numpy array of corresponding heights
+        (metres above ground level).
+    """
+
+    if PERMUTED_CHANNELS_KEY in one_step_result_dict:
+        channel_indices = one_step_result_dict[PERMUTED_CHANNELS_KEY]
+    else:
+        channel_indices = one_step_result_dict[DEPERMUTED_CHANNELS_KEY]
+
+    predictor_names = [
+        all_predictor_name_matrix[..., k] for k in channel_indices
+    ]
+    if predictor_names[0].shape:
+        predictor_names = [n[0] for n in predictor_names]
+
+    if PERMUTED_HEIGHTS_KEY in one_step_result_dict:
+        height_indices = one_step_result_dict[PERMUTED_HEIGHTS_KEY]
+    else:
+        height_indices = one_step_result_dict[DEPERMUTED_HEIGHTS_KEY]
+
+    if height_indices is None:
+        heights_m_agl = numpy.full(len(predictor_names), numpy.nan)
+        return predictor_names, heights_m_agl
+
+    heights_m_agl = [
+        all_height_matrix_m_agl[j, ...] for j in height_indices
+    ]
+    if heights_m_agl[0].shape:
+        heights_m_agl = [h[0] for h in heights_m_agl]
+
+    heights_m_agl = numpy.array(heights_m_agl)
+    return predictor_names, heights_m_agl
+
+
 def run_forward_test(
         predictor_matrix, target_matrices, model_object, model_metadata_dict,
         cost_function, shuffle_profiles_together=True,
@@ -551,6 +613,28 @@ def run_forward_test(
     :return: Still need to decide...
     """
 
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    example_dict = {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
+
+    new_example_dict = neural_net.predictors_numpy_to_dict(
+        predictor_matrix=predictor_matrix, example_dict=example_dict,
+        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+    )
+    example_dict.update(new_example_dict)
+
+    predictor_name_matrix, height_matrix_m_agl = (
+        neural_net.predictors_dict_to_numpy(
+            example_dict=example_dict,
+            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+        )[1:]
+    )
+
     error_checking.assert_is_boolean(shuffle_profiles_together)
     error_checking.assert_is_integer(num_bootstrap_reps)
     num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
@@ -558,8 +642,8 @@ def run_forward_test(
     # TODO(thunderhoser): Still need cost functions.
 
     # TODO(thunderhoser): Need to fuck with this for dense net.  If shuffling
-    # profiles together, will need 3-D predictor that is reshaped to 2-D in
-    # prediction function.
+    # profiles together, will need 3-D predictor matrix that is reshaped to 2-D
+    # in prediction function.
 
     # If shuffling profiles together for dense net, need to reshape
     # predictor_matrix here!
@@ -581,15 +665,15 @@ def run_forward_test(
         predictor_matrix.shape[1:], False, dtype=bool
     )
 
-    best_channel_indices = []
+    best_predictor_names = []
     best_cost_matrix = numpy.full((0, num_bootstrap_reps), numpy.nan)
     if shuffle_profiles_together:
-        best_height_indices = None
+        best_heights_m_agl = None
     else:
-        best_height_indices = []
+        best_heights_m_agl = []
 
-    step1_channel_indices = None
-    step1_height_indices = None
+    step1_predictor_names = None
+    step1_heights_m_agl = None
     step1_cost_matrix = None
 
     step_num = 0
@@ -598,7 +682,7 @@ def run_forward_test(
         print(MINOR_SEPARATOR_STRING)
         step_num += 1
 
-        result_dict = run_forward_test_one_step(
+        this_result_dict = run_forward_test_one_step(
             predictor_matrix=predictor_matrix,
             target_matrices=target_matrices,
             prediction_function=prediction_function,
@@ -608,33 +692,46 @@ def run_forward_test(
             num_bootstrap_reps=num_bootstrap_reps
         )
 
-        if result_dict is None:
+        if this_result_dict is None:
             break
 
-        predictor_matrix = result_dict[PREDICTORS_KEY]
-        permuted_flag_matrix = result_dict[PERMUTED_FLAGS_KEY]
+        predictor_matrix = this_result_dict[PREDICTORS_KEY]
+        permuted_flag_matrix = this_result_dict[PERMUTED_FLAGS_KEY]
 
-        best_permutation_index = numpy.argmax(
-            numpy.mean(result_dict[PERMUTED_COSTS_KEY], axis=1)
+        these_predictor_names, these_heights_m_agl = (
+            _predictor_indices_to_metadata(
+                all_predictor_name_matrix=predictor_name_matrix,
+                all_height_matrix_m_agl=height_matrix_m_agl,
+                one_step_result_dict=this_result_dict
+            )
         )
-        best_channel_indices.append(
-            result_dict[PERMUTED_CHANNELS_KEY][best_permutation_index]
+
+        this_best_index = numpy.argmax(
+            numpy.mean(this_result_dict[PERMUTED_COSTS_KEY], axis=1)
         )
+        best_predictor_names.append(these_predictor_names[this_best_index])
         best_cost_matrix = numpy.concatenate((
             best_cost_matrix,
-            result_dict[PERMUTED_COSTS_KEY][[best_permutation_index], :]
+            this_result_dict[PERMUTED_COSTS_KEY][[this_best_index], :]
         ), axis=0)
 
         if not shuffle_profiles_together:
-            best_height_indices.append(
-                result_dict[PERMUTED_HEIGHTS_KEY][best_permutation_index]
-            )
+            best_heights_m_agl.append(these_heights_m_agl[this_best_index])
 
         if step_num != 1:
             continue
 
-        step1_channel_indices = result_dict[PERMUTED_CHANNELS_KEY]
-        step1_height_indices = result_dict[PERMUTED_HEIGHTS_KEY]
-        step1_cost_matrix = result_dict[PERMUTED_COSTS_KEY]
-        return None
-    
+        step1_predictor_names = copy.deepcopy(these_predictor_names)
+        step1_cost_matrix = this_result_dict[PERMUTED_COSTS_KEY] + 0.
+        if not shuffle_profiles_together:
+            step1_heights_m_agl = these_heights_m_agl + 0
+
+    return {
+        ORIGINAL_COST_KEY: orig_cost_estimates,
+        BEST_PREDICTORS_KEY: best_predictor_names,
+        BEST_HEIGHTS_KEY: best_heights_m_agl,
+        BEST_COSTS_KEY: best_cost_matrix,
+        STEP1_PREDICTORS_KEY: step1_predictor_names,
+        STEP1_HEIGHTS_KEY: step1_heights_m_agl,
+        STEP1_COSTS_KEY: step1_cost_matrix
+    }
