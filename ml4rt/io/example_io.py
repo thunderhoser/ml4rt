@@ -349,6 +349,11 @@ def read_file(example_file_name):
         the list `STANDARD_ATMO_ENUMS`).
     """
 
+    if not os.path.isfile(example_file_name):
+        example_file_name = example_file_name.replace(
+            '/home/ryan.lagerquist', '/home/ralager'
+        )
+
     dataset_object = netCDF4.Dataset(example_file_name)
 
     example_dict = {

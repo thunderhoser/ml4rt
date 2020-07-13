@@ -232,13 +232,13 @@ def _predictor_indices_to_metadata(
     return predictor_names, heights_m_agl
 
 
-def _make_prediction_function(model_object, net_type_string):
+def _make_prediction_function(model_object, model_metadata_dict):
     """Creates prediction function for neural net (any type).
 
     :param model_object: Trained model (instance of `keras.models.Model` or
         `keras.models.Sequential`).
-    :param net_type_string: Type of neural net (must be accepted by
-        `neural_net.check_net_type`).
+    :param model_metadata_dict: Dictionary returned by
+        `neural_net.read_metafile`.
     :return: prediction_function: Function defined below.
     """
 
@@ -250,8 +250,39 @@ def _make_prediction_function(model_object, net_type_string):
             predicted values.
         """
 
+        net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+
+        if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+            generator_option_dict = (
+                model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+            )
+
+            example_dict = {
+                example_io.SCALAR_PREDICTOR_NAMES_KEY: generator_option_dict[
+                    neural_net.SCALAR_PREDICTOR_NAMES_KEY
+                ],
+                example_io.VECTOR_PREDICTOR_NAMES_KEY: generator_option_dict[
+                    neural_net.VECTOR_PREDICTOR_NAMES_KEY
+                ],
+                example_io.HEIGHTS_KEY: generator_option_dict[
+                    neural_net.HEIGHTS_KEY
+                ]
+            }
+
+            new_example_dict = neural_net.predictors_numpy_to_dict(
+                predictor_matrix=predictor_matrix, example_dict=example_dict,
+                net_type_string=neural_net.CNN_TYPE_STRING
+            )
+            example_dict.update(new_example_dict)
+
+            this_predictor_matrix = neural_net.predictors_dict_to_numpy(
+                example_dict=example_dict, net_type_string=net_type_string
+            )[0]
+        else:
+            this_predictor_matrix = predictor_matrix
+
         return neural_net.apply_model(
-            model_object=model_object, predictor_matrix=predictor_matrix,
+            model_object=model_object, predictor_matrix=this_predictor_matrix,
             num_examples_per_batch=1000, net_type_string=net_type_string,
             is_loss_constrained_mse=False, verbose=False
         )
@@ -305,10 +336,6 @@ def run_forward_test_one_step(
     result_dict['permuted_cost_matrix']: P-by-B numpy array of costs after
         permutation.
     """
-
-    # TODO(thunderhoser): Allow profiles to be shuffled together for 2-D
-    # predictor matrix as well.  I probably want to take care of this in a
-    # higher-level method.
 
     num_bootstrap_reps = _check_args_one_step(
         predictor_matrix=predictor_matrix,
@@ -669,26 +696,19 @@ def run_forward_test(
     )
     example_dict.update(new_example_dict)
 
-    predictor_name_matrix, height_matrix_m_agl = (
+    predictor_matrix, predictor_name_matrix, height_matrix_m_agl = (
         neural_net.predictors_dict_to_numpy(
             example_dict=example_dict,
-            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
-        )[1:]
+            net_type_string=neural_net.CNN_TYPE_STRING
+        )
     )
 
     error_checking.assert_is_boolean(shuffle_profiles_together)
     error_checking.assert_is_integer(num_bootstrap_reps)
     num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
 
-    # TODO(thunderhoser): Need to fuck with this for dense net.  If shuffling
-    # profiles together, will need 3-D predictor matrix that is reshaped to 2-D
-    # in prediction function.
-
-    # If shuffling profiles together for dense net, need to reshape
-    # predictor_matrix here!
     prediction_function = _make_prediction_function(
-        model_object=model_object,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+        model_object=model_object, model_metadata_dict=model_metadata_dict
     )
 
     # Find original cost (before permutation).
@@ -835,11 +855,11 @@ def run_backwards_test(
     )
     example_dict.update(new_example_dict)
 
-    predictor_name_matrix, height_matrix_m_agl = (
+    predictor_matrix, predictor_name_matrix, height_matrix_m_agl = (
         neural_net.predictors_dict_to_numpy(
             example_dict=example_dict,
-            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
-        )[1:]
+            net_type_string=neural_net.CNN_TYPE_STRING
+        )
     )
 
     error_checking.assert_is_boolean(shuffle_profiles_together)
@@ -847,8 +867,7 @@ def run_backwards_test(
     num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
 
     prediction_function = _make_prediction_function(
-        model_object=model_object,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+        model_object=model_object, model_metadata_dict=model_metadata_dict
     )
 
     # Permute all predictors.
