@@ -1123,7 +1123,7 @@ def read_file(netcdf_file_name):
             )
         ],
         STEP1_COSTS_KEY: dataset_object.variables[STEP1_COSTS_KEY][:],
-        BACKWARDS_FLAG_KEY: bool(dataset_object.variables[BACKWARDS_FLAG_KEY])
+        BACKWARDS_FLAG_KEY: bool(getattr(dataset_object, BACKWARDS_FLAG_KEY))
     }
 
     dataset_object.close()
