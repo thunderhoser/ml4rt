@@ -2,6 +2,8 @@
 
 import copy
 import numpy
+import netCDF4
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
@@ -26,6 +28,11 @@ BEST_COSTS_KEY = 'best_cost_matrix'
 STEP1_PREDICTORS_KEY = 'step1_predictor_names'
 STEP1_HEIGHTS_KEY = 'step1_heights_m_agl'
 STEP1_COSTS_KEY = 'step1_cost_matrix'
+BACKWARDS_FLAG_KEY = 'is_backwards_test'
+
+PREDICTOR_DIM_KEY = 'predictor'
+BOOTSTRAP_REPLICATE_DIM_KEY = 'bootstrap_replicate'
+PREDICTOR_CHAR_DIM_KEY = 'predictor_name_char'
 
 
 def _permute_values(
@@ -679,6 +686,8 @@ def run_forward_test(
         heights (metres above ground level).  This may be None.
     result_dict['step1_cost_matrix']: N-by-B numpy array of costs after
         permutation in step 1.
+    result_dict['is_backwards_test']: Boolean flag (always False for this
+        method).
     """
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
@@ -802,7 +811,8 @@ def run_forward_test(
         BEST_COSTS_KEY: best_cost_matrix,
         STEP1_PREDICTORS_KEY: step1_predictor_names,
         STEP1_HEIGHTS_KEY: step1_heights_m_agl,
-        STEP1_COSTS_KEY: step1_cost_matrix
+        STEP1_COSTS_KEY: step1_cost_matrix,
+        BACKWARDS_FLAG_KEY: False
     }
 
 
@@ -838,6 +848,8 @@ def run_backwards_test(
         heights (metres above ground level).  This may be None.
     result_dict['step1_cost_matrix']: N-by-B numpy array of costs after
         *de*permutation in step 1.
+    result_dict['is_backwards_test']: Boolean flag (always True for this
+        method).
     """
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
@@ -978,5 +990,148 @@ def run_backwards_test(
         BEST_COSTS_KEY: best_cost_matrix,
         STEP1_PREDICTORS_KEY: step1_predictor_names,
         STEP1_HEIGHTS_KEY: step1_heights_m_agl,
-        STEP1_COSTS_KEY: step1_cost_matrix
+        STEP1_COSTS_KEY: step1_cost_matrix,
+        BACKWARDS_FLAG_KEY: True
     }
+
+
+def write_file(result_dict, netcdf_file_name):
+    """Writes results of permutation test to NetCDF file.
+
+    :param result_dict: Dictionary created by `run_forward_test` or
+        `run_backwards_test`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    # Write to NetCDF file.
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    dataset_object = netCDF4.Dataset(
+        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+    )
+
+    dataset_object.setncattr(
+        BACKWARDS_FLAG_KEY, int(result_dict[BACKWARDS_FLAG_KEY])
+    )
+
+    num_predictors = result_dict[BEST_COSTS_KEY].shape[0]
+    num_bootstrap_reps = result_dict[BEST_COSTS_KEY].shape[1]
+
+    dataset_object.createDimension(PREDICTOR_DIM_KEY, num_predictors)
+    dataset_object.createDimension(
+        BOOTSTRAP_REPLICATE_DIM_KEY, num_bootstrap_reps
+    )
+
+    best_predictor_names = result_dict[BEST_PREDICTORS_KEY]
+    step1_predictor_names = result_dict[STEP1_PREDICTORS_KEY]
+    num_predictor_chars = numpy.max(numpy.array([
+        len(n) for n in best_predictor_names + step1_predictor_names
+    ]))
+
+    dataset_object.createDimension(PREDICTOR_CHAR_DIM_KEY, num_predictor_chars)
+
+    this_string_format = 'S{0:d}'.format(num_predictor_chars)
+    best_predictor_names_char_array = netCDF4.stringtochar(numpy.array(
+        best_predictor_names, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        BEST_PREDICTORS_KEY, datatype='S1',
+        dimensions=(PREDICTOR_DIM_KEY, PREDICTOR_CHAR_DIM_KEY)
+    )
+    dataset_object.variables[BEST_PREDICTORS_KEY][:] = numpy.array(
+        best_predictor_names_char_array
+    )
+
+    best_heights_m_agl = result_dict[BEST_HEIGHTS_KEY] + 0
+    best_heights_m_agl[numpy.isnan(best_heights_m_agl)] = -1
+    best_heights_m_agl = numpy.round(best_heights_m_agl).astype(int)
+
+    dataset_object.createVariable(
+        BEST_HEIGHTS_KEY, datatype=numpy.int32, dimensions=PREDICTOR_DIM_KEY
+    )
+    dataset_object.variables[BEST_HEIGHTS_KEY][:] = best_heights_m_agl
+
+    dataset_object.createVariable(
+        BEST_COSTS_KEY, datatype=numpy.float32,
+        dimensions=(PREDICTOR_DIM_KEY, BOOTSTRAP_REPLICATE_DIM_KEY)
+    )
+    dataset_object.variables[BEST_COSTS_KEY][:] = result_dict[BEST_COSTS_KEY]
+
+    this_string_format = 'S{0:d}'.format(num_predictor_chars)
+    step1_predictor_names_char_array = netCDF4.stringtochar(numpy.array(
+        step1_predictor_names, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        STEP1_PREDICTORS_KEY, datatype='S1',
+        dimensions=(PREDICTOR_DIM_KEY, PREDICTOR_CHAR_DIM_KEY)
+    )
+    dataset_object.variables[STEP1_PREDICTORS_KEY][:] = numpy.array(
+        step1_predictor_names_char_array
+    )
+
+    step1_heights_m_agl = result_dict[STEP1_HEIGHTS_KEY] + 0
+    step1_heights_m_agl[numpy.isnan(step1_heights_m_agl)] = -1
+    step1_heights_m_agl = numpy.round(step1_heights_m_agl).astype(int)
+
+    dataset_object.createVariable(
+        STEP1_HEIGHTS_KEY, datatype=numpy.int32, dimensions=PREDICTOR_DIM_KEY
+    )
+    dataset_object.variables[STEP1_HEIGHTS_KEY][:] = step1_heights_m_agl
+
+    dataset_object.createVariable(
+        STEP1_COSTS_KEY, datatype=numpy.float32,
+        dimensions=(PREDICTOR_DIM_KEY, BOOTSTRAP_REPLICATE_DIM_KEY)
+    )
+    dataset_object.variables[STEP1_COSTS_KEY][:] = result_dict[STEP1_COSTS_KEY]
+
+    dataset_object.createVariable(
+        ORIGINAL_COST_KEY, datatype=numpy.float32,
+        dimensions=BOOTSTRAP_REPLICATE_DIM_KEY
+    )
+    dataset_object.variables[ORIGINAL_COST_KEY][:] = (
+        result_dict[ORIGINAL_COST_KEY]
+    )
+
+    dataset_object.close()
+
+
+def read_file(netcdf_file_name):
+    """Reads results of permutation test from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: result_dict: See doc for `run_forward_test` or
+        `run_backwards_test`.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    result_dict = {
+        ORIGINAL_COST_KEY: dataset_object.variables[ORIGINAL_COST_KEY][:],
+        BEST_PREDICTORS_KEY: [
+            str(n) for n in netCDF4.chartostring(
+                dataset_object.variables[BEST_PREDICTORS_KEY][:]
+            )
+        ],
+        BEST_HEIGHTS_KEY: dataset_object.variables[BEST_HEIGHTS_KEY][:],
+        BEST_COSTS_KEY: dataset_object.variables[BEST_COSTS_KEY][:],
+        STEP1_PREDICTORS_KEY: [
+            str(n) for n in netCDF4.chartostring(
+                dataset_object.variables[STEP1_PREDICTORS_KEY][:]
+            )
+        ],
+        STEP1_HEIGHTS_KEY: dataset_object.variables[STEP1_HEIGHTS_KEY][:],
+        STEP1_COSTS_KEY: dataset_object.variables[STEP1_COSTS_KEY][:],
+        BACKWARDS_FLAG_KEY: bool(dataset_object.variables[BACKWARDS_FLAG_KEY])
+    }
+
+    dataset_object.close()
+
+    result_dict[BEST_HEIGHTS_KEY] = result_dict[BEST_HEIGHTS_KEY].astype(float)
+    result_dict[BEST_HEIGHTS_KEY][result_dict[BEST_HEIGHTS_KEY] < 0] = numpy.nan
+    result_dict[STEP1_HEIGHTS_KEY] = result_dict[STEP1_HEIGHTS_KEY].astype(float)
+    result_dict[STEP1_HEIGHTS_KEY][result_dict[STEP1_HEIGHTS_KEY] < 0] = (
+        numpy.nan
+    )
+
+    return result_dict
