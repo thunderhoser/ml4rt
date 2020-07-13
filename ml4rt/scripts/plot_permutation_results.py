@@ -1,13 +1,16 @@
 """Plots results of permutation-based importance test."""
 
+import copy
 import argparse
+import numpy
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as pyplot
 from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.deep_learning import permutation_utils as gg_permutation
 from gewittergefahr.plotting import plotting_utils
 from gewittergefahr.plotting import permutation_plotting
-from ml4rt.machine_learning import permutation
+from ml4rt.machine_learning import permutation as ml4rt_permutation
 
 FIGURE_RESOLUTION_DPI = 300
 
@@ -17,7 +20,7 @@ CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
-    'Path to input file (will be read by `permutation.read_file`).'
+    'Path to input file (will be read by `ml4rt_permutation.read_file`).'
 )
 NUM_PREDICTORS_HELP_STRING = (
     'Will plot only the `{0:s}` most important predictors in each figure.  To '
@@ -50,6 +53,58 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _results_to_gg_format(permutation_dict):
+    """Converts permutation results from ml4rt format to GewitterGefahr format.
+
+    :param permutation_dict: Dictionary created by `run_forward_test` or
+        `run_backwards_test` in `ml4rt.machine_learning.permutation`.
+    :return: permutation_dict: Same but in format created by `run_forward_test`
+        or `run_backwards_test` in `gewittergefahr.deep_learning.permutation`.
+    """
+
+    permutation_dict[gg_permutation.ORIGINAL_COST_ARRAY_KEY] = (
+        permutation_dict[ml4rt_permutation.ORIGINAL_COST_KEY]
+    )
+    permutation_dict[gg_permutation.BACKWARDS_FLAG] = (
+        permutation_dict[ml4rt_permutation.BACKWARDS_FLAG_KEY]
+    )
+
+    best_predictor_names = copy.deepcopy(
+        permutation_dict[ml4rt_permutation.BEST_PREDICTORS_KEY]
+    )
+    best_heights_m_agl = permutation_dict[ml4rt_permutation.BEST_HEIGHTS_KEY]
+
+    if best_heights_m_agl is not None:
+        for k in range(len(best_predictor_names)):
+            if numpy.isnan(best_heights_m_agl[k]):
+                continue
+
+            best_predictor_names[k] += ' at {0:d} m AGL'.format(
+                int(numpy.round(best_heights_m_agl[k]))
+            )
+
+    step1_predictor_names = copy.deepcopy(
+        permutation_dict[ml4rt_permutation.STEP1_PREDICTORS_KEY]
+    )
+    step1_heights_m_agl = permutation_dict[ml4rt_permutation.STEP1_HEIGHTS_KEY]
+
+    if step1_heights_m_agl is not None:
+        for k in range(len(step1_predictor_names)):
+            if numpy.isnan(step1_heights_m_agl[k]):
+                continue
+
+            step1_predictor_names[k] += ' at {0:d} m AGL'.format(
+                int(numpy.round(step1_heights_m_agl[k]))
+            )
+
+    permutation_dict[gg_permutation.BEST_PREDICTORS_KEY] = best_predictor_names
+    permutation_dict[gg_permutation.STEP1_PREDICTORS_KEY] = (
+        step1_predictor_names
+    )
+
+    return permutation_dict
+
+
 def _run(input_file_name, num_predictors_to_plot, confidence_level,
          output_dir_name):
     """Plots results of permutation-based importance test.
@@ -70,7 +125,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     )
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
-    permutation_dict = permutation.read_file(input_file_name)
+    permutation_dict = ml4rt_permutation.read_file(input_file_name)
+    permutation_dict = _results_to_gg_format(permutation_dict)
 
     figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
         num_rows=1, num_columns=2, shared_x_axis=False, shared_y_axis=True,
