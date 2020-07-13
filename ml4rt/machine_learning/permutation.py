@@ -1042,14 +1042,15 @@ def write_file(result_dict, netcdf_file_name):
         best_predictor_names_char_array
     )
 
-    best_heights_m_agl = result_dict[BEST_HEIGHTS_KEY] + 0
-    best_heights_m_agl[numpy.isnan(best_heights_m_agl)] = -1
-    best_heights_m_agl = numpy.round(best_heights_m_agl).astype(int)
+    if BEST_HEIGHTS_KEY in result_dict:
+        best_heights_m_agl = result_dict[BEST_HEIGHTS_KEY] + 0
+        best_heights_m_agl[numpy.isnan(best_heights_m_agl)] = -1
+        best_heights_m_agl = numpy.round(best_heights_m_agl).astype(int)
 
-    dataset_object.createVariable(
-        BEST_HEIGHTS_KEY, datatype=numpy.int32, dimensions=PREDICTOR_DIM_KEY
-    )
-    dataset_object.variables[BEST_HEIGHTS_KEY][:] = best_heights_m_agl
+        dataset_object.createVariable(
+            BEST_HEIGHTS_KEY, datatype=numpy.int32, dimensions=PREDICTOR_DIM_KEY
+        )
+        dataset_object.variables[BEST_HEIGHTS_KEY][:] = best_heights_m_agl
 
     dataset_object.createVariable(
         BEST_COSTS_KEY, datatype=numpy.float32,
@@ -1070,14 +1071,16 @@ def write_file(result_dict, netcdf_file_name):
         step1_predictor_names_char_array
     )
 
-    step1_heights_m_agl = result_dict[STEP1_HEIGHTS_KEY] + 0
-    step1_heights_m_agl[numpy.isnan(step1_heights_m_agl)] = -1
-    step1_heights_m_agl = numpy.round(step1_heights_m_agl).astype(int)
+    if STEP1_HEIGHTS_KEY in result_dict:
+        step1_heights_m_agl = result_dict[STEP1_HEIGHTS_KEY] + 0
+        step1_heights_m_agl[numpy.isnan(step1_heights_m_agl)] = -1
+        step1_heights_m_agl = numpy.round(step1_heights_m_agl).astype(int)
 
-    dataset_object.createVariable(
-        STEP1_HEIGHTS_KEY, datatype=numpy.int32, dimensions=PREDICTOR_DIM_KEY
-    )
-    dataset_object.variables[STEP1_HEIGHTS_KEY][:] = step1_heights_m_agl
+        dataset_object.createVariable(
+            STEP1_HEIGHTS_KEY, datatype=numpy.int32,
+            dimensions=PREDICTOR_DIM_KEY
+        )
+        dataset_object.variables[STEP1_HEIGHTS_KEY][:] = step1_heights_m_agl
 
     dataset_object.createVariable(
         STEP1_COSTS_KEY, datatype=numpy.float32,
@@ -1113,25 +1116,36 @@ def read_file(netcdf_file_name):
                 dataset_object.variables[BEST_PREDICTORS_KEY][:]
             )
         ],
-        BEST_HEIGHTS_KEY: dataset_object.variables[BEST_HEIGHTS_KEY][:],
         BEST_COSTS_KEY: dataset_object.variables[BEST_COSTS_KEY][:],
         STEP1_PREDICTORS_KEY: [
             str(n) for n in netCDF4.chartostring(
                 dataset_object.variables[STEP1_PREDICTORS_KEY][:]
             )
         ],
-        STEP1_HEIGHTS_KEY: dataset_object.variables[STEP1_HEIGHTS_KEY][:],
         STEP1_COSTS_KEY: dataset_object.variables[STEP1_COSTS_KEY][:],
         BACKWARDS_FLAG_KEY: bool(dataset_object.variables[BACKWARDS_FLAG_KEY])
     }
 
     dataset_object.close()
 
-    result_dict[BEST_HEIGHTS_KEY] = result_dict[BEST_HEIGHTS_KEY].astype(float)
-    result_dict[BEST_HEIGHTS_KEY][result_dict[BEST_HEIGHTS_KEY] < 0] = numpy.nan
-    result_dict[STEP1_HEIGHTS_KEY] = result_dict[STEP1_HEIGHTS_KEY].astype(float)
-    result_dict[STEP1_HEIGHTS_KEY][result_dict[STEP1_HEIGHTS_KEY] < 0] = (
-        numpy.nan
-    )
+    if BEST_HEIGHTS_KEY in result_dict:
+        result_dict[BEST_HEIGHTS_KEY] = (
+            dataset_object.variables[BEST_HEIGHTS_KEY][:].astype(float)
+        )
+        result_dict[BEST_HEIGHTS_KEY][result_dict[BEST_HEIGHTS_KEY] < 0] = (
+            numpy.nan
+        )
+    else:
+        result_dict[BEST_HEIGHTS_KEY] = None
+
+    if STEP1_HEIGHTS_KEY in result_dict:
+        result_dict[STEP1_HEIGHTS_KEY] = (
+            dataset_object.variables[STEP1_HEIGHTS_KEY][:].astype(float)
+        )
+        result_dict[STEP1_HEIGHTS_KEY][result_dict[STEP1_HEIGHTS_KEY] < 0] = (
+            numpy.nan
+        )
+    else:
+        result_dict[STEP1_HEIGHTS_KEY] = None
 
     return result_dict

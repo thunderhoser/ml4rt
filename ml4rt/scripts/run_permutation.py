@@ -78,11 +78,11 @@ INPUT_ARG_PARSER.add_argument(
     help=DO_BACKWARDS_HELP_STRING)
 
 INPUT_ARG_PARSER.add_argument(
-    '--' + SHUFFLE_TOGETHER_ARG_NAME, type=int, required=False, default=0,
+    '--' + SHUFFLE_TOGETHER_ARG_NAME, type=int, required=False, default=1,
     help=SHUFFLE_TOGETHER_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_BOOTSTRAP_ARG_NAME, type=int, required=False, default=1,
+    '--' + NUM_BOOTSTRAP_ARG_NAME, type=int, required=False, default=1000,
     help=NUM_BOOTSTRAP_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -115,6 +115,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         indices_to_keep=example_indices, num_examples_to_keep=num_examples,
         num_examples_total=num_examples_total
     )
+    print(example_indices)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
@@ -149,6 +150,9 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     print(SEPARATOR_STRING)
     predictor_matrix, target_matrices = next(generator)[:2]
     print(SEPARATOR_STRING)
+
+    if not isinstance(target_matrices, list):
+        target_matrices = [target_matrices]
 
     predictor_matrix = predictor_matrix[example_indices, ...]
     target_matrices = [t[example_indices, ...] for t in target_matrices]

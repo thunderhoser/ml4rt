@@ -16,8 +16,6 @@ def subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
         `indices_to_keep` instead.
     :param num_examples_total: Total number of examples available.
     :return: indices_to_keep: See input doc.
-    :raises: ValueError: if both `indices_to_keep` and `num_examples_to_keep`
-        are None.
     """
 
     if len(indices_to_keep) == 1 and indices_to_keep[0] < 0:
@@ -28,10 +26,7 @@ def subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
         num_examples_to_keep = None
 
     if indices_to_keep is None and num_examples_to_keep is None:
-        raise ValueError(
-            'Input args indices_to_keep and num_examples_to_keep cannot both be'
-            ' empty.'
-        )
+        num_examples_to_keep = num_examples_total
 
     if indices_to_keep is not None:
         error_checking.assert_is_geq_numpy_array(indices_to_keep, 0)
