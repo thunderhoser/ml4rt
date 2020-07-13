@@ -115,7 +115,6 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         indices_to_keep=example_indices, num_examples_to_keep=num_examples,
         num_examples_total=num_examples_total
     )
-    print(example_indices)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)

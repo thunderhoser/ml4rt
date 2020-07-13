@@ -1042,7 +1042,7 @@ def write_file(result_dict, netcdf_file_name):
         best_predictor_names_char_array
     )
 
-    if BEST_HEIGHTS_KEY in result_dict:
+    if result_dict[BEST_HEIGHTS_KEY] is not None:
         best_heights_m_agl = result_dict[BEST_HEIGHTS_KEY] + 0
         best_heights_m_agl[numpy.isnan(best_heights_m_agl)] = -1
         best_heights_m_agl = numpy.round(best_heights_m_agl).astype(int)
@@ -1071,7 +1071,7 @@ def write_file(result_dict, netcdf_file_name):
         step1_predictor_names_char_array
     )
 
-    if STEP1_HEIGHTS_KEY in result_dict:
+    if result_dict[STEP1_HEIGHTS_KEY] is not None:
         step1_heights_m_agl = result_dict[STEP1_HEIGHTS_KEY] + 0
         step1_heights_m_agl[numpy.isnan(step1_heights_m_agl)] = -1
         step1_heights_m_agl = numpy.round(step1_heights_m_agl).astype(int)
