@@ -1,7 +1,6 @@
 """Methods for building, training, and applying neural nets."""
 
 import copy
-import pickle
 import os.path
 import dill
 import numpy
@@ -99,14 +98,8 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 NET_TYPE_KEY = 'net_type_string'
-LOSS_OPTIONS_KEY = 'loss_option_dict'
 LOSS_FUNCTION_KEY = 'loss_function'
 
-OLD_METADATA_KEYS = [
-    NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
-    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
-    LOSS_OPTIONS_KEY
-]
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
@@ -1281,7 +1274,7 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
     error_checking.assert_is_string(model_dir_name)
     error_checking.assert_is_boolean(raise_error_if_missing)
 
-    metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
+    metafile_name = '{0:s}/model_metadata.dill'.format(model_dir_name)
 
     if raise_error_if_missing and not os.path.isfile(metafile_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
@@ -1290,75 +1283,6 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
         raise ValueError(error_string)
 
     return metafile_name
-
-
-def read_metafile_old(pickle_file_name):
-    """Reads metadata for neural net from Pickle file.
-
-    :param pickle_file_name: Path to input file.
-    :return: metadata_dict: Dictionary with the following keys.
-    metadata_dict['num_epochs']: See doc for `train_model`.
-    metadata_dict['num_training_batches_per_epoch']: Same.
-    metadata_dict['training_option_dict']: Same.
-    metadata_dict['num_validation_batches_per_epoch']: Same.
-    metadata_dict['validation_option_dict']: Same.
-    metadata_dict['net_type_string']: Same.
-    metadata_dict['loss_option_dict']: Same.
-    """
-
-    error_checking.assert_file_exists(pickle_file_name)
-
-    pickle_file_handle = open(pickle_file_name, 'rb')
-    metadata_dict = pickle.load(pickle_file_handle)
-    pickle_file_handle.close()
-
-    if MIN_COLUMN_LWP_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        metadata_dict[TRAINING_OPTIONS_KEY][MIN_COLUMN_LWP_KEY] = 0.
-        metadata_dict[TRAINING_OPTIONS_KEY][MAX_COLUMN_LWP_KEY] = 1e12
-        metadata_dict[VALIDATION_OPTIONS_KEY][MIN_COLUMN_LWP_KEY] = 0.
-        metadata_dict[VALIDATION_OPTIONS_KEY][MAX_COLUMN_LWP_KEY] = 1e12
-
-    if NET_TYPE_KEY not in metadata_dict:
-        metadata_dict[NET_TYPE_KEY] = (
-            CNN_TYPE_STRING if metadata_dict['is_cnn']
-            else DENSE_NET_TYPE_STRING
-        )
-
-    if LOSS_OPTIONS_KEY in metadata_dict:
-        loss_option_dict = metadata_dict[LOSS_OPTIONS_KEY]
-    elif 'custom_loss_dict' in metadata_dict:
-        loss_option_dict = {
-            USE_MSE_SKILL_KEY: False,
-            USE_WEIGHTED_MSE_KEY: False,
-            USE_DUAL_WEIGHTED_MSE_KEY: False,
-            CONSTRAINED_MSE_OPTIONS_KEY: metadata_dict['custom_loss_dict']
-        }
-    else:
-        loss_option_dict = {
-            USE_MSE_SKILL_KEY: False,
-            USE_WEIGHTED_MSE_KEY: False,
-            USE_DUAL_WEIGHTED_MSE_KEY: False,
-            CONSTRAINED_MSE_OPTIONS_KEY: None
-        }
-
-    if 'use_msess_loss' in metadata_dict:
-        loss_option_dict[USE_MSE_SKILL_KEY] = metadata_dict['use_msess_loss']
-
-    if USE_DUAL_WEIGHTED_MSE_KEY not in loss_option_dict:
-        loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY] = False
-
-    metadata_dict[LOSS_OPTIONS_KEY] = loss_option_dict
-
-    missing_keys = list(set(OLD_METADATA_KEYS) - set(metadata_dict.keys()))
-    if len(missing_keys) == 0:
-        return metadata_dict
-
-    error_string = (
-        '\n{0:s}\nKeys listed above were expected, but not found, in file '
-        '"{1:s}".'
-    ).format(str(missing_keys), pickle_file_name)
-
-    raise ValueError(error_string)
 
 
 def read_metafile(dill_file_name):
