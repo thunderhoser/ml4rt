@@ -170,7 +170,7 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
         plot_percent_increase=True, confidence_level=confidence_level
     )
     axes_object_matrix[0, 0].set_title('Single-pass test')
-    axes_object_matrix[0, 0].set_xlabel('Mean squared error (% of original)')
+    axes_object_matrix[0, 0].set_xlabel('MSE (fraction of original)')
 
     permutation_plotting.plot_multipass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 1],
@@ -178,7 +178,7 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
         plot_percent_increase=True, confidence_level=confidence_level
     )
     axes_object_matrix[0, 1].set_title('Multi-pass test')
-    axes_object_matrix[0, 1].set_xlabel('Mean squared error (% of original)')
+    axes_object_matrix[0, 1].set_xlabel('MSE (fraction of original)')
     axes_object_matrix[0, 1].set_ylabel('')
 
     figure_file_name = '{0:s}/permutation_test_percentage.jpg'.format(

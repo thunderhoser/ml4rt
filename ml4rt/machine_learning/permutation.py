@@ -160,13 +160,14 @@ def _bootstrap_cost(target_matrices, prediction_matrices, cost_function,
 
 
 def _check_args_one_step(
-        predictor_matrix, permuted_flag_matrix, shuffle_profiles_together,
-        num_bootstrap_reps):
+        predictor_matrix, permuted_flag_matrix, scalar_channel_flags,
+        shuffle_profiles_together, num_bootstrap_reps):
     """Checks input args for `run_*_test_one_step`.
 
     :param predictor_matrix: See doc for `run_forward_test_one_step` or
         `run_backwards_test_one_step`.
     :param permuted_flag_matrix: Same.
+    :param scalar_channel_flags: Same.
     :param shuffle_profiles_together: Same.
     :param num_bootstrap_reps: Same.
     :return: num_bootstrap_reps: Same as input but maxxed with 1.
@@ -174,7 +175,7 @@ def _check_args_one_step(
 
     error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
     num_predictor_dim = len(predictor_matrix.shape)
-    error_checking.assert_is_geq(num_predictor_dim, 2)
+    error_checking.assert_is_geq(num_predictor_dim, 3)
     error_checking.assert_is_leq(num_predictor_dim, 3)
 
     error_checking.assert_is_boolean_numpy_array(permuted_flag_matrix)
@@ -183,11 +184,15 @@ def _check_args_one_step(
         permuted_flag_matrix, exact_dimensions=these_expected_dim
     )
 
-    if num_predictor_dim == 2:
-        shuffle_profiles_together = True
-    error_checking.assert_is_boolean(shuffle_profiles_together)
+    error_checking.assert_is_boolean_numpy_array(scalar_channel_flags)
+    these_expected_dim = numpy.array([predictor_matrix.shape[-1]], dtype=int)
+    error_checking.assert_is_numpy_array(
+        scalar_channel_flags, exact_dimensions=these_expected_dim
+    )
 
+    error_checking.assert_is_boolean(shuffle_profiles_together)
     error_checking.assert_is_integer(num_bootstrap_reps)
+
     return numpy.maximum(num_bootstrap_reps, 1)
 
 
@@ -230,10 +235,16 @@ def _predictor_indices_to_metadata(
         return predictor_names, heights_m_agl
 
     heights_m_agl = [
-        all_height_matrix_m_agl[j, ...] for j in height_indices
+        numpy.nan if j < 0 else all_height_matrix_m_agl[j, ...]
+        for j in height_indices
     ]
-    if heights_m_agl[0].shape:
-        heights_m_agl = [h[0] for h in heights_m_agl]
+
+    for j in range(len(heights_m_agl)):
+        try:
+            if heights_m_agl[j].shape:
+                heights_m_agl[j] = heights_m_agl[j][0]
+        except AttributeError:
+            pass
 
     heights_m_agl = numpy.array(heights_m_agl)
     return predictor_names, heights_m_agl
@@ -299,7 +310,8 @@ def _make_prediction_function(model_object, model_metadata_dict):
 
 def run_forward_test_one_step(
         predictor_matrix, target_matrices, prediction_function, cost_function,
-        permuted_flag_matrix, shuffle_profiles_together=True,
+        permuted_flag_matrix, scalar_channel_flags,
+        shuffle_profiles_together=True,
         num_bootstrap_reps=DEFAULT_NUM_BOOTSTRAP_REPS):
     """Runs one step of the forward permutation test.
 
@@ -308,8 +320,7 @@ def run_forward_test_one_step(
     C = number of channels
     N = number of target matrices
 
-    :param predictor_matrix: numpy array (either E x H x C or E x C) of
-        predictor values.
+    :param predictor_matrix: E-by-H-by-C numpy array of predictor values.
     :param target_matrices: length-N list of numpy arrays, each containing
         target values.
     :param prediction_function: Function with the following inputs and outputs.
@@ -319,10 +330,11 @@ def run_forward_test_one_step(
         target_matrices[i].
 
     :param cost_function: See doc for `_bootstrap_cost`.
-    :param permuted_flag_matrix: numpy array of Boolean flags, indicating which
-        predictors have already been permuted in a previous step.  If
-        `predictor_matrix` is E x H x C, this array should be H x C.  If
-        `predictor_matrix` is E x C, this array should have length C.
+    :param permuted_flag_matrix: E-by-H-by-C numpy array of Boolean flags,
+        indicating which predictors have already been permuted in a previous
+        step.
+    :param scalar_channel_flags: length-C numpy array of Boolean flags,
+        indicating which predictors are scalars rather than profiles.
     :param shuffle_profiles_together: Boolean flag.  If True, vertical profiles
         will be shuffled together (i.e., shuffling will be done only along the
         example axis).  If False, all scalar variables will be shuffled
@@ -347,33 +359,21 @@ def run_forward_test_one_step(
     num_bootstrap_reps = _check_args_one_step(
         predictor_matrix=predictor_matrix,
         permuted_flag_matrix=permuted_flag_matrix,
+        scalar_channel_flags=scalar_channel_flags,
         shuffle_profiles_together=shuffle_profiles_together,
         num_bootstrap_reps=num_bootstrap_reps
     )
 
-    num_predictor_dim = len(predictor_matrix.shape)
-
-    # Housekeeping.
-    if shuffle_profiles_together:
-        num_permutations = numpy.sum(permuted_flag_matrix[0, :] == False)
-        permuted_height_indices = None
-    else:
-        num_permutations = numpy.sum(permuted_flag_matrix == False)
-        permuted_height_indices = numpy.full(num_permutations, -1, dtype=int)
-
-    if num_permutations == 0:
+    if numpy.all(permuted_flag_matrix):
         return None
 
-    permuted_channel_indices = numpy.full(num_permutations, -1, dtype=int)
-    permuted_cost_matrix = numpy.full(
-        (num_permutations, num_bootstrap_reps), numpy.nan
-    )
+    # Housekeeping.
+    permuted_channel_indices = []
+    permuted_height_indices = []
+    permuted_cost_matrix = numpy.full((0, num_bootstrap_reps), numpy.nan)
 
-    num_channels = predictor_matrix.shape[-1]
-    if shuffle_profiles_together:
-        num_heights = 1
-    else:
-        num_heights = predictor_matrix.shape[-2]
+    num_heights = predictor_matrix.shape[1]
+    num_channels = predictor_matrix.shape[2]
 
     i = -1
     best_cost = -numpy.inf
@@ -384,26 +384,29 @@ def run_forward_test_one_step(
     else:
         best_height_index = -1
 
-    for j in range(num_heights):
-        for k in range(num_channels):
-            if num_predictor_dim == 3:
-                this_flag = permuted_flag_matrix[j, k]
-            else:
-                this_flag = permuted_flag_matrix[k]
+    for k in range(num_channels):
+        if shuffle_profiles_together or scalar_channel_flags[k]:
+            this_num_heights = 1
+        else:
+            this_num_heights = predictor_matrix.shape[1]
 
-            if this_flag:
+        for j in range(this_num_heights):
+            if permuted_flag_matrix[j, k]:
                 continue
 
             i += 1
-            permuted_channel_indices[i] = k
-            if not shuffle_profiles_together:
-                permuted_height_indices[i] = j
+            permuted_channel_indices.append(k)
+
+            if shuffle_profiles_together or scalar_channel_flags[k]:
+                permuted_height_indices.append(None)
+            else:
+                permuted_height_indices.append(j)
 
             log_string = 'Permuting {0:d}th of {1:d} channels'.format(
                 k + 1, num_channels
             )
 
-            if shuffle_profiles_together:
+            if shuffle_profiles_together or scalar_channel_flags[k]:
                 log_string += '...'
             else:
                 log_string += ' at {0:d}th of {1:d} heights...'.format(
@@ -414,18 +417,23 @@ def run_forward_test_one_step(
 
             this_predictor_matrix, this_permuted_value_matrix = _permute_values(
                 predictor_matrix=predictor_matrix + 0.,
-                channel_index=k,
-                height_index=None if shuffle_profiles_together else j
+                channel_index=k, height_index=permuted_height_indices[-1]
             )
             these_prediction_matrices = prediction_function(
                 this_predictor_matrix
             )
-            permuted_cost_matrix[i, :] = _bootstrap_cost(
+            this_cost_matrix = _bootstrap_cost(
                 target_matrices=target_matrices,
                 prediction_matrices=these_prediction_matrices,
                 cost_function=cost_function, num_replicates=num_bootstrap_reps
             )
 
+            this_cost_matrix = numpy.reshape(
+                this_cost_matrix, (1, this_cost_matrix.size)
+            )
+            permuted_cost_matrix = numpy.concatenate(
+                (permuted_cost_matrix, this_cost_matrix), axis=0
+            )
             this_average_cost = numpy.mean(permuted_cost_matrix[i, :])
             if this_average_cost < best_cost:
                 continue
@@ -433,8 +441,12 @@ def run_forward_test_one_step(
             best_cost = this_average_cost + 0.
             best_channel_index = k
             best_permuted_value_matrix = this_permuted_value_matrix
+
             if not shuffle_profiles_together:
-                best_height_index = j
+                if scalar_channel_flags[k]:
+                    best_height_index = j
+                else:
+                    best_height_index = None
 
     predictor_matrix = _permute_values(
         predictor_matrix=predictor_matrix,
@@ -446,16 +458,21 @@ def run_forward_test_one_step(
     log_string = 'Best predictor = {0:d}th channel'.format(
         best_channel_index + 1
     )
-    if not shuffle_profiles_together:
+    if best_height_index is not None:
         log_string += ' at {0:d}th height'.format(best_height_index + 1)
 
     log_string += ' (cost = {0:f})'.format(best_cost)
     print(log_string)
 
-    if shuffle_profiles_together:
+    if best_height_index is None:
         permuted_flag_matrix[..., best_channel_index] = True
     else:
         permuted_flag_matrix[best_height_index, best_channel_index] = True
+
+    permuted_channel_indices = numpy.array(permuted_channel_indices, dtype=int)
+    permuted_height_indices = numpy.array(
+        [-1 if j is None else j for j in permuted_height_indices], dtype=int
+    )
 
     return {
         PREDICTORS_KEY: predictor_matrix,
@@ -469,14 +486,9 @@ def run_forward_test_one_step(
 def run_backwards_test_one_step(
         predictor_matrix, clean_predictor_matrix, target_matrices,
         prediction_function, cost_function, permuted_flag_matrix,
-        shuffle_profiles_together=True,
+        scalar_channel_flags, shuffle_profiles_together=True,
         num_bootstrap_reps=DEFAULT_NUM_BOOTSTRAP_REPS):
     """Runs one step of the backwards permutation test.
-
-    E = number of examples
-    H = number of heights
-    C = number of channels
-    N = number of target matrices
 
     :param predictor_matrix: See doc for `run_forward_test_one_step`.
     :param clean_predictor_matrix: Clean version of `predictor_matrix` (with no
@@ -485,6 +497,7 @@ def run_backwards_test_one_step(
     :param prediction_function: Same.
     :param cost_function: Same.
     :param permuted_flag_matrix: Same.
+    :param scalar_channel_flags: Same.
     :param shuffle_profiles_together: Same.
     :param num_bootstrap_reps: Same.
     :return: result_dict: Dictionary with the following keys, where P = number
@@ -505,11 +518,13 @@ def run_backwards_test_one_step(
     num_bootstrap_reps = _check_args_one_step(
         predictor_matrix=predictor_matrix,
         permuted_flag_matrix=permuted_flag_matrix,
+        scalar_channel_flags=scalar_channel_flags,
         shuffle_profiles_together=shuffle_profiles_together,
         num_bootstrap_reps=num_bootstrap_reps
     )
 
-    num_predictor_dim = len(predictor_matrix.shape)
+    if not numpy.any(permuted_flag_matrix):
+        return None
 
     error_checking.assert_is_numpy_array_without_nan(clean_predictor_matrix)
     error_checking.assert_is_numpy_array(
@@ -518,28 +533,12 @@ def run_backwards_test_one_step(
     )
 
     # Housekeeping.
-    if shuffle_profiles_together:
-        num_depermutations = numpy.sum(permuted_flag_matrix[0, :])
-        depermuted_height_indices = None
-    else:
-        num_depermutations = numpy.sum(permuted_flag_matrix)
-        depermuted_height_indices = numpy.full(
-            num_depermutations, -1, dtype=int
-        )
+    depermuted_channel_indices = []
+    depermuted_height_indices = []
+    depermuted_cost_matrix = numpy.full((0, num_bootstrap_reps), numpy.nan)
 
-    if num_depermutations == 0:
-        return None
-
-    depermuted_channel_indices = numpy.full(num_depermutations, -1, dtype=int)
-    depermuted_cost_matrix = numpy.full(
-        (num_depermutations, num_bootstrap_reps), numpy.nan
-    )
-
-    num_channels = predictor_matrix.shape[-1]
-    if shuffle_profiles_together:
-        num_heights = 1
-    else:
-        num_heights = predictor_matrix.shape[-2]
+    num_heights = predictor_matrix.shape[1]
+    num_channels = predictor_matrix.shape[2]
 
     i = -1
     best_cost = numpy.inf
@@ -549,26 +548,29 @@ def run_backwards_test_one_step(
     else:
         best_height_index = -1
 
-    for j in range(num_heights):
-        for k in range(num_channels):
-            if num_predictor_dim == 3:
-                this_flag = permuted_flag_matrix[j, k]
-            else:
-                this_flag = permuted_flag_matrix[k]
+    for k in range(num_channels):
+        if shuffle_profiles_together or scalar_channel_flags[k]:
+            this_num_heights = 1
+        else:
+            this_num_heights = predictor_matrix.shape[1]
 
-            if not this_flag:
+        for j in range(this_num_heights):
+            if not permuted_flag_matrix[j, k]:
                 continue
 
             i += 1
-            depermuted_channel_indices[i] = k
-            if not shuffle_profiles_together:
-                depermuted_height_indices[i] = j
+            depermuted_channel_indices.append(k)
+
+            if shuffle_profiles_together or scalar_channel_flags[k]:
+                depermuted_height_indices.append(None)
+            else:
+                depermuted_height_indices.append(j)
 
             log_string = 'Depermuting {0:d}th of {1:d} channels'.format(
                 k + 1, num_channels
             )
 
-            if shuffle_profiles_together:
+            if shuffle_profiles_together or scalar_channel_flags[k]:
                 log_string += '...'
             else:
                 log_string += ' at {0:d}th of {1:d} heights...'.format(
@@ -580,26 +582,35 @@ def run_backwards_test_one_step(
             this_predictor_matrix = _depermute_values(
                 predictor_matrix=predictor_matrix + 0.,
                 clean_predictor_matrix=clean_predictor_matrix,
-                channel_index=k,
-                height_index=None if shuffle_profiles_together else j
+                channel_index=k, height_index=depermuted_height_indices[-1]
             )
             these_prediction_matrices = prediction_function(
                 this_predictor_matrix
             )
-            depermuted_cost_matrix[i, :] = _bootstrap_cost(
+            this_cost_matrix = _bootstrap_cost(
                 target_matrices=target_matrices,
                 prediction_matrices=these_prediction_matrices,
                 cost_function=cost_function, num_replicates=num_bootstrap_reps
             )
 
+            this_cost_matrix = numpy.reshape(
+                this_cost_matrix, (1, this_cost_matrix.size)
+            )
+            depermuted_cost_matrix = numpy.concatenate(
+                (depermuted_cost_matrix, this_cost_matrix), axis=0
+            )
             this_average_cost = numpy.mean(depermuted_cost_matrix[i, :])
             if this_average_cost > best_cost:
                 continue
 
             best_cost = this_average_cost + 0.
             best_channel_index = k
+
             if not shuffle_profiles_together:
-                best_height_index = j
+                if scalar_channel_flags[k]:
+                    best_height_index = j
+                else:
+                    best_height_index = None
 
     predictor_matrix = _depermute_values(
         predictor_matrix=predictor_matrix,
@@ -610,16 +621,23 @@ def run_backwards_test_one_step(
     log_string = 'Best predictor = {0:d}th channel'.format(
         best_channel_index + 1
     )
-    if not shuffle_profiles_together:
+    if best_height_index is not None:
         log_string += ' at {0:d}th height'.format(best_height_index + 1)
 
     log_string += ' (cost = {0:f})'.format(best_cost)
     print(log_string)
 
-    if shuffle_profiles_together:
+    if best_height_index is None:
         permuted_flag_matrix[..., best_channel_index] = False
     else:
         permuted_flag_matrix[best_height_index, best_channel_index] = False
+
+    depermuted_channel_indices = numpy.array(
+        depermuted_channel_indices, dtype=int
+    )
+    depermuted_height_indices = numpy.array(
+        [-1 if j is None else j for j in depermuted_height_indices], dtype=int
+    )
 
     return {
         PREDICTORS_KEY: predictor_matrix,
@@ -690,6 +708,10 @@ def run_forward_test(
         method).
     """
 
+    error_checking.assert_is_boolean(shuffle_profiles_together)
+    error_checking.assert_is_integer(num_bootstrap_reps)
+    num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
+
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     example_dict = {
         example_io.SCALAR_PREDICTOR_NAMES_KEY:
@@ -712,9 +734,7 @@ def run_forward_test(
         )
     )
 
-    error_checking.assert_is_boolean(shuffle_profiles_together)
-    error_checking.assert_is_integer(num_bootstrap_reps)
-    num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
+    scalar_channel_flags = numpy.isnan(height_matrix_m_agl[0, :])
 
     prediction_function = _make_prediction_function(
         model_object=model_object, model_metadata_dict=model_metadata_dict
@@ -756,6 +776,7 @@ def run_forward_test(
             prediction_function=prediction_function,
             cost_function=cost_function,
             permuted_flag_matrix=permuted_flag_matrix,
+            scalar_channel_flags=scalar_channel_flags,
             shuffle_profiles_together=shuffle_profiles_together,
             num_bootstrap_reps=num_bootstrap_reps
         )
@@ -852,6 +873,10 @@ def run_backwards_test(
         method).
     """
 
+    error_checking.assert_is_boolean(shuffle_profiles_together)
+    error_checking.assert_is_integer(num_bootstrap_reps)
+    num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
+
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     example_dict = {
         example_io.SCALAR_PREDICTOR_NAMES_KEY:
@@ -874,9 +899,7 @@ def run_backwards_test(
         )
     )
 
-    error_checking.assert_is_boolean(shuffle_profiles_together)
-    error_checking.assert_is_integer(num_bootstrap_reps)
-    num_bootstrap_reps = numpy.maximum(num_bootstrap_reps, 1)
+    scalar_channel_flags = numpy.isnan(height_matrix_m_agl[0, :])
 
     prediction_function = _make_prediction_function(
         model_object=model_object, model_metadata_dict=model_metadata_dict
@@ -935,6 +958,7 @@ def run_backwards_test(
             prediction_function=prediction_function,
             cost_function=cost_function,
             permuted_flag_matrix=permuted_flag_matrix,
+            scalar_channel_flags=scalar_channel_flags,
             shuffle_profiles_together=shuffle_profiles_together,
             num_bootstrap_reps=num_bootstrap_reps
         )
