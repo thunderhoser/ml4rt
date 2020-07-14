@@ -34,12 +34,14 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.PRESSURE_NAME: 'pressure',
     example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
     example_io.ICE_WATER_CONTENT_NAME: 'IWC',
+    example_io.LIQUID_WATER_PATH_NAME: 'LWP',
+    example_io.ICE_WATER_PATH_NAME: 'IWP',
     example_io.ZENITH_ANGLE_NAME: 'zenith angle',
     example_io.LATITUDE_NAME: 'latitude',
     example_io.LONGITUDE_NAME: 'longitude',
     example_io.ALBEDO_NAME: 'albedo',
-    example_io.LIQUID_WATER_PATH_NAME: 'LWP',
-    example_io.ICE_WATER_PATH_NAME: 'IWP'
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'column LWP',
+    example_io.COLUMN_ICE_WATER_PATH_NAME: 'column IWP'
 }
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)

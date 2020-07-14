@@ -24,15 +24,17 @@ GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 PREDICTOR_NAME_TO_COLOUR = {
     example_io.TEMPERATURE_NAME: ORANGE_COLOUR,
     example_io.SPECIFIC_HUMIDITY_NAME: ORANGE_COLOUR,
-    example_io.PRESSURE_NAME: PURPLE_COLOUR,
+    example_io.PRESSURE_NAME: numpy.full(3, 0.),
     example_io.LIQUID_WATER_CONTENT_NAME: GREEN_COLOUR,
     example_io.ICE_WATER_CONTENT_NAME: GREEN_COLOUR,
+    example_io.LIQUID_WATER_PATH_NAME: PURPLE_COLOUR,
+    example_io.ICE_WATER_PATH_NAME: PURPLE_COLOUR,
     example_io.ZENITH_ANGLE_NAME: ORANGE_COLOUR,
     example_io.ALBEDO_NAME: ORANGE_COLOUR,
     example_io.LATITUDE_NAME: PURPLE_COLOUR,
     example_io.LONGITUDE_NAME: PURPLE_COLOUR,
-    example_io.LIQUID_WATER_PATH_NAME: GREEN_COLOUR,
-    example_io.ICE_WATER_PATH_NAME: GREEN_COLOUR
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME: GREEN_COLOUR,
+    example_io.COLUMN_ICE_WATER_PATH_NAME: GREEN_COLOUR
 }
 
 PREDICTOR_NAME_TO_LINE_STYLE = {
@@ -41,12 +43,14 @@ PREDICTOR_NAME_TO_LINE_STYLE = {
     example_io.PRESSURE_NAME: 'solid',
     example_io.LIQUID_WATER_CONTENT_NAME: 'solid',
     example_io.ICE_WATER_CONTENT_NAME: 'dashed',
+    example_io.LIQUID_WATER_PATH_NAME: 'solid',
+    example_io.ICE_WATER_PATH_NAME: 'dashed',
     example_io.ZENITH_ANGLE_NAME: 'solid',
     example_io.ALBEDO_NAME: 'dashed',
     example_io.LATITUDE_NAME: 'solid',
     example_io.LONGITUDE_NAME: 'dashed',
-    example_io.LIQUID_WATER_PATH_NAME: 'solid',
-    example_io.ICE_WATER_PATH_NAME: 'dashed'
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'solid',
+    example_io.COLUMN_ICE_WATER_PATH_NAME: 'dashed'
 }
 
 PREDICTOR_NAME_TO_LINE_WIDTH = {
@@ -55,12 +59,14 @@ PREDICTOR_NAME_TO_LINE_WIDTH = {
     example_io.PRESSURE_NAME: 2,
     example_io.LIQUID_WATER_CONTENT_NAME: 2,
     example_io.ICE_WATER_CONTENT_NAME: 4,
+    example_io.LIQUID_WATER_PATH_NAME: 2,
+    example_io.ICE_WATER_PATH_NAME: 4,
     example_io.ZENITH_ANGLE_NAME: 4,
     example_io.ALBEDO_NAME: 2,
     example_io.LATITUDE_NAME: 4,
     example_io.LONGITUDE_NAME: 2,
-    example_io.LIQUID_WATER_PATH_NAME: 4,
-    example_io.ICE_WATER_PATH_NAME: 2
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 4,
+    example_io.COLUMN_ICE_WATER_PATH_NAME: 2
 }
 
 PREDICTOR_NAME_TO_VERBOSE = {
@@ -69,12 +75,14 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.PRESSURE_NAME: 'Pressure',
     example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
     example_io.ICE_WATER_CONTENT_NAME: 'IWC',
+    example_io.LIQUID_WATER_PATH_NAME: 'LWP',
+    example_io.ICE_WATER_PATH_NAME: 'IWP',
     example_io.ZENITH_ANGLE_NAME: 'Zenith angle',
     example_io.LATITUDE_NAME: 'Latitude',
     example_io.LONGITUDE_NAME: 'Longitude',
     example_io.ALBEDO_NAME: 'Albedo',
-    example_io.LIQUID_WATER_PATH_NAME: 'LWP',
-    example_io.ICE_WATER_PATH_NAME: 'IWP'
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'Column LWP',
+    example_io.COLUMN_ICE_WATER_PATH_NAME: 'Column IWP'
 }
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
