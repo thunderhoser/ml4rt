@@ -1349,7 +1349,7 @@ def read_metafile_old(pickle_file_name):
 
     metadata_dict[LOSS_OPTIONS_KEY] = loss_option_dict
 
-    missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
+    missing_keys = list(set(OLD_METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
         return metadata_dict
 
