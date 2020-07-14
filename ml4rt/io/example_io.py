@@ -1013,6 +1013,34 @@ def subset_by_height(example_dict, heights_m_agl):
     return example_dict
 
 
+def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
+    """Subsets examples by full-column liquid-water path (LWP).
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param min_lwp_kg_m02: Minimum LWP desired (kg m^-2).
+    :param max_lwp_kg_m02: Maximum LWP desired (kg m^-2).
+    :return: example_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_geq(min_lwp_kg_m02, 0.)
+    error_checking.assert_is_greater(max_lwp_kg_m02, min_lwp_kg_m02)
+
+    column_lwp_values_kg_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=COLUMN_LIQUID_WATER_PATH_NAME
+    )
+
+    good_indices = numpy.where(numpy.logical_and(
+        column_lwp_values_kg_m02 >= min_lwp_kg_m02,
+        column_lwp_values_kg_m02 <= max_lwp_kg_m02
+    ))[0]
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        example_dict[this_key] = example_dict[this_key][good_indices, ...]
+
+    return example_dict
+
+
 def average_examples(
         example_dict, use_pmm,
         max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL):

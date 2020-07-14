@@ -92,9 +92,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
 
-    loss_option_dict = metadata_dict[neural_net.LOSS_OPTIONS_KEY]
-    is_loss_constrained_mse = (
-        loss_option_dict[neural_net.CONSTRAINED_MSE_OPTIONS_KEY] is not None
+    is_loss_constrained_mse = neural_net.determine_if_loss_constrained_mse(
+        metadata_dict[neural_net.LOSS_FUNCTION_KEY]
     )
 
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]

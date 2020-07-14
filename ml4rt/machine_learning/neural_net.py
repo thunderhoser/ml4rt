@@ -3,6 +3,7 @@
 import copy
 import pickle
 import os.path
+import dill
 import numpy
 import keras
 from gewittergefahr.gg_utils import file_system_utils
@@ -11,7 +12,6 @@ from gewittergefahr.deep_learning import cnn
 from ml4rt.io import example_io
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import keras_metrics as custom_metrics
-from ml4rt.machine_learning import keras_losses as custom_losses
 
 SENTINEL_VALUE = -9999.
 
@@ -52,6 +52,8 @@ VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 HEIGHTS_KEY = 'heights_m_agl'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
+MIN_COLUMN_LWP_KEY = 'min_column_lwp_kg_m02'
+MAX_COLUMN_LWP_KEY = 'max_column_lwp_kg_m02'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
 PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
 PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
@@ -66,6 +68,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_TARGET_NAMES_KEY: example_io.ALL_SCALAR_TARGET_NAMES,
     VECTOR_TARGET_NAMES_KEY: example_io.ALL_VECTOR_TARGET_NAMES,
     HEIGHTS_KEY: example_io.DEFAULT_HEIGHTS_M_AGL,
+    MIN_COLUMN_LWP_KEY: 0.,
+    MAX_COLUMN_LWP_KEY: 1e12,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -96,11 +100,17 @@ NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 NET_TYPE_KEY = 'net_type_string'
 LOSS_OPTIONS_KEY = 'loss_option_dict'
+LOSS_FUNCTION_KEY = 'loss_function'
 
-METADATA_KEYS = [
+OLD_METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
     LOSS_OPTIONS_KEY
+]
+METADATA_KEYS = [
+    NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
+    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
+    LOSS_FUNCTION_KEY
 ]
 
 
@@ -171,9 +181,10 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _read_file_for_generator(
         example_file_name, num_examples_to_keep, for_inference,
         first_time_unix_sec, last_time_unix_sec, field_names, heights_m_agl,
-        training_example_dict, predictor_norm_type_string,
-        predictor_min_norm_value, predictor_max_norm_value,
-        target_norm_type_string, target_min_norm_value, target_max_norm_value,
+        min_column_lwp_kg_m02, max_column_lwp_kg_m02, training_example_dict,
+        predictor_norm_type_string, predictor_min_norm_value,
+        predictor_max_norm_value, target_norm_type_string,
+        target_min_norm_value, target_max_norm_value,
         first_example_to_keep=None):
     """Reads one file for generator.
 
@@ -188,10 +199,12 @@ def _read_file_for_generator(
     :param field_names: 1-D list of fields to keep.
     :param heights_m_agl: 1-D numpy array of heights to keep (metres above
         ground level).
+    :param min_column_lwp_kg_m02: See doc for `data_generator`.
+    :param max_column_lwp_kg_m02: Same.
     :param training_example_dict: Dictionary with training examples (in format
         specified by `example_io.read_file`), which will be used for
         normalization.
-    :param predictor_norm_type_string: Same.
+    :param predictor_norm_type_string: See doc for `data_generator`.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
     :param target_norm_type_string: Same.
@@ -218,6 +231,10 @@ def _read_file_for_generator(
         example_dict=example_dict,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec
+    )
+    example_dict = example_io.subset_by_column_lwp(
+        example_dict=example_dict, min_lwp_kg_m02=min_column_lwp_kg_m02,
+        max_lwp_kg_m02=max_column_lwp_kg_m02
     )
     example_dict = example_io.subset_by_field(
         example_dict=example_dict, field_names=field_names
@@ -261,19 +278,19 @@ def _read_file_for_generator(
 
 
 def _write_metafile(
-        pickle_file_name, num_epochs, num_training_batches_per_epoch,
+        dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, net_type_string, loss_option_dict):
-    """Writes metadata to Pickle file.
+        validation_option_dict, net_type_string, loss_function):
+    """Writes metadata to Dill file.
 
-    :param pickle_file_name: Path to output file.
+    :param dill_file_name: Path to output file.
     :param num_epochs: See doc for `train_model`.
     :param num_training_batches_per_epoch: Same.
     :param training_option_dict: Same.
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param net_type_string: Same.
-    :param loss_option_dict: Same.
+    :param loss_function: Same.
     """
 
     metadata_dict = {
@@ -283,14 +300,14 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         NET_TYPE_KEY: net_type_string,
-        LOSS_OPTIONS_KEY: loss_option_dict
+        LOSS_FUNCTION_KEY: loss_function
     }
 
-    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
+    file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
-    pickle_file_handle = open(pickle_file_name, 'wb')
-    pickle.dump(metadata_dict, pickle_file_handle)
-    pickle_file_handle.close()
+    dill_file_handle = open(dill_file_name, 'wb')
+    dill.dump(metadata_dict, dill_file_handle)
+    dill_file_handle.close()
 
 
 def check_net_type(net_type_string):
@@ -312,168 +329,16 @@ def check_net_type(net_type_string):
     raise ValueError(error_string)
 
 
-def get_loss_function(loss_option_dict, net_type_string=None):
-    """Creates loss function.
+def determine_if_loss_constrained_mse(loss_function):
+    """Determines whether or not loss function is constrained MSE.
 
-    If dictionary key 'use_mse_skill_score' is True, all keys after it will be
-    ignored.
-
-    If dictionary key 'use_weighted_mse' is True, all keys after it will be
-    ignored.
-
-    If dictionary key 'use_dual_weighted_mse' is True, all keys after it will be
-    ignored.
-
-    If
-    `use_mse_skill_score == use_weighted_mse == use_dual_weighted_mse == False`
-    and `constrained_mse_dict is None`, loss function will default to MSE (meqn
-    squared error).
-
-    :param loss_option_dict: Dictionary with the following keys.
-    'use_mse_skill_score': Boolean flag.  If True, loss function will be
-        negative MSE skill score.
-    'use_weighted_mse' Boolean flag.  If True, loss function will be weighted
-        MSE, where weight = magnitude of target value.
-    'use_dual_weighted_mse' Boolean flag.  If True, loss function will be
-        dual-weighted MSE, where weight = max(magnitude of target value,
-        magnitude of predicted value).
-    'constrained_mse_dict': Dictionary with the following keys.
-
-        'toa_up_flux_index': Variable index (in scalar output matrix) for TOA
-            upwelling flux.
-        'toa_up_flux_weight': Weight used to penalize difference between TOA
-            upwelling flux and upwelling flux at max height in profile.
-        'surface_down_flux_index': Variable index (in scalar output matrix) for
-            surface downwelling flux.
-        'surface_down_flux_weight': Weight used to penalize difference between
-            surface downwelling flux and downwelling flux at lowest height in
-            profile.
-        'net_flux_weight': Weight used to penalize difference between actual and
-            predicted net flux (surface downwelling minus TOA upwelling).
-
-        If net type is CNN, expect the following keys.
-
-        'up_flux_channel_index': Channel index (in vector target matrix) for
-            upwelling flux.
-        'down_flux_channel_index': Channel index (in vector target matrix) for
-            downwelling flux.
-
-        If net type is dense, expect the following keys.
-
-        'highest_up_flux_index': Variable index (in scalar output matrix) for
-            upwelling flux at max height in profile.
-        'lowest_down_flux_index': Variable index (in scalar output matrix) for
-            downwelling flux at lowest height in profile.
-
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
-    :return: loss_function: The function itself.
-    :return: loss_option_dict: Same as input but maybe with different values.
-    :raises: ValueError: if you try to use constrained MSE for a U-net.
+    :param loss_function: Function object.
+    :return: is_loss_constrained_mse: Boolean flag.
     """
 
-    if loss_option_dict is None:
-        loss_option_dict = {
-            USE_MSE_SKILL_KEY: False,
-            USE_WEIGHTED_MSE_KEY: False,
-            USE_DUAL_WEIGHTED_MSE_KEY: False,
-            CONSTRAINED_MSE_OPTIONS_KEY: None
-        }
-
-    use_mse_skill_score = loss_option_dict[USE_MSE_SKILL_KEY]
-    error_checking.assert_is_boolean(use_mse_skill_score)
-
-    if use_mse_skill_score:
-        loss_option_dict[USE_WEIGHTED_MSE_KEY] = False
-        loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY] = False
-        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
-        return custom_losses.negative_mse_skill_score(), loss_option_dict
-
-    use_weighted_mse = loss_option_dict[USE_WEIGHTED_MSE_KEY]
-    error_checking.assert_is_boolean(use_weighted_mse)
-
-    if use_weighted_mse:
-        loss_option_dict[USE_MSE_SKILL_KEY] = False
-        loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY] = False
-        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
-        return custom_losses.weighted_mse(), loss_option_dict
-
-    use_dual_weighted_mse = loss_option_dict[USE_DUAL_WEIGHTED_MSE_KEY]
-    error_checking.assert_is_boolean(use_dual_weighted_mse)
-
-    if use_dual_weighted_mse:
-        loss_option_dict[USE_MSE_SKILL_KEY] = False
-        loss_option_dict[USE_WEIGHTED_MSE_KEY] = False
-        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] = None
-        return custom_losses.dual_weighted_mse(), loss_option_dict
-
-    constrained_mse_dict = loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY]
-    if constrained_mse_dict is None:
-        return keras.losses.mse, loss_option_dict
-
-    error_checking.assert_is_string(net_type_string)
-    valid_net_type_strings = [CNN_TYPE_STRING, DENSE_NET_TYPE_STRING]
-
-    if net_type_string not in valid_net_type_strings:
-        error_string = (
-            '\nConstrained MSE is not available for net type "{0:s}".  '
-            'Available only for net types listed below:\n{1:s}'
-        ).format(net_type_string, str(valid_net_type_strings))
-
-        raise ValueError(error_string)
-
-    toa_up_flux_index = constrained_mse_dict[TOA_UP_FLUX_INDEX_KEY]
-    toa_up_flux_weight = constrained_mse_dict[TOA_UP_FLUX_WEIGHT_KEY]
-    surface_down_flux_index = constrained_mse_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
-    surface_down_flux_weight = (
-        constrained_mse_dict[SURFACE_DOWN_FLUX_WEIGHT_KEY]
-    )
-    net_flux_weight = constrained_mse_dict[NET_FLUX_WEIGHT_KEY]
-
-    error_checking.assert_is_integer(toa_up_flux_index)
-    error_checking.assert_is_geq(toa_up_flux_index, 0)
-    error_checking.assert_is_integer(surface_down_flux_index)
-    error_checking.assert_is_geq(surface_down_flux_index, 0)
-
-    if net_type_string == CNN_TYPE_STRING:
-        up_flux_channel_index = constrained_mse_dict[UP_FLUX_CHANNEL_INDEX_KEY]
-        down_flux_channel_index = (
-            constrained_mse_dict[DOWN_FLUX_CHANNEL_INDEX_KEY]
-        )
-
-        error_checking.assert_is_integer(up_flux_channel_index)
-        error_checking.assert_is_geq(up_flux_channel_index, 0)
-        error_checking.assert_is_integer(down_flux_channel_index)
-        error_checking.assert_is_geq(down_flux_channel_index, 0)
-
-        loss_function = custom_losses.constrained_mse(
-            toa_up_flux_index=toa_up_flux_index + 2,
-            toa_up_flux_weight=toa_up_flux_weight,
-            surface_down_flux_index=surface_down_flux_index + 2,
-            surface_down_flux_weight=surface_down_flux_weight,
-            highest_up_flux_index=0, lowest_down_flux_index=1,
-            net_flux_weight=net_flux_weight, for_cnn=True
-        )
-        return loss_function, loss_option_dict
-
-    highest_up_flux_index = constrained_mse_dict[HIGHEST_UP_FLUX_INDEX_KEY]
-    lowest_down_flux_index = constrained_mse_dict[LOWEST_DOWN_FLUX_INDEX_KEY]
-
-    error_checking.assert_is_integer(highest_up_flux_index)
-    error_checking.assert_is_geq(highest_up_flux_index, 0)
-    error_checking.assert_is_integer(lowest_down_flux_index)
-    error_checking.assert_is_geq(lowest_down_flux_index, 0)
-
-    loss_function = custom_losses.constrained_mse(
-        toa_up_flux_index=toa_up_flux_index,
-        toa_up_flux_weight=toa_up_flux_weight,
-        surface_down_flux_index=surface_down_flux_index,
-        surface_down_flux_weight=surface_down_flux_weight,
-        highest_up_flux_index=highest_up_flux_index,
-        lowest_down_flux_index=lowest_down_flux_index,
-        net_flux_weight=net_flux_weight, for_cnn=False
-    )
-    return loss_function, loss_option_dict
+    loss_function_string = dill.dumps(loss_function)
+    loss_function_string = ''.join(map(chr, loss_function_string))
+    return 'toa_up_flux_index' in loss_function_string
 
 
 def predictors_dict_to_numpy(example_dict, net_type_string):
@@ -1022,6 +887,9 @@ def data_generator(option_dict, for_inference, net_type_string,
         before this time).
     option_dict['last_time_unix_sec']: End time (will not generate examples after
         this time).
+    option_dict['min_column_lwp_kg_m02']: Minimum full-column liquid-water path
+        (LWP; kg m^-2).
+    option_dict['max_column_lwp_kg_m02']: Max full-column LWP (kg m^-2).
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['predictor_norm_type_string']: Normalization type for predictors
@@ -1088,6 +956,8 @@ def data_generator(option_dict, for_inference, net_type_string,
     heights_m_agl = option_dict[HEIGHTS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
+    min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
+    max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
@@ -1152,6 +1022,8 @@ def data_generator(option_dict, for_inference, net_type_string,
                 first_time_unix_sec=first_time_unix_sec,
                 last_time_unix_sec=last_time_unix_sec,
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
+                min_column_lwp_kg_m02=min_column_lwp_kg_m02,
+                max_column_lwp_kg_m02=max_column_lwp_kg_m02,
                 training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
@@ -1249,7 +1121,7 @@ def train_model(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict,
-        net_type_string, loss_option_dict):
+        net_type_string, loss_function):
     """Trains any kind of neural net.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1272,7 +1144,7 @@ def train_model(
 
     :param net_type_string: Neural-net type (must be accepted by
         `check_net_type`).
-    :param loss_option_dict: See doc for `get_loss_function`.
+    :param loss_function: Loss function.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1334,22 +1206,16 @@ def train_model(
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
 
-    loss_option_dict = get_loss_function(
-        loss_option_dict=loss_option_dict, net_type_string=net_type_string
-    )[1]
-
     _write_metafile(
-        pickle_file_name=metafile_name, num_epochs=num_epochs,
+        dill_file_name=metafile_name, num_epochs=num_epochs,
         num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string, loss_option_dict=loss_option_dict
+        net_type_string=net_type_string, loss_function=loss_function
     )
 
-    is_loss_constrained_mse = (
-        loss_option_dict[CONSTRAINED_MSE_OPTIONS_KEY] is not None
-    )
+    is_loss_constrained_mse = determine_if_loss_constrained_mse(loss_function)
 
     training_generator = data_generator(
         option_dict=training_option_dict, for_inference=False,
@@ -1395,12 +1261,7 @@ def read_model(hdf5_file_name):
 
     metadata_dict = read_metafile(metafile_name)
     custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
-
-    loss_function = get_loss_function(
-        loss_option_dict=metadata_dict[LOSS_OPTIONS_KEY],
-        net_type_string=metadata_dict[NET_TYPE_KEY]
-    )[0]
-    custom_object_dict['loss'] = loss_function
+    custom_object_dict['loss'] = metadata_dict[LOSS_FUNCTION_KEY]
 
     return keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
@@ -1431,7 +1292,7 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
     return metafile_name
 
 
-def read_metafile(pickle_file_name):
+def read_metafile_old(pickle_file_name):
     """Reads metadata for neural net from Pickle file.
 
     :param pickle_file_name: Path to input file.
@@ -1450,6 +1311,12 @@ def read_metafile(pickle_file_name):
     pickle_file_handle = open(pickle_file_name, 'rb')
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
+
+    if MIN_COLUMN_LWP_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        metadata_dict[TRAINING_OPTIONS_KEY][MIN_COLUMN_LWP_KEY] = 0.
+        metadata_dict[TRAINING_OPTIONS_KEY][MAX_COLUMN_LWP_KEY] = 1e12
+        metadata_dict[VALIDATION_OPTIONS_KEY][MIN_COLUMN_LWP_KEY] = 0.
+        metadata_dict[VALIDATION_OPTIONS_KEY][MAX_COLUMN_LWP_KEY] = 1e12
 
     if NET_TYPE_KEY not in metadata_dict:
         metadata_dict[NET_TYPE_KEY] = (
@@ -1490,6 +1357,40 @@ def read_metafile(pickle_file_name):
         '\n{0:s}\nKeys listed above were expected, but not found, in file '
         '"{1:s}".'
     ).format(str(missing_keys), pickle_file_name)
+
+    raise ValueError(error_string)
+
+
+def read_metafile(dill_file_name):
+    """Reads metadata for neural net from Dill file.
+
+    :param dill_file_name: Path to input file.
+    :return: metadata_dict: Dictionary with the following keys.
+    metadata_dict['num_epochs']: See doc for `train_model`.
+    metadata_dict['num_training_batches_per_epoch']: Same.
+    metadata_dict['training_option_dict']: Same.
+    metadata_dict['num_validation_batches_per_epoch']: Same.
+    metadata_dict['validation_option_dict']: Same.
+    metadata_dict['net_type_string']: Same.
+    metadata_dict['loss_function']: Same.
+
+    :raises: ValueError: if any expected key is not found in dictionary.
+    """
+
+    error_checking.assert_file_exists(dill_file_name)
+
+    dill_file_handle = open(dill_file_name, 'rb')
+    metadata_dict = dill.load(dill_file_handle)
+    dill_file_handle.close()
+
+    missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
+    if len(missing_keys) == 0:
+        return metadata_dict
+
+    error_string = (
+        '\n{0:s}\nKeys listed above were expected, but not found, in file '
+        '"{1:s}".'
+    ).format(str(missing_keys), dill_file_name)
 
     raise ValueError(error_string)
 

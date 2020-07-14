@@ -116,7 +116,8 @@ def _check_architecture_args(option_dict):
     return option_dict
 
 
-def create_model(option_dict, loss_option_dict):
+def create_model(option_dict, loss_function, up_flux_channel_index=None,
+                 down_flux_channel_index=None):
     """Creates CNN (convolutional neural net).
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -163,7 +164,13 @@ def create_model(option_dict, loss_option_dict):
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
 
-    :param loss_option_dict: See doc for `neural_net.get_loss_function`.
+    :param loss_function: Function handle.
+    :param up_flux_channel_index:
+        [used only if loss function is constrained MSE]
+        Channel index for upwelling flux.
+    :param down_flux_channel_index:
+        [used only if loss function is constrained MSE]
+        Channel index for downwelling flux.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
@@ -185,16 +192,25 @@ def create_model(option_dict, loss_option_dict):
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
 
     any_dense_layers = dense_layer_neuron_nums is not None
-    if not any_dense_layers:
-        loss_option_dict[neural_net.CONSTRAINED_MSE_OPTIONS_KEY] = None
-
-    loss_function, loss_option_dict = neural_net.get_loss_function(
-        loss_option_dict=loss_option_dict,
-        net_type_string=neural_net.CNN_TYPE_STRING
-    )
     is_loss_constrained_mse = (
-        loss_option_dict[neural_net.CONSTRAINED_MSE_OPTIONS_KEY] is not None
+        neural_net.determine_if_loss_constrained_mse(loss_function)
     )
+
+    if not any_dense_layers:
+        assert not is_loss_constrained_mse
+
+    if is_loss_constrained_mse:
+        error_checking.assert_is_integer(up_flux_channel_index)
+        error_checking.assert_is_geq(up_flux_channel_index, 0)
+        error_checking.assert_is_less_than(
+            up_flux_channel_index, conv_layer_channel_nums[-1]
+        )
+
+        error_checking.assert_is_integer(down_flux_channel_index)
+        error_checking.assert_is_geq(down_flux_channel_index, 0)
+        error_checking.assert_is_less_than(
+            down_flux_channel_index, conv_layer_channel_nums[-1]
+        )
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -296,13 +312,13 @@ def create_model(option_dict, loss_option_dict):
         dense_output_layer_object = None
 
     if is_loss_constrained_mse:
-        k = loss_option_dict[neural_net.UP_FLUX_CHANNEL_INDEX_KEY] + 0
+        k = up_flux_channel_index + 0
 
         highest_up_flux_layer_object = keras.layers.Lambda(
             lambda x: x[:, -1, k:(k + 1)]
         )(conv_output_layer_object)
 
-        k = loss_option_dict[neural_net.DOWN_FLUX_CHANNEL_INDEX_KEY] + 0
+        k = down_flux_channel_index + 0
 
         lowest_down_flux_layer_object = keras.layers.Lambda(
             lambda x: x[:, -0, k:(k + 1)]

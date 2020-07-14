@@ -48,7 +48,7 @@ def _check_architecture_args(option_dict):
     return option_dict
 
 
-def create_model(option_dict, loss_option_dict):
+def create_model(option_dict, loss_function):
     """Creates U-net.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -76,7 +76,7 @@ def create_model(option_dict, loss_option_dict):
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
 
-    :param loss_option_dict: See doc for `neural_net.get_loss_function`.
+    :param loss_function: Function handle.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
@@ -84,11 +84,6 @@ def create_model(option_dict, loss_option_dict):
     # TODO(thunderhoser): Generalize this method a bit.
 
     option_dict = _check_architecture_args(option_dict)
-
-    loss_function = neural_net.get_loss_function(
-        loss_option_dict=loss_option_dict,
-        net_type_string=neural_net.U_NET_TYPE_STRING
-    )[0]
 
     num_heights = option_dict[NUM_HEIGHTS_KEY]
     num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]

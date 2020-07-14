@@ -69,7 +69,7 @@ def _check_architecture_args(option_dict):
     return option_dict
 
 
-def create_model(option_dict, loss_option_dict):
+def create_model(option_dict, loss_function):
     """Creates dense net.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -102,16 +102,11 @@ def create_model(option_dict, loss_option_dict):
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
 
-    :param loss_option_dict: See doc for `neural_net.get_loss_function`.
+    :param loss_function: Function handle.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
     option_dict = _check_architecture_args(option_dict)
-
-    loss_function = neural_net.get_loss_function(
-        loss_option_dict=loss_option_dict,
-        net_type_string=neural_net.DENSE_NET_TYPE_STRING
-    )[0]
 
     num_inputs = option_dict[NUM_INPUTS_KEY]
     dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
