@@ -192,40 +192,40 @@ def plot_predictors(
     )
 
     if plot_ice:
-        iwc_values_kg_m02 = example_io.get_field_from_dict(
+        iwc_values_kg_m03 = example_io.get_field_from_dict(
             example_dict=example_dict,
             field_name=example_io.ICE_WATER_CONTENT_NAME
         )[example_index, ...]
 
-        print(numpy.max(iwc_values_kg_m02))
+        print(numpy.max(iwc_values_kg_m03))
 
         water_content_axes_object.plot(
-            KG_TO_MILLIGRAMS * iwc_values_kg_m02, heights_km_agl,
+            KG_TO_MILLIGRAMS * iwc_values_kg_m03, heights_km_agl,
             color=WATER_CONTENT_COLOUR, linewidth=line_width,
             linestyle=line_style
         )
 
         if handle_dict is None:
             water_content_axes_object.set_xlabel(
-                r'Ice-water content (mg m$^{-2}$)'
+                r'Ice-water content (mg m$^{-3}$)'
             )
     else:
-        lwc_values_kg_m02 = example_io.get_field_from_dict(
+        lwc_values_kg_m03 = example_io.get_field_from_dict(
             example_dict=example_dict,
             field_name=example_io.LIQUID_WATER_CONTENT_NAME
         )[example_index, ...]
 
-        print(lwc_values_kg_m02)
+        print(lwc_values_kg_m03)
 
         water_content_axes_object.plot(
-            KG_TO_GRAMS * lwc_values_kg_m02, heights_km_agl,
+            KG_TO_GRAMS * lwc_values_kg_m03, heights_km_agl,
             color=WATER_CONTENT_COLOUR, linewidth=line_width,
             linestyle=line_style
         )
 
         if handle_dict is None:
             water_content_axes_object.set_xlabel(
-                r'Liquid-water content (g m$^{-2}$)'
+                r'Liquid-water content (g m$^{-3}$)'
             )
 
     if handle_dict is None:

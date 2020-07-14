@@ -268,7 +268,11 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
 
-    if all([t in vector_target_names for t in example_io.VECTOR_TARGET_NAMES]):
+    plot_fancy = all([
+        t in vector_target_names for t in example_io.DEFAULT_VECTOR_TARGET_NAMES
+    ])
+
+    if plot_fancy:
         _plot_comparisons_fancy(
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,

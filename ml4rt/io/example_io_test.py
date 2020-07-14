@@ -8,6 +8,76 @@ from ml4rt.io import example_io
 
 TOLERANCE = 1e-6
 
+# The following constants are used to test get_grid_cell_edges,
+# get_grid_cell_widths, _get_water_content_profiles, and
+# _get_water_path_profiles.
+CENTER_HEIGHTS_M_AGL = numpy.array([
+    10, 20, 40, 60, 80, 100, 30000, 33000, 36000, 39000, 42000, 46000, 50000
+], dtype=float)
+
+EDGE_HEIGHTS_M_AGL = numpy.array([
+    5, 15, 30, 50, 70, 90, 15050, 31500, 34500, 37500, 40500, 44000, 48000,
+    52000
+], dtype=float)
+
+GRID_CELL_WIDTHS_METRES = numpy.array([
+    10, 15, 20, 20, 20, 14960, 16450, 3000, 3000, 3000, 3500, 4000, 4000
+], dtype=float)
+
+LAYERWISE_PATH_MATRIX_KG_M02 = numpy.array([
+    [1, 1, 1, 1, 1, 1000, 1000, 1, 1, 1, 1, 1, 1],
+    [2, 2, 2, 2, 2, 1000, 1000, 2, 2, 2, 2, 2, 2],
+    [3, 3, 3, 3, 3, 1000, 1000, 3, 3, 3, 3, 3, 3]
+], dtype=float)
+
+WATER_CONTENT_MATRIX_KG03 = numpy.array([
+    [0.1, 1. / 15, 0.05, 0.05, 0.05, 1. / 14.96, 1. / 16.45,
+     1. / 3000, 1. / 3000, 1. / 3000, 1. / 3500, 1. / 4000, 1. / 4000],
+    [0.2, 2. / 15, 0.1, 0.1, 0.1, 1. / 14.96, 1. / 16.45,
+     2. / 3000, 2. / 3000, 2. / 3000, 2. / 3500, 2. / 4000, 2. / 4000],
+    [0.3, 3. / 15, 0.15, 0.15, 0.15, 1. / 14.96, 1. / 16.45,
+     3. / 3000, 3. / 3000, 3. / 3000, 3. / 3500, 3. / 4000, 3. / 4000]
+])
+
+INTEG_PATH_MATRIX_KG_M02 = numpy.array([
+    [2011, 2010, 2009, 2008, 2007, 2006, 1006, 6, 5, 4, 3, 2, 1],
+    [2022, 2020, 2018, 2016, 2014, 2012, 1012, 12, 10, 8, 6, 4, 2],
+    [2033, 2030, 2027, 2024, 2021, 2018, 1018, 18, 15, 12, 9, 6, 3]
+], dtype=float)
+
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack(
+    (WATER_CONTENT_MATRIX_KG03, WATER_CONTENT_MATRIX_KG03 / 1000), axis=-1
+)
+THESE_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
+
+EXAMPLE_DICT_WITHOUT_PATHS = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
+
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME,
+    example_io.LIQUID_WATER_PATH_NAME, example_io.ICE_WATER_PATH_NAME
+]
+NEW_PREDICTOR_MATRIX = numpy.stack(
+    (INTEG_PATH_MATRIX_KG_M02, INTEG_PATH_MATRIX_KG_M02 / 1000), axis=-1
+)
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.concatenate(
+    (THIS_VECTOR_PREDICTOR_MATRIX, NEW_PREDICTOR_MATRIX), axis=-1
+)
+
+EXAMPLE_DICT_WITH_PATHS = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
+
 # The following constants are used to test find_file and file_name_to_year.
 EXAMPLE_DIR_NAME = 'foo'
 YEAR = 2018
@@ -380,6 +450,9 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
     ]
 
     for this_key in keys_to_compare:
+        if this_key not in first_example_dict:
+            continue
+
         if not numpy.allclose(
                 first_example_dict[this_key], second_example_dict[this_key],
                 atol=TOLERANCE
@@ -402,6 +475,9 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
     ]
 
     for this_key in keys_to_compare:
+        if this_key not in first_example_dict:
+            continue
+
         if first_example_dict[this_key] != second_example_dict[this_key]:
             return False
 
@@ -410,6 +486,51 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
 
 class ExampleIoTests(unittest.TestCase):
     """Each method is a unit test for example_io.py."""
+
+    def test_get_grid_cell_edges(self):
+        """Ensures correct output from get_grid_cell_edges."""
+
+        these_edge_heights_m_agl = (
+            example_io.get_grid_cell_edges(CENTER_HEIGHTS_M_AGL)
+        )
+        self.assertTrue(numpy.allclose(
+            these_edge_heights_m_agl, EDGE_HEIGHTS_M_AGL, atol=TOLERANCE
+        ))
+
+    def test_get_grid_cell_widths(self):
+        """Ensures correct output from get_grid_cell_widths."""
+
+        these_widths_metres = (
+            example_io.get_grid_cell_widths(EDGE_HEIGHTS_M_AGL)
+        )
+        self.assertTrue(numpy.allclose(
+            these_widths_metres, GRID_CELL_WIDTHS_METRES, atol=TOLERANCE
+        ))
+
+    def test_get_water_content_profiles(self):
+        """Ensures correct output from _get_water_content_profiles."""
+
+        this_content_matrix_kg_m03 = example_io._get_water_content_profiles(
+            layerwise_path_matrix_kg_m02=LAYERWISE_PATH_MATRIX_KG_M02,
+            heights_m_agl=CENTER_HEIGHTS_M_AGL
+        )
+
+        self.assertTrue(numpy.allclose(
+            this_content_matrix_kg_m03, WATER_CONTENT_MATRIX_KG03,
+            atol=TOLERANCE
+        ))
+
+    def test_get_water_path_profiles(self):
+        """Ensures correct output from _get_water_path_profiles."""
+
+        this_example_dict = example_io._get_water_path_profiles(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_WITHOUT_PATHS),
+            get_lwp=True, get_iwp=True
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_PATHS
+        ))
 
     def test_find_file(self):
         """Ensures correct output from find_file."""

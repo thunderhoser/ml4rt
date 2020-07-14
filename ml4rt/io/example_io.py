@@ -78,31 +78,39 @@ ZENITH_ANGLE_NAME = 'zenith_angle_radians'
 LATITUDE_NAME = 'latitude_deg_n'
 LONGITUDE_NAME = 'longitude_deg_e'
 ALBEDO_NAME = 'albedo'
-LIQUID_WATER_PATH_NAME = 'liquid_water_path_kg_m02'
-ICE_WATER_PATH_NAME = 'ice_water_path_kg_m02'
+COLUMN_LIQUID_WATER_PATH_NAME = 'column_liquid_water_path_kg_m02'
+COLUMN_ICE_WATER_PATH_NAME = 'column_ice_water_path_kg_m02'
 PRESSURE_NAME = 'pressure_pascals'
 TEMPERATURE_NAME = 'temperature_kelvins'
 SPECIFIC_HUMIDITY_NAME = 'specific_humidity_kg_kg01'
-LIQUID_WATER_CONTENT_NAME = 'liquid_water_content_kg_m02'
-ICE_WATER_CONTENT_NAME = 'ice_water_content_kg_m02'
+LIQUID_WATER_CONTENT_NAME = 'liquid_water_content_kg_m03'
+ICE_WATER_CONTENT_NAME = 'ice_water_content_kg_m03'
+LIQUID_WATER_PATH_NAME = 'liquid_water_path_kg_m02'
+ICE_WATER_PATH_NAME = 'ice_water_path_kg_m02'
 
-SCALAR_PREDICTOR_NAMES = [
+DEFAULT_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
-    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME
+    COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME
 ]
-VECTOR_PREDICTOR_NAMES = [
+ALL_SCALAR_PREDICTOR_NAMES = DEFAULT_SCALAR_PREDICTOR_NAMES
+
+DEFAULT_VECTOR_PREDICTOR_NAMES = [
     PRESSURE_NAME, TEMPERATURE_NAME, SPECIFIC_HUMIDITY_NAME,
     LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
 ]
-PREDICTOR_NAMES = SCALAR_PREDICTOR_NAMES + VECTOR_PREDICTOR_NAMES
+ALL_VECTOR_PREDICTOR_NAMES = DEFAULT_VECTOR_PREDICTOR_NAMES + [
+    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME
+]
+
+ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
 
 PREDICTOR_NAME_TO_ORIG = {
     ZENITH_ANGLE_NAME: 'sza',
     LATITUDE_NAME: 'lat',
     LONGITUDE_NAME: 'lon',
     ALBEDO_NAME: 'albedo',
-    LIQUID_WATER_PATH_NAME: 'lwp',
-    ICE_WATER_PATH_NAME: 'iwp',
+    COLUMN_LIQUID_WATER_PATH_NAME: 'lwp',
+    COLUMN_ICE_WATER_PATH_NAME: 'iwp',
     PRESSURE_NAME: 'p',
     TEMPERATURE_NAME: 't',
     SPECIFIC_HUMIDITY_NAME: 'q',
@@ -115,8 +123,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     LATITUDE_NAME: 1.,
     LONGITUDE_NAME: 1.,
     ALBEDO_NAME: 1.,
-    LIQUID_WATER_PATH_NAME: 0.001,
-    ICE_WATER_PATH_NAME: 0.001,
+    COLUMN_LIQUID_WATER_PATH_NAME: 0.001,
+    COLUMN_ICE_WATER_PATH_NAME: 0.001,
     PRESSURE_NAME: 100.,
     TEMPERATURE_NAME: 1.,
     SPECIFIC_HUMIDITY_NAME: 0.001,
@@ -130,14 +138,18 @@ SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_w_m02'
 SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
 SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
 
-SCALAR_TARGET_NAMES = [
+DEFAULT_SCALAR_TARGET_NAMES = [
     SHORTWAVE_SURFACE_DOWN_FLUX_NAME, SHORTWAVE_TOA_UP_FLUX_NAME
 ]
-VECTOR_TARGET_NAMES = [
+ALL_SCALAR_TARGET_NAMES = DEFAULT_SCALAR_TARGET_NAMES
+
+DEFAULT_VECTOR_TARGET_NAMES = [
     SHORTWAVE_DOWN_FLUX_NAME, SHORTWAVE_UP_FLUX_NAME,
     SHORTWAVE_HEATING_RATE_NAME
 ]
-TARGET_NAMES = SCALAR_TARGET_NAMES + VECTOR_TARGET_NAMES
+ALL_VECTOR_TARGET_NAMES = DEFAULT_VECTOR_TARGET_NAMES
+
+ALL_TARGET_NAMES = ALL_SCALAR_TARGET_NAMES + ALL_VECTOR_TARGET_NAMES
 
 TARGET_NAME_TO_ORIG = {
     SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfcflux',
@@ -146,6 +158,148 @@ TARGET_NAME_TO_ORIG = {
     SHORTWAVE_UP_FLUX_NAME: 'fluxu',
     SHORTWAVE_HEATING_RATE_NAME: 'hr'
 }
+
+
+def _get_water_content_profiles(layerwise_path_matrix_kg_m02, heights_m_agl):
+    """Computes profiles of liquid- or ice-water content (LWC or IWC).
+
+    E = number of examples
+    H = number of heights
+
+    :param layerwise_path_matrix_kg_m02: E-by-H numpy array of layerwise water
+        paths (kg m^-2).  "Layerwise" means that the value in each grid cell is
+        only the water path through that grid cell, not integrated over multiple
+        grid cells.
+    :param heights_m_agl: length-H numpy array with heights of grid-cell centers
+        (metres above ground level).
+    :return: water_content_matrix_kg_m03: E-by-H numpy array of water contents
+        (kg m^-3).
+    """
+
+    edge_heights_m_agl = get_grid_cell_edges(heights_m_agl)
+    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
+
+    num_examples = layerwise_path_matrix_kg_m02.shape[0]
+    num_heights = layerwise_path_matrix_kg_m02.shape[1]
+
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
+    )
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
+    )
+
+    return layerwise_path_matrix_kg_m02 / grid_cell_width_matrix_metres
+
+
+def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True):
+    """Computes profiles of liquid-water path (LWP) and/or ice-water path (IWP).
+
+    At height z, the LWP (IWP) is the integral of LWC (IWC) from the top of
+    atmosphere to z.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param get_lwp: Boolean flag.  If True, will compute LWP profile for each
+        example.
+    :param get_iwp: Boolean flag.  If True, will compute IWP profile for each
+        example.
+    :return: example_dict: Same as input but with extra predictor variables.
+    """
+
+    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    get_lwp = get_lwp and LIQUID_WATER_PATH_NAME not in vector_predictor_names
+    get_iwp = get_iwp and ICE_WATER_PATH_NAME not in vector_predictor_names
+
+    if not (get_lwp or get_iwp):
+        return example_dict
+
+    edge_heights_m_agl = get_grid_cell_edges(example_dict[HEIGHTS_KEY])
+    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
+
+    num_examples = len(example_dict[VALID_TIMES_KEY])
+    num_heights = len(example_dict[HEIGHTS_KEY])
+
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
+    )
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
+    )
+
+    if get_lwp:
+        lwc_matrix_kg_m03 = get_field_from_dict(
+            example_dict=example_dict, field_name=LIQUID_WATER_CONTENT_NAME
+        )
+        lwp_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+            numpy.fliplr(lwc_matrix_kg_m03 * grid_cell_width_matrix_metres),
+            axis=1
+        ))
+
+        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(LIQUID_WATER_PATH_NAME)
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            numpy.expand_dims(lwp_matrix_kg_m02, axis=-1)
+        ), axis=-1)
+
+    if get_iwp:
+        iwc_matrix_kg_m03 = get_field_from_dict(
+            example_dict=example_dict, field_name=ICE_WATER_CONTENT_NAME
+        )
+        iwp_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+            numpy.fliplr(iwc_matrix_kg_m03 * grid_cell_width_matrix_metres),
+            axis=1
+        ))
+
+        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(ICE_WATER_PATH_NAME)
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            numpy.expand_dims(iwp_matrix_kg_m02, axis=-1)
+        ), axis=-1)
+
+    return example_dict
+
+
+def get_grid_cell_edges(heights_m_agl):
+    """Computes heights at edges (rather than centers) of grid cells.
+
+    H = number of grid cells
+
+    :param heights_m_agl: length-H numpy array of heights (metres above ground
+        level) at centers of grid cells.
+    :return: edge_heights_m_agl: length-(H + 1) numpy array of heights (metres
+        above ground level) at edges of grid cells.
+    """
+
+    error_checking.assert_is_geq_numpy_array(heights_m_agl, 0.)
+    error_checking.assert_is_numpy_array(heights_m_agl, num_dimensions=1)
+
+    height_diffs_metres = numpy.diff(heights_m_agl)
+    edge_heights_m_agl = heights_m_agl[:-1] + height_diffs_metres / 2
+    bottom_edge_m_agl = heights_m_agl[0] - height_diffs_metres[0] / 2
+    top_edge_m_agl = heights_m_agl[-1] + height_diffs_metres[-1] / 2
+
+    return numpy.concatenate((
+        numpy.array([bottom_edge_m_agl]),
+        edge_heights_m_agl,
+        numpy.array([top_edge_m_agl])
+    ))
+
+
+def get_grid_cell_widths(edge_heights_m_agl):
+    """Computes width of each grid cell.
+
+    H = number of grid cells
+
+    :param edge_heights_m_agl: length-(H + 1) numpy array of heights (metres
+        above ground level) at edges of grid cells.
+    :return: widths_metres: length-H numpy array of grid-cell widths.
+    """
+
+    error_checking.assert_is_geq_numpy_array(edge_heights_m_agl, 0.)
+    error_checking.assert_is_numpy_array(edge_heights_m_agl, num_dimensions=1)
+
+    return numpy.diff(edge_heights_m_agl)
 
 
 def match_heights(heights_m_agl, desired_height_m_agl):
@@ -182,17 +336,18 @@ def check_field_name(field_name):
     """Ensures that field name is valid (either predictor or target variable).
 
     :param field_name: Field name.
-    :raises: ValueError: if `field_name not in PREDICTOR_NAMES + TARGET_NAMES`.
+    :raises: ValueError: if
+        `field_name not in ALL_PREDICTOR_NAMES + ALL_TARGET_NAMES`.
     """
 
     error_checking.assert_is_string(field_name)
-    if field_name in PREDICTOR_NAMES + TARGET_NAMES:
+    if field_name in ALL_PREDICTOR_NAMES + ALL_TARGET_NAMES:
         return
 
     error_string = (
         '\nField "{0:s}" is not valid predictor or target variable.  Valid '
         'options listed below:\n{1:s}'
-    ).format(field_name, str(PREDICTOR_NAMES + TARGET_NAMES))
+    ).format(field_name, str(ALL_PREDICTOR_NAMES + ALL_TARGET_NAMES))
 
     raise ValueError(error_string)
 
@@ -335,12 +490,12 @@ def read_file(example_file_name):
         vector predictors.
     example_dict['scalar_target_matrix']: numpy array (T x T_s) with values of
         scalar targets.
-    example_dict['scalar_predictor_names']: list (length T_s) with names of
-        scalar targets.
+    example_dict['scalar_target_names']: list (length T_s) with names of scalar
+        targets.
     example_dict['vector_target_matrix']: numpy array (T x H x T_v) with values
         of vector targets.
-    example_dict['vector_predictor_names']: list (length T_v) with names of
-        vector targets.
+    example_dict['vector_target_names']: list (length T_v) with names of vector
+        targets.
     example_dict['valid_times_unix_sec']: length-T numpy array of valid times
         (Unix seconds).
     example_dict['heights_m_agl']: length-H numpy array of heights (metres above
@@ -357,10 +512,10 @@ def read_file(example_file_name):
     dataset_object = netCDF4.Dataset(example_file_name)
 
     example_dict = {
-        SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
-        VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
-        SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
-        VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+        SCALAR_PREDICTOR_NAMES_KEY: DEFAULT_SCALAR_PREDICTOR_NAMES,
+        VECTOR_PREDICTOR_NAMES_KEY: DEFAULT_VECTOR_PREDICTOR_NAMES,
+        SCALAR_TARGET_NAMES_KEY: DEFAULT_SCALAR_TARGET_NAMES,
+        VECTOR_TARGET_NAMES_KEY: DEFAULT_VECTOR_TARGET_NAMES,
         VALID_TIMES_KEY: numpy.array(
             dataset_object.variables[VALID_TIMES_KEY_ORIG][:], dtype=int
         ),
@@ -376,10 +531,10 @@ def read_file(example_file_name):
 
     num_times = len(example_dict[VALID_TIMES_KEY])
     num_heights = len(example_dict[HEIGHTS_KEY])
-    num_scalar_predictors = len(SCALAR_PREDICTOR_NAMES)
-    num_vector_predictors = len(VECTOR_PREDICTOR_NAMES)
-    num_scalar_targets = len(SCALAR_TARGET_NAMES)
-    num_vector_targets = len(VECTOR_TARGET_NAMES)
+    num_scalar_predictors = len(DEFAULT_SCALAR_PREDICTOR_NAMES)
+    num_vector_predictors = len(DEFAULT_VECTOR_PREDICTOR_NAMES)
+    num_scalar_targets = len(DEFAULT_SCALAR_TARGET_NAMES)
+    num_vector_targets = len(DEFAULT_VECTOR_TARGET_NAMES)
 
     scalar_predictor_matrix = numpy.full(
         (num_times, num_scalar_predictors), numpy.nan
@@ -396,10 +551,10 @@ def read_file(example_file_name):
 
     for k in range(num_scalar_predictors):
         this_predictor_name_orig = (
-            PREDICTOR_NAME_TO_ORIG[SCALAR_PREDICTOR_NAMES[k]]
+            PREDICTOR_NAME_TO_ORIG[DEFAULT_SCALAR_PREDICTOR_NAMES[k]]
         )
         this_conversion_factor = (
-            PREDICTOR_NAME_TO_CONV_FACTOR[SCALAR_PREDICTOR_NAMES[k]]
+            PREDICTOR_NAME_TO_CONV_FACTOR[DEFAULT_SCALAR_PREDICTOR_NAMES[k]]
         )
         scalar_predictor_matrix[:, k] = this_conversion_factor * numpy.array(
             dataset_object.variables[this_predictor_name_orig][:], dtype=float
@@ -407,28 +562,40 @@ def read_file(example_file_name):
 
     for k in range(num_vector_predictors):
         this_predictor_name_orig = (
-            PREDICTOR_NAME_TO_ORIG[VECTOR_PREDICTOR_NAMES[k]]
+            PREDICTOR_NAME_TO_ORIG[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
         this_conversion_factor = (
-            PREDICTOR_NAME_TO_CONV_FACTOR[VECTOR_PREDICTOR_NAMES[k]]
+            PREDICTOR_NAME_TO_CONV_FACTOR[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
         vector_predictor_matrix[..., k] = this_conversion_factor * numpy.array(
             dataset_object.variables[this_predictor_name_orig][:], dtype=float
         )
 
+        if DEFAULT_VECTOR_PREDICTOR_NAMES[k] in [
+                LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
+        ]:
+            vector_predictor_matrix[..., k] = _get_water_content_profiles(
+                layerwise_path_matrix_kg_m02=vector_predictor_matrix[..., k],
+                heights_m_agl=example_dict[HEIGHTS_KEY]
+            )
+
     for k in range(num_scalar_targets):
-        this_target_name_orig = TARGET_NAME_TO_ORIG[SCALAR_TARGET_NAMES[k]]
+        this_target_name_orig = (
+            TARGET_NAME_TO_ORIG[DEFAULT_SCALAR_TARGET_NAMES[k]]
+        )
         scalar_target_matrix[:, k] = numpy.array(
             dataset_object.variables[this_target_name_orig][:], dtype=float
         )
 
     for k in range(num_vector_targets):
-        this_target_name_orig = TARGET_NAME_TO_ORIG[VECTOR_TARGET_NAMES[k]]
+        this_target_name_orig = (
+            TARGET_NAME_TO_ORIG[DEFAULT_VECTOR_TARGET_NAMES[k]]
+        )
         vector_target_matrix[..., k] = numpy.array(
             dataset_object.variables[this_target_name_orig][:], dtype=float
         )
 
-    longitude_index = SCALAR_PREDICTOR_NAMES.index(LONGITUDE_NAME)
+    longitude_index = DEFAULT_SCALAR_PREDICTOR_NAMES.index(LONGITUDE_NAME)
     scalar_predictor_matrix[:, longitude_index] = (
         longitude_conv.convert_lng_positive_in_west(
             longitudes_deg=scalar_predictor_matrix[:, longitude_index],
@@ -444,7 +611,10 @@ def read_file(example_file_name):
     })
 
     dataset_object.close()
-    return example_dict
+
+    return _get_water_path_profiles(
+        example_dict=example_dict, get_lwp=True, get_iwp=True
+    )
 
 
 def concat_examples(example_dicts):
@@ -614,15 +784,15 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
 
     check_field_name(field_name)
 
-    if field_name in SCALAR_PREDICTOR_NAMES:
+    if field_name in ALL_SCALAR_PREDICTOR_NAMES:
         height_m_agl = None
         field_index = example_dict[SCALAR_PREDICTOR_NAMES_KEY].index(field_name)
         data_matrix = example_dict[SCALAR_PREDICTOR_VALS_KEY][..., field_index]
-    elif field_name in SCALAR_TARGET_NAMES:
+    elif field_name in ALL_SCALAR_TARGET_NAMES:
         height_m_agl = None
         field_index = example_dict[SCALAR_TARGET_NAMES_KEY].index(field_name)
         data_matrix = example_dict[SCALAR_TARGET_VALS_KEY][..., field_index]
-    elif field_name in VECTOR_PREDICTOR_NAMES:
+    elif field_name in ALL_VECTOR_PREDICTOR_NAMES:
         field_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(field_name)
         data_matrix = example_dict[VECTOR_PREDICTOR_VALS_KEY][..., field_index]
     else:
@@ -757,15 +927,15 @@ def subset_by_field(example_dict, field_names):
     for this_field_name in field_names:
         check_field_name(this_field_name)
 
-        if this_field_name in SCALAR_PREDICTOR_NAMES:
+        if this_field_name in ALL_SCALAR_PREDICTOR_NAMES:
             scalar_predictor_indices.append(
                 example_dict[SCALAR_PREDICTOR_NAMES_KEY].index(this_field_name)
             )
-        elif this_field_name in SCALAR_TARGET_NAMES:
+        elif this_field_name in ALL_SCALAR_TARGET_NAMES:
             scalar_target_indices.append(
                 example_dict[SCALAR_TARGET_NAMES_KEY].index(this_field_name)
             )
-        elif this_field_name in VECTOR_PREDICTOR_NAMES:
+        elif this_field_name in ALL_VECTOR_PREDICTOR_NAMES:
             vector_predictor_indices.append(
                 example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(this_field_name)
             )
