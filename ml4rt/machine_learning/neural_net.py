@@ -1027,8 +1027,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                 first_example_to_keep=example_index
             )
 
-            print(len(this_example_dict[example_io.VALID_TIMES_KEY]))
-
             if for_inference:
                 this_num_examples = len(
                     this_example_dict[example_io.VALID_TIMES_KEY]
@@ -1095,6 +1093,7 @@ def data_generator(option_dict, for_inference, net_type_string,
                     )
 
             num_examples_in_memory = predictor_matrix.shape[0]
+            print(predictor_matrix.shape)
 
         predictor_matrix = predictor_matrix.astype('float32')
 
