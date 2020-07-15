@@ -212,6 +212,8 @@ def _read_file_for_generator(
     :return: last_example_read: Array index (in file) of last example returned.
     """
 
+    print(num_examples_to_keep)
+
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
 

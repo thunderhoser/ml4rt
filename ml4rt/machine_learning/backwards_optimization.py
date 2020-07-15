@@ -116,7 +116,7 @@ def _do_gradient_descent(
                 'Loss after {0:d} of {1:d} iterations = {2:.2e} ... '
                 'activation = {3:.2e}'
             ).format(
-                j, num_iterations, these_outputs[1], these_outputs[0][0]
+                j, num_iterations, these_outputs[1][0], these_outputs[0][0]
             ))
 
         final_predictor_matrix -= these_outputs[2] * learning_rate
@@ -126,7 +126,7 @@ def _do_gradient_descent(
     print((
         'Loss after {0:d} iterations = {1:.2e} ... activation = {2:.2e}'
     ).format(
-        num_iterations, these_outputs[1], final_activation
+        num_iterations, these_outputs[1][0], final_activation
     ))
 
     return {
