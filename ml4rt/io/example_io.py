@@ -563,7 +563,6 @@ def read_file(example_file_name):
         )
 
     for k in range(num_vector_predictors):
-        print(DEFAULT_VECTOR_PREDICTOR_NAMES)
         this_predictor_name_orig = (
             PREDICTOR_NAME_TO_ORIG[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
