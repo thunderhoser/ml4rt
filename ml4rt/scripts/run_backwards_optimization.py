@@ -1,8 +1,16 @@
 """Runs backwards optimization."""
 
+import os.path
 import argparse
 import numpy
+from gewittergefahr.gg_utils import time_conversion
+from ml4rt.io import example_io
+from ml4rt.utils import misc as misc_utils
+from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import backwards_optimization as bwo
+
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
@@ -110,6 +118,132 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     :param l2_weight: Same.
     :param output_file_name: Same.
     """
+
+    example_dict = example_io.read_file(example_file_name)
+    num_examples_total = len(example_dict[example_io.VALID_TIMES_KEY])
+
+    example_indices = misc_utils.subset_examples(
+        indices_to_keep=example_indices, num_examples_to_keep=num_examples,
+        num_examples_total=num_examples_total
+    )
+
+    print('Reading model from: "{0:s}"...'.format(model_file_name))
+    model_object = neural_net.read_model(model_file_name)
+
+    metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(metafile_name))
+    metadata_dict = neural_net.read_metafile(metafile_name)
+
+    year = example_io.file_name_to_year(example_file_name)
+    first_time_unix_sec, last_time_unix_sec = (
+        time_conversion.first_and_last_times_in_year(year)
+    )
+
+    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
+        os.path.split(example_file_name)[0]
+    )
+    generator_option_dict[neural_net.BATCH_SIZE_KEY] = num_examples_total
+    generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
+    generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
+    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
+
+    generator = neural_net.data_generator(
+        option_dict=generator_option_dict, for_inference=True,
+        net_type_string=net_type_string, is_loss_constrained_mse=False
+    )
+
+    print(SEPARATOR_STRING)
+    predictor_matrix, _, example_id_strings = next(generator)
+    print(SEPARATOR_STRING)
+
+    predictor_matrix = predictor_matrix[example_indices, ...]
+    example_id_strings = [example_id_strings[i] for i in example_indices]
+
+    num_examples = len(example_id_strings)
+    bwo_dict = None
+
+    for i in range(num_examples):
+        this_bwo_dict = bwo.optimize_input_for_neuron(
+            model_object=model_object,
+            init_function_or_matrix=predictor_matrix[i, ...],
+            layer_name=layer_name, neuron_indices=neuron_indices,
+            ideal_activation=ideal_activation, num_iterations=num_iterations,
+            learning_rate=learning_rate, l2_weight=l2_weight
+        )
+
+        if i == num_examples - 1:
+            print(SEPARATOR_STRING)
+        else:
+            print(MINOR_SEPARATOR_STRING)
+
+        if bwo_dict is None:
+            these_dim = numpy.array(
+                (num_examples,) +
+                this_bwo_dict[bwo.INITIAL_PREDICTORS_KEY].shape[1:],
+                dtype=int
+            )
+
+            bwo_dict = {
+                bwo.INITIAL_PREDICTORS_KEY: numpy.full(these_dim, numpy.nan),
+                bwo.FINAL_PREDICTORS_KEY: numpy.full(these_dim, numpy.nan),
+                bwo.INITIAL_ACTIVATIONS_KEY: numpy.full(num_examples, numpy.nan),
+                bwo.FINAL_ACTIVATIONS_KEY: numpy.full(num_examples, numpy.nan)
+            }
+
+        bwo_dict[bwo.INITIAL_PREDICTORS_KEY][i, ...] = (
+            this_bwo_dict[bwo.INITIAL_PREDICTORS_KEY][0, ...]
+        )
+        bwo_dict[bwo.FINAL_PREDICTORS_KEY][i, ...] = (
+            this_bwo_dict[bwo.FINAL_PREDICTORS_KEY][0, ...]
+        )
+        bwo_dict[bwo.INITIAL_ACTIVATIONS_KEY][i] = (
+            this_bwo_dict[bwo.INITIAL_ACTIVATION_KEY]
+        )
+        bwo_dict[bwo.FINAL_ACTIVATIONS_KEY][i] = (
+            this_bwo_dict[bwo.FINAL_ACTIVATION_KEY]
+        )
+
+    example_dict = neural_net.predictors_numpy_to_dict(
+        predictor_matrix=bwo_dict[bwo.INITIAL_PREDICTORS_KEY],
+        example_dict=example_dict, net_type_string=net_type_string
+    )
+    init_scalar_predictor_matrix = (
+        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    )
+    init_vector_predictor_matrix = (
+        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    )
+
+    example_dict = neural_net.predictors_numpy_to_dict(
+        predictor_matrix=bwo_dict[bwo.FINAL_PREDICTORS_KEY],
+        example_dict=example_dict, net_type_string=net_type_string
+    )
+    final_scalar_predictor_matrix = (
+        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    )
+    final_vector_predictor_matrix = (
+        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    )
+
+    print('Writing results to file: "{0:s}"...'.format(output_file_name))
+    bwo.write_standard_file(
+        netcdf_file_name=output_file_name,
+        init_scalar_predictor_matrix=init_scalar_predictor_matrix,
+        final_scalar_predictor_matrix=final_scalar_predictor_matrix,
+        init_vector_predictor_matrix=init_vector_predictor_matrix,
+        final_vector_predictor_matrix=final_vector_predictor_matrix,
+        initial_activations=bwo_dict[bwo.INITIAL_ACTIVATIONS_KEY],
+        final_activations=bwo_dict[bwo.FINAL_ACTIVATIONS_KEY],
+        example_id_strings=example_id_strings, model_file_name=model_file_name,
+        layer_name=layer_name, neuron_indices=neuron_indices,
+        ideal_activation=ideal_activation, num_iterations=num_iterations,
+        learning_rate=learning_rate, l2_weight=l2_weight
+    )
 
 
 if __name__ == '__main__':

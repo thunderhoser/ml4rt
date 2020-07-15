@@ -10,15 +10,36 @@ from ml4rt.io import example_io
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
+PASCALS_TO_MB = 0.01
 KG_TO_MILLIGRAMS = 1e6
 
 FIGURE_HANDLE_KEY = 'figure_object'
+AXES_OBJECTS_KEY = 'axes_objects'
 TEMPERATURE_HANDLE_KEY = 'temperature_axes_object'
 HUMIDITY_HANDLE_KEY = 'humidity_axes_object'
 WATER_CONTENT_HANDLE_KEY = 'water_content_axes_object'
 HEATING_RATE_HANDLE_KEY = 'heating_rate_axes_object'
 DOWN_FLUX_HANDLE_KEY = 'down_flux_axes_object'
 UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
+
+PREDICTOR_NAME_TO_VERBOSE = {
+    example_io.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
+    example_io.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
+    example_io.PRESSURE_NAME: 'Pressure (mb)',
+    example_io.LIQUID_WATER_CONTENT_NAME: r'Liquid-water content (g m$^{-3}$)',
+    example_io.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
+    example_io.LIQUID_WATER_PATH_NAME: r'Liquid-water path (g m$^{-2}$)',
+    example_io.ICE_WATER_PATH_NAME: r'Ice-water path (mg m$^{-2}$)'
+}
+
+PREDICTOR_NAME_TO_CONV_FACTOR = {
+    example_io.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
+    example_io.PRESSURE_NAME: PASCALS_TO_MB,
+    example_io.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
+    example_io.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
+    example_io.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_io.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
+}
 
 DEFAULT_LINE_WIDTH = 2
 
@@ -75,8 +96,8 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
 
     :param tick_values_km_agl: length-H numpy array of tick values (km above
         ground level).
-    :param use_log_scale: Boolean flag.  If True, will assume that height axis is
-        logarithmic.
+    :param use_log_scale: Boolean flag.  If True, will assume that height axis
+        is logarithmic.
     :return: tick_strings: length-H list of text labels.
     """
 
@@ -114,157 +135,129 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
 
 
 def plot_predictors(
-        example_dict, example_index, plot_ice, use_log_scale,
-        line_width=DEFAULT_LINE_WIDTH, line_style='solid', handle_dict=None):
-    """Plots predictors (temperature, spec humidity, liquid/ice-water content).
+        example_dict, example_index, predictor_names, predictor_colours,
+        predictor_line_widths, predictor_line_styles, use_log_scale,
+        handle_dict=None):
+    """Plots several predictors on the same set of axes.
+
+    P = number of predictors to plot (must all be profiles)
 
     :param example_dict: See doc for `example_io.read_file`.
     :param example_index: Will plot the [i]th example, where
         i = `example_index`.
-    :param plot_ice: Boolean flag.  If True, will plot ice-water content.  If
-        False, will plot liquid-water content.
+    :param predictor_names: length-P list with names of predictors to plot.
+    :param predictor_colours: length-P list of colours (each colour in any
+        format accepted by matplotlib).
+    :param predictor_line_widths: length-P numpy array of line widths.
+    :param predictor_line_styles: length-P list of line styles (each style in
+        any format accepted by matplotlib).
     :param use_log_scale: Boolean flag.  If True, will plot height (y-axis) in
         logarithmic scale.  If False, will plot height in linear scale.
-    :param line_width: Line width.
-    :param line_style: Line style (in any format accepted by matplotlib).
     :param handle_dict: See output doc.  If None, will create new figure on the
         fly.
     :return: handle_dict: Dictionary with the following keys.
     handle_dict['figure_object']: Figure handle (instance of
         `matplotlib.figure.Figure`).
-    handle_dict['temperature_axes_object']: Handle for temperature axes
-        (instance of `matplotlib.axes._subplots.AxesSubplot`).
-    handle_dict['humidity_axes_object']: Handle for humidity axes (same object
-        type).
-    handle_dict['water_content_axes_object']: Handle for water-content axes
-        (same type).
+    handle_dict['axes_objects']: length-P list of axes handles (each an instance
+        of `matplotlib.axes._subplots.AxesSubplot`).
     """
 
-    _set_font_size(FANCY_FONT_SIZE)
-
+    # Check input args.
     error_checking.assert_is_integer(example_index)
     error_checking.assert_is_geq(example_index, 0)
-    error_checking.assert_is_boolean(plot_ice)
     error_checking.assert_is_boolean(use_log_scale)
+    error_checking.assert_is_string_list(predictor_names)
+
+    num_predictors = len(predictor_names)
+    error_checking.assert_is_leq(num_predictors, 4)
+
+    for k in range(num_predictors):
+        assert predictor_names[k] in example_io.ALL_VECTOR_PREDICTOR_NAMES
+
+    assert len(predictor_colours) == num_predictors
+    assert len(predictor_line_widths) == num_predictors
+    assert len(predictor_line_styles) == num_predictors
+
+    # Housekeeping.
+    _set_font_size(FANCY_FONT_SIZE)
 
     if handle_dict is None:
-        figure_object, temperature_axes_object = pyplot.subplots(
-            1, 1, figsize=(FANCY_FIGURE_WIDTH_INCHES, FANCY_FIGURE_HEIGHT_INCHES)
+        figure_object, first_axes_object = pyplot.subplots(
+            1, 1,
+            figsize=(FANCY_FIGURE_WIDTH_INCHES, FANCY_FIGURE_HEIGHT_INCHES)
         )
+
+        axes_objects = [first_axes_object]
+        figure_object.subplots_adjust(bottom=0.75)
 
         if use_log_scale:
             pyplot.yscale('log')
 
-        figure_object.subplots_adjust(bottom=0.75)
-        humidity_axes_object = temperature_axes_object.twiny()
-        water_content_axes_object = temperature_axes_object.twiny()
+        for k in range(1, num_predictors):
+            axes_objects.append(axes_objects[0].twiny())
 
-        water_content_axes_object.spines['top'].set_position(('axes', 1.125))
-        _make_spines_invisible(water_content_axes_object)
-        water_content_axes_object.spines['top'].set_visible(True)
+            if k == 2:
+                axes_objects[k].spines['top'].set_position(('axes', 1.125))
+                _make_spines_invisible(axes_objects[k])
+                axes_objects[k].spines['top'].set_visible(True)
+
+            if k == 3:
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_position(('axes', -0.125))
+                _make_spines_invisible(axes_objects[k])
+                axes_objects[k].spines['bottom'].set_visible(True)
     else:
         figure_object = handle_dict[FIGURE_HANDLE_KEY]
-        temperature_axes_object = handle_dict[TEMPERATURE_HANDLE_KEY]
-        humidity_axes_object = handle_dict[HUMIDITY_HANDLE_KEY]
-        water_content_axes_object = handle_dict[WATER_CONTENT_HANDLE_KEY]
+        axes_objects = handle_dict[AXES_OBJECTS_KEY]
 
     heights_km_agl = METRES_TO_KM * example_dict[example_io.HEIGHTS_KEY]
+    tick_mark_dict = dict(size=4, width=1.5)
 
-    temperatures_kelvins = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.TEMPERATURE_NAME
-    )[example_index, ...]
-
-    temperatures_deg_c = temperature_conv.kelvins_to_celsius(
-        temperatures_kelvins
-    )
-    temperature_axes_object.plot(
-        temperatures_deg_c, heights_km_agl, color=TEMPERATURE_COLOUR,
-        linewidth=line_width, linestyle=line_style
-    )
-
-    specific_humidities_kg_kg01 = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.SPECIFIC_HUMIDITY_NAME
-    )[example_index, ...]
-
-    humidity_axes_object.plot(
-        KG_TO_GRAMS * specific_humidities_kg_kg01, heights_km_agl,
-        color=HUMIDITY_COLOUR, linewidth=line_width, linestyle=line_style
-    )
-
-    if plot_ice:
-        iwc_values_kg_m03 = example_io.get_field_from_dict(
-            example_dict=example_dict,
-            field_name=example_io.ICE_WATER_CONTENT_NAME
+    for k in range(num_predictors):
+        these_predictor_values = example_io.get_field_from_dict(
+            example_dict=example_dict, field_name=predictor_names[k]
         )[example_index, ...]
 
-        print(numpy.max(iwc_values_kg_m03))
-
-        water_content_axes_object.plot(
-            KG_TO_MILLIGRAMS * iwc_values_kg_m03, heights_km_agl,
-            color=WATER_CONTENT_COLOUR, linewidth=line_width,
-            linestyle=line_style
-        )
-
-        if handle_dict is None:
-            water_content_axes_object.set_xlabel(
-                r'Ice-water content (mg m$^{-3}$)'
+        if predictor_names[k] == example_io.TEMPERATURE_NAME:
+            these_predictor_values = temperature_conv.kelvins_to_celsius(
+                these_predictor_values
             )
-    else:
-        lwc_values_kg_m03 = example_io.get_field_from_dict(
-            example_dict=example_dict,
-            field_name=example_io.LIQUID_WATER_CONTENT_NAME
-        )[example_index, ...]
-
-        print(lwc_values_kg_m03)
-
-        water_content_axes_object.plot(
-            KG_TO_GRAMS * lwc_values_kg_m03, heights_km_agl,
-            color=WATER_CONTENT_COLOUR, linewidth=line_width,
-            linestyle=line_style
-        )
-
-        if handle_dict is None:
-            water_content_axes_object.set_xlabel(
-                r'Liquid-water content (g m$^{-3}$)'
+        else:
+            these_predictor_values = (
+                PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
+                these_predictor_values
             )
 
-    if handle_dict is None:
-        temperature_axes_object.set_ylabel('Height (km AGL)')
-        temperature_axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
-        humidity_axes_object.set_xlabel(r'Specific humidity (g kg$^{-1}$)')
-
-        temperature_axes_object.set_ylim([
-            numpy.min(heights_km_agl), numpy.max(heights_km_agl)
-        ])
-
-        height_strings = create_height_labels(
-            tick_values_km_agl=temperature_axes_object.get_yticks(),
-            use_log_scale=use_log_scale
+        axes_objects[k].plot(
+            these_predictor_values, heights_km_agl, color=predictor_colours[k],
+            linewidth=predictor_line_widths[k],
+            linestyle=predictor_line_styles[k]
         )
-        temperature_axes_object.set_yticklabels(height_strings)
 
-        temperature_axes_object.xaxis.label.set_color(TEMPERATURE_COLOUR)
-        humidity_axes_object.xaxis.label.set_color(HUMIDITY_COLOUR)
-        water_content_axes_object.xaxis.label.set_color(WATER_CONTENT_COLOUR)
+        axes_objects[k].set_xlabel(
+            PREDICTOR_NAME_TO_VERBOSE[predictor_names[k]]
+        )
+        axes_objects[k].xaxis.label.set_color(predictor_colours[k])
+        axes_objects[k].tick_params(
+            axis='x', colors=predictor_colours[k], **tick_mark_dict
+        )
 
-        tick_mark_dict = dict(size=4, width=1.5)
-        temperature_axes_object.tick_params(axis='y', **tick_mark_dict)
+    axes_objects[0].set_ylabel('Height (km AGL)')
+    axes_objects[0].set_ylim([
+        numpy.min(heights_km_agl), numpy.max(heights_km_agl)
+    ])
 
-        temperature_axes_object.tick_params(
-            axis='x', colors=TEMPERATURE_COLOUR, **tick_mark_dict
-        )
-        humidity_axes_object.tick_params(
-            axis='x', colors=HUMIDITY_COLOUR, **tick_mark_dict
-        )
-        water_content_axes_object.tick_params(
-            axis='x', colors=WATER_CONTENT_COLOUR, **tick_mark_dict
-        )
+    height_strings = create_height_labels(
+        tick_values_km_agl=axes_objects[0].get_yticks(),
+        use_log_scale=use_log_scale
+    )
+    axes_objects[0].set_yticklabels(height_strings)
+    axes_objects[0].tick_params(axis='y', **tick_mark_dict)
 
     return {
         FIGURE_HANDLE_KEY: figure_object,
-        TEMPERATURE_HANDLE_KEY: temperature_axes_object,
-        HUMIDITY_HANDLE_KEY: humidity_axes_object,
-        WATER_CONTENT_HANDLE_KEY: water_content_axes_object
+        AXES_OBJECTS_KEY: axes_objects
     }
 
 
@@ -298,7 +291,8 @@ def plot_targets(
 
     if handle_dict is None:
         figure_object, heating_rate_axes_object = pyplot.subplots(
-            1, 1, figsize=(FANCY_FIGURE_WIDTH_INCHES, FANCY_FIGURE_HEIGHT_INCHES)
+            1, 1,
+            figsize=(FANCY_FIGURE_WIDTH_INCHES, FANCY_FIGURE_HEIGHT_INCHES)
         )
 
         if use_log_scale:
@@ -392,14 +386,38 @@ def plot_targets(
     these_fluxes_w_m02 = numpy.array([
         down_flux_axes_object.get_xlim()[1],
         up_flux_axes_object.get_xlim()[1],
-        numpy.max(downwelling_fluxes_w_m02), numpy.max(upwelling_fluxes_w_m02)
+        numpy.max(downwelling_fluxes_w_m02),
+        numpy.max(upwelling_fluxes_w_m02)
     ])
 
     max_flux_w_m02 = 1.025 * numpy.max(these_fluxes_w_m02)
 
-    down_flux_axes_object.set_xlim(0, max_flux_w_m02)
-    up_flux_axes_object.set_xlim(0, max_flux_w_m02)
-    heating_rate_axes_object.set_xlim(left=0)
+    these_fluxes_w_m02 = numpy.array([
+        down_flux_axes_object.get_xlim()[0],
+        up_flux_axes_object.get_xlim()[0],
+        numpy.min(downwelling_fluxes_w_m02),
+        numpy.min(upwelling_fluxes_w_m02)
+    ])
+
+    min_flux_w_m02 = 1.025 * numpy.min(these_fluxes_w_m02)
+    min_flux_w_m02 = numpy.minimum(min_flux_w_m02, 0.)
+
+    down_flux_axes_object.set_xlim(min_flux_w_m02, max_flux_w_m02)
+    up_flux_axes_object.set_xlim(min_flux_w_m02, max_flux_w_m02)
+
+    min_heating_rate_k_day01 = numpy.minimum(
+        numpy.min(heating_rates_kelvins_day01),
+        heating_rate_axes_object.get_xlim()[0]
+    )
+    min_heating_rate_k_day01 = numpy.minimum(min_heating_rate_k_day01, 0.)
+    max_heating_rate_k_day01 = numpy.maximum(
+        numpy.max(heating_rates_kelvins_day01),
+        heating_rate_axes_object.get_xlim()[1]
+    )
+
+    heating_rate_axes_object.set_xlim(
+        min_heating_rate_k_day01, max_heating_rate_k_day01
+    )
 
     return {
         FIGURE_HANDLE_KEY: figure_object,
@@ -466,10 +484,14 @@ def plot_one_variable(
         linewidth=line_width
     )
 
+    x_min = numpy.minimum(
+        axes_object.get_xlim()[0], numpy.min(values)
+    )
+    x_min = numpy.minimum(x_min, 0.)
     x_max = numpy.maximum(
         axes_object.get_xlim()[1], numpy.max(values)
     )
-    axes_object.set_xlim(0, x_max)
+    axes_object.set_xlim(x_min, x_max)
 
     if was_figure_object_input:
         return figure_object, axes_object
