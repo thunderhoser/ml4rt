@@ -212,16 +212,21 @@ def _read_file_for_generator(
     :return: last_example_read: Array index (in file) of last example returned.
     """
 
-    print('num_examples_to_keep = {0:d}'.format(num_examples_to_keep))
-
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
+
+    if first_example_to_read is not None:
+        print('first_example_to_read = {0:d}'.format(first_example_to_read))
 
     example_dict, example_indices_in_file = example_io.reduce_sample_size(
         example_dict=example_dict,
         num_examples_to_keep=len(example_dict[example_io.VALID_TIMES_KEY]),
         first_example_to_keep=first_example_to_read
     )
+
+    print(len(example_dict[example_io.VALID_TIMES_KEY]))
+    print(len(example_indices_in_file))
+    print('\n\n\n')
 
     example_dict, these_subindices = example_io.subset_by_time(
         example_dict=example_dict,
