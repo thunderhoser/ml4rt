@@ -1027,7 +1027,7 @@ def data_generator(option_dict, for_inference, net_type_string,
                 first_example_to_keep=example_index
             )
 
-            print(len(these_id_strings))
+            print(len(this_example_dict[example_io.VALID_TIMES_KEY]))
 
             if for_inference:
                 this_num_examples = len(
