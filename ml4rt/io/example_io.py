@@ -512,10 +512,12 @@ def read_file(example_file_name):
     dataset_object = netCDF4.Dataset(example_file_name)
 
     example_dict = {
-        SCALAR_PREDICTOR_NAMES_KEY: DEFAULT_SCALAR_PREDICTOR_NAMES,
-        VECTOR_PREDICTOR_NAMES_KEY: DEFAULT_VECTOR_PREDICTOR_NAMES,
-        SCALAR_TARGET_NAMES_KEY: DEFAULT_SCALAR_TARGET_NAMES,
-        VECTOR_TARGET_NAMES_KEY: DEFAULT_VECTOR_TARGET_NAMES,
+        SCALAR_PREDICTOR_NAMES_KEY:
+            copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES),
+        VECTOR_PREDICTOR_NAMES_KEY:
+            copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES),
+        SCALAR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES),
+        VECTOR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES),
         VALID_TIMES_KEY: numpy.array(
             dataset_object.variables[VALID_TIMES_KEY_ORIG][:], dtype=int
         ),
@@ -561,8 +563,6 @@ def read_file(example_file_name):
         )
 
     for k in range(num_vector_predictors):
-        print(DEFAULT_VECTOR_PREDICTOR_NAMES)
-
         this_predictor_name_orig = (
             PREDICTOR_NAME_TO_ORIG[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
