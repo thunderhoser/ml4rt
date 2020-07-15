@@ -208,26 +208,26 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             this_bwo_dict[bwo.FINAL_ACTIVATION_KEY]
         )
 
-    example_dict = neural_net.predictors_numpy_to_dict(
+    new_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=bwo_dict[bwo.INITIAL_PREDICTORS_KEY],
         example_dict=example_dict, net_type_string=net_type_string
     )
     init_scalar_predictor_matrix = (
-        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )
     init_vector_predictor_matrix = (
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
 
-    example_dict = neural_net.predictors_numpy_to_dict(
+    new_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=bwo_dict[bwo.FINAL_PREDICTORS_KEY],
         example_dict=example_dict, net_type_string=net_type_string
     )
     final_scalar_predictor_matrix = (
-        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )
     final_vector_predictor_matrix = (
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
 
     print('Writing results to file: "{0:s}"...'.format(output_file_name))
