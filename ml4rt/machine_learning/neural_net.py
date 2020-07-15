@@ -178,7 +178,7 @@ def _read_file_for_generator(
         predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, target_norm_type_string,
         target_min_norm_value, target_max_norm_value,
-        first_example_to_keep=None):
+        first_example_to_read=None):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -203,32 +203,44 @@ def _read_file_for_generator(
     :param target_norm_type_string: Same.
     :param target_min_norm_value: Same.
     :param target_max_norm_value: Same.
-    :param first_example_to_keep: Index of first example to keep.  If specified,
-        this method will return examples i through i + N - 1, where
-        i = `first_example_to_keep` and N = `num_examples_to_keep`.  If None,
-        this method will return N random examples.
+    :param first_example_to_read: Array index (in file) of first example to
+        read.  If None, this method will return N random examples.
     :return: example_dict: See doc for `example_io.read_file`.
     :return: example_id_strings: 1-D list of IDs created by
         `example_io.create_example_ids`.  If `for_inference == False`, this is
         None.
+    :return: last_example_read: Array index (in file) of last example returned.
     """
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
 
-    example_dict = example_io.reduce_sample_size(
-        example_dict=example_dict, num_examples_to_keep=num_examples_to_keep,
-        first_example_to_keep=first_example_to_keep
+    example_dict, example_indices_in_file = example_io.reduce_sample_size(
+        example_dict=example_dict,
+        num_examples_to_keep=len(example_dict[example_io.VALID_TIMES_KEY]),
+        first_example_to_keep=first_example_to_read
     )
-    example_dict = example_io.subset_by_time(
+
+    example_dict, these_subindices = example_io.subset_by_time(
         example_dict=example_dict,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec
     )
-    example_dict = example_io.subset_by_column_lwp(
+    example_indices_in_file = example_indices_in_file[these_subindices]
+
+    example_dict, these_subindices = example_io.subset_by_column_lwp(
         example_dict=example_dict, min_lwp_kg_m02=min_column_lwp_kg_m02,
         max_lwp_kg_m02=max_column_lwp_kg_m02
     )
+    example_indices_in_file = example_indices_in_file[these_subindices]
+
+    example_dict, these_subindices = example_io.reduce_sample_size(
+        example_dict=example_dict,
+        num_examples_to_keep=num_examples_to_keep,
+        first_example_to_keep=0
+    )
+    example_indices_in_file = example_indices_in_file[these_subindices]
+
     example_dict = example_io.subset_by_field(
         example_dict=example_dict, field_names=field_names
     )
@@ -267,7 +279,7 @@ def _read_file_for_generator(
         apply_to_predictors=False, apply_to_targets=True
     )
 
-    return example_dict, example_id_strings
+    return example_dict, example_id_strings, example_indices_in_file[-1]
 
 
 def _write_metafile(
@@ -1007,7 +1019,9 @@ def data_generator(option_dict, for_inference, net_type_string,
 
                 file_index = 0
 
-            this_example_dict, these_id_strings = _read_file_for_generator(
+            (
+                this_example_dict, these_id_strings, last_example_index
+            ) = _read_file_for_generator(
                 example_file_name=example_file_names[file_index],
                 num_examples_to_keep=
                 num_examples_per_batch - num_examples_in_memory,
@@ -1024,7 +1038,7 @@ def data_generator(option_dict, for_inference, net_type_string,
                 target_norm_type_string=target_norm_type_string,
                 target_min_norm_value=target_min_norm_value,
                 target_max_norm_value=target_max_norm_value,
-                first_example_to_keep=example_index
+                first_example_to_read=example_index
             )
 
             if for_inference:
@@ -1036,7 +1050,7 @@ def data_generator(option_dict, for_inference, net_type_string,
                     file_index += 1
                     example_index = 0
                 else:
-                    example_index += this_num_examples
+                    example_index = last_example_index + 1
 
                 example_id_strings += these_id_strings
             else:
@@ -1093,7 +1107,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                     )
 
             num_examples_in_memory = predictor_matrix.shape[0]
-            print(predictor_matrix.shape)
 
         predictor_matrix = predictor_matrix.astype('float32')
 

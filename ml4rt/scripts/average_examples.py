@@ -104,14 +104,14 @@ def _run(example_dir_name, first_time_string, last_time_string, use_pmm,
             example_dict=example_dicts[i],
             first_time_unix_sec=first_time_unix_sec,
             last_time_unix_sec=last_time_unix_sec
-        )
+        )[0]
 
         this_orig_num_examples = len(
             example_dicts[i][example_io.VALID_TIMES_KEY]
         )
         example_dicts[i] = example_io.subset_by_standard_atmo(
             example_dict=example_dicts[i], standard_atmo_enum=standard_atmo_enum
-        )
+        )[0]
         this_num_examples = len(
             example_dicts[i][example_io.VALID_TIMES_KEY]
         )

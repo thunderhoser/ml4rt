@@ -822,6 +822,7 @@ def reduce_sample_size(example_dict, num_examples_to_keep,
     :param first_example_to_keep: Index of first example to keep.  If None, will
         subset examples randomly.
     :return: example_dict: Same as input but with fewer examples.
+    :return: example_indices: 1-D numpy array with indices of examples kept.
     """
 
     error_checking.assert_is_integer(num_examples_to_keep)
@@ -832,13 +833,14 @@ def reduce_sample_size(example_dict, num_examples_to_keep,
         error_checking.assert_is_geq(first_example_to_keep, 0)
 
     num_examples_total = len(example_dict[VALID_TIMES_KEY])
+    all_indices = numpy.linspace(
+        0, num_examples_total - 1, num=num_examples_total, dtype=int
+    )
+
     if num_examples_total <= num_examples_to_keep:
-        return example_dict
+        return example_dict, all_indices
 
     if first_example_to_keep is None:
-        all_indices = numpy.linspace(
-            0, num_examples_total - 1, num=num_examples_total, dtype=int
-        )
         indices_to_keep = numpy.random.choice(
             all_indices, size=num_examples_to_keep, replace=False
         )
@@ -858,7 +860,7 @@ def reduce_sample_size(example_dict, num_examples_to_keep,
     for this_key in ONE_PER_EXAMPLE_KEYS:
         example_dict[this_key] = example_dict[this_key][indices_to_keep, ...]
 
-    return example_dict
+    return example_dict, indices_to_keep
 
 
 def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
@@ -869,6 +871,7 @@ def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
     :param first_time_unix_sec: Earliest time to keep.
     :param last_time_unix_sec: Latest time to keep.
     :return: example_dict: Same as input but with fewer examples.
+    :return: example_indices: 1-D numpy array with indices of examples kept.
     """
 
     error_checking.assert_is_integer(first_time_unix_sec)
@@ -883,7 +886,7 @@ def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
     for this_key in ONE_PER_EXAMPLE_KEYS:
         example_dict[this_key] = example_dict[this_key][good_indices, ...]
 
-    return example_dict
+    return example_dict, good_indices
 
 
 def subset_by_standard_atmo(example_dict, standard_atmo_enum):
@@ -893,6 +896,7 @@ def subset_by_standard_atmo(example_dict, standard_atmo_enum):
         `read_file`).
     :param standard_atmo_enum: See doc for `check_standard_atmo_type`.
     :return: example_dict: Same as input but with fewer examples.
+    :return: example_indices: 1-D numpy array with indices of examples kept.
     """
 
     check_standard_atmo_type(standard_atmo_enum)
@@ -904,7 +908,7 @@ def subset_by_standard_atmo(example_dict, standard_atmo_enum):
     for this_key in ONE_PER_EXAMPLE_KEYS:
         example_dict[this_key] = example_dict[this_key][good_indices, ...]
 
-    return example_dict
+    return example_dict, good_indices
 
 
 def subset_by_field(example_dict, field_names):
@@ -1023,6 +1027,7 @@ def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
     :param min_lwp_kg_m02: Minimum LWP desired (kg m^-2).
     :param max_lwp_kg_m02: Maximum LWP desired (kg m^-2).
     :return: example_dict: Same as input but with fewer examples.
+    :return: example_indices: 1-D numpy array with indices of examples kept.
     """
 
     error_checking.assert_is_geq(min_lwp_kg_m02, 0.)
@@ -1040,7 +1045,7 @@ def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
     for this_key in ONE_PER_EXAMPLE_KEYS:
         example_dict[this_key] = example_dict[this_key][good_indices, ...]
 
-    return example_dict
+    return example_dict, good_indices
 
 
 def average_examples(

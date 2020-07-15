@@ -222,6 +222,7 @@ CONCAT_EXAMPLE_DICT = {
 # The following constants are used to test reduce_sample_size.
 NUM_EXAMPLES_MEDIUM = 2
 FIRST_EXAMPLE_INDEX_MEDIUM = 1
+GOOD_EXAMPLE_INDICES_MEDIUM = numpy.array([1, 2], dtype=int)
 
 FIRST_EXAMPLE_DICT_MEDIUM = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -241,6 +242,7 @@ FIRST_EXAMPLE_DICT_MEDIUM = {
 
 NUM_EXAMPLES_SMALL = 2
 FIRST_EXAMPLE_INDEX_SMALL = 3
+GOOD_EXAMPLE_INDICES_SMALL = numpy.array([3], dtype=int)
 
 FIRST_EXAMPLE_DICT_SMALL = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -260,6 +262,7 @@ FIRST_EXAMPLE_DICT_SMALL = {
 
 NUM_EXAMPLES_EMPTY = 2
 FIRST_EXAMPLE_INDEX_EMPTY = 4
+GOOD_EXAMPLE_INDICES_EMPTY = numpy.array([], dtype=int)
 
 FIRST_EXAMPLE_DICT_EMPTY = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -280,6 +283,7 @@ FIRST_EXAMPLE_DICT_EMPTY = {
 # The following constants are used to test subset_by_time.
 FIRST_SUBSET_TIME_UNIX_SEC = 1
 LAST_SUBSET_TIME_UNIX_SEC = 600
+GOOD_INDICES_SELECT_TIMES = numpy.array([1, 2], dtype=int)
 
 FIRST_EXAMPLE_DICT_SELECT_TIMES = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -299,6 +303,7 @@ FIRST_EXAMPLE_DICT_SELECT_TIMES = {
 
 # The following constants are used to test subset_by_standard_atmo.
 STANDARD_ATMO_ENUM = 2
+GOOD_INDICES_STANDARD_ATMO = numpy.array([2], dtype=int)
 
 FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -708,7 +713,7 @@ class ExampleIoTests(unittest.TestCase):
         In this case, reducing to medium sample size.
         """
 
-        this_example_dict = example_io.reduce_sample_size(
+        this_example_dict, these_indices = example_io.reduce_sample_size(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
             num_examples_to_keep=NUM_EXAMPLES_MEDIUM,
             first_example_to_keep=FIRST_EXAMPLE_INDEX_MEDIUM
@@ -717,6 +722,9 @@ class ExampleIoTests(unittest.TestCase):
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_MEDIUM
         ))
+        self.assertTrue(numpy.array_equal(
+            these_indices, GOOD_EXAMPLE_INDICES_MEDIUM
+        ))
 
     def test_reduce_sample_size_small(self):
         """Ensures correct output from reduce_sample_size.
@@ -724,7 +732,7 @@ class ExampleIoTests(unittest.TestCase):
         In this case, reducing to small sample size.
         """
 
-        this_example_dict = example_io.reduce_sample_size(
+        this_example_dict, these_indices = example_io.reduce_sample_size(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
             num_examples_to_keep=NUM_EXAMPLES_SMALL,
             first_example_to_keep=FIRST_EXAMPLE_INDEX_SMALL
@@ -733,6 +741,9 @@ class ExampleIoTests(unittest.TestCase):
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SMALL
         ))
+        self.assertTrue(numpy.array_equal(
+            these_indices, GOOD_EXAMPLE_INDICES_SMALL
+        ))
 
     def test_reduce_sample_size_empty(self):
         """Ensures correct output from reduce_sample_size.
@@ -740,7 +751,7 @@ class ExampleIoTests(unittest.TestCase):
         In this case, reducing to zero sample size.
         """
 
-        this_example_dict = example_io.reduce_sample_size(
+        this_example_dict, these_indices = example_io.reduce_sample_size(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
             num_examples_to_keep=NUM_EXAMPLES_EMPTY,
             first_example_to_keep=FIRST_EXAMPLE_INDEX_EMPTY
@@ -749,11 +760,14 @@ class ExampleIoTests(unittest.TestCase):
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_EMPTY
         ))
+        self.assertTrue(numpy.array_equal(
+            these_indices, GOOD_EXAMPLE_INDICES_EMPTY
+        ))
 
     def test_subset_by_time(self):
         """Ensures correct output from subset_by_time."""
 
-        this_example_dict = example_io.subset_by_time(
+        this_example_dict, these_indices = example_io.subset_by_time(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
             first_time_unix_sec=FIRST_SUBSET_TIME_UNIX_SEC,
             last_time_unix_sec=LAST_SUBSET_TIME_UNIX_SEC
@@ -762,17 +776,23 @@ class ExampleIoTests(unittest.TestCase):
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SELECT_TIMES
         ))
+        self.assertTrue(numpy.array_equal(
+            these_indices, GOOD_INDICES_SELECT_TIMES
+        ))
 
     def test_subset_by_standard_atmo(self):
         """Ensures correct output from subset_by_standard_atmo."""
 
-        this_example_dict = example_io.subset_by_standard_atmo(
+        this_example_dict, these_indices = example_io.subset_by_standard_atmo(
             example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
             standard_atmo_enum=STANDARD_ATMO_ENUM
         )
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_indices, GOOD_INDICES_STANDARD_ATMO
         ))
 
     def test_subset_by_field(self):
