@@ -1107,6 +1107,7 @@ def data_generator(option_dict, for_inference, net_type_string,
                     )
 
             num_examples_in_memory = predictor_matrix.shape[0]
+            print(predictor_matrix.shape)
 
         predictor_matrix = predictor_matrix.astype('float32')
 
