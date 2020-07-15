@@ -1056,6 +1056,8 @@ def data_generator(option_dict, for_inference, net_type_string,
                 else:
                     example_index = last_example_index + 1
 
+                print('example_index = {0:d}'.format(example_index))
+
                 example_id_strings += these_id_strings
             else:
                 file_index += 1
