@@ -152,6 +152,8 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
+    print(generator_option_dict)
+
     generator = neural_net.data_generator(
         option_dict=generator_option_dict, for_inference=True,
         net_type_string=net_type_string, is_loss_constrained_mse=False
