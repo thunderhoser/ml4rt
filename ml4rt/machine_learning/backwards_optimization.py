@@ -107,7 +107,6 @@ def _do_gradient_descent(
 
     for j in range(num_iterations):
         these_outputs = main_bwo_function([final_predictor_matrix, 0])
-        print(these_outputs)
         if j == 0:
             initial_activation = these_outputs[0][0]
 

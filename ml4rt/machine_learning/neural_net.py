@@ -212,7 +212,7 @@ def _read_file_for_generator(
     :return: last_example_read: Array index (in file) of last example returned.
     """
 
-    print(num_examples_to_keep)
+    print('num_examples_to_keep = {0:d}'.format(num_examples_to_keep))
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
@@ -1042,6 +1042,8 @@ def data_generator(option_dict, for_inference, net_type_string,
                 target_max_norm_value=target_max_norm_value,
                 first_example_to_read=example_index
             )
+
+            print('last_example_index = {0:d}'.format(last_example_index))
 
             if for_inference:
                 this_num_examples = len(
