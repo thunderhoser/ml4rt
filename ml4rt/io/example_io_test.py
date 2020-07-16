@@ -39,41 +39,66 @@ WATER_CONTENT_MATRIX_KG03 = numpy.array([
      3. / 3000, 3. / 3000, 3. / 3000, 3. / 3500, 3. / 4000, 3. / 4000]
 ])
 
-INTEG_PATH_MATRIX_KG_M02 = numpy.array([
+DOWNWARD_PATH_MATRIX_KG_M02 = numpy.array([
     [2011, 2010, 2009, 2008, 2007, 2006, 1006, 6, 5, 4, 3, 2, 1],
     [2022, 2020, 2018, 2016, 2014, 2012, 1012, 12, 10, 8, 6, 4, 2],
     [2033, 2030, 2027, 2024, 2021, 2018, 1018, 18, 15, 12, 9, 6, 3]
 ], dtype=float)
 
-THESE_VECTOR_PREDICTOR_NAMES = [
+UPWARD_PATH_MATRIX_KG_M02 = numpy.array([
+    [1, 2, 3, 4, 5, 1005, 2005, 2006, 2007, 2008, 2009, 2010, 2011],
+    [2, 4, 6, 8, 10, 1010, 2010, 2012, 2014, 2016, 2018, 2020, 2022],
+    [3, 6, 9, 12, 15, 1015, 2015, 2018, 2021, 2024, 2027, 2030, 2033]
+], dtype=float)
+
+ORIG_VECTOR_PREDICTOR_NAMES = [
     example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME
 ]
-THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack(
+ORIG_VECTOR_PREDICTOR_MATRIX = numpy.stack(
     (WATER_CONTENT_MATRIX_KG03, WATER_CONTENT_MATRIX_KG03 / 1000), axis=-1
 )
 THESE_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
 
 EXAMPLE_DICT_WITHOUT_PATHS = {
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
-    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: ORIG_VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY: ORIG_VECTOR_PREDICTOR_MATRIX,
     example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
-THESE_VECTOR_PREDICTOR_NAMES = [
-    example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME,
+THESE_VECTOR_PREDICTOR_NAMES = ORIG_VECTOR_PREDICTOR_NAMES + [
     example_io.LIQUID_WATER_PATH_NAME, example_io.ICE_WATER_PATH_NAME
 ]
 NEW_PREDICTOR_MATRIX = numpy.stack(
-    (INTEG_PATH_MATRIX_KG_M02, INTEG_PATH_MATRIX_KG_M02 / 1000), axis=-1
+    (DOWNWARD_PATH_MATRIX_KG_M02, DOWNWARD_PATH_MATRIX_KG_M02 / 1000), axis=-1
 )
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.concatenate(
-    (THIS_VECTOR_PREDICTOR_MATRIX, NEW_PREDICTOR_MATRIX), axis=-1
+    (ORIG_VECTOR_PREDICTOR_MATRIX, NEW_PREDICTOR_MATRIX), axis=-1
 )
 
-EXAMPLE_DICT_WITH_PATHS = {
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
-    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+EXAMPLE_DICT_WITH_DOWNWARD_PATHS = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
+
+THESE_VECTOR_PREDICTOR_NAMES = ORIG_VECTOR_PREDICTOR_NAMES + [
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME,
+    example_io.UPWARD_ICE_WATER_PATH_NAME
+]
+NEW_PREDICTOR_MATRIX = numpy.stack(
+    (UPWARD_PATH_MATRIX_KG_M02, UPWARD_PATH_MATRIX_KG_M02 / 1000), axis=-1
+)
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.concatenate(
+    (ORIG_VECTOR_PREDICTOR_MATRIX, NEW_PREDICTOR_MATRIX), axis=-1
+)
+
+EXAMPLE_DICT_WITH_UPWARD_PATHS = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
     example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
@@ -525,16 +550,34 @@ class ExampleIoTests(unittest.TestCase):
             atol=TOLERANCE
         ))
 
-    def test_get_water_path_profiles(self):
-        """Ensures correct output from _get_water_path_profiles."""
+    def test_get_water_path_profiles_downward(self):
+        """Ensures correct output from _get_water_path_profiles.
+
+        In this case, paths are integrated downward from top of atmosphere.
+        """
 
         this_example_dict = example_io._get_water_path_profiles(
             example_dict=copy.deepcopy(EXAMPLE_DICT_WITHOUT_PATHS),
-            get_lwp=True, get_iwp=True
+            get_lwp=True, get_iwp=True, integrate_upward=False
         )
 
         self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_WITH_PATHS
+            this_example_dict, EXAMPLE_DICT_WITH_DOWNWARD_PATHS
+        ))
+
+    def test_get_water_path_profiles_upward(self):
+        """Ensures correct output from _get_water_path_profiles.
+
+        In this case, paths are integrated upward from surface.
+        """
+
+        this_example_dict = example_io._get_water_path_profiles(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_WITHOUT_PATHS),
+            get_lwp=True, get_iwp=True, integrate_upward=True
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_UPWARD_PATHS
         ))
 
     def test_find_file(self):
