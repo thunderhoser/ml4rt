@@ -150,13 +150,7 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     :raises: ValueError: if neural-net type is not CNN or U-net.
     """
 
-    example_dict = example_io.read_file(example_file_name)
-    num_examples_total = len(example_dict[example_io.VALID_TIMES_KEY])
-
-    example_indices = misc_utils.subset_examples(
-        indices_to_keep=example_indices, num_examples_to_keep=num_examples,
-        num_examples_total=num_examples_total
-    )
+    first_example_dict = example_io.read_file(example_file_name)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
@@ -191,7 +185,9 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
         os.path.split(example_file_name)[0]
     )
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = num_examples_total
+    generator_option_dict[neural_net.BATCH_SIZE_KEY] = len(
+        first_example_dict[example_io.VALID_TIMES_KEY]
+    )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
@@ -203,6 +199,11 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     print(SEPARATOR_STRING)
     predictor_matrix, _, example_id_strings = next(generator)
     print(SEPARATOR_STRING)
+
+    example_indices = misc_utils.subset_examples(
+        indices_to_keep=example_indices, num_examples_to_keep=num_examples,
+        num_examples_total=len(example_id_strings)
+    )
 
     predictor_matrix = predictor_matrix[example_indices, ...]
     example_id_strings = [example_id_strings[i] for i in example_indices]
