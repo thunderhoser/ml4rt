@@ -7,11 +7,15 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
+from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import backwards_optimization as bwo
 from ml4rt.plotting import profile_plotting
+
+# TODO(thunderhoser): Report init/final scalar-predictor values and activations
+# in the figure titles.
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
@@ -112,6 +116,22 @@ def _plot_results_one_example(
         final_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] -
         init_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
+
+    predictor_names = diff_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+
+    if example_io.TEMPERATURE_NAME in predictor_names:
+        temperature_index = predictor_names.index(example_io.TEMPERATURE_NAME)
+        diff_predictor_matrix = (
+            diff_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        )
+        diff_predictor_matrix[..., temperature_index] = (
+            temperature_conv.celsius_to_kelvins(
+                diff_predictor_matrix[..., temperature_index]
+            )
+        )
+        diff_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+            diff_predictor_matrix
+        )
 
     # Plot first set of predictors.
     these_flags = numpy.array([
