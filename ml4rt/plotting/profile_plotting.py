@@ -13,6 +13,7 @@ METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
 PASCALS_TO_MB = 0.01
 KG_TO_MILLIGRAMS = 1e6
+RADIANS_TO_DEGREES = 180. / numpy.pi
 
 FIGURE_HANDLE_KEY = 'figure_object'
 AXES_OBJECTS_KEY = 'axes_objects'
@@ -35,6 +36,14 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.UPWARD_LIQUID_WATER_PATH_NAME:
         r'Upward liquid-water path (g m$^{-2}$)',
     example_io.UPWARD_ICE_WATER_PATH_NAME:
+        r'Upward ice-water path (mg m$^{-2}$)',
+    example_io.ZENITH_ANGLE_NAME: r'Zenith angle ($^{\circ}$)',
+    example_io.ALBEDO_NAME: 'Albedo',
+    example_io.LATITUDE_NAME: r'Latitude ($^{\circ}$N)',
+    example_io.LONGITUDE_NAME: r'Longitude ($^{\circ}$E)',
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME:
+        r'Column liquid-water path (g m$^{-2}$)',
+    example_io.COLUMN_ICE_WATER_PATH_NAME:
         r'Upward ice-water path (mg m$^{-2}$)'
 }
 
@@ -46,7 +55,13 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_io.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
     example_io.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
     example_io.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_io.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
+    example_io.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_io.ZENITH_ANGLE_NAME: RADIANS_TO_DEGREES,
+    example_io.ALBEDO_NAME: 1.,
+    example_io.LATITUDE_NAME: 1.,
+    example_io.LONGITUDE_NAME: 1.,
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_io.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
 }
 
 DEFAULT_LINE_WIDTH = 2
