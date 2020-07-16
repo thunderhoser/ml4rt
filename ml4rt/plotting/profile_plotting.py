@@ -185,7 +185,8 @@ def plot_predictors(
     error_checking.assert_is_leq(num_predictors, 4)
 
     for k in range(num_predictors):
-        assert predictor_names[k] in example_io.ALL_VECTOR_PREDICTOR_NAMES
+        assert predictor_names[k] in example_io.ALL_PREDICTOR_NAMES
+        # assert predictor_names[k] in example_io.ALL_VECTOR_PREDICTOR_NAMES
 
     assert len(predictor_colours) == num_predictors
     assert len(predictor_line_widths) == num_predictors
@@ -228,9 +229,21 @@ def plot_predictors(
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(num_predictors):
-        these_predictor_values = example_io.get_field_from_dict(
-            example_dict=example_dict, field_name=predictor_names[k]
-        )[example_index, ...]
+        if predictor_names[k] in example_io.ALL_SCALAR_PREDICTOR_NAMES:
+
+            # TODO(thunderhoser): This is a HACK to deal with saliency maps.
+            j = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY].index(
+                predictor_names[k]
+            )
+            these_predictor_values = (
+                example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY][
+                    example_index, :, j
+                ]
+            )
+        else:
+            these_predictor_values = example_io.get_field_from_dict(
+                example_dict=example_dict, field_name=predictor_names[k]
+            )[example_index, ...]
 
         if include_units:
             if predictor_names[k] == example_io.TEMPERATURE_NAME:

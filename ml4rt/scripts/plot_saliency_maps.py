@@ -89,7 +89,7 @@ LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
     'alpha': 0.7,
     'edgecolor': 'black',
-    'linewidth': 2,
+    'linewidth': 1,
     'boxstyle': 'round'
 }
 
@@ -99,7 +99,7 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 DEFAULT_FONT_SIZE = 24
-LEGEND_FONT_SIZE = 16
+LEGEND_FONT_SIZE = 8
 
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
@@ -301,9 +301,9 @@ def _plot_saliency_one_example(
 
         if legend_string != '':
             axes_object.text(
-                0.01, 0.5, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
+                0.01, 0.99, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
-                verticalalignment='center', transform=axes_object.transAxes,
+                verticalalignment='top', transform=axes_object.transAxes,
                 zorder=1e10
             )
 
@@ -348,9 +348,9 @@ def _plot_saliency_one_example(
 
         if legend_string != '':
             axes_object.text(
-                0.01, 0.5, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
+                0.01, 0.99, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
-                verticalalignment='center', transform=axes_object.transAxes,
+                verticalalignment='top', transform=axes_object.transAxes,
                 zorder=1e10
             )
 
@@ -395,9 +395,9 @@ def _plot_saliency_one_example(
 
         if legend_string != '':
             axes_object.text(
-                0.01, 0.5, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
+                0.01, 0.99, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
-                verticalalignment='center', transform=axes_object.transAxes,
+                verticalalignment='top', transform=axes_object.transAxes,
                 zorder=1e10
             )
 
