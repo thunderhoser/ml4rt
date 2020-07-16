@@ -828,16 +828,20 @@ def reduce_sample_size(example_dict, num_examples_to_keep,
     error_checking.assert_is_integer(num_examples_to_keep)
     error_checking.assert_is_greater(num_examples_to_keep, 0)
 
-    if first_example_to_keep is not None:
-        error_checking.assert_is_integer(first_example_to_keep)
-        error_checking.assert_is_geq(first_example_to_keep, 0)
-
     num_examples_total = len(example_dict[VALID_TIMES_KEY])
     all_indices = numpy.linspace(
         0, num_examples_total - 1, num=num_examples_total, dtype=int
     )
 
-    if num_examples_total <= num_examples_to_keep:
+    if first_example_to_keep is not None:
+        error_checking.assert_is_integer(first_example_to_keep)
+        error_checking.assert_is_geq(first_example_to_keep, 0)
+        all_indices = all_indices[all_indices >= first_example_to_keep]
+
+    if len(all_indices) <= num_examples_to_keep:
+        for this_key in ONE_PER_EXAMPLE_KEYS:
+            example_dict[this_key] = example_dict[this_key][all_indices, ...]
+
         return example_dict, all_indices
 
     if first_example_to_keep is None:
