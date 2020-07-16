@@ -21,53 +21,35 @@ ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
-PREDICTOR_NAME_TO_COLOUR = {
-    example_io.TEMPERATURE_NAME: ORANGE_COLOUR,
-    example_io.SPECIFIC_HUMIDITY_NAME: ORANGE_COLOUR,
-    example_io.PRESSURE_NAME: numpy.full(3, 0.),
-    example_io.LIQUID_WATER_CONTENT_NAME: GREEN_COLOUR,
-    example_io.ICE_WATER_CONTENT_NAME: GREEN_COLOUR,
-    example_io.LIQUID_WATER_PATH_NAME: PURPLE_COLOUR,
-    example_io.ICE_WATER_PATH_NAME: PURPLE_COLOUR,
-    example_io.ZENITH_ANGLE_NAME: ORANGE_COLOUR,
-    example_io.ALBEDO_NAME: ORANGE_COLOUR,
-    example_io.LATITUDE_NAME: PURPLE_COLOUR,
-    example_io.LONGITUDE_NAME: PURPLE_COLOUR,
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: GREEN_COLOUR,
-    example_io.COLUMN_ICE_WATER_PATH_NAME: GREEN_COLOUR
-}
+FIRST_VECTOR_PREDICTOR_NAMES = [
+    example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
+    example_io.PRESSURE_NAME
+]
+FIRST_VECTOR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
-PREDICTOR_NAME_TO_LINE_STYLE = {
-    example_io.TEMPERATURE_NAME: 'solid',
-    example_io.SPECIFIC_HUMIDITY_NAME: 'dashed',
-    example_io.PRESSURE_NAME: 'solid',
-    example_io.LIQUID_WATER_CONTENT_NAME: 'solid',
-    example_io.ICE_WATER_CONTENT_NAME: 'dashed',
-    example_io.LIQUID_WATER_PATH_NAME: 'solid',
-    example_io.ICE_WATER_PATH_NAME: 'dashed',
-    example_io.ZENITH_ANGLE_NAME: 'solid',
-    example_io.ALBEDO_NAME: 'dashed',
-    example_io.LATITUDE_NAME: 'solid',
-    example_io.LONGITUDE_NAME: 'dashed',
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'solid',
-    example_io.COLUMN_ICE_WATER_PATH_NAME: 'dashed'
-}
+SECOND_VECTOR_PREDICTOR_NAMES = [
+    example_io.LIQUID_WATER_CONTENT_NAME, example_io.LIQUID_WATER_PATH_NAME,
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME
+]
+SECOND_VECTOR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
-PREDICTOR_NAME_TO_LINE_WIDTH = {
-    example_io.TEMPERATURE_NAME: 2,
-    example_io.SPECIFIC_HUMIDITY_NAME: 4,
-    example_io.PRESSURE_NAME: 2,
-    example_io.LIQUID_WATER_CONTENT_NAME: 2,
-    example_io.ICE_WATER_CONTENT_NAME: 4,
-    example_io.LIQUID_WATER_PATH_NAME: 2,
-    example_io.ICE_WATER_PATH_NAME: 4,
-    example_io.ZENITH_ANGLE_NAME: 4,
-    example_io.ALBEDO_NAME: 2,
-    example_io.LATITUDE_NAME: 4,
-    example_io.LONGITUDE_NAME: 2,
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 4,
-    example_io.COLUMN_ICE_WATER_PATH_NAME: 2
-}
+THIRD_VECTOR_PREDICTOR_NAMES = [
+    example_io.ICE_WATER_CONTENT_NAME, example_io.ICE_WATER_PATH_NAME,
+    example_io.UPWARD_ICE_WATER_PATH_NAME
+]
+THIRD_VECTOR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+
+FIRST_SCALAR_PREDICTOR_NAMES = [
+    example_io.ZENITH_ANGLE_NAME, example_io.ALBEDO_NAME,
+    example_io.COLUMN_LIQUID_WATER_PATH_NAME
+]
+FIRST_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+
+SECOND_SCALAR_PREDICTOR_NAMES = [
+    example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
+    example_io.COLUMN_ICE_WATER_PATH_NAME
+]
+SECOND_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: 'Temperature',
@@ -75,8 +57,10 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.PRESSURE_NAME: 'Pressure',
     example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
     example_io.ICE_WATER_CONTENT_NAME: 'IWC',
-    example_io.LIQUID_WATER_PATH_NAME: 'LWP',
-    example_io.ICE_WATER_PATH_NAME: 'IWP',
+    example_io.LIQUID_WATER_PATH_NAME: 'Downward LWP',
+    example_io.ICE_WATER_PATH_NAME: 'Downward IWP',
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME: 'Upward LWP',
+    example_io.UPWARD_ICE_WATER_PATH_NAME: 'Upward IWP',
     example_io.ZENITH_ANGLE_NAME: 'Zenith angle',
     example_io.LATITUDE_NAME: 'Latitude',
     example_io.LONGITUDE_NAME: 'Longitude',
@@ -85,13 +69,37 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.COLUMN_ICE_WATER_PATH_NAME: 'Column IWP'
 }
 
+TARGET_NAME_TO_VERBOSE = {
+    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
+    example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
+}
+
+TARGET_NAME_TO_UNITS = {
+    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$'
+}
+
+LEGEND_BOUNDING_BOX_DICT = {
+    'facecolor': 'white',
+    'alpha': 0.7,
+    'edgecolor': 'black',
+    'linewidth': 2,
+    'boxstyle': 'round'
+}
+
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 DEFAULT_FONT_SIZE = 24
-TITLE_FONT_SIZE = 16
+LEGEND_FONT_SIZE = 16
 
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
@@ -213,7 +221,7 @@ def _get_target_values(
 
 
 def _plot_saliency_one_example(
-        saliency_dict, example_index, model_metadata_dict, title_suffix,
+        saliency_dict, example_index, model_metadata_dict, legend_suffix,
         output_dir_name):
     """Plots saliency map for one example.
 
@@ -221,148 +229,266 @@ def _plot_saliency_one_example(
     :param example_index: Will plot saliency map for example with this array
         index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
-    :param title_suffix: End of figure title.
+    :param legend_suffix: End of figure legend.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
 
-    figure_object, axes_object = pyplot.subplots(
-        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-    )
-    axes_object.set_yscale('log')
-
-    scalar_saliency_matrix = (
-        saliency_dict[saliency.SCALAR_SALIENCY_KEY][example_index, ...]
-    )
-    vector_saliency_matrix = (
-        saliency_dict[saliency.VECTOR_SALIENCY_KEY][example_index, ...]
-    )
+    # Housekeeping.
     example_id_string = saliency_dict[saliency.EXAMPLE_IDS_KEY][example_index]
-
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    scalar_predictor_names = (
-        generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY]
-    )
-    vector_predictor_names = (
-        generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
-    )
-    heights_km_agl = METRES_TO_KM * (
-        generator_option_dict[neural_net.HEIGHTS_KEY]
-    )
 
-    num_vector_predictors = len(vector_predictor_names)
-    legend_handles = [None] * num_vector_predictors
-    legend_strings = [None] * num_vector_predictors
+    example_dict = {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_io.SCALAR_PREDICTOR_VALS_KEY:
+            saliency_dict[saliency.SCALAR_SALIENCY_KEY][[example_index], ...],
+        example_io.VECTOR_PREDICTOR_VALS_KEY:
+            saliency_dict[saliency.VECTOR_SALIENCY_KEY][[example_index], ...]
+    }
 
-    for k in range(num_vector_predictors):
-        legend_handles[k] = axes_object.plot(
-            vector_saliency_matrix[:, k], heights_km_agl,
-            color=PREDICTOR_NAME_TO_COLOUR[vector_predictor_names[k]],
-            linewidth=PREDICTOR_NAME_TO_LINE_WIDTH[vector_predictor_names[k]],
-            linestyle=PREDICTOR_NAME_TO_LINE_STYLE[vector_predictor_names[k]]
-        )[0]
+    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    scalar_saliency_matrix = saliency_dict[saliency.SCALAR_SALIENCY_KEY]
 
-        legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[vector_predictor_names[k]]
-
-    # x_min = numpy.percentile(vector_saliency_matrix, 1)
-    # x_max = numpy.percentile(vector_saliency_matrix, 90)
-    # axes_object.set_xlim(x_min, x_max)
-
-    y_tick_strings = profile_plotting.create_height_labels(
-        tick_values_km_agl=axes_object.get_yticks(), use_log_scale=True
-    )
-    axes_object.set_yticklabels(y_tick_strings)
-
-    axes_object.set_xlabel('Saliency')
-    axes_object.set_ylabel('Height (km AGL)')
-
-    axes_object.legend(
-        legend_handles, legend_strings, loc='upper left',
-        bbox_to_anchor=(0, 1), fancybox=True, shadow=False,
-        facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
-    )
-
-    num_scalar_dim = len(scalar_saliency_matrix.shape)
+    num_scalar_dim = len(scalar_saliency_matrix.shape) - 1
     num_scalar_predictors = len(scalar_predictor_names)
-    title_string = ''
+    legend_string = ''
 
     if num_scalar_dim == 1:
         for k in range(num_scalar_predictors):
-            if k == 3:
-                title_string += '\n'
-            elif k == 0:
-                pass
-            else:
-                title_string += ' ... '
+            if k > 0:
+                legend_string += '\n'
 
-            title_string += '{0:s}: {1:.2f}'.format(
-                scalar_predictor_names[k], scalar_saliency_matrix[k]
+            legend_string += '{0:s}: {1:.2f}'.format(
+                PREDICTOR_NAME_TO_VERBOSE[scalar_predictor_names[k]],
+                scalar_saliency_matrix[0, k]
             )
 
-        title_string += '\n' + title_suffix
+        if legend_suffix != '':
+            legend_string += '\n' + legend_suffix
     else:
-        title_string = title_suffix[0].upper() + title_suffix[1:]
+        legend_string = legend_suffix
 
-    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    # Plot first set of vector predictors.
+    these_flags = numpy.array([
+        n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        for n in FIRST_VECTOR_PREDICTOR_NAMES
+    ], dtype=bool)
 
-    output_file_name = '{0:s}/{1:s}_vector-predictors.jpg'.format(
-        output_dir_name, example_id_string.replace('_', '-')
-    )
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    these_indices = numpy.where(these_flags)[0]
 
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-        bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+    if len(these_indices) > 0:
+        predictor_names = [
+            FIRST_VECTOR_PREDICTOR_NAMES[k] for k in these_indices
+        ]
+        predictor_colours = [
+            FIRST_VECTOR_PREDICTOR_COLOURS[k] for k in these_indices
+        ]
+
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=numpy.full(len(these_indices), 2),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, include_units=False, handle_dict=None
+        )
+
+        axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+
+        if legend_string != '':
+            axes_object.text(
+                0.01, 0.5, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
+                bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
+                verticalalignment='center', transform=axes_object.transAxes,
+                zorder=1e10
+            )
+
+        output_file_name = '{0:s}/{1:s}_first_vector_predictors.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    # Plot second set of vector predictors.
+    these_flags = numpy.array([
+        n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        for n in SECOND_VECTOR_PREDICTOR_NAMES
+    ], dtype=bool)
+
+    these_indices = numpy.where(these_flags)[0]
+
+    if len(these_indices) > 0:
+        predictor_names = [
+            SECOND_VECTOR_PREDICTOR_NAMES[k] for k in these_indices
+        ]
+        predictor_colours = [
+            SECOND_VECTOR_PREDICTOR_COLOURS[k] for k in these_indices
+        ]
+
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=numpy.full(len(these_indices), 2),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, include_units=False, handle_dict=None
+        )
+
+        axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+
+        if legend_string != '':
+            axes_object.text(
+                0.01, 0.5, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
+                bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
+                verticalalignment='center', transform=axes_object.transAxes,
+                zorder=1e10
+            )
+
+        output_file_name = '{0:s}/{1:s}_second_vector_predictors.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    # Plot third set of vector predictors.
+    these_flags = numpy.array([
+        n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        for n in THIRD_VECTOR_PREDICTOR_NAMES
+    ], dtype=bool)
+
+    these_indices = numpy.where(these_flags)[0]
+
+    if len(these_indices) > 0:
+        predictor_names = [
+            THIRD_VECTOR_PREDICTOR_NAMES[k] for k in these_indices
+        ]
+        predictor_colours = [
+            THIRD_VECTOR_PREDICTOR_COLOURS[k] for k in these_indices
+        ]
+
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=numpy.full(len(these_indices), 2),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, include_units=False, handle_dict=None
+        )
+
+        axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+
+        if legend_string != '':
+            axes_object.text(
+                0.01, 0.5, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
+                bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
+                verticalalignment='center', transform=axes_object.transAxes,
+                zorder=1e10
+            )
+
+        output_file_name = '{0:s}/{1:s}_third_vector_predictors.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
     if num_scalar_dim == 1:
         return
 
-    figure_object, axes_object = pyplot.subplots(
-        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-    )
-    axes_object.set_yscale('log')
+    # Plot first set of scalar predictors.
+    these_flags = numpy.array([
+        n in example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        for n in FIRST_SCALAR_PREDICTOR_NAMES
+    ], dtype=bool)
 
-    num_scalar_predictors = len(scalar_predictor_names)
-    legend_handles = [None] * num_scalar_predictors
-    legend_strings = [None] * num_scalar_predictors
+    these_indices = numpy.where(these_flags)[0]
 
-    for k in range(num_scalar_predictors):
-        legend_handles[k] = axes_object.plot(
-            scalar_saliency_matrix[:, k], heights_km_agl,
-            color=PREDICTOR_NAME_TO_COLOUR[scalar_predictor_names[k]],
-            linewidth=PREDICTOR_NAME_TO_LINE_WIDTH[scalar_predictor_names[k]],
-            linestyle=PREDICTOR_NAME_TO_LINE_STYLE[scalar_predictor_names[k]]
-        )[0]
+    if len(these_indices) > 0:
+        predictor_names = [
+            FIRST_SCALAR_PREDICTOR_NAMES[k] for k in these_indices
+        ]
+        predictor_colours = [
+            FIRST_SCALAR_PREDICTOR_COLOURS[k] for k in these_indices
+        ]
 
-        legend_strings[k] = PREDICTOR_NAME_TO_VERBOSE[scalar_predictor_names[k]]
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=numpy.full(len(these_indices), 2),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, include_units=False, handle_dict=None
+        )
 
-    y_tick_strings = profile_plotting.create_height_labels(
-        tick_values_km_agl=axes_object.get_yticks(), use_log_scale=True
-    )
-    axes_object.set_yticklabels(y_tick_strings)
+        output_file_name = '{0:s}/{1:s}_first_scalar_predictors.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 
-    axes_object.set_xlabel('Saliency')
-    axes_object.set_ylabel('Height (km AGL)')
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    axes_object.legend(
-        legend_handles, legend_strings, loc='upper left',
-        bbox_to_anchor=(0, 1), fancybox=True, shadow=False,
-        facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
-    )
-    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
+    # Plot second set of scalar predictors.
+    these_flags = numpy.array([
+        n in example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        for n in SECOND_SCALAR_PREDICTOR_NAMES
+    ], dtype=bool)
 
-    output_file_name = '{0:s}/{1:s}_scalar-predictors.jpg'.format(
-        output_dir_name, example_id_string.replace('_', '-')
-    )
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    these_indices = numpy.where(these_flags)[0]
 
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-        bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+    if len(these_indices) > 0:
+        predictor_names = [
+            SECOND_SCALAR_PREDICTOR_NAMES[k] for k in these_indices
+        ]
+        predictor_colours = [
+            SECOND_SCALAR_PREDICTOR_COLOURS[k] for k in these_indices
+        ]
+
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=numpy.full(len(these_indices), 2),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, include_units=False, handle_dict=None
+        )
+
+        output_file_name = '{0:s}/{1:s}_second_scalar_predictors.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
 
 def _run(saliency_file_name, prediction_file_name, output_dir_name):
@@ -410,26 +536,28 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
 
     for i in range(num_examples):
         if target_field_name is None:
-            this_title_suffix = ''
+            this_legend_suffix = ''
         else:
-            this_title_suffix = 'actual and predicted {0:s}'.format(
-                target_field_name
+            this_height_string = (
+                '' if target_height_m_agl is None
+                else '{0:.2f}-km '.format(METRES_TO_KM * target_height_m_agl)
             )
-
-            if target_height_m_agl is not None:
-                this_title_suffix += ' at {0:.2f} km AGL'.format(
-                    METRES_TO_KM * target_height_m_agl
-                )
-
-            this_title_suffix += ' = {0:.2f}, {1:.2f}'.format(
-                actual_target_values[i], predicted_target_values[i]
+            this_legend_suffix = (
+                'A&P {0:s}{1:s} = {2:.2f}, {3:.2f} {4:s}'
+            ).format(
+                this_height_string, TARGET_NAME_TO_VERBOSE[target_field_name],
+                actual_target_values[i], predicted_target_values[i],
+                TARGET_NAME_TO_UNITS[target_field_name]
             )
 
         _plot_saliency_one_example(
             saliency_dict=saliency_dict, example_index=i,
             model_metadata_dict=model_metadata_dict,
-            title_suffix=this_title_suffix, output_dir_name=output_dir_name
+            legend_suffix=this_legend_suffix, output_dir_name=output_dir_name
         )
+
+        if i != num_examples - 1:
+            print('\n')
 
 
 if __name__ == '__main__':

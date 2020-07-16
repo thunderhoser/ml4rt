@@ -33,17 +33,21 @@ FIGURE_RESOLUTION_DPI = 300
 
 FIRST_PREDICTOR_NAMES = [
     example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
-    example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME
+    example_io.PRESSURE_NAME
 ]
-FIRST_PREDICTOR_COLOURS = [
-    BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
-]
+FIRST_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 SECOND_PREDICTOR_NAMES = [
-    example_io.PRESSURE_NAME,
-    example_io.LIQUID_WATER_PATH_NAME, example_io.ICE_WATER_PATH_NAME
+    example_io.LIQUID_WATER_CONTENT_NAME, example_io.LIQUID_WATER_PATH_NAME,
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME
 ]
 SECOND_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+
+THIRD_PREDICTOR_NAMES = [
+    example_io.ICE_WATER_CONTENT_NAME, example_io.ICE_WATER_PATH_NAME,
+    example_io.UPWARD_ICE_WATER_PATH_NAME
+]
+THIRD_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -258,6 +262,66 @@ def _plot_results_one_example(
         )
 
         output_file_name = '{0:s}/{1:s}_second_predictors_diffs.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    if len(these_indices) > 0:
+        predictor_names = [THIRD_PREDICTOR_NAMES[k] for k in these_indices]
+        predictor_colours = [THIRD_PREDICTOR_COLOURS[k] for k in these_indices]
+
+        # Plot initial and final values on the same set of axes.
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=init_example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=
+            numpy.full(len(these_indices), SOLID_LINE_WIDTH),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, handle_dict=None
+        )
+
+        profile_plotting.plot_predictors(
+            example_dict=final_example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=
+            numpy.full(len(these_indices), DASHED_LINE_WIDTH),
+            predictor_line_styles=['dashed'] * len(these_indices),
+            use_log_scale=True, handle_dict=handle_dict
+        )
+
+        output_file_name = '{0:s}/{1:s}_third_predictors.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-')
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+
+        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        figure_object.savefig(
+            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        # Plot differences (final minus initial).
+        handle_dict = profile_plotting.plot_predictors(
+            example_dict=diff_example_dict, example_index=0,
+            predictor_names=predictor_names,
+            predictor_colours=predictor_colours,
+            predictor_line_widths=
+            numpy.full(len(these_indices), SOLID_LINE_WIDTH),
+            predictor_line_styles=['solid'] * len(these_indices),
+            use_log_scale=True, handle_dict=None
+        )
+
+        output_file_name = '{0:s}/{1:s}_third_predictors_diffs.jpg'.format(
             output_dir_name, example_id_string.replace('_', '-')
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]

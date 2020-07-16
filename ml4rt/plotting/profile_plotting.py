@@ -1,5 +1,6 @@
 """Methods for plotting vertical profiles."""
 
+import copy
 import numpy
 import matplotlib
 matplotlib.use('agg')
@@ -28,8 +29,13 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.PRESSURE_NAME: 'Pressure (mb)',
     example_io.LIQUID_WATER_CONTENT_NAME: r'Liquid-water content (g m$^{-3}$)',
     example_io.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
-    example_io.LIQUID_WATER_PATH_NAME: r'Liquid-water path (g m$^{-2}$)',
-    example_io.ICE_WATER_PATH_NAME: r'Ice-water path (mg m$^{-2}$)'
+    example_io.LIQUID_WATER_PATH_NAME:
+        r'Downward liquid-water path (g m$^{-2}$)',
+    example_io.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME:
+        r'Upward liquid-water path (g m$^{-2}$)',
+    example_io.UPWARD_ICE_WATER_PATH_NAME:
+        r'Upward ice-water path (mg m$^{-2}$)'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
@@ -38,7 +44,9 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_io.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
     example_io.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
     example_io.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_io.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
+    example_io.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_io.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
 }
 
 DEFAULT_LINE_WIDTH = 2
@@ -137,7 +145,7 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
 def plot_predictors(
         example_dict, example_index, predictor_names, predictor_colours,
         predictor_line_widths, predictor_line_styles, use_log_scale,
-        handle_dict=None):
+        include_units=True, handle_dict=None):
     """Plots several predictors on the same set of axes.
 
     P = number of predictors to plot (must all be profiles)
@@ -153,6 +161,10 @@ def plot_predictors(
         any format accepted by matplotlib).
     :param use_log_scale: Boolean flag.  If True, will plot height (y-axis) in
         logarithmic scale.  If False, will plot height in linear scale.
+    :param include_units: Boolean flag.  If True, axis titles will include units
+        and values will be converted from default to plotting units.  If False,
+        axis titles will *not* include units and this method will *not* convert
+        units.
     :param handle_dict: See output doc.  If None, will create new figure on the
         fly.
     :return: handle_dict: Dictionary with the following keys.
@@ -166,8 +178,9 @@ def plot_predictors(
     error_checking.assert_is_integer(example_index)
     error_checking.assert_is_geq(example_index, 0)
     error_checking.assert_is_boolean(use_log_scale)
-    error_checking.assert_is_string_list(predictor_names)
+    error_checking.assert_is_boolean(include_units)
 
+    error_checking.assert_is_string_list(predictor_names)
     num_predictors = len(predictor_names)
     error_checking.assert_is_leq(num_predictors, 4)
 
@@ -219,15 +232,16 @@ def plot_predictors(
             example_dict=example_dict, field_name=predictor_names[k]
         )[example_index, ...]
 
-        if predictor_names[k] == example_io.TEMPERATURE_NAME:
-            these_predictor_values = temperature_conv.kelvins_to_celsius(
-                these_predictor_values
-            )
-        else:
-            these_predictor_values = (
-                PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
-                these_predictor_values
-            )
+        if include_units:
+            if predictor_names[k] == example_io.TEMPERATURE_NAME:
+                these_predictor_values = temperature_conv.kelvins_to_celsius(
+                    these_predictor_values
+                )
+            else:
+                these_predictor_values = (
+                    PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
+                    these_predictor_values
+                )
 
         axes_objects[k].plot(
             these_predictor_values, heights_km_agl, color=predictor_colours[k],
@@ -235,9 +249,13 @@ def plot_predictors(
             linestyle=predictor_line_styles[k]
         )
 
-        axes_objects[k].set_xlabel(
+        x_label_string = copy.deepcopy(
             PREDICTOR_NAME_TO_VERBOSE[predictor_names[k]]
         )
+        if not include_units:
+            x_label_string = x_label_string.split(' (')[0]
+
+        axes_objects[k].set_xlabel(x_label_string)
         axes_objects[k].xaxis.label.set_color(predictor_colours[k])
         axes_objects[k].tick_params(
             axis='x', colors=predictor_colours[k], **tick_mark_dict

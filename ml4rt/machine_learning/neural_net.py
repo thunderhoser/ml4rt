@@ -1133,7 +1133,7 @@ def train_model(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict,
-        net_type_string, loss_function):
+        net_type_string, loss_function, do_early_stopping=True):
     """Trains any kind of neural net.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1157,6 +1157,9 @@ def train_model(
     :param net_type_string: Neural-net type (must be accepted by
         `check_net_type`).
     :param loss_function: Loss function.
+    :param do_early_stopping: Boolean flag.  If True, will stop training early
+        if validation loss has not improved over last several epochs (see
+        constants at top of file for what exactly this means).
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1171,6 +1174,7 @@ def train_model(
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
     check_net_type(net_type_string)
+    error_checking.assert_is_boolean(do_early_stopping)
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1186,34 +1190,34 @@ def train_model(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    history_object = keras.callbacks.CSVLogger(
-        filename='{0:s}/history.csv'.format(output_dir_name),
-        separator=',', append=False
-    )
-
     model_file_name = (
         output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
     )
 
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
     checkpoint_object = keras.callbacks.ModelCheckpoint(
         filepath=model_file_name, monitor='val_loss', verbose=1,
-        save_best_only=True, save_weights_only=False, mode='min', period=1
+        save_best_only=do_early_stopping, save_weights_only=False, mode='min',
+        period=1
     )
+    list_of_callback_objects = [history_object, checkpoint_object]
 
-    early_stopping_object = keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=LOSS_PATIENCE,
-        patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
-    )
+    if do_early_stopping:
+        early_stopping_object = keras.callbacks.EarlyStopping(
+            monitor='val_loss', min_delta=LOSS_PATIENCE,
+            patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
+        )
+        list_of_callback_objects.append(early_stopping_object)
 
     plateau_object = keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
         patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
         min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
     )
-
-    list_of_callback_objects = [
-        history_object, checkpoint_object, early_stopping_object, plateau_object
-    ]
+    list_of_callback_objects.append(plateau_object)
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))

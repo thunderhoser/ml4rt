@@ -87,6 +87,8 @@ LIQUID_WATER_CONTENT_NAME = 'liquid_water_content_kg_m03'
 ICE_WATER_CONTENT_NAME = 'ice_water_content_kg_m03'
 LIQUID_WATER_PATH_NAME = 'liquid_water_path_kg_m02'
 ICE_WATER_PATH_NAME = 'ice_water_path_kg_m02'
+UPWARD_LIQUID_WATER_PATH_NAME = 'upward_liquid_water_path_kg_m02'
+UPWARD_ICE_WATER_PATH_NAME = 'upward_ice_water_path_kg_m02'
 
 DEFAULT_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
@@ -99,7 +101,8 @@ DEFAULT_VECTOR_PREDICTOR_NAMES = [
     LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
 ]
 ALL_VECTOR_PREDICTOR_NAMES = DEFAULT_VECTOR_PREDICTOR_NAMES + [
-    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME
+    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME, UPWARD_LIQUID_WATER_PATH_NAME,
+    UPWARD_ICE_WATER_PATH_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -192,11 +195,15 @@ def _get_water_content_profiles(layerwise_path_matrix_kg_m02, heights_m_agl):
     return layerwise_path_matrix_kg_m02 / grid_cell_width_matrix_metres
 
 
-def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True):
+def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
+                             integrate_upward=False):
     """Computes profiles of liquid-water path (LWP) and/or ice-water path (IWP).
 
-    At height z, the LWP (IWP) is the integral of LWC (IWC) from the top of
-    atmosphere to z.
+    If `integrate_upward == False`, then at height z, the LWP (IWP) is the
+    integral of LWC (IWC) from the top of atmosphere to z.
+
+    If `integrate_upward == True`, then at height z, the LWP (IWP) is the
+    integral of LWC (IWC) from the surface to z.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `read_file`).
@@ -204,12 +211,22 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True):
         example.
     :param get_iwp: Boolean flag.  If True, will compute IWP profile for each
         example.
+    :param integrate_upward: Boolean flag.  If True, will integrate from the
+        surface up.  If False, will integrate from the top of atmosphere down.
     :return: example_dict: Same as input but with extra predictor variables.
     """
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    get_lwp = get_lwp and LIQUID_WATER_PATH_NAME not in vector_predictor_names
-    get_iwp = get_iwp and ICE_WATER_PATH_NAME not in vector_predictor_names
+
+    if integrate_upward:
+        this_liquid_path_name = UPWARD_LIQUID_WATER_PATH_NAME
+        this_ice_path_name = UPWARD_ICE_WATER_PATH_NAME
+    else:
+        this_liquid_path_name = LIQUID_WATER_PATH_NAME
+        this_ice_path_name = ICE_WATER_PATH_NAME
+
+    get_lwp = get_lwp and this_liquid_path_name not in vector_predictor_names
+    get_iwp = get_iwp and this_ice_path_name not in vector_predictor_names
 
     if not (get_lwp or get_iwp):
         return example_dict
@@ -231,12 +248,18 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True):
         lwc_matrix_kg_m03 = get_field_from_dict(
             example_dict=example_dict, field_name=LIQUID_WATER_CONTENT_NAME
         )
-        lwp_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
-            numpy.fliplr(lwc_matrix_kg_m03 * grid_cell_width_matrix_metres),
-            axis=1
-        ))
 
-        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(LIQUID_WATER_PATH_NAME)
+        if integrate_upward:
+            lwp_matrix_kg_m02 = numpy.cumsum(
+                lwc_matrix_kg_m03 * grid_cell_width_matrix_metres, axis=1
+            )
+        else:
+            lwp_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+                numpy.fliplr(lwc_matrix_kg_m03 * grid_cell_width_matrix_metres),
+                axis=1
+            ))
+
+        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(this_liquid_path_name)
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
             numpy.expand_dims(lwp_matrix_kg_m02, axis=-1)
@@ -246,12 +269,18 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True):
         iwc_matrix_kg_m03 = get_field_from_dict(
             example_dict=example_dict, field_name=ICE_WATER_CONTENT_NAME
         )
-        iwp_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
-            numpy.fliplr(iwc_matrix_kg_m03 * grid_cell_width_matrix_metres),
-            axis=1
-        ))
 
-        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(ICE_WATER_PATH_NAME)
+        if integrate_upward:
+            iwp_matrix_kg_m02 = numpy.cumsum(
+                iwc_matrix_kg_m03 * grid_cell_width_matrix_metres, axis=1
+            )
+        else:
+            iwp_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+                numpy.fliplr(iwc_matrix_kg_m03 * grid_cell_width_matrix_metres),
+                axis=1
+            ))
+
+        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(this_ice_path_name)
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
             numpy.expand_dims(iwp_matrix_kg_m02, axis=-1)
@@ -614,8 +643,14 @@ def read_file(example_file_name):
 
     dataset_object.close()
 
+    example_dict = _get_water_path_profiles(
+        example_dict=example_dict, get_lwp=True, get_iwp=True,
+        integrate_upward=False
+    )
+
     return _get_water_path_profiles(
-        example_dict=example_dict, get_lwp=True, get_iwp=True
+        example_dict=example_dict, get_lwp=True, get_iwp=True,
+        integrate_upward=True
     )
 
 

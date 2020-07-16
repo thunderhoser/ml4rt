@@ -1,4 +1,4 @@
-"""Unit tests for example_io.py."""
+"""Unit tests for prediction_io.py."""
 
 import copy
 import unittest
