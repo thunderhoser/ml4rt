@@ -121,7 +121,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     :param output_file_name: Same.
     """
 
-    example_dict = example_io.read_file(example_file_name)
+    first_example_dict = example_io.read_file(example_file_name)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
@@ -154,7 +154,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         os.path.split(example_file_name)[0]
     )
     generator_option_dict[neural_net.BATCH_SIZE_KEY] = len(
-        example_dict[example_io.VALID_TIMES_KEY]
+        first_example_dict[example_io.VALID_TIMES_KEY]
     )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
@@ -204,7 +204,8 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             bwo_dict = {
                 bwo.INITIAL_PREDICTORS_KEY: numpy.full(these_dim, numpy.nan),
                 bwo.FINAL_PREDICTORS_KEY: numpy.full(these_dim, numpy.nan),
-                bwo.INITIAL_ACTIVATIONS_KEY: numpy.full(num_examples, numpy.nan),
+                bwo.INITIAL_ACTIVATIONS_KEY:
+                    numpy.full(num_examples, numpy.nan),
                 bwo.FINAL_ACTIVATIONS_KEY: numpy.full(num_examples, numpy.nan)
             }
 
@@ -221,7 +222,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             this_bwo_dict[bwo.FINAL_ACTIVATION_KEY]
         )
 
-    init_example_dict = copy.deepcopy(example_dict)
+    init_example_dict = copy.deepcopy(first_example_dict)
     this_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=bwo_dict[bwo.INITIAL_PREDICTORS_KEY],
         example_dict=init_example_dict, net_type_string=net_type_string
@@ -247,7 +248,7 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         init_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
 
-    final_example_dict = copy.deepcopy(example_dict)
+    final_example_dict = copy.deepcopy(first_example_dict)
     this_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=bwo_dict[bwo.FINAL_PREDICTORS_KEY],
         example_dict=final_example_dict, net_type_string=net_type_string
