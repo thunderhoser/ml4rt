@@ -1,11 +1,13 @@
 """Runs backwards optimization."""
 
+import copy
 import os.path
 import argparse
 import numpy
 from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 from ml4rt.utils import misc as misc_utils
+from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import backwards_optimization as bwo
 
@@ -131,13 +133,23 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
+    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    normalization_file_name = (
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
 
     year = example_io.file_name_to_year(example_file_name)
     first_time_unix_sec, last_time_unix_sec = (
         time_conversion.first_and_last_times_in_year(year)
     )
 
-    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
         os.path.split(example_file_name)[0]
     )
@@ -209,26 +221,56 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
             this_bwo_dict[bwo.FINAL_ACTIVATION_KEY]
         )
 
-    new_example_dict = neural_net.predictors_numpy_to_dict(
+    init_example_dict = copy.deepcopy(example_dict)
+    this_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=bwo_dict[bwo.INITIAL_PREDICTORS_KEY],
-        example_dict=example_dict, net_type_string=net_type_string
+        example_dict=init_example_dict, net_type_string=net_type_string
+    )
+    init_example_dict.update(this_example_dict)
+
+    init_example_dict = normalization.denormalize_data(
+        new_example_dict=init_example_dict,
+        training_example_dict=training_example_dict,
+        normalization_type_string=
+        generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
+        min_normalized_value=
+        generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
+        max_normalized_value=
+        generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
+        separate_heights=True, apply_to_predictors=True,
+        apply_to_targets=False
     )
     init_scalar_predictor_matrix = (
-        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        init_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )
     init_vector_predictor_matrix = (
-        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        init_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
 
-    new_example_dict = neural_net.predictors_numpy_to_dict(
+    final_example_dict = copy.deepcopy(example_dict)
+    this_example_dict = neural_net.predictors_numpy_to_dict(
         predictor_matrix=bwo_dict[bwo.FINAL_PREDICTORS_KEY],
-        example_dict=example_dict, net_type_string=net_type_string
+        example_dict=final_example_dict, net_type_string=net_type_string
+    )
+    final_example_dict.update(this_example_dict)
+
+    final_example_dict = normalization.denormalize_data(
+        new_example_dict=final_example_dict,
+        training_example_dict=training_example_dict,
+        normalization_type_string=
+        generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
+        min_normalized_value=
+        generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
+        max_normalized_value=
+        generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
+        separate_heights=True, apply_to_predictors=True,
+        apply_to_targets=False
     )
     final_scalar_predictor_matrix = (
-        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        final_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )
     final_vector_predictor_matrix = (
-        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        final_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
 
     print('Writing results to file: "{0:s}"...'.format(output_file_name))

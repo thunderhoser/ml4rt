@@ -215,18 +215,11 @@ def _read_file_for_generator(
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
 
-    if first_example_to_read is not None:
-        print('first_example_to_read = {0:d}'.format(first_example_to_read))
-
     example_dict, example_indices_in_file = example_io.reduce_sample_size(
         example_dict=example_dict,
         num_examples_to_keep=len(example_dict[example_io.VALID_TIMES_KEY]),
         first_example_to_keep=first_example_to_read
     )
-
-    print(len(example_dict[example_io.VALID_TIMES_KEY]))
-    print(len(example_indices_in_file))
-    print('\n\n\n')
 
     example_dict, these_subindices = example_io.subset_by_time(
         example_dict=example_dict,
@@ -1053,8 +1046,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                 first_example_to_read=example_index
             )
 
-            print('last_example_index = {0:d}'.format(last_example_index))
-
             if for_inference:
                 this_num_examples = len(
                     this_example_dict[example_io.VALID_TIMES_KEY]
@@ -1065,8 +1056,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                     example_index = 0
                 else:
                     example_index = last_example_index + 1
-
-                print('example_index = {0:d}'.format(example_index))
 
                 example_id_strings += these_id_strings
             else:
@@ -1123,7 +1112,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                     )
 
             num_examples_in_memory = predictor_matrix.shape[0]
-            print(predictor_matrix.shape)
 
         predictor_matrix = predictor_matrix.astype('float32')
 
