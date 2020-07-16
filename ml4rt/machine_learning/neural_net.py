@@ -286,7 +286,12 @@ def _read_file_for_generator(
         apply_to_predictors=False, apply_to_targets=True
     )
 
-    return example_dict, example_id_strings, example_indices_in_file[-1]
+    last_example_index = (
+        -1 if len(example_indices_in_file) == 0
+        else example_indices_in_file[-1]
+    )
+
+    return example_dict, example_id_strings, last_example_index
 
 
 def _write_metafile(
