@@ -1464,12 +1464,12 @@ def train_model(
         )
         list_of_callback_objects.append(early_stopping_object)
 
-    plateau_object = keras.callbacks.ReduceLROnPlateau(
-        monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
-        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
-        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
-    )
-    list_of_callback_objects.append(plateau_object)
+        plateau_object = keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
+            patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+            min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+        )
+        list_of_callback_objects.append(plateau_object)
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
