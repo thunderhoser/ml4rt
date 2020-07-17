@@ -44,7 +44,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_io.COLUMN_LIQUID_WATER_PATH_NAME:
         r'Column liquid-water path (g m$^{-2}$)',
     example_io.COLUMN_ICE_WATER_PATH_NAME:
-        r'Upward ice-water path (mg m$^{-2}$)'
+        r'Column ice-water path (mg m$^{-2}$)'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
