@@ -1,10 +1,13 @@
 """Miscellaneous helper methods."""
 
 import numpy
+import netCDF4
 from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
+
+EXAMPLE_IDS_KEY = 'example_id_strings'
 
 
 def subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
@@ -105,3 +108,20 @@ def create_latlng_grid(
         lng_spacing_deg=longitude_spacing_deg,
         num_rows=num_grid_rows, num_columns=num_grid_columns
     )
+
+
+def read_example_ids_from_netcdf(netcdf_file_name):
+    """Reads example IDs from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: example_id_strings: 1-D list of example IDs.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+    example_id_strings = [
+        str(id) for id in
+        netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
+    ]
+    dataset_object.close()
+
+    return example_id_strings
