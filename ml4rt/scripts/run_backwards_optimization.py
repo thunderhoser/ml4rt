@@ -4,20 +4,21 @@ import copy
 import os.path
 import argparse
 import numpy
-from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 from ml4rt.utils import misc as misc_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import backwards_optimization as bwo
+from ml4rt.scripts import make_saliency_maps
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
-EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
-EXAMPLE_INDICES_ARG_NAME = 'example_indices'
-NUM_EXAMPLES_ARG_NAME = 'num_examples'
+EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
+NUM_EXAMPLES_ARG_NAME = make_saliency_maps.NUM_EXAMPLES_ARG_NAME
+EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
+EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
 LAYER_ARG_NAME = 'layer_name'
 NEURON_INDICES_ARG_NAME = 'neuron_indices'
 IDEAL_ACTIVATION_ARG_NAME = 'ideal_activation'
@@ -31,19 +32,10 @@ OUTPUT_FILE_ARG_NAME = 'output_file_name'
 MODEL_FILE_HELP_STRING = (
     'Path to trained model.  Will be read by `neural_net.read_model`.'
 )
-EXAMPLE_FILE_HELP_STRING = (
-    'Path to file with data examples.  Will be read by `example_io.read_file`.'
-)
-EXAMPLE_INDICES_HELP_STRING = (
-    'Indices of examples to use.  If you do not want to use specific examples, '
-    'leave this alone.'
-)
-NUM_EXAMPLES_HELP_STRING = (
-    '[used only if `{0:s}` is not specified] Number of examples to use (these '
-    'will be selected randomly).  If you want to use all examples, leave this '
-    'alone.'
-).format(EXAMPLE_INDICES_ARG_NAME)
-
+EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
+NUM_EXAMPLES_HELP_STRING = make_saliency_maps.NUM_EXAMPLES_HELP_STRING
+EXAMPLE_DIR_HELP_STRING = make_saliency_maps.EXAMPLE_DIR_HELP_STRING
+EXAMPLE_ID_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_ID_FILE_HELP_STRING
 LAYER_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 NEURON_INDICES_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 IDEAL_ACTIVATION_HELP_STRING = 'See doc for `saliency.check_metadata`.'
@@ -61,16 +53,20 @@ INPUT_ARG_PARSER.add_argument(
     help=MODEL_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + EXAMPLE_FILE_ARG_NAME, type=str, required=True,
+    '--' + EXAMPLE_FILE_ARG_NAME, type=str, required=False, default='',
     help=EXAMPLE_FILE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + EXAMPLE_INDICES_ARG_NAME, type=int, nargs='+', required=False,
-    default=[-1], help=EXAMPLE_INDICES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=-1,
     help=NUM_EXAMPLES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXAMPLE_ID_FILE_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_ID_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + LAYER_ARG_NAME, type=str, required=True, help=LAYER_HELP_STRING
@@ -101,17 +97,18 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(model_file_name, example_file_name, example_indices, num_examples,
-         layer_name, neuron_indices, ideal_activation, num_iterations,
-         learning_rate, l2_weight, output_file_name):
+def _run(model_file_name, example_file_name, num_examples, example_dir_name,
+         example_id_file_name, layer_name, neuron_indices, ideal_activation,
+         num_iterations, learning_rate, l2_weight, output_file_name):
     """Runs backwards optimization.
 
     This is effectively the main method.
 
     :param model_file_name: See documentation at top of file.
     :param example_file_name: Same.
-    :param example_indices: Same.
     :param num_examples: Same.
+    :param example_dir_name: Same.
+    :param example_id_file_name: Same.
     :param layer_name: Same.
     :param neuron_indices: Same.
     :param ideal_activation: Same.
@@ -120,8 +117,6 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
     :param l2_weight: Same.
     :param output_file_name: Same.
     """
-
-    first_example_dict = example_io.read_file(example_file_name)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
@@ -133,49 +128,28 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
-    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
+    predictor_matrix, _, example_id_strings = (
+        misc_utils.get_examples_from_inference(
+            model_metadata_dict=metadata_dict,
+            example_file_name=example_file_name,
+            num_examples=num_examples, example_dir_name=example_dir_name,
+            example_id_file_name=example_id_file_name
+        )
+    )
+    print(SEPARATOR_STRING)
+
+    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
+
     print((
         'Reading training examples (for normalization) from: "{0:s}"...'
     ).format(
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-
-    year = example_io.file_name_to_year(example_file_name)
-    first_time_unix_sec, last_time_unix_sec = (
-        time_conversion.first_and_last_times_in_year(year)
-    )
-
-    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
-        os.path.split(example_file_name)[0]
-    )
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = len(
-        first_example_dict[example_io.VALID_TIMES_KEY]
-    )
-    generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
-    generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
-    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
-
-    generator = neural_net.data_generator(
-        option_dict=generator_option_dict, for_inference=True,
-        net_type_string=net_type_string, is_loss_constrained_mse=False
-    )
-
-    print(SEPARATOR_STRING)
-    predictor_matrix, _, example_id_strings = next(generator)
-    print(SEPARATOR_STRING)
-
-    example_indices = misc_utils.subset_examples(
-        indices_to_keep=example_indices, num_examples_to_keep=num_examples,
-        num_examples_total=len(example_id_strings)
-    )
-
-    predictor_matrix = predictor_matrix[example_indices, ...]
-    example_id_strings = [example_id_strings[i] for i in example_indices]
 
     num_examples = len(example_id_strings)
     bwo_dict = None
@@ -221,6 +195,16 @@ def _run(model_file_name, example_file_name, example_indices, num_examples,
         bwo_dict[bwo.FINAL_ACTIVATIONS_KEY][i] = (
             this_bwo_dict[bwo.FINAL_ACTIVATION_KEY]
         )
+
+    if example_file_name == '':
+        example_file_name = example_io.find_many_files(
+            example_dir_name=example_dir_name,
+            first_time_unix_sec=0, last_time_unix_sec=int(1e12),
+            raise_error_if_any_missing=False, raise_error_if_all_missing=True
+        )[0]
+
+    first_example_dict = example_io.read_file(example_file_name)
+    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
     init_example_dict = copy.deepcopy(first_example_dict)
     this_example_dict = neural_net.predictors_numpy_to_dict(
@@ -296,10 +280,11 @@ if __name__ == '__main__':
     _run(
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         example_file_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_FILE_ARG_NAME),
-        example_indices=numpy.array(
-            getattr(INPUT_ARG_OBJECT, EXAMPLE_INDICES_ARG_NAME), dtype=int
-        ),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
+        example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
+        example_id_file_name=getattr(
+            INPUT_ARG_OBJECT, EXAMPLE_ID_FILE_ARG_NAME
+        ),
         layer_name=getattr(INPUT_ARG_OBJECT, LAYER_ARG_NAME),
         neuron_indices=numpy.array(
             getattr(INPUT_ARG_OBJECT, NEURON_INDICES_ARG_NAME), dtype=int

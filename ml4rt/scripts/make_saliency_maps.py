@@ -4,7 +4,6 @@ import copy
 import os.path
 import argparse
 import numpy
-from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
@@ -121,29 +120,6 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     :param output_file_name: Same.
     """
 
-    use_specific_ids = example_file_name == ''
-
-    if use_specific_ids:
-        print('Reading desired example IDs from: "{0:s}"...'.format(
-            example_id_file_name
-        ))
-        example_id_strings = (
-            misc_utils.read_example_ids_from_netcdf(example_id_file_name)
-        )
-        num_examples_per_batch = len(example_id_strings)
-    else:
-        example_dir_name = os.path.split(example_file_name)[0]
-
-        year = example_io.file_name_to_year(example_file_name)
-        first_time_unix_sec, last_time_unix_sec = (
-            time_conversion.first_and_last_times_in_year(year)
-        )
-
-        first_example_dict = example_io.read_file(example_file_name)
-        num_examples_per_batch = len(
-            first_example_dict[example_io.VALID_TIMES_KEY]
-        )
-
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
 
@@ -154,6 +130,17 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
+
+    predictor_matrix, _, example_id_strings = (
+        misc_utils.get_examples_from_inference(
+            model_metadata_dict=metadata_dict,
+            example_file_name=example_file_name,
+            num_examples=num_examples, example_dir_name=example_dir_name,
+            example_id_file_name=example_id_file_name
+        )
+    )
+    print(SEPARATOR_STRING)
+
     generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     if is_layer_output:
@@ -162,7 +149,8 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
                 generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
             example_io.VECTOR_TARGET_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-            example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+            example_io.HEIGHTS_KEY:
+                generator_option_dict[neural_net.HEIGHTS_KEY]
         }
 
         target_field_name, target_height_m_agl = (
@@ -179,43 +167,6 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     print('Target field and height = {0:s}, {1:s}'.format(
         str(target_field_name), str(target_height_m_agl)
     ))
-
-    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = num_examples_per_batch
-
-    if use_specific_ids:
-        generator = neural_net.data_generator_specific_examples(
-            option_dict=generator_option_dict,
-            net_type_string=metadata_dict[neural_net.NET_TYPE_KEY],
-            example_id_strings=example_id_strings
-        )
-    else:
-        generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
-        generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
-
-        generator = neural_net.data_generator(
-            option_dict=generator_option_dict, for_inference=True,
-            net_type_string=metadata_dict[neural_net.NET_TYPE_KEY],
-            is_loss_constrained_mse=False
-        )
-
-    print(SEPARATOR_STRING)
-
-    if use_specific_ids:
-        predictor_matrix = next(generator)[0]
-    else:
-        predictor_matrix, _, example_id_strings = next(generator)
-
-        good_indices = misc_utils.subset_examples(
-            indices_to_keep=numpy.array([-1], dtype=int),
-            num_examples_to_keep=num_examples,
-            num_examples_total=len(example_id_strings)
-        )
-
-        predictor_matrix = predictor_matrix[good_indices, ...]
-        example_id_strings = [example_id_strings[i] for i in good_indices]
-
-    print(SEPARATOR_STRING)
 
     print('Computing saliency for neuron {0:s} in layer "{1:s}"...'.format(
         str(neuron_indices), layer_name
@@ -234,7 +185,8 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
                 generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
             example_io.VECTOR_PREDICTOR_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-            example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+            example_io.HEIGHTS_KEY:
+                generator_option_dict[neural_net.HEIGHTS_KEY]
         }
 
         dummy_example_dict = neural_net.predictors_numpy_to_dict(

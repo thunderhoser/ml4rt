@@ -6,14 +6,13 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import plotting_utils
 from gewittergefahr.plotting import feature_map_plotting
-from ml4rt.io import example_io
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
+from ml4rt.scripts import make_saliency_maps
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -22,9 +21,10 @@ FIGURE_RESOLUTION_DPI = 300
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 LAYER_NAMES_ARG_NAME = 'layer_names'
-EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
-EXAMPLE_INDICES_ARG_NAME = 'example_indices'
-NUM_EXAMPLES_ARG_NAME = 'num_examples'
+EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
+NUM_EXAMPLES_ARG_NAME = make_saliency_maps.NUM_EXAMPLES_ARG_NAME
+EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
+EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 MODEL_FILE_HELP_STRING = (
@@ -34,19 +34,10 @@ LAYER_NAMES_HELP_STRING = (
     'List of layer names.  Feature maps will be plotted for each layer/example '
     'pair.'
 )
-EXAMPLE_FILE_HELP_STRING = (
-    'Path to file with data examples.  Will be read by `example_io.read_file`.'
-)
-EXAMPLE_INDICES_HELP_STRING = (
-    'Indices of examples to plot.  If you do not want to plot specific '
-    'examples, leave this alone.'
-)
-NUM_EXAMPLES_HELP_STRING = (
-    '[used only if `{0:s}` is not specified] Number of examples to plot (these '
-    'will be selected randomly).  If you want to plot all examples, leave this '
-    'alone.'
-).format(EXAMPLE_INDICES_ARG_NAME)
-
+EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
+NUM_EXAMPLES_HELP_STRING = make_saliency_maps.NUM_EXAMPLES_HELP_STRING
+EXAMPLE_DIR_HELP_STRING = make_saliency_maps.EXAMPLE_DIR_HELP_STRING
+EXAMPLE_ID_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_ID_FILE_HELP_STRING
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -61,16 +52,20 @@ INPUT_ARG_PARSER.add_argument(
     help=LAYER_NAMES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + EXAMPLE_FILE_ARG_NAME, type=str, required=True,
+    '--' + EXAMPLE_FILE_ARG_NAME, type=str, required=False, default='',
     help=EXAMPLE_FILE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + EXAMPLE_INDICES_ARG_NAME, type=int, nargs='+', required=False,
-    default=[-1], help=EXAMPLE_INDICES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=-1,
     help=NUM_EXAMPLES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXAMPLE_ID_FILE_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_ID_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -135,8 +130,8 @@ def _plot_feature_maps_one_layer(
         pyplot.close(this_figure_object)
 
 
-def _run(model_file_name, layer_names, example_file_name, example_indices,
-         num_examples, output_dir_name):
+def _run(model_file_name, layer_names, example_file_name, num_examples,
+         example_dir_name, example_id_file_name, output_dir_name):
     """Plots feature maps for each layer/example pair, for a single neural net.
 
     This is effectively the main method.
@@ -144,13 +139,12 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
     :param model_file_name: See documentation at top of file.
     :param layer_names: Same.
     :param example_file_name: Same.
-    :param example_indices: Same.
     :param num_examples: Same.
+    :param example_dir_name: Same.
+    :param example_id_file_name: Same.
     :param output_dir_name: Same.
     :raises: ValueError: if neural-net type is not CNN or U-net.
     """
-
-    first_example_dict = example_io.read_file(example_file_name)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
@@ -176,37 +170,15 @@ def _run(model_file_name, layer_names, example_file_name, example_indices,
 
         raise ValueError(error_string)
 
-    year = example_io.file_name_to_year(example_file_name)
-    first_time_unix_sec, last_time_unix_sec = (
-        time_conversion.first_and_last_times_in_year(year)
+    predictor_matrix, _, example_id_strings = (
+        misc_utils.get_examples_from_inference(
+            model_metadata_dict=metadata_dict,
+            example_file_name=example_file_name,
+            num_examples=num_examples, example_dir_name=example_dir_name,
+            example_id_file_name=example_id_file_name
+        )
     )
-
-    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
-        os.path.split(example_file_name)[0]
-    )
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = len(
-        first_example_dict[example_io.VALID_TIMES_KEY]
-    )
-    generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
-    generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
-
-    generator = neural_net.data_generator(
-        option_dict=generator_option_dict, for_inference=True,
-        net_type_string=net_type_string, is_loss_constrained_mse=False
-    )
-
     print(SEPARATOR_STRING)
-    predictor_matrix, _, example_id_strings = next(generator)
-    print(SEPARATOR_STRING)
-
-    example_indices = misc_utils.subset_examples(
-        indices_to_keep=example_indices, num_examples_to_keep=num_examples,
-        num_examples_total=len(example_id_strings)
-    )
-
-    predictor_matrix = predictor_matrix[example_indices, ...]
-    example_id_strings = [example_id_strings[i] for i in example_indices]
 
     num_layers = len(layer_names)
     feature_matrix_by_layer = [numpy.array([])] * num_layers
@@ -250,9 +222,10 @@ if __name__ == '__main__':
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         layer_names=getattr(INPUT_ARG_OBJECT, LAYER_NAMES_ARG_NAME),
         example_file_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_FILE_ARG_NAME),
-        example_indices=numpy.array(
-            getattr(INPUT_ARG_OBJECT, EXAMPLE_INDICES_ARG_NAME), dtype=int
-        ),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
+        example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
+        example_id_file_name=getattr(
+            INPUT_ARG_OBJECT, EXAMPLE_ID_FILE_ARG_NAME
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

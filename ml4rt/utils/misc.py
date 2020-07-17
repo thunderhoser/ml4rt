@@ -1,11 +1,18 @@
 """Miscellaneous helper methods."""
 
+import copy
+import os.path
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
+from ml4rt.machine_learning import neural_net
+
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 EXAMPLE_IDS_KEY = 'example_id_strings'
 
@@ -125,3 +132,96 @@ def read_example_ids_from_netcdf(netcdf_file_name):
     dataset_object.close()
 
     return example_id_strings
+
+
+def get_examples_from_inference(
+        model_metadata_dict, example_file_name, num_examples, example_dir_name,
+        example_id_file_name):
+    """Returns examples to be used by a model at inference stage.
+
+    :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
+    :param example_file_name: [use only if you want random examples]
+        Path to file with data examples (to be read by `example_io.read_file`).
+    :param num_examples: [use only if you want random examples]
+        Number of examples to use.  If you want to use all examples in
+        `example_file_name`, leave this alone.
+    :param example_dir_name: [use only if you want specific examples]
+        Name of directory with data examples.  Files therein will be found by
+        `example_io.find_file` and read by `example_io.read_file`.
+    :param example_id_file_name: [use only if you want specific examples]
+        Path to file with desired IDs.  Will be read by
+        `read_example_ids_from_netcdf`.
+    :return: Same output variables as `neural_net.data_generator`.
+    """
+
+    error_checking.assert_is_string(example_file_name)
+    use_specific_ids = example_file_name == ''
+
+    if use_specific_ids:
+        error_checking.assert_is_string(example_id_file_name)
+
+        print('Reading desired example IDs from: "{0:s}"...'.format(
+            example_id_file_name
+        ))
+        example_id_strings = read_example_ids_from_netcdf(example_id_file_name)
+        num_examples_per_batch = len(example_id_strings)
+    else:
+        error_checking.assert_is_string(example_dir_name)
+        error_checking.assert_is_integer(num_examples)
+        error_checking.assert_is_greater(num_examples, 0)
+
+        example_dir_name = os.path.split(example_file_name)[0]
+        year = example_io.file_name_to_year(example_file_name)
+        first_time_unix_sec, last_time_unix_sec = (
+            time_conversion.first_and_last_times_in_year(year)
+        )
+
+        this_example_dict = example_io.read_file(example_file_name)
+        num_examples_per_batch = len(
+            this_example_dict[example_io.VALID_TIMES_KEY]
+        )
+
+    generator_option_dict = copy.deepcopy(
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
+    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
+    generator_option_dict[neural_net.BATCH_SIZE_KEY] = num_examples_per_batch
+
+    if use_specific_ids:
+        generator = neural_net.data_generator_specific_examples(
+            option_dict=generator_option_dict,
+            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+            example_id_strings=example_id_strings
+        )
+    else:
+        generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
+        generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
+
+        generator = neural_net.data_generator(
+            option_dict=generator_option_dict, for_inference=True,
+            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+            is_loss_constrained_mse=False
+        )
+
+    print(SEPARATOR_STRING)
+
+    if use_specific_ids:
+        predictor_matrix, target_array = next(generator)
+    else:
+        predictor_matrix, target_array, example_id_strings = next(generator)
+
+        good_indices = subset_examples(
+            indices_to_keep=numpy.array([-1], dtype=int),
+            num_examples_to_keep=num_examples,
+            num_examples_total=len(example_id_strings)
+        )
+
+        predictor_matrix = predictor_matrix[good_indices, ...]
+        example_id_strings = [example_id_strings[i] for i in good_indices]
+
+        if isinstance(target_array, list):
+            target_array = [t[good_indices, ...] for t in target_array]
+        else:
+            target_array = target_array[good_indices, ...]
+
+    return predictor_matrix, target_array, example_id_strings
