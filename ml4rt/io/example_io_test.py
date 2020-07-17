@@ -386,6 +386,31 @@ FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
     example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
 }
 
+# The following constants are used to test find_examples.
+ALL_ID_STRINGS = ['south_boulder', 'bear', 'green', 'flagstaff', 'sanitas']
+DESIRED_ID_STRINGS_0MISSING = ['green', 'bear']
+RELEVANT_INDICES_0MISSING = numpy.array([2, 1], dtype=int)
+
+DESIRED_ID_STRINGS_2MISSING = ['green', 'paiute', 'bear', 'audubon']
+RELEVANT_INDICES_2MISSING = numpy.array([2, -1, 1, -1], dtype=int)
+
+# The following constants are used to test subset_by_index.
+FIRST_EXAMPLE_DICT_SELECT_INDICES = {
+    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_io.SCALAR_PREDICTOR_VALS_KEY:
+        FIRST_SCALAR_PREDICTOR_MATRIX[[2, 1], ...],
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        FIRST_VECTOR_PREDICTOR_MATRIX[[2, 1], ...],
+    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_io.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX[[2, 1], ...],
+    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[2, 1], ...],
+    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2, 1], ...],
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2, 1], ...]
+}
+
 # The following constants are used to test average_examples.
 THIS_SCALAR_PREDICTOR_MATRIX = numpy.array([[1.5, 40.02]])
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.array([[288.5, 293.625]])
@@ -860,6 +885,59 @@ class ExampleIoTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, FIRST_EXAMPLE_DICT_SELECT_HEIGHTS
+        ))
+
+    def test_find_examples_0missing(self):
+        """Ensures correct output from find_examples.
+
+        In this case, no desired examples are missing.
+        """
+
+        these_indices = example_io.find_examples(
+            all_id_strings=ALL_ID_STRINGS,
+            desired_id_strings=DESIRED_ID_STRINGS_0MISSING, allow_missing=False
+        )
+        self.assertTrue(numpy.array_equal(
+            these_indices, RELEVANT_INDICES_0MISSING
+        ))
+
+    def test_find_examples_2missing_allowed(self):
+        """Ensures correct output from find_examples.
+
+        In this case, 2 desired examples are missing but this is allowed.
+        """
+
+        these_indices = example_io.find_examples(
+            all_id_strings=ALL_ID_STRINGS,
+            desired_id_strings=DESIRED_ID_STRINGS_2MISSING, allow_missing=True
+        )
+        self.assertTrue(numpy.array_equal(
+            these_indices, RELEVANT_INDICES_2MISSING
+        ))
+
+    def test_find_examples_2missing_disallowed(self):
+        """Ensures correct output from find_examples.
+
+        In this case, 2 desired examples are missing and this is *not* allowed.
+        """
+
+        with self.assertRaises(ValueError):
+            example_io.find_examples(
+                all_id_strings=ALL_ID_STRINGS,
+                desired_id_strings=DESIRED_ID_STRINGS_2MISSING,
+                allow_missing=False
+            )
+
+    def test_subset_by_index(self):
+        """Ensures correct output from subset_by_index."""
+
+        this_example_dict = example_io.subset_by_index(
+            example_dict=copy.deepcopy(FIRST_EXAMPLE_DICT),
+            desired_indices=RELEVANT_INDICES_0MISSING
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, FIRST_EXAMPLE_DICT_SELECT_INDICES
         ))
 
     def test_average_examples(self):

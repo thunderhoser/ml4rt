@@ -228,7 +228,7 @@ def _run(input_prediction_file_name, target_name, criterion_name,
             'Negatively oriented score (based on {0:s}) for {1:d}th-best '
             'example: {2:.4e}'
         ).format(
-            criterion_name.upper(), i,
+            criterion_name.upper(), i + 1,
             scores_to_find_best[best_example_indices[i]]
         ))
 
@@ -239,7 +239,7 @@ def _run(input_prediction_file_name, target_name, criterion_name,
             'Negatively oriented score (based on {0:s}) for {1:d}th-worst '
             'example: {2:.4e}'
         ).format(
-            criterion_name.upper(), i,
+            criterion_name.upper(), i + 1,
             scores_to_find_worst[worst_example_indices[i]]
         ))
 

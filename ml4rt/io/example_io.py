@@ -1087,6 +1087,114 @@ def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
     return example_dict, good_indices
 
 
+def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
+    """Finds examples with desired IDs.
+
+    E = number of desired examples
+
+    :param all_id_strings: 1-D list with all example IDs.
+    :param desired_id_strings: length-E list of desired IDs.
+    :param allow_missing: Boolean flag.  If True, will allow some desired IDs to
+        be missing.  If False, will raise error if any desired ID is missing.
+    :return: desired_indices: length-E numpy array with indices of desired
+        examples.  Missing IDs are denoted by an index of -1.
+    :raises: ValueError: if either list of IDs has non-unique entries.
+    :raises: ValueError: if `allow_missing == False` and any desired ID is
+        missing.
+    """
+
+    error_checking.assert_is_string_list(all_id_strings)
+    error_checking.assert_is_string_list(desired_id_strings)
+    error_checking.assert_is_boolean(allow_missing)
+
+    all_id_strings_numpy = numpy.array(all_id_strings)
+    desired_id_strings_numpy = numpy.array(desired_id_strings)
+
+    these_unique_strings, these_counts = numpy.unique(
+        all_id_strings_numpy, return_counts=True
+    )
+    if numpy.any(these_counts > 1):
+        these_indices = numpy.where(these_counts > 1)[0]
+
+        error_string = (
+            '\nall_id_strings contains {0:d} repeated entries, listed below:'
+            '\n{1:s}'
+        ).format(
+            len(these_indices), str(these_unique_strings[these_indices])
+        )
+        raise ValueError(error_string)
+
+    these_unique_strings, these_counts = numpy.unique(
+        desired_id_strings_numpy, return_counts=True
+    )
+    if numpy.any(these_counts > 1):
+        these_indices = numpy.where(these_counts > 1)[0]
+
+        error_string = (
+            '\ndesired_id_strings contains {0:d} repeated entries, listed '
+            'below:\n{1:s}'
+        ).format(
+            len(these_indices), str(these_unique_strings[these_indices])
+        )
+        raise ValueError(error_string)
+
+    sort_indices = numpy.argsort(all_id_strings_numpy)
+    desired_indices = numpy.searchsorted(
+        all_id_strings_numpy[sort_indices], desired_id_strings_numpy,
+        side='left'
+    ).astype(int)
+
+    desired_indices = sort_indices[desired_indices]
+    desired_indices = numpy.maximum(desired_indices, 0)
+    desired_indices = numpy.minimum(desired_indices, len(all_id_strings) - 1)
+
+    if allow_missing:
+        bad_indices = numpy.where(
+            all_id_strings_numpy[desired_indices] != desired_id_strings_numpy
+        )[0]
+        desired_indices[bad_indices] = -1
+        return desired_indices
+
+    if numpy.array_equal(
+            all_id_strings_numpy[desired_indices], desired_id_strings_numpy
+    ):
+        return desired_indices
+
+    missing_flags = (
+        all_id_strings_numpy[desired_indices] != desired_id_strings_numpy
+    )
+
+    error_string = (
+        '{0:d} of {1:d} desired IDs (listed below) are missing:\n{2:s}'
+    ).format(
+        numpy.sum(missing_flags), len(desired_id_strings),
+        str(desired_id_strings_numpy[missing_flags])
+    )
+
+    raise ValueError(error_string)
+
+
+def subset_by_index(example_dict, desired_indices):
+    """Subsets examples by index.
+
+    :param example_dict: See doc for `read_file`.
+    :param desired_indices: 1-D numpy array of desired indices.
+    :return: example_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_numpy_array(desired_indices, num_dimensions=1)
+    error_checking.assert_is_integer_numpy_array(desired_indices)
+    error_checking.assert_is_geq_numpy_array(desired_indices, 0)
+    error_checking.assert_is_less_than_numpy_array(
+        desired_indices, len(example_dict[VALID_TIMES_KEY])
+    )
+
+    for this_key in ONE_PER_EXAMPLE_KEYS:
+        example_dict[this_key] = example_dict[this_key][desired_indices, ...]
+
+    return example_dict
+
+
 def average_examples(
         example_dict, use_pmm,
         max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL):
