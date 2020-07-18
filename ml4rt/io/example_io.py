@@ -143,6 +143,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
 SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
 SHORTWAVE_DOWN_FLUX_NAME = 'shortwave_down_flux_w_m02'
 SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_w_m02'
+SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m02'
+SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m02'
 SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
 SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
 
@@ -155,7 +157,9 @@ DEFAULT_VECTOR_TARGET_NAMES = [
     SHORTWAVE_DOWN_FLUX_NAME, SHORTWAVE_UP_FLUX_NAME,
     SHORTWAVE_HEATING_RATE_NAME
 ]
-ALL_VECTOR_TARGET_NAMES = DEFAULT_VECTOR_TARGET_NAMES
+ALL_VECTOR_TARGET_NAMES = DEFAULT_VECTOR_TARGET_NAMES + [
+    SHORTWAVE_DOWN_FLUX_INC_NAME, SHORTWAVE_UP_FLUX_INC_NAME
+]
 
 ALL_TARGET_NAMES = ALL_SCALAR_TARGET_NAMES + ALL_VECTOR_TARGET_NAMES
 
@@ -369,16 +373,146 @@ def fluxes_to_heating_rate(example_dict):
     )
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    if SHORTWAVE_HEATING_RATE_NAME not in vector_target_names:
+    found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
+    if not found_heating_rate:
         vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
 
     heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
-    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-        example_dict[VECTOR_TARGET_VALS_KEY],
-        obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+    if found_heating_rate:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+            heating_rate_matrix_k_day01
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY],
+            obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+        )
+
+    return example_dict
+
+
+def fluxes_actual_to_increments(example_dict):
+    """For each example, converts flux profiles to flux-increment profiles.
+
+    In a "flux profile," the values at each height are the total upwelling and
+    downwelling fluxes.
+
+    In a "flux-increment profile," the values at the [j]th height are the
+    upwelling- and downwelling-flux increments added by the [j]th layer.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: example_dict: Same but with flux-increment profiles.
+    """
+
+    down_flux_matrix_w_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
     )
+    up_flux_matrix_w_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_NAME
+    )
+
+    down_flux_increment_matrix_w_m02 = numpy.diff(
+        down_flux_matrix_w_m02, axis=1, prepend=0.
+    )
+    up_flux_increment_matrix_w_m02 = numpy.diff(
+        up_flux_matrix_w_m02, axis=1, prepend=0.
+    )
+
+    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+    found_down_increment = SHORTWAVE_DOWN_FLUX_INC_NAME in vector_target_names
+    found_up_increment = SHORTWAVE_UP_FLUX_INC_NAME in vector_target_names
+
+    if not found_down_increment:
+        vector_target_names.append(SHORTWAVE_DOWN_FLUX_INC_NAME)
+    if not found_up_increment:
+        vector_target_names.append(SHORTWAVE_UP_FLUX_INC_NAME)
+
+    down_increment_index = vector_target_names.index(
+        SHORTWAVE_DOWN_FLUX_INC_NAME
+    )
+    up_increment_index = vector_target_names.index(SHORTWAVE_UP_FLUX_INC_NAME)
+    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+    if found_down_increment:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
+            down_flux_increment_matrix_w_m02
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY], obj=down_increment_index,
+            values=down_flux_increment_matrix_w_m02, axis=-1
+        )
+
+    if found_up_increment:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
+            up_flux_increment_matrix_w_m02
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY], obj=up_increment_index,
+            values=up_flux_increment_matrix_w_m02, axis=-1
+        )
+
+    return example_dict
+
+
+def fluxes_increments_to_actual(example_dict):
+    """For each example, converts flux-increment profiles to flux profiles.
+
+    This method is the inverse of `fluxes_actual_to_increments`.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: example_dict: Same but with actual flux profiles.
+    """
+
+    down_flux_increment_matrix_w_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_INC_NAME
+    )
+    up_flux_increment_matrix_w_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_INC_NAME
+    )
+
+    down_flux_matrix_w_m02 = numpy.cumsum(
+        down_flux_increment_matrix_w_m02, axis=1
+    )
+    up_flux_matrix_w_m02 = numpy.cumsum(up_flux_increment_matrix_w_m02, axis=1)
+
+    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+    found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names
+    found_up_flux = SHORTWAVE_UP_FLUX_NAME in vector_target_names
+
+    if not found_down_flux:
+        vector_target_names.append(SHORTWAVE_DOWN_FLUX_NAME)
+    if not found_up_flux:
+        vector_target_names.append(SHORTWAVE_UP_FLUX_NAME)
+
+    down_flux_index = vector_target_names.index(SHORTWAVE_DOWN_FLUX_NAME)
+    up_flux_index = vector_target_names.index(SHORTWAVE_UP_FLUX_NAME)
+    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+    if found_down_flux:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
+            down_flux_matrix_w_m02
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY],
+            obj=down_flux_index, values=down_flux_matrix_w_m02, axis=-1
+        )
+
+    if found_up_flux:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
+            up_flux_matrix_w_m02
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY],
+            obj=up_flux_index, values=up_flux_matrix_w_m02, axis=-1
+        )
 
     return example_dict
 

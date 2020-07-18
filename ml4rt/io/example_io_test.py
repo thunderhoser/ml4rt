@@ -103,7 +103,8 @@ EXAMPLE_DICT_WITH_UPWARD_PATHS = {
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
-# The following constants are used to test fluxes_to_heating_rate.
+# The following constants are used to test fluxes_to_heating_rate,
+# fluxes_actual_to_increments, and fluxes_increments_to_actual.
 THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
     [100, 150, 200, 250, 300, 350],
     [400, 500, 600, 700, 800, 900],
@@ -165,7 +166,7 @@ THESE_VECTOR_TARGET_NAMES = [
     example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME
 ]
 
-EXAMPLE_DICT_SANS_HEATING_RATE = {
+EXAMPLE_DICT_FLUXES_ONLY = {
     example_io.VECTOR_PREDICTOR_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
     example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
@@ -195,6 +196,49 @@ EXAMPLE_DICT_WITH_HEATING_RATE = {
     example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
+
+THIS_UP_FLUX_INC_MATRIX_W_M02 = numpy.array([
+    [100, 50, 50, 50, 50, 50],
+    [400, 100, 100, 100, 100, 100],
+    [0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_DOWN_FLUX_INC_MATRIX_W_M02 = numpy.array([
+    [50, 75, 75, 75, 75, 75],
+    [500, 50, 50, 50, 50, 50],
+    [1000, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack((
+    THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02,
+    THIS_DOWN_FLUX_INC_MATRIX_W_M02, THIS_UP_FLUX_INC_MATRIX_W_M02
+), axis=-1)
+THESE_VECTOR_TARGET_NAMES = [
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME,
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME
+]
+
+EXAMPLE_DICT_WITH_INCREMENTS = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_io.VECTOR_TARGET_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
+    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack((
+    THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02,
+    THIS_DOWN_FLUX_INC_MATRIX_W_M02, THIS_UP_FLUX_INC_MATRIX_W_M02
+), axis=-1)
+THESE_VECTOR_TARGET_NAMES = [
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME,
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME
+]
 
 # The following constants are used to test find_file and file_name_to_year.
 EXAMPLE_DIR_NAME = 'foo'
@@ -702,11 +746,33 @@ class ExampleIoTests(unittest.TestCase):
         """Ensures correct output from fluxes_to_heating_rate."""
 
         this_example_dict = example_io.fluxes_to_heating_rate(
-            copy.deepcopy(EXAMPLE_DICT_SANS_HEATING_RATE)
+            copy.deepcopy(EXAMPLE_DICT_FLUXES_ONLY)
         )
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_HEATING_RATE
+        ))
+
+    def test_fluxes_actual_to_increments(self):
+        """Ensures correct output from fluxes_actual_to_increments."""
+
+        this_example_dict = example_io.fluxes_actual_to_increments(
+            copy.deepcopy(EXAMPLE_DICT_FLUXES_ONLY)
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_INCREMENTS
+        ))
+
+    def test_fluxes_increments_to_actual(self):
+        """Ensures correct output from fluxes_increments_to_actual."""
+
+        this_example_dict = example_io.fluxes_increments_to_actual(
+            copy.deepcopy(EXAMPLE_DICT_WITH_INCREMENTS)
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_INCREMENTS
         ))
 
     def test_find_file(self):
