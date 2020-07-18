@@ -1614,6 +1614,11 @@ def read_metafile(dill_file_name):
     metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
 
+    if OMIT_HEATING_RATE_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        metadata_dict[TRAINING_OPTIONS_KEY][OMIT_HEATING_RATE_KEY] = False
+    if OMIT_HEATING_RATE_KEY not in metadata_dict[VALIDATION_OPTIONS_KEY]:
+        metadata_dict[VALIDATION_OPTIONS_KEY][OMIT_HEATING_RATE_KEY] = False
+
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
         return metadata_dict
