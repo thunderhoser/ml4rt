@@ -145,8 +145,10 @@ def _check_generator_args(option_dict):
     )
     error_checking.assert_is_geq_numpy_array(option_dict[HEIGHTS_KEY], 0.)
 
-    error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
-    error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
+    if option_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
+        error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
+    if option_dict[TARGET_NORM_TYPE_KEY] is not None:
+        error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
 
     omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY]
     error_checking.assert_is_boolean(omit_heating_rate)
