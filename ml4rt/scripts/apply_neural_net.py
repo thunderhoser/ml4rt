@@ -116,6 +116,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     print(SEPARATOR_STRING)
 
     dummy_example_dict = {
+        example_io.SCALAR_PREDICTOR_VALS_KEY: None,
+        example_io.VECTOR_PREDICTOR_VALS_KEY: None,
         example_io.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
         example_io.VECTOR_TARGET_NAMES_KEY:
