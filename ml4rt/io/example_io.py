@@ -10,8 +10,13 @@ from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import error_checking
 
 TOLERANCE = 1e-6
+
 KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
+
+DAYS_TO_SECONDS = 86400.
+GRAVITY_CONSTANT_M_S02 = 9.80665
+DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
@@ -329,6 +334,47 @@ def get_grid_cell_widths(edge_heights_m_agl):
     error_checking.assert_is_numpy_array(edge_heights_m_agl, num_dimensions=1)
 
     return numpy.diff(edge_heights_m_agl)
+
+
+def fluxes_to_heating_rate(example_dict):
+    """For each example at each height, converts up/down fluxes to heating rate.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: example_dict: Same but with heating-rate profiles.
+    :raises: ValueError: if dictionary already includes heating-rate profiles.
+    """
+
+    if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
+        raise ValueError('Dictionary already contains heating-rate profiles.')
+
+    down_flux_matrix_w_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
+    )
+    up_flux_matrix_w_m02 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+
+    net_flux_matrix_w_m02 = down_flux_matrix_w_m02 - up_flux_matrix_w_m02
+    coefficient = GRAVITY_CONSTANT_M_S02 / DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
+
+    heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
+        numpy.gradient(net_flux_matrix_w_m02, axis=1) /
+        numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
+    )
+    heating_rate_matrix_k_day01 = numpy.expand_dims(
+        heating_rate_matrix_k_day01, axis=-1
+    )
+
+    example_dict[VECTOR_TARGET_NAMES_KEY].append(SHORTWAVE_HEATING_RATE_NAME)
+    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.concatenate((
+        example_dict[VECTOR_TARGET_VALS_KEY], heating_rate_matrix_k_day01
+    ), axis=-1)
+
+    return example_dict
 
 
 def match_heights(heights_m_agl, desired_height_m_agl):

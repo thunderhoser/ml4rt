@@ -103,6 +103,99 @@ EXAMPLE_DICT_WITH_UPWARD_PATHS = {
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
+# The following constants are used to test fluxes_to_heating_rate.
+THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
+    [100, 150, 200, 250, 300, 350],
+    [400, 500, 600, 700, 800, 900],
+    [0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
+    [50, 125, 200, 275, 350, 425],
+    [500, 550, 600, 650, 700, 750],
+    [1000, 1000, 1000, 1000, 1000, 1000]
+], dtype=float)
+
+THIS_PRESSURE_MATRIX_PASCALS = 100 * numpy.array([
+    [1000, 950, 900, 850, 800, 750],
+    [1000, 900, 800, 700, 600, 500],
+    [1000, 950, 900, 850, 800, 750]
+], dtype=float)
+
+# THIS_NET_FLUX_MATRIX_W_M02 = numpy.array([
+#     [-50, -25, 0, 25, 50, 75],
+#     [100, 50, 0, -50, -100, -150],
+#     [1000, 1000, 1000, 1000, 1000, 1000]
+# ], dtype=float)
+
+THIS_NET_FLUX_DIFF_MATRIX_W02 = numpy.array([
+    [25, 25, 25, 25, 25, 25],
+    [-50, -50, -50, -50, -50, -50],
+    [0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_PRESSURE_DIFF_MATRIX_PASCALS = 100 * numpy.array([
+    [-50, -50, -50, -50, -50, -50],
+    [-100, -100, -100, -100, -100, -100],
+    [-50, -50, -50, -50, -50, -50]
+], dtype=float)
+
+THIS_COEFF = example_io.DAYS_TO_SECONDS * (
+    example_io.GRAVITY_CONSTANT_M_S02 /
+    example_io.DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
+)
+
+THIS_HEATING_RATE_MATRIX_K_DAY01 = THIS_COEFF * (
+    THIS_NET_FLUX_DIFF_MATRIX_W02 /
+    numpy.absolute(THIS_PRESSURE_DIFF_MATRIX_PASCALS)
+)
+
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_PRESSURE_MATRIX_PASCALS, axis=-1
+)
+THESE_VECTOR_PREDICTOR_NAMES = [example_io.PRESSURE_NAME]
+THESE_HEIGHTS_M_AGL = numpy.array(
+    [0, 500, 1000, 1500, 2000, 2500, 3000], dtype=float
+)
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02), axis=-1
+)
+THESE_VECTOR_TARGET_NAMES = [
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME
+]
+
+EXAMPLE_DICT_SANS_HEATING_RATE = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_io.VECTOR_TARGET_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
+    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack((
+    THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02,
+    THIS_HEATING_RATE_MATRIX_K_DAY01
+), axis=-1)
+THESE_VECTOR_TARGET_NAMES = [
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
+    example_io.SHORTWAVE_HEATING_RATE_NAME
+]
+
+EXAMPLE_DICT_WITH_HEATING_RATE = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_io.VECTOR_TARGET_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
+    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
 # The following constants are used to test find_file and file_name_to_year.
 EXAMPLE_DIR_NAME = 'foo'
 YEAR = 2018
@@ -603,6 +696,17 @@ class ExampleIoTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_UPWARD_PATHS
+        ))
+
+    def test_fluxes_to_heating_rate(self):
+        """Ensures correct output from fluxes_to_heating_rate."""
+
+        this_example_dict = example_io.fluxes_to_heating_rate(
+            copy.deepcopy(EXAMPLE_DICT_SANS_HEATING_RATE)
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_HEATING_RATE
         ))
 
     def test_find_file(self):

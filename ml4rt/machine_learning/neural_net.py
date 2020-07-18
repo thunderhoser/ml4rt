@@ -257,31 +257,33 @@ def _read_file_for_generator(
     else:
         example_id_strings = None
 
-    print('Applying {0:s} normalization to predictors...'.format(
-        predictor_norm_type_string.upper()
-    ))
-    example_dict = normalization.normalize_data(
-        new_example_dict=example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=predictor_norm_type_string,
-        min_normalized_value=predictor_min_norm_value,
-        max_normalized_value=predictor_max_norm_value,
-        separate_heights=True,
-        apply_to_predictors=True, apply_to_targets=False
-    )
+    if predictor_norm_type_string is not None:
+        print('Applying {0:s} normalization to predictors...'.format(
+            predictor_norm_type_string.upper()
+        ))
+        example_dict = normalization.normalize_data(
+            new_example_dict=example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=predictor_norm_type_string,
+            min_normalized_value=predictor_min_norm_value,
+            max_normalized_value=predictor_max_norm_value,
+            separate_heights=True,
+            apply_to_predictors=True, apply_to_targets=False
+        )
 
-    print('Applying {0:s} normalization to targets...'.format(
-        target_norm_type_string.upper()
-    ))
-    example_dict = normalization.normalize_data(
-        new_example_dict=example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=target_norm_type_string,
-        min_normalized_value=target_min_norm_value,
-        max_normalized_value=target_max_norm_value,
-        separate_heights=True,
-        apply_to_predictors=False, apply_to_targets=True
-    )
+    if target_norm_type_string is not None:
+        print('Applying {0:s} normalization to targets...'.format(
+            target_norm_type_string.upper()
+        ))
+        example_dict = normalization.normalize_data(
+            new_example_dict=example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=target_norm_type_string,
+            min_normalized_value=target_min_norm_value,
+            max_normalized_value=target_max_norm_value,
+            separate_heights=True,
+            apply_to_predictors=False, apply_to_targets=True
+        )
 
     last_example_index = (
         -1 if len(example_indices_in_file) == 0
@@ -330,31 +332,33 @@ def _read_specific_examples(
         example_dict=example_dict, desired_indices=good_indices
     )
 
-    print('Applying {0:s} normalization to predictors...'.format(
-        predictor_norm_type_string.upper()
-    ))
-    example_dict = normalization.normalize_data(
-        new_example_dict=example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=predictor_norm_type_string,
-        min_normalized_value=predictor_min_norm_value,
-        max_normalized_value=predictor_max_norm_value,
-        separate_heights=True,
-        apply_to_predictors=True, apply_to_targets=False
-    )
+    if predictor_norm_type_string is not None:
+        print('Applying {0:s} normalization to predictors...'.format(
+            predictor_norm_type_string.upper()
+        ))
+        example_dict = normalization.normalize_data(
+            new_example_dict=example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=predictor_norm_type_string,
+            min_normalized_value=predictor_min_norm_value,
+            max_normalized_value=predictor_max_norm_value,
+            separate_heights=True,
+            apply_to_predictors=True, apply_to_targets=False
+        )
 
-    print('Applying {0:s} normalization to targets...'.format(
-        target_norm_type_string.upper()
-    ))
-    example_dict = normalization.normalize_data(
-        new_example_dict=example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=target_norm_type_string,
-        min_normalized_value=target_min_norm_value,
-        max_normalized_value=target_max_norm_value,
-        separate_heights=True,
-        apply_to_predictors=False, apply_to_targets=True
-    )
+    if target_norm_type_string is not None:
+        print('Applying {0:s} normalization to targets...'.format(
+            target_norm_type_string.upper()
+        ))
+        example_dict = normalization.normalize_data(
+            new_example_dict=example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=target_norm_type_string,
+            min_normalized_value=target_min_norm_value,
+            max_normalized_value=target_max_norm_value,
+            separate_heights=True,
+            apply_to_predictors=False, apply_to_targets=True
+        )
 
     return example_dict
 
@@ -975,12 +979,14 @@ def data_generator(option_dict, for_inference, net_type_string,
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['predictor_norm_type_string']: Normalization type for predictors
-        (must be accepted by `normalization._check_normalization_type`).
+        (must be accepted by `normalization._check_normalization_type`).  If you
+        do not want to normalize predictors, make this None.
     option_dict['predictor_min_norm_value']: Minimum normalized value for
         predictors (used only if normalization type is min-max).
     option_dict['predictor_max_norm_value']: Same but max value.
     option_dict['target_norm_type_string']: Normalization type for targets (must
-        be accepted by `normalization._check_normalization_type`).
+        be accepted by `normalization._check_normalization_type`).  If you do
+        not want to normalize targets, make this None.
     option_dict['target_min_norm_value']: Minimum normalized value for targets
         (used only if normalization type is min-max).
     option_dict['target_max_norm_value']: Same but max value.
