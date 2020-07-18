@@ -477,9 +477,10 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
     min_height_km_agl = numpy.min(heights_km_agl)
     max_height_km_agl = numpy.max(heights_km_agl)
 
-    possibly_negative_score_names = [
-        MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME, BIAS_NAME, CORRELATION_NAME
-    ]
+    skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
+    possibly_negative_score_names = (
+        skill_score_names + [BIAS_NAME, CORRELATION_NAME]
+    )
 
     if score_name in possibly_negative_score_names:
         reference_x_coords = numpy.full(2, 0.)
@@ -500,6 +501,10 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
     if score_name in possibly_negative_score_names:
         x_min = numpy.minimum(numpy.min(score_values[finite_indices]), 0.)
         x_max = numpy.maximum(numpy.max(score_values[finite_indices]), 0.)
+
+        if score_name in skill_score_names:
+            x_min = numpy.maximum(x_min, -1.)
+
         axes_object.set_xlim(x_min, x_max)
     else:
         axes_object.set_xlim(left=0.)
