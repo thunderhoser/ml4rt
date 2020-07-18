@@ -57,6 +57,7 @@ FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 MIN_COLUMN_LWP_KEY = 'min_column_lwp_kg_m02'
 MAX_COLUMN_LWP_KEY = 'max_column_lwp_kg_m02'
+OMIT_HEATING_RATE_KEY = 'omit_heating_rate'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
 PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
 PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
@@ -73,6 +74,7 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     HEIGHTS_KEY: example_io.DEFAULT_HEIGHTS_M_AGL,
     MIN_COLUMN_LWP_KEY: 0.,
     MAX_COLUMN_LWP_KEY: LARGE_FLOAT,
+    OMIT_HEATING_RATE_KEY: False,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -146,6 +148,19 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
     error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
 
+    omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY]
+    error_checking.assert_is_boolean(omit_heating_rate)
+
+    required_vector_target_names = [
+        example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
+        example_io.SHORTWAVE_HEATING_RATE_NAME
+    ]
+    this_flag = all([
+        n in option_dict[VECTOR_TARGET_NAMES_KEY]
+        for n in required_vector_target_names
+    ])
+
+    option_dict[OMIT_HEATING_RATE_KEY] = omit_heating_rate and this_flag
     return option_dict
 
 
@@ -976,6 +991,9 @@ def data_generator(option_dict, for_inference, net_type_string,
     option_dict['min_column_lwp_kg_m02']: Minimum full-column liquid-water path
         (LWP; kg m^-2).
     option_dict['max_column_lwp_kg_m02']: Max full-column LWP (kg m^-2).
+    option_dict['omit_heating_rate']: Boolean flag.  If True, the net will not
+        directly predict heating rate, even if it is in the list of target
+        variables.
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['predictor_norm_type_string']: Normalization type for predictors
@@ -1046,11 +1064,17 @@ def data_generator(option_dict, for_inference, net_type_string,
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
     min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
     max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
+    omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
         scalar_target_names + vector_target_names
     )
+    if omit_heating_rate:
+        all_field_names = [
+            f for f in all_field_names
+            if f != example_io.SHORTWAVE_HEATING_RATE_NAME
+        ]
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]

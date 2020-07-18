@@ -342,14 +342,13 @@ def fluxes_to_heating_rate(example_dict):
     :param example_dict: Dictionary of examples (in the format returned by
         `read_file`).
     :return: example_dict: Same but with heating-rate profiles.
-    :raises: ValueError: if dictionary already includes heating-rate profiles.
     """
 
     # TODO(thunderhoser): Figure out why this method gives different answers
     # than the RRTM files from Dave Turner.
 
-    if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
-        raise ValueError('Dictionary already contains heating-rate profiles.')
+    # if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
+    #     raise ValueError('Dictionary already contains heating-rate profiles.')
 
     down_flux_matrix_w_m02 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
@@ -368,14 +367,18 @@ def fluxes_to_heating_rate(example_dict):
         numpy.gradient(net_flux_matrix_w_m02, axis=1) /
         numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
     )
-    heating_rate_matrix_k_day01 = numpy.expand_dims(
-        heating_rate_matrix_k_day01, axis=-1
-    )
 
-    example_dict[VECTOR_TARGET_NAMES_KEY].append(SHORTWAVE_HEATING_RATE_NAME)
-    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.concatenate((
-        example_dict[VECTOR_TARGET_VALS_KEY], heating_rate_matrix_k_day01
-    ), axis=-1)
+    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+    if SHORTWAVE_HEATING_RATE_NAME not in vector_target_names:
+        vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
+
+    heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
+    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+        example_dict[VECTOR_TARGET_VALS_KEY],
+        obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+    )
 
     return example_dict
 

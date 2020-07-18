@@ -126,6 +126,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
     generator_option_dict_unnorm = copy.deepcopy(generator_option_dict)
     generator_option_dict_unnorm[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+    generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
+        example_io.PRESSURE_NAME
+    ]
 
     scalar_target_matrix = None
     scalar_prediction_matrix = None
@@ -134,7 +137,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     example_id_strings = []
 
     vector_predictor_matrix_unnorm = None
-    vector_target_matrix_unnorm = None
 
     while True:
         this_scalar_target_matrix = None
@@ -206,12 +208,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 net_type_string=net_type_string,
                 example_id_strings=these_id_strings
             )
-            this_predictor_matrix_unnorm, these_target_matrices_unnorm = (
-                next(this_generator)
-            )
-
-            if not isinstance(these_target_matrices_unnorm, list):
-                these_target_matrices_unnorm = [these_target_matrices_unnorm]
+            this_predictor_matrix_unnorm = next(this_generator)[0]
 
             this_example_dict = neural_net.predictors_numpy_to_dict(
                 predictor_matrix=this_predictor_matrix_unnorm,
@@ -221,50 +218,15 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
             )
 
-            this_example_dict = neural_net.targets_numpy_to_dict(
-                target_matrices=these_target_matrices_unnorm,
-                example_dict=dummy_example_dict, net_type_string=net_type_string
-            )
-            this_vector_target_matrix_unnorm = (
-                this_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
-            )
-
             if vector_predictor_matrix_unnorm is None:
                 vector_predictor_matrix_unnorm = (
                     this_vector_predictor_matrix_unnorm + 0.
-                )
-                vector_target_matrix_unnorm = (
-                    this_vector_target_matrix_unnorm + 0.
                 )
             else:
                 vector_predictor_matrix_unnorm = numpy.concatenate((
                     vector_predictor_matrix_unnorm,
                     vector_predictor_matrix_unnorm
                 ), axis=0)
-
-                vector_target_matrix_unnorm = numpy.concatenate((
-                    vector_target_matrix_unnorm,
-                    this_vector_target_matrix_unnorm
-                ), axis=0)
-
-    # TODO(thunderhoser): Do heating-rate bullshit here.
-    if add_heating_rate:
-        num_examples = vector_target_matrix_unnorm.shape[0]
-        dummy_times_unix_sec = numpy.full(num_examples, 0, dtype=int)
-
-        this_example_dict = {
-            example_io.VECTOR_PREDICTOR_NAMES_KEY:
-                generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-            example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix_unnorm,
-            example_io.VECTOR_TARGET_NAMES_KEY:
-                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix_unnorm,
-            example_io.VALID_TIMES_KEY: dummy_times_unix_sec,
-            example_io.HEIGHTS_KEY:
-                generator_option_dict[neural_net.HEIGHTS_KEY]
-        }
-
-        this_example_dict = example_io.fluxes_to_heating_rate(this_example_dict)
 
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
@@ -331,6 +293,37 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         separate_heights=True, apply_to_predictors=False,
         apply_to_targets=True
     )
+
+    if add_heating_rate:
+        vector_target_names = (
+            prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        )
+        heating_rate_index = (
+            vector_target_names.index(example_io.SHORTWAVE_HEATING_RATE_NAME)
+        )
+        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+            numpy.insert(
+                prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+                obj=heating_rate_index, values=0., axis=-1
+            )
+        )
+
+        prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
+        )
+        prediction_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+            vector_predictor_matrix_unnorm
+        )
+
+        num_examples = vector_predictor_matrix_unnorm.shape[0]
+        dummy_times_unix_sec = numpy.full(num_examples, 0, dtype=int)
+        prediction_example_dict[example_io.VALID_TIMES_KEY] = (
+            dummy_times_unix_sec
+        )
+
+        prediction_example_dict = example_io.fluxes_to_heating_rate(
+            prediction_example_dict
+        )
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
