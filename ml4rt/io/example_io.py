@@ -345,6 +345,9 @@ def fluxes_to_heating_rate(example_dict):
     :raises: ValueError: if dictionary already includes heating-rate profiles.
     """
 
+    # TODO(thunderhoser): Figure out why this method gives different answers
+    # than the RRTM files from Dave Turner.
+
     if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
         raise ValueError('Dictionary already contains heating-rate profiles.')
 
