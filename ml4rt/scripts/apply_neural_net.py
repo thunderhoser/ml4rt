@@ -107,12 +107,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
 
-    scalar_target_matrix = None
-    scalar_prediction_matrix = None
-    vector_target_matrix = None
-    vector_prediction_matrix = None
-    example_id_strings = []
-
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     generator = neural_net.data_generator(
         option_dict=generator_option_dict, for_inference=True,
@@ -120,6 +114,27 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
 
     print(SEPARATOR_STRING)
+
+    dummy_example_dict = {
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
+
+    add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
+    generator_option_dict_unnorm = copy.deepcopy(generator_option_dict)
+    generator_option_dict_unnorm[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+
+    scalar_target_matrix = None
+    scalar_prediction_matrix = None
+    vector_target_matrix = None
+    vector_prediction_matrix = None
+    example_id_strings = []
+
+    vector_predictor_matrix_unnorm = None
+    vector_target_matrix_unnorm = None
 
     while True:
         this_scalar_target_matrix = None
@@ -185,6 +200,72 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                     axis=0
                 )
 
+        if add_heating_rate:
+            this_generator = neural_net.data_generator_specific_examples(
+                option_dict=generator_option_dict_unnorm,
+                net_type_string=net_type_string,
+                example_id_strings=these_id_strings
+            )
+            this_predictor_matrix_unnorm, these_target_matrices_unnorm = (
+                next(this_generator)
+            )
+
+            if not isinstance(these_target_matrices_unnorm, list):
+                these_target_matrices_unnorm = [these_target_matrices_unnorm]
+
+            this_example_dict = neural_net.predictors_numpy_to_dict(
+                predictor_matrix=this_predictor_matrix_unnorm,
+                example_dict=dummy_example_dict, net_type_string=net_type_string
+            )
+            this_vector_predictor_matrix_unnorm = (
+                this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+            )
+
+            this_example_dict = neural_net.targets_numpy_to_dict(
+                target_matrices=these_target_matrices_unnorm,
+                example_dict=dummy_example_dict, net_type_string=net_type_string
+            )
+            this_vector_target_matrix_unnorm = (
+                this_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+            )
+
+            if vector_predictor_matrix_unnorm is None:
+                vector_predictor_matrix_unnorm = (
+                    this_vector_predictor_matrix_unnorm + 0.
+                )
+                vector_target_matrix_unnorm = (
+                    this_vector_target_matrix_unnorm + 0.
+                )
+            else:
+                vector_predictor_matrix_unnorm = numpy.concatenate((
+                    vector_predictor_matrix_unnorm,
+                    vector_predictor_matrix_unnorm
+                ), axis=0)
+
+                vector_target_matrix_unnorm = numpy.concatenate((
+                    vector_target_matrix_unnorm,
+                    this_vector_target_matrix_unnorm
+                ), axis=0)
+
+    # TODO(thunderhoser): Do heating-rate bullshit here.
+    if add_heating_rate:
+        num_examples = vector_target_matrix_unnorm.shape[0]
+        dummy_times_unix_sec = numpy.full(num_examples, 0, dtype=int)
+
+        this_example_dict = {
+            example_io.VECTOR_PREDICTOR_NAMES_KEY:
+                generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+            example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix_unnorm,
+            example_io.VECTOR_TARGET_NAMES_KEY:
+                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix_unnorm,
+            example_io.VALID_TIMES_KEY: dummy_times_unix_sec,
+            example_io.HEIGHTS_KEY:
+                generator_option_dict[neural_net.HEIGHTS_KEY]
+        }
+
+        this_example_dict = example_io.fluxes_to_heating_rate(this_example_dict)
+
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
@@ -196,17 +277,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     training_example_dict = example_io.read_file(normalization_file_name)
 
     print('Denormalizing target (actual) and predicted values...')
-    target_example_dict = {
-        example_io.SCALAR_PREDICTOR_VALS_KEY: None,
-        example_io.VECTOR_PREDICTOR_VALS_KEY: None,
-        example_io.SCALAR_TARGET_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-        example_io.VECTOR_TARGET_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
-    }
-
-    prediction_example_dict = copy.deepcopy(target_example_dict)
 
     # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
     if net_type_string == neural_net.CNN_TYPE_STRING:
@@ -222,9 +292,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     new_example_dict = neural_net.targets_numpy_to_dict(
         target_matrices=these_target_matrices,
-        example_dict=target_example_dict, net_type_string=net_type_string
+        example_dict=dummy_example_dict, net_type_string=net_type_string
     )
 
+    target_example_dict = copy.deepcopy(dummy_example_dict)
     for this_key in TARGET_VALUE_KEYS:
         target_example_dict[this_key] = new_example_dict[this_key]
 
@@ -242,9 +313,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     new_example_dict = neural_net.targets_numpy_to_dict(
         target_matrices=these_prediction_matrices,
-        example_dict=prediction_example_dict, net_type_string=net_type_string
+        example_dict=dummy_example_dict, net_type_string=net_type_string
     )
 
+    prediction_example_dict = copy.deepcopy(dummy_example_dict)
     for this_key in TARGET_VALUE_KEYS:
         prediction_example_dict[this_key] = new_example_dict[this_key]
 
