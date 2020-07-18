@@ -297,19 +297,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
 
     if add_heating_rate:
-        vector_target_names = (
-            prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-        )
-        heating_rate_index = (
-            vector_target_names.index(example_io.SHORTWAVE_HEATING_RATE_NAME)
-        )
-        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
-            numpy.insert(
-                prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
-                obj=heating_rate_index, values=0., axis=-1
-            )
-        )
-
         prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
         )
@@ -323,6 +310,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             dummy_times_unix_sec
         )
 
+        prediction_example_dict = (
+            example_io.fluxes_increments_to_actual(prediction_example_dict)
+        )
         prediction_example_dict = example_io.fluxes_to_heating_rate(
             prediction_example_dict
         )
