@@ -213,18 +213,20 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     )
     init_example_dict.update(this_example_dict)
 
-    init_example_dict = normalization.denormalize_data(
-        new_example_dict=init_example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=
-        generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
-        min_normalized_value=
-        generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
-        max_normalized_value=
-        generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
-        separate_heights=True, apply_to_predictors=True,
-        apply_to_targets=False
-    )
+    if generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] is not None:
+        init_example_dict = normalization.denormalize_data(
+            new_example_dict=init_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=
+            generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
+            min_normalized_value=
+            generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=True,
+            apply_to_targets=False
+        )
+
     init_scalar_predictor_matrix = (
         init_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )
@@ -239,18 +241,20 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     )
     final_example_dict.update(this_example_dict)
 
-    final_example_dict = normalization.denormalize_data(
-        new_example_dict=final_example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=
-        generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
-        min_normalized_value=
-        generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
-        max_normalized_value=
-        generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
-        separate_heights=True, apply_to_predictors=True,
-        apply_to_targets=False
-    )
+    if generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] is not None:
+        final_example_dict = normalization.denormalize_data(
+            new_example_dict=final_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=
+            generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
+            min_normalized_value=
+            generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=True,
+            apply_to_targets=False
+        )
+
     final_scalar_predictor_matrix = (
         final_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
     )

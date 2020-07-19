@@ -284,17 +284,18 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     for this_key in TARGET_VALUE_KEYS:
         prediction_example_dict[this_key] = new_example_dict[this_key]
 
-    prediction_example_dict = normalization.denormalize_data(
-        new_example_dict=prediction_example_dict,
-        training_example_dict=training_example_dict,
-        normalization_type_string=target_norm_type_string,
-        min_normalized_value=
-        generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
-        max_normalized_value=
-        generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
-        separate_heights=True, apply_to_predictors=False,
-        apply_to_targets=True
-    )
+    if target_norm_type_string is not None:
+        prediction_example_dict = normalization.denormalize_data(
+            new_example_dict=prediction_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=target_norm_type_string,
+            min_normalized_value=
+            generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_targets=True
+        )
 
     if add_heating_rate:
         prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
