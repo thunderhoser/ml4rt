@@ -10,7 +10,6 @@ TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 USE_PMM_ARG_NAME = 'use_pmm'
 MAX_PERCENTILE_ARG_NAME = 'max_pmm_percentile_level'
-STANDARD_ATMO_TYPE_ARG_NAME = 'standard_atmo_enum'
 OUTPUT_FILE_ARG_NAME = 'output_prediction_file_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -24,10 +23,6 @@ USE_PMM_HELP_STRING = (
 MAX_PERCENTILE_HELP_STRING = (
     '[used only if `{0:s}` = 1] Max percentile level for probability-matched '
     'means.'
-)
-STANDARD_ATMO_TYPE_HELP_STRING = (
-    'Will average examples in this type of standard atmosphere (must be in list'
-    ' `example_io.STANDARD_ATMO_ENUMS`).'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file (with mean predicted and target values over all '
@@ -48,17 +43,12 @@ INPUT_ARG_PARSER.add_argument(
     help=MAX_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + STANDARD_ATMO_TYPE_ARG_NAME, type=int, required=True,
-    help=STANDARD_ATMO_TYPE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
 
 
-def _run(input_file_name, use_pmm, max_pmm_percentile_level, standard_atmo_enum,
-         output_file_name):
+def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
     """Averages predicted and target values over many examples.
 
     This is effectively the main method.
@@ -66,7 +56,6 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, standard_atmo_enum,
     :param input_file_name: See documentation at top of file.
     :param use_pmm: Same.
     :param max_pmm_percentile_level: Same.
-    :param standard_atmo_enum: Same.
     :param output_file_name: Same.
     """
 
@@ -76,13 +65,6 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, standard_atmo_enum,
         input_file_name
     ))
     prediction_dict = prediction_io.read_file(input_file_name)
-
-    print('Subsetting examples with standard atmosphere {0:d}...'.format(
-        standard_atmo_enum
-    ))
-    prediction_dict = prediction_io.subset_by_standard_atmo(
-        prediction_dict=prediction_dict, standard_atmo_enum=standard_atmo_enum
-    )
 
     num_examples = prediction_dict[prediction_io.VECTOR_TARGETS_KEY].shape[0]
 
@@ -101,9 +83,7 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, standard_atmo_enum,
             example_io.ZENITH_ANGLE_NAME
         ],
         example_io.SCALAR_PREDICTOR_VALS_KEY: dummy_predictor_matrix,
-        example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int),
-        example_io.STANDARD_ATMO_FLAGS_KEY:
-            numpy.array([standard_atmo_enum], dtype=int)
+        example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int)
     }
 
     example_id_strings = example_io.create_example_ids(dummy_example_dict)
@@ -133,9 +113,6 @@ if __name__ == '__main__':
         use_pmm=bool(getattr(INPUT_ARG_OBJECT, USE_PMM_ARG_NAME)),
         max_pmm_percentile_level=getattr(
             INPUT_ARG_OBJECT, MAX_PERCENTILE_ARG_NAME
-        ),
-        standard_atmo_enum=getattr(
-            INPUT_ARG_OBJECT, STANDARD_ATMO_TYPE_ARG_NAME
         ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
