@@ -83,7 +83,8 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
             example_io.ZENITH_ANGLE_NAME
         ],
         example_io.SCALAR_PREDICTOR_VALS_KEY: dummy_predictor_matrix,
-        example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int)
+        example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int),
+        example_io.STANDARD_ATMO_FLAGS_KEY: numpy.array([0], dtype=int)
     }
 
     example_id_strings = example_io.create_example_ids(dummy_example_dict)
