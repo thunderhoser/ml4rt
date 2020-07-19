@@ -225,3 +225,70 @@ def get_examples_for_inference(
             target_array = target_array[good_indices, ...]
 
     return predictor_matrix, target_array, example_id_strings
+
+
+def get_raw_examples(
+        example_file_name, num_examples, example_dir_name,
+        example_id_file_name):
+    """Returns raw examples.
+
+    The difference between `get_raw_examples` and `get_examples_for_inference`
+    is that `get_raw_examples` returns examples in their raw form, *not*
+    pre-processed to be fed through a model for inference.
+
+    :param example_file_name: See doc for `get_examples_for_inference`.
+    :param num_examples: Same.
+    :param example_dir_name: Same.
+    :param example_id_file_name: Same.
+    :return: example_dict: See doc for `example_io.read_file`.
+    """
+
+    error_checking.assert_is_string(example_file_name)
+    use_specific_ids = example_file_name == ''
+
+    if use_specific_ids:
+        error_checking.assert_is_string(example_id_file_name)
+
+        print('Reading desired example IDs from: "{0:s}"...'.format(
+            example_id_file_name
+        ))
+        example_id_strings = read_example_ids_from_netcdf(example_id_file_name)
+
+        valid_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
+            example_io.VALID_TIMES_KEY
+        ]
+        example_file_names = example_io.find_many_files(
+            example_dir_name=example_dir_name,
+            first_time_unix_sec=numpy.min(valid_times_unix_sec),
+            last_time_unix_sec=numpy.max(valid_times_unix_sec)
+        )
+
+        num_files = len(example_file_names)
+        example_dicts = [dict()] * num_files
+
+        for i in range(num_files):
+            print('Reading data from: "{0:s}"...'.format(example_file_names[i]))
+            example_dicts[i] = example_io.read_file(example_file_names[i])
+
+        example_dict = example_io.concat_examples(example_dicts)
+
+        all_id_strings = example_io.create_example_ids(example_dict)
+        good_indices = example_io.find_examples(
+            all_id_strings=all_id_strings,
+            desired_id_strings=example_id_strings, allow_missing=False
+        )
+        example_dict = example_io.subset_by_index(
+            example_dict=example_dict, desired_indices=good_indices
+        )
+    else:
+        error_checking.assert_is_string(example_dir_name)
+        error_checking.assert_is_integer(num_examples)
+        error_checking.assert_is_greater(num_examples, 0)
+
+        print('Reading data from: "{0:s}"...'.format(example_file_name))
+        example_dict = example_io.read_file(example_file_name)
+        example_dict = example_io.reduce_sample_size(
+            example_dict=example_dict, num_examples_to_keep=num_examples
+        )[0]
+
+    return example_dict
