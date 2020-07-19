@@ -121,7 +121,8 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_dict = example_io.reduce_sample_size(
             example_dict=example_dict, num_examples_to_keep=num_examples
         )
-
+    
+    print(example_dict[example_io.VALID_TIMES_KEY])
     num_examples = len(
         example_dict[example_io.VALID_TIMES_KEY]
     )
