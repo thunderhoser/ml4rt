@@ -239,7 +239,7 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
             vector_prediction_matrix[example_indices, ...]
         )
 
-    if num_examples >= num_examples_total:
+    if num_examples is not None and num_examples >= num_examples_total:
         num_examples = None
 
     if num_examples is not None:
