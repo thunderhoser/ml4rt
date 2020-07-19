@@ -121,7 +121,7 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_dict = example_io.reduce_sample_size(
             example_dict=example_dict, num_examples_to_keep=num_examples
         )[0]
-    
+
     num_examples = len(
         example_dict[example_io.VALID_TIMES_KEY]
     )
@@ -130,6 +130,11 @@ def _run(example_file_name, num_examples, example_dir_name,
     mean_example_dict = example_io.average_examples(
         example_dict=example_dict, use_pmm=use_pmm,
         max_pmm_percentile_level=max_pmm_percentile_level
+    )
+
+    mean_example_dict[example_io.VALID_TIMES_KEY] = numpy.array([-1], dtype=int)
+    mean_example_dict[example_io.STANDARD_ATMO_FLAGS_KEY] = numpy.array(
+        [example_io.US_STANDARD_ATMO_ENUM], dtype=int
     )
 
     print('Writing mean example to: "{0:s}"...'.format(output_file_name))
