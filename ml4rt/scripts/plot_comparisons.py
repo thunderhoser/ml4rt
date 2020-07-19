@@ -116,11 +116,11 @@ def _plot_comparisons_fancy(
     for i in range(num_examples):
         this_handle_dict = profile_plotting.plot_targets(
             example_dict=target_example_dict, example_index=i,
-            use_log_scale=False, line_style='solid', handle_dict=None
+            use_log_scale=True, line_style='solid', handle_dict=None
         )
         profile_plotting.plot_targets(
             example_dict=prediction_example_dict, example_index=i,
-            use_log_scale=False, line_style='dashed',
+            use_log_scale=True, line_style='dashed',
             handle_dict=this_handle_dict
         )
 
@@ -162,7 +162,7 @@ def _plot_comparisons_simple(
             this_figure_object, this_axes_object = (
                 profile_plotting.plot_one_variable(
                     values=vector_target_matrix[i, :, k],
-                    heights_m_agl=heights_m_agl, use_log_scale=False,
+                    heights_m_agl=heights_m_agl, use_log_scale=True,
                     line_colour=TARGET_NAME_TO_COLOUR[target_names[k]],
                     line_style='solid', figure_object=None
                 )
@@ -170,7 +170,7 @@ def _plot_comparisons_simple(
 
             profile_plotting.plot_one_variable(
                 values=vector_prediction_matrix[i, :, k],
-                heights_m_agl=heights_m_agl, use_log_scale=False,
+                heights_m_agl=heights_m_agl, use_log_scale=True,
                 line_colour=TARGET_NAME_TO_COLOUR[target_names[k]],
                 line_style='dashed', figure_object=this_figure_object
             )
