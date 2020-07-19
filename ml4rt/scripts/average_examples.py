@@ -1,29 +1,25 @@
 """Averages many examples."""
 
-import pickle
 import argparse
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import file_system_utils
+import numpy
 from ml4rt.io import example_io
+from ml4rt.utils import misc as misc_utils
+from ml4rt.scripts import make_saliency_maps
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
-INPUT_DIR_ARG_NAME = 'input_example_dir_name'
-FIRST_TIME_ARG_NAME = 'first_time_string'
-LAST_TIME_ARG_NAME = 'last_time_string'
+EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
+NUM_EXAMPLES_ARG_NAME = make_saliency_maps.NUM_EXAMPLES_ARG_NAME
+EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
+EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
 USE_PMM_ARG_NAME = 'use_pmm'
 MAX_PERCENTILE_ARG_NAME = 'max_pmm_percentile_level'
-STANDARD_ATMO_TYPE_ARG_NAME = 'standard_atmo_enum'
-OUTPUT_FILE_ARG_NAME = 'output_pickle_file_name'
+OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
-INPUT_DIR_HELP_STRING = (
-    'Name of input directory (with unaveraged examples).  Files therein will be'
-    ' found by `example_io.find_file` and read by `example_io.read_file`.'
-)
-TIME_HELP_STRING = (
-    'Time (format "yyyy-mm-dd-HHMMSS").  Only examples between `{0:s}` and '
-    '`{1:s}` will be averaged.'
-)
+EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
+NUM_EXAMPLES_HELP_STRING = make_saliency_maps.NUM_EXAMPLES_HELP_STRING
+EXAMPLE_DIR_HELP_STRING = make_saliency_maps.EXAMPLE_DIR_HELP_STRING
+EXAMPLE_ID_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_ID_FILE_HELP_STRING
 USE_PMM_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use probability-matched (arithmetic) means '
     'for vertical profiles.'
@@ -32,22 +28,27 @@ MAX_PERCENTILE_HELP_STRING = (
     '[used only if `{0:s}` = 1] Max percentile level for probability-matched '
     'means.'
 )
-STANDARD_ATMO_TYPE_HELP_STRING = (
-    'Will average examples in this type of standard atmosphere (must be in list'
-    ' `example_io.STANDARD_ATMO_ENUMS`).'
+OUTPUT_FILE_HELP_STRING = (
+    'Path to output file.  Average of all examples will be written here by '
+    '`example_io.write_file`.'
 )
-OUTPUT_FILE_HELP_STRING = 'Path to output (Pickle) file.'
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
-    help=INPUT_DIR_HELP_STRING
+    '--' + EXAMPLE_FILE_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + FIRST_TIME_ARG_NAME, type=str, required=True, help=TIME_HELP_STRING
+    '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_EXAMPLES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + LAST_TIME_ARG_NAME, type=str, required=True, help=TIME_HELP_STRING
+    '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXAMPLE_ID_FILE_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_ID_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + USE_PMM_ARG_NAME, type=int, required=True, help=USE_PMM_HELP_STRING
@@ -57,72 +58,70 @@ INPUT_ARG_PARSER.add_argument(
     help=MAX_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + STANDARD_ATMO_TYPE_ARG_NAME, type=int, required=True,
-    help=STANDARD_ATMO_TYPE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
 
 
-def _run(example_dir_name, first_time_string, last_time_string, use_pmm,
-         max_pmm_percentile_level, standard_atmo_enum, output_file_name):
+def _run(example_file_name, num_examples, example_dir_name,
+         example_id_file_name, use_pmm, max_pmm_percentile_level,
+         output_file_name):
     """Averages many examples.
 
     This is effectively the main method.
 
-    :param example_dir_name: See documentation at top of file.
-    :param first_time_string: Same.
-    :param last_time_string: Same.
+    :param example_file_name: Same.
+    :param num_examples: Same.
+    :param example_dir_name: Same.
+    :param example_id_file_name: Same.
     :param use_pmm: Same.
     :param max_pmm_percentile_level: Same.
-    :param standard_atmo_enum: Same.
     :param output_file_name: Same.
     """
 
-    first_time_unix_sec = time_conversion.string_to_unix_sec(
-        first_time_string, TIME_FORMAT
-    )
-    last_time_unix_sec = time_conversion.string_to_unix_sec(
-        last_time_string, TIME_FORMAT
-    )
-    example_file_names = example_io.find_many_files(
-        example_dir_name=example_dir_name,
-        first_time_unix_sec=first_time_unix_sec,
-        last_time_unix_sec=last_time_unix_sec
-    )
+    use_specific_ids = example_file_name == ''
 
-    num_files = len(example_file_names)
-    example_dicts = [dict()] * num_files
-
-    for i in range(num_files):
-        print('Reading data from: "{0:s}"...'.format(example_file_names[i]))
-        example_dicts[i] = example_io.read_file(example_file_names[i])
-
-        example_dicts[i] = example_io.subset_by_time(
-            example_dict=example_dicts[i],
-            first_time_unix_sec=first_time_unix_sec,
-            last_time_unix_sec=last_time_unix_sec
-        )[0]
-
-        this_orig_num_examples = len(
-            example_dicts[i][example_io.VALID_TIMES_KEY]
-        )
-        example_dicts[i] = example_io.subset_by_standard_atmo(
-            example_dict=example_dicts[i], standard_atmo_enum=standard_atmo_enum
-        )[0]
-        this_num_examples = len(
-            example_dicts[i][example_io.VALID_TIMES_KEY]
-        )
-
-        print((
-            '{0:d} of {1:d} examples have standard-atmosphere type {2:d}.\n'
-        ).format(
-            this_num_examples, this_orig_num_examples, standard_atmo_enum
+    if use_specific_ids:
+        print('Reading desired example IDs from: "{0:s}"...'.format(
+            example_id_file_name
         ))
+        example_id_strings = (
+            misc_utils.read_example_ids_from_netcdf(example_id_file_name)
+        )
 
-    example_dict = example_io.concat_examples(example_dicts)
+        valid_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
+            example_io.VALID_TIMES_KEY
+        ]
+        example_file_names = example_io.find_many_files(
+            example_dir_name=example_dir_name,
+            first_time_unix_sec=numpy.min(valid_times_unix_sec),
+            last_time_unix_sec=numpy.max(valid_times_unix_sec)
+        )
+
+        num_files = len(example_file_names)
+        example_dicts = [dict()] * num_files
+
+        for i in range(num_files):
+            print('Reading data from: "{0:s}"...'.format(example_file_names[i]))
+            example_dicts[i] = example_io.read_file(example_file_names[i])
+
+        example_dict = example_io.concat_examples(example_dicts)
+
+        all_id_strings = example_io.create_example_ids(example_dict)
+        good_indices = example_io.find_examples(
+            all_id_strings=all_id_strings,
+            desired_id_strings=example_id_strings, allow_missing=False
+        )
+        example_dict = example_io.subset_by_index(
+            example_dict=example_dict, desired_indices=good_indices
+        )
+    else:
+        print('Reading data from: "{0:s}"...'.format(example_file_name))
+        example_dict = example_io.read_file(example_file_name)
+        example_dict = example_io.reduce_sample_size(
+            example_dict=example_dict, num_examples_to_keep=num_examples
+        )
+
     num_examples = len(
         example_dict[example_io.VALID_TIMES_KEY]
     )
@@ -134,26 +133,24 @@ def _run(example_dir_name, first_time_string, last_time_string, use_pmm,
     )
 
     print('Writing mean example to: "{0:s}"...'.format(output_file_name))
-    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
-
-    pickle_file_handle = open(output_file_name, 'wb')
-    pickle.dump(mean_example_dict, pickle_file_handle)
-    pickle_file_handle.close()
+    example_io.write_file(
+        example_dict=mean_example_dict, netcdf_file_name=output_file_name
+    )
 
 
 if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        example_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
-        first_time_string=getattr(INPUT_ARG_OBJECT, FIRST_TIME_ARG_NAME),
-        last_time_string=getattr(INPUT_ARG_OBJECT, LAST_TIME_ARG_NAME),
+        example_file_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_FILE_ARG_NAME),
+        num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
+        example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
+        example_id_file_name=getattr(
+            INPUT_ARG_OBJECT, EXAMPLE_ID_FILE_ARG_NAME
+        ),
         use_pmm=bool(getattr(INPUT_ARG_OBJECT, USE_PMM_ARG_NAME)),
         max_pmm_percentile_level=getattr(
             INPUT_ARG_OBJECT, MAX_PERCENTILE_ARG_NAME
-        ),
-        standard_atmo_enum=getattr(
-            INPUT_ARG_OBJECT, STANDARD_ATMO_TYPE_ARG_NAME
         ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

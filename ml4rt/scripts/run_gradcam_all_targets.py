@@ -117,7 +117,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         raise ValueError(error_string)
 
     predictor_matrix, _, example_id_strings = (
-        misc_utils.get_examples_from_inference(
+        misc_utils.get_examples_for_inference(
             model_metadata_dict=metadata_dict,
             example_file_name=example_file_name,
             num_examples=num_examples, example_dir_name=example_dir_name,

@@ -7,6 +7,7 @@ import netCDF4
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 
 TOLERANCE = 1e-6
@@ -64,6 +65,8 @@ ONE_PER_FIELD_KEYS = [
     VECTOR_TARGET_VALS_KEY, VECTOR_TARGET_NAMES_KEY
 ]
 
+TIME_DIMENSION_KEY_ORIG = 'time'
+HEIGHT_DIMENSION_KEY_ORIG = 'height'
 VALID_TIMES_KEY_ORIG = 'time'
 HEIGHTS_KEY_ORIG = 'height'
 STANDARD_ATMO_FLAGS_KEY_ORIG = 'stdatmos'
@@ -172,8 +175,9 @@ TARGET_NAME_TO_ORIG = {
 }
 
 
-def _get_water_content_profiles(layerwise_path_matrix_kg_m02, heights_m_agl):
-    """Computes profiles of liquid- or ice-water content (LWC or IWC).
+def _layerwise_water_path_to_content(
+        layerwise_path_matrix_kg_m02, heights_m_agl):
+    """Converts profile of layerwise water path to profile of water content.
 
     E = number of examples
     H = number of heights
@@ -202,6 +206,34 @@ def _get_water_content_profiles(layerwise_path_matrix_kg_m02, heights_m_agl):
     )
 
     return layerwise_path_matrix_kg_m02 / grid_cell_width_matrix_metres
+
+
+def _water_content_to_layerwise_path(
+        water_content_matrix_kg_m03, heights_m_agl):
+    """Converts profile of water content to layerwise water path.
+
+    This method is the inverse of `_layerwise_water_path_to_content`.
+
+    :param water_content_matrix_kg_m03: See doc for
+        `_layerwise_water_path_to_content`.
+    :param heights_m_agl: Same.
+    :return: layerwise_path_matrix_kg_m02: Same.
+    """
+
+    edge_heights_m_agl = get_grid_cell_edges(heights_m_agl)
+    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
+
+    num_examples = water_content_matrix_kg_m03.shape[0]
+    num_heights = water_content_matrix_kg_m03.shape[1]
+
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
+    )
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
+    )
+
+    return water_content_matrix_kg_m03 * grid_cell_width_matrix_metres
 
 
 def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
@@ -791,7 +823,7 @@ def read_file(example_file_name):
         if DEFAULT_VECTOR_PREDICTOR_NAMES[k] in [
                 LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
         ]:
-            vector_predictor_matrix[..., k] = _get_water_content_profiles(
+            vector_predictor_matrix[..., k] = _layerwise_water_path_to_content(
                 layerwise_path_matrix_kg_m02=vector_predictor_matrix[..., k],
                 heights_m_agl=example_dict[HEIGHTS_KEY]
             )
@@ -838,6 +870,97 @@ def read_file(example_file_name):
         example_dict=example_dict, get_lwp=True, get_iwp=True,
         integrate_upward=True
     )
+
+
+def write_file(example_dict, netcdf_file_name):
+    """Writes learning examples to NetCDF file.
+
+    :param example_dict: See doc for `read_file`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    dataset_object = netCDF4.Dataset(
+        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+    )
+
+    num_times = len(example_dict[VALID_TIMES_KEY])
+    num_heights = len(example_dict[HEIGHTS_KEY])
+    dataset_object.createDimension(TIME_DIMENSION_KEY_ORIG, num_times)
+    dataset_object.createDimension(HEIGHT_DIMENSION_KEY_ORIG, num_heights)
+
+    dataset_object.createVariable(
+        VALID_TIMES_KEY_ORIG, datatype=numpy.int32,
+        dimensions=TIME_DIMENSION_KEY_ORIG
+    )
+    dataset_object.variables[VALID_TIMES_KEY_ORIG][:] = (
+        example_dict[VALID_TIMES_KEY]
+    )
+
+    dataset_object.createVariable(
+        HEIGHTS_KEY_ORIG, datatype=numpy.float32,
+        dimensions=HEIGHT_DIMENSION_KEY_ORIG
+    )
+    dataset_object.variables[HEIGHTS_KEY_ORIG][:] = (
+        example_dict[HEIGHTS_KEY] / KM_TO_METRES
+    )
+
+    dataset_object.createVariable(
+        STANDARD_ATMO_FLAGS_KEY_ORIG, datatype=numpy.int32,
+        dimensions=TIME_DIMENSION_KEY_ORIG
+    )
+    dataset_object.variables[STANDARD_ATMO_FLAGS_KEY_ORIG][:] = (
+        example_dict[STANDARD_ATMO_FLAGS_KEY]
+    )
+
+    orig_field_name_to_new = {
+        value: key for key, value in PREDICTOR_NAME_TO_ORIG.items()
+    }
+    orig_target_name_to_new = {
+        value: key for key, value in TARGET_NAME_TO_ORIG.items()
+    }
+    orig_field_name_to_new.update(orig_target_name_to_new)
+
+    orig_field_names = list(orig_field_name_to_new.keys())
+
+    for this_orig_field_name in orig_field_names:
+        this_field_name = orig_field_name_to_new[this_orig_field_name]
+
+        try:
+            this_conversion_factor = (
+                PREDICTOR_NAME_TO_CONV_FACTOR[this_field_name]
+            )
+        except KeyError:
+            this_conversion_factor = 1.
+
+        this_data_matrix = get_field_from_dict(
+            example_dict=example_dict, field_name=this_field_name
+        )
+
+        if this_field_name in [
+                LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
+        ]:
+            this_data_matrix = _water_content_to_layerwise_path(
+                water_content_matrix_kg_m03=this_data_matrix,
+                heights_m_agl=example_dict[HEIGHTS_KEY]
+            )
+
+        this_data_matrix = this_data_matrix / this_conversion_factor
+
+        if len(this_data_matrix.shape) == 2:
+            these_dimensions = (
+                TIME_DIMENSION_KEY_ORIG, HEIGHT_DIMENSION_KEY_ORIG
+            )
+        else:
+            these_dimensions = TIME_DIMENSION_KEY_ORIG
+
+        dataset_object.createVariable(
+            this_orig_field_name, datatype=numpy.float32,
+            dimensions=these_dimensions
+        )
+        dataset_object.variables[this_orig_field_name][:] = this_data_matrix
+
+    dataset_object.close()
 
 
 def concat_examples(example_dicts):

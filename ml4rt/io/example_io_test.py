@@ -9,7 +9,7 @@ from ml4rt.io import example_io
 TOLERANCE = 1e-6
 
 # The following constants are used to test get_grid_cell_edges,
-# get_grid_cell_widths, _get_water_content_profiles, and
+# get_grid_cell_widths, _layerwise_water_path_to_content, and
 # _get_water_path_profiles.
 CENTER_HEIGHTS_M_AGL = numpy.array([
     10, 20, 40, 60, 80, 100, 30000, 33000, 36000, 39000, 42000, 46000, 50000
@@ -699,16 +699,31 @@ class ExampleIoTests(unittest.TestCase):
             these_widths_metres, GRID_CELL_WIDTHS_METRES, atol=TOLERANCE
         ))
 
-    def test_get_water_content_profiles(self):
-        """Ensures correct output from _get_water_content_profiles."""
+    def test_layerwise_water_path_to_content(self):
+        """Ensures correct output from _layerwise_water_path_to_content."""
 
-        this_content_matrix_kg_m03 = example_io._get_water_content_profiles(
-            layerwise_path_matrix_kg_m02=LAYERWISE_PATH_MATRIX_KG_M02,
-            heights_m_agl=CENTER_HEIGHTS_M_AGL
+        this_content_matrix_kg_m03 = (
+            example_io._layerwise_water_path_to_content(
+                layerwise_path_matrix_kg_m02=LAYERWISE_PATH_MATRIX_KG_M02,
+                heights_m_agl=CENTER_HEIGHTS_M_AGL
+            )
         )
 
         self.assertTrue(numpy.allclose(
             this_content_matrix_kg_m03, WATER_CONTENT_MATRIX_KG03,
+            atol=TOLERANCE
+        ))
+
+    def test_water_content_to_layerwise_path(self):
+        """Ensures correct output from _water_content_to_layerwise_path."""
+
+        this_path_matrix_kg_m02 = example_io._water_content_to_layerwise_path(
+            water_content_matrix_kg_m03=WATER_CONTENT_MATRIX_KG03,
+            heights_m_agl=CENTER_HEIGHTS_M_AGL
+        )
+
+        self.assertTrue(numpy.allclose(
+            this_path_matrix_kg_m02, LAYERWISE_PATH_MATRIX_KG_M02,
             atol=TOLERANCE
         ))
 

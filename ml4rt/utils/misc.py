@@ -134,7 +134,7 @@ def read_example_ids_from_netcdf(netcdf_file_name):
     return example_id_strings
 
 
-def get_examples_from_inference(
+def get_examples_for_inference(
         model_metadata_dict, example_file_name, num_examples, example_dir_name,
         example_id_file_name):
     """Returns examples to be used by a model at inference stage.
