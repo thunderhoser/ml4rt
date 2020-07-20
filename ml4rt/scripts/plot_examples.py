@@ -165,6 +165,8 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_id_file_name=example_id_file_name
     )
 
+    example_id_strings = example_io.create_example_ids(example_dict)
+
     if model_file_name != '':
         model_metafile_name = neural_net.find_metafile(
             os.path.split(model_file_name)[0]
@@ -189,9 +191,7 @@ def _run(example_file_name, num_examples, example_dir_name,
             example_dict=example_dict, field_names=all_field_names
         )
 
-    example_id_strings = example_io.create_example_ids(example_dict)
     num_examples = len(example_id_strings)
-
     for i in range(num_examples):
         _plot_one_example(
             example_dict=example_dict, example_index=i,
