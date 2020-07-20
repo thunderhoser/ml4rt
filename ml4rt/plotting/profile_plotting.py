@@ -277,7 +277,6 @@ def plot_predictors(
                     example_io.ICE_WATER_PATH_NAME,
                     example_io.UPWARD_ICE_WATER_PATH_NAME
                 ]:
-                    numpy.set_printoptions(sys.maxsize)
                     print(predictor_names[k])
                     print(these_predictor_values)
                     print('\n\n')
