@@ -16,12 +16,17 @@ PRMSE_NAME = 'prmse'
 LOW_BIAS_NAME = 'low_bias'
 HIGH_BIAS_NAME = 'high_bias'
 MSE_SKILL_SCORE_NAME = 'mse_skill_score'
-VALID_CRITERION_NAMES = [
-    PRMSE_NAME, LOW_BIAS_NAME, HIGH_BIAS_NAME, MSE_SKILL_SCORE_NAME
+
+VALID_CRITERION_NAMES_WITH_HEIGHT = [
+    LOW_BIAS_NAME, HIGH_BIAS_NAME, MSE_SKILL_SCORE_NAME
 ]
+VALID_CRITERION_NAMES_SANS_HEIGHT = (
+    [PRMSE_NAME] + VALID_CRITERION_NAMES_WITH_HEIGHT
+)
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 TARGET_ARG_NAME = 'target_name'
+TARGET_HEIGHT_ARG_NAME = 'target_height_m_agl'
 CRITERION_ARG_NAME = 'criterion_name'
 NUM_BEST_ARG_NAME = 'num_best_examples'
 NUM_WORST_ARG_NAME = 'num_worst_examples'
@@ -36,12 +41,18 @@ TARGET_HELP_STRING = (
     'Name of target variable.  Will find best/worst predictions for this '
     'variable only.'
 )
+TARGET_HEIGHT_HELP_STRING = (
+    'Height of target variable.  Will find best/worst predictions for `{0:s}` '
+    'at this height only.  If you do not want to focus on a specific height, '
+    'leave this alone.'
+).format(TARGET_ARG_NAME)
+
 CRITERION_HELP_STRING = (
     'Criterion used to select best and worst predictions.  If PRMSE, will be '
     'based on entire profiles (since PRMSE is defined only one per profile).  '
     'Otherwise, will be based on min/max over all heights in the profile.  '
     'Criterion must be in the following list:\n{0:s}'
-).format(str(VALID_CRITERION_NAMES))
+).format(str(VALID_CRITERION_NAMES_SANS_HEIGHT))
 
 NUM_BEST_HELP_STRING = 'Number of best-predicted examples to save.'
 NUM_WORST_HELP_STRING = 'Number of worst-predicted examples to save.'
@@ -60,6 +71,10 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + TARGET_ARG_NAME, type=str, required=True, help=TARGET_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + TARGET_HEIGHT_ARG_NAME, type=int, required=False, default=-1,
+    help=TARGET_HEIGHT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + CRITERION_ARG_NAME, type=str, required=True,
@@ -83,21 +98,22 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_prediction_file_name, target_name, criterion_name,
-         num_best_examples, num_worst_examples, best_prediction_file_name,
-         worst_prediction_file_name):
+def _run(input_prediction_file_name, target_name, target_height_m_agl,
+         criterion_name, num_best_examples, num_worst_examples,
+         best_prediction_file_name, worst_prediction_file_name):
     """Finds extreme examples (those with the best and worst predictions).
 
     This is effectively the main method.
 
     :param input_prediction_file_name: See documentation at top of file.
     :param target_name: Same.
+    :param target_height_m_agl: Same.
     :param criterion_name: Same.
     :param num_best_examples: Same.
     :param num_worst_examples: Same.
     :param best_prediction_file_name: Same.
     :param worst_prediction_file_name: Same.
-    :raises: ValueError: if `criterion_name not in VALID_CRITERION_NAMES`.
+    :raises: ValueError: if criterion is invalid.
     :raises: ValueError: if `target_name` is not a target variable for the
         model.
     """
@@ -106,11 +122,19 @@ def _run(input_prediction_file_name, target_name, criterion_name,
     error_checking.assert_is_geq(num_worst_examples, 0)
     error_checking.assert_is_greater(num_best_examples + num_worst_examples, 0)
 
-    if criterion_name not in VALID_CRITERION_NAMES:
+    if target_height_m_agl < 0:
+        target_height_m_agl = None
+
+    valid_criterion_names = (
+        VALID_CRITERION_NAMES_SANS_HEIGHT if target_height_m_agl is None
+        else VALID_CRITERION_NAMES_WITH_HEIGHT
+    )
+
+    if criterion_name not in valid_criterion_names:
         error_string = (
             '\n"{0:s}" is not a valid criterion.  Must be in the following '
             'list:\n{1:s}'
-        ).format(criterion_name, str(VALID_CRITERION_NAMES))
+        ).format(criterion_name, str(valid_criterion_names))
 
         raise ValueError(error_string)
 
@@ -145,6 +169,17 @@ def _run(input_prediction_file_name, target_name, criterion_name,
     vector_prediction_matrix = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., target_index]
     )
+
+    if target_height_m_agl is not None:
+        height_index = example_io.match_heights(
+            heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY],
+            desired_height_m_agl=target_height_m_agl
+        )
+
+        vector_target_matrix = vector_target_matrix[:, [height_index], :]
+        vector_prediction_matrix = (
+            vector_prediction_matrix[:, [height_index], :]
+        )
 
     if criterion_name == PRMSE_NAME:
         scores_to_find_best = numpy.sqrt(numpy.mean(
@@ -304,6 +339,7 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME
         ),
         target_name=getattr(INPUT_ARG_OBJECT, TARGET_ARG_NAME),
+        target_height_m_agl=getattr(INPUT_ARG_OBJECT, TARGET_HEIGHT_ARG_NAME),
         criterion_name=getattr(INPUT_ARG_OBJECT, CRITERION_ARG_NAME),
         num_best_examples=getattr(INPUT_ARG_OBJECT, NUM_BEST_ARG_NAME),
         num_worst_examples=getattr(INPUT_ARG_OBJECT, NUM_WORST_ARG_NAME),
