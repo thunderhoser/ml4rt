@@ -1,5 +1,6 @@
 """Methods for plotting vertical profiles."""
 
+import sys
 import copy
 import numpy
 import matplotlib
@@ -266,6 +267,16 @@ def plot_predictors(
                     these_predictor_values
                 )
             else:
+                if predictor_names[k] in [
+                    example_io.ICE_WATER_CONTENT_NAME,
+                    example_io.ICE_WATER_PATH_NAME,
+                    example_io.UPWARD_ICE_WATER_PATH_NAME
+                ]:
+                    numpy.set_printoptions(sys.maxsize)
+                    print(predictor_names[k])
+                    print(these_predictor_values)
+                    print('\n\n')
+
                 these_predictor_values = (
                     PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
                     these_predictor_values
