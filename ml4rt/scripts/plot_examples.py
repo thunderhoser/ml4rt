@@ -32,6 +32,7 @@ EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
 NUM_EXAMPLES_ARG_NAME = make_saliency_maps.NUM_EXAMPLES_ARG_NAME
 EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
 EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
+USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 MODEL_FILE_ARG_NAME = 'model_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -39,6 +40,10 @@ EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
 NUM_EXAMPLES_HELP_STRING = make_saliency_maps.NUM_EXAMPLES_HELP_STRING
 EXAMPLE_DIR_HELP_STRING = make_saliency_maps.EXAMPLE_DIR_HELP_STRING
 EXAMPLE_ID_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_ID_FILE_HELP_STRING
+USE_LOG_SCALE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
+    'axis.'
+)
 MODEL_FILE_HELP_STRING = (
     '[optional] Path to model (readable by `neural_net.read_model`).  If '
     'specified, this script will plot only the variables/heights used by the '
@@ -64,6 +69,10 @@ INPUT_ARG_PARSER.add_argument(
     help=EXAMPLE_ID_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
+    help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + MODEL_FILE_ARG_NAME, type=str, required=False, default='',
     help=MODEL_FILE_HELP_STRING
 )
@@ -74,12 +83,14 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _plot_one_example(
-        example_dict, example_index, example_id_string, output_dir_name):
+        example_dict, example_index, example_id_string, use_log_scale,
+        output_dir_name):
     """Plots data for one example.
 
     :param example_dict: See doc for `example_io.read_file`.
     :param example_index: Will plot results for example with this array index.
     :param example_id_string: Example ID.
+    :param use_log_scale: See documentation at top of file.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     """
@@ -108,7 +119,7 @@ def _plot_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True
+            use_log_scale=use_log_scale
         )
 
         output_file_name = '{0:s}/{1:s}_predictor-set-{2:d}.jpg'.format(
@@ -125,7 +136,7 @@ def _plot_one_example(
 
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
-        use_log_scale=True, line_width=LINE_WIDTH, line_style='solid'
+        use_log_scale=use_log_scale, line_width=LINE_WIDTH, line_style='solid'
     )
 
     output_file_name = '{0:s}/{1:s}_targets.jpg'.format(
@@ -142,7 +153,7 @@ def _plot_one_example(
 
 
 def _run(example_file_name, num_examples, example_dir_name,
-         example_id_file_name, model_file_name, output_dir_name):
+         example_id_file_name, use_log_scale, model_file_name, output_dir_name):
     """Plots profiles (vector predictor and target variables) for each example.
 
     This is effectively the main method.
@@ -151,6 +162,7 @@ def _run(example_file_name, num_examples, example_dir_name,
     :param num_examples: Same.
     :param example_dir_name: Same.
     :param example_id_file_name: Same.
+    :param use_log_scale: Same.
     :param model_file_name: Same.
     :param output_dir_name: Same.
     """
@@ -196,7 +208,7 @@ def _run(example_file_name, num_examples, example_dir_name,
         _plot_one_example(
             example_dict=example_dict, example_index=i,
             example_id_string=example_id_strings[i],
-            output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
 
         print(MINOR_SEPARATOR_STRING)
@@ -212,6 +224,7 @@ if __name__ == '__main__':
         example_id_file_name=getattr(
             INPUT_ARG_OBJECT, EXAMPLE_ID_FILE_ARG_NAME
         ),
+        use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

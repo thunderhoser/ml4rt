@@ -37,11 +37,16 @@ pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
 pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
 GRADCAM_FILE_ARG_NAME = 'input_gradcam_file_name'
+USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 GRADCAM_FILE_HELP_STRING = (
     'Path to Grad-CAM file (will be read by `gradcam.read_standard_file`).'
+)
+USE_LOG_SCALE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
+    'axis.'
 )
 PREDICTION_FILE_HELP_STRING = (
     'Path to prediction file (will be read by `prediction_io.read_file`).  For '
@@ -59,6 +64,10 @@ INPUT_ARG_PARSER.add_argument(
     help=GRADCAM_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
+    help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + PREDICTION_FILE_ARG_NAME, type=str, required=False, default='',
     help=PREDICTION_FILE_HELP_STRING
 )
@@ -69,14 +78,15 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _plot_one_example(
-        gradcam_dict, example_index, model_metadata_dict, title_string,
-        output_dir_name):
+        gradcam_dict, example_index, model_metadata_dict, use_log_scale,
+        title_string, output_dir_name):
     """Plots class-activation map for one example.
 
     :param gradcam_dict: Dictionary read by `gradcam.read_standard_file`.
     :param example_index: Will plot class-activation map for example with this
         array index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
+    :param use_log_scale: See documentation at top of file.
     :param title_string: Figure title.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
@@ -85,7 +95,8 @@ def _plot_one_example(
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
-    axes_object.set_yscale('log')
+    if use_log_scale:
+        axes_object.set_yscale('log')
 
     class_activations = (
         gradcam_dict[gradcam.CLASS_ACTIVATIONS_KEY][example_index, ...]
@@ -103,7 +114,7 @@ def _plot_one_example(
     )
 
     y_tick_strings = profile_plotting.create_height_labels(
-        tick_values_km_agl=axes_object.get_yticks(), use_log_scale=True
+        tick_values_km_agl=axes_object.get_yticks(), use_log_scale=use_log_scale
     )
     axes_object.set_yticklabels(y_tick_strings)
 
@@ -124,12 +135,14 @@ def _plot_one_example(
     pyplot.close(figure_object)
 
 
-def _run(gradcam_file_name, prediction_file_name, output_dir_name):
+def _run(gradcam_file_name, use_log_scale, prediction_file_name,
+         output_dir_name):
     """Plots Grad-CAM output (class-activation maps).
 
     This is effectively the main method.
 
     :param gradcam_file_name: See documentation at top of file.
+    :param use_log_scale: Same.
     :param prediction_file_name: Same.
     :param output_dir_name: Same.
     """
@@ -197,7 +210,7 @@ def _run(gradcam_file_name, prediction_file_name, output_dir_name):
 
         _plot_one_example(
             gradcam_dict=gradcam_dict, example_index=i,
-            model_metadata_dict=model_metadata_dict,
+            model_metadata_dict=model_metadata_dict, use_log_scale=use_log_scale,
             title_string=this_title_string, output_dir_name=output_dir_name
         )
 
@@ -207,6 +220,7 @@ if __name__ == '__main__':
 
     _run(
         gradcam_file_name=getattr(INPUT_ARG_OBJECT, GRADCAM_FILE_ARG_NAME),
+        use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         prediction_file_name=getattr(
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),

@@ -37,6 +37,7 @@ TARGET_NAME_TO_COLOUR = {
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 EXAMPLE_INDICES_ARG_NAME = 'example_indices'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
+USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
@@ -53,6 +54,10 @@ NUM_EXAMPLES_HELP_STRING = (
     'alone.'
 ).format(EXAMPLE_INDICES_ARG_NAME)
 
+USE_LOG_SCALE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
+    'axis.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -71,6 +76,10 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_EXAMPLES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
+    help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -78,7 +87,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_comparisons_fancy(
         vector_target_matrix, vector_prediction_matrix, model_metadata_dict,
-        output_dir_name):
+        use_log_scale, output_dir_name):
     """Plots fancy comparisons (with all target variables in the same plot).
 
     E = number of examples
@@ -91,6 +100,7 @@ def _plot_comparisons_fancy(
         values.
     :param model_metadata_dict: Dictionary returned by
         `neural_net.read_metadata`.
+    :param use_log_scale: See documentation at top of file.
     :param output_dir_name: Path to output directory (figures will be saved
         here).
     """
@@ -116,11 +126,11 @@ def _plot_comparisons_fancy(
     for i in range(num_examples):
         this_handle_dict = profile_plotting.plot_targets(
             example_dict=target_example_dict, example_index=i,
-            use_log_scale=True, line_style='solid', handle_dict=None
+            use_log_scale=use_log_scale, line_style='solid', handle_dict=None
         )
         profile_plotting.plot_targets(
             example_dict=prediction_example_dict, example_index=i,
-            use_log_scale=True, line_style='dashed',
+            use_log_scale=use_log_scale, line_style='dashed',
             handle_dict=this_handle_dict
         )
 
@@ -141,12 +151,13 @@ def _plot_comparisons_fancy(
 
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, model_metadata_dict,
-        output_dir_name):
+        use_log_scale, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
     :param vector_target_matrix: See doc for `_plot_comparisons_fancy`.
     :param vector_prediction_matrix: Same.
     :param model_metadata_dict: Same.
+    :param use_log_scale: Same.
     :param output_dir_name: Same.
     """
 
@@ -162,7 +173,7 @@ def _plot_comparisons_simple(
             this_figure_object, this_axes_object = (
                 profile_plotting.plot_one_variable(
                     values=vector_target_matrix[i, :, k],
-                    heights_m_agl=heights_m_agl, use_log_scale=True,
+                    heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
                     line_colour=TARGET_NAME_TO_COLOUR[target_names[k]],
                     line_style='solid', figure_object=None
                 )
@@ -170,7 +181,7 @@ def _plot_comparisons_simple(
 
             profile_plotting.plot_one_variable(
                 values=vector_prediction_matrix[i, :, k],
-                heights_m_agl=heights_m_agl, use_log_scale=True,
+                heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
                 line_colour=TARGET_NAME_TO_COLOUR[target_names[k]],
                 line_style='dashed', figure_object=this_figure_object
             )
@@ -192,7 +203,8 @@ def _plot_comparisons_simple(
             pyplot.close(this_figure_object)
 
 
-def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
+def _run(prediction_file_name, example_indices, num_examples, use_log_scale,
+         output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
@@ -200,6 +212,7 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
     :param prediction_file_name: See documentation at top of file.
     :param example_indices: Same.
     :param num_examples: Same.
+    :param use_log_scale: Same.
     :param output_dir_name: Same.
     """
 
@@ -277,14 +290,14 @@ def _run(prediction_file_name, example_indices, num_examples, output_dir_name):
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,
             model_metadata_dict=model_metadata_dict,
-            output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
     else:
         _plot_comparisons_simple(
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,
             model_metadata_dict=model_metadata_dict,
-            output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
 
 
@@ -299,5 +312,6 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, EXAMPLE_INDICES_ARG_NAME), dtype=int
         ),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
+        use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

@@ -110,11 +110,16 @@ pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
 pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
 SALIENCY_FILE_ARG_NAME = 'input_saliency_file_name'
+USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 SALIENCY_FILE_HELP_STRING = (
     'Path to saliency file (will be read by `saliency.read_standard_file`).'
+)
+USE_LOG_SCALE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
+    'axis.'
 )
 PREDICTION_FILE_HELP_STRING = (
     'Path to prediction file (will be read by `prediction_io.read_file`).  For '
@@ -131,6 +136,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + SALIENCY_FILE_ARG_NAME, type=str, required=True,
     help=SALIENCY_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
+    help=USE_LOG_SCALE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PREDICTION_FILE_ARG_NAME, type=str, required=False, default='',
@@ -221,14 +230,15 @@ def _get_target_values(
 
 
 def _plot_saliency_one_example(
-        saliency_dict, example_index, model_metadata_dict, legend_suffix,
-        output_dir_name):
+        saliency_dict, example_index, model_metadata_dict, use_log_scale,
+        legend_suffix, output_dir_name):
     """Plots saliency map for one example.
 
     :param saliency_dict: Dictionary read by `saliency.read_standard_file`.
     :param example_index: Will plot saliency map for example with this array
         index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
+    :param use_log_scale: See documentation at top of file.
     :param legend_suffix: End of figure legend.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
@@ -294,7 +304,7 @@ def _plot_saliency_one_example(
             predictor_colours=predictor_colours,
             predictor_line_widths=numpy.full(len(these_indices), 2),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, include_units=False, handle_dict=None
+            use_log_scale=use_log_scale, include_units=False, handle_dict=None
         )
 
         axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
@@ -341,7 +351,7 @@ def _plot_saliency_one_example(
             predictor_colours=predictor_colours,
             predictor_line_widths=numpy.full(len(these_indices), 2),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, include_units=False, handle_dict=None
+            use_log_scale=use_log_scale, include_units=False, handle_dict=None
         )
 
         axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
@@ -388,7 +398,7 @@ def _plot_saliency_one_example(
             predictor_colours=predictor_colours,
             predictor_line_widths=numpy.full(len(these_indices), 2),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, include_units=False, handle_dict=None
+            use_log_scale=use_log_scale, include_units=False, handle_dict=None
         )
 
         axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
@@ -438,7 +448,7 @@ def _plot_saliency_one_example(
             predictor_colours=predictor_colours,
             predictor_line_widths=numpy.full(len(these_indices), 2),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, include_units=False, handle_dict=None
+            use_log_scale=use_log_scale, include_units=False, handle_dict=None
         )
 
         output_file_name = '{0:s}/{1:s}_first_scalar_predictors.jpg'.format(
@@ -475,7 +485,7 @@ def _plot_saliency_one_example(
             predictor_colours=predictor_colours,
             predictor_line_widths=numpy.full(len(these_indices), 2),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, include_units=False, handle_dict=None
+            use_log_scale=use_log_scale, include_units=False, handle_dict=None
         )
 
         output_file_name = '{0:s}/{1:s}_second_scalar_predictors.jpg'.format(
@@ -491,12 +501,14 @@ def _plot_saliency_one_example(
         pyplot.close(figure_object)
 
 
-def _run(saliency_file_name, prediction_file_name, output_dir_name):
+def _run(saliency_file_name, use_log_scale, prediction_file_name,
+         output_dir_name):
     """Plots saliency maps (one for each example).
 
     This is effectively the main method.
 
     :param saliency_file_name: See documentation at top of file.
+    :param use_log_scale: Same.
     :param prediction_file_name: Same.
     :param output_dir_name: Same.
     """
@@ -553,6 +565,7 @@ def _run(saliency_file_name, prediction_file_name, output_dir_name):
         _plot_saliency_one_example(
             saliency_dict=saliency_dict, example_index=i,
             model_metadata_dict=model_metadata_dict,
+            use_log_scale=use_log_scale,
             legend_suffix=this_legend_suffix, output_dir_name=output_dir_name
         )
 
@@ -565,6 +578,7 @@ if __name__ == '__main__':
 
     _run(
         saliency_file_name=getattr(INPUT_ARG_OBJECT, SALIENCY_FILE_ARG_NAME),
+        use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         prediction_file_name=getattr(
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),

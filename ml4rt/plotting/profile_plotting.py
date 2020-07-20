@@ -1,6 +1,5 @@
 """Methods for plotting vertical profiles."""
 
-import sys
 import copy
 import numpy
 import matplotlib
@@ -271,15 +270,6 @@ def plot_predictors(
                     PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
                     these_predictor_values
                 )
-
-                if predictor_names[k] in [
-                    example_io.ICE_WATER_CONTENT_NAME,
-                    example_io.ICE_WATER_PATH_NAME,
-                    example_io.UPWARD_ICE_WATER_PATH_NAME
-                ]:
-                    print(predictor_names[k])
-                    print(these_predictor_values)
-                    print('\n\n')
 
         axes_objects[k].plot(
             these_predictor_values, heights_km_agl, color=predictor_colours[k],

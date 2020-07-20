@@ -81,11 +81,16 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_ARG_NAME = 'input_eval_file_name'
+USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PLOT_BY_HEIGHT_ARG_NAME = 'plot_by_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file (will be read by `evaluation.write_file`).'
+)
+USE_LOG_SCALE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
+    'axis.'
 )
 PLOT_BY_HEIGHT_HELP_STRING = (
     'Boolean flag.  If 1, will plot Taylor diagram and attributes diagram for '
@@ -101,6 +106,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
+    help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_BY_HEIGHT_ARG_NAME, type=int, required=False, default=1,
     help=PLOT_BY_HEIGHT_HELP_STRING
 )
@@ -110,12 +119,13 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, plot_by_height, output_dir_name):
+def _run(input_file_name, use_log_scale, plot_by_height, output_dir_name):
     """Plots model evaluation.
 
     This is effectively the main method.
 
     :param input_file_name: See documentation at top of file.
+    :param use_log_scale: Same.
     :param plot_by_height: Same.
     :param output_dir_name: Same.
     """
@@ -190,7 +200,8 @@ def _run(input_file_name, plot_by_height, output_dir_name):
                 heights_m_agl=heights_m_agl,
                 score_values=result_table_xarray[this_key].values[:, k],
                 score_name=this_score_name, line_colour=PROFILE_COLOUR,
-                line_width=2, use_log_scale=False, axes_object=this_axes_object
+                line_width=2, use_log_scale=use_log_scale,
+                axes_object=this_axes_object
             )
 
             this_score_name_verbose = SCORE_NAME_TO_VERBOSE[this_score_name]
@@ -755,6 +766,7 @@ if __name__ == '__main__':
 
     _run(
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

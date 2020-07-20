@@ -50,11 +50,16 @@ THIRD_PREDICTOR_NAMES = [
 THIRD_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
+USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file.  Will be read by '
     '`backwards_optimization.read_standard_file`.'
+)
+USE_LOG_SCALE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
+    'axis.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
@@ -66,19 +71,25 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
+    help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _plot_results_one_example(
-        bwo_dict, example_index, model_metadata_dict, output_dir_name):
+        bwo_dict, example_index, model_metadata_dict, use_log_scale,
+        output_dir_name):
     """Plots results for one example.
 
     :param bwo_dict: Dictionary read by
         `backwards_optimization.read_standard_file`.
     :param example_index: Will plot results for example with this array index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
+    :param use_log_scale: See documentation at top of file.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
@@ -157,7 +168,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), SOLID_LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, handle_dict=None
+            use_log_scale=use_log_scale, handle_dict=None
         )
 
         profile_plotting.plot_predictors(
@@ -167,7 +178,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), DASHED_LINE_WIDTH),
             predictor_line_styles=['dashed'] * len(these_indices),
-            use_log_scale=True, handle_dict=handle_dict
+            use_log_scale=use_log_scale, handle_dict=handle_dict
         )
 
         output_file_name = '{0:s}/{1:s}_first_predictors.jpg'.format(
@@ -190,7 +201,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), SOLID_LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, handle_dict=None
+            use_log_scale=use_log_scale, handle_dict=None
         )
 
         output_file_name = '{0:s}/{1:s}_first_predictors_diffs.jpg'.format(
@@ -225,7 +236,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), SOLID_LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, handle_dict=None
+            use_log_scale=use_log_scale, handle_dict=None
         )
 
         profile_plotting.plot_predictors(
@@ -235,7 +246,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), DASHED_LINE_WIDTH),
             predictor_line_styles=['dashed'] * len(these_indices),
-            use_log_scale=True, handle_dict=handle_dict
+            use_log_scale=use_log_scale, handle_dict=handle_dict
         )
 
         output_file_name = '{0:s}/{1:s}_second_predictors.jpg'.format(
@@ -258,7 +269,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), SOLID_LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, handle_dict=None
+            use_log_scale=use_log_scale, handle_dict=None
         )
 
         output_file_name = '{0:s}/{1:s}_second_predictors_diffs.jpg'.format(
@@ -285,7 +296,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), SOLID_LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, handle_dict=None
+            use_log_scale=use_log_scale, handle_dict=None
         )
 
         profile_plotting.plot_predictors(
@@ -295,7 +306,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), DASHED_LINE_WIDTH),
             predictor_line_styles=['dashed'] * len(these_indices),
-            use_log_scale=True, handle_dict=handle_dict
+            use_log_scale=use_log_scale, handle_dict=handle_dict
         )
 
         output_file_name = '{0:s}/{1:s}_third_predictors.jpg'.format(
@@ -318,7 +329,7 @@ def _plot_results_one_example(
             predictor_line_widths=
             numpy.full(len(these_indices), SOLID_LINE_WIDTH),
             predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=True, handle_dict=None
+            use_log_scale=use_log_scale, handle_dict=None
         )
 
         output_file_name = '{0:s}/{1:s}_third_predictors_diffs.jpg'.format(
@@ -334,12 +345,13 @@ def _plot_results_one_example(
         pyplot.close(figure_object)
 
 
-def _run(input_file_name, output_dir_name):
+def _run(input_file_name, use_log_scale, output_dir_name):
     """Plots results of backwards optimization.
 
     This is effectively the main method.
 
     :param input_file_name: See documentation at top of file.
+    :param use_log_scale: Same.
     :param output_dir_name: Same.
     """
 
@@ -367,7 +379,7 @@ def _run(input_file_name, output_dir_name):
         _plot_results_one_example(
             bwo_dict=bwo_dict, example_index=i,
             model_metadata_dict=model_metadata_dict,
-            output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
 
         if i != num_examples - 1:
@@ -379,5 +391,6 @@ if __name__ == '__main__':
 
     _run(
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
