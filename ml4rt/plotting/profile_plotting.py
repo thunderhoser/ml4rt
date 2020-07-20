@@ -267,6 +267,11 @@ def plot_predictors(
                     these_predictor_values
                 )
             else:
+                these_predictor_values = (
+                    PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
+                    these_predictor_values
+                )
+
                 if predictor_names[k] in [
                     example_io.ICE_WATER_CONTENT_NAME,
                     example_io.ICE_WATER_PATH_NAME,
@@ -276,11 +281,6 @@ def plot_predictors(
                     print(predictor_names[k])
                     print(these_predictor_values)
                     print('\n\n')
-
-                these_predictor_values = (
-                    PREDICTOR_NAME_TO_CONV_FACTOR[predictor_names[k]] *
-                    these_predictor_values
-                )
 
         axes_objects[k].plot(
             these_predictor_values, heights_km_agl, color=predictor_colours[k],
