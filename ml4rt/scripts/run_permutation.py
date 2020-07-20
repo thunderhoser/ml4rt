@@ -7,15 +7,18 @@ from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import permutation
 from ml4rt.scripts import make_saliency_maps
 
-# TODO(thunderhoser): Make cost function an input arg.
-
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+MSE_NAME = 'mse'
+DUAL_WEIGHTED_MSE_NAME = 'dual_weighted_mse_name'
+VALID_COST_FUNCTION_NAMES = [MSE_NAME, DUAL_WEIGHTED_MSE_NAME]
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
 NUM_EXAMPLES_ARG_NAME = make_saliency_maps.NUM_EXAMPLES_ARG_NAME
 EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
 EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
+COST_FUNCTION_ARG_NAME = 'cost_function_name'
 DO_BACKWARDS_ARG_NAME = 'do_backwards_test'
 SHUFFLE_TOGETHER_ARG_NAME = 'shuffle_profiles_together'
 NUM_BOOTSTRAP_ARG_NAME = 'num_bootstrap_reps'
@@ -28,6 +31,10 @@ EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
 NUM_EXAMPLES_HELP_STRING = make_saliency_maps.NUM_EXAMPLES_HELP_STRING
 EXAMPLE_DIR_HELP_STRING = make_saliency_maps.EXAMPLE_DIR_HELP_STRING
 EXAMPLE_ID_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_ID_FILE_HELP_STRING
+COST_FUNCTION_HELP_STRING = (
+    'Cost function.  Must be in the following list:\n{0:s}'
+).format(str(VALID_COST_FUNCTION_NAMES))
+
 DO_BACKWARDS_HELP_STRING = (
     'Boolean flag.  If 1, will run backwards permutation test.  If 0, will run '
     'forward permutation test.'
@@ -68,9 +75,13 @@ INPUT_ARG_PARSER.add_argument(
     help=EXAMPLE_ID_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + COST_FUNCTION_ARG_NAME, type=str, required=False, default=MSE_NAME,
+    help=COST_FUNCTION_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + DO_BACKWARDS_ARG_NAME, type=int, required=False, default=0,
-    help=DO_BACKWARDS_HELP_STRING)
-
+    help=DO_BACKWARDS_HELP_STRING
+)
 INPUT_ARG_PARSER.add_argument(
     '--' + SHUFFLE_TOGETHER_ARG_NAME, type=int, required=False, default=1,
     help=SHUFFLE_TOGETHER_HELP_STRING
@@ -86,8 +97,8 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(model_file_name, example_file_name, num_examples, example_dir_name,
-         example_id_file_name, do_backwards_test, shuffle_profiles_together,
-         num_bootstrap_reps, output_file_name):
+         example_id_file_name, cost_function_name, do_backwards_test,
+         shuffle_profiles_together, num_bootstrap_reps, output_file_name):
     """Runs permutation-based importance test.
 
     This is effectively the main method.
@@ -97,11 +108,26 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     :param num_examples: Same.
     :param example_dir_name: Same.
     :param example_id_file_name: Same.
+    :param cost_function_name: Same.
     :param do_backwards_test: Same.
     :param shuffle_profiles_together: Same.
     :param num_bootstrap_reps: Same.
     :param output_file_name: Same.
+    :raises: ValueError: if
+        `cost_function_name not in VALID_COST_FUNCTION_NAMES`.
     """
+
+    if cost_function_name not in VALID_COST_FUNCTION_NAMES:
+        error_string = (
+            '\nCost function ("{0:s}") should be in the following list:\n{1:s}'
+        ).format(cost_function_name, str(VALID_COST_FUNCTION_NAMES))
+
+        raise ValueError(error_string)
+
+    if cost_function_name == MSE_NAME:
+        cost_function = permutation.mse_cost_function
+    else:
+        cost_function = permutation.dual_weighted_mse_cost_function
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
@@ -131,7 +157,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         result_dict = permutation.run_backwards_test(
             predictor_matrix=predictor_matrix, target_matrices=target_matrices,
             model_object=model_object, model_metadata_dict=metadata_dict,
-            cost_function=permutation.mse_cost_function,
+            cost_function=cost_function,
             shuffle_profiles_together=shuffle_profiles_together,
             num_bootstrap_reps=num_bootstrap_reps
         )
@@ -139,7 +165,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         result_dict = permutation.run_forward_test(
             predictor_matrix=predictor_matrix, target_matrices=target_matrices,
             model_object=model_object, model_metadata_dict=metadata_dict,
-            cost_function=permutation.mse_cost_function,
+            cost_function=cost_function,
             shuffle_profiles_together=shuffle_profiles_together,
             num_bootstrap_reps=num_bootstrap_reps
         )
@@ -166,6 +192,7 @@ if __name__ == '__main__':
         example_id_file_name=getattr(
             INPUT_ARG_OBJECT, EXAMPLE_ID_FILE_ARG_NAME
         ),
+        cost_function_name=getattr(INPUT_ARG_OBJECT, COST_FUNCTION_ARG_NAME),
         do_backwards_test=bool(getattr(
             INPUT_ARG_OBJECT, DO_BACKWARDS_ARG_NAME
         )),

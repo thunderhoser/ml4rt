@@ -671,6 +671,25 @@ def mse_cost_function(target_matrices, prediction_matrices):
     return numpy.average(mse_by_matrix, weights=num_values_by_matrix)
 
 
+def dual_weighted_mse_cost_function(target_matrices, prediction_matrices):
+    """Implements dual-weighted MSE (mean squared error) as cost function.
+
+    :param target_matrices: See doc for `mse_cost_function`.
+    :param prediction_matrices: Same.
+    :return: cost: Dual-weighted MSE.
+    """
+
+    dwmse_by_matrix = numpy.array([
+        numpy.mean(numpy.maximum(t, p) * (t - p) ** 2) for t, p in
+        zip(target_matrices, prediction_matrices)
+    ])
+    num_values_by_matrix = numpy.array(
+        [t.size for t in target_matrices], dtype=float
+    )
+
+    return numpy.average(dwmse_by_matrix, weights=num_values_by_matrix)
+
+
 def run_forward_test(
         predictor_matrix, target_matrices, model_object, model_metadata_dict,
         cost_function, shuffle_profiles_together=True,

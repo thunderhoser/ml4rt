@@ -61,7 +61,8 @@ SECOND_HEIGHTS_M_AGL = numpy.array(
     [2000, 100, 2000, 2000, 10, 10, 2000, 100, 10, 100, 10, 100], dtype=int
 )
 
-# The following constants are used to test mse_cost_function.
+# The following constants are used to test mse_cost_function and
+# dual_weighted_mse_cost_function.
 FIRST_TARGET_MATRIX = numpy.array([
     [1, 2, 3, 4],
     [5, 6, 7, 8],
@@ -90,6 +91,16 @@ TARGET_MATRICES = [FIRST_TARGET_MATRIX, SECOND_TARGET_MATRIX]
 PREDICTION_MATRICES = [FIRST_PREDICTION_MATRIX, SECOND_PREDICTION_MATRIX]
 
 MEAN_SQUARED_ERROR = (7938.75 + 182) / (72 + 12)
+
+THESE_NUMBERS = numpy.linspace(1, 72, num=72, dtype=float)
+FIRST_ERRORS = THESE_NUMBERS * (0.25 * THESE_NUMBERS) ** 2
+THESE_NUMBERS = numpy.linspace(10, 60, num=6, dtype=float)
+THESE_NUMBERS = numpy.concatenate((THESE_NUMBERS, THESE_NUMBERS))
+SECOND_ERRORS = THESE_NUMBERS * (0.1 * THESE_NUMBERS) ** 2
+
+DUAL_WEIGHTED_MSE = (
+    (numpy.sum(FIRST_ERRORS) + numpy.sum(SECOND_ERRORS)) / (72 + 12)
+)
 
 
 class PermutationTests(unittest.TestCase):
@@ -263,6 +274,18 @@ class PermutationTests(unittest.TestCase):
 
         self.assertTrue(numpy.isclose(
             this_mse, MEAN_SQUARED_ERROR, atol=TOLERANCE
+        ))
+
+    def test_dual_weighted_mse_cost_function(self):
+        """Ensures correct output from dual_weighted_mse_cost_function."""
+
+        this_error = permutation.dual_weighted_mse_cost_function(
+            target_matrices=TARGET_MATRICES,
+            prediction_matrices=PREDICTION_MATRICES
+        )
+
+        self.assertTrue(numpy.isclose(
+            this_error, DUAL_WEIGHTED_MSE, atol=TOLERANCE
         ))
 
 
