@@ -176,10 +176,17 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
             desired_height_m_agl=target_height_m_agl
         )
 
-        vector_target_matrix = vector_target_matrix[:, [height_index], :]
-        vector_prediction_matrix = (
-            vector_prediction_matrix[:, [height_index], :]
+        vector_target_matrix = numpy.take(
+            vector_target_matrix, indices=[height_index], axis=1
         )
+        vector_prediction_matrix = numpy.take(
+            vector_prediction_matrix, indices=[height_index], axis=1
+        )
+
+        # vector_target_matrix = vector_target_matrix[:, [height_index], :]
+        # vector_prediction_matrix = (
+        #     vector_prediction_matrix[:, [height_index], :]
+        # )
 
     if criterion_name == PRMSE_NAME:
         scores_to_find_best = numpy.sqrt(numpy.mean(
