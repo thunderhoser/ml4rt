@@ -10,7 +10,7 @@ from ml4rt.scripts import make_saliency_maps
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 MSE_NAME = 'mse'
-DUAL_WEIGHTED_MSE_NAME = 'dual_weighted_mse_name'
+DUAL_WEIGHTED_MSE_NAME = 'dual_weighted_mse'
 VALID_COST_FUNCTION_NAMES = [MSE_NAME, DUAL_WEIGHTED_MSE_NAME]
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
