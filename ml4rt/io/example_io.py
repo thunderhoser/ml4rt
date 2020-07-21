@@ -16,8 +16,10 @@ KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
 
 DAYS_TO_SECONDS = 86400.
-GRAVITY_CONSTANT_M_S02 = 9.80665
-DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
+# GRAVITY_CONSTANT_M_S02 = 9.80665
+# DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
+GRAVITY_CONSTANT_M_S02 = 9.8066
+DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 1004.
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
@@ -380,12 +382,6 @@ def fluxes_to_heating_rate(example_dict):
     :return: example_dict: Same but with heating-rate profiles.
     """
 
-    # TODO(thunderhoser): Figure out why this method gives different answers
-    # than the RRTM files from Dave Turner.
-
-    # if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
-    #     raise ValueError('Dictionary already contains heating-rate profiles.')
-
     down_flux_matrix_w_m02 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
     )
@@ -394,14 +390,35 @@ def fluxes_to_heating_rate(example_dict):
     )
     pressure_matrix_pascals = get_field_from_dict(
         example_dict=example_dict, field_name=PRESSURE_NAME
+    ) + 0.
+
+    dummy_pressure_matrix_pascals = (
+        pressure_matrix_pascals[:, [-1]] +
+        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
+    )
+    pressure_matrix_pascals = numpy.concatenate(
+        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
     )
 
     net_flux_matrix_w_m02 = down_flux_matrix_w_m02 - up_flux_matrix_w_m02
+    dummy_net_flux_matrix_w_m02 = (
+        net_flux_matrix_w_m02[:, [-1]] +
+        (net_flux_matrix_w_m02[:, [-1]] - net_flux_matrix_w_m02[:, [-2]])
+    )
+    net_flux_matrix_w_m02 = numpy.concatenate(
+        (net_flux_matrix_w_m02, dummy_net_flux_matrix_w_m02), axis=1
+    )
+
     coefficient = GRAVITY_CONSTANT_M_S02 / DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
 
+    # heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
+    #     numpy.gradient(net_flux_matrix_w_m02, axis=1) /
+    #     numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
+    # )
+
     heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
-        numpy.gradient(net_flux_matrix_w_m02, axis=1) /
-        numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
+        numpy.diff(net_flux_matrix_w_m02, axis=1) /
+        numpy.absolute(numpy.diff(pressure_matrix_pascals, axis=1))
     )
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
