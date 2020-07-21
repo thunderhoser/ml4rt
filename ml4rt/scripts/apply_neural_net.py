@@ -226,7 +226,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 example_id_strings=these_id_strings
             )
             this_predictor_matrix_unnorm = next(this_generator)[0]
-            print(this_predictor_matrix_unnorm.shape)
 
             this_example_dict = neural_net.predictors_numpy_to_dict(
                 predictor_matrix=this_predictor_matrix_unnorm,
@@ -317,7 +316,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
             generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
         )
-        print(vector_predictor_matrix_unnorm.shape)
         prediction_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
             vector_predictor_matrix_unnorm
         )
@@ -333,6 +331,14 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         )
         prediction_example_dict = example_io.fluxes_to_heating_rate(
             prediction_example_dict
+        )
+
+        target_names = (
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+        )
+        prediction_example_dict = example_io.subset_by_field(
+            example_dict=prediction_example_dict, field_names=target_names
         )
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
