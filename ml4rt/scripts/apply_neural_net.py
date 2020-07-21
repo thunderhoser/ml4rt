@@ -225,10 +225,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 example_id_strings=these_id_strings
             )
             this_predictor_matrix_unnorm = next(this_generator)[0]
+            print(this_predictor_matrix_unnorm.shape)
+
+            this_example_dict = copy.deepcopy(dummy_example_dict)
+            this_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
+                [example_io.PRESSURE_NAME]
+            )
 
             this_example_dict = neural_net.predictors_numpy_to_dict(
                 predictor_matrix=this_predictor_matrix_unnorm,
-                example_dict=dummy_example_dict, net_type_string=net_type_string
+                example_dict=this_example_dict, net_type_string=net_type_string
             )
             this_vector_predictor_matrix_unnorm = (
                 this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
