@@ -241,7 +241,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             else:
                 vector_predictor_matrix_unnorm = numpy.concatenate((
                     vector_predictor_matrix_unnorm,
-                    vector_predictor_matrix_unnorm
+                    this_vector_predictor_matrix_unnorm
                 ), axis=0)
 
     normalization_file_name = (
