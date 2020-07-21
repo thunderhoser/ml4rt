@@ -313,6 +313,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             dummy_times_unix_sec
         )
 
+        print(prediction_example_dict)
         prediction_example_dict = (
             example_io.fluxes_increments_to_actual(prediction_example_dict)
         )

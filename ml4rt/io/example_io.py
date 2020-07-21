@@ -6,6 +6,7 @@ import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
+from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -97,8 +98,10 @@ LIQUID_WATER_CONTENT_NAME = 'liquid_water_content_kg_m03'
 ICE_WATER_CONTENT_NAME = 'ice_water_content_kg_m03'
 LIQUID_WATER_PATH_NAME = 'liquid_water_path_kg_m02'
 ICE_WATER_PATH_NAME = 'ice_water_path_kg_m02'
+WATER_VAPOUR_PATH_NAME = 'vapour_path_kg_m02'
 UPWARD_LIQUID_WATER_PATH_NAME = 'upward_liquid_water_path_kg_m02'
 UPWARD_ICE_WATER_PATH_NAME = 'upward_ice_water_path_kg_m02'
+UPWARD_WATER_VAPOUR_PATH_NAME = 'upward_vapour_path_kg_m02'
 
 DEFAULT_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
@@ -111,8 +114,9 @@ DEFAULT_VECTOR_PREDICTOR_NAMES = [
     LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
 ]
 ALL_VECTOR_PREDICTOR_NAMES = DEFAULT_VECTOR_PREDICTOR_NAMES + [
-    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME, UPWARD_LIQUID_WATER_PATH_NAME,
-    UPWARD_ICE_WATER_PATH_NAME
+    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME, WATER_VAPOUR_PATH_NAME,
+    UPWARD_LIQUID_WATER_PATH_NAME, UPWARD_ICE_WATER_PATH_NAME,
+    UPWARD_WATER_VAPOUR_PATH_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -238,21 +242,75 @@ def _water_content_to_layerwise_path(
     return water_content_matrix_kg_m03 * grid_cell_width_matrix_metres
 
 
+def _get_air_density(example_dict):
+    """Computes profiles of air density.
+
+    E = number of examples
+    H = number of heights
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: air_density_matrix_kg_m03: E-by-H numpy array of densities
+        (kg m^-3).
+    """
+
+    specific_humidity_matrix_kg_kg01 = get_field_from_dict(
+        example_dict=example_dict, field_name=SPECIFIC_HUMIDITY_NAME
+    )
+    temperature_matrix_kelvins = get_field_from_dict(
+        example_dict=example_dict, field_name=TEMPERATURE_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+
+    mixing_ratio_matrix_kg_kg01 = (
+        moisture_conv.specific_humidity_to_mixing_ratio(
+            specific_humidity_matrix_kg_kg01
+        )
+    )
+    vapour_pressure_matrix_pascals = (
+        moisture_conv.mixing_ratio_to_vapour_pressure(
+            mixing_ratios_kg_kg01=mixing_ratio_matrix_kg_kg01,
+            total_pressures_pascals=pressure_matrix_pascals
+        )
+    )
+    virtual_temp_matrix_kelvins = (
+        moisture_conv.temperature_to_virtual_temperature(
+            temperatures_kelvins=temperature_matrix_kelvins,
+            total_pressures_pascals=pressure_matrix_pascals,
+            vapour_pressures_pascals=vapour_pressure_matrix_pascals
+        )
+    )
+
+    denominator_matrix = (
+        moisture_conv.DRY_AIR_GAS_CONSTANT_J_KG01_K01 *
+        virtual_temp_matrix_kelvins
+    )
+    return pressure_matrix_pascals / denominator_matrix
+
+
 def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
-                             integrate_upward=False):
-    """Computes profiles of liquid-water path (LWP) and/or ice-water path (IWP).
+                             get_wvp=True, integrate_upward=False):
+    """Computes profiles of LWP, IWP, and/or WVP.
 
-    If `integrate_upward == False`, then at height z, the LWP (IWP) is the
-    integral of LWC (IWC) from the top of atmosphere to z.
+    LWP = liquid-water path
+    IWP = ice-water path
+    WVP = water-vapour path
 
-    If `integrate_upward == True`, then at height z, the LWP (IWP) is the
-    integral of LWC (IWC) from the surface to z.
+    If `integrate_upward == False`, then at height z, the LWP/IWP/WVP is the
+    integral of LWC/IWC/WVC (respectively) from the top of atmosphere to z.
+
+    If `integrate_upward == True`, then at height z, the LWP/IWP/WVP is the
+    integral of LWC/IWC/WVC (respectively) from the surface to z.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `read_file`).
     :param get_lwp: Boolean flag.  If True, will compute LWP profile for each
         example.
     :param get_iwp: Boolean flag.  If True, will compute IWP profile for each
+        example.
+    :param get_wvp: Boolean flag.  If True, will compute WVP profile for each
         example.
     :param integrate_upward: Boolean flag.  If True, will integrate from the
         surface up.  If False, will integrate from the top of atmosphere down.
@@ -264,14 +322,17 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     if integrate_upward:
         this_liquid_path_name = UPWARD_LIQUID_WATER_PATH_NAME
         this_ice_path_name = UPWARD_ICE_WATER_PATH_NAME
+        this_vapour_path_name = UPWARD_WATER_VAPOUR_PATH_NAME
     else:
         this_liquid_path_name = LIQUID_WATER_PATH_NAME
         this_ice_path_name = ICE_WATER_PATH_NAME
+        this_vapour_path_name = WATER_VAPOUR_PATH_NAME
 
     get_lwp = get_lwp and this_liquid_path_name not in vector_predictor_names
     get_iwp = get_iwp and this_ice_path_name not in vector_predictor_names
+    get_wvp = get_wvp and this_vapour_path_name not in vector_predictor_names
 
-    if not (get_lwp or get_iwp):
+    if not (get_lwp or get_iwp or get_wvp):
         return example_dict
 
     edge_heights_m_agl = get_grid_cell_edges(example_dict[HEIGHTS_KEY])
@@ -327,6 +388,33 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
             numpy.expand_dims(iwp_matrix_kg_m02, axis=-1)
+        ), axis=-1)
+
+    if get_wvp:
+        air_density_matrix_kg_m03 = _get_air_density(example_dict)
+        specific_humidity_matrix_kg_kg01 = get_field_from_dict(
+            example_dict=example_dict, field_name=SPECIFIC_HUMIDITY_NAME
+        )
+        vapour_content_matrix_kg_m03 = (
+            specific_humidity_matrix_kg_kg01 * air_density_matrix_kg_m03
+        )
+
+        if integrate_upward:
+            vapour_path_matrix_kg_m02 = numpy.cumsum(
+                vapour_content_matrix_kg_m03 * grid_cell_width_matrix_metres, axis=1
+            )
+        else:
+            vapour_path_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+                numpy.fliplr(
+                    vapour_content_matrix_kg_m03 * grid_cell_width_matrix_metres
+                ),
+                axis=1
+            ))
+
+        example_dict[VECTOR_PREDICTOR_NAMES_KEY].append(this_vapour_path_name)
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            numpy.expand_dims(vapour_path_matrix_kg_m02, axis=-1)
         ), axis=-1)
 
     return example_dict
@@ -430,13 +518,13 @@ def fluxes_to_heating_rate(example_dict):
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
     if found_heating_rate:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-            heating_rate_matrix_k_day01
-        )
-    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+            heating_rate_matrix_k_day01
         )
 
     return example_dict
@@ -486,23 +574,23 @@ def fluxes_actual_to_increments(example_dict):
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
     if found_down_increment:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
-            down_flux_increment_matrix_w_m02
-        )
-    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=down_increment_index,
             values=down_flux_increment_matrix_w_m02, axis=-1
         )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
+            down_flux_increment_matrix_w_m02
+        )
 
     if found_up_increment:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
-            up_flux_increment_matrix_w_m02
-        )
-    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=up_increment_index,
             values=up_flux_increment_matrix_w_m02, axis=-1
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
+            up_flux_increment_matrix_w_m02
         )
 
     return example_dict
@@ -544,23 +632,23 @@ def fluxes_increments_to_actual(example_dict):
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
     if found_down_flux:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
-            down_flux_matrix_w_m02
-        )
-    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=down_flux_index, values=down_flux_matrix_w_m02, axis=-1
         )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
+            down_flux_matrix_w_m02
+        )
 
     if found_up_flux:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
-            up_flux_matrix_w_m02
-        )
-    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=up_flux_index, values=up_flux_matrix_w_m02, axis=-1
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
+            up_flux_matrix_w_m02
         )
 
     return example_dict
@@ -879,12 +967,12 @@ def read_file(example_file_name):
     dataset_object.close()
 
     example_dict = _get_water_path_profiles(
-        example_dict=example_dict, get_lwp=True, get_iwp=True,
+        example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
         integrate_upward=False
     )
 
     example_dict = _get_water_path_profiles(
-        example_dict=example_dict, get_lwp=True, get_iwp=True,
+        example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
         integrate_upward=True
     )
 
