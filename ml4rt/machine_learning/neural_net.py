@@ -154,7 +154,8 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_boolean(omit_heating_rate)
 
     required_vector_target_names = [
-        example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
+        example_io.SHORTWAVE_UP_FLUX_INC_NAME,
+        example_io.SHORTWAVE_DOWN_FLUX_INC_NAME,
         example_io.SHORTWAVE_HEATING_RATE_NAME
     ]
     this_flag = all([
@@ -1066,9 +1067,7 @@ def data_generator(option_dict, for_inference, net_type_string,
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
     min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
     max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
-    print(option_dict[OMIT_HEATING_RATE_KEY])
     omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
-    print('Omit heating rate? {0:d}'.format(int(omit_heating_rate)))
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
