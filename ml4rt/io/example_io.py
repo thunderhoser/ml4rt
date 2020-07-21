@@ -518,13 +518,13 @@ def fluxes_to_heating_rate(example_dict):
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
     if found_heating_rate:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+            heating_rate_matrix_k_day01
+        )
+    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-            heating_rate_matrix_k_day01
         )
 
     return example_dict
@@ -574,23 +574,23 @@ def fluxes_actual_to_increments(example_dict):
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
     if found_down_increment:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
+            down_flux_increment_matrix_w_m02
+        )
+    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=down_increment_index,
             values=down_flux_increment_matrix_w_m02, axis=-1
         )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
-            down_flux_increment_matrix_w_m02
-        )
 
     if found_up_increment:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
+            up_flux_increment_matrix_w_m02
+        )
+    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=up_increment_index,
             values=up_flux_increment_matrix_w_m02, axis=-1
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
-            up_flux_increment_matrix_w_m02
         )
 
     return example_dict
@@ -632,23 +632,23 @@ def fluxes_increments_to_actual(example_dict):
     example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
     if found_down_flux:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
+            down_flux_matrix_w_m02
+        )
+    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=down_flux_index, values=down_flux_matrix_w_m02, axis=-1
         )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
-            down_flux_matrix_w_m02
-        )
 
     if found_up_flux:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
+            up_flux_matrix_w_m02
+        )
+    else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=up_flux_index, values=up_flux_matrix_w_m02, axis=-1
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
-            up_flux_matrix_w_m02
         )
 
     return example_dict
