@@ -883,10 +883,12 @@ def read_file(example_file_name):
         integrate_upward=False
     )
 
-    return _get_water_path_profiles(
+    example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True,
         integrate_upward=True
     )
+
+    return fluxes_actual_to_increments(example_dict)
 
 
 def write_file(example_dict, netcdf_file_name):
