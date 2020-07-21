@@ -116,7 +116,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     print(SEPARATOR_STRING)
 
     dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
         example_io.SCALAR_PREDICTOR_VALS_KEY: None,
         example_io.VECTOR_PREDICTOR_VALS_KEY: None,
@@ -133,7 +134,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
         example_io.PRESSURE_NAME
     ]
-    generator_option_dict_unnorm[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
 
     scalar_target_matrix = None
     scalar_prediction_matrix = None
