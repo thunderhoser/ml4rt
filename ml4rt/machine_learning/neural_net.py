@@ -582,8 +582,16 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     if net_type_string == DENSE_NET_TYPE_STRING:
         error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=2)
 
-        scalar_predictor_matrix = predictor_matrix[:, -num_scalar_predictors:]
-        vector_predictor_matrix = predictor_matrix[:, :-num_scalar_predictors]
+        if num_scalar_predictors == 0:
+            scalar_predictor_matrix = predictor_matrix[:, :0]
+            vector_predictor_matrix = predictor_matrix + 0.
+        else:
+            scalar_predictor_matrix = (
+                predictor_matrix[:, -num_scalar_predictors:]
+            )
+            vector_predictor_matrix = (
+                predictor_matrix[:, :-num_scalar_predictors]
+            )
 
         num_heights = len(example_dict[example_io.HEIGHTS_KEY])
         num_vector_predictors = len(
@@ -604,10 +612,14 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
 
     error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=3)
 
-    scalar_predictor_matrix = (
-        predictor_matrix[:, 0, -num_scalar_predictors:]
-    )
-    vector_predictor_matrix = predictor_matrix[..., :-num_scalar_predictors]
+    if num_scalar_predictors == 0:
+        scalar_predictor_matrix = predictor_matrix[:, 0, :0]
+        vector_predictor_matrix = predictor_matrix + 0.
+    else:
+        scalar_predictor_matrix = (
+            predictor_matrix[:, 0, -num_scalar_predictors:]
+        )
+        vector_predictor_matrix = predictor_matrix[..., :-num_scalar_predictors]
 
     return {
         example_io.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,

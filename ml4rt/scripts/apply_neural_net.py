@@ -117,7 +117,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     dummy_example_dict = {
         example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
         example_io.SCALAR_PREDICTOR_VALS_KEY: None,
         example_io.VECTOR_PREDICTOR_VALS_KEY: None,
         example_io.SCALAR_TARGET_NAMES_KEY:
@@ -133,6 +133,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
         example_io.PRESSURE_NAME
     ]
+    generator_option_dict_unnorm[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
 
     scalar_target_matrix = None
     scalar_prediction_matrix = None
@@ -227,14 +228,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_predictor_matrix_unnorm = next(this_generator)[0]
             print(this_predictor_matrix_unnorm.shape)
 
-            this_example_dict = copy.deepcopy(dummy_example_dict)
-            this_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
-                [example_io.PRESSURE_NAME]
-            )
-
             this_example_dict = neural_net.predictors_numpy_to_dict(
                 predictor_matrix=this_predictor_matrix_unnorm,
-                example_dict=this_example_dict, net_type_string=net_type_string
+                example_dict=dummy_example_dict, net_type_string=net_type_string
             )
             this_vector_predictor_matrix_unnorm = (
                 this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
