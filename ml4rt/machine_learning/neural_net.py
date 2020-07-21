@@ -1067,6 +1067,7 @@ def data_generator(option_dict, for_inference, net_type_string,
     min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
     max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
     omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
+    print('Omit heating rate? {0:d}'.format(int(omit_heating_rate)))
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
