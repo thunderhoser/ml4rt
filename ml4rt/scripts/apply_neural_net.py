@@ -10,6 +10,8 @@ from ml4rt.io import prediction_io
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
+# TODO(thunderhoser): Modularize the gross code in this script.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'

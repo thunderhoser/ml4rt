@@ -8,13 +8,54 @@ from ml4rt.io import example_io
 
 TOLERANCE = 1e-6
 
-# The following constants are used to test get_grid_cell_edges,
-# get_grid_cell_widths, _layerwise_water_path_to_content, and
-# _get_water_path_profiles.
+# The following constants are used to test _get_air_density.
+HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
+    [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7],
+    [2, 4, 6, 8, 10, 12, 14, 2, 4, 6, 8, 10, 12, 14],
+    [3, 6, 9, 12, 15, 18, 21, 3, 6, 9, 12, 15, 18, 21]
+], dtype=float)
+
+TEMPERATURE_MATRIX_KELVINS = 273.15 + numpy.array([
+    [10, 11, 12, 13, 14, 15, 16, 10, 11, 12, 13, 14, 15, 16],
+    [20, 21, 22, 23, 24, 25, 26, 20, 21, 22, 23, 24, 25, 26],
+    [30, 31, 32, 33, 34, 35, 36, 30, 31, 32, 33, 34, 35, 36]
+], dtype=float)
+
+PRESSURE_MATRIX_PASCALS = numpy.full(TEMPERATURE_MATRIX_KELVINS.shape, 1e5)
+
 CENTER_HEIGHTS_M_AGL = numpy.array([
     10, 20, 40, 60, 80, 100, 30000, 33000, 36000, 39000, 42000, 46000, 50000
 ], dtype=float)
 
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_io.SPECIFIC_HUMIDITY_NAME, example_io.TEMPERATURE_NAME,
+    example_io.PRESSURE_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
+    HUMIDITY_MATRIX_KG_KG01, TEMPERATURE_MATRIX_KELVINS, PRESSURE_MATRIX_PASCALS
+), axis=-1)
+
+EXAMPLE_DICT_SANS_DENSITY = {
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
+
+AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
+    [1.22963760, 1.22456634, 1.21953156, 1.21453286, 1.20956987, 1.20464221,
+     1.19974951, 1.22963760, 1.22456634, 1.21953156, 1.21453286, 1.20956987,
+     1.20464221, 1.19974951],
+    [1.18697093, 1.18150120, 1.17607201, 1.17068292, 1.16533351, 1.16002338,
+     1.15475212, 1.18697093, 1.18150120, 1.17607201, 1.17068292, 1.16533351,
+     1.16002338, 1.15475212],
+    [1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816, 1.11832989,
+     1.11270554, 1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816,
+     1.11832989, 1.11270554]
+])
+
+# The following constants are used to test get_grid_cell_edges,
+# get_grid_cell_widths, _layerwise_water_path_to_content, and
+# _get_water_path_profiles.
 EDGE_HEIGHTS_M_AGL = numpy.array([
     5, 15, 30, 50, 70, 90, 15050, 31500, 34500, 37500, 40500, 44000, 48000,
     52000
@@ -30,7 +71,7 @@ LAYERWISE_PATH_MATRIX_KG_M02 = numpy.array([
     [3, 3, 3, 3, 3, 1000, 1000, 3, 3, 3, 3, 3, 3]
 ], dtype=float)
 
-WATER_CONTENT_MATRIX_KG03 = numpy.array([
+WATER_CONTENT_MATRIX_KG_M03 = numpy.array([
     [0.1, 1. / 15, 0.05, 0.05, 0.05, 1. / 14.96, 1. / 16.45,
      1. / 3000, 1. / 3000, 1. / 3000, 1. / 3500, 1. / 4000, 1. / 4000],
     [0.2, 2. / 15, 0.1, 0.1, 0.1, 1. / 14.96, 1. / 16.45,
@@ -38,6 +79,18 @@ WATER_CONTENT_MATRIX_KG03 = numpy.array([
     [0.3, 3. / 15, 0.15, 0.15, 0.15, 1. / 14.96, 1. / 16.45,
      3. / 3000, 3. / 3000, 3. / 3000, 3. / 3500, 3. / 4000, 3. / 4000]
 ])
+
+# VAPOUR_CONTENT_MATRIX_KG_M03 = numpy.array([
+#     [1.22963760, 2.44913268, 3.65859468, 4.85813144, 6.04784935, 7.22785326,
+#      8.39824657, 1.22963760, 2.44913268, 3.65859468, 4.85813144, 6.04784935,
+#      7.227853260, 8.39824657],
+#     [2.37394186, 4.72600480, 7.05643206, 9.36546336, 11.65333510, 13.92028056,
+#      16.16652968, 2.37394186, 4.72600480, 7.05643206, 9.36546336, 11.65333510,
+#      13.92028056, 16.16652968],
+#     [3.44135997, 6.84762756, 10.21921533, 13.55652996, 16.85997240, 20.12993802,
+#      23.36681634, 3.44135997, 6.84762756, 10.21921533, 13.55652996, 16.85997240,
+#      20.12993802, 23.36681634]
+# ])
 
 DOWNWARD_PATH_MATRIX_KG_M02 = numpy.array([
     [2011, 2010, 2009, 2008, 2007, 2006, 1006, 6, 5, 4, 3, 2, 1],
@@ -55,7 +108,7 @@ ORIG_VECTOR_PREDICTOR_NAMES = [
     example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME
 ]
 ORIG_VECTOR_PREDICTOR_MATRIX = numpy.stack(
-    (WATER_CONTENT_MATRIX_KG03, WATER_CONTENT_MATRIX_KG03 / 1000), axis=-1
+    (WATER_CONTENT_MATRIX_KG_M03, WATER_CONTENT_MATRIX_KG_M03 / 1000), axis=-1
 )
 THESE_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
 
@@ -679,6 +732,17 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
 class ExampleIoTests(unittest.TestCase):
     """Each method is a unit test for example_io.py."""
 
+    def test_get_air_density(self):
+        """Ensures correct output from _get_air_density."""
+
+        this_density_matrix_kg_m03 = example_io._get_air_density(
+            EXAMPLE_DICT_SANS_DENSITY
+        )
+        self.assertTrue(numpy.allclose(
+            this_density_matrix_kg_m03, AIR_DENSITY_MATRIX_KG_M03,
+            atol=TOLERANCE
+        ))
+
     def test_get_grid_cell_edges(self):
         """Ensures correct output from get_grid_cell_edges."""
 
@@ -710,7 +774,7 @@ class ExampleIoTests(unittest.TestCase):
         )
 
         self.assertTrue(numpy.allclose(
-            this_content_matrix_kg_m03, WATER_CONTENT_MATRIX_KG03,
+            this_content_matrix_kg_m03, WATER_CONTENT_MATRIX_KG_M03,
             atol=TOLERANCE
         ))
 
@@ -718,7 +782,7 @@ class ExampleIoTests(unittest.TestCase):
         """Ensures correct output from _water_content_to_layerwise_path."""
 
         this_path_matrix_kg_m02 = example_io._water_content_to_layerwise_path(
-            water_content_matrix_kg_m03=WATER_CONTENT_MATRIX_KG03,
+            water_content_matrix_kg_m03=WATER_CONTENT_MATRIX_KG_M03,
             heights_m_agl=CENTER_HEIGHTS_M_AGL
         )
 
@@ -735,7 +799,7 @@ class ExampleIoTests(unittest.TestCase):
 
         this_example_dict = example_io._get_water_path_profiles(
             example_dict=copy.deepcopy(EXAMPLE_DICT_WITHOUT_PATHS),
-            get_lwp=True, get_iwp=True, integrate_upward=False
+            get_lwp=True, get_iwp=True, get_wvp=False, integrate_upward=False
         )
 
         self.assertTrue(_compare_example_dicts(
@@ -750,7 +814,7 @@ class ExampleIoTests(unittest.TestCase):
 
         this_example_dict = example_io._get_water_path_profiles(
             example_dict=copy.deepcopy(EXAMPLE_DICT_WITHOUT_PATHS),
-            get_lwp=True, get_iwp=True, integrate_upward=True
+            get_lwp=True, get_iwp=True, get_wvp=False, integrate_upward=True
         )
 
         self.assertTrue(_compare_example_dicts(
