@@ -1066,6 +1066,7 @@ def data_generator(option_dict, for_inference, net_type_string,
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
     min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
     max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
+    print(option_dict[OMIT_HEATING_RATE_KEY])
     omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
     print('Omit heating rate? {0:d}'.format(int(omit_heating_rate)))
 
