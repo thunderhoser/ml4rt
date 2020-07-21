@@ -313,8 +313,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     if add_heating_rate:
         prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
-            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
+            generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
         )
+        print(vector_predictor_matrix_unnorm.shape)
         prediction_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
             vector_predictor_matrix_unnorm
         )
