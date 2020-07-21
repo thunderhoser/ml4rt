@@ -12,17 +12,39 @@ from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
 from ml4rt.scripts import make_saliency_maps
-from ml4rt.scripts import plot_backwards_optimization as plot_bwo
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
+BLACK_COLOUR = numpy.full(3, 0.)
+ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
+GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+
+FIRST_PREDICTOR_NAMES = [
+    example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
+    example_io.WATER_VAPOUR_PATH_NAME, example_io.UPWARD_WATER_VAPOUR_PATH_NAME
+]
+FIRST_PREDICTOR_COLOURS = [
+    BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
+]
+
+SECOND_PREDICTOR_NAMES = [
+    example_io.LIQUID_WATER_CONTENT_NAME, example_io.LIQUID_WATER_PATH_NAME,
+    example_io.UPWARD_LIQUID_WATER_PATH_NAME
+]
+SECOND_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+
+THIRD_PREDICTOR_NAMES = [
+    example_io.ICE_WATER_CONTENT_NAME, example_io.ICE_WATER_PATH_NAME,
+    example_io.UPWARD_ICE_WATER_PATH_NAME
+]
+THIRD_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+
 PREDICTOR_NAMES_BY_SET = [
-    plot_bwo.FIRST_PREDICTOR_NAMES, plot_bwo.SECOND_PREDICTOR_NAMES,
-    plot_bwo.THIRD_PREDICTOR_NAMES
+    FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES
 ]
 PREDICTOR_COLOURS_BY_SET = [
-    plot_bwo.FIRST_PREDICTOR_COLOURS, plot_bwo.SECOND_PREDICTOR_COLOURS,
-    plot_bwo.THIRD_PREDICTOR_COLOURS
+    FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS
 ]
 
 LINE_WIDTH = 2

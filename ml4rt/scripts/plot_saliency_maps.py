@@ -12,6 +12,8 @@ from ml4rt.io import example_io
 from ml4rt.machine_learning import saliency
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
+from ml4rt.scripts import plot_examples
+from ml4rt.scripts import plot_evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -21,23 +23,15 @@ ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
-FIRST_VECTOR_PREDICTOR_NAMES = [
-    example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
-    example_io.PRESSURE_NAME
+VECTOR_PREDICTOR_NAMES_BY_SET = [
+    plot_examples.FIRST_PREDICTOR_NAMES, plot_examples.SECOND_PREDICTOR_NAMES,
+    plot_examples.THIRD_PREDICTOR_NAMES
 ]
-FIRST_VECTOR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
-
-SECOND_VECTOR_PREDICTOR_NAMES = [
-    example_io.LIQUID_WATER_CONTENT_NAME, example_io.LIQUID_WATER_PATH_NAME,
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME
+VECTOR_PREDICTOR_COLOURS_BY_SET = [
+    plot_examples.FIRST_PREDICTOR_COLOURS,
+    plot_examples.SECOND_PREDICTOR_COLOURS,
+    plot_examples.THIRD_PREDICTOR_COLOURS
 ]
-SECOND_VECTOR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
-
-THIRD_VECTOR_PREDICTOR_NAMES = [
-    example_io.ICE_WATER_CONTENT_NAME, example_io.ICE_WATER_PATH_NAME,
-    example_io.UPWARD_ICE_WATER_PATH_NAME
-]
-THIRD_VECTOR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 FIRST_SCALAR_PREDICTOR_NAMES = [
     example_io.ZENITH_ANGLE_NAME, example_io.ALBEDO_NAME,
@@ -51,9 +45,18 @@ SECOND_SCALAR_PREDICTOR_NAMES = [
 ]
 SECOND_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
+SCALAR_PREDICTOR_NAMES_BY_SET = [
+    FIRST_SCALAR_PREDICTOR_NAMES, SECOND_SCALAR_PREDICTOR_NAMES
+]
+SCALAR_PREDICTOR_COLOURS_BY_SET = [
+    FIRST_SCALAR_PREDICTOR_COLOURS, SECOND_SCALAR_PREDICTOR_COLOURS
+]
+
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: 'Temperature',
     example_io.SPECIFIC_HUMIDITY_NAME: 'Specific\nhumidity',
+    example_io.WATER_VAPOUR_PATH_NAME: 'Downward WVP',
+    example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 'Upward WVP',
     example_io.PRESSURE_NAME: 'Pressure',
     example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
     example_io.ICE_WATER_CONTENT_NAME: 'IWC',
@@ -72,18 +75,14 @@ PREDICTOR_NAME_TO_VERBOSE = {
 TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\Delta$(up flux)',
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'$\Delta$(down flux)',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
 }
 
-TARGET_NAME_TO_UNITS = {
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$'
-}
+TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS
 
 LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
@@ -282,20 +281,23 @@ def _plot_saliency_one_example(
     else:
         legend_string = legend_suffix
 
-    # Plot first set of vector predictors.
-    these_flags = numpy.array([
-        n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
-        for n in FIRST_VECTOR_PREDICTOR_NAMES
-    ], dtype=bool)
+    num_predictor_sets = len(VECTOR_PREDICTOR_NAMES_BY_SET)
 
-    these_indices = numpy.where(these_flags)[0]
+    for k in range(num_predictor_sets):
+        these_flags = numpy.array([
+            n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            for n in VECTOR_PREDICTOR_NAMES_BY_SET[k]
+        ], dtype=bool)
 
-    if len(these_indices) > 0:
+        these_indices = numpy.where(these_flags)[0]
+        if len(these_indices) == 0:
+            continue
+
         predictor_names = [
-            FIRST_VECTOR_PREDICTOR_NAMES[k] for k in these_indices
+            VECTOR_PREDICTOR_NAMES_BY_SET[k][i] for i in these_indices
         ]
         predictor_colours = [
-            FIRST_VECTOR_PREDICTOR_COLOURS[k] for k in these_indices
+            VECTOR_PREDICTOR_COLOURS_BY_SET[k][i] for i in these_indices
         ]
 
         handle_dict = profile_plotting.plot_predictors(
@@ -317,102 +319,8 @@ def _plot_saliency_one_example(
                 zorder=1e10
             )
 
-        output_file_name = '{0:s}/{1:s}_first_vector_predictors.jpg'.format(
-            output_dir_name, example_id_string.replace('_', '-')
-        )
-        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-
-        print('Saving figure to: "{0:s}"...'.format(output_file_name))
-        figure_object.savefig(
-            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-            bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    # Plot second set of vector predictors.
-    these_flags = numpy.array([
-        n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
-        for n in SECOND_VECTOR_PREDICTOR_NAMES
-    ], dtype=bool)
-
-    these_indices = numpy.where(these_flags)[0]
-
-    if len(these_indices) > 0:
-        predictor_names = [
-            SECOND_VECTOR_PREDICTOR_NAMES[k] for k in these_indices
-        ]
-        predictor_colours = [
-            SECOND_VECTOR_PREDICTOR_COLOURS[k] for k in these_indices
-        ]
-
-        handle_dict = profile_plotting.plot_predictors(
-            example_dict=example_dict, example_index=0,
-            predictor_names=predictor_names,
-            predictor_colours=predictor_colours,
-            predictor_line_widths=numpy.full(len(these_indices), 2),
-            predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=use_log_scale, include_units=False, handle_dict=None
-        )
-
-        axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
-
-        if legend_string != '':
-            axes_object.text(
-                0.01, 0.99, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
-                bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
-                verticalalignment='top', transform=axes_object.transAxes,
-                zorder=1e10
-            )
-
-        output_file_name = '{0:s}/{1:s}_second_vector_predictors.jpg'.format(
-            output_dir_name, example_id_string.replace('_', '-')
-        )
-        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-
-        print('Saving figure to: "{0:s}"...'.format(output_file_name))
-        figure_object.savefig(
-            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-            bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    # Plot third set of vector predictors.
-    these_flags = numpy.array([
-        n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
-        for n in THIRD_VECTOR_PREDICTOR_NAMES
-    ], dtype=bool)
-
-    these_indices = numpy.where(these_flags)[0]
-
-    if len(these_indices) > 0:
-        predictor_names = [
-            THIRD_VECTOR_PREDICTOR_NAMES[k] for k in these_indices
-        ]
-        predictor_colours = [
-            THIRD_VECTOR_PREDICTOR_COLOURS[k] for k in these_indices
-        ]
-
-        handle_dict = profile_plotting.plot_predictors(
-            example_dict=example_dict, example_index=0,
-            predictor_names=predictor_names,
-            predictor_colours=predictor_colours,
-            predictor_line_widths=numpy.full(len(these_indices), 2),
-            predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=use_log_scale, include_units=False, handle_dict=None
-        )
-
-        axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
-
-        if legend_string != '':
-            axes_object.text(
-                0.01, 0.99, legend_string, fontsize=LEGEND_FONT_SIZE, color='k',
-                bbox=LEGEND_BOUNDING_BOX_DICT, horizontalalignment='left',
-                verticalalignment='top', transform=axes_object.transAxes,
-                zorder=1e10
-            )
-
-        output_file_name = '{0:s}/{1:s}_third_vector_predictors.jpg'.format(
-            output_dir_name, example_id_string.replace('_', '-')
+        output_file_name = '{0:s}/{1:s}_vector-predictor-set-{2:d}.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-'), k
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 
@@ -426,20 +334,23 @@ def _plot_saliency_one_example(
     if num_scalar_dim == 1:
         return
 
-    # Plot first set of scalar predictors.
-    these_flags = numpy.array([
-        n in example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
-        for n in FIRST_SCALAR_PREDICTOR_NAMES
-    ], dtype=bool)
+    num_predictor_sets = len(SCALAR_PREDICTOR_NAMES_BY_SET)
 
-    these_indices = numpy.where(these_flags)[0]
+    for k in range(num_predictor_sets):
+        these_flags = numpy.array([
+            n in example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+            for n in SCALAR_PREDICTOR_NAMES_BY_SET[k]
+        ], dtype=bool)
 
-    if len(these_indices) > 0:
+        these_indices = numpy.where(these_flags)[0]
+        if len(these_indices) == 0:
+            continue
+
         predictor_names = [
-            FIRST_SCALAR_PREDICTOR_NAMES[k] for k in these_indices
+            SCALAR_PREDICTOR_NAMES_BY_SET[k][i] for i in these_indices
         ]
         predictor_colours = [
-            FIRST_SCALAR_PREDICTOR_COLOURS[k] for k in these_indices
+            SCALAR_PREDICTOR_COLOURS_BY_SET[k][i] for i in these_indices
         ]
 
         handle_dict = profile_plotting.plot_predictors(
@@ -451,45 +362,8 @@ def _plot_saliency_one_example(
             use_log_scale=use_log_scale, include_units=False, handle_dict=None
         )
 
-        output_file_name = '{0:s}/{1:s}_first_scalar_predictors.jpg'.format(
-            output_dir_name, example_id_string.replace('_', '-')
-        )
-        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-
-        print('Saving figure to: "{0:s}"...'.format(output_file_name))
-        figure_object.savefig(
-            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-            bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    # Plot second set of scalar predictors.
-    these_flags = numpy.array([
-        n in example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
-        for n in SECOND_SCALAR_PREDICTOR_NAMES
-    ], dtype=bool)
-
-    these_indices = numpy.where(these_flags)[0]
-
-    if len(these_indices) > 0:
-        predictor_names = [
-            SECOND_SCALAR_PREDICTOR_NAMES[k] for k in these_indices
-        ]
-        predictor_colours = [
-            SECOND_SCALAR_PREDICTOR_COLOURS[k] for k in these_indices
-        ]
-
-        handle_dict = profile_plotting.plot_predictors(
-            example_dict=example_dict, example_index=0,
-            predictor_names=predictor_names,
-            predictor_colours=predictor_colours,
-            predictor_line_widths=numpy.full(len(these_indices), 2),
-            predictor_line_styles=['solid'] * len(these_indices),
-            use_log_scale=use_log_scale, include_units=False, handle_dict=None
-        )
-
-        output_file_name = '{0:s}/{1:s}_second_scalar_predictors.jpg'.format(
-            output_dir_name, example_id_string.replace('_', '-')
+        output_file_name = '{0:s}/{1:s}_scalar-predictor-set-{2:d}.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-'), k
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 

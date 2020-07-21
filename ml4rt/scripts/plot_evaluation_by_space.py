@@ -14,6 +14,7 @@ from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.io import example_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
+from ml4rt.scripts import plot_evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -22,17 +23,7 @@ VECTOR_SKEWNESS_KEY = 'vector_skewness'
 AUX_SKEWNESS_KEY = 'aux_skewness'
 NUM_EXAMPLES_KEY = 'num_examples'
 
-# TODO(thunderhoser): Put this somewhere general.
-TARGET_NAME_TO_UNITS = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.NET_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
-}
+TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS
 
 MIN_COLOUR_PERCENTILE = 1.
 MAX_COLOUR_PERCENTILE = 99.

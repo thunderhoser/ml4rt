@@ -27,6 +27,10 @@ UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
     example_io.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
+    example_io.WATER_VAPOUR_PATH_NAME:
+        r'Downward water-vapour path (g m$^{-2}$)',
+    example_io.UPWARD_WATER_VAPOUR_PATH_NAME:
+        r'Upward water-vapour path (g m$^{-2}$)',
     example_io.PRESSURE_NAME: 'Pressure (mb)',
     example_io.LIQUID_WATER_CONTENT_NAME: r'Liquid-water content (g m$^{-3}$)',
     example_io.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
@@ -49,6 +53,8 @@ PREDICTOR_NAME_TO_VERBOSE = {
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_io.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
+    example_io.WATER_VAPOUR_PATH_NAME: KG_TO_GRAMS,
+    example_io.UPWARD_WATER_VAPOUR_PATH_NAME: KG_TO_GRAMS,
     example_io.PRESSURE_NAME: PASCALS_TO_MB,
     example_io.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
     example_io.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,

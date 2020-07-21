@@ -22,8 +22,10 @@ METRES_TO_KM = 0.001
 
 TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'$\Delta$(down flux)',
     example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate'
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\Delta$(up flux)',
+    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
 }
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)

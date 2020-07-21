@@ -13,6 +13,7 @@ from ml4rt.io import example_io
 from ml4rt.machine_learning import saliency
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
+from ml4rt.scripts import plot_saliency_maps
 
 # TODO(thunderhoser): Find some way to incorporate prediction quality in the
 # plots.
@@ -20,17 +21,13 @@ from ml4rt.plotting import profile_plotting
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 METRES_TO_KM = 0.001
 
-TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux'
-}
+TARGET_NAME_TO_VERBOSE = plot_saliency_maps.TARGET_NAME_TO_VERBOSE
 
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: 'temperature',
     example_io.SPECIFIC_HUMIDITY_NAME: 'humidity',
+    example_io.WATER_VAPOUR_PATH_NAME: 'downward WVP',
+    example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 'upward WVP',
     example_io.PRESSURE_NAME: 'pressure',
     example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
     example_io.ICE_WATER_CONTENT_NAME: 'IWC',
@@ -155,7 +152,8 @@ def _plot_saliency_scalar_p_scalar_t(
     axes_object.set_yticks(y_tick_values)
 
     x_tick_labels = [
-        '{0:s}{1:s}'.format(n[0].upper(), n[1:]) for n in predictor_names_verbose
+        '{0:s}{1:s}'.format(n[0].upper(), n[1:])
+        for n in predictor_names_verbose
     ]
     y_tick_labels = [
         '{0:s}{1:s}'.format(n[0].upper(), n[1:]) for n in target_names_verbose

@@ -13,6 +13,7 @@ from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
+from ml4rt.scripts import plot_evaluation
 
 # TODO(thunderhoser): Make confidence level input arg to script (once evaluation
 # files deal with bootstrapping).
@@ -29,28 +30,8 @@ VECTOR_TARGET_KEY = 'vector_target_value'
 AUX_TARGET_KEY = 'aux_target_value'
 NUM_EXAMPLES_KEY = 'num_examples'
 
-# TODO(thunderhoser): Put this in a nice method somewhere.
-TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
-    evaluation.NET_FLUX_NAME: 'net flux',
-    evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
-    evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
-}
-
-TARGET_NAME_TO_UNITS = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.NET_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
-}
+TARGET_NAME_TO_VERBOSE = plot_evaluation.TARGET_NAME_TO_VERBOSE
+TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS
 
 MARKER_TYPE = 'o'
 MARKER_SIZE = 16
