@@ -180,6 +180,18 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_vector_target_matrix = this_target_array
             this_vector_prediction_matrix = this_prediction_array[0]
 
+        if add_heating_rate:
+            heating_rate_index = (
+                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                    example_io.SHORTWAVE_HEATING_RATE_NAME
+                )
+            )
+
+            this_vector_prediction_matrix = numpy.insert(
+                this_vector_prediction_matrix, obj=heating_rate_index,
+                values=0., axis=-1
+            )
+
         if this_scalar_target_matrix is not None:
             if scalar_target_matrix is None:
                 scalar_target_matrix = this_scalar_target_matrix + 0.
@@ -313,7 +325,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             dummy_times_unix_sec
         )
 
-        print(prediction_example_dict)
         prediction_example_dict = (
             example_io.fluxes_increments_to_actual(prediction_example_dict)
         )
