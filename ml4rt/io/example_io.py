@@ -17,10 +17,10 @@ KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
 
 DAYS_TO_SECONDS = 86400.
-# GRAVITY_CONSTANT_M_S02 = 9.80665
-# DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
 GRAVITY_CONSTANT_M_S02 = 9.8066
 DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 1004.
+# GRAVITY_CONSTANT_M_S02 = 9.80665
+# DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
@@ -152,8 +152,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
 SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
 SHORTWAVE_DOWN_FLUX_NAME = 'shortwave_down_flux_w_m02'
 SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_w_m02'
-SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m02'
-SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m02'
+SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m02_pa01'
+SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m02_pa01'
 SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
 SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
 
@@ -401,7 +401,8 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
 
         if integrate_upward:
             vapour_path_matrix_kg_m02 = numpy.cumsum(
-                vapour_content_matrix_kg_m03 * grid_cell_width_matrix_metres, axis=1
+                vapour_content_matrix_kg_m03 * grid_cell_width_matrix_metres,
+                axis=1
             )
         else:
             vapour_path_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
@@ -537,7 +538,8 @@ def fluxes_actual_to_increments(example_dict):
     downwelling fluxes.
 
     In a "flux-increment profile," the values at the [j]th height are the
-    upwelling- and downwelling-flux increments added by the [j]th layer.
+    upwelling- and downwelling-flux increments added by the [j]th layer,
+    divided by the pressure difference over the [j]th layer.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `read_file`).
@@ -550,13 +552,28 @@ def fluxes_actual_to_increments(example_dict):
     up_flux_matrix_w_m02 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_NAME
     )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
 
-    down_flux_increment_matrix_w_m02 = numpy.diff(
+    dummy_pressure_matrix_pascals = (
+        pressure_matrix_pascals[:, [0]] -
+        (pressure_matrix_pascals[:, [1]] - pressure_matrix_pascals[:, [0]])
+    )
+    pressure_matrix_pascals = numpy.concatenate(
+        (dummy_pressure_matrix_pascals, pressure_matrix_pascals), axis=1
+    )
+    pressure_diff_matrix_pascals = numpy.absolute(
+        numpy.diff(pressure_matrix_pascals, axis=1)
+    )
+
+    down_flux_increment_matrix_w_m02_pa01 = numpy.diff(
         down_flux_matrix_w_m02, axis=1, prepend=0.
-    )
-    up_flux_increment_matrix_w_m02 = numpy.diff(
+    ) / pressure_diff_matrix_pascals
+
+    up_flux_increment_matrix_w_m02_pa01 = numpy.diff(
         up_flux_matrix_w_m02, axis=1, prepend=0.
-    )
+    ) / pressure_diff_matrix_pascals
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_down_increment = SHORTWAVE_DOWN_FLUX_INC_NAME in vector_target_names
@@ -575,22 +592,22 @@ def fluxes_actual_to_increments(example_dict):
 
     if found_down_increment:
         example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
-            down_flux_increment_matrix_w_m02
+            down_flux_increment_matrix_w_m02_pa01
         )
     else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=down_increment_index,
-            values=down_flux_increment_matrix_w_m02, axis=-1
+            values=down_flux_increment_matrix_w_m02_pa01, axis=-1
         )
 
     if found_up_increment:
         example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
-            up_flux_increment_matrix_w_m02
+            up_flux_increment_matrix_w_m02_pa01
         )
     else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=up_increment_index,
-            values=up_flux_increment_matrix_w_m02, axis=-1
+            values=up_flux_increment_matrix_w_m02_pa01, axis=-1
         )
 
     return example_dict
@@ -606,17 +623,35 @@ def fluxes_increments_to_actual(example_dict):
     :return: example_dict: Same but with actual flux profiles.
     """
 
-    down_flux_increment_matrix_w_m02 = get_field_from_dict(
+    down_flux_increment_matrix_w_m02_pa01 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_INC_NAME
     )
-    up_flux_increment_matrix_w_m02 = get_field_from_dict(
+    up_flux_increment_matrix_w_m02_pa01 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_INC_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+
+    dummy_pressure_matrix_pascals = (
+        pressure_matrix_pascals[:, [0]] -
+        (pressure_matrix_pascals[:, [1]] - pressure_matrix_pascals[:, [0]])
+    )
+    pressure_matrix_pascals = numpy.concatenate(
+        (dummy_pressure_matrix_pascals, pressure_matrix_pascals), axis=1
+    )
+    pressure_diff_matrix_pascals = numpy.absolute(
+        numpy.diff(pressure_matrix_pascals, axis=1)
     )
 
     down_flux_matrix_w_m02 = numpy.cumsum(
-        down_flux_increment_matrix_w_m02, axis=1
+        down_flux_increment_matrix_w_m02_pa01 * pressure_diff_matrix_pascals,
+        axis=1
     )
-    up_flux_matrix_w_m02 = numpy.cumsum(up_flux_increment_matrix_w_m02, axis=1)
+    up_flux_matrix_w_m02 = numpy.cumsum(
+        up_flux_increment_matrix_w_m02_pa01 * pressure_diff_matrix_pascals,
+        axis=1
+    )
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names

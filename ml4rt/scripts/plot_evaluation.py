@@ -42,9 +42,10 @@ SQUARED_UNIT_SCORE_NAMES = [evaluation_plotting.MSE_NAME]
 
 TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'$\Delta$(downwelling flux)',
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
+        r'$\frac{\Delta F_{down}}{\Delta p}$',
     example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\Delta$(upwelling flux)',
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta p}$',
     example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
@@ -55,9 +56,9 @@ TARGET_NAME_TO_VERBOSE = {
 
 TARGET_NAME_TO_UNITS = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-2}$ Pa$^{-1}$',
     example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-2}$',
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-2}$ Pa$^{-1}$',
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
@@ -68,9 +69,9 @@ TARGET_NAME_TO_UNITS = {
 
 TARGET_NAME_TO_SQUARED_UNITS = {
     example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W$^{2}$ m$^{-4}$',
+    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W$^{2}$ m$^{-4}$ Pa$^{-2}$',
     example_io.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W$^{2}$ m$^{-4}$',
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W$^{2}$ m$^{-4}$ Pa$^{-2}$',
     example_io.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
