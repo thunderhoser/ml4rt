@@ -300,6 +300,18 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         prediction_example_dict[this_key] = new_example_dict[this_key]
 
     if target_norm_type_string is not None:
+        num_examples = len(example_id_strings)
+        num_heights = len(prediction_example_dict[example_io.HEIGHTS_KEY])
+
+        prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = []
+        prediction_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+            numpy.full((num_examples, num_heights, 0), 0.)
+        )
+        prediction_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY] = []
+        prediction_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+            numpy.full((num_examples, 0), 0.)
+        )
+
         prediction_example_dict = normalization.denormalize_data(
             new_example_dict=prediction_example_dict,
             training_example_dict=training_example_dict,
