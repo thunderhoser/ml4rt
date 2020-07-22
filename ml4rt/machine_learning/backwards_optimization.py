@@ -8,6 +8,9 @@ from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
+DUMMY_EXAMPLE_ID_PMM = 'pmm'
+DUMMY_EXAMPLE_ID_AVERAGE = 'average'
+
 DEFAULT_LEARNING_RATE = 0.001
 DEFAULT_NUM_ITERATIONS = 1000
 DEFAULT_L2_WEIGHT = 0.001
@@ -266,13 +269,13 @@ def optimize_input_for_neuron(
     )
 
 
-def write_standard_file(
+def write_file(
         netcdf_file_name, init_scalar_predictor_matrix,
         final_scalar_predictor_matrix, init_vector_predictor_matrix,
         final_vector_predictor_matrix, initial_activations, final_activations,
         example_id_strings, model_file_name, layer_name, neuron_indices,
         ideal_activation, num_iterations, learning_rate, l2_weight):
-    """Writes standard (per-example) backwards-optimization results to file.
+    """Writes backwards-optimization results to file.
 
     E = number of examples
     H = number of heights
@@ -463,12 +466,12 @@ def write_standard_file(
     dataset_object.close()
 
 
-def read_standard_file(netcdf_file_name):
-    """Reads standard (per-example) backwards-optimization results from. file.
+def read_file(netcdf_file_name):
+    """Reads backwards-optimization results from. file.
 
     :param netcdf_file_name: Path to input file.
     :return: bwo_dict: Dictionary with the following keys.
-    bwo_dict['init_scalar_predictor_matrix']: See doc for `write_standard_file`.
+    bwo_dict['init_scalar_predictor_matrix']: See doc for `write_file`.
     bwo_dict['final_scalar_predictor_matrix']: Same.
     bwo_dict['init_vector_predictor_matrix']: Same.
     bwo_dict['final_vector_predictor_matrix']: Same.

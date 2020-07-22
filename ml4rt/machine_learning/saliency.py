@@ -9,6 +9,9 @@ from gewittergefahr.deep_learning import saliency_maps as saliency_utils
 from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
 
+DUMMY_EXAMPLE_ID_PMM = 'pmm'
+DUMMY_EXAMPLE_ID_AVERAGE = 'average'
+
 DEFAULT_IDEAL_ACTIVATION = 1e6
 
 EXAMPLE_DIMENSION_KEY = 'example'
@@ -103,11 +106,11 @@ def get_saliency_one_neuron(
     )[0]
 
 
-def write_standard_file(
+def write_file(
         netcdf_file_name, scalar_saliency_matrix, vector_saliency_matrix,
         example_id_strings, model_file_name, layer_name, neuron_indices,
         ideal_activation, target_field_name=None, target_height_m_agl=None):
-    """Writes standard (non-averaged) saliency maps to NetCDF file.
+    """Writes saliency maps to NetCDF file.
 
     E = number of examples
     H = number of heights
@@ -276,12 +279,12 @@ def write_standard_file(
     dataset_object.close()
 
 
-def read_standard_file(netcdf_file_name):
-    """Reads standard (non-averaged) saliency maps from NetCDF file.
+def read_file(netcdf_file_name):
+    """Reads saliency maps from NetCDF file.
 
     :param netcdf_file_name: Path to input file.
     :return: saliency_dict: Dictionary with the following keys.
-    saliency_dict['scalar_saliency_matrix']: See doc for `write_standard_file`.
+    saliency_dict['scalar_saliency_matrix']: See doc for `write_file`.
     saliency_dict['vector_saliency_matrix']: Same.
     saliency_dict['example_id_strings']: Same.
     saliency_dict['model_file_name']: Same.
@@ -384,7 +387,7 @@ def write_all_targets_file(
     :param saliency_matrix_vector_p_vector_t: numpy array
         (E x H x P_v x H x T_v) with saliency maps for each vector target with
         respect to each vector predictor.
-    :param example_id_strings: See doc for `write_standard_file`.
+    :param example_id_strings: See doc for `write_file`.
     :param model_file_name: Same.
     :param ideal_activation: Same.
     """

@@ -7,6 +7,9 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import gradcam as gradcam_utils
 
+DUMMY_EXAMPLE_ID_PMM = 'pmm'
+DUMMY_EXAMPLE_ID_AVERAGE = 'average'
+
 DEFAULT_IDEAL_ACTIVATION = 2.
 
 MODEL_FILE_KEY = 'model_file_name'
@@ -144,11 +147,11 @@ def run_gradcam(
     return numpy.maximum(class_activation_matrix, 0.)
 
 
-def write_standard_file(
+def write_file(
         netcdf_file_name, class_activation_matrix, example_id_strings,
         model_file_name, activation_layer_name, vector_output_layer_name,
         output_neuron_indices, ideal_activation):
-    """Writes standard (non-averaged) class-activation maps to NetCDF file.
+    """Writes class-activation maps to NetCDF file.
 
     E = number of examples
     H = number of heights
@@ -239,12 +242,12 @@ def write_standard_file(
     dataset_object.close()
 
 
-def read_standard_file(netcdf_file_name):
-    """Reads standard (non-averaged) class-activation maps from NetCDF file.
+def read_file(netcdf_file_name):
+    """Reads class-activation maps from NetCDF file.
 
     :param netcdf_file_name: Path to input file.
     :return: gradcam_dict: Dictionary with the following keys.
-    gradcam_dict['class_activation_matrix']: See doc for `write_standard_file`.
+    gradcam_dict['class_activation_matrix']: See doc for `write_file`.
     gradcam_dict['example_id_strings']: Same.
     gradcam_dict['model_file_name']: Same.
     gradcam_dict['activation_layer_name']: Same.
@@ -291,7 +294,7 @@ def write_all_targets_file(
     :param class_activation_matrix: numpy array (E x H x H x T_v) of class
         activations.  class_activation_matrix[:, :, j, k] is the
         class-activation map for the [k]th target variable at the [j]th height.
-    :param example_id_strings: See doc for `write_standard_file`.
+    :param example_id_strings: See doc for `write_file`.
     :param model_file_name: Same.
     :param activation_layer_name: Same.
     :param vector_output_layer_name: Same.

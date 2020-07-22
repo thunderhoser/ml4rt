@@ -33,7 +33,7 @@ VECTOR_OUT_LAYER_HELP_STRING = 'See doc for `gradcam.check_metadata`.'
 NEURON_INDICES_HELP_STRING = 'See doc for `gradcam.check_metadata`.'
 IDEAL_ACTIVATION_HELP_STRING = 'See doc for `gradcam.check_metadata`.'
 OUTPUT_FILE_HELP_STRING = (
-    'Path to output file.  Will be written by `gradcam.write_standard_file`.'
+    'Path to output file.  Will be written by `gradcam.write_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -157,7 +157,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     print('Writing class-activation maps to: "{0:s}"...'.format(
         output_file_name
     ))
-    gradcam.write_standard_file(
+    gradcam.write_file(
         netcdf_file_name=output_file_name,
         class_activation_matrix=class_activation_matrix,
         example_id_strings=example_id_strings,

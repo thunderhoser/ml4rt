@@ -42,7 +42,7 @@ PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 GRADCAM_FILE_HELP_STRING = (
-    'Path to Grad-CAM file (will be read by `gradcam.read_standard_file`).'
+    'Path to Grad-CAM file (will be read by `gradcam.read_file`).'
 )
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
@@ -82,7 +82,7 @@ def _plot_one_example(
         title_string, output_dir_name):
     """Plots class-activation map for one example.
 
-    :param gradcam_dict: Dictionary read by `gradcam.read_standard_file`.
+    :param gradcam_dict: Dictionary read by `gradcam.read_file`.
     :param example_index: Will plot class-activation map for example with this
         array index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
@@ -154,7 +154,7 @@ def _run(gradcam_file_name, use_log_scale, prediction_file_name,
     print('Reading class-activation maps from: "{0:s}"...'.format(
         gradcam_file_name
     ))
-    gradcam_dict = gradcam.read_standard_file(gradcam_file_name)
+    gradcam_dict = gradcam.read_file(gradcam_file_name)
 
     example_id_strings = gradcam_dict[gradcam.EXAMPLE_IDS_KEY]
     output_neuron_indices = gradcam_dict[gradcam.OUTPUT_NEURONS_KEY]

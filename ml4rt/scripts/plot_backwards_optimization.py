@@ -41,7 +41,7 @@ OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file.  Will be read by '
-    '`backwards_optimization.read_standard_file`.'
+    '`backwards_optimization.read_file`.'
 )
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
@@ -72,7 +72,7 @@ def _plot_results_one_example(
     """Plots results for one example.
 
     :param bwo_dict: Dictionary read by
-        `backwards_optimization.read_standard_file`.
+        `backwards_optimization.read_file`.
     :param example_index: Will plot results for example with this array index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
     :param use_log_scale: See documentation at top of file.
@@ -225,7 +225,7 @@ def _run(input_file_name, use_log_scale, output_dir_name):
     print('Reading backwards-optimization results from: "{0:s}"...'.format(
         input_file_name
     ))
-    bwo_dict = bwo.read_standard_file(input_file_name)
+    bwo_dict = bwo.read_file(input_file_name)
 
     model_file_name = bwo_dict[bwo.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(

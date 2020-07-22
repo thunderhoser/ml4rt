@@ -115,7 +115,7 @@ PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 SALIENCY_FILE_HELP_STRING = (
-    'Path to saliency file (will be read by `saliency.read_standard_file`).'
+    'Path to saliency file (will be read by `saliency.read_file`).'
 )
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
@@ -234,7 +234,7 @@ def _plot_saliency_one_example(
         legend_suffix, output_dir_name):
     """Plots saliency map for one example.
 
-    :param saliency_dict: Dictionary read by `saliency.read_standard_file`.
+    :param saliency_dict: Dictionary read by `saliency.read_file`.
     :param example_index: Will plot saliency map for example with this array
         index.
     :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
@@ -393,7 +393,7 @@ def _run(saliency_file_name, use_log_scale, prediction_file_name,
     )
 
     print('Reading saliency values from: "{0:s}"...'.format(saliency_file_name))
-    saliency_dict = saliency.read_standard_file(saliency_file_name)
+    saliency_dict = saliency.read_file(saliency_file_name)
 
     target_field_name = saliency_dict[saliency.TARGET_FIELD_KEY]
     target_height_m_agl = saliency_dict[saliency.TARGET_HEIGHT_KEY]
@@ -407,7 +407,7 @@ def _run(saliency_file_name, use_log_scale, prediction_file_name,
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     num_examples = len(example_id_strings)
 
-    if target_field_name is None:
+    if target_field_name is None or prediction_file_name == '':
         predicted_target_values = [None] * num_examples
         actual_target_values = [None] * num_examples
     else:

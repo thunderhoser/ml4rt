@@ -44,7 +44,7 @@ LEARNING_RATE_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 L2_WEIGHT_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file.  Will be written by '
-    '`backwards_optimizatiom.write_standard_file`.'
+    '`backwards_optimizatiom.write_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -263,7 +263,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     )
 
     print('Writing results to file: "{0:s}"...'.format(output_file_name))
-    bwo.write_standard_file(
+    bwo.write_file(
         netcdf_file_name=output_file_name,
         init_scalar_predictor_matrix=init_scalar_predictor_matrix,
         final_scalar_predictor_matrix=final_scalar_predictor_matrix,

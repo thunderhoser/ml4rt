@@ -56,7 +56,7 @@ IS_LAYER_OUTPUT_HELP_STRING = (
 NEURON_INDICES_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 IDEAL_ACTIVATION_HELP_STRING = 'See doc for `saliency.check_metadata`.'
 OUTPUT_FILE_HELP_STRING = (
-    'Path to output file.  Will be written by `saliency.write_standard_file`.'
+    'Path to output file.  Will be written by `saliency.write_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -207,7 +207,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         vector_saliency_matrix = saliency_matrix[..., :-num_scalar_predictors]
 
     print('Writing saliency maps to: "{0:s}"...'.format(output_file_name))
-    saliency.write_standard_file(
+    saliency.write_file(
         netcdf_file_name=output_file_name,
         scalar_saliency_matrix=scalar_saliency_matrix,
         vector_saliency_matrix=vector_saliency_matrix,
