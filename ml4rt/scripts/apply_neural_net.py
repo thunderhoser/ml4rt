@@ -133,7 +133,9 @@ def _get_predicted_heating_rates(
     """
 
     num_examples = pressure_matrix_pascals.shape[0]
-    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    generator_option_dict = copy.deepcopy(
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
 
     this_dict = {
         example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
@@ -179,7 +181,9 @@ def _targets_numpy_to_dict(
     """
 
     net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
-    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    generator_option_dict = copy.deepcopy(
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
     if add_heating_rate and net_type_string in [
@@ -262,7 +266,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         metadata_dict[neural_net.LOSS_FUNCTION_KEY]
     )
 
-    generator_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    generator_option_dict = copy.deepcopy(
+        metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     generator_option_dict[neural_net.BATCH_SIZE_KEY] = NUM_EXAMPLES_PER_BATCH
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
