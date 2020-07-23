@@ -104,9 +104,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    # TODO(thunderhoser): This is a temporary hack.
+    target_norm_type_string = (
+        generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
+    )
 
-    target_norm_type_string = None
     # target_norm_type_string = copy.deepcopy(
     #     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
     # )
@@ -306,13 +307,27 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         num_examples = len(example_id_strings)
         num_heights = len(prediction_example_dict[example_io.HEIGHTS_KEY])
 
-        prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = []
-        prediction_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
-            numpy.full((num_examples, num_heights, 0), 0.)
-        )
-        prediction_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY] = []
-        prediction_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
-            numpy.full((num_examples, 0), 0.)
+        this_dict = {
+            example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
+            example_io.VECTOR_PREDICTOR_VALS_KEY:
+                numpy.full((num_examples, num_heights, 0), 0.),
+            example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
+            example_io.SCALAR_PREDICTOR_VALS_KEY:
+                numpy.full((num_examples, 0), 0.)
+        }
+        target_example_dict.update(this_dict)
+        prediction_example_dict.update(this_dict)
+
+        target_example_dict = normalization.denormalize_data(
+            new_example_dict=target_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=target_norm_type_string,
+            min_normalized_value=
+            generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_targets=True
         )
 
         prediction_example_dict = normalization.denormalize_data(
