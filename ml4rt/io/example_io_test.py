@@ -110,12 +110,12 @@ ORIG_VECTOR_PREDICTOR_NAMES = [
 ORIG_VECTOR_PREDICTOR_MATRIX = numpy.stack(
     (WATER_CONTENT_MATRIX_KG_M03, WATER_CONTENT_MATRIX_KG_M03 / 1000), axis=-1
 )
-THESE_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
+VALID_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
 
 EXAMPLE_DICT_WITHOUT_PATHS = {
     example_io.VECTOR_PREDICTOR_NAMES_KEY: ORIG_VECTOR_PREDICTOR_NAMES,
     example_io.VECTOR_PREDICTOR_VALS_KEY: ORIG_VECTOR_PREDICTOR_MATRIX,
-    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
@@ -133,7 +133,7 @@ EXAMPLE_DICT_WITH_DOWNWARD_PATHS = {
     example_io.VECTOR_PREDICTOR_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
     example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
@@ -152,7 +152,7 @@ EXAMPLE_DICT_WITH_UPWARD_PATHS = {
     example_io.VECTOR_PREDICTOR_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
     example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
@@ -226,7 +226,7 @@ EXAMPLE_DICT_FLUXES_ONLY = {
     example_io.VECTOR_TARGET_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
     example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
 
@@ -246,7 +246,7 @@ EXAMPLE_DICT_WITH_HEATING_RATE = {
     example_io.VECTOR_TARGET_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
     example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
 
@@ -289,7 +289,7 @@ EXAMPLE_DICT_WITH_INCREMENTS = {
     example_io.VECTOR_TARGET_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
     example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: THESE_TIMES_UNIX_SEC,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
 
@@ -672,6 +672,127 @@ EXAMPLE_ID_STRINGS = [
         example_io.MIDLATITUDE_WINTER_ENUM
     )
 ]
+
+# The following constants are used to test create_fake_heights.
+REAL_HEIGHTS_M_AGL = numpy.array(
+    [10, 20, 40, 60, 80, 10000, 50000], dtype=float
+)
+NUM_PADDING_HEIGHTS = 10
+PADDED_HEIGHTS_M_AGL = numpy.array([
+    10, 20, 40, 60, 80, 10000, 50000, 1050000, 2050000, 3050000, 4050000,
+    5050000, 6050000, 7050000, 8050000, 9050000, 10050000
+], dtype=float)
+
+# The following constants are used to test _add_height_padding.
+THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
+    [1, 2, 3, 4, 5, 6, 7],
+    [2, 4, 6, 8, 10, 12, 14],
+    [3, 6, 9, 12, 15, 18, 21]
+], dtype=float)
+
+THIS_TEMPERATURE_MATRIX_KELVINS = 273.15 + numpy.array([
+    [10, 11, 12, 13, 14, 15, 16],
+    [20, 21, 22, 23, 24, 25, 26],
+    [30, 31, 32, 33, 34, 35, 36]
+], dtype=float)
+
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_io.SPECIFIC_HUMIDITY_NAME, example_io.TEMPERATURE_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
+    THIS_HUMIDITY_MATRIX_KG_KG01, THIS_TEMPERATURE_MATRIX_KELVINS,
+), axis=-1)
+
+THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
+    [100, 150, 200, 250, 300, 350, 400],
+    [400, 500, 600, 700, 800, 900, 1000],
+    [0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
+    [50, 125, 200, 275, 350, 425, 525],
+    [500, 550, 600, 650, 700, 750, 850],
+    [1000, 1000, 1000, 1000, 1000, 1000, 1400]
+], dtype=float)
+
+THESE_VECTOR_TARGET_NAMES = [
+    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME
+]
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02), axis=-1
+)
+
+EXAMPLE_DICT_SANS_PADDING = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_io.VECTOR_TARGET_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: REAL_HEIGHTS_M_AGL + 0.
+}
+
+THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
+    [1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+    [2, 4, 6, 8, 10, 12, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
+    [3, 6, 9, 12, 15, 18, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21]
+], dtype=float)
+
+THIS_TEMPERATURE_MATRIX_KELVINS = 273.15 + numpy.array([
+    [10, 11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16],
+    [20, 21, 22, 23, 24, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
+    [30, 31, 32, 33, 34, 35, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36]
+], dtype=float)
+
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
+    THIS_HUMIDITY_MATRIX_KG_KG01, THIS_TEMPERATURE_MATRIX_KELVINS,
+), axis=-1)
+
+THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
+    [100, 150, 200, 250, 300, 350, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [400, 500, 600, 700, 800, 900, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
+    [50, 125, 200, 275, 350, 425, 525, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [500, 550, 600, 650, 700, 750, 850, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1000, 1000, 1000, 1000, 1000, 1000, 1400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIS_VECTOR_TARGET_MATRIX = numpy.stack(
+    (THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02), axis=-1
+)
+
+EXAMPLE_DICT_WITH_PADDING = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_io.VECTOR_TARGET_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: PADDED_HEIGHTS_M_AGL + 0.
+}
+
+# The following constants are used to test subset_by_height with padding.
+PADDED_HEIGHTS_TO_KEEP_M_AGL = numpy.array([
+    2050000, 3050000, 4050000, 5050000, 6050000, 7050000, 8050000, 9050000,
+    10050000
+], dtype=float)
+
+EXAMPLE_DICT_PADDED_SELECT_HEIGHTS = {
+    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
+    example_io.VECTOR_PREDICTOR_VALS_KEY:
+        THIS_VECTOR_PREDICTOR_MATRIX[:, -9:, :],
+    example_io.VECTOR_TARGET_NAMES_KEY:
+        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
+    example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX[:, -9:, :],
+    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: PADDED_HEIGHTS_TO_KEEP_M_AGL + 0.
+}
 
 
 def _compare_example_dicts(first_example_dict, second_example_dict):
@@ -1232,6 +1353,46 @@ class ExampleIoTests(unittest.TestCase):
         ))
         self.assertTrue(numpy.array_equal(
             these_standard_atmo_flags, STANDARD_ATMO_FLAGS_FOR_IDS
+        ))
+
+    def test_create_fake_heights(self):
+        """Ensures correct output from create_fake_heights."""
+
+        these_heights_m_agl = example_io.create_fake_heights(
+            real_heights_m_agl=REAL_HEIGHTS_M_AGL,
+            num_padding_heights=NUM_PADDING_HEIGHTS
+        )
+
+        self.assertTrue(numpy.allclose(
+            these_heights_m_agl, PADDED_HEIGHTS_M_AGL, atol=TOLERANCE
+        ))
+
+    def test_add_height_padding(self):
+        """Ensures correct output from _add_height_padding."""
+
+        this_example_dict = example_io._add_height_padding(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_SANS_PADDING),
+            desired_heights_m_agl=PADDED_HEIGHTS_M_AGL
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_PADDING
+        ))
+
+    def test_subset_by_height_with_padding(self):
+        """Ensures correct output from subset_by_height.
+
+        In this case, some of the desired heights are not there yet (and should
+        be added at the top of the profile).
+        """
+
+        this_example_dict = example_io.subset_by_height(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_SANS_PADDING),
+            heights_m_agl=PADDED_HEIGHTS_TO_KEEP_M_AGL
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_PADDED_SELECT_HEIGHTS
         ))
 
 

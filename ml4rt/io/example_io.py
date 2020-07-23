@@ -11,6 +11,9 @@ from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 
+# TODO(thunderhoser): Split this into several modules (example_io.py,
+# example_utils.py, conversions.py).
+
 TOLERANCE = 1e-6
 
 KM_TO_METRES = 1000.
@@ -497,7 +500,7 @@ def _add_height_padding(example_dict, desired_heights_m_agl):
     )
     example_dict[VECTOR_TARGET_VALS_KEY] = numpy.pad(
         example_dict[VECTOR_TARGET_VALS_KEY],
-        pad_width=pad_width_input_arg, mode='edge'
+        pad_width=pad_width_input_arg, mode='constant', constant_values=0.
     )
 
     return example_dict
@@ -741,6 +744,9 @@ def fluxes_increments_to_actual(example_dict):
         up_flux_increment_matrix_w_m02_pa01 * pressure_diff_matrix_pascals,
         axis=1
     )
+
+    down_flux_matrix_w_m02 = numpy.maximum(down_flux_matrix_w_m02, 0.)
+    up_flux_matrix_w_m02 = numpy.maximum(up_flux_matrix_w_m02, 0.)
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names
