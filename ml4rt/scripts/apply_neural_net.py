@@ -78,7 +78,10 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
 
-    generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
+    generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = [
+        example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
+        example_io.ZENITH_ANGLE_NAME
+    ]
     generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
         example_io.PRESSURE_NAME
     ]
@@ -91,8 +94,10 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
     )
 
     dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
+        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
         example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
