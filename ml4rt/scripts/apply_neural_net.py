@@ -295,7 +295,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     target_norm_type_string = copy.deepcopy(
         generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
     )
-    generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
+
+    # target_norm_type_string = copy.deepcopy(
+    #     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
+    # )
+    # generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
     generator = neural_net.data_generator(
@@ -423,6 +427,28 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             separate_heights=True, apply_to_predictors=False,
             apply_to_targets=True
         )
+
+        target_example_dict.update(this_dict)
+
+        target_example_dict = normalization.denormalize_data(
+            new_example_dict=target_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=target_norm_type_string,
+            min_normalized_value=
+            generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_targets=True
+        )
+
+        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+            example_dict=target_example_dict,
+            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+        )
+
+        print(example_id_strings[0])
+        print(down_flux_inc_matrix_w_m02_pa01[0, :])
 
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
