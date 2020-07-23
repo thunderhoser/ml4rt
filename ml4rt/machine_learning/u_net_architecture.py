@@ -7,6 +7,7 @@ from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
 
 NUM_HEIGHTS_KEY = 'num_heights'
+NUM_HEIGHTS_FOR_LOSS_KEY = 'num_heights_for_loss'
 NUM_INPUT_CHANNELS_KEY = 'num_input_channels'
 INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
 INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
@@ -17,6 +18,7 @@ L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
+    NUM_HEIGHTS_FOR_LOSS_KEY: None,
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     OUTPUT_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
@@ -40,6 +42,16 @@ def _check_architecture_args(option_dict):
 
     error_checking.assert_is_integer(option_dict[NUM_HEIGHTS_KEY])
     error_checking.assert_is_geq(option_dict[NUM_HEIGHTS_KEY], 10)
+
+    if option_dict[NUM_HEIGHTS_FOR_LOSS_KEY] is None:
+        option_dict[NUM_HEIGHTS_FOR_LOSS_KEY] = option_dict[NUM_HEIGHTS_KEY] + 0
+
+    error_checking.assert_is_integer(option_dict[NUM_HEIGHTS_FOR_LOSS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_HEIGHTS_FOR_LOSS_KEY], 10)
+    error_checking.assert_is_leq(
+        option_dict[NUM_HEIGHTS_FOR_LOSS_KEY], option_dict[NUM_HEIGHTS_KEY]
+    )
+
     error_checking.assert_is_integer(option_dict[NUM_INPUT_CHANNELS_KEY])
     error_checking.assert_is_geq(option_dict[NUM_INPUT_CHANNELS_KEY], 1)
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
@@ -49,19 +61,32 @@ def _check_architecture_args(option_dict):
     return option_dict
 
 
-def _set_top_heights_to_zero(vector_target_tensor):
-    """Sets model outputs (predictions) at the top 55 height levels to zero.
+def _get_zeroing_function(num_heights_to_zero):
+    """Returns function that zeroes out model predictions at the top heights.
 
-    :param vector_target_tensor: Keras tensor with model outputs (predictions).
-    :return: vector_target_tensor: Same but with predictions zeroed out at the
-        top 55 heights.
+    :param num_heights_to_zero: Will zero out predictions for this many heights
+        at top of profile.
+    :return: zeroing_function: Function handle (see below).
     """
 
-    boolean_tensor = K.greater_equal(vector_target_tensor[:, -55:, :], 1e12)
-    boolean_tensor = K.cast(boolean_tensor, dtype=K.floatx())
-    return K.concatenate(
-        (vector_target_tensor[:, :-55, :], boolean_tensor), axis=1
-    )
+    def zeroing_function(prediction_tensor):
+        """Zeroes out model predictions at the top height levels.
+
+        :param prediction_tensor: Keras tensor with model predictions.
+        :return: prediction_tensor: Same as input but with predictions zeroed
+            out at top height levels.
+        """
+
+        zero_tensor = K.greater_equal(
+            prediction_tensor[:, -num_heights_to_zero:, :], 1e12
+        )
+        zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
+
+        return K.concatenate((
+            prediction_tensor[:, :-num_heights_to_zero, :], zero_tensor
+        ), axis=1)
+
+    return zeroing_function
 
 
 def create_model(option_dict, loss_function):
@@ -75,6 +100,9 @@ def create_model(option_dict, loss_function):
 
     :param option_dict: Dictionary with the following keys.
     option_dict['num_heights']: Number of height levels.
+    option_dict['num_heights_for_loss']: Number of height levels to use in loss
+        function.  Will use only the bottom N height levels, where N is
+        `num_heights_for_loss`.
     option_dict['num_input_channels']: Number of input channels.
     option_dict['inner_activ_function_name']: Name of activation function for
         all inner (non-output) layers.  Must be accepted by
@@ -102,6 +130,7 @@ def create_model(option_dict, loss_function):
     option_dict = _check_architecture_args(option_dict)
 
     num_heights = option_dict[NUM_HEIGHTS_KEY]
+    num_heights_for_loss = option_dict[NUM_HEIGHTS_FOR_LOSS_KEY]
     num_input_channels = option_dict[NUM_INPUT_CHANNELS_KEY]
     inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
     inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
@@ -452,11 +481,14 @@ def create_model(option_dict, loss_function):
         alpha_for_elu=output_activ_function_alpha
     )(second_conv_layer1_object)
 
-    second_conv_layer1_object = keras.layers.Lambda(_set_top_heights_to_zero)(
-        second_conv_layer1_object
-    )
+    if num_heights > num_heights_for_loss:
+        this_function = (
+            _get_zeroing_function(num_heights - num_heights_for_loss)
+        )
+        second_conv_layer1_object = keras.layers.Lambda(this_function)(
+            second_conv_layer1_object
+        )
 
-    # TODO(thunderhoser): Add code that does this only conditionally.
     model_object = keras.models.Model(
         input=input_layer_object, output=second_conv_layer1_object
     )
