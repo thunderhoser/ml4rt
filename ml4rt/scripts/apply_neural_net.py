@@ -77,10 +77,12 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
     generator_option_dict = copy.deepcopy(
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
-    generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+
+    generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
     generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
         example_io.PRESSURE_NAME
     ]
+    generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
 
     generator = neural_net.data_generator_specific_examples(
         option_dict=generator_option_dict,
