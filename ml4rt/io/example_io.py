@@ -575,6 +575,13 @@ def fluxes_actual_to_increments(example_dict):
         up_flux_matrix_w_m02, axis=1, prepend=0.
     ) / pressure_diff_matrix_pascals
 
+    # down_flux_increment_matrix_w_m02_pa01 = numpy.maximum(
+    #     down_flux_increment_matrix_w_m02_pa01, 0.
+    # )
+    # up_flux_increment_matrix_w_m02_pa01 = numpy.maximum(
+    #     up_flux_increment_matrix_w_m02_pa01, 0.
+    # )
+
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_down_increment = SHORTWAVE_DOWN_FLUX_INC_NAME in vector_target_names
     found_up_increment = SHORTWAVE_UP_FLUX_INC_NAME in vector_target_names
@@ -1011,7 +1018,8 @@ def read_file(example_file_name):
         integrate_upward=True
     )
 
-    return fluxes_actual_to_increments(example_dict)
+    example_dict = fluxes_actual_to_increments(example_dict)
+    return fluxes_increments_to_actual(example_dict)
 
 
 def write_file(example_dict, netcdf_file_name):

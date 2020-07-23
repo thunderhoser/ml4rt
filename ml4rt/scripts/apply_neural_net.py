@@ -10,8 +10,6 @@ from ml4rt.io import prediction_io
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
-# TODO(thunderhoser): Modularize the gross code in this script.
-
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
@@ -158,17 +156,6 @@ def _get_predicted_heating_rates(
     prediction_example_dict = (
         example_io.fluxes_increments_to_actual(prediction_example_dict)
     )
-    down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
-        example_dict=prediction_example_dict,
-        field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
-    )
-    down_flux_matrix_w_m02 = example_io.get_field_from_dict(
-        example_dict=prediction_example_dict,
-        field_name=example_io.SHORTWAVE_DOWN_FLUX_NAME
-    )
-
-    print(down_flux_inc_matrix_w_m02_pa01[0, ...])
-
     prediction_example_dict = example_io.fluxes_to_heating_rate(
         prediction_example_dict
     )
@@ -202,6 +189,7 @@ def _targets_numpy_to_dict(
     )
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
+    # TODO(thunderhoser): Get rid of this HACK.
     if add_heating_rate and net_type_string in [
             neural_net.CNN_TYPE_STRING, neural_net.U_NET_TYPE_STRING
     ]:
@@ -293,11 +281,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     target_norm_type_string = copy.deepcopy(
         generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
     )
-
-    # target_norm_type_string = copy.deepcopy(
-    #     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
-    # )
-    # generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
+    generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
     generator = neural_net.data_generator(
@@ -418,7 +402,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             example_dict=prediction_example_dict,
             field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
-
         print(down_flux_inc_matrix_w_m02_pa01[0, ...])
         print('\n')
 
@@ -438,38 +421,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             example_dict=prediction_example_dict,
             field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
-
         print(down_flux_inc_matrix_w_m02_pa01[0, ...])
         print('\n\n\n')
-
-        target_example_dict.update(this_dict)
-
-        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
-            example_dict=target_example_dict,
-            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
-        )
-
-        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
-        print('\n')
-
-        target_example_dict = normalization.denormalize_data(
-            new_example_dict=target_example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=target_norm_type_string,
-            min_normalized_value=
-            generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
-            max_normalized_value=
-            generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
-            separate_heights=True, apply_to_predictors=False,
-            apply_to_targets=True
-        )
-
-        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
-            example_dict=target_example_dict,
-            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
-        )
-
-        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
 
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
