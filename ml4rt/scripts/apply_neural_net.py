@@ -86,6 +86,7 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
         example_io.PRESSURE_NAME
     ]
     generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+    generator_option_dict[neural_net.BATCH_SIZE_KEY] = NUM_EXAMPLES_PER_BATCH
 
     generator = neural_net.data_generator_specific_examples(
         option_dict=generator_option_dict,
@@ -125,6 +126,9 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
                 (pressure_matrix_pascals, this_pressure_matrix_pascals), axis=0
             )
 
+    print(example_id_strings[0])
+    print(pressure_matrix_pascals[0, :])
+
     return pressure_matrix_pascals
 
 
@@ -160,9 +164,6 @@ def _get_predicted_heating_rates(
     prediction_example_dict = example_io.fluxes_to_heating_rate(
         prediction_example_dict
     )
-
-    print(generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY])
-    print(generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY])
 
     target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
@@ -368,18 +369,12 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         vector_target_matrix=vector_target_matrix,
         model_metadata_dict=metadata_dict
     )
-    print(target_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-    print(target_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
-    print('\n\n')
 
     prediction_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_prediction_matrix,
         vector_target_matrix=vector_prediction_matrix,
         model_metadata_dict=metadata_dict
     )
-    print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-    print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
-    print('\n\n')
 
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
@@ -427,18 +422,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             example_id_strings=example_id_strings
         )
 
-        print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-        print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
-        print('\n\n')
-
         prediction_example_dict = _get_predicted_heating_rates(
             prediction_example_dict=prediction_example_dict,
             pressure_matrix_pascals=pressure_matrix_pascals,
             model_metadata_dict=metadata_dict
         )
-
-        print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-        print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
