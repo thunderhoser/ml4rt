@@ -764,11 +764,29 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
         )
         num_examples = vector_target_matrix.shape[0]
 
-        vector_target_matrix = numpy.reshape(
-            vector_target_matrix,
-            (num_examples, num_heights, num_vector_targets),
-            order='F'
-        )
+        try:
+            vector_target_matrix = numpy.reshape(
+                vector_target_matrix,
+                (num_examples, num_heights, num_vector_targets),
+                order='F'
+            )
+        except ValueError:
+
+            # TODO(thunderhoser): This is kind of a HACK.
+            vector_target_matrix = numpy.reshape(
+                vector_target_matrix,
+                (num_examples, num_heights, num_vector_targets - 1),
+                order='F'
+            )
+            heating_rate_index = (
+                example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
+                    example_io.SHORTWAVE_HEATING_RATE_NAME
+                )
+            )
+            vector_target_matrix = numpy.insert(
+                vector_target_matrix, obj=heating_rate_index,
+                values=0., axis=-1
+            )
 
         return {
             example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
