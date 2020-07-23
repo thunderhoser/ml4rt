@@ -63,6 +63,165 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
+    """Returns profiles of unnormalized pressure.
+
+    E = number of examples
+    H = number of heights
+
+    :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
+    :param example_id_strings: length-E list of example IDs.
+    :return: pressure_matrix_pascals: E-by-H numpy array of pressures.
+    """
+
+    generator_option_dict = copy.deepcopy(
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
+    generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+    generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
+        example_io.PRESSURE_NAME
+    ]
+
+    generator = neural_net.data_generator_specific_examples(
+        option_dict=generator_option_dict,
+        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+        example_id_strings=example_id_strings
+    )
+
+    dummy_example_dict = {
+        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
+        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+    }
+
+    pressure_matrix_pascals = None
+
+    while True:
+        try:
+            this_predictor_matrix = next(generator)[0]
+        except (RuntimeError, StopIteration):
+            break
+
+        this_example_dict = neural_net.predictors_numpy_to_dict(
+            predictor_matrix=this_predictor_matrix,
+            example_dict=dummy_example_dict,
+            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+        )
+        this_pressure_matrix_pascals = (
+            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY][..., 0]
+        )
+
+        if pressure_matrix_pascals is None:
+            pressure_matrix_pascals = this_pressure_matrix_pascals + 0.
+        else:
+            pressure_matrix_pascals = numpy.concatenate(
+                (pressure_matrix_pascals, this_pressure_matrix_pascals), axis=0
+            )
+
+    return pressure_matrix_pascals
+
+
+def _get_predicted_heating_rates(
+        prediction_example_dict, pressure_matrix_pascals, model_metadata_dict):
+    """Computes predicted heating rates from predicted flux-increment profiles.
+
+    :param prediction_example_dict: Dictionary with predictions.  For a list of
+        keys, see doc for `example_io.read_file`.
+    :param pressure_matrix_pascals: See doc for `_get_unnormalized_pressure`.
+    :param model_metadata_dict: Same.
+    :return: prediction_example_dict: Same but with heating rates.
+    """
+
+    num_examples = pressure_matrix_pascals.shape[0]
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    this_dict = {
+        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
+        example_io.VECTOR_PREDICTOR_VALS_KEY:
+            numpy.expand_dims(pressure_matrix_pascals, axis=-1),
+        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_io.SCALAR_PREDICTOR_VALS_KEY: numpy.full((num_examples, 0), 0.),
+        example_io.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
+    }
+    prediction_example_dict.update(this_dict)
+
+    prediction_example_dict = (
+        example_io.fluxes_increments_to_actual(prediction_example_dict)
+    )
+    prediction_example_dict = example_io.fluxes_to_heating_rate(
+        prediction_example_dict
+    )
+
+    target_names = (
+        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
+        generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+    )
+    return example_io.subset_by_field(
+        example_dict=prediction_example_dict, field_names=target_names
+    )
+
+
+def _targets_numpy_to_dict(
+        scalar_target_matrix, vector_target_matrix, model_metadata_dict):
+    """Converts either actual or predicted target values to dictionary.
+
+    This method is a wrapper for `neural_net.targets_numpy_to_dict`.
+
+    :param scalar_target_matrix: numpy array with scalar outputs (either
+        predicted or actual target values).
+    :param vector_target_matrix: Same but with vector outputs.
+    :param model_metadata_dict: Dictionary read by `neural_net.read_metafile`.
+    :return: example_dict: Equivalent dictionary, with keys listed in doc for
+        `example_io.read_file`.
+    """
+
+    net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
+
+    if add_heating_rate and net_type_string in [
+            neural_net.CNN_TYPE_STRING, neural_net.U_NET_TYPE_STRING
+    ]:
+        vector_target_names = (
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+        )
+        heating_rate_index = vector_target_names.index(
+            example_io.SHORTWAVE_HEATING_RATE_NAME
+        )
+        vector_target_matrix = numpy.insert(
+            vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
+        )
+
+    if net_type_string == neural_net.CNN_TYPE_STRING:
+        target_matrices = [vector_target_matrix]
+
+        if scalar_target_matrix is not None:
+            target_matrices.append(scalar_target_matrix)
+
+    elif net_type_string == neural_net.U_NET_TYPE_STRING:
+        target_matrices = [vector_target_matrix]
+    else:
+        target_matrices = [scalar_target_matrix]
+
+    example_dict = {
+        example_io.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_io.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_io.HEIGHTS_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+    }
+
+    new_example_dict = neural_net.targets_numpy_to_dict(
+        target_matrices=target_matrices,
+        example_dict=example_dict, net_type_string=net_type_string
+    )
+    for this_key in TARGET_VALUE_KEYS:
+        example_dict[this_key] = new_example_dict[this_key]
+
+    return example_dict
+
+
 def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
          output_file_name):
     """Applies trained neural net in inference mode.
@@ -104,48 +263,23 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    target_norm_type_string = (
+    target_norm_type_string = copy.deepcopy(
         generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
     )
-
-    # target_norm_type_string = copy.deepcopy(
-    #     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
-    # )
-    # generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
-
+    generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
+
     generator = neural_net.data_generator(
         option_dict=generator_option_dict, for_inference=True,
         net_type_string=net_type_string, is_loss_constrained_mse=False
     )
-
     print(SEPARATOR_STRING)
-
-    dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
-        example_io.SCALAR_TARGET_NAMES_KEY:
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-        example_io.VECTOR_TARGET_NAMES_KEY:
-            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
-    }
-
-    add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
-    generator_option_dict_unnorm = copy.deepcopy(generator_option_dict)
-    generator_option_dict_unnorm[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
-    generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
-        example_io.PRESSURE_NAME
-    ]
 
     scalar_target_matrix = None
     scalar_prediction_matrix = None
     vector_target_matrix = None
     vector_prediction_matrix = None
     example_id_strings = []
-
-    vector_predictor_matrix_unnorm = None
 
     while True:
         this_scalar_target_matrix = None
@@ -185,18 +319,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_vector_target_matrix = this_target_array
             this_vector_prediction_matrix = this_prediction_array[0]
 
-        if add_heating_rate:
-            heating_rate_index = (
-                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
-                    example_io.SHORTWAVE_HEATING_RATE_NAME
-                )
-            )
-
-            this_vector_prediction_matrix = numpy.insert(
-                this_vector_prediction_matrix, obj=heating_rate_index,
-                values=0., axis=-1
-            )
-
         if this_scalar_target_matrix is not None:
             if scalar_target_matrix is None:
                 scalar_target_matrix = this_scalar_target_matrix + 0.
@@ -223,34 +345,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                     axis=0
                 )
 
-        if add_heating_rate:
-            this_generator = neural_net.data_generator_specific_examples(
-                option_dict=generator_option_dict_unnorm,
-                net_type_string=net_type_string,
-                example_id_strings=these_id_strings
-            )
-            this_predictor_matrix_unnorm = next(this_generator)[0]
-
-            this_example_dict = neural_net.predictors_numpy_to_dict(
-                predictor_matrix=this_predictor_matrix_unnorm,
-                example_dict=dummy_example_dict, net_type_string=net_type_string
-            )
-            this_vector_predictor_matrix_unnorm = (
-                this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
-            )
-
-            if vector_predictor_matrix_unnorm is None:
-                vector_predictor_matrix_unnorm = (
-                    this_vector_predictor_matrix_unnorm + 0.
-                )
-            else:
-                vector_predictor_matrix_unnorm = numpy.concatenate((
-                    vector_predictor_matrix_unnorm,
-                    this_vector_predictor_matrix_unnorm
-                ), axis=0)
-
-    if vector_predictor_matrix_unnorm is not None:
-        print(numpy.mean(vector_predictor_matrix_unnorm, axis=0))
+    target_example_dict = _targets_numpy_to_dict(
+        scalar_target_matrix=scalar_target_matrix,
+        vector_target_matrix=vector_target_matrix,
+        model_metadata_dict=metadata_dict
+    )
+    prediction_example_dict = _targets_numpy_to_dict(
+        scalar_target_matrix=scalar_prediction_matrix,
+        vector_target_matrix=vector_prediction_matrix,
+        model_metadata_dict=metadata_dict
+    )
 
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
@@ -262,51 +366,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
 
-    print('Denormalizing target (actual) and predicted values...')
-
-    # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
-    if net_type_string == neural_net.CNN_TYPE_STRING:
-        these_target_matrices = [vector_target_matrix]
-
-        if scalar_target_matrix is not None:
-            these_target_matrices.append(scalar_target_matrix)
-
-    elif net_type_string == neural_net.U_NET_TYPE_STRING:
-        these_target_matrices = [vector_target_matrix]
-    else:
-        these_target_matrices = [scalar_target_matrix]
-
-    new_example_dict = neural_net.targets_numpy_to_dict(
-        target_matrices=these_target_matrices,
-        example_dict=dummy_example_dict, net_type_string=net_type_string
-    )
-
-    target_example_dict = copy.deepcopy(dummy_example_dict)
-    for this_key in TARGET_VALUE_KEYS:
-        target_example_dict[this_key] = new_example_dict[this_key]
-
-    # TODO(thunderhoser): Put this code in `neural_net.targets_numpy_to_dict`.
-    if net_type_string == neural_net.CNN_TYPE_STRING:
-        these_prediction_matrices = [vector_prediction_matrix]
-
-        if scalar_prediction_matrix is not None:
-            these_prediction_matrices.append(scalar_prediction_matrix)
-
-    elif net_type_string == neural_net.U_NET_TYPE_STRING:
-        these_prediction_matrices = [vector_prediction_matrix]
-    else:
-        these_prediction_matrices = [scalar_prediction_matrix]
-
-    new_example_dict = neural_net.targets_numpy_to_dict(
-        target_matrices=these_prediction_matrices,
-        example_dict=dummy_example_dict, net_type_string=net_type_string
-    )
-
-    prediction_example_dict = copy.deepcopy(dummy_example_dict)
-    for this_key in TARGET_VALUE_KEYS:
-        prediction_example_dict[this_key] = new_example_dict[this_key]
-
     if target_norm_type_string is not None:
+        print('Denormalizing predicted values...')
+
         num_examples = len(example_id_strings)
         num_heights = len(prediction_example_dict[example_io.HEIGHTS_KEY])
 
@@ -318,20 +380,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             example_io.SCALAR_PREDICTOR_VALS_KEY:
                 numpy.full((num_examples, 0), 0.)
         }
-        target_example_dict.update(this_dict)
         prediction_example_dict.update(this_dict)
-
-        target_example_dict = normalization.denormalize_data(
-            new_example_dict=target_example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=target_norm_type_string,
-            min_normalized_value=
-            generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
-            max_normalized_value=
-            generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
-            separate_heights=True, apply_to_predictors=False,
-            apply_to_targets=True
-        )
 
         prediction_example_dict = normalization.denormalize_data(
             new_example_dict=prediction_example_dict,
@@ -345,38 +394,18 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_targets=True
         )
 
+    add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
+
     if add_heating_rate:
-        prediction_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = (
-            generator_option_dict_unnorm[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
-        )
-        prediction_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
-            vector_predictor_matrix_unnorm
+        pressure_matrix_pascals = _get_unnormalized_pressure(
+            model_metadata_dict=metadata_dict,
+            example_id_strings=example_id_strings
         )
 
-        num_examples = vector_predictor_matrix_unnorm.shape[0]
-        prediction_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
-            numpy.full((num_examples, 0), 0.)
-        )
-
-        num_examples = vector_predictor_matrix_unnorm.shape[0]
-        dummy_times_unix_sec = numpy.full(num_examples, 0, dtype=int)
-        prediction_example_dict[example_io.VALID_TIMES_KEY] = (
-            dummy_times_unix_sec
-        )
-
-        prediction_example_dict = (
-            example_io.fluxes_increments_to_actual(prediction_example_dict)
-        )
-        prediction_example_dict = example_io.fluxes_to_heating_rate(
-            prediction_example_dict
-        )
-
-        target_names = (
-            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
-        )
-        prediction_example_dict = example_io.subset_by_field(
-            example_dict=prediction_example_dict, field_names=target_names
+        prediction_example_dict = _get_predicted_heating_rates(
+            prediction_example_dict=prediction_example_dict,
+            pressure_matrix_pascals=pressure_matrix_pascals,
+            model_metadata_dict=metadata_dict
         )
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
