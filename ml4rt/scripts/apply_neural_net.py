@@ -209,7 +209,7 @@ def _targets_numpy_to_dict(
         example_io.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
         example_io.HEIGHTS_KEY:
-            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+            generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     new_example_dict = neural_net.targets_numpy_to_dict(
