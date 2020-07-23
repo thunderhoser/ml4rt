@@ -512,7 +512,6 @@ def denormalize_data(
     new_vector_predictor_matrix = (
         new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
     )
-    print(new_example_dict[example_io.HEIGHTS_KEY])
     heights_m_agl = (
         numpy.round(new_example_dict[example_io.HEIGHTS_KEY]).astype(int)
     )

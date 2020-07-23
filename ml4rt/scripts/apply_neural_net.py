@@ -126,9 +126,6 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
                 (pressure_matrix_pascals, this_pressure_matrix_pascals), axis=0
             )
 
-    print(example_id_strings[0])
-    print(pressure_matrix_pascals[0, :])
-
     return pressure_matrix_pascals
 
 
@@ -161,6 +158,19 @@ def _get_predicted_heating_rates(
     prediction_example_dict = (
         example_io.fluxes_increments_to_actual(prediction_example_dict)
     )
+    down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+        example_dict=prediction_example_dict,
+        field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+    )
+    down_flux_matrix_w_m02 = example_io.get_field_from_dict(
+        example_dict=prediction_example_dict,
+        field_name=example_io.SHORTWAVE_DOWN_FLUX_NAME
+    )
+
+    print(down_flux_inc_matrix_w_m02_pa01[0, ...])
+    print(down_flux_matrix_w_m02[0, ...])
+    print(pressure_matrix_pascals[0, ...])
+
     prediction_example_dict = example_io.fluxes_to_heating_rate(
         prediction_example_dict
     )
