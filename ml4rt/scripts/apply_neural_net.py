@@ -249,6 +249,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                     this_vector_predictor_matrix_unnorm
                 ), axis=0)
 
+    if vector_predictor_matrix_unnorm is not None:
+        print(numpy.mean(vector_predictor_matrix_unnorm, axis=0))
+
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
