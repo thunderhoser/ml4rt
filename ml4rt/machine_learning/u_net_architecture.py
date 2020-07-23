@@ -1,6 +1,7 @@
 """Methods for building U-nets."""
 
 import keras
+from keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
@@ -46,6 +47,21 @@ def _check_architecture_args(option_dict):
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
 
     return option_dict
+
+
+def _set_top_heights_to_zero(vector_target_tensor):
+    """Sets model outputs (predictions) at the top 55 height levels to zero.
+
+    :param vector_target_tensor: Keras tensor with model outputs (predictions).
+    :return: vector_target_tensor: Same but with predictions zeroed out at the
+        top 55 heights.
+    """
+
+    boolean_tensor = K.greater_equal(vector_target_tensor[:, -55:, :], 1e12)
+    boolean_tensor = K.cast(boolean_tensor, dtype=K.floatx())
+    return K.concatenate(
+        (vector_target_tensor[:, :-55, :], boolean_tensor), axis=1
+    )
 
 
 def create_model(option_dict, loss_function):
@@ -436,6 +452,11 @@ def create_model(option_dict, loss_function):
         alpha_for_elu=output_activ_function_alpha
     )(second_conv_layer1_object)
 
+    second_conv_layer1_object = keras.layers.Lambda(_set_top_heights_to_zero)(
+        second_conv_layer1_object
+    )
+
+    # TODO(thunderhoser): Add code that does this only conditionally.
     model_object = keras.models.Model(
         input=input_layer_object, output=second_conv_layer1_object
     )
