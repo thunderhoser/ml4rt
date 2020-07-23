@@ -726,6 +726,69 @@ def match_heights(heights_m_agl, desired_height_m_agl):
     raise ValueError(error_string)
 
 
+def _create_fake_heights(real_heights_m_agl, num_padding_heights):
+    """Creates fake heights for padding at top of profile.
+    
+    :param real_heights_m_agl: 1-D numpy array of real heights (metres above
+        ground level).
+    :param num_padding_heights: Number of heights to pad at top.
+    :return: heights_m_agl: 1-D numpy array with all heights (real followed by
+        fake).
+    """
+
+    assert numpy.allclose(
+        real_heights_m_agl, numpy.sort(real_heights_m_agl), atol=TOLERANCE
+    )
+    
+    if num_padding_heights == 0:
+        return real_heights_m_agl
+
+    fake_heights_m_agl = numpy.linspace(
+        1, num_padding_heights, num=num_padding_heights, dtype=float
+    )
+    fake_heights_m_agl = real_heights_m_agl[-1] + 1e6 * fake_heights_m_agl
+
+    return numpy.concatenate(
+        (real_heights_m_agl, fake_heights_m_agl), axis=0
+    )
+
+
+def add_height_padding(example_dict, num_padding_heights):
+    """Adds height-padding to profiles.
+
+    :param example_dict: See doc for `read_file`.
+    :param num_padding_heights: Number of fake heights to add at top of each
+        profile.
+    :return: example_dict: Same as input but with extra heights.
+    """
+
+    error_checking.assert_is_integer(num_padding_heights)
+    error_checking.assert_is_geq(num_padding_heights, 0)
+
+    if num_padding_heights == 0:
+        return example_dict
+
+    example_dict[HEIGHTS_KEY] = _create_fake_heights(
+        real_heights_m_agl=example_dict[HEIGHTS_KEY],
+        num_padding_heights=num_padding_heights
+    )
+
+    pad_width_input_arg = (
+        (0, 0), (0, num_padding_heights), (0, 0)
+    )
+
+    example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.pad(
+        example_dict[VECTOR_PREDICTOR_VALS_KEY],
+        pad_width=pad_width_input_arg, mode='edge'
+    )
+    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.pad(
+        example_dict[VECTOR_TARGET_VALS_KEY],
+        pad_width=pad_width_input_arg, mode='edge'
+    )
+
+    return example_dict
+
+
 def check_field_name(field_name):
     """Ensures that field name is valid (either predictor or target variable).
 
