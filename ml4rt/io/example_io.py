@@ -421,6 +421,88 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     return example_dict
 
 
+def _add_height_padding(example_dict, desired_heights_m_agl):
+    """Adds height-padding to profiles.
+
+    :param example_dict: See doc for `read_file`.
+    :param desired_heights_m_agl: 1-D numpy array with all desired heights (real
+        and fake), in metres above ground level.
+    :return: example_dict: Same as input but with extra heights.
+    :raises: ValueError: if `desired_heights_m_agl` contains anything other than
+        heights currently in the example dict, followed by heights not in the
+        example dict.
+    """
+
+    error_checking.assert_is_numpy_array(
+        desired_heights_m_agl, num_dimensions=1
+    )
+    error_checking.assert_is_geq_numpy_array(desired_heights_m_agl, 0.)
+
+    current_heights_m_agl = example_dict[HEIGHTS_KEY]
+    desired_heights_m_agl = numpy.sort(desired_heights_m_agl)
+
+    num_desired_heights = len(desired_heights_m_agl)
+    first_new_height_index = None
+
+    for j in range(num_desired_heights):
+        found_this_height = False
+
+        try:
+            match_heights(
+                heights_m_agl=current_heights_m_agl,
+                desired_height_m_agl=desired_heights_m_agl[j]
+            )
+            found_this_height = True
+        except ValueError:
+            if desired_heights_m_agl[j] <= numpy.max(current_heights_m_agl):
+                raise
+
+        if found_this_height:
+            if first_new_height_index is None:
+                continue
+
+            error_string = (
+                'desired_heights_m_agl should contain heights present in the '
+                'example dict, followed by heights not present in the example.'
+                '  However, desired_heights_m_agl contains {0:d} m AGL (not '
+                'present), followed by {1:d} m AGL (present).'
+            ).format(
+                int(numpy.round(desired_heights_m_agl[j])),
+                int(numpy.round(desired_heights_m_agl[first_new_height_index]))
+            )
+
+            raise ValueError(error_string)
+
+        if first_new_height_index is not None:
+            continue
+
+        first_new_height_index = j
+
+    if first_new_height_index is None:
+        return example_dict
+
+    new_heights_m_agl = desired_heights_m_agl[first_new_height_index:]
+    example_dict[HEIGHTS_KEY] = numpy.concatenate(
+        (example_dict[HEIGHTS_KEY], new_heights_m_agl), axis=0
+    )
+
+    num_new_heights = len(new_heights_m_agl)
+    pad_width_input_arg = (
+        (0, 0), (0, num_new_heights), (0, 0)
+    )
+
+    example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.pad(
+        example_dict[VECTOR_PREDICTOR_VALS_KEY],
+        pad_width=pad_width_input_arg, mode='edge'
+    )
+    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.pad(
+        example_dict[VECTOR_TARGET_VALS_KEY],
+        pad_width=pad_width_input_arg, mode='edge'
+    )
+
+    return example_dict
+
+
 def get_grid_cell_edges(heights_m_agl):
     """Computes heights at edges (rather than centers) of grid cells.
 
@@ -726,9 +808,9 @@ def match_heights(heights_m_agl, desired_height_m_agl):
     raise ValueError(error_string)
 
 
-def _create_fake_heights(real_heights_m_agl, num_padding_heights):
+def create_fake_heights(real_heights_m_agl, num_padding_heights):
     """Creates fake heights for padding at top of profile.
-    
+
     :param real_heights_m_agl: 1-D numpy array of real heights (metres above
         ground level).
     :param num_padding_heights: Number of heights to pad at top.
@@ -736,10 +818,15 @@ def _create_fake_heights(real_heights_m_agl, num_padding_heights):
         fake).
     """
 
+    error_checking.assert_is_numpy_array(real_heights_m_agl, num_dimensions=1)
+    error_checking.assert_is_geq_numpy_array(real_heights_m_agl, 0.)
     assert numpy.allclose(
         real_heights_m_agl, numpy.sort(real_heights_m_agl), atol=TOLERANCE
     )
-    
+
+    error_checking.assert_is_integer(num_padding_heights)
+    error_checking.assert_is_geq(num_padding_heights, 0)
+
     if num_padding_heights == 0:
         return real_heights_m_agl
 
@@ -751,42 +838,6 @@ def _create_fake_heights(real_heights_m_agl, num_padding_heights):
     return numpy.concatenate(
         (real_heights_m_agl, fake_heights_m_agl), axis=0
     )
-
-
-def add_height_padding(example_dict, num_padding_heights):
-    """Adds height-padding to profiles.
-
-    :param example_dict: See doc for `read_file`.
-    :param num_padding_heights: Number of fake heights to add at top of each
-        profile.
-    :return: example_dict: Same as input but with extra heights.
-    """
-
-    error_checking.assert_is_integer(num_padding_heights)
-    error_checking.assert_is_geq(num_padding_heights, 0)
-
-    if num_padding_heights == 0:
-        return example_dict
-
-    example_dict[HEIGHTS_KEY] = _create_fake_heights(
-        real_heights_m_agl=example_dict[HEIGHTS_KEY],
-        num_padding_heights=num_padding_heights
-    )
-
-    pad_width_input_arg = (
-        (0, 0), (0, num_padding_heights), (0, 0)
-    )
-
-    example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.pad(
-        example_dict[VECTOR_PREDICTOR_VALS_KEY],
-        pad_width=pad_width_input_arg, mode='edge'
-    )
-    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.pad(
-        example_dict[VECTOR_TARGET_VALS_KEY],
-        pad_width=pad_width_input_arg, mode='edge'
-    )
-
-    return example_dict
 
 
 def check_field_name(field_name):
@@ -1556,6 +1607,10 @@ def subset_by_height(example_dict, heights_m_agl):
         ground level).
     :return: example_dict: Same as input but with fewer heights.
     """
+
+    example_dict = _add_height_padding(
+        example_dict=example_dict, desired_heights_m_agl=heights_m_agl
+    )
 
     error_checking.assert_is_numpy_array_without_nan(heights_m_agl)
     error_checking.assert_is_numpy_array(
