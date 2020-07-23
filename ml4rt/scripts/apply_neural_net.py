@@ -152,6 +152,9 @@ def _get_predicted_heating_rates(
         prediction_example_dict
     )
 
+    print(generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY])
+    print(generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY])
+
     target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
@@ -185,12 +188,14 @@ def _targets_numpy_to_dict(
         vector_target_names = (
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
         )
-        heating_rate_index = vector_target_names.index(
-            example_io.SHORTWAVE_HEATING_RATE_NAME
-        )
-        vector_target_matrix = numpy.insert(
-            vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
-        )
+
+        if vector_target_matrix.shape[-1] == len(vector_target_names) - 1:
+            heating_rate_index = vector_target_names.index(
+                example_io.SHORTWAVE_HEATING_RATE_NAME
+            )
+            vector_target_matrix = numpy.insert(
+                vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
+            )
 
     if net_type_string == neural_net.CNN_TYPE_STRING:
         target_matrices = [vector_target_matrix]
