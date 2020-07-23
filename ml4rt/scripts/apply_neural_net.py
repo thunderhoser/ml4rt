@@ -104,10 +104,13 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    target_norm_type_string = copy.deepcopy(
-        generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
-    )
-    generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
+    # TODO(thunderhoser): This is a temporary hack.
+
+    target_norm_type_string = None
+    # target_norm_type_string = copy.deepcopy(
+    #     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
+    # )
+    # generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
 
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     generator = neural_net.data_generator(
