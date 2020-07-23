@@ -168,8 +168,6 @@ def _get_predicted_heating_rates(
     )
 
     print(down_flux_inc_matrix_w_m02_pa01[0, ...])
-    print(down_flux_matrix_w_m02[0, ...])
-    print(pressure_matrix_pascals[0, ...])
 
     prediction_example_dict = example_io.fluxes_to_heating_rate(
         prediction_example_dict
@@ -416,6 +414,14 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         }
         prediction_example_dict.update(this_dict)
 
+        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+            example_dict=prediction_example_dict,
+            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+        )
+
+        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
+        print('\n')
+
         prediction_example_dict = normalization.denormalize_data(
             new_example_dict=prediction_example_dict,
             training_example_dict=training_example_dict,
@@ -428,7 +434,23 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_targets=True
         )
 
+        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+            example_dict=prediction_example_dict,
+            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+        )
+
+        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
+        print('\n\n\n')
+
         target_example_dict.update(this_dict)
+
+        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+            example_dict=target_example_dict,
+            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+        )
+
+        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
+        print('\n')
 
         target_example_dict = normalization.denormalize_data(
             new_example_dict=target_example_dict,
@@ -447,8 +469,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
 
-        print(example_id_strings[0])
-        print(down_flux_inc_matrix_w_m02_pa01[0, :])
+        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
 
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
