@@ -351,7 +351,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         model_metadata_dict=metadata_dict
     )
     print(target_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-    print(target_example_dict[example_io.VECTOR_TARGET_VALS_KEY.shape])
+    print(target_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
     print('\n\n')
 
     prediction_example_dict = _targets_numpy_to_dict(
@@ -360,7 +360,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         model_metadata_dict=metadata_dict
     )
     print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-    print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY.shape])
+    print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
     print('\n\n')
 
     normalization_file_name = (
@@ -410,7 +410,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         )
 
         print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-        print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY.shape])
+        print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
         print('\n\n')
 
         prediction_example_dict = _get_predicted_heating_rates(
@@ -420,7 +420,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         )
 
         print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
-        print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY.shape])
+        print(prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY].shape)
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
