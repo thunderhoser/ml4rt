@@ -110,6 +110,8 @@ def flux_increment_loss_not_dense(
         grid_cell_widths_metres, (1, num_heights)
     )
 
+    print(grid_cell_width_matrix_metres)
+
     def loss(target_tensor, prediction_tensor):
         """Computes loss.
 
