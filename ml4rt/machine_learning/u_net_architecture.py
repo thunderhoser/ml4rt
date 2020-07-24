@@ -16,6 +16,8 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+ZERO_OUT_TOP_HR_KEY = 'zero_out_top_heating_rate'
+HEATING_RATE_INDEX_KEY = 'heating_rate_channel_index'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_HEIGHTS_FOR_LOSS_KEY: None,
@@ -25,7 +27,9 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    ZERO_OUT_TOP_HR_KEY: False,
+    HEATING_RATE_INDEX_KEY: None
 }
 
 
@@ -57,11 +61,16 @@ def _check_architecture_args(option_dict):
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_boolean(option_dict[ZERO_OUT_TOP_HR_KEY])
+
+    if option_dict[ZERO_OUT_TOP_HR_KEY]:
+        error_checking.assert_is_integer(option_dict[HEATING_RATE_INDEX_KEY])
+        error_checking.assert_is_geq(option_dict[HEATING_RATE_INDEX_KEY], 0)
 
     return option_dict
 
 
-def _get_zeroing_function(num_heights_to_zero):
+def _zero_top_heights_function(num_heights_to_zero):
     """Returns function that zeroes out model predictions at the top heights.
 
     :param num_heights_to_zero: Will zero out predictions for this many heights
@@ -85,6 +94,41 @@ def _get_zeroing_function(num_heights_to_zero):
         return K.concatenate((
             prediction_tensor[:, :-num_heights_to_zero, :], zero_tensor
         ), axis=1)
+
+    return zeroing_function
+
+
+def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
+    """Returns function that zeroes predicted heating rate at top of profile.
+
+    :param heating_rate_channel_index: Channel index for heating rate.
+    :param height_index: Will zero out heating rate at this height.
+    :return: zeroing_function: Function handle (see below).
+    """
+
+    def zeroing_function(prediction_tensor):
+        """Zeroes out predicted heating rate at top of profile.
+
+        :param prediction_tensor: Keras tensor with model predictions.
+        :return: prediction_tensor: Same as input but with top heating rate
+            zeroed out.
+        """
+
+        zero_tensor = K.greater_equal(
+            prediction_tensor[:, heating_rate_channel_index][:, [height_index]],
+            1e12
+        )
+        zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
+
+        prediction_tensor[..., heating_rate_channel_index] = K.concatenate((
+            prediction_tensor[:, heating_rate_channel_index][:, :height_index],
+            zero_tensor,
+            prediction_tensor[:, heating_rate_channel_index][
+                :, (height_index + 1):
+            ]
+        ), axis=-1)
+
+        return prediction_tensor
 
     return zeroing_function
 
@@ -119,6 +163,10 @@ def create_model(option_dict, loss_function):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
+    option_dict['zero_out_top_heating_rate']: Boolean flag.  If True, will
+        always predict 0 K day^-1 for top heating rate.
+    option_dict['heating_rate_channel_index']: Channel index for heating rate.
+        Used only if `zero_out_top_heating_rate = True`.
 
     :param loss_function: Function handle.
     :return: model_object: Instance of `keras.models.Model`, with the
@@ -139,6 +187,8 @@ def create_model(option_dict, loss_function):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    zero_out_top_heating_rate = option_dict[ZERO_OUT_TOP_HR_KEY]
+    heating_rate_channel_index = option_dict[HEATING_RATE_INDEX_KEY]
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -483,7 +533,16 @@ def create_model(option_dict, loss_function):
 
     if num_heights > num_heights_for_loss:
         this_function = (
-            _get_zeroing_function(num_heights - num_heights_for_loss)
+            _zero_top_heights_function(num_heights - num_heights_for_loss)
+        )
+        second_conv_layer1_object = keras.layers.Lambda(this_function)(
+            second_conv_layer1_object
+        )
+
+    if zero_out_top_heating_rate:
+        this_function = _zero_top_heating_rate_function(
+            heating_rate_channel_index=heating_rate_channel_index,
+            height_index=num_heights - 1
         )
         second_conv_layer1_object = keras.layers.Lambda(this_function)(
             second_conv_layer1_object
