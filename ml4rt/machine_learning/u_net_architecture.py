@@ -138,7 +138,7 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
                 ]
             ), axis=-1)
 
-        print(heating_rate_tensor..get_shape().as_list())
+        print(heating_rate_tensor.get_shape().as_list())
 
         new_prediction_tensor = K.concatenate((
             orig_prediction_tensor[..., :heating_rate_channel_index],
