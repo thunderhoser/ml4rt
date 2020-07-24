@@ -155,8 +155,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
 SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
 SHORTWAVE_DOWN_FLUX_NAME = 'shortwave_down_flux_w_m02'
 SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_w_m02'
-SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m02_pa01'
-SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m02_pa01'
+SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m03'
+SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m03'
 SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
 SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
 
@@ -635,40 +635,39 @@ def fluxes_actual_to_increments(example_dict):
     :return: example_dict: Same but with flux-increment profiles.
     """
 
+    edge_heights_m_agl = get_grid_cell_edges(example_dict[HEIGHTS_KEY])
+    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
+
+    num_examples = len(example_dict[VALID_TIMES_KEY])
+    num_heights = len(example_dict[HEIGHTS_KEY])
+
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
+    )
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
+    )
+
     down_flux_matrix_w_m02 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
     )
     up_flux_matrix_w_m02 = get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_NAME
     )
-    pressure_matrix_pascals = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    )
 
-    dummy_pressure_matrix_pascals = (
-        pressure_matrix_pascals[:, [0]] -
-        (pressure_matrix_pascals[:, [1]] - pressure_matrix_pascals[:, [0]])
-    )
-    pressure_matrix_pascals = numpy.concatenate(
-        (dummy_pressure_matrix_pascals, pressure_matrix_pascals), axis=1
-    )
-    pressure_diff_matrix_pascals = numpy.absolute(
-        numpy.diff(pressure_matrix_pascals, axis=1)
-    )
-
-    down_flux_increment_matrix_w_m02_pa01 = numpy.diff(
+    down_flux_increment_matrix_w_m03 = numpy.diff(
         down_flux_matrix_w_m02, axis=1, prepend=0.
-    ) / pressure_diff_matrix_pascals
+    ) / grid_cell_width_matrix_metres
 
-    up_flux_increment_matrix_w_m02_pa01 = numpy.diff(
+    up_flux_increment_matrix_w_m03 = numpy.diff(
         up_flux_matrix_w_m02, axis=1, prepend=0.
-    ) / pressure_diff_matrix_pascals
+    ) / grid_cell_width_matrix_metres
 
-    # down_flux_increment_matrix_w_m02_pa01 = numpy.maximum(
-    #     down_flux_increment_matrix_w_m02_pa01, 0.
+    # down_flux_increment_matrix_w_m03 = numpy.maximum(
+    #     down_flux_increment_matrix_w_m03, 0.
     # )
-    # up_flux_increment_matrix_w_m02_pa01 = numpy.maximum(
-    #     up_flux_increment_matrix_w_m02_pa01, 0.
+    # up_flux_increment_matrix_w_m03 = numpy.maximum(
+    #     up_flux_increment_matrix_w_m03, 0.
     # )
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
@@ -688,22 +687,22 @@ def fluxes_actual_to_increments(example_dict):
 
     if found_down_increment:
         example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
-            down_flux_increment_matrix_w_m02_pa01
+            down_flux_increment_matrix_w_m03
         )
     else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=down_increment_index,
-            values=down_flux_increment_matrix_w_m02_pa01, axis=-1
+            values=down_flux_increment_matrix_w_m03, axis=-1
         )
 
     if found_up_increment:
         example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
-            up_flux_increment_matrix_w_m02_pa01
+            up_flux_increment_matrix_w_m03
         )
     else:
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=up_increment_index,
-            values=up_flux_increment_matrix_w_m02_pa01, axis=-1
+            values=up_flux_increment_matrix_w_m03, axis=-1
         )
 
     return example_dict
@@ -719,33 +718,32 @@ def fluxes_increments_to_actual(example_dict):
     :return: example_dict: Same but with actual flux profiles.
     """
 
-    down_flux_increment_matrix_w_m02_pa01 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_INC_NAME
+    edge_heights_m_agl = get_grid_cell_edges(example_dict[HEIGHTS_KEY])
+    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
+
+    num_examples = len(example_dict[VALID_TIMES_KEY])
+    num_heights = len(example_dict[HEIGHTS_KEY])
+
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
     )
-    up_flux_increment_matrix_w_m02_pa01 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_INC_NAME
-    )
-    pressure_matrix_pascals = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
     )
 
-    dummy_pressure_matrix_pascals = (
-        pressure_matrix_pascals[:, [0]] -
-        (pressure_matrix_pascals[:, [1]] - pressure_matrix_pascals[:, [0]])
+    down_flux_increment_matrix_w_m03 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_INC_NAME
     )
-    pressure_matrix_pascals = numpy.concatenate(
-        (dummy_pressure_matrix_pascals, pressure_matrix_pascals), axis=1
-    )
-    pressure_diff_matrix_pascals = numpy.absolute(
-        numpy.diff(pressure_matrix_pascals, axis=1)
+    up_flux_increment_matrix_w_m03 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_INC_NAME
     )
 
     down_flux_matrix_w_m02 = numpy.cumsum(
-        down_flux_increment_matrix_w_m02_pa01 * pressure_diff_matrix_pascals,
+        down_flux_increment_matrix_w_m03 * grid_cell_width_matrix_metres,
         axis=1
     )
     up_flux_matrix_w_m02 = numpy.cumsum(
-        up_flux_increment_matrix_w_m02_pa01 * pressure_diff_matrix_pascals,
+        up_flux_increment_matrix_w_m03 * grid_cell_width_matrix_metres,
         axis=1
     )
 

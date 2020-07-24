@@ -75,10 +75,10 @@ PREDICTOR_NAME_TO_VERBOSE = {
 TARGET_NAME_TO_VERBOSE = {
     example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta p}$',
+    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta z}$',
     example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
     example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{down}}{\Delta p}$',
+        r'$\frac{\Delta F_{down}}{\Delta z}$',
     example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
     example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
 }

@@ -402,11 +402,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         }
         prediction_example_dict.update(this_dict)
 
-        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+        down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
             example_dict=prediction_example_dict,
             field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
-        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
+        print(down_flux_inc_matrix_w_m03[0, ...])
         print('\n')
 
         prediction_example_dict = normalization.denormalize_data(
@@ -421,11 +421,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_targets=True
         )
 
-        down_flux_inc_matrix_w_m02_pa01 = example_io.get_field_from_dict(
+        down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
             example_dict=prediction_example_dict,
             field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
-        print(down_flux_inc_matrix_w_m02_pa01[0, ...])
+        print(down_flux_inc_matrix_w_m03[0, ...])
         print('\n\n\n')
 
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
