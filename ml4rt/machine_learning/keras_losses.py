@@ -53,6 +53,94 @@ def dual_weighted_mse():
     return loss
 
 
+def flux_increment_loss_dense(
+        first_up_flux_inc_index, first_down_flux_inc_index,
+        net_flux_increment_weight, total_net_flux_weight, use_magnitude_weight,
+        heights_m_agl):
+    """Loss function for dense net that predict flux increments.
+
+    :param first_up_flux_inc_index: Array index for upwelling-flux increment at
+        lowest height.
+    :param first_down_flux_inc_index: Array index for downwelling-flux increment
+        at lowest height.
+    :param net_flux_increment_weight: See doc for
+        `flux_increment_loss_not_dense`.
+    :param total_net_flux_weight: Same.
+    :param use_magnitude_weight: Same.
+    :param heights_m_agl: Same.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_integer(first_up_flux_inc_index)
+    error_checking.assert_is_geq(first_up_flux_inc_index, 0)
+    error_checking.assert_is_integer(first_down_flux_inc_index)
+    error_checking.assert_is_geq(first_down_flux_inc_index, 0)
+
+    error_checking.assert_is_geq(net_flux_increment_weight, 0.)
+    error_checking.assert_is_geq(total_net_flux_weight, 0.)
+    error_checking.assert_is_greater(
+        net_flux_increment_weight + total_net_flux_weight, 0.
+    )
+
+    error_checking.assert_is_boolean(use_magnitude_weight)
+
+    edge_heights_m_agl = example_io.get_grid_cell_edges(heights_m_agl)
+    grid_cell_widths_metres = (
+        example_io.get_grid_cell_widths(edge_heights_m_agl)
+    )
+
+    num_heights = len(heights_m_agl)
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
+    )
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss.
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Scalar.
+        """
+
+        j = first_down_flux_inc_index
+        k = first_up_flux_inc_index
+
+        target_net_flux_inc_tensor_w_m03 = (
+            target_tensor[..., j:(j + num_heights)] -
+            target_tensor[..., k:(k + num_heights)]
+        )
+        predicted_net_flux_inc_tensor_w_m03 = (
+            prediction_tensor[..., j:(j + num_heights)] -
+            prediction_tensor[..., k:(k + num_heights)]
+        )
+        loss = net_flux_increment_weight * (
+            predicted_net_flux_inc_tensor_w_m03 -
+            target_net_flux_inc_tensor_w_m03
+        ) ** 2
+
+        target_net_flux_tensor_w_m02 = K.cumsum(
+            target_net_flux_inc_tensor_w_m03 * grid_cell_width_matrix_metres,
+            axis=1
+        )
+        predicted_net_flux_tensor_w_m02 = K.cumsum(
+            predicted_net_flux_inc_tensor_w_m03 * grid_cell_width_matrix_metres,
+            axis=1
+        )
+        loss += total_net_flux_weight * (
+            predicted_net_flux_tensor_w_m02 - target_net_flux_tensor_w_m02
+        ) ** 2
+
+        if use_magnitude_weight:
+            loss = loss * K.maximum(
+                target_net_flux_inc_tensor_w_m03,
+                predicted_net_flux_inc_tensor_w_m03
+            )
+
+        return K.mean(loss)
+
+    return loss
+
+
 def flux_increment_loss_not_dense(
         up_flux_inc_channel_index, down_flux_inc_channel_index,
         net_flux_increment_weight, total_net_flux_weight, use_magnitude_weight,
