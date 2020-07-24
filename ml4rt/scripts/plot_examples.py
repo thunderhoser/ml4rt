@@ -224,6 +224,10 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_dict = example_io.subset_by_field(
             example_dict=example_dict, field_names=all_field_names
         )
+        example_dict = example_io.subset_by_height(
+            example_dict=example_dict,
+            heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+        )
 
     num_examples = len(example_id_strings)
     for i in range(num_examples):

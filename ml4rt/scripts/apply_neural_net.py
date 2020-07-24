@@ -381,6 +381,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_io.subset_by_height(
+        example_dict=training_example_dict,
+        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+    )
 
     if target_norm_type_string is not None:
         print('Denormalizing predicted values...')

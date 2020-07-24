@@ -150,6 +150,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_io.subset_by_height(
+        example_dict=training_example_dict,
+        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+    )
 
     num_examples = len(example_id_strings)
     bwo_dict = None
@@ -204,6 +208,11 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         )[0]
 
     first_example_dict = example_io.read_file(example_file_name)
+    first_example_dict = example_io.subset_by_height(
+        example_dict=first_example_dict,
+        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+    )
+
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
     init_example_dict = copy.deepcopy(first_example_dict)

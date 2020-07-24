@@ -219,6 +219,10 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
             normalization_file_name
         ))
         training_example_dict = example_io.read_file(normalization_file_name)
+        training_example_dict = example_io.subset_by_height(
+            example_dict=training_example_dict,
+            heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+        )
 
         dummy_example_dict = {
             example_io.SCALAR_PREDICTOR_NAMES_KEY:

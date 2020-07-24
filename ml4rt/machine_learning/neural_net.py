@@ -1123,6 +1123,9 @@ def data_generator(option_dict, for_inference, net_type_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_io.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    )
 
     example_file_names = example_io.find_many_files(
         example_dir_name=example_dir_name,
@@ -1317,6 +1320,9 @@ def data_generator_specific_examples(option_dict, net_type_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_io.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    )
 
     example_file_names = example_io.find_many_files(
         example_dir_name=example_dir_name,
