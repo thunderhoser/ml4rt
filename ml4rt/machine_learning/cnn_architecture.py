@@ -133,31 +133,38 @@ def _zero_top_heating_rate_function(heating_rate_channel_index):
     :return: zeroing_function: Function handle (see below).
     """
 
-    def zeroing_function(prediction_tensor):
+    def zeroing_function(orig_prediction_tensor):
         """Zeroes out predicted heating rate at top of profile.
 
-        :param prediction_tensor: Keras tensor with model predictions.
-        :return: prediction_tensor: Same as input but with top heating rate
+        :param orig_prediction_tensor: Keras tensor with model predictions.
+        :return: new_prediction_tensor: Same as input but with top heating rate
             zeroed out.
         """
 
+        num_channels = orig_prediction_tensor.get_shape().as_list()[-1]
+
         zero_tensor = K.greater_equal(
-            prediction_tensor[:, heating_rate_channel_index][:, -1:], 1e12
+            orig_prediction_tensor[:, heating_rate_channel_index][:, -1:], 1e12
         )
         zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
 
         heating_rate_tensor = K.concatenate((
-            prediction_tensor[..., heating_rate_channel_index][:, :-1],
+            orig_prediction_tensor[..., heating_rate_channel_index][:, :-1],
             zero_tensor
         ), axis=-1)
 
-        prediction_tensor = K.concatenate((
-            prediction_tensor[..., :heating_rate_channel_index],
-            K.expand_dims(heating_rate_tensor, axis=-1),
-            prediction_tensor[..., (heating_rate_channel_index + 1):]
+        new_prediction_tensor = K.concatenate((
+            orig_prediction_tensor[..., :heating_rate_channel_index],
+            K.expand_dims(heating_rate_tensor, axis=-1)
         ), axis=-1)
 
-        return prediction_tensor
+        if heating_rate_channel_index == num_channels - 1:
+            return new_prediction_tensor
+
+        return K.concatenate((
+            new_prediction_tensor,
+            orig_prediction_tensor[..., (heating_rate_channel_index + 1):]
+        ), axis=-1)
 
     return zeroing_function
 
