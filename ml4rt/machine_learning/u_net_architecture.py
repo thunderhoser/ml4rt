@@ -567,6 +567,7 @@ def create_model(option_dict, loss_function):
         )
 
     if zero_out_top_heating_rate:
+        print(num_heights)
         this_function = _zero_top_heating_rate_function(
             heating_rate_channel_index=heating_rate_channel_index,
             height_index=num_heights - 1
