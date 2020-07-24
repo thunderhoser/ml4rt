@@ -115,7 +115,9 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
         """
 
         zero_tensor = K.greater_equal(
-            prediction_tensor[:, heating_rate_channel_index][:, [height_index]],
+            prediction_tensor[:, heating_rate_channel_index][
+                :, height_index:(height_index + 1)
+            ],
             1e12
         )
         zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
