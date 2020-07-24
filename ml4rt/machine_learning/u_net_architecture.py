@@ -118,7 +118,9 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
         num_channels = orig_prediction_tensor.get_shape().as_list()[-1]
 
         zero_tensor = K.greater_equal(
-            orig_prediction_tensor[:, height_index, heating_rate_channel_index],
+            orig_prediction_tensor[
+                ..., height_index, heating_rate_channel_index
+            ],
             1e12
         )
         zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
@@ -126,8 +128,8 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
         print(zero_tensor.get_shape().as_list())
 
         heating_rate_tensor = K.concatenate((
-            orig_prediction_tensor[:, heating_rate_channel_index][
-                :, :height_index
+            orig_prediction_tensor[..., heating_rate_channel_index][
+                ..., :height_index
             ],
             K.expand_dims(zero_tensor, axis=-1)
         ), axis=-1)
@@ -137,8 +139,8 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
         if height_index != num_heights - 1:
             heating_rate_tensor = K.concatenate((
                 heating_rate_tensor,
-                orig_prediction_tensor[:, heating_rate_channel_index][
-                    :, (height_index + 1):
+                orig_prediction_tensor[..., heating_rate_channel_index][
+                    ..., (height_index + 1):
                 ]
             ), axis=-1)
 
@@ -567,7 +569,6 @@ def create_model(option_dict, loss_function):
         )
 
     if zero_out_top_heating_rate:
-        print(num_heights)
         this_function = _zero_top_heating_rate_function(
             heating_rate_channel_index=heating_rate_channel_index,
             height_index=num_heights - 1
