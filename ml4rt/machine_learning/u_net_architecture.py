@@ -123,12 +123,16 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
         )
         zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
 
+        print(zero_tensor.get_shape().as_list())
+
         heating_rate_tensor = K.concatenate((
             orig_prediction_tensor[:, heating_rate_channel_index][
                 :, :height_index
             ],
             K.expand_dims(zero_tensor, axis=-1)
         ), axis=-1)
+
+        print(heating_rate_tensor.get_shape().as_list())
 
         if height_index != num_heights - 1:
             heating_rate_tensor = K.concatenate((
