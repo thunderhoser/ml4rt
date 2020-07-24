@@ -595,6 +595,10 @@ def fluxes_to_heating_rate(example_dict):
         numpy.absolute(numpy.diff(pressure_matrix_pascals, axis=1))
     )
 
+    error_checking.assert_is_numpy_array_without_nan(net_flux_matrix_w_m02)
+    error_checking.assert_is_numpy_array_without_nan(pressure_matrix_pascals)
+    heating_rate_matrix_k_day01[numpy.isnan(heating_rate_matrix_k_day01)] = 0.
+
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
     if not found_heating_rate:
