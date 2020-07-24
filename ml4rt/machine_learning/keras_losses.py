@@ -1,7 +1,9 @@
 """Custom loss functions for Keras models."""
 
+import numpy
 import keras.backend as K
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
 
 
 def weighted_mse():
@@ -47,6 +49,107 @@ def dual_weighted_mse():
             K.maximum(target_tensor, prediction_tensor) *
             (prediction_tensor - target_tensor) ** 2
         )
+
+    return loss
+
+
+def flux_increment_loss_not_dense(
+        up_flux_inc_channel_index, down_flux_inc_channel_index,
+        net_flux_increment_weight, total_net_flux_weight, use_magnitude_weight,
+        heights_m_agl):
+    """Loss function for non-dense net that predict flux increments.
+
+    "Flux increments" are DF_down / Dz and DF_up / Dz.
+
+    :param up_flux_inc_channel_index: Channel index for upwelling-flux increment
+        (DF_up).
+    :param down_flux_inc_channel_index: Channel index for downwelling-flux
+        increment (DF_down).
+    :param net_flux_increment_weight: Weight for mean squared error (MSE)
+        between predicted and actual net-flux increments (DF_net / Dz).
+    :param total_net_flux_weight: Weight for MSE between predicted and actual
+        net fluxes (F_net).
+    :param use_magnitude_weight: Boolean flag.  If True, the loss for each
+        element (each example at each height) will be weighted by the magnitude
+        of DF_net / Dz (max between predicted and actual).
+    :param heights_m_agl: 1-D numpy array of heights in profile (metres above
+        ground level).
+    :return: loss: Loss function (defined below).
+    """
+
+    # TODO(thunderhoser): This loss function should be used only when there are
+    # two target variables, unnormalized downwelling- and upwelling-flux
+    # increments.
+
+    # TODO(thunderhoser): In the future, I may want to use fictitious Dp
+    # (pressure increment) to convert fluxes to heating rates, then directly
+    # penalize heating rates.
+
+    error_checking.assert_is_integer(up_flux_inc_channel_index)
+    error_checking.assert_is_geq(up_flux_inc_channel_index, 0)
+    error_checking.assert_is_integer(down_flux_inc_channel_index)
+    error_checking.assert_is_geq(down_flux_inc_channel_index, 0)
+
+    assert up_flux_inc_channel_index != down_flux_inc_channel_index
+
+    error_checking.assert_is_geq(net_flux_increment_weight, 0.)
+    error_checking.assert_is_geq(total_net_flux_weight, 0.)
+    error_checking.assert_is_greater(
+        net_flux_increment_weight + total_net_flux_weight, 0.
+    )
+
+    error_checking.assert_is_boolean(use_magnitude_weight)
+
+    edge_heights_m_agl = example_io.get_grid_cell_edges(heights_m_agl)
+    grid_cell_widths_metres = (
+        example_io.get_grid_cell_widths(edge_heights_m_agl)
+    )
+
+    num_heights = len(heights_m_agl)
+    grid_cell_width_matrix_metres = numpy.reshape(
+        grid_cell_widths_metres, (1, num_heights)
+    )
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss.
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Scalar.
+        """
+
+        target_net_flux_inc_tensor_w_m03 = (
+            target_tensor[..., down_flux_inc_channel_index] -
+            target_tensor[..., up_flux_inc_channel_index]
+        )
+        predicted_net_flux_inc_tensor_w_m03 = (
+            prediction_tensor[..., down_flux_inc_channel_index] -
+            prediction_tensor[..., up_flux_inc_channel_index]
+        )
+        loss = net_flux_increment_weight * (
+            predicted_net_flux_inc_tensor_w_m03 -
+            target_net_flux_inc_tensor_w_m03
+        ) ** 2
+
+        target_net_flux_tensor_w_m02 = K.cumsum(
+            target_net_flux_inc_tensor_w_m03 * grid_cell_width_matrix_metres,
+            axis=1
+        )
+        predicted_net_flux_tensor_w_m02 = K.cumsum(
+            predicted_net_flux_inc_tensor_w_m03 * grid_cell_width_matrix_metres,
+            axis=1
+        )
+        loss += total_net_flux_weight * (
+            predicted_net_flux_tensor_w_m02 - target_net_flux_tensor_w_m02
+        ) ** 2
+
+        if use_magnitude_weight:
+            loss = loss * K.maximum(
+                target_net_flux_inc_tensor_w_m03,
+                predicted_net_flux_inc_tensor_w_m03
+            )
+
+        return K.mean(loss)
 
     return loss
 
