@@ -14,6 +14,8 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 5000
+ZERO_HEATING_HEIGHT_M_AGL = 49999.
+
 TARGET_VALUE_KEYS = [
     example_io.SCALAR_TARGET_VALS_KEY, example_io.VECTOR_TARGET_VALS_KEY
 ]
@@ -440,6 +442,28 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             prediction_example_dict=prediction_example_dict,
             pressure_matrix_pascals=pressure_matrix_pascals,
             model_metadata_dict=metadata_dict
+        )
+
+    vector_target_names = (
+        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+    )
+
+    if example_io.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
+        heating_rate_index = vector_target_names.index(
+            example_io.SHORTWAVE_HEATING_RATE_NAME
+        )
+
+        heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+        height_indices = numpy.where(
+            heights_m_agl >= ZERO_HEATING_HEIGHT_M_AGL
+        )[0]
+
+        vector_target_matrix = (
+            prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        )
+        vector_target_matrix[..., heating_rate_index][..., height_indices] = 0.
+        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+            vector_target_matrix
         )
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
