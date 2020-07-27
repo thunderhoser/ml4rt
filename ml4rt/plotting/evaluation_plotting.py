@@ -293,7 +293,7 @@ def _plot_inset_histogram(
             tick_indices.append(i)
             continue
 
-        if i - 1 in real_indices and i + 1 in real_indices:
+        if i - 1 in real_indices or i + 1 in real_indices:
             continue
 
         tick_indices.append(i)
