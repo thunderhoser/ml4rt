@@ -286,11 +286,20 @@ def _plot_inset_histogram(
     inset_axes_object.set_ylim(bottom=0.)
     # inset_axes_object.set_xticks(main_axes_object.get_xticks())
 
-    num_x_ticks = len(main_axes_object.get_xticks())
-    x_tick_values = fake_bin_centers[real_indices][::num_x_ticks]
-    x_tick_labels = [
-        '{0:.1f}'.format(b) for b in bin_centers[real_indices][::num_x_ticks]
-    ]
+    tick_indices = []
+
+    for i in real_indices:
+        if numpy.mod(i, 2) == 0:
+            tick_indices.append(i)
+            continue
+
+        if i - 1 in real_indices and i + 1 in real_indices:
+            continue
+
+        tick_indices.append(i)
+
+    x_tick_values = fake_bin_centers[tick_indices]
+    x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
     inset_axes_object.set_xticks(x_tick_values)
     inset_axes_object.set_xticklabels(x_tick_labels)
 
