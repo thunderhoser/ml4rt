@@ -278,17 +278,21 @@ def _plot_inset_histogram(
     # bin_width = numpy.nanmean(numpy.diff(bin_centers))
 
     inset_axes_object.bar(
-        bin_centers[real_indices], bin_frequencies[real_indices], 1.,
+        fake_bin_centers[real_indices], bin_frequencies[real_indices], 1.,
         color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
 
     inset_axes_object.set_ylim(bottom=0.)
     # inset_axes_object.set_xticks(main_axes_object.get_xticks())
-    
+
     num_x_ticks = len(main_axes_object.get_xticks())
-    x_tick_values = bin_centers[real_indices][::num_x_ticks]
+    x_tick_values = fake_bin_centers[real_indices][::num_x_ticks]
+    x_tick_labels = [
+        '{0:.1f}'.format(b) for b in bin_centers[real_indices][::num_x_ticks]
+    ]
     inset_axes_object.set_xticks(x_tick_values)
+    inset_axes_object.set_xticklabels(x_tick_labels)
 
     for this_tick_object in inset_axes_object.xaxis.get_major_ticks():
         this_tick_object.label.set_fontsize(HISTOGRAM_FONT_SIZE)
