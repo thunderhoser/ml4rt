@@ -269,17 +269,26 @@ def _plot_inset_histogram(
     else:
         inset_axes_object = figure_object.add_axes([0.175, 0.65, 0.2, 0.2])
 
+    num_bins = len(bin_centers)
+    fake_bin_centers = (
+        0.5 + numpy.linspace(0, num_bins - 1, num=num_bins, dtype=float)
+    )
+
     real_indices = numpy.where(numpy.invert(numpy.isnan(bin_centers)))[0]
-    bin_width = numpy.nanmean(numpy.diff(bin_centers))
+    # bin_width = numpy.nanmean(numpy.diff(bin_centers))
 
     inset_axes_object.bar(
-        bin_centers[real_indices], bin_frequencies[real_indices],
-        bin_width, color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
+        bin_centers[real_indices], bin_frequencies[real_indices], 1.,
+        color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
 
     inset_axes_object.set_ylim(bottom=0.)
-    inset_axes_object.set_xticks(main_axes_object.get_xticks())
+    # inset_axes_object.set_xticks(main_axes_object.get_xticks())
+    
+    num_x_ticks = len(main_axes_object.get_xticks())
+    x_tick_values = bin_centers[real_indices][::num_x_ticks]
+    inset_axes_object.set_xticks(x_tick_values)
 
     for this_tick_object in inset_axes_object.xaxis.get_major_ticks():
         this_tick_object.label.set_fontsize(HISTOGRAM_FONT_SIZE)
