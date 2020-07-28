@@ -99,6 +99,8 @@ TEMPERATURE_NAME = 'temperature_kelvins'
 SPECIFIC_HUMIDITY_NAME = 'specific_humidity_kg_kg01'
 LIQUID_WATER_CONTENT_NAME = 'liquid_water_content_kg_m03'
 ICE_WATER_CONTENT_NAME = 'ice_water_content_kg_m03'
+LIQUID_WATER_CONTENT_NAME_OLD = 'liquid_water_content_kg_m02'
+ICE_WATER_CONTENT_NAME_OLD = 'ice_water_content_kg_m02'
 LIQUID_WATER_PATH_NAME = 'liquid_water_path_kg_m02'
 ICE_WATER_PATH_NAME = 'ice_water_path_kg_m02'
 WATER_VAPOUR_PATH_NAME = 'vapour_path_kg_m02'
@@ -114,7 +116,8 @@ ALL_SCALAR_PREDICTOR_NAMES = DEFAULT_SCALAR_PREDICTOR_NAMES
 
 DEFAULT_VECTOR_PREDICTOR_NAMES = [
     PRESSURE_NAME, TEMPERATURE_NAME, SPECIFIC_HUMIDITY_NAME,
-    LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
+    LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME,
+    LIQUID_WATER_CONTENT_NAME_OLD, ICE_WATER_CONTENT_NAME_OLD
 ]
 ALL_VECTOR_PREDICTOR_NAMES = DEFAULT_VECTOR_PREDICTOR_NAMES + [
     LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME, WATER_VAPOUR_PATH_NAME,
@@ -136,8 +139,8 @@ PREDICTOR_NAME_TO_ORIG = {
     SPECIFIC_HUMIDITY_NAME: 'q',
     LIQUID_WATER_CONTENT_NAME: 'lwc',
     ICE_WATER_CONTENT_NAME: 'iwc',
-    LIQUID_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 'lwc',
-    ICE_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 'iwc'
+    LIQUID_WATER_CONTENT_NAME_OLD: 'lwc',
+    ICE_WATER_CONTENT_NAME_OLD: 'iwc'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
@@ -152,8 +155,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     SPECIFIC_HUMIDITY_NAME: 0.001,
     LIQUID_WATER_CONTENT_NAME: 0.001,
     ICE_WATER_CONTENT_NAME: 0.001,
-    LIQUID_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 0.001,
-    ICE_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 0.001
+    LIQUID_WATER_CONTENT_NAME_OLD: 0.001,
+    ICE_WATER_CONTENT_NAME_OLD: 0.001
 }
 
 SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
@@ -1031,16 +1034,11 @@ def read_file(example_file_name):
 
     dataset_object = netCDF4.Dataset(example_file_name)
 
-    vector_predictor_names = copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES)
-    vector_predictor_names = [
-        n.replace('content_kg_m03', 'content_kg_m02')
-        for n in vector_predictor_names
-    ]
-
     example_dict = {
         SCALAR_PREDICTOR_NAMES_KEY:
             copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES),
-        VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
+        VECTOR_PREDICTOR_NAMES_KEY:
+            copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES),
         SCALAR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES),
         VECTOR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES),
         VALID_TIMES_KEY: numpy.array(
@@ -1059,7 +1057,7 @@ def read_file(example_file_name):
     num_times = len(example_dict[VALID_TIMES_KEY])
     num_heights = len(example_dict[HEIGHTS_KEY])
     num_scalar_predictors = len(DEFAULT_SCALAR_PREDICTOR_NAMES)
-    num_vector_predictors = len(vector_predictor_names)
+    num_vector_predictors = len(DEFAULT_VECTOR_PREDICTOR_NAMES)
     num_scalar_targets = len(DEFAULT_SCALAR_TARGET_NAMES)
     num_vector_targets = len(DEFAULT_VECTOR_TARGET_NAMES)
 
@@ -1089,10 +1087,10 @@ def read_file(example_file_name):
 
     for k in range(num_vector_predictors):
         this_predictor_name_orig = (
-            PREDICTOR_NAME_TO_ORIG[vector_predictor_names[k]]
+            PREDICTOR_NAME_TO_ORIG[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
         this_conversion_factor = (
-            PREDICTOR_NAME_TO_CONV_FACTOR[vector_predictor_names[k]]
+            PREDICTOR_NAME_TO_CONV_FACTOR[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
         vector_predictor_matrix[..., k] = this_conversion_factor * numpy.array(
             dataset_object.variables[this_predictor_name_orig][:], dtype=float
