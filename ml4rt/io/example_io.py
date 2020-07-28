@@ -135,7 +135,9 @@ PREDICTOR_NAME_TO_ORIG = {
     TEMPERATURE_NAME: 't',
     SPECIFIC_HUMIDITY_NAME: 'q',
     LIQUID_WATER_CONTENT_NAME: 'lwc',
-    ICE_WATER_CONTENT_NAME: 'iwc'
+    ICE_WATER_CONTENT_NAME: 'iwc',
+    LIQUID_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 'lwc',
+    ICE_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 'iwc'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
