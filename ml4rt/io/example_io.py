@@ -151,7 +151,9 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     TEMPERATURE_NAME: 1.,
     SPECIFIC_HUMIDITY_NAME: 0.001,
     LIQUID_WATER_CONTENT_NAME: 0.001,
-    ICE_WATER_CONTENT_NAME: 0.001
+    ICE_WATER_CONTENT_NAME: 0.001,
+    LIQUID_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 0.001,
+    ICE_WATER_CONTENT_NAME.replace('content_kg_m03', 'content_kg_m02'): 0.001
 }
 
 SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
