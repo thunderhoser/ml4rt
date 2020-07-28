@@ -1027,11 +1027,16 @@ def read_file(example_file_name):
 
     dataset_object = netCDF4.Dataset(example_file_name)
 
+    vector_predictor_names = copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES)
+    vector_predictor_names = [
+        n.replace('content_kg_m03', 'content_kg_m02')
+        for n in vector_predictor_names
+    ]
+
     example_dict = {
         SCALAR_PREDICTOR_NAMES_KEY:
             copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES),
-        VECTOR_PREDICTOR_NAMES_KEY:
-            copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES),
+        VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
         SCALAR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES),
         VECTOR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES),
         VALID_TIMES_KEY: numpy.array(
@@ -1050,7 +1055,7 @@ def read_file(example_file_name):
     num_times = len(example_dict[VALID_TIMES_KEY])
     num_heights = len(example_dict[HEIGHTS_KEY])
     num_scalar_predictors = len(DEFAULT_SCALAR_PREDICTOR_NAMES)
-    num_vector_predictors = len(DEFAULT_VECTOR_PREDICTOR_NAMES)
+    num_vector_predictors = len(vector_predictor_names)
     num_scalar_targets = len(DEFAULT_SCALAR_TARGET_NAMES)
     num_vector_targets = len(DEFAULT_VECTOR_TARGET_NAMES)
 
@@ -1080,10 +1085,10 @@ def read_file(example_file_name):
 
     for k in range(num_vector_predictors):
         this_predictor_name_orig = (
-            PREDICTOR_NAME_TO_ORIG[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
+            PREDICTOR_NAME_TO_ORIG[vector_predictor_names[k]]
         )
         this_conversion_factor = (
-            PREDICTOR_NAME_TO_CONV_FACTOR[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
+            PREDICTOR_NAME_TO_CONV_FACTOR[vector_predictor_names[k]]
         )
         vector_predictor_matrix[..., k] = this_conversion_factor * numpy.array(
             dataset_object.variables[this_predictor_name_orig][:], dtype=float
