@@ -388,6 +388,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
 
+    # TODO(thunderhoser): This is a HACK.
+    target_norm_type_string = None
     if target_norm_type_string is not None:
         print('Denormalizing predicted values...')
 
