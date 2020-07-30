@@ -525,6 +525,9 @@ def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
 
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
+        neural_net.HEIGHTS_KEY
+    ] = prediction_dict[prediction_io.HEIGHTS_KEY]
 
     # If necessary, convert flux increments to fluxes.
     vector_target_matrix, vector_prediction_matrix, model_metadata_dict = (

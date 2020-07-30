@@ -154,6 +154,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
     print('Reading data from: "{0:s}"...'.format(main_eval_file_name))
     main_results_xarray = evaluation.read_file(main_eval_file_name)
+    heights_m_agl = main_results_xarray.coords[evaluation.HEIGHT_DIM].values
 
     model_file_name = main_results_xarray.attrs[evaluation.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
@@ -199,7 +200,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_io.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_io.HEIGHTS_KEY: heights_m_agl
     }
 
     normalization_file_name = (
@@ -212,8 +213,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
     training_example_dict = example_io.subset_by_height(
-        example_dict=training_example_dict,
-        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
 
     mean_training_example_dict = normalization.create_mean_example(
@@ -224,7 +224,6 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
-    heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
 
     if baseline_results_xarray is None:
         baseline_vector_target_names = []
@@ -234,7 +233,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
             baseline_generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
         )
         baseline_heights_m_agl = (
-            baseline_generator_option_dict[neural_net.HEIGHTS_KEY]
+            baseline_results_xarray.coords[evaluation.HEIGHT_DIM].values
         )
 
     for k in range(len(vector_target_names)):

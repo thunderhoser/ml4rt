@@ -493,6 +493,7 @@ def get_scores_all_variables(
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
 
     example_dict = {
         example_io.SCALAR_TARGET_NAMES_KEY:
@@ -503,7 +504,7 @@ def get_scores_all_variables(
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_io.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_io.HEIGHTS_KEY: heights_m_agl
     }
 
     normalization_file_name = (
@@ -516,8 +517,7 @@ def get_scores_all_variables(
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
     training_example_dict = example_io.subset_by_height(
-        example_dict=training_example_dict,
-        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
 
     mean_training_example_dict = normalization.create_mean_example(

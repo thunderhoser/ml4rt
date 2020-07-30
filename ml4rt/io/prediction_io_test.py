@@ -41,6 +41,8 @@ VECTOR_TARGET_MATRIX_FIELD2 = numpy.array([
     [300, 350, 350]
 ], dtype=float)
 
+HEIGHTS_M_AGL = numpy.array([10, 500, 1000], dtype=float)
+
 VECTOR_TARGET_MATRIX = numpy.stack(
     (VECTOR_TARGET_MATRIX_FIELD1, VECTOR_TARGET_MATRIX_FIELD2), axis=-1
 )
@@ -98,6 +100,7 @@ PREDICTION_DICT = {
     prediction_io.SCALAR_PREDICTIONS_KEY: SCALAR_PREDICTION_MATRIX,
     prediction_io.VECTOR_TARGETS_KEY: VECTOR_TARGET_MATRIX,
     prediction_io.VECTOR_PREDICTIONS_KEY: VECTOR_PREDICTION_MATRIX,
+    prediction_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
     prediction_io.EXAMPLE_IDS_KEY: EXAMPLE_ID_STRINGS
 }
@@ -115,6 +118,7 @@ PREDICTION_DICT_SUBSET_BY_ATMO = {
         VECTOR_TARGET_MATRIX[THESE_INDICES, ...],
     prediction_io.VECTOR_PREDICTIONS_KEY:
         VECTOR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
     prediction_io.EXAMPLE_IDS_KEY: [
         EXAMPLE_ID_STRINGS[k] for k in THESE_INDICES
@@ -135,6 +139,7 @@ PREDICTION_DICT_SUBSET_BY_ANGLE = {
         VECTOR_TARGET_MATRIX[THESE_INDICES, ...],
     prediction_io.VECTOR_PREDICTIONS_KEY:
         VECTOR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
     prediction_io.EXAMPLE_IDS_KEY: [
         EXAMPLE_ID_STRINGS[k] for k in THESE_INDICES
@@ -154,6 +159,7 @@ PREDICTION_DICT_SUBSET_BY_MONTH = {
         VECTOR_TARGET_MATRIX[THESE_INDICES, ...],
     prediction_io.VECTOR_PREDICTIONS_KEY:
         VECTOR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
     prediction_io.EXAMPLE_IDS_KEY: [
         EXAMPLE_ID_STRINGS[k] for k in THESE_INDICES
@@ -181,6 +187,7 @@ MEAN_PREDICTION_DICT = {
     prediction_io.SCALAR_PREDICTIONS_KEY: MEAN_SCALAR_PREDICTION_MATRIX,
     prediction_io.VECTOR_TARGETS_KEY: MEAN_VECTOR_TARGET_MATRIX,
     prediction_io.VECTOR_PREDICTIONS_KEY: MEAN_VECTOR_PREDICTION_MATRIX,
+    prediction_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME
 }
 
@@ -242,7 +249,8 @@ def _compare_prediction_dicts(first_prediction_dict, second_prediction_dict):
 
     keys_to_compare = [
         prediction_io.SCALAR_TARGETS_KEY, prediction_io.SCALAR_PREDICTIONS_KEY,
-        prediction_io.VECTOR_TARGETS_KEY, prediction_io.VECTOR_PREDICTIONS_KEY
+        prediction_io.VECTOR_TARGETS_KEY, prediction_io.VECTOR_PREDICTIONS_KEY,
+        prediction_io.HEIGHTS_KEY
     ]
 
     for this_key in keys_to_compare:

@@ -15,6 +15,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 5000
 ZERO_HEATING_HEIGHT_M_AGL = 49999.
+MAX_HEIGHT_M_AGL = 50001.
 
 TARGET_VALUE_KEYS = [
     example_io.SCALAR_TARGET_VALS_KEY, example_io.VECTOR_TARGET_VALS_KEY
@@ -466,6 +467,19 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             vector_target_matrix
         )
 
+    all_heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+    desired_heights_m_agl = (
+        all_heights_m_agl[all_heights_m_agl < MAX_HEIGHT_M_AGL]
+    )
+
+    target_example_dict = example_io.subset_by_height(
+        example_dict=target_example_dict, heights_m_agl=desired_heights_m_agl
+    )
+    prediction_example_dict = example_io.subset_by_height(
+        example_dict=prediction_example_dict,
+        heights_m_agl=desired_heights_m_agl
+    )
+
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
     ))
@@ -479,6 +493,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         prediction_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
         vector_prediction_matrix=
         prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+        heights_m_agl=desired_heights_m_agl,
         example_id_strings=example_id_strings, model_file_name=model_file_name
     )
 

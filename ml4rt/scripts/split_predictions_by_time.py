@@ -95,6 +95,7 @@ def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
             this_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
             vector_prediction_matrix=
             this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY]
@@ -127,6 +128,7 @@ def _run(input_file_name, num_zenith_angle_bins, output_dir_name):
             this_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
             vector_prediction_matrix=
             this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY]

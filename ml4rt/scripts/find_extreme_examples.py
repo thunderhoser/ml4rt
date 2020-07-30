@@ -153,6 +153,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
+    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
 
     if target_name not in vector_target_names:
         error_string = (
@@ -172,7 +173,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
 
     if target_height_m_agl is not None:
         height_index = example_io.match_heights(
-            heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY],
+            heights_m_agl=heights_m_agl,
             desired_height_m_agl=target_height_m_agl
         )
 
@@ -220,8 +221,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
         ))
         training_example_dict = example_io.read_file(normalization_file_name)
         training_example_dict = example_io.subset_by_height(
-            example_dict=training_example_dict,
-            heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+            example_dict=training_example_dict, heights_m_agl=heights_m_agl
         )
 
         dummy_example_dict = {
@@ -233,8 +233,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
                 generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
             example_io.VECTOR_TARGET_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-            example_io.HEIGHTS_KEY:
-                generator_option_dict[neural_net.HEIGHTS_KEY]
+            example_io.HEIGHTS_KEY: heights_m_agl
         }
 
         mean_training_example_dict = normalization.create_mean_example(
@@ -311,6 +310,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
             best_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
             vector_prediction_matrix=
             best_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            heights_m_agl=heights_m_agl,
             example_id_strings=
             best_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=best_prediction_dict[prediction_io.MODEL_FILE_KEY]
@@ -336,6 +336,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
             worst_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
             vector_prediction_matrix=
             worst_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            heights_m_agl=heights_m_agl,
             example_id_strings=
             worst_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=worst_prediction_dict[prediction_io.MODEL_FILE_KEY]

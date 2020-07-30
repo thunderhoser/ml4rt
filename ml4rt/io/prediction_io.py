@@ -9,6 +9,7 @@ from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.machine_learning import neural_net
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
@@ -21,6 +22,7 @@ SCALAR_TARGETS_KEY = 'scalar_target_matrix'
 SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGETS_KEY = 'vector_target_matrix'
 VECTOR_PREDICTIONS_KEY = 'vector_prediction_matrix'
+HEIGHTS_KEY = 'heights_m_agl'
 EXAMPLE_IDS_KEY = 'example_id_strings'
 
 ONE_PER_EXAMPLE_KEYS = [
@@ -157,8 +159,8 @@ def file_name_to_metadata(prediction_file_name):
 
 def write_file(
         netcdf_file_name, scalar_target_matrix, vector_target_matrix,
-        scalar_prediction_matrix, vector_prediction_matrix, example_id_strings,
-        model_file_name):
+        scalar_prediction_matrix, vector_prediction_matrix, heights_m_agl,
+        example_id_strings, model_file_name):
     """Writes predictions to NetCDF file.
 
     E = number of examples
@@ -175,6 +177,8 @@ def write_file(
         predicted values.
     :param vector_prediction_matrix: Same as `vector_target_matrix` but with
         predicted values.
+    :param heights_m_agl: length-H numpy array of heights (metres above ground
+        level).
     :param example_id_strings: length-E list of IDs created by
         `example_io.create_example_ids`.
     :param model_file_name: Path to file with trained model (readable by
@@ -206,6 +210,13 @@ def write_file(
     error_checking.assert_is_numpy_array(
         vector_prediction_matrix,
         exact_dimensions=numpy.array(vector_target_matrix.shape, dtype=int)
+    )
+
+    num_heights = vector_target_matrix.shape[1]
+    error_checking.assert_is_greater_numpy_array(heights_m_agl, 0.)
+    error_checking.assert_is_numpy_array(
+        heights_m_agl,
+        exact_dimensions=numpy.array([num_heights], dtype=int)
     )
 
     error_checking.assert_is_numpy_array(
@@ -260,6 +271,11 @@ def write_file(
     dataset_object.variables[EXAMPLE_IDS_KEY][:] = numpy.array(
         example_ids_char_array
     )
+
+    dataset_object.createVariable(
+        HEIGHTS_KEY, datatype=numpy.float32, dimensions=HEIGHT_DIMENSION_KEY
+    )
+    dataset_object.variables[HEIGHTS_KEY][:] = heights_m_agl
 
     if num_scalar_targets > 0:
         dataset_object.createVariable(
@@ -321,6 +337,20 @@ def read_file(netcdf_file_name):
         ],
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
+
+    if HEIGHTS_KEY not in prediction_dict:
+        model_metafile_name = neural_net.find_metafile(
+            model_dir_name=os.path.split(prediction_dict[MODEL_FILE_KEY])[0],
+            raise_error_if_missing=True
+        )
+
+        model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+        generator_option_dict = (
+            model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+        )
+        prediction_dict[HEIGHTS_KEY] = (
+            generator_option_dict[neural_net.HEIGHTS_KEY]
+        )
 
     if SCALAR_TARGETS_KEY in dataset_object.variables:
         prediction_dict[SCALAR_TARGETS_KEY] = (
@@ -465,6 +495,8 @@ def average_predictions(
         mean target (actual) values for vector variables.
     mean_prediction_dict['vector_prediction_matrix']: Same but with predicted
         values.
+    mean_prediction_dict['heights_m_agl']: length-H numpy array of heights
+        (metres above ground level).
     mean_prediction_dict['model_file_name']: Path to file with trained model
         (readable by `neural_net.read_model`).
     """
@@ -520,6 +552,7 @@ def average_predictions(
         SCALAR_PREDICTIONS_KEY: mean_scalar_prediction_matrix,
         VECTOR_TARGETS_KEY: mean_vector_target_matrix,
         VECTOR_PREDICTIONS_KEY: mean_vector_prediction_matrix,
+        HEIGHTS_KEY: prediction_dict[HEIGHTS_KEY],
         MODEL_FILE_KEY: prediction_dict[MODEL_FILE_KEY]
     }
 
