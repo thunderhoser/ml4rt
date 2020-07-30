@@ -494,6 +494,7 @@ def get_scores_all_variables(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    print(heights_m_agl)
 
     example_dict = {
         example_io.SCALAR_TARGET_NAMES_KEY:
@@ -1103,7 +1104,7 @@ def get_scores_all_variables(
     metadata_dict = {
         SCALAR_FIELD_DIM:
             mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY],
-        HEIGHT_DIM: mean_training_example_dict[example_io.HEIGHTS_KEY],
+        HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM:
             mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY],
         RELIABILITY_BIN_DIM: bin_indices
