@@ -83,7 +83,8 @@ def _check_score_name(score_name):
 
 def _plot_reliability_curve(
         axes_object, mean_predictions, mean_observations, min_value_to_plot,
-        max_value_to_plot, line_colour=RELIABILITY_LINE_COLOUR):
+        max_value_to_plot, line_colour=RELIABILITY_LINE_COLOUR,
+        line_style='solid'):
     """Plots reliability curve.
 
     B = number of bins
@@ -95,6 +96,7 @@ def _plot_reliability_curve(
     :param min_value_to_plot: See doc for `plot_attributes_diagram`.
     :param max_value_to_plot: Same.
     :param line_colour: Line colour (in any format accepted by matplotlib).
+    :param line_style: Line style (in any format accepted by matplotlib).
     """
 
     perfect_x_coords = numpy.array([min_value_to_plot, max_value_to_plot])
@@ -114,7 +116,7 @@ def _plot_reliability_curve(
 
         axes_object.plot(
             mean_predictions[real_indices], mean_observations[real_indices],
-            color=line_colour, linestyle='solid',
+            color=line_colour, linestyle=line_style,
             linewidth=RELIABILITY_LINE_WIDTH
         )
 
@@ -463,8 +465,9 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
     return taylor_diagram_object
 
 
-def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
-                       line_width, use_log_scale, axes_object):
+def plot_score_profile(
+        heights_m_agl, score_values, score_name, line_colour, line_width,
+        use_log_scale, axes_object, line_style='solid'):
     """Plots vertical profile of one score.
 
     H = number of heights
@@ -479,6 +482,7 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
         logarithmic scale.  If False, will plot height in linear scale.
     :param axes_object: Will plot on these axes (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
+    :param line_style: Line style (in any format accepted by matplotlib).
     """
 
     error_checking.assert_is_numpy_array(heights_m_agl, num_dimensions=1)
@@ -517,7 +521,7 @@ def plot_score_profile(heights_m_agl, score_values, score_name, line_colour,
 
     axes_object.plot(
         score_values[finite_indices], heights_km_agl[finite_indices],
-        color=line_colour, linestyle='solid', linewidth=line_width
+        color=line_colour, linestyle=line_style, linewidth=line_width
     )
 
     if score_name in possibly_negative_score_names:
