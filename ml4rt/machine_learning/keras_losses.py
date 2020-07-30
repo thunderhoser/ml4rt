@@ -77,25 +77,18 @@ def dual_weighted_mse_equalize_heights(num_examples_per_batch, num_channels):
         """
 
         max_target_tensor = K.max(target_tensor, axis=(0, -1), keepdims=True)
-        max_target_tensor = K.repeat_elements(
-            max_target_tensor, rep=num_examples_per_batch, axis=0
-        )
-        max_target_tensor = K.repeat_elements(
-            max_target_tensor, rep=num_channels, axis=-1
-        )
-
         max_prediction_tensor = K.max(
             prediction_tensor, axis=(0, -1), keepdims=True
         )
-        max_prediction_tensor = K.repeat_elements(
-            max_prediction_tensor, rep=num_examples_per_batch, axis=0
-        )
-        max_prediction_tensor = K.repeat_elements(
-            max_prediction_tensor, rep=num_channels, axis=-1
-        )
+        max_tensor = K.maximum(max_target_tensor, max_prediction_tensor)
 
-        norm_target_tensor = target_tensor / max_target_tensor
-        norm_prediction_tensor = prediction_tensor / max_prediction_tensor
+        max_tensor = K.repeat_elements(
+            max_tensor, rep=num_examples_per_batch, axis=0
+        )
+        max_tensor = K.repeat_elements(max_tensor, rep=num_channels, axis=-1)
+
+        norm_target_tensor = target_tensor / max_tensor
+        norm_prediction_tensor = prediction_tensor / max_tensor
 
         return K.mean(
             K.maximum(norm_target_tensor, norm_prediction_tensor) *
