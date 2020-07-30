@@ -30,7 +30,7 @@ def weighted_mse():
 
 
 def dual_weighted_mse():
-    """dual-weighted MSE (mean squared error).
+    """Dual-weighted MSE (mean squared error).
 
     Weight = max(magnitude of target value, magnitude of predicted value).
 
@@ -48,6 +48,38 @@ def dual_weighted_mse():
         return K.mean(
             K.maximum(target_tensor, prediction_tensor) *
             (prediction_tensor - target_tensor) ** 2
+        )
+
+    return loss
+
+
+def dual_weighted_mse_equalize_heights():
+    """Dual-weighted MSE with equalized heights.
+
+    Each height should have an equal contribution to this loss function.
+
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (dual-weighted MSE with equalized heights).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Dual-weighted MSE with equalized heights.
+        """
+
+        max_target_tensor = K.max(target_tensor, axis=(0, -1), keepdims=True)
+        max_prediction_tensor = K.max(
+            prediction_tensor, axis=(0, -1), keepdims=True
+        )
+
+        norm_target_tensor = target_tensor / max_target_tensor
+        norm_prediction_tensor = prediction_tensor / max_prediction_tensor
+
+        return K.mean(
+            K.maximum(norm_target_tensor, norm_prediction_tensor) *
+            (norm_prediction_tensor - norm_target_tensor) ** 2
         )
 
     return loss
