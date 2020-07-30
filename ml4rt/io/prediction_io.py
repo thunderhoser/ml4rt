@@ -338,7 +338,9 @@ def read_file(netcdf_file_name):
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
 
-    if HEIGHTS_KEY not in prediction_dict:
+    if HEIGHTS_KEY in dataset_object.variables:
+        prediction_dict[HEIGHTS_KEY] = dataset_object.variables[HEIGHTS_KEY][:]
+    else:
         model_metafile_name = neural_net.find_metafile(
             model_dir_name=os.path.split(prediction_dict[MODEL_FILE_KEY])[0],
             raise_error_if_missing=True

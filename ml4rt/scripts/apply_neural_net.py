@@ -473,7 +473,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     desired_heights_m_agl = (
         all_heights_m_agl[all_heights_m_agl < MAX_HEIGHT_M_AGL]
     )
-    print(desired_heights_m_agl)
 
     target_example_dict = example_io.subset_by_height(
         example_dict=target_example_dict, heights_m_agl=desired_heights_m_agl
@@ -482,7 +481,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         example_dict=prediction_example_dict,
         heights_m_agl=desired_heights_m_agl
     )
-    print(desired_heights_m_agl)
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name

@@ -494,7 +494,6 @@ def get_scores_all_variables(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
-    print(heights_m_agl)
 
     example_dict = {
         example_io.SCALAR_TARGET_NAMES_KEY:
