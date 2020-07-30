@@ -71,7 +71,7 @@ def dual_weighted_mse_equalize_heights():
 
         max_target_tensor = K.max(target_tensor, axis=(0, -1), keepdims=True)
         max_target_tensor = K.repeat_elements(
-            max_target_tensor, rep=K.shape(target_tensor)[-1],
+            max_target_tensor, rep=target_tensor.get_shape()[-1],
             axis=-1
         )
 
@@ -79,7 +79,7 @@ def dual_weighted_mse_equalize_heights():
             prediction_tensor, axis=(0, -1), keepdims=True
         )
         max_prediction_tensor = K.repeat_elements(
-            max_prediction_tensor, rep=K.shape(target_tensor)[-1],
+            max_prediction_tensor, rep=target_tensor.get_shape()[-1],
             axis=-1
         )
 
