@@ -261,7 +261,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
                 axes_object=this_axes_object
             )
 
-            if baseline_results_xarray is not None:
+            if vector_target_names[k] in baseline_vector_target_names:
                 this_index = baseline_vector_target_names.index(
                     vector_target_names[k]
                 )
@@ -471,7 +471,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
             inv_example_counts=these_inv_example_counts
         )
 
-        if baseline_results_xarray is not None:
+        if scalar_target_names[k] in baseline_scalar_target_names:
             this_index = baseline_scalar_target_names.index(
                 scalar_target_names[k]
             )
@@ -657,7 +657,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
             inv_example_counts=these_inv_example_counts
         )
 
-        if baseline_results_xarray is not None:
+        if aux_target_field_names[k] in baseline_aux_target_names:
             this_index = baseline_aux_target_names.index(
                 aux_target_field_names[k]
             )
@@ -815,20 +815,24 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
                 inv_example_counts=these_inv_example_counts
             )
 
-            if baseline_results_xarray is not None:
-                this_index = baseline_vector_target_names.index(
+            if vector_target_names[k] in baseline_vector_target_names:
+                this_channel_index = baseline_vector_target_names.index(
                     vector_target_names[k]
+                )
+                this_height_index = example_io.match_heights(
+                    heights_m_agl=baseline_heights_m_agl,
+                    desired_height_m_agl=heights_m_agl[j]
                 )
 
                 baseline_mean_predictions = (
                     baseline_results_xarray[
                         evaluation.VECTOR_RELIABILITY_X_KEY
-                    ].values[j, k, :]
+                    ].values[this_height_index, this_channel_index, :]
                 )
                 baseline_mean_targets = (
                     baseline_results_xarray[
                         evaluation.VECTOR_RELIABILITY_Y_KEY
-                    ].values[j, k, :]
+                    ].values[this_height_index, this_channel_index, :]
                 )
 
                 evaluation_plotting._plot_reliability_curve(
