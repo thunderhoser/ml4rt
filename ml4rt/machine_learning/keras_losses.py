@@ -53,13 +53,20 @@ def dual_weighted_mse():
     return loss
 
 
-def dual_weighted_mse_equalize_heights():
+def dual_weighted_mse_equalize_heights(num_examples_per_batch, num_channels):
     """Dual-weighted MSE with equalized heights.
 
     Each height should have an equal contribution to this loss function.
 
+    :param num_examples_per_batch: Number of examples per batch.
+    :param num_channels: Number of channels (target variables).
     :return: loss: Loss function (defined below).
     """
+
+    error_checking.assert_is_integer(num_examples_per_batch)
+    error_checking.assert_is_greater(num_examples_per_batch, 0)
+    error_checking.assert_is_integer(num_channels)
+    error_checking.assert_is_greater(num_channels, 0)
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss (dual-weighted MSE with equalized heights).
@@ -69,20 +76,22 @@ def dual_weighted_mse_equalize_heights():
         :return: loss: Dual-weighted MSE with equalized heights.
         """
 
-        print(target_tensor)
         max_target_tensor = K.max(target_tensor, axis=(0, -1), keepdims=True)
-        print(max_target_tensor)
         max_target_tensor = K.repeat_elements(
-            max_target_tensor, rep=target_tensor.get_shape()[-1],
-            axis=-1
+            max_target_tensor, rep=num_examples_per_batch, axis=0
+        )
+        max_target_tensor = K.repeat_elements(
+            max_target_tensor, rep=num_channels, axis=-1
         )
 
         max_prediction_tensor = K.max(
             prediction_tensor, axis=(0, -1), keepdims=True
         )
         max_prediction_tensor = K.repeat_elements(
-            max_prediction_tensor, rep=target_tensor.get_shape()[-1],
-            axis=-1
+            max_prediction_tensor, rep=num_examples_per_batch, axis=0
+        )
+        max_prediction_tensor = K.repeat_elements(
+            max_prediction_tensor, rep=num_channels, axis=-1
         )
 
         norm_target_tensor = target_tensor / max_target_tensor
