@@ -283,7 +283,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     target_norm_type_string = copy.deepcopy(
         generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
     )
-    # generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
+    generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
     generator = neural_net.data_generator(
@@ -388,8 +388,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
 
-    # TODO(thunderhoser): This is a HACK.
-    target_norm_type_string = None
     if target_norm_type_string is not None:
         print('Denormalizing predicted values...')
 
