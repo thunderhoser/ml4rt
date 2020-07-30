@@ -69,6 +69,7 @@ def dual_weighted_mse_equalize_heights():
         :return: loss: Dual-weighted MSE with equalized heights.
         """
 
+        print(target_tensor)
         max_target_tensor = K.max(target_tensor, axis=(0, -1), keepdims=True)
         print(max_target_tensor)
         max_target_tensor = K.repeat_elements(
