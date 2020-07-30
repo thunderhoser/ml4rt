@@ -70,8 +70,17 @@ def dual_weighted_mse_equalize_heights():
         """
 
         max_target_tensor = K.max(target_tensor, axis=(0, -1), keepdims=True)
+        max_target_tensor = K.repeat_elements(
+            max_target_tensor, rep=target_tensor.get_shape().as_list()[-1],
+            axis=-1
+        )
+
         max_prediction_tensor = K.max(
             prediction_tensor, axis=(0, -1), keepdims=True
+        )
+        max_prediction_tensor = K.repeat_elements(
+            max_prediction_tensor, rep=target_tensor.get_shape().as_list()[-1],
+            axis=-1
         )
 
         norm_target_tensor = target_tensor / max_target_tensor
