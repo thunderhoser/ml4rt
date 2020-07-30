@@ -389,21 +389,23 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
 
+    num_examples = len(example_id_strings)
+    num_heights = len(prediction_example_dict[example_io.HEIGHTS_KEY])
+
+    this_dict = {
+        example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_io.VECTOR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, num_heights, 0), 0.),
+        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_io.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, 0), 0.)
+    }
+
+    target_example_dict.update(this_dict)
+    prediction_example_dict.update(this_dict)
+
     if target_norm_type_string is not None:
         print('Denormalizing predicted values...')
-
-        num_examples = len(example_id_strings)
-        num_heights = len(prediction_example_dict[example_io.HEIGHTS_KEY])
-
-        this_dict = {
-            example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
-            example_io.VECTOR_PREDICTOR_VALS_KEY:
-                numpy.full((num_examples, num_heights, 0), 0.),
-            example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-            example_io.SCALAR_PREDICTOR_VALS_KEY:
-                numpy.full((num_examples, 0), 0.)
-        }
-        prediction_example_dict.update(this_dict)
 
         down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
             example_dict=prediction_example_dict,
