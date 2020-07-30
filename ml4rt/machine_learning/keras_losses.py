@@ -92,7 +92,7 @@ def dual_weighted_mse_equalize_heights(num_examples_per_batch, num_channels):
 
         return K.mean(
             K.maximum(norm_target_tensor, norm_prediction_tensor) *
-            (prediction_tensor - target_tensor) ** 2
+            (norm_prediction_tensor - norm_target_tensor) ** 2
         )
 
     return loss
