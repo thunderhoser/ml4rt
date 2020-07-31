@@ -556,6 +556,99 @@ def plot_score_profile(
     axes_object.set_ylabel('Height (km AGL)')
 
 
+def plot_error_distribution(
+        error_values, min_error_to_plot, max_error_to_plot, axes_object):
+    """Plots one error distribution.
+
+    :param error_values: 1-D numpy array of signed errors.
+    :param min_error_to_plot: See doc for `plot_error_dist_many_heights`.
+    :param max_error_to_plot: Same.
+    :param axes_object: Same.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(error_values)
+    error_checking.assert_is_numpy_array(error_values, num_dimensions=1)
+    error_checking.assert_is_greater(max_error_to_plot, min_error_to_plot)
+
+    boxplot_style_dict = {
+        'color': 'k',
+        'linewidth': 2
+    }
+
+    axes_object.boxplot(
+        error_values, vert=True, notch=False, sym='o', whis=(5, 95),
+        medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+        whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict
+    )
+
+    axes_object.set_ylim(min_error_to_plot, max_error_to_plot)
+    axes_object.set_xticks([], [])
+
+
+def plot_error_dist_many_heights(
+        error_matrix, heights_m_agl, min_error_to_plot, max_error_to_plot,
+        axes_object):
+    """Plots error distribution at each height on the same axes.
+
+    E = number of examples
+    H = number of heights
+
+    :param error_matrix: E-by-H numpy array of signed errors.
+    :param heights_m_agl: length-H numpy array of heights (metres above ground
+        level).
+    :param min_error_to_plot: Lower limit for x-axis.
+    :param max_error_to_plot: Upper limit for x-axis.
+    :param axes_object: Will plot on these axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(error_matrix)
+    error_checking.assert_is_numpy_array(error_matrix, num_dimensions=2)
+
+    num_heights = error_matrix.shape[1]
+
+    error_checking.assert_is_geq_numpy_array(heights_m_agl, 0.)
+    error_checking.assert_is_numpy_array(
+        heights_m_agl, exact_dimensions=numpy.array([num_heights], dtype=int)
+    )
+
+    error_checking.assert_is_greater(max_error_to_plot, min_error_to_plot)
+
+    boxplot_style_dict = {
+        'color': 'k',
+        'linewidth': 2
+    }
+
+    y_values = numpy.linspace(
+        0, num_heights - 1, num=num_heights, dtype=float
+    )
+
+    for j in range(num_heights):
+        axes_object.boxplot(
+            error_matrix[:, j], widths=0.9, vert=False, notch=False, sym='o',
+            whis=(5, 95),
+            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+            positions=y_values[[j]]
+        )
+
+    axes_object.set_xlim(min_error_to_plot, max_error_to_plot)
+
+    y_tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=METRES_TO_KM * heights_m_agl,
+        use_log_scale=False
+    )
+
+    for j in range(len(y_tick_strings)):
+        if numpy.mod(j, 5) == 0:
+            continue
+
+        y_tick_strings[j] = ' '
+
+    axes_object.set_yticklabels(y_tick_strings)
+    axes_object.set_ylabel('Height (km AGL)')
+
+
 def plot_rel_curve_many_heights(
         mean_target_matrix, mean_prediction_matrix, heights_m_agl,
         min_value_to_plot, max_value_to_plot, axes_object,

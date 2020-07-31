@@ -8,6 +8,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.io import example_io
+from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
@@ -489,9 +490,6 @@ def _plot_attributes_diagram(
         inv_example_counts=inverted_example_counts
     )
 
-    axes_object.set_title('Attributes diagram for {0:s}'.format(
-        TARGET_NAME_TO_VERBOSE[target_name]
-    ))
     axes_object.set_xlabel('Prediction ({0:s})'.format(
         TARGET_NAME_TO_UNITS[target_name]
     ))
@@ -516,7 +514,7 @@ def _plot_attributes_diagram(
             int(numpy.round(height_m_agl))
         )
 
-    figure_object.suptitle(title_string)
+    axes_object.set_title(title_string)
 
     mean_predictions = None
     mean_observations = None
@@ -591,6 +589,12 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
         print('Reading data from: "{0:s}"...'.format(baseline_eval_file_name))
         baseline_results_xarray = evaluation.read_file(baseline_eval_file_name)
 
+    prediction_file_name = (
+        main_results_xarray.attrs[evaluation.PREDICTION_FILE_KEY]
+    )
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
     model_file_name = main_results_xarray.attrs[evaluation.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
@@ -659,6 +663,40 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
         this_squared_unit_string = (
             TARGET_NAME_TO_SQUARED_UNITS[vector_target_names[k]]
         )
+
+        # Plot error distribution.
+        this_figure_object, this_axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+
+        this_error_matrix = (
+            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., k] -
+            prediction_dict[prediction_io.VECTOR_TARGETS_KEY][..., k]
+        )
+
+        evaluation_plotting.plot_error_dist_many_heights(
+            error_matrix=this_error_matrix, heights_m_agl=heights_m_agl,
+            min_error_to_plot=numpy.percentile(this_error_matrix, 0.1),
+            max_error_to_plot=numpy.percentile(this_error_matrix, 99.9),
+            axes_object=this_axes_object
+        )
+
+        this_axes_object.set_title(
+            'Error distribution for {0:s} ({1:s})'.format(
+                this_target_name_verbose, this_unit_string
+            )
+        )
+
+        this_file_name = '{0:s}/{1:s}_error-dist.jpg'.format(
+            output_dir_name, vector_target_names[k].replace('_', '-'),
+        )
+        print('Saving figure to: "{0:s}"...'.format(this_file_name))
+
+        this_figure_object.savefig(
+            this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(this_figure_object)
 
         # Plot error profiles.
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
@@ -820,6 +858,40 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     print(SEPARATOR_STRING)
 
     for k in range(len(scalar_target_names)):
+        this_figure_object, this_axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+
+        these_error_values = (
+            prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][..., k] -
+            prediction_dict[prediction_io.SCALAR_TARGETS_KEY][..., k]
+        )
+
+        evaluation_plotting.plot_error_distribution(
+            error_values=these_error_values,
+            min_error_to_plot=numpy.percentile(these_error_values, 0.1),
+            max_error_to_plot=numpy.percentile(these_error_values, 99.9),
+            axes_object=this_axes_object
+        )
+
+        this_axes_object.set_title(
+            'Error distribution for {0:s} ({1:s})'.format(
+                TARGET_NAME_TO_VERBOSE[scalar_target_names[k]],
+                TARGET_NAME_TO_UNITS[scalar_target_names[k]]
+            )
+        )
+
+        this_file_name = '{0:s}/{1:s}_error-dist.jpg'.format(
+            output_dir_name, scalar_target_names[k].replace('_', '-'),
+        )
+        print('Saving figure to: "{0:s}"...'.format(this_file_name))
+
+        this_figure_object.savefig(
+            this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(this_figure_object)
+
         _plot_attributes_diagram(
             main_results_xarray=main_results_xarray,
             baseline_results_xarray=baseline_results_xarray,
