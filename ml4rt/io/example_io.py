@@ -97,6 +97,7 @@ COLUMN_ICE_WATER_PATH_NAME = 'column_ice_water_path_kg_m02'
 PRESSURE_NAME = 'pressure_pascals'
 TEMPERATURE_NAME = 'temperature_kelvins'
 SPECIFIC_HUMIDITY_NAME = 'specific_humidity_kg_kg01'
+RELATIVE_HUMIDITY_NAME = 'relative_humidity_unitless'
 LIQUID_WATER_CONTENT_NAME = 'liquid_water_content_kg_m03'
 ICE_WATER_CONTENT_NAME = 'ice_water_content_kg_m03'
 LIQUID_WATER_PATH_NAME = 'liquid_water_path_kg_m02'
@@ -117,9 +118,9 @@ DEFAULT_VECTOR_PREDICTOR_NAMES = [
     LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME
 ]
 ALL_VECTOR_PREDICTOR_NAMES = DEFAULT_VECTOR_PREDICTOR_NAMES + [
-    LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME, WATER_VAPOUR_PATH_NAME,
-    UPWARD_LIQUID_WATER_PATH_NAME, UPWARD_ICE_WATER_PATH_NAME,
-    UPWARD_WATER_VAPOUR_PATH_NAME
+    RELATIVE_HUMIDITY_NAME, LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME,
+    WATER_VAPOUR_PATH_NAME, UPWARD_LIQUID_WATER_PATH_NAME,
+    UPWARD_ICE_WATER_PATH_NAME, UPWARD_WATER_VAPOUR_PATH_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -291,6 +292,56 @@ def _get_air_density(example_dict):
         virtual_temp_matrix_kelvins
     )
     return pressure_matrix_pascals / denominator_matrix
+
+
+def _specific_to_relative_humidity(example_dict):
+    """Converts profiles of specific humidity to relative humidity.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: example_dict: Same as input but with extra predictor variable.
+    """
+
+    specific_humidity_matrix_kg_kg01 = get_field_from_dict(
+        example_dict=example_dict, field_name=SPECIFIC_HUMIDITY_NAME
+    )
+    temperature_matrix_kelvins = get_field_from_dict(
+        example_dict=example_dict, field_name=TEMPERATURE_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+
+    dewpoint_matrix_kelvins = moisture_conv.specific_humidity_to_dewpoint(
+        specific_humidities_kg_kg01=specific_humidity_matrix_kg_kg01,
+        total_pressures_pascals=pressure_matrix_pascals
+    )
+
+    relative_humidity_matrix = moisture_conv.dewpoint_to_relative_humidity(
+        dewpoints_kelvins=dewpoint_matrix_kelvins,
+        temperatures_kelvins=temperature_matrix_kelvins,
+        total_pressures_pascals=pressure_matrix_pascals
+    )
+
+    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    found_rh = RELATIVE_HUMIDITY_NAME in vector_predictor_names
+    if not found_rh:
+        vector_predictor_names.append(RELATIVE_HUMIDITY_NAME)
+
+    rh_index = vector_predictor_names.index(RELATIVE_HUMIDITY_NAME)
+    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+
+    if found_rh:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., rh_index] = (
+            relative_humidity_matrix
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=rh_index, values=relative_humidity_matrix, axis=-1
+        )
+
+    return example_dict
 
 
 def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
@@ -1140,6 +1191,7 @@ def read_file(example_file_name):
         integrate_upward=True
     )
 
+    example_dict = _specific_to_relative_humidity(example_dict)
     example_dict = fluxes_actual_to_increments(example_dict)
     return fluxes_increments_to_actual(example_dict)
 

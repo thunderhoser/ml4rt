@@ -4,6 +4,7 @@ import copy
 import unittest
 import numpy
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from ml4rt.io import example_io
 
 TOLERANCE = 1e-6
@@ -52,6 +53,35 @@ AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
      1.11270554, 1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816,
      1.11832989, 1.11270554]
 ])
+
+# The following constants are used to test _specific_to_relative_humidity.
+DEWPOINT_MATRIX_KELVINS = moisture_conv.specific_humidity_to_dewpoint(
+    specific_humidities_kg_kg01=HUMIDITY_MATRIX_KG_KG01,
+    total_pressures_pascals=PRESSURE_MATRIX_PASCALS
+)
+
+RELATIVE_HUMIDITY_MATRIX = moisture_conv.dewpoint_to_relative_humidity(
+    dewpoints_kelvins=DEWPOINT_MATRIX_KELVINS,
+    temperatures_kelvins=TEMPERATURE_MATRIX_KELVINS,
+    total_pressures_pascals=PRESSURE_MATRIX_PASCALS
+)
+
+EXAMPLE_DICT_SANS_RH = copy.deepcopy(EXAMPLE_DICT_SANS_DENSITY)
+
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_io.SPECIFIC_HUMIDITY_NAME, example_io.TEMPERATURE_NAME,
+    example_io.PRESSURE_NAME, example_io.RELATIVE_HUMIDITY_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
+    HUMIDITY_MATRIX_KG_KG01, TEMPERATURE_MATRIX_KELVINS,
+    PRESSURE_MATRIX_PASCALS, RELATIVE_HUMIDITY_MATRIX
+), axis=-1)
+
+EXAMPLE_DICT_WITH_RH = {
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
 
 # The following constants are used to test get_grid_cell_edges,
 # get_grid_cell_widths, _layerwise_water_path_to_content, and
@@ -865,6 +895,17 @@ class ExampleIoTests(unittest.TestCase):
         self.assertTrue(numpy.allclose(
             this_density_matrix_kg_m03, AIR_DENSITY_MATRIX_KG_M03,
             atol=TOLERANCE
+        ))
+
+    def test_specific_to_relative_humidity(self):
+        """Ensures correct output from _specific_to_relative_humidity."""
+
+        this_example_dict = example_io._specific_to_relative_humidity(
+            copy.deepcopy(EXAMPLE_DICT_SANS_RH)
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_RH
         ))
 
     def test_get_grid_cell_edges(self):

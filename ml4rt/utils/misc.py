@@ -8,7 +8,6 @@ from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
-from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.machine_learning import neural_net
@@ -22,96 +21,6 @@ MAGNUS_NUMERATOR_COEFF_WATER = 17.08085
 MAGNUS_NUMERATOR_COEFF_ICE = 17.84362
 MAGNUS_DENOMINATOR_COEFF_WATER = 234.175
 MAGNUS_DENOMINATOR_COEFF_ICE = 245.425
-
-
-def dewpoint_to_vapour_pressure(dewpoints_kelvins, temperatures_kelvins):
-    """Converts each dewpoint to vapour pressure.
-
-    Source:
-    https://content.meteoblue.com/hu/specifications/weather-variables/humidity
-
-    :param dewpoints_kelvins: numpy array (any shape) of dewpoints.
-    :param temperatures_kelvins: numpy array (same shape) of temperatures.
-    :return: vapour_pressures_pascals: numpy array (same shape) of vapour
-        pressures.
-    """
-
-    error_checking.assert_is_geq_numpy_array(
-        dewpoints_kelvins, 0., allow_nan=True
-    )
-    error_checking.assert_is_geq_numpy_array(
-        temperatures_kelvins, 0., allow_nan=True
-    )
-    error_checking.assert_is_numpy_array(
-        temperatures_kelvins,
-        exact_dimensions=numpy.array(dewpoints_kelvins.shape, dtype=int)
-    )
-
-    dewpoints_deg_c = temperature_conv.kelvins_to_celsius(dewpoints_kelvins)
-    temperatures_deg_c = temperature_conv.kelvins_to_celsius(
-        temperatures_kelvins
-    )
-
-    numerator_coeffs = numpy.full(
-        temperatures_deg_c.shape, MAGNUS_NUMERATOR_COEFF_WATER
-    )
-    numerator_coeffs[temperatures_deg_c < 0] = MAGNUS_NUMERATOR_COEFF_ICE
-    numerators = numerator_coeffs * dewpoints_deg_c
-
-    denominator_coeffs = numpy.full(
-        temperatures_deg_c.shape, MAGNUS_DENOMINATOR_COEFF_WATER
-    )
-    denominator_coeffs[temperatures_deg_c < 0] = MAGNUS_DENOMINATOR_COEFF_ICE
-    denominators = denominator_coeffs + dewpoints_deg_c
-
-    return BASE_VAPOUR_PRESSURE_PASCALS * numpy.exp(numerators / denominators)
-
-
-def vapour_pressure_to_dewpoint(vapour_pressures_pascals, temperatures_kelvins):
-    """Converts each vapour pressure to dewpoint.
-
-    Source:
-    https://content.meteoblue.com/hu/specifications/weather-variables/humidity
-
-    :param vapour_pressures_pascals: numpy array (any shape) of vapour
-        pressures.
-    :param temperatures_kelvins: numpy array (same shape) of temperatures.
-    :return: dewpoints_kelvins: numpy array (same shape) of dewpoints.
-    """
-
-    error_checking.assert_is_geq_numpy_array(
-        vapour_pressures_pascals, 0., allow_nan=True
-    )
-    error_checking.assert_is_geq_numpy_array(
-        temperatures_kelvins, 0., allow_nan=True
-    )
-    error_checking.assert_is_numpy_array(
-        temperatures_kelvins,
-        exact_dimensions=numpy.array(vapour_pressures_pascals.shape, dtype=int)
-    )
-
-    logarithms = numpy.log(
-        vapour_pressures_pascals / BASE_VAPOUR_PRESSURE_PASCALS
-    )
-
-    temperatures_deg_c = temperature_conv.kelvins_to_celsius(
-        temperatures_kelvins
-    )
-
-    numerator_coeffs = numpy.full(
-        temperatures_deg_c.shape, MAGNUS_DENOMINATOR_COEFF_WATER
-    )
-    numerator_coeffs[temperatures_deg_c < 0] = MAGNUS_DENOMINATOR_COEFF_ICE
-    numerators = numerator_coeffs * logarithms
-
-    denominator_coeffs = numpy.full(
-        temperatures_deg_c.shape, MAGNUS_NUMERATOR_COEFF_WATER
-    )
-    denominator_coeffs[temperatures_deg_c < 0] = MAGNUS_NUMERATOR_COEFF_ICE
-    denominators = denominator_coeffs - logarithms
-
-    dewpoints_deg_c = numerators / denominators
-    return temperature_conv.celsius_to_kelvins(dewpoints_deg_c)
 
 
 def subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
