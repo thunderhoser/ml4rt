@@ -57,6 +57,7 @@ AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
 # The following constants are used to test _specific_to_relative_humidity.
 DEWPOINT_MATRIX_KELVINS = moisture_conv.specific_humidity_to_dewpoint(
     specific_humidities_kg_kg01=HUMIDITY_MATRIX_KG_KG01,
+    temperatures_kelvins=TEMPERATURE_MATRIX_KELVINS,
     total_pressures_pascals=PRESSURE_MATRIX_PASCALS
 )
 

@@ -314,6 +314,7 @@ def _specific_to_relative_humidity(example_dict):
 
     dewpoint_matrix_kelvins = moisture_conv.specific_humidity_to_dewpoint(
         specific_humidities_kg_kg01=specific_humidity_matrix_kg_kg01,
+        temperatures_kelvins=temperature_matrix_kelvins,
         total_pressures_pascals=pressure_matrix_pascals
     )
 
