@@ -680,8 +680,8 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
         evaluation_plotting.plot_error_dist_many_heights(
             error_matrix=this_error_matrix, heights_m_agl=heights_m_agl,
-            min_error_to_plot=numpy.percentile(this_error_matrix, 0.1),
-            max_error_to_plot=numpy.percentile(this_error_matrix, 99.9),
+            min_error_to_plot=numpy.percentile(this_error_matrix, 2.5),
+            max_error_to_plot=numpy.percentile(this_error_matrix, 97.5),
             axes_object=this_axes_object
         )
 
@@ -873,8 +873,8 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
         evaluation_plotting.plot_error_distribution(
             error_values=these_error_values,
-            min_error_to_plot=numpy.percentile(these_error_values, 0.1),
-            max_error_to_plot=numpy.percentile(these_error_values, 99.9),
+            min_error_to_plot=numpy.percentile(these_error_values, 2.5),
+            max_error_to_plot=numpy.percentile(these_error_values, 97.5),
             axes_object=this_axes_object
         )
 
