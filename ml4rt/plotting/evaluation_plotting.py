@@ -496,13 +496,12 @@ def plot_score_profile(
         axes_object.set_yscale('log')
 
     heights_km_agl = heights_m_agl * METRES_TO_KM
+    min_height_km_agl = numpy.min(heights_km_agl)
+    max_height_km_agl = numpy.max(heights_km_agl)
 
-    min_height_km_agl = numpy.minimum(
-        numpy.min(heights_km_agl), orig_y_limits[0]
-    )
-    max_height_km_agl = numpy.maximum(
-        numpy.max(heights_km_agl), orig_y_limits[1]
-    )
+    if not are_axes_new:
+        min_height_km_agl = numpy.minimum(min_height_km_agl, orig_y_limits[0])
+        max_height_km_agl = numpy.maximum(max_height_km_agl, orig_y_limits[1])
 
     skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
     possibly_negative_score_names = (
