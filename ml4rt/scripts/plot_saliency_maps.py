@@ -55,6 +55,7 @@ SCALAR_PREDICTOR_COLOURS_BY_SET = [
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: 'Temperature',
     example_io.SPECIFIC_HUMIDITY_NAME: 'Specific\nhumidity',
+    example_io.RELATIVE_HUMIDITY_NAME: 'Relative\nhumidity',
     example_io.WATER_VAPOUR_PATH_NAME: 'Downward WVP',
     example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 'Upward WVP',
     example_io.PRESSURE_NAME: 'Pressure',

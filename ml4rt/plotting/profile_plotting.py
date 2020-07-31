@@ -17,9 +17,6 @@ RADIANS_TO_DEGREES = 180. / numpy.pi
 
 FIGURE_HANDLE_KEY = 'figure_object'
 AXES_OBJECTS_KEY = 'axes_objects'
-TEMPERATURE_HANDLE_KEY = 'temperature_axes_object'
-HUMIDITY_HANDLE_KEY = 'humidity_axes_object'
-WATER_CONTENT_HANDLE_KEY = 'water_content_axes_object'
 HEATING_RATE_HANDLE_KEY = 'heating_rate_axes_object'
 DOWN_FLUX_HANDLE_KEY = 'down_flux_axes_object'
 UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
@@ -27,6 +24,7 @@ UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
     example_io.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
+    example_io.RELATIVE_HUMIDITY_NAME: r'Relative humidity',
     example_io.WATER_VAPOUR_PATH_NAME:
         r'Downward water-vapour path (kg m$^{-2}$)',
     example_io.UPWARD_WATER_VAPOUR_PATH_NAME:
@@ -53,6 +51,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_io.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
+    example_io.RELATIVE_HUMIDITY_NAME: 1.,
     example_io.WATER_VAPOUR_PATH_NAME: 1.,
     example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 1.,
     example_io.PRESSURE_NAME: PASCALS_TO_MB,
@@ -83,10 +82,6 @@ SIMPLE_FIGURE_HEIGHT_INCHES = 15
 HEATING_RATE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 DOWNWELLING_FLUX_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 UPWELLING_FLUX_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
-
-TEMPERATURE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
-HUMIDITY_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
-WATER_CONTENT_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
 
 def _set_font_size(font_size):

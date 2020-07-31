@@ -274,9 +274,9 @@ def _plot_taylor_diagram(
 
 
 def _plot_attributes_diagram(
-        main_results_xarray, baseline_results_xarray, mean_training_example_dict,
-        output_dir_name, scalar_target_index=None, aux_target_index=None,
-        vector_target_index=None, height_index=None):
+        main_results_xarray, baseline_results_xarray,
+        mean_training_example_dict, output_dir_name, scalar_target_index=None,
+        aux_target_index=None, vector_target_index=None, height_index=None):
     """Plots attributes diagram for one field.
 
     In this case, "field" means one scalar variable or one vector variable at
@@ -284,8 +284,8 @@ def _plot_attributes_diagram(
 
     :param main_results_xarray: xarray table with main evaluation results
         (format described in `evaluation.read_file`).
-    :param baseline_results_xarray: Same but with evaluation results for baseline
-        model.
+    :param baseline_results_xarray: Same but with evaluation results for
+        baseline model.
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
     :param output_dir_name: See doc for `_plot_taylor_diagram`.
@@ -680,8 +680,8 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
         evaluation_plotting.plot_error_dist_many_heights(
             error_matrix=this_error_matrix, heights_m_agl=heights_m_agl,
-            min_error_to_plot=numpy.percentile(this_error_matrix, 2.5),
-            max_error_to_plot=numpy.percentile(this_error_matrix, 97.5),
+            min_error_to_plot=numpy.percentile(this_error_matrix, 1.),
+            max_error_to_plot=numpy.percentile(this_error_matrix, 99.),
             axes_object=this_axes_object
         )
 
@@ -873,8 +873,8 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
         evaluation_plotting.plot_error_distribution(
             error_values=these_error_values,
-            min_error_to_plot=numpy.percentile(these_error_values, 2.5),
-            max_error_to_plot=numpy.percentile(these_error_values, 97.5),
+            min_error_to_plot=numpy.percentile(these_error_values, 1.),
+            max_error_to_plot=numpy.percentile(these_error_values, 99.),
             axes_object=this_axes_object
         )
 

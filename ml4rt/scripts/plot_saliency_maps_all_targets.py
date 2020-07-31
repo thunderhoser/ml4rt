@@ -25,7 +25,8 @@ TARGET_NAME_TO_VERBOSE = plot_saliency_maps.TARGET_NAME_TO_VERBOSE
 
 PREDICTOR_NAME_TO_VERBOSE = {
     example_io.TEMPERATURE_NAME: 'temperature',
-    example_io.SPECIFIC_HUMIDITY_NAME: 'humidity',
+    example_io.SPECIFIC_HUMIDITY_NAME: 'spec humidity',
+    example_io.RELATIVE_HUMIDITY_NAME: 'rel humidity',
     example_io.WATER_VAPOUR_PATH_NAME: 'downward WVP',
     example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 'upward WVP',
     example_io.PRESSURE_NAME: 'pressure',
