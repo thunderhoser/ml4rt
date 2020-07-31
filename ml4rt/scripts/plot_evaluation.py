@@ -466,10 +466,14 @@ def _plot_attributes_diagram(
             baseline_vector_target_index = baseline_vector_target_names.index(
                 target_name
             )
-            baseline_height_index = example_io.match_heights(
-                heights_m_agl=baseline_heights_m_agl,
-                desired_height_m_agl=height_m_agl
-            )
+
+            try:
+                baseline_height_index = example_io.match_heights(
+                    heights_m_agl=baseline_heights_m_agl,
+                    desired_height_m_agl=height_m_agl
+                )
+            except ValueError:
+                baseline_vector_target_index = None
 
     concat_values = numpy.concatenate((mean_predictions, mean_observations))
     max_value_to_plot = numpy.nanpercentile(concat_values, 99.9)
