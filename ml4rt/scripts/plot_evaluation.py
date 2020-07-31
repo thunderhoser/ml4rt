@@ -258,7 +258,9 @@ def _plot_taylor_diagram(
         )
 
     if vector_target_index is not None:
-        title_string += ' at {0:d} m AGL'.format(height_m_agl)
+        title_string += ' at {0:d} m AGL'.format(
+            int(numpy.round(height_m_agl))
+        )
 
     figure_object.suptitle(title_string)
 
@@ -510,7 +512,9 @@ def _plot_attributes_diagram(
         )
 
     if vector_target_index is not None:
-        title_string += ' at {0:d} m AGL'.format(height_m_agl)
+        title_string += ' at {0:d} m AGL'.format(
+            int(numpy.round(height_m_agl))
+        )
 
     figure_object.suptitle(title_string)
 
