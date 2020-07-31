@@ -244,22 +244,17 @@ def _plot_attr_diagram_background(
 
 
 def _plot_inset_histogram(
-        figure_object, main_axes_object, bin_centers, bin_counts,
-        min_x_to_plot, max_x_to_plot, has_predictions):
+        figure_object, bin_centers, bin_counts, has_predictions):
     """Plots histogram as inset in attributes diagram.
 
     B = number of bins
 
     :param figure_object: Will plot on this figure (instance of
         `matplotlib.figure.Figure`).
-    :param main_axes_object: Main axes for attributes diagram (instance of
-        `matplotlib.axes._subplots.AxesSubplot`).
     :param bin_centers: length-B numpy array with value at center of each bin.
         These values will be plotted on the x-axis.
     :param bin_counts: length-B numpy array with number of examples in each bin.
         These values will be plotted on the y-axis.
-    :param min_x_to_plot: Minimum x-value to plot.
-    :param max_x_to_plot: Max v-value to plot.
     :param has_predictions: Boolean flag.  If True, histogram will contain
         prediction frequencies.  If False, will contain observation frequencies.
     """
@@ -277,16 +272,13 @@ def _plot_inset_histogram(
     )
 
     real_indices = numpy.where(numpy.invert(numpy.isnan(bin_centers)))[0]
-    # bin_width = numpy.nanmean(numpy.diff(bin_centers))
 
     inset_axes_object.bar(
         fake_bin_centers[real_indices], bin_frequencies[real_indices], 1.,
         color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
-
     inset_axes_object.set_ylim(bottom=0.)
-    # inset_axes_object.set_xticks(main_axes_object.get_xticks())
 
     tick_indices = []
 
@@ -316,8 +308,6 @@ def _plot_inset_histogram(
         'Prediction frequency' if has_predictions else 'Observation frequency',
         fontsize=HISTOGRAM_FONT_SIZE
     )
-
-    # inset_axes_object.set_xlim(min_x_to_plot, max_x_to_plot)
 
 
 def plot_attributes_diagram(
@@ -391,18 +381,14 @@ def plot_attributes_diagram(
     )
 
     _plot_inset_histogram(
-        figure_object=figure_object, main_axes_object=axes_object,
-        bin_centers=mean_predictions, bin_counts=example_counts,
-        min_x_to_plot=min_value_to_plot, max_x_to_plot=max_value_to_plot,
-        has_predictions=True
+        figure_object=figure_object, bin_centers=mean_predictions,
+        bin_counts=example_counts, has_predictions=True
     )
 
     if plot_obs_histogram:
         _plot_inset_histogram(
-            figure_object=figure_object, main_axes_object=axes_object,
-            bin_centers=inv_mean_observations, bin_counts=inv_example_counts,
-            min_x_to_plot=min_value_to_plot, max_x_to_plot=max_value_to_plot,
-            has_predictions=False
+            figure_object=figure_object, bin_centers=inv_mean_observations,
+            bin_counts=inv_example_counts, has_predictions=False
         )
 
     _plot_reliability_curve(
@@ -467,7 +453,7 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
 
 def plot_score_profile(
         heights_m_agl, score_values, score_name, line_colour, line_width,
-        use_log_scale, axes_object, line_style='solid'):
+        use_log_scale, axes_object, are_axes_new, line_style='solid'):
     """Plots vertical profile of one score.
 
     H = number of heights
@@ -482,6 +468,8 @@ def plot_score_profile(
         logarithmic scale.  If False, will plot height in linear scale.
     :param axes_object: Will plot on these axes (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
+    :param are_axes_new: Boolean flag.  If True, axes are new (do not already
+        contain plot).
     :param line_style: Line style (in any format accepted by matplotlib).
     """
 
@@ -495,13 +483,26 @@ def plot_score_profile(
 
     _check_score_name(score_name)
     error_checking.assert_is_boolean(use_log_scale)
+    error_checking.assert_is_boolean(are_axes_new)
+
+    if are_axes_new:
+        orig_x_limits = []
+        orig_y_limits = []
+    else:
+        orig_x_limits = axes_object.get_xlim()
+        orig_y_limits = axes_object.get_ylim()
 
     if use_log_scale:
         axes_object.set_yscale('log')
 
     heights_km_agl = heights_m_agl * METRES_TO_KM
-    min_height_km_agl = numpy.min(heights_km_agl)
-    max_height_km_agl = numpy.max(heights_km_agl)
+
+    min_height_km_agl = numpy.minimum(
+        numpy.min(heights_km_agl), orig_y_limits[0]
+    )
+    max_height_km_agl = numpy.maximum(
+        numpy.max(heights_km_agl), orig_y_limits[1]
+    )
 
     skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
     possibly_negative_score_names = (
@@ -525,8 +526,16 @@ def plot_score_profile(
     )
 
     if score_name in possibly_negative_score_names:
-        x_min = numpy.minimum(numpy.min(score_values[finite_indices]), 0.)
-        x_max = numpy.maximum(numpy.max(score_values[finite_indices]), 0.)
+        x_min = numpy.minimum(
+            numpy.min(score_values[finite_indices]), 0.
+        )
+        x_max = numpy.maximum(
+            numpy.max(score_values[finite_indices]), 0.
+        )
+
+        if not are_axes_new:
+            x_min = numpy.minimum(x_min, orig_x_limits[0])
+            x_max = numpy.maximum(x_max, orig_x_limits[1])
 
         if score_name in skill_score_names:
             x_min = numpy.maximum(x_min, -1.)
