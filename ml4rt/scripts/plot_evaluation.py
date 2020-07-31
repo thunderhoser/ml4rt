@@ -299,22 +299,22 @@ def _plot_attributes_diagram(
         baseline_heights_m_agl = []
     else:
         baseline_scalar_target_names = (
-            baseline_results_xarray.coords[evaluation.SCALAR_FIELD_DIM]
+            baseline_results_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
         ).tolist()
 
         try:
-            baseline_aux_target_names = (
-                baseline_results_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM]
-            ).tolist()
+            baseline_aux_target_names = baseline_results_xarray.coords[
+                evaluation.AUX_TARGET_FIELD_DIM
+            ].values.tolist()
         except:
             baseline_aux_target_names = []
 
         baseline_vector_target_names = (
-            baseline_results_xarray.coords[evaluation.VECTOR_FIELD_DIM]
+            baseline_results_xarray.coords[evaluation.VECTOR_FIELD_DIM].values
         ).tolist()
 
         baseline_heights_m_agl = (
-            baseline_results_xarray.coords[evaluation.HEIGHT_DIM]
+            baseline_results_xarray.coords[evaluation.HEIGHT_DIM].values
         )
 
     baseline_scalar_target_index = None
@@ -390,7 +390,7 @@ def _plot_attributes_diagram(
         ].values[aux_target_index, ...]
 
         scalar_target_names = (
-            main_results_xarray.coords[evaluation.SCALAR_FIELD_DIM]
+            main_results_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
         ).tolist()
 
         mean_scalar_target_matrix = (
