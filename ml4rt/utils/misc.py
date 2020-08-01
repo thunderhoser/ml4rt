@@ -16,12 +16,6 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 EXAMPLE_IDS_KEY = 'example_id_strings'
 
-BASE_VAPOUR_PRESSURE_PASCALS = 610.78
-MAGNUS_NUMERATOR_COEFF_WATER = 17.08085
-MAGNUS_NUMERATOR_COEFF_ICE = 17.84362
-MAGNUS_DENOMINATOR_COEFF_WATER = 234.175
-MAGNUS_DENOMINATOR_COEFF_ICE = 245.425
-
 
 def subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
     """Subsets examples.

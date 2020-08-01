@@ -185,6 +185,32 @@ TARGET_NAME_TO_ORIG = {
 }
 
 
+def _find_nonzero_runs(values):
+    """Finds runs of non-zero values in numpy array.
+
+    N = number of non-zero runs
+
+    :param values: 1-D numpy array of real values.
+    :return: start_indices: length-N numpy array with array index at start of
+        each non-zero run.
+    :return: end_indices: length-N numpy array with array index at end of each
+        non-zero run.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(values)
+    error_checking.assert_is_numpy_array(values, num_dimensions=1)
+
+    zero_flags = numpy.concatenate((
+        [True], numpy.equal(values, 0), [True]
+    ))
+
+    nonzero_flags = numpy.invert(zero_flags)
+    differences = numpy.abs(numpy.diff(nonzero_flags))
+    index_matrix = numpy.where(differences == 1)[0].reshape(-1, 2)
+
+    return index_matrix[:, 0], index_matrix[:, 1] - 1
+
+
 def _layerwise_water_path_to_content(
         layerwise_path_matrix_kg_m02, heights_m_agl):
     """Converts profile of layerwise water path to profile of water content.
@@ -836,6 +862,73 @@ def fluxes_increments_to_actual(example_dict):
         )
 
     return example_dict
+
+
+def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False):
+    """Finds liquid- or ice-cloud layers in each profile.
+
+    E = number of examples
+    H = number of heights
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :param min_path_kg_m02: Minimum path in each cloud layer (kg m^-2).
+    :param for_ice: Boolean flag.  If True, will find ice clouds.  If False,
+        will find liquid clouds.
+    :return: cloud_mask_matrix: E-by-H numpy array of Boolean flags, indicating
+        where clouds exist.
+    :return: cloud_layer_counts: length-E numpy array with number of cloud
+        layers for each example.
+    """
+
+    error_checking.assert_is_greater(min_path_kg_m02, 0.)
+    error_checking.assert_is_boolean(for_ice)
+
+    if for_ice:
+        path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_ICE_WATER_PATH_NAME
+        )
+    else:
+        path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
+        )
+
+    path_diff_matrix_kg_m02 = numpy.diff(path_matrix_kg_m02, axis=1, prepend=0.)
+
+    num_examples = path_matrix_kg_m02.shape[0]
+    cloud_mask_matrix = numpy.full(path_matrix_kg_m02.shape, False, dtype=bool)
+    cloud_layer_counts = numpy.full(num_examples, 0, dtype=int)
+
+    for i in range(num_examples):
+        these_diffs = path_diff_matrix_kg_m02[i, :] + 0.
+
+        if for_ice:
+            these_diffs[these_diffs <= 1e9] = 0
+        else:
+            these_diffs[these_diffs <= 1e6] = 0
+
+        these_start_indices, these_end_indices = _find_nonzero_runs(
+            path_diff_matrix_kg_m02[i, :]
+        )
+
+        this_num_layers = len(these_start_indices)
+
+        for j in range(this_num_layers):
+            this_path_kg_m02 = numpy.sum(
+                path_diff_matrix_kg_m02[
+                    i, these_start_indices[j]:(these_end_indices[j] + 1)
+                ]
+            )
+
+            if this_path_kg_m02 < min_path_kg_m02:
+                continue
+
+            cloud_layer_counts[i] += 1
+            cloud_mask_matrix[
+                i, these_start_indices[j]:(these_end_indices[j] + 1)
+            ] = True
+
+    return cloud_mask_matrix, cloud_layer_counts
 
 
 def match_heights(heights_m_agl, desired_height_m_agl):

@@ -9,6 +9,27 @@ from ml4rt.io import example_io
 
 TOLERANCE = 1e-6
 
+# The following constants are used to test _find_nonzero_runs.
+FIRST_VALUES = numpy.full(10, 0.)
+FIRST_START_INDICES = numpy.array([], dtype=int)
+FIRST_END_INDICES = numpy.array([], dtype=int)
+
+SECOND_VALUES = numpy.random.uniform(low=-5., high=5., size=10)
+SECOND_VALUES[numpy.absolute(SECOND_VALUES) < TOLERANCE] = 1.
+SECOND_START_INDICES = numpy.array([0], dtype=int)
+SECOND_END_INDICES = numpy.array([9], dtype=int)
+
+THIRD_VALUES = numpy.array([
+    0, 0, 0, 0.2, 1.2, 3.5, 13.4, 31.2, 56.8, 90.1, 129.0, 172.3, 219.1, 249.4,
+    263.7, 0, 0, 0
+])
+THIRD_START_INDICES = numpy.array([3], dtype=int)
+THIRD_END_INDICES = numpy.array([14], dtype=int)
+
+FOURTH_VALUES = numpy.concatenate((THIRD_VALUES, THIRD_VALUES, THIRD_VALUES))
+FOURTH_START_INDICES = numpy.array([3, 21, 39], dtype=int)
+FOURTH_END_INDICES = numpy.array([14, 32, 50], dtype=int)
+
 # The following constants are used to test _get_air_density.
 HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
     [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7],
@@ -324,6 +345,39 @@ EXAMPLE_DICT_WITH_INCREMENTS = {
         copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
     example_io.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
     example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+# The following constants are used to test find_cloud_layers.
+THIS_LWP_MATRIX_KG_M02 = 0.001 * numpy.array([
+    [0, 0, 0, 1, 2, 2, 2, 2, 3, 4, 4, 4, 4, 5, 6, 6, 6, 6],
+    [10, 20, 50, 70, 90, 90, 90, 90, 90, 90, 90, 110, 110, 130, 130, 150, 150,
+     210],
+    [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51]
+], dtype=float)
+
+MIN_PATH_KG_M02 = 0.05
+
+CLOUD_MASK_MATRIX = numpy.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+], dtype=bool)
+
+CLOUD_LAYER_COUNTS = numpy.array([0, 2, 1], dtype=int)
+
+THESE_HEIGHTS_M_AGL = numpy.array([
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+], dtype=float)
+
+THESE_VECTOR_PREDICTOR_NAMES = [example_io.UPWARD_LIQUID_WATER_PATH_NAME]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_LWP_MATRIX_KG_M02, axis=-1
+)
+
+EXAMPLE_DICT_FOR_CLOUD_MASK = {
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
     example_io.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
 
@@ -887,6 +941,70 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
 class ExampleIoTests(unittest.TestCase):
     """Each method is a unit test for example_io.py."""
 
+    def test_find_nonzero_runs_first(self):
+        """Ensures correct output from find_nonzero_runs.
+
+        In this case, using first set of values.
+        """
+
+        these_start_indices, these_end_indices = (
+            example_io._find_nonzero_runs(FIRST_VALUES)
+        )
+        self.assertTrue(numpy.array_equal(
+            these_start_indices, FIRST_START_INDICES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_end_indices, FIRST_END_INDICES
+        ))
+
+    def test_find_nonzero_runs_second(self):
+        """Ensures correct output from find_nonzero_runs.
+
+        In this case, using second set of values.
+        """
+
+        these_start_indices, these_end_indices = (
+            example_io._find_nonzero_runs(SECOND_VALUES)
+        )
+        self.assertTrue(numpy.array_equal(
+            these_start_indices, SECOND_START_INDICES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_end_indices, SECOND_END_INDICES
+        ))
+
+    def test_find_nonzero_runs_third(self):
+        """Ensures correct output from find_nonzero_runs.
+
+        In this case, using third set of values.
+        """
+
+        these_start_indices, these_end_indices = (
+            example_io._find_nonzero_runs(THIRD_VALUES)
+        )
+        self.assertTrue(numpy.array_equal(
+            these_start_indices, THIRD_START_INDICES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_end_indices, THIRD_END_INDICES
+        ))
+
+    def test_find_nonzero_runs_fourth(self):
+        """Ensures correct output from find_nonzero_runs.
+
+        In this case, using fourth set of values.
+        """
+
+        these_start_indices, these_end_indices = (
+            example_io._find_nonzero_runs(FOURTH_VALUES)
+        )
+        self.assertTrue(numpy.array_equal(
+            these_start_indices, FOURTH_START_INDICES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_end_indices, FOURTH_END_INDICES
+        ))
+
     def test_get_air_density(self):
         """Ensures correct output from _get_air_density."""
 
@@ -1018,6 +1136,21 @@ class ExampleIoTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_INCREMENTS
+        ))
+
+    def test_find_cloud_layers(self):
+        """Ensures correct output from find_cloud_layers."""
+
+        this_mask_matrix, these_cloud_layer_counts = (
+            example_io.find_cloud_layers(
+                example_dict=EXAMPLE_DICT_FOR_CLOUD_MASK,
+                min_path_kg_m02=MIN_PATH_KG_M02, for_ice=False
+            )
+        )
+
+        self.assertTrue(numpy.array_equal(this_mask_matrix, CLOUD_MASK_MATRIX))
+        self.assertTrue(numpy.array_equal(
+            these_cloud_layer_counts, CLOUD_LAYER_COUNTS
         ))
 
     def test_find_file(self):
