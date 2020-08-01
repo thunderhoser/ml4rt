@@ -368,13 +368,13 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         vector_target_matrix=vector_target_matrix,
         model_metadata_dict=metadata_dict
     )
-    print(target_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
 
     prediction_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_prediction_matrix,
         vector_target_matrix=vector_prediction_matrix,
         model_metadata_dict=metadata_dict
     )
+    print(prediction_example_dict[example_io.VECTOR_TARGET_NAMES_KEY])
 
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
