@@ -336,7 +336,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         else:
             this_vector_target_matrix = this_target_array
             this_vector_prediction_matrix = this_prediction_array[0]
-            print(this_vector_prediction_matrix.shape)
 
         if this_scalar_target_matrix is not None:
             if scalar_target_matrix is None:
