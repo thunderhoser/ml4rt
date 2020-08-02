@@ -2,6 +2,7 @@
 
 import copy
 import os.path
+import warnings
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
@@ -15,6 +16,7 @@ from gewittergefahr.gg_utils import error_checking
 # example_utils.py, conversions.py).
 
 TOLERANCE = 1e-6
+MIN_BAD_VALUE = 1e30
 
 KM_TO_METRES = 1000.
 DEG_TO_RADIANS = numpy.pi / 180
@@ -1129,7 +1131,7 @@ def find_many_files(
     return example_file_names
 
 
-def read_file(example_file_name):
+def read_file(example_file_name, allow_bad_values=False):
     """Reads NetCDF file with learning examples.
 
     T = number of times
@@ -1140,6 +1142,8 @@ def read_file(example_file_name):
     T_v = number of vector targets
 
     :param example_file_name: Path to NetCDF file with learning examples.
+    :param allow_bad_values: Boolean flag.  If True, will allow bad values and
+        remove examples that have bad values.
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (T x P_s) with values
         of scalar predictors.
@@ -1164,6 +1168,8 @@ def read_file(example_file_name):
     example_dict['standard_atmo_flags']: length-T numpy array of flags (each in
         the list `STANDARD_ATMO_ENUMS`).
     """
+
+    error_checking.assert_is_boolean(allow_bad_values)
 
     if not os.path.isfile(example_file_name):
         example_file_name = example_file_name.replace(
@@ -1258,14 +1264,6 @@ def read_file(example_file_name):
             dataset_object.variables[this_target_name_orig][:], dtype=float
         )
 
-    longitude_index = DEFAULT_SCALAR_PREDICTOR_NAMES.index(LONGITUDE_NAME)
-    scalar_predictor_matrix[:, longitude_index] = (
-        longitude_conv.convert_lng_positive_in_west(
-            longitudes_deg=scalar_predictor_matrix[:, longitude_index],
-            allow_nan=False
-        )
-    )
-
     example_dict.update({
         SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
         VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix,
@@ -1274,6 +1272,45 @@ def read_file(example_file_name):
     })
 
     dataset_object.close()
+
+    if allow_bad_values:
+        bad_predictor_flags = numpy.logical_or(
+            numpy.any(scalar_predictor_matrix >= MIN_BAD_VALUE, axis=1),
+            numpy.any(vector_predictor_matrix >= MIN_BAD_VALUE, axis=(1, 2))
+        )
+
+        bad_target_flags = numpy.logical_or(
+            numpy.any(scalar_target_matrix >= MIN_BAD_VALUE, axis=1),
+            numpy.any(vector_target_matrix >= MIN_BAD_VALUE, axis=(1, 2))
+        )
+        
+        good_indices = numpy.where(numpy.invert(
+            numpy.logical_or(bad_predictor_flags, bad_target_flags)
+        ))[0]
+
+        num_examples = scalar_predictor_matrix.shape[0]
+
+        if len(good_indices) != num_examples:
+            warning_string = '{0:d} of {1:d} examples have bad values.'.format(
+                num_examples - len(good_indices), num_examples
+            )
+            warnings.warn(warning_string)
+
+        example_dict = subset_by_index(
+            example_dict=example_dict, desired_indices=good_indices
+        )
+
+    longitude_index = (
+        example_dict[SCALAR_PREDICTOR_NAMES_KEY].index(LONGITUDE_NAME)
+    )
+
+    example_dict[SCALAR_PREDICTOR_VALS_KEY][:, longitude_index] = (
+        longitude_conv.convert_lng_positive_in_west(
+            longitudes_deg=
+            example_dict[SCALAR_PREDICTOR_VALS_KEY][:, longitude_index],
+            allow_nan=False
+        )
+    )
 
     example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
