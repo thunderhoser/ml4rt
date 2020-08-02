@@ -272,11 +272,15 @@ def _read_file_for_generator(
 
     # TODO(thunderhoser): Remove print statements.
     print(example_dict[example_io.HEIGHTS_KEY])
+    print(example_file_name)
     down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
         example_dict=example_dict,
         field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
     )
-    print(down_flux_inc_matrix_w_m03[:5, :5])
+    print('Down fluxes: {0:s}'.format(
+        str(down_flux_inc_matrix_w_m03[:5, :5])
+    ))
+    print(down_flux_inc_matrix_w_m03.shape)
     print('\n\n\n')
 
     if for_inference:
