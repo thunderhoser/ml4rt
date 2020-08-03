@@ -46,7 +46,7 @@ def dual_weighted_mse():
         """
 
         return K.mean(
-            K.maximum(target_tensor, prediction_tensor) *
+            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)) *
             (prediction_tensor - target_tensor) ** 2
         )
 
@@ -70,7 +70,7 @@ def dual_sqrt_weighted_mse():
         """
 
         return K.mean(
-            K.sqrt(K.maximum(target_tensor, prediction_tensor)) *
+            K.sqrt(K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))) *
             (prediction_tensor - target_tensor) ** 2
         )
 
