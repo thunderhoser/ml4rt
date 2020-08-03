@@ -74,15 +74,28 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
         max_pmm_percentile_level=max_pmm_percentile_level
     )
 
-    dummy_predictor_matrix = numpy.array([0, 0, 0], dtype=float)
-    dummy_predictor_matrix = numpy.expand_dims(dummy_predictor_matrix, axis=0)
+    dummy_scalar_predictor_matrix = numpy.array([0, 0, 0], dtype=float)
+    dummy_scalar_predictor_matrix = numpy.expand_dims(
+        dummy_scalar_predictor_matrix, axis=0
+    )
+
+    dummy_vector_predictor_matrix = numpy.array([0.])
+    dummy_vector_predictor_matrix = numpy.expand_dims(
+        dummy_vector_predictor_matrix, axis=-1
+    )
+    dummy_vector_predictor_matrix = numpy.expand_dims(
+        dummy_vector_predictor_matrix, axis=-1
+    )
 
     dummy_example_dict = {
         example_io.SCALAR_PREDICTOR_NAMES_KEY: [
             example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
             example_io.ZENITH_ANGLE_NAME
         ],
-        example_io.SCALAR_PREDICTOR_VALS_KEY: dummy_predictor_matrix,
+        example_io.SCALAR_PREDICTOR_VALS_KEY: dummy_scalar_predictor_matrix,
+        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.TEMPERATURE_NAME],
+        example_io.VECTOR_PREDICTOR_VALS_KEY: dummy_vector_predictor_matrix,
+        example_io.HEIGHTS_KEY: numpy.array([10.]),
         example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int),
         example_io.STANDARD_ATMO_FLAGS_KEY: numpy.array([0], dtype=int)
     }

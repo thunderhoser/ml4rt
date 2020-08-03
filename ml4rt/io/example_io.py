@@ -49,22 +49,24 @@ VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 VALID_TIMES_KEY = 'valid_times_unix_sec'
 HEIGHTS_KEY = 'heights_m_agl'
 STANDARD_ATMO_FLAGS_KEY = 'standard_atmo_flags'
+EXAMPLE_IDS_KEY = 'example_id_strings'
 
 LATITUDES_KEY = 'latitudes_deg_n'
 LONGITUDES_KEY = 'longitudes_deg_e'
 ZENITH_ANGLES_KEY = 'zenith_angles_rad'
+TEMPERATURES_10M_KEY = 'temperatures_10m_kelvins'
 
 DICTIONARY_KEYS = [
     SCALAR_PREDICTOR_VALS_KEY, SCALAR_PREDICTOR_NAMES_KEY,
     VECTOR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_NAMES_KEY,
     SCALAR_TARGET_VALS_KEY, SCALAR_TARGET_NAMES_KEY,
     VECTOR_TARGET_VALS_KEY, VECTOR_TARGET_NAMES_KEY,
-    VALID_TIMES_KEY, HEIGHTS_KEY, STANDARD_ATMO_FLAGS_KEY
+    VALID_TIMES_KEY, HEIGHTS_KEY, STANDARD_ATMO_FLAGS_KEY, EXAMPLE_IDS_KEY
 ]
 ONE_PER_EXAMPLE_KEYS = [
     SCALAR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_VALS_KEY,
     SCALAR_TARGET_VALS_KEY, VECTOR_TARGET_VALS_KEY,
-    VALID_TIMES_KEY, STANDARD_ATMO_FLAGS_KEY
+    VALID_TIMES_KEY, STANDARD_ATMO_FLAGS_KEY, EXAMPLE_IDS_KEY
 ]
 ONE_PER_FIELD_KEYS = [
     SCALAR_PREDICTOR_VALS_KEY, SCALAR_PREDICTOR_NAMES_KEY,
@@ -74,10 +76,12 @@ ONE_PER_FIELD_KEYS = [
 ]
 
 TIME_DIMENSION_KEY_ORIG = 'time'
+ID_CHARACTER_DIM_KEY_ORIG = 'example_id_char'
 HEIGHT_DIMENSION_KEY_ORIG = 'height'
 VALID_TIMES_KEY_ORIG = 'time'
 HEIGHTS_KEY_ORIG = 'height'
 STANDARD_ATMO_FLAGS_KEY_ORIG = 'stdatmos'
+EXAMPLE_IDS_KEY_ORIG = 'example_id_strings'
 
 TROPICS_ENUM = 1
 MIDLATITUDE_SUMMER_ENUM = 2
@@ -1131,7 +1135,8 @@ def find_many_files(
     return example_file_names
 
 
-def read_file(example_file_name, allow_bad_values=False):
+def read_file(example_file_name, allow_bad_values=False,
+              id_strings_to_read=None, allow_missing_ids=False):
     """Reads NetCDF file with learning examples.
 
     T = number of times
@@ -1144,6 +1149,12 @@ def read_file(example_file_name, allow_bad_values=False):
     :param example_file_name: Path to NetCDF file with learning examples.
     :param allow_bad_values: Boolean flag.  If True, will allow bad values and
         remove examples that have bad values.
+    :param id_strings_to_read: 1-D list of IDs for examples to read.  If None,
+        will read all examples.
+    :param allow_missing_ids: [used only if `id_strings_to_read is not None`]
+        Boolean flag.  If True, will allow missing IDs.  If False, will throw
+        error for missing IDs.
+
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (T x P_s) with values
         of scalar predictors.
@@ -1167,16 +1178,39 @@ def read_file(example_file_name, allow_bad_values=False):
         ground level).
     example_dict['standard_atmo_flags']: length-T numpy array of flags (each in
         the list `STANDARD_ATMO_ENUMS`).
+    example_dict['example_id_strings']: length-T list of example IDs.
     """
 
     error_checking.assert_is_boolean(allow_bad_values)
 
+    # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(example_file_name):
         example_file_name = example_file_name.replace(
             '/home/ryan.lagerquist', '/home/ralager'
         )
 
     dataset_object = netCDF4.Dataset(example_file_name)
+    indices_to_read = None
+
+    if EXAMPLE_IDS_KEY in dataset_object.variables:
+        example_id_strings = [
+            str(id) for id in
+            netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
+        ]
+
+        if id_strings_to_read is not None:
+            indices_to_read = find_examples(
+                all_id_strings=example_id_strings,
+                desired_id_strings=id_strings_to_read,
+                allow_missing=allow_missing_ids
+            )
+            indices_to_read = indices_to_read[indices_to_read >= 0]
+
+    if indices_to_read is None:
+        num_examples = dataset_object.dimensions[TIME_DIMENSION_KEY_ORIG].size
+        indices_to_read = numpy.linspace(
+            0, num_examples - 1, num=num_examples, dtype=int
+        )
 
     example_dict = {
         SCALAR_PREDICTOR_NAMES_KEY:
@@ -1186,14 +1220,17 @@ def read_file(example_file_name, allow_bad_values=False):
         SCALAR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES),
         VECTOR_TARGET_NAMES_KEY: copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES),
         VALID_TIMES_KEY: numpy.array(
-            dataset_object.variables[VALID_TIMES_KEY_ORIG][:], dtype=int
+            dataset_object.variables[VALID_TIMES_KEY_ORIG][indices_to_read],
+            dtype=int
         ),
         HEIGHTS_KEY: KM_TO_METRES * numpy.array(
             dataset_object.variables[HEIGHTS_KEY_ORIG][:], dtype=float
         ),
         STANDARD_ATMO_FLAGS_KEY: numpy.array(
             numpy.round(
-                dataset_object.variables[STANDARD_ATMO_FLAGS_KEY_ORIG][:]
+                dataset_object.variables[STANDARD_ATMO_FLAGS_KEY_ORIG][
+                    indices_to_read
+                ]
             ), dtype=int
         )
     }
@@ -1226,7 +1263,9 @@ def read_file(example_file_name, allow_bad_values=False):
             PREDICTOR_NAME_TO_CONV_FACTOR[DEFAULT_SCALAR_PREDICTOR_NAMES[k]]
         )
         scalar_predictor_matrix[:, k] = this_conversion_factor * numpy.array(
-            dataset_object.variables[this_predictor_name_orig][:], dtype=float
+            dataset_object.variables[this_predictor_name_orig][
+                indices_to_read, ...
+            ], dtype=float
         )
 
     for k in range(num_vector_predictors):
@@ -1237,7 +1276,9 @@ def read_file(example_file_name, allow_bad_values=False):
             PREDICTOR_NAME_TO_CONV_FACTOR[DEFAULT_VECTOR_PREDICTOR_NAMES[k]]
         )
         vector_predictor_matrix[..., k] = this_conversion_factor * numpy.array(
-            dataset_object.variables[this_predictor_name_orig][:], dtype=float
+            dataset_object.variables[this_predictor_name_orig][
+                indices_to_read, ...
+            ], dtype=float
         )
 
         if DEFAULT_VECTOR_PREDICTOR_NAMES[k] in [
@@ -1253,7 +1294,9 @@ def read_file(example_file_name, allow_bad_values=False):
             TARGET_NAME_TO_ORIG[DEFAULT_SCALAR_TARGET_NAMES[k]]
         )
         scalar_target_matrix[:, k] = numpy.array(
-            dataset_object.variables[this_target_name_orig][:], dtype=float
+            dataset_object.variables[this_target_name_orig][
+                indices_to_read, ...
+            ], dtype=float
         )
 
     for k in range(num_vector_targets):
@@ -1261,7 +1304,9 @@ def read_file(example_file_name, allow_bad_values=False):
             TARGET_NAME_TO_ORIG[DEFAULT_VECTOR_TARGET_NAMES[k]]
         )
         vector_target_matrix[..., k] = numpy.array(
-            dataset_object.variables[this_target_name_orig][:], dtype=float
+            dataset_object.variables[this_target_name_orig][
+                indices_to_read, ...
+            ], dtype=float
         )
 
     example_dict.update({
@@ -1272,6 +1317,25 @@ def read_file(example_file_name, allow_bad_values=False):
     })
 
     dataset_object.close()
+    indices_to_read = None
+
+    if EXAMPLE_IDS_KEY not in dataset_object.variables:
+        example_id_strings = create_example_ids(example_dict)
+
+        if id_strings_to_read is not None:
+            indices_to_read = find_examples(
+                all_id_strings=example_id_strings,
+                desired_id_strings=id_strings_to_read,
+                allow_missing=allow_missing_ids
+            )
+            indices_to_read = indices_to_read[indices_to_read >= 0]
+
+    example_dict[EXAMPLE_IDS_KEY] = example_id_strings
+
+    if indices_to_read is not None:
+        example_dict = subset_by_index(
+            example_dict=example_dict, desired_indices=indices_to_read
+        )
 
     if allow_bad_values:
         bad_predictor_flags = numpy.logical_or(
@@ -1283,7 +1347,7 @@ def read_file(example_file_name, allow_bad_values=False):
             numpy.any(scalar_target_matrix >= MIN_BAD_VALUE, axis=1),
             numpy.any(vector_target_matrix >= MIN_BAD_VALUE, axis=(1, 2))
         )
-        
+
         good_indices = numpy.where(numpy.invert(
             numpy.logical_or(bad_predictor_flags, bad_target_flags)
         ))[0]
@@ -1350,6 +1414,26 @@ def write_file(example_dict, netcdf_file_name):
     )
     dataset_object.variables[VALID_TIMES_KEY_ORIG][:] = (
         example_dict[VALID_TIMES_KEY]
+    )
+
+    example_id_strings = example_dict[EXAMPLE_IDS_KEY]
+    num_id_characters = numpy.max(numpy.array([
+        len(id) for id in example_id_strings
+    ]))
+
+    dataset_object.createDimension(ID_CHARACTER_DIM_KEY_ORIG, num_id_characters)
+
+    this_string_format = 'S{0:d}'.format(num_id_characters)
+    example_ids_char_array = netCDF4.stringtochar(numpy.array(
+        example_id_strings, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        EXAMPLE_IDS_KEY, datatype='S1',
+        dimensions=(TIME_DIMENSION_KEY_ORIG, ID_CHARACTER_DIM_KEY_ORIG)
+    )
+    dataset_object.variables[EXAMPLE_IDS_KEY][:] = numpy.array(
+        example_ids_char_array
     )
 
     dataset_object.createVariable(
@@ -1474,9 +1558,12 @@ def concat_examples(example_dicts):
             if this_key in keys_to_match:
                 continue
 
-            example_dict[this_key] = numpy.concatenate((
-                example_dict[this_key], example_dicts[i][this_key]
-            ), axis=0)
+            if isinstance(example_dict[this_key], list):
+                example_dict[this_key] += example_dicts[i][this_key]
+            else:
+                example_dict[this_key] = numpy.concatenate((
+                    example_dict[this_key], example_dicts[i][this_key]
+                ), axis=0)
 
     return example_dict
 
@@ -1501,15 +1588,19 @@ def create_example_ids(example_dict):
     valid_times_unix_sec = example_dict[VALID_TIMES_KEY]
     standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
 
+    temperatures_10m_kelvins = get_field_from_dict(
+        example_dict=example_dict, field_name=TEMPERATURE_NAME, height_m_agl=10
+    )
+
     return [
         'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_' \
-        'time={3:010d}_atmo={4:1d}'.format(
-            lat, long, theta, t, f
+        'time={3:010d}_atmo={4:1d}_temp-10m-kelvins={5:010.6f}'.format(
+            lat, long, theta, t, f, t10
         )
-        for lat, long, theta, t, f in
+        for lat, long, theta, t, f, t10 in
         zip(
             latitudes_deg_n, longitudes_deg_e, zenith_angles_rad,
-            valid_times_unix_sec, standard_atmo_flags
+            valid_times_unix_sec, standard_atmo_flags, temperatures_10m_kelvins
         )
     ]
 
@@ -1529,6 +1620,8 @@ def parse_example_ids(example_id_strings):
     metadata_dict['valid_times_unix_sec']: length-E numpy array of valid times.
     metadata_dict['standard_atmo_flags']: length-E numpy array of standard-
         atmosphere flags (integers).
+    metadata_dict['temperatures_10m_kelvins']: length-E numpy array of
+        temperatures at 10 m above ground level.
     """
 
     error_checking.assert_is_numpy_array(
@@ -1541,6 +1634,7 @@ def parse_example_ids(example_id_strings):
     zenith_angles_rad = numpy.full(num_examples, numpy.nan)
     valid_times_unix_sec = numpy.full(num_examples, -1, dtype=int)
     standard_atmo_flags = numpy.full(num_examples, -1, dtype=int)
+    temperatures_10m_kelvins = numpy.full(num_examples, numpy.nan)
 
     for i in range(num_examples):
         these_words = example_id_strings[i].split('_')
@@ -1562,12 +1656,18 @@ def parse_example_ids(example_id_strings):
         assert these_words[4].startswith('atmo=')
         standard_atmo_flags[i] = int(these_words[4].replace('atmo=', ''))
 
+        assert these_words[5].startswith('temp-10m-kelvins=')
+        temperatures_10m_kelvins[i] = float(
+            these_words[5].replace('temp-10m-kelvins=', '')
+        )
+
     return {
         LATITUDES_KEY: latitudes_deg_n,
         LONGITUDES_KEY: longitudes_deg_e,
         ZENITH_ANGLES_KEY: zenith_angles_rad,
         VALID_TIMES_KEY: valid_times_unix_sec,
-        STANDARD_ATMO_FLAGS_KEY: standard_atmo_flags
+        STANDARD_ATMO_FLAGS_KEY: standard_atmo_flags,
+        TEMPERATURES_10M_KEY: temperatures_10m_kelvins
     }
 
 
@@ -1639,7 +1739,14 @@ def reduce_sample_size(example_dict, num_examples_to_keep,
 
     if len(all_indices) <= num_examples_to_keep:
         for this_key in ONE_PER_EXAMPLE_KEYS:
-            example_dict[this_key] = example_dict[this_key][all_indices, ...]
+            if isinstance(example_dict[this_key], list):
+                example_dict[this_key] = [
+                    example_dict[this_key][k] for k in all_indices
+                ]
+            else:
+                example_dict[this_key] = (
+                    example_dict[this_key][all_indices, ...]
+                )
 
         return example_dict, all_indices
 
@@ -1661,7 +1768,14 @@ def reduce_sample_size(example_dict, num_examples_to_keep,
             )
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
-        example_dict[this_key] = example_dict[this_key][indices_to_keep, ...]
+        if isinstance(example_dict[this_key], list):
+            example_dict[this_key] = [
+                example_dict[this_key][k] for k in indices_to_keep
+            ]
+        else:
+            example_dict[this_key] = (
+                example_dict[this_key][indices_to_keep, ...]
+            )
 
     return example_dict, indices_to_keep
 
@@ -1687,7 +1801,14 @@ def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
     ))[0]
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
-        example_dict[this_key] = example_dict[this_key][good_indices, ...]
+        if isinstance(example_dict[this_key], list):
+            example_dict[this_key] = [
+                example_dict[this_key][k] for k in good_indices
+            ]
+        else:
+            example_dict[this_key] = (
+                example_dict[this_key][good_indices, ...]
+            )
 
     return example_dict, good_indices
 
@@ -1709,7 +1830,14 @@ def subset_by_standard_atmo(example_dict, standard_atmo_enum):
     )[0]
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
-        example_dict[this_key] = example_dict[this_key][good_indices, ...]
+        if isinstance(example_dict[this_key], list):
+            example_dict[this_key] = [
+                example_dict[this_key][k] for k in good_indices
+            ]
+        else:
+            example_dict[this_key] = (
+                example_dict[this_key][good_indices, ...]
+            )
 
     return example_dict, good_indices
 
@@ -1850,7 +1978,14 @@ def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
     ))[0]
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
-        example_dict[this_key] = example_dict[this_key][good_indices, ...]
+        if isinstance(example_dict[this_key], list):
+            example_dict[this_key] = [
+                example_dict[this_key][k] for k in good_indices
+            ]
+        else:
+            example_dict[this_key] = (
+                example_dict[this_key][good_indices, ...]
+            )
 
     return example_dict, good_indices
 
@@ -1958,7 +2093,14 @@ def subset_by_index(example_dict, desired_indices):
     )
 
     for this_key in ONE_PER_EXAMPLE_KEYS:
-        example_dict[this_key] = example_dict[this_key][desired_indices, ...]
+        if isinstance(example_dict[this_key], list):
+            example_dict[this_key] = [
+                example_dict[this_key][k] for k in desired_indices
+            ]
+        else:
+            example_dict[this_key] = (
+                example_dict[this_key][desired_indices, ...]
+            )
 
     return example_dict
 

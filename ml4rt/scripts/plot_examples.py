@@ -105,18 +105,17 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _plot_one_example(
-        example_dict, example_index, example_id_string, use_log_scale,
-        output_dir_name):
+        example_dict, example_index, use_log_scale, output_dir_name):
     """Plots data for one example.
 
     :param example_dict: See doc for `example_io.read_file`.
     :param example_index: Will plot results for example with this array index.
-    :param example_id_string: Example ID.
     :param use_log_scale: See documentation at top of file.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     """
 
+    example_id_string = example_dict[example_io.EXAMPLE_IDS_KEY][example_index]
     num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
 
     for k in range(num_predictor_sets):
@@ -199,8 +198,6 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_id_file_name=example_id_file_name
     )
 
-    example_id_strings = example_io.create_example_ids(example_dict)
-
     if model_file_name != '':
         model_metafile_name = neural_net.find_metafile(
             os.path.split(model_file_name)[0]
@@ -229,11 +226,11 @@ def _run(example_file_name, num_examples, example_dir_name,
             heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
         )
 
-    num_examples = len(example_id_strings)
+    num_examples = len(example_dict[example_io.VALID_TIMES_KEY])
+
     for i in range(num_examples):
         _plot_one_example(
             example_dict=example_dict, example_index=i,
-            example_id_string=example_id_strings[i],
             use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
 

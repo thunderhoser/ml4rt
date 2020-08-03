@@ -18,10 +18,10 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-PLATEAU_PATIENCE_EPOCHS = 3
+PLATEAU_PATIENCE_EPOCHS = 10
 PLATEAU_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
-EARLY_STOPPING_PATIENCE_EPOCHS = 15
+EARLY_STOPPING_PATIENCE_EPOCHS = 20
 LOSS_PATIENCE = 0.
 
 CNN_TYPE_STRING = 'cnn'
@@ -194,21 +194,15 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 
 
 def _read_file_for_generator(
-        example_file_name, num_examples_to_keep, for_inference,
-        first_time_unix_sec, last_time_unix_sec, field_names, heights_m_agl,
-        min_column_lwp_kg_m02, max_column_lwp_kg_m02, training_example_dict,
-        predictor_norm_type_string, predictor_min_norm_value,
-        predictor_max_norm_value, target_norm_type_string,
-        target_min_norm_value, target_max_norm_value,
-        first_example_to_read=None):
+        example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
+        heights_m_agl, min_column_lwp_kg_m02, max_column_lwp_kg_m02,
+        training_example_dict, predictor_norm_type_string,
+        predictor_min_norm_value, predictor_max_norm_value,
+        target_norm_type_string, target_min_norm_value, target_max_norm_value):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
         `example_io.read_file`).
-    :param num_examples_to_keep: Number of examples to keep.
-    :param for_inference: Boolean flag.  If True, data are being used for
-        inference stage (applying trained model to new data).  If False, data
-        are being used for training or monitoring (on-the-fly validation).
     :param first_time_unix_sec: See doc for `data_generator`.
     :param last_time_unix_sec: Same.
     :param field_names: 1-D list of fields to keep.
@@ -225,43 +219,22 @@ def _read_file_for_generator(
     :param target_norm_type_string: Same.
     :param target_min_norm_value: Same.
     :param target_max_norm_value: Same.
-    :param first_example_to_read: Array index (in file) of first example to
-        read.  If None, this method will return N random examples.
     :return: example_dict: See doc for `example_io.read_file`.
-    :return: example_id_strings: 1-D list of IDs created by
-        `example_io.create_example_ids`.  If `for_inference == False`, this is
-        None.
-    :return: last_example_read: Array index (in file) of last example returned.
     """
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
 
-    example_dict, example_indices_in_file = example_io.reduce_sample_size(
-        example_dict=example_dict,
-        num_examples_to_keep=len(example_dict[example_io.VALID_TIMES_KEY]),
-        first_example_to_keep=first_example_to_read
-    )
-
-    example_dict, these_subindices = example_io.subset_by_time(
+    example_dict = example_io.subset_by_time(
         example_dict=example_dict,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec
-    )
-    example_indices_in_file = example_indices_in_file[these_subindices]
+    )[0]
 
-    example_dict, these_subindices = example_io.subset_by_column_lwp(
+    example_dict = example_io.subset_by_column_lwp(
         example_dict=example_dict, min_lwp_kg_m02=min_column_lwp_kg_m02,
         max_lwp_kg_m02=max_column_lwp_kg_m02
-    )
-    example_indices_in_file = example_indices_in_file[these_subindices]
-
-    example_dict, these_subindices = example_io.reduce_sample_size(
-        example_dict=example_dict,
-        num_examples_to_keep=num_examples_to_keep,
-        first_example_to_keep=0
-    )
-    example_indices_in_file = example_indices_in_file[these_subindices]
+    )[0]
 
     example_dict = example_io.subset_by_field(
         example_dict=example_dict, field_names=field_names
@@ -269,24 +242,6 @@ def _read_file_for_generator(
     example_dict = example_io.subset_by_height(
         example_dict=example_dict, heights_m_agl=heights_m_agl
     )
-
-    # TODO(thunderhoser): Remove print statements.
-    # print(example_dict[example_io.HEIGHTS_KEY])
-    # print(example_file_name)
-    # down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
-    #     example_dict=example_dict,
-    #     field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
-    # )
-    # print('Down fluxes: {0:s}'.format(
-    #     str(down_flux_inc_matrix_w_m03[:5, :5])
-    # ))
-    # print(down_flux_inc_matrix_w_m03.shape)
-    # print('\n\n\n')
-
-    if for_inference:
-        example_id_strings = example_io.create_example_ids(example_dict)
-    else:
-        example_id_strings = None
 
     if predictor_norm_type_string is not None:
         print('Applying {0:s} normalization to predictors...'.format(
@@ -316,22 +271,18 @@ def _read_file_for_generator(
             apply_to_predictors=False, apply_to_targets=True
         )
 
-    last_example_index = (
-        -1 if len(example_indices_in_file) == 0
-        else example_indices_in_file[-1]
-    )
-
-    return example_dict, example_id_strings, last_example_index
+    return example_dict
 
 
 def _read_specific_examples(
-        example_file_name, example_id_strings, field_names, heights_m_agl,
+        example_file_names, example_id_strings, field_names, heights_m_agl,
         training_example_dict, predictor_norm_type_string,
         predictor_min_norm_value, predictor_max_norm_value,
         target_norm_type_string, target_min_norm_value, target_max_norm_value):
     """Reads specific examples for generator.
 
-    :param example_file_name: See doc for `_read_file_for_generator`.
+    :param example_file_names: 1-D list of paths to input files (will be read by
+        `example_io.read_file`).
     :param example_id_strings: Same.
     :param field_names: Same.
     :param heights_m_agl: Same.
@@ -345,23 +296,53 @@ def _read_specific_examples(
     :return: example_dict: Same.
     """
 
-    print('\nReading data from: "{0:s}"...'.format(example_file_name))
-    example_dict = example_io.read_file(example_file_name)
+    file_years = numpy.array(
+        [example_io.file_name_to_year(f) for f in example_file_names], dtype=int
+    )
+    example_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
+        example_io.VALID_TIMES_KEY
+    ]
+    example_years = numpy.array([
+        int(time_conversion.unix_sec_to_string(t, '%Y'))
+        for t in example_times_unix_sec
+    ], dtype=int)
 
-    example_dict = example_io.subset_by_field(
-        example_dict=example_dict, field_names=field_names
-    )
-    example_dict = example_io.subset_by_height(
-        example_dict=example_dict, heights_m_agl=heights_m_agl
-    )
+    unique_example_years = numpy.unique(example_years)
+    example_dicts = []
 
-    good_indices = example_io.find_examples(
-        all_id_strings=example_io.create_example_ids(example_dict),
-        desired_id_strings=example_id_strings
-    )
-    example_dict = example_io.subset_by_index(
-        example_dict=example_dict, desired_indices=good_indices
-    )
+    for this_year in unique_example_years:
+        these_indices = numpy.where(example_years == this_year)[0]
+        these_example_id_strings = [
+            example_id_strings[k] for k in these_indices
+        ]
+        this_file_index = numpy.where(file_years == this_year)[0][0]
+
+        print('\nReading data from: "{0:s}"...'.format(
+            example_file_names[this_file_index]
+        ))
+        this_example_dict = example_io.read_file(
+            example_file_names[this_file_index]
+        )
+
+        these_indices = example_io.find_examples(
+            all_id_strings=this_example_dict[example_io.EXAMPLE_IDS_KEY],
+            desired_id_strings=these_example_id_strings,
+            allow_missing=False
+        )
+        this_example_dict = example_io.subset_by_index(
+            example_dict=this_example_dict, desired_indices=these_indices
+        )
+
+        this_example_dict = example_io.subset_by_field(
+            example_dict=this_example_dict, field_names=field_names
+        )
+        this_example_dict = example_io.subset_by_height(
+            example_dict=this_example_dict, heights_m_agl=heights_m_agl
+        )
+
+        example_dicts.append(this_example_dict)
+
+    example_dict = example_io.concat_examples(example_dicts)
 
     if predictor_norm_type_string is not None:
         print('Applying {0:s} normalization to predictors...'.format(
@@ -1147,15 +1128,31 @@ def data_generator(option_dict, for_inference, net_type_string,
         raise_error_if_any_missing=False
     )
 
-    file_index = 0
+    all_desired_id_strings = []
 
-    if for_inference:
-        example_index = 0
-    else:
-        example_index = None
+    for this_file_name in example_file_names:
+        this_example_dict = _read_file_for_generator(
+            example_file_name=this_file_name,
+            first_time_unix_sec=first_time_unix_sec,
+            last_time_unix_sec=last_time_unix_sec,
+            field_names=all_field_names, heights_m_agl=heights_m_agl,
+            min_column_lwp_kg_m02=min_column_lwp_kg_m02,
+            max_column_lwp_kg_m02=max_column_lwp_kg_m02,
+            training_example_dict=training_example_dict,
+            predictor_norm_type_string=predictor_norm_type_string,
+            predictor_min_norm_value=predictor_min_norm_value,
+            predictor_max_norm_value=predictor_max_norm_value,
+            target_norm_type_string=target_norm_type_string,
+            target_min_norm_value=target_min_norm_value,
+            target_max_norm_value=target_max_norm_value
+        )[0]
+
+        all_desired_id_strings += this_example_dict[example_io.EXAMPLE_IDS_KEY]
+
+    example_index = 0
 
     while True:
-        if for_inference and file_index >= len(example_file_names):
+        if for_inference and example_index >= len(all_desired_id_strings):
             raise StopIteration
 
         num_examples_in_memory = 0
@@ -1166,51 +1163,36 @@ def data_generator(option_dict, for_inference, net_type_string,
         example_id_strings = []
 
         while num_examples_in_memory < num_examples_per_batch:
-            if file_index == len(example_file_names):
+            if example_index == len(all_desired_id_strings):
                 if for_inference:
                     if predictor_matrix is None:
                         raise StopIteration
 
                     break
 
-                file_index = 0
+                example_index = 0
 
-            (
-                this_example_dict, these_id_strings, last_example_index
-            ) = _read_file_for_generator(
-                example_file_name=example_file_names[file_index],
-                num_examples_to_keep=
-                num_examples_per_batch - num_examples_in_memory,
-                for_inference=for_inference,
-                first_time_unix_sec=first_time_unix_sec,
-                last_time_unix_sec=last_time_unix_sec,
+            num_examples_to_read = (
+                num_examples_per_batch - num_examples_in_memory
+            )
+
+            this_example_dict = _read_specific_examples(
+                example_file_names=example_file_names,
+                example_id_strings=
+                all_desired_id_strings[example_index:][:num_examples_to_read],
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
-                min_column_lwp_kg_m02=min_column_lwp_kg_m02,
-                max_column_lwp_kg_m02=max_column_lwp_kg_m02,
                 training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,
                 target_norm_type_string=target_norm_type_string,
                 target_min_norm_value=target_min_norm_value,
-                target_max_norm_value=target_max_norm_value,
-                first_example_to_read=example_index
+                target_max_norm_value=target_max_norm_value
             )
 
-            if for_inference:
-                this_num_examples = len(
-                    this_example_dict[example_io.VALID_TIMES_KEY]
-                )
-
-                if this_num_examples == 0:
-                    file_index += 1
-                    example_index = 0
-                else:
-                    example_index = last_example_index + 1
-
-                example_id_strings += these_id_strings
-            else:
-                file_index += 1
+            these_id_strings = this_example_dict[example_io.EXAMPLE_IDS_KEY]
+            example_id_strings += these_id_strings
+            example_index += len(these_id_strings)
 
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string
@@ -1301,10 +1283,6 @@ def data_generator_specific_examples(option_dict, net_type_string,
     example_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
         example_io.VALID_TIMES_KEY
     ]
-    example_years = numpy.array([
-        int(time_conversion.unix_sec_to_string(t, '%Y'))
-        for t in example_times_unix_sec
-    ], dtype=int)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -1344,12 +1322,10 @@ def data_generator_specific_examples(option_dict, net_type_string,
         raise_error_if_any_missing=False
     )
 
-    file_index = 0
-    num_examples = len(example_id_strings)
-    example_done_flags = numpy.full(num_examples, False, dtype=bool)
+    example_index = 0
 
     while True:
-        if numpy.all(example_done_flags):
+        if example_index >= len(example_id_strings):
             raise StopIteration
 
         num_examples_in_memory = 0
@@ -1359,35 +1335,20 @@ def data_generator_specific_examples(option_dict, net_type_string,
         scalar_target_matrix = None
 
         while num_examples_in_memory < num_examples_per_batch:
-            if file_index == len(example_file_names):
+            if example_index >= len(example_id_strings):
                 if predictor_matrix is None:
                     raise StopIteration
 
                 break
 
-            file_year = (
-                example_io.file_name_to_year(example_file_names[file_index])
+            num_examples_to_read = (
+                num_examples_per_batch - num_examples_in_memory
             )
-            these_example_indices = numpy.where(numpy.logical_and(
-                example_done_flags == False, example_years == file_year
-            ))[0]
-
-            these_example_indices = these_example_indices[
-                :(num_examples_per_batch - num_examples_in_memory)
-            ]
-
-            if len(these_example_indices) == 0:
-                file_index += 1
-                continue
-
-            example_done_flags[these_example_indices] = True
-            these_id_strings = [
-                example_id_strings[k] for k in these_example_indices
-            ]
 
             this_example_dict = _read_specific_examples(
-                example_file_name=example_file_names[file_index],
-                example_id_strings=these_id_strings,
+                example_file_names=example_file_names,
+                example_id_strings=
+                example_id_strings[example_index:][:num_examples_to_read],
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
                 training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
@@ -1397,6 +1358,8 @@ def data_generator_specific_examples(option_dict, net_type_string,
                 target_min_norm_value=target_min_norm_value,
                 target_max_norm_value=target_max_norm_value
             )
+
+            example_index += len(this_example_dict[example_io.EXAMPLE_IDS_KEY])
 
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string

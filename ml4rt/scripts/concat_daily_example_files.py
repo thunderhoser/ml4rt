@@ -3,7 +3,6 @@
 import os.path
 import argparse
 import numpy
-from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
@@ -146,44 +145,13 @@ def _remove_duplicate_examples(example_dict):
     :return: example_dict: Same but maybe with fewer examples.
     """
 
-    latitudes_deg_n = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.LATITUDE_NAME
-    )
-    longitudes_deg_e = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.LONGITUDE_NAME
-    )
-    valid_times_unix_sec = example_dict[example_io.VALID_TIMES_KEY]
-
-    latitudes_deg_n = number_rounding.round_to_nearest(
-        latitudes_deg_n, LATLNG_TOLERANCE_DEG
-    )
-    longitudes_deg_e = number_rounding.round_to_nearest(
-        longitudes_deg_e, LATLNG_TOLERANCE_DEG
-    )
-    coord_matrix = numpy.transpose(numpy.vstack((
-        latitudes_deg_n, longitudes_deg_e, valid_times_unix_sec
-    )))
-
-    # _, orig_to_unique_indices, unique_counts = numpy.unique(
-    #     coord_matrix, axis=0, return_counts=True, return_inverse=True
-    # )
-    #
-    # these_indices = numpy.where(
-    #     orig_to_unique_indices == numpy.argmax(unique_counts)
-    # )[0]
-    # print(coord_matrix[these_indices, :])
-    #
-    # heating_rates_k_day01 = example_io.get_field_from_dict(
-    #     example_dict=example_dict,
-    #     field_name=example_io.SHORTWAVE_HEATING_RATE_NAME, height_m_agl=10
-    # )[these_indices]
-    #
-    # print(heating_rates_k_day01)
-
-    unique_indices = numpy.unique(coord_matrix, axis=0, return_index=True)[1]
+    example_id_strings = example_dict[example_io.EXAMPLE_IDS_KEY]
+    unique_indices = numpy.unique(
+        numpy.array(example_id_strings), return_index=True
+    )[1]
 
     print('{0:d} of {1:d} examples are unique!'.format(
-        len(unique_indices), coord_matrix.shape[0]
+        len(unique_indices), len(example_id_strings)
     ))
 
     return example_io.subset_by_index(
@@ -220,9 +188,9 @@ def _run(input_daily_example_dir_name, input_yearly_example_dir_name,
         )
         print('\n')
 
-        # this_concat_example_dict = (
-        #     _remove_duplicate_examples(this_concat_example_dict)
-        # )
+        this_concat_example_dict = (
+            _remove_duplicate_examples(this_concat_example_dict)
+        )
         this_concat_file_name = example_io.find_file(
             example_dir_name=output_yearly_example_dir_name, year=this_year,
             raise_error_if_missing=False

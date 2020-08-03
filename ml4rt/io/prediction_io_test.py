@@ -67,7 +67,7 @@ VECTOR_PREDICTION_MATRIX = numpy.stack(
     (VECTOR_PREDICTION_MATRIX_FIELD1, VECTOR_PREDICTION_MATRIX_FIELD2), axis=-1
 )
 
-DUMMY_PREDICTOR_MATRIX = numpy.array([
+DUMMY_SCALAR_PREDICTOR_MATRIX = numpy.array([
     [0, 1, 0.5],
     [2, 3, 0.6],
     [4, 5, 0.7],
@@ -81,12 +81,23 @@ DUMMY_STANDARD_ATMO_ENUMS = numpy.array([
     example_io.SUBARCTIC_SUMMER_ENUM
 ])
 
+DUMMY_VECTOR_PREDICTOR_MATRIX = numpy.array([0, 1, 2, 3, 4], dtype=float)
+DUMMY_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    DUMMY_VECTOR_PREDICTOR_MATRIX, axis=-1
+)
+DUMMY_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    DUMMY_VECTOR_PREDICTOR_MATRIX, axis=-1
+)
+
 DUMMY_EXAMPLE_DICT = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: [
         example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
         example_io.ZENITH_ANGLE_NAME
     ],
-    example_io.SCALAR_PREDICTOR_VALS_KEY: DUMMY_PREDICTOR_MATRIX,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: DUMMY_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.TEMPERATURE_NAME],
+    example_io.VECTOR_PREDICTOR_VALS_KEY: DUMMY_VECTOR_PREDICTOR_MATRIX,
+    example_io.HEIGHTS_KEY: numpy.array([10.]),
     example_io.VALID_TIMES_KEY:
         numpy.array([1e9, 1.1e9, 1.2e9, 1.3e9, 1.4e9], dtype=int),
     example_io.STANDARD_ATMO_FLAGS_KEY: DUMMY_STANDARD_ATMO_ENUMS

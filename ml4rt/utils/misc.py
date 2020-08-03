@@ -272,11 +272,11 @@ def get_raw_examples(
 
         example_dict = example_io.concat_examples(example_dicts)
 
-        all_id_strings = example_io.create_example_ids(example_dict)
         good_indices = example_io.find_examples(
-            all_id_strings=all_id_strings,
+            all_id_strings=example_dict[example_io.EXAMPLE_IDS_KEY],
             desired_id_strings=example_id_strings, allow_missing=False
         )
+
         example_dict = example_io.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )

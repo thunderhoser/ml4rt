@@ -406,6 +406,7 @@ EXAMPLE_FILE_NAMES = [
 # The following constants are used to test concat_examples.
 FIRST_TIMES_UNIX_SEC = numpy.array([0, 300, 600, 1200], dtype=int)
 FIRST_STANDARD_ATMO_FLAGS = numpy.array([0, 1, 2, 3], dtype=int)
+FIRST_EXAMPLE_ID_STRINGS = ['foo', 'bar', 'moo', 'hal']
 
 SCALAR_PREDICTOR_NAMES = [
     example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME
@@ -473,8 +474,11 @@ FIRST_EXAMPLE_DICT = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX,
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
+    example_io.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
 }
+
+SECOND_EXAMPLE_ID_STRINGS = ['FOO', 'BAR', 'MOO', 'HAL']
 
 SECOND_EXAMPLE_DICT = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -487,7 +491,8 @@ SECOND_EXAMPLE_DICT = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX * 5,
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC * 6,
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS + 1
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS + 1,
+    example_io.EXAMPLE_IDS_KEY: SECOND_EXAMPLE_ID_STRINGS
 }
 
 CONCAT_EXAMPLE_DICT = {
@@ -519,7 +524,9 @@ CONCAT_EXAMPLE_DICT = {
     example_io.STANDARD_ATMO_FLAGS_KEY: numpy.concatenate(
         (FIRST_STANDARD_ATMO_FLAGS, FIRST_STANDARD_ATMO_FLAGS + 1),
         axis=0
-    )
+    ),
+    example_io.EXAMPLE_IDS_KEY:
+        FIRST_EXAMPLE_ID_STRINGS + SECOND_EXAMPLE_ID_STRINGS
 }
 
 # The following constants are used to test reduce_sample_size.
@@ -540,7 +547,8 @@ FIRST_EXAMPLE_DICT_MEDIUM = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[1:3, ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...]
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...],
+    example_io.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS[1:3]
 }
 
 NUM_EXAMPLES_SMALL = 2
@@ -560,7 +568,8 @@ FIRST_EXAMPLE_DICT_SMALL = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[3], ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[3], ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[3], ...]
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[3], ...],
+    example_io.EXAMPLE_IDS_KEY: [FIRST_EXAMPLE_ID_STRINGS[3]]
 }
 
 NUM_EXAMPLES_EMPTY = 2
@@ -580,7 +589,8 @@ FIRST_EXAMPLE_DICT_EMPTY = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[], ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[], ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[], ...]
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[], ...],
+    example_io.EXAMPLE_IDS_KEY: []
 }
 
 # The following constants are used to test subset_by_time.
@@ -601,7 +611,8 @@ FIRST_EXAMPLE_DICT_SELECT_TIMES = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[1:3, ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...]
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...],
+    example_io.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS[1:3]
 }
 
 # The following constants are used to test subset_by_standard_atmo.
@@ -621,7 +632,8 @@ FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[2], ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2], ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2], ...]
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2], ...],
+    example_io.EXAMPLE_IDS_KEY: [FIRST_EXAMPLE_ID_STRINGS[2]]
 }
 
 # The following constants are used to test subset_by_field.
@@ -643,7 +655,8 @@ FIRST_EXAMPLE_DICT_SELECT_FIELDS = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[..., ::-1],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
+    example_io.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
 }
 
 # The following constants are used to test subset_by_height.
@@ -661,7 +674,8 @@ FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[:, ::-1, :],
     example_io.HEIGHTS_KEY: HEIGHTS_TO_KEEP_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
+    example_io.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
 }
 
 # The following constants are used to test find_examples.
@@ -686,7 +700,9 @@ FIRST_EXAMPLE_DICT_SELECT_INDICES = {
     example_io.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[2, 1], ...],
     example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_io.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2, 1], ...],
-    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2, 1], ...]
+    example_io.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2, 1], ...],
+    example_io.EXAMPLE_IDS_KEY:
+        [FIRST_EXAMPLE_ID_STRINGS[2], FIRST_EXAMPLE_ID_STRINGS[1]]
 }
 
 # The following constants are used to test average_examples.
@@ -718,6 +734,7 @@ FIRST_EXAMPLE_DICT_AVERAGE = {
 LATITUDES_FOR_IDS_DEG_N = numpy.array([40, 40.04, 53.5, 40.0381113])
 LONGITUDES_FOR_IDS_DEG_E = numpy.array([255, 254.74, 246.5, 254.7440276])
 ZENITH_ANGLES_FOR_IDS_RAD = numpy.array([0.5, 0.666, 0.7777777, 1])
+TEMPERATURES_FOR_IDS_KELVINS = numpy.array([230, 240, 250, 260], dtype=float)
 
 TIMES_FOR_IDS_UNIX_SEC = numpy.array([
     0, int(1e7), int(1e8), int(1e9)
@@ -728,35 +745,45 @@ STANDARD_ATMO_FLAGS_FOR_IDS = numpy.array([
     example_io.SUBARCTIC_WINTER_ENUM, example_io.MIDLATITUDE_WINTER_ENUM
 ], dtype=int)
 
-THIS_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack((
+THIS_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack((
     LATITUDES_FOR_IDS_DEG_N, LONGITUDES_FOR_IDS_DEG_E, ZENITH_ANGLES_FOR_IDS_RAD
 )))
+
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    TEMPERATURES_FOR_IDS_KELVINS, axis=-1
+)
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
+    THIS_VECTOR_PREDICTOR_MATRIX, axis=-1
+)
 
 EXAMPLE_DICT_FOR_IDS = {
     example_io.SCALAR_PREDICTOR_NAMES_KEY: [
         example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
         example_io.ZENITH_ANGLE_NAME
     ],
-    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
+    example_io.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
+    example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.TEMPERATURE_NAME],
+    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_io.HEIGHTS_KEY: numpy.array([10.]),
     example_io.VALID_TIMES_KEY: TIMES_FOR_IDS_UNIX_SEC,
     example_io.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS_FOR_IDS
 }
 
 EXAMPLE_ID_STRINGS = [
     'lat=40.000000_long=255.000000_zenith-angle-rad=0.500000_'
-    'time=0000000000_atmo={0:d}'.format(
+    'time=0000000000_atmo={0:d}_temp-10m-kelvins=230.000000'.format(
         example_io.MIDLATITUDE_WINTER_ENUM
     ),
     'lat=40.040000_long=254.740000_zenith-angle-rad=0.666000_'
-    'time=0010000000_atmo={0:d}'.format(
+    'time=0010000000_atmo={0:d}_temp-10m-kelvins=240.000000'.format(
         example_io.MIDLATITUDE_WINTER_ENUM
     ),
     'lat=53.500000_long=246.500000_zenith-angle-rad=0.777778_'
-    'time=0100000000_atmo={0:d}'.format(
+    'time=0100000000_atmo={0:d}_temp-10m-kelvins=250.000000'.format(
         example_io.SUBARCTIC_WINTER_ENUM
     ),
     'lat=40.038111_long=254.744028_zenith-angle-rad=1.000000_'
-    'time=1000000000_atmo={0:d}'.format(
+    'time=1000000000_atmo={0:d}_temp-10m-kelvins=260.000000'.format(
         example_io.MIDLATITUDE_WINTER_ENUM
     )
 ]
@@ -925,7 +952,8 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
     keys_to_compare = [
         example_io.SCALAR_PREDICTOR_NAMES_KEY,
         example_io.VECTOR_PREDICTOR_NAMES_KEY,
-        example_io.SCALAR_TARGET_NAMES_KEY, example_io.VECTOR_TARGET_NAMES_KEY
+        example_io.SCALAR_TARGET_NAMES_KEY, example_io.VECTOR_TARGET_NAMES_KEY,
+        example_io.EXAMPLE_IDS_KEY
     ]
 
     for this_key in keys_to_compare:
@@ -1516,6 +1544,9 @@ class ExampleIoTests(unittest.TestCase):
         these_standard_atmo_flags = (
             metadata_dict[example_io.STANDARD_ATMO_FLAGS_KEY]
         )
+        these_10m_temps_kelvins = (
+            metadata_dict[example_io.TEMPERATURES_10M_KEY]
+        )
 
         self.assertTrue(numpy.allclose(
             these_latitudes_deg_n, LATITUDES_FOR_IDS_DEG_N, atol=TOLERANCE
@@ -1531,6 +1562,10 @@ class ExampleIoTests(unittest.TestCase):
         ))
         self.assertTrue(numpy.array_equal(
             these_standard_atmo_flags, STANDARD_ATMO_FLAGS_FOR_IDS
+        ))
+        self.assertTrue(numpy.allclose(
+            these_10m_temps_kelvins, TEMPERATURES_FOR_IDS_KELVINS,
+            atol=TOLERANCE
         ))
 
     def test_create_fake_heights(self):
