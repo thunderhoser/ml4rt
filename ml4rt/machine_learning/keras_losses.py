@@ -53,6 +53,30 @@ def dual_weighted_mse():
     return loss
 
 
+def dual_sqrt_weighted_mse():
+    """Same as dual-weighted MSE, except that the weight is a square root.
+
+    Weight = sqrt(max(magnitude of target value, magnitude of predicted value))
+
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (dual-sqrt-weighted MSE).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Dual-sqrt-weighted MSE.
+        """
+
+        return K.mean(
+            K.sqrt(K.maximum(target_tensor, prediction_tensor)) *
+            (prediction_tensor - target_tensor) ** 2
+        )
+
+    return loss
+
+
 def dual_weighted_mse_equalize_heights(num_examples_per_batch, num_channels):
     """Dual-weighted MSE with equalized heights.
 
