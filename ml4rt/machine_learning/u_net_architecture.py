@@ -156,7 +156,7 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
     return zeroing_function
 
 
-def create_model(option_dict, loss_function):
+def create_model(option_dict, loss_function, num_output_channels=1):
     """Creates U-net.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -192,6 +192,7 @@ def create_model(option_dict, loss_function):
         Used only if `zero_out_top_heating_rate = True`.
 
     :param loss_function: Function handle.
+    :param num_output_channels: Number of output channels.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
@@ -199,6 +200,8 @@ def create_model(option_dict, loss_function):
     # TODO(thunderhoser): Generalize this method a bit.
 
     option_dict = _check_architecture_args(option_dict)
+    error_checking.assert_is_integer(num_output_channels)
+    error_checking.assert_is_greater(num_output_channels, 0)
 
     num_heights = option_dict[NUM_HEIGHTS_KEY]
     num_heights_for_loss = option_dict[NUM_HEIGHTS_FOR_LOSS_KEY]
@@ -524,7 +527,7 @@ def create_model(option_dict, loss_function):
 
         second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=2 if i == 2 else 64,
+            num_filters=num_output_channels if i == 2 else 64,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object
         )(this_input_layer_object)
@@ -543,7 +546,8 @@ def create_model(option_dict, loss_function):
             )
 
     second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
-        num_kernel_rows=1, num_rows_per_stride=1, num_filters=1,
+        num_kernel_rows=1, num_rows_per_stride=1,
+        num_filters=num_output_channels,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object
     )(second_conv_layer1_object)
