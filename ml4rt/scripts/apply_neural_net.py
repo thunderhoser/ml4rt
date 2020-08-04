@@ -88,13 +88,12 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
         example_utils.PRESSURE_NAME
     ]
     generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = NUM_EXAMPLES_PER_BATCH
 
-    generator = neural_net.data_generator_specific_examples(
+    predictor_matrix = neural_net.create_data_specific_examples(
         option_dict=generator_option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
         example_id_strings=example_id_strings
-    )
+    )[0]
 
     dummy_example_dict = {
         example_utils.SCALAR_PREDICTOR_NAMES_KEY:
@@ -104,31 +103,13 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
         example_utils.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
-    pressure_matrix_pascals = None
+    example_dict = neural_net.predictors_numpy_to_dict(
+        predictor_matrix=predictor_matrix,
+        example_dict=dummy_example_dict,
+        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+    )
 
-    while True:
-        try:
-            this_predictor_matrix = next(generator)[0]
-        except (RuntimeError, StopIteration):
-            break
-
-        this_example_dict = neural_net.predictors_numpy_to_dict(
-            predictor_matrix=this_predictor_matrix,
-            example_dict=dummy_example_dict,
-            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
-        )
-        this_pressure_matrix_pascals = (
-            this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., 0]
-        )
-
-        if pressure_matrix_pascals is None:
-            pressure_matrix_pascals = this_pressure_matrix_pascals + 0.
-        else:
-            pressure_matrix_pascals = numpy.concatenate(
-                (pressure_matrix_pascals, this_pressure_matrix_pascals), axis=0
-            )
-
-    return pressure_matrix_pascals
+    return example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., 0]
 
 
 def _get_predicted_heating_rates(
@@ -279,7 +260,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = NUM_EXAMPLES_PER_BATCH
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
@@ -289,81 +269,38 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
-    generator = neural_net.data_generator(
+    predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict, for_inference=True,
         net_type_string=net_type_string, is_loss_constrained_mse=False
     )
     print(SEPARATOR_STRING)
 
+    prediction_array = neural_net.apply_model(
+        model_object=model_object, predictor_matrix=predictor_matrix,
+        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+        net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse, verbose=True
+    )
+
     scalar_target_matrix = None
     scalar_prediction_matrix = None
     vector_target_matrix = None
     vector_prediction_matrix = None
-    example_id_strings = []
 
-    while True:
-        this_scalar_target_matrix = None
-        this_scalar_prediction_matrix = None
-        this_vector_target_matrix = None
-        this_vector_prediction_matrix = None
+    if net_type_string == neural_net.CNN_TYPE_STRING:
+        vector_target_matrix = target_array[0]
+        vector_prediction_matrix = prediction_array[0]
 
-        try:
-            this_predictor_matrix, this_target_array, these_id_strings = (
-                next(generator)
-            )
-        except (RuntimeError, StopIteration):
-            break
+        if len(target_array) == 2:
+            scalar_target_matrix = target_array[1]
+            scalar_prediction_matrix = prediction_array[1]
 
-        this_prediction_array = neural_net.apply_model(
-            model_object=model_object, predictor_matrix=this_predictor_matrix,
-            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-            net_type_string=net_type_string,
-            is_loss_constrained_mse=is_loss_constrained_mse, verbose=True
-        )
-        print(SEPARATOR_STRING)
-
-        example_id_strings += these_id_strings
-
-        if net_type_string == neural_net.CNN_TYPE_STRING:
-            this_vector_target_matrix = this_target_array[0]
-            this_vector_prediction_matrix = this_prediction_array[0]
-
-            if len(this_target_array) == 2:
-                this_scalar_target_matrix = this_target_array[1]
-                this_scalar_prediction_matrix = this_prediction_array[1]
-
-        elif net_type_string == neural_net.DENSE_NET_TYPE_STRING:
-            this_scalar_target_matrix = this_target_array
-            this_scalar_prediction_matrix = this_prediction_array[0]
-        else:
-            this_vector_target_matrix = this_target_array
-            this_vector_prediction_matrix = this_prediction_array[0]
-
-        if this_scalar_target_matrix is not None:
-            if scalar_target_matrix is None:
-                scalar_target_matrix = this_scalar_target_matrix + 0.
-                scalar_prediction_matrix = this_scalar_prediction_matrix + 0.
-            else:
-                scalar_target_matrix = numpy.concatenate(
-                    (scalar_target_matrix, this_scalar_target_matrix), axis=0
-                )
-                scalar_prediction_matrix = numpy.concatenate(
-                    (scalar_prediction_matrix, this_scalar_prediction_matrix),
-                    axis=0
-                )
-
-        if this_vector_target_matrix is not None:
-            if vector_target_matrix is None:
-                vector_target_matrix = this_vector_target_matrix + 0.
-                vector_prediction_matrix = this_vector_prediction_matrix + 0.
-            else:
-                vector_target_matrix = numpy.concatenate(
-                    (vector_target_matrix, this_vector_target_matrix), axis=0
-                )
-                vector_prediction_matrix = numpy.concatenate(
-                    (vector_prediction_matrix, this_vector_prediction_matrix),
-                    axis=0
-                )
+    elif net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+        scalar_target_matrix = target_array
+        scalar_prediction_matrix = prediction_array[0]
+    else:
+        vector_target_matrix = target_array
+        vector_prediction_matrix = prediction_array[0]
 
     target_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_target_matrix,

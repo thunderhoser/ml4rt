@@ -1004,140 +1004,9 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
     return numpy.array([height_indices[0], field_indices[0]], dtype=int)
 
 
-def create_data(option_dict, for_inference, net_type_string,
-                is_loss_constrained_mse=None):
-    """Creates data for any kind of neural net.
-
-    This method is the same as `data_generator`, except that it returns all the
-    data at once, rather than generating batches on the fly.
-
-    :param option_dict: See doc for `data_generator`.
-    :param for_inference: Same.
-    :param net_type_string: Same.
-    :param is_loss_constrained_mse: Same.
-    :return: predictor_matrix: Same.
-    :return: target_array: Same.
-    :return: example_id_strings: Same.
-    """
-
-    option_dict = _check_generator_args(option_dict)
-    check_net_type(net_type_string)
-
-    if net_type_string != CNN_TYPE_STRING:
-        is_loss_constrained_mse = False
-
-    error_checking.assert_is_boolean(is_loss_constrained_mse)
-
-    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
-    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
-    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
-    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = option_dict[HEIGHTS_KEY]
-    first_time_unix_sec = option_dict[FIRST_TIME_KEY]
-    last_time_unix_sec = option_dict[LAST_TIME_KEY]
-    min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
-    max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
-    omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
-
-    all_field_names = (
-        scalar_predictor_names + vector_predictor_names +
-        scalar_target_names + vector_target_names
-    )
-    if omit_heating_rate:
-        all_field_names = [
-            f for f in all_field_names
-            if f != example_utils.SHORTWAVE_HEATING_RATE_NAME
-        ]
-
-    normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
-    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
-    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
-    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
-    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
-    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
-
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
-    )
-
-    example_file_names = example_io.find_many_files(
-        directory_name=example_dir_name,
-        first_time_unix_sec=first_time_unix_sec,
-        last_time_unix_sec=last_time_unix_sec,
-        raise_error_if_any_missing=False
-    )
-
-    example_dicts = []
-
-    for this_file_name in example_file_names:
-        this_example_dict = _read_file_for_generator(
-            example_file_name=this_file_name,
-            first_time_unix_sec=first_time_unix_sec,
-            last_time_unix_sec=last_time_unix_sec,
-            field_names=all_field_names, heights_m_agl=heights_m_agl,
-            min_column_lwp_kg_m02=min_column_lwp_kg_m02,
-            max_column_lwp_kg_m02=max_column_lwp_kg_m02,
-            training_example_dict=training_example_dict,
-            predictor_norm_type_string=predictor_norm_type_string,
-            predictor_min_norm_value=predictor_min_norm_value,
-            predictor_max_norm_value=predictor_max_norm_value,
-            target_norm_type_string=target_norm_type_string,
-            target_min_norm_value=target_min_norm_value,
-            target_max_norm_value=target_max_norm_value
-        )
-
-        example_dicts.append(this_example_dict)
-
-    example_dict = example_utils.concat_examples(example_dicts)
-
-    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
-    desired_indices = numpy.linspace(
-        0, num_examples - 1, num=num_examples, dtype=int
-    )
-    numpy.random.shuffle(desired_indices)
-
-    example_dict = example_utils.subset_by_index(
-        example_dict=example_dict, desired_indices=desired_indices
-    )
-
-    predictor_matrix = predictors_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string
-    )[0]
-    predictor_matrix = predictor_matrix.astype('float32')
-
-    prelim_target_list = targets_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse
-    )
-
-    if net_type_string == CNN_TYPE_STRING:
-        vector_target_matrix = prelim_target_list[0]
-        target_array = [vector_target_matrix.astype('float32')]
-
-        if len(prelim_target_list) > 1:
-            scalar_target_matrix = prelim_target_list[1]
-            target_array.append(scalar_target_matrix.astype('float32'))
-    else:
-        target_array = prelim_target_list[0].astype('float32')
-
-    return (
-        predictor_matrix,
-        target_array,
-        example_dict[example_utils.EXAMPLE_IDS_KEY]
-    )
-
-
 def data_generator(option_dict, for_inference, net_type_string,
                    is_loss_constrained_mse=None):
-    """Generates examples for any kind of neural net.
+    """Generates training data for any kind of neural net.
 
     E = number of examples per batch (batch size)
     H = number of heights
@@ -1318,14 +1187,12 @@ def data_generator(option_dict, for_inference, net_type_string,
 
                 example_index = 0
 
-            num_examples_to_read = (
-                num_examples_per_batch - num_examples_in_memory
-            )
+            this_num_examples = num_examples_per_batch - num_examples_in_memory
 
             this_example_dict = _read_specific_examples(
                 example_file_names=example_file_names,
                 example_id_strings=
-                all_desired_id_strings[example_index:][:num_examples_to_read],
+                all_desired_id_strings[example_index:][:this_num_examples],
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
                 training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
@@ -1343,23 +1210,23 @@ def data_generator(option_dict, for_inference, net_type_string,
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string
             )[0]
-            this_list = targets_dict_to_numpy(
+            this_target_list = targets_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string,
                 is_loss_constrained_mse=is_loss_constrained_mse
             )
 
             if net_type_string == CNN_TYPE_STRING:
-                this_vector_target_matrix = this_list[0]
+                this_vector_target_matrix = this_target_list[0]
                 this_target_matrix = None
 
-                if len(this_list) == 1:
+                if len(this_target_list) == 1:
                     this_scalar_target_matrix = None
                 else:
-                    this_scalar_target_matrix = this_list[1]
+                    this_scalar_target_matrix = this_target_list[1]
             else:
                 this_vector_target_matrix = None
                 this_scalar_target_matrix = None
-                this_target_matrix = this_list[0]
+                this_target_matrix = this_target_list[0]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
@@ -1395,22 +1262,153 @@ def data_generator(option_dict, for_inference, net_type_string,
         predictor_matrix = predictor_matrix.astype('float32')
 
         if net_type_string == CNN_TYPE_STRING:
-            second_output = [vector_target_matrix.astype('float32')]
+            target_array = [vector_target_matrix.astype('float32')]
 
             if scalar_target_matrix is not None:
-                second_output.append(scalar_target_matrix.astype('float32'))
+                target_array.append(scalar_target_matrix.astype('float32'))
         else:
-            second_output = target_matrix.astype('float32')
+            target_array = target_matrix.astype('float32')
 
         if for_inference:
-            yield predictor_matrix, second_output, example_id_strings
+            yield predictor_matrix, target_array, example_id_strings
         else:
-            yield predictor_matrix, second_output
+            yield predictor_matrix, target_array
+
+
+def create_data(option_dict, for_inference, net_type_string,
+                is_loss_constrained_mse=None):
+    """Creates data for any kind of neural net.
+
+    This method is the same as `data_generator`, except that it returns all the
+    data at once, rather than generating batches on the fly.
+
+    :param option_dict: See doc for `data_generator`.
+    :param for_inference: Same.
+    :param net_type_string: Same.
+    :param is_loss_constrained_mse: Same.
+    :return: predictor_matrix: Same.
+    :return: target_array: Same.
+    :return: example_id_strings: Same.
+    """
+
+    option_dict = _check_generator_args(option_dict)
+    check_net_type(net_type_string)
+
+    if net_type_string != CNN_TYPE_STRING:
+        is_loss_constrained_mse = False
+
+    error_checking.assert_is_boolean(is_loss_constrained_mse)
+
+    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
+    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
+    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = option_dict[HEIGHTS_KEY]
+    first_time_unix_sec = option_dict[FIRST_TIME_KEY]
+    last_time_unix_sec = option_dict[LAST_TIME_KEY]
+    min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
+    max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
+    omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
+
+    all_field_names = (
+        scalar_predictor_names + vector_predictor_names +
+        scalar_target_names + vector_target_names
+    )
+    if omit_heating_rate:
+        all_field_names = [
+            f for f in all_field_names
+            if f != example_utils.SHORTWAVE_HEATING_RATE_NAME
+        ]
+
+    normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
+    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
+    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
+    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
+    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
+    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_utils.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    )
+
+    example_file_names = example_io.find_many_files(
+        directory_name=example_dir_name,
+        first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec,
+        raise_error_if_any_missing=False
+    )
+
+    example_dicts = []
+
+    for this_file_name in example_file_names:
+        this_example_dict = _read_file_for_generator(
+            example_file_name=this_file_name,
+            first_time_unix_sec=first_time_unix_sec,
+            last_time_unix_sec=last_time_unix_sec,
+            field_names=all_field_names, heights_m_agl=heights_m_agl,
+            min_column_lwp_kg_m02=min_column_lwp_kg_m02,
+            max_column_lwp_kg_m02=max_column_lwp_kg_m02,
+            training_example_dict=training_example_dict,
+            predictor_norm_type_string=predictor_norm_type_string,
+            predictor_min_norm_value=predictor_min_norm_value,
+            predictor_max_norm_value=predictor_max_norm_value,
+            target_norm_type_string=target_norm_type_string,
+            target_min_norm_value=target_min_norm_value,
+            target_max_norm_value=target_max_norm_value
+        )
+
+        example_dicts.append(this_example_dict)
+
+    example_dict = example_utils.concat_examples(example_dicts)
+
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+    desired_indices = numpy.linspace(
+        0, num_examples - 1, num=num_examples, dtype=int
+    )
+    numpy.random.shuffle(desired_indices)
+
+    example_dict = example_utils.subset_by_index(
+        example_dict=example_dict, desired_indices=desired_indices
+    )
+
+    predictor_matrix = predictors_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string
+    )[0]
+    predictor_matrix = predictor_matrix.astype('float32')
+
+    prelim_target_list = targets_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse
+    )
+
+    if net_type_string == CNN_TYPE_STRING:
+        vector_target_matrix = prelim_target_list[0]
+        target_array = [vector_target_matrix.astype('float32')]
+
+        if len(prelim_target_list) > 1:
+            scalar_target_matrix = prelim_target_list[1]
+            target_array.append(scalar_target_matrix.astype('float32'))
+    else:
+        target_array = prelim_target_list[0].astype('float32')
+
+    return (
+        predictor_matrix,
+        target_array,
+        example_dict[example_utils.EXAMPLE_IDS_KEY]
+    )
 
 
 def data_generator_specific_examples(option_dict, net_type_string,
                                      example_id_strings):
-    """Generates predictor and target values for specific examples.
+    """Generates training data for specific examples.
 
     This method is the same as `data_generator`, except that it generates
     specific examples.  Also, note that this method should be run only in
@@ -1419,7 +1417,7 @@ def data_generator_specific_examples(option_dict, net_type_string,
     :param option_dict: See doc for `data_generator`.
     :param net_type_string: Same.
     :param example_id_strings: 1-D list of example IDs.
-    :return: Same output variable as `data_generator`, except without
+    :return: Same output variables as `data_generator`, except without
         `example_id_strings`.
     """
 
@@ -1487,14 +1485,12 @@ def data_generator_specific_examples(option_dict, net_type_string,
 
                 break
 
-            num_examples_to_read = (
-                num_examples_per_batch - num_examples_in_memory
-            )
+            this_num_examples = num_examples_per_batch - num_examples_in_memory
 
             this_example_dict = _read_specific_examples(
                 example_file_names=example_file_names,
                 example_id_strings=
-                example_id_strings[example_index:][:num_examples_to_read],
+                example_id_strings[example_index:][:this_num_examples],
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
                 training_example_dict=training_example_dict,
                 predictor_norm_type_string=predictor_norm_type_string,
@@ -1512,23 +1508,23 @@ def data_generator_specific_examples(option_dict, net_type_string,
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string
             )[0]
-            this_list = targets_dict_to_numpy(
+            this_target_list = targets_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string,
                 is_loss_constrained_mse=False
             )
 
             if net_type_string == CNN_TYPE_STRING:
-                this_vector_target_matrix = this_list[0]
+                this_vector_target_matrix = this_target_list[0]
                 this_target_matrix = None
 
-                if len(this_list) == 1:
+                if len(this_target_list) == 1:
                     this_scalar_target_matrix = None
                 else:
-                    this_scalar_target_matrix = this_list[1]
+                    this_scalar_target_matrix = this_target_list[1]
             else:
                 this_vector_target_matrix = None
                 this_scalar_target_matrix = None
-                this_target_matrix = this_list[0]
+                this_target_matrix = this_target_list[0]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
@@ -1564,14 +1560,109 @@ def data_generator_specific_examples(option_dict, net_type_string,
         predictor_matrix = predictor_matrix.astype('float32')
 
         if net_type_string == CNN_TYPE_STRING:
-            second_output = [vector_target_matrix.astype('float32')]
+            target_array = [vector_target_matrix.astype('float32')]
 
             if scalar_target_matrix is not None:
-                second_output.append(scalar_target_matrix.astype('float32'))
+                target_array.append(scalar_target_matrix.astype('float32'))
         else:
-            second_output = target_matrix.astype('float32')
+            target_array = target_matrix.astype('float32')
 
-        yield predictor_matrix, second_output
+        yield predictor_matrix, target_array
+
+
+def create_data_specific_examples(
+        option_dict, net_type_string, example_id_strings):
+    """Creates data for specific examples.
+
+    This method is the same as `create_data`, except that it creates specific
+    examples.  Also, note that this method should be run only in inference mode
+    (not in training mode).
+
+    :param option_dict: See doc for `data_generator`.
+    :param net_type_string: Same.
+    :param example_id_strings: 1-D list of example IDs.
+    :return: predictor_matrix: See doc for `data_generator`.
+    :return: target_array: Same.
+    """
+
+    option_dict = _check_generator_args(option_dict)
+    check_net_type(net_type_string)
+
+    example_times_unix_sec = example_utils.parse_example_ids(
+        example_id_strings
+    )[example_utils.VALID_TIMES_KEY]
+
+    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
+    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
+    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = option_dict[HEIGHTS_KEY]
+
+    all_field_names = (
+        scalar_predictor_names + vector_predictor_names +
+        scalar_target_names + vector_target_names
+    )
+
+    normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
+    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
+    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
+    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
+    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
+    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_utils.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    )
+
+    example_file_names = example_io.find_many_files(
+        directory_name=example_dir_name,
+        first_time_unix_sec=numpy.min(example_times_unix_sec),
+        last_time_unix_sec=numpy.max(example_times_unix_sec),
+        raise_error_if_any_missing=False
+    )
+
+    example_dict = _read_specific_examples(
+        example_file_names=example_file_names,
+        example_id_strings=example_id_strings,
+        field_names=all_field_names, heights_m_agl=heights_m_agl,
+        training_example_dict=training_example_dict,
+        predictor_norm_type_string=predictor_norm_type_string,
+        predictor_min_norm_value=predictor_min_norm_value,
+        predictor_max_norm_value=predictor_max_norm_value,
+        target_norm_type_string=target_norm_type_string,
+        target_min_norm_value=target_min_norm_value,
+        target_max_norm_value=target_max_norm_value
+    )
+
+    predictor_matrix = predictors_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string
+    )[0]
+    predictor_matrix = predictor_matrix.astype('float32')
+
+    prelim_target_list = targets_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string,
+        is_loss_constrained_mse=False
+    )
+
+    if net_type_string == CNN_TYPE_STRING:
+        vector_target_matrix = prelim_target_list[0]
+        target_array = [vector_target_matrix.astype('float32')]
+
+        if len(prelim_target_list) > 1:
+            scalar_target_matrix = prelim_target_list[1]
+            target_array.append(scalar_target_matrix.astype('float32'))
+    else:
+        target_array = prelim_target_list[0].astype('float32')
+
+    return predictor_matrix, target_array
 
 
 def train_model_with_generator(

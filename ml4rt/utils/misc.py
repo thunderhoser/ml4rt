@@ -158,6 +158,10 @@ def get_examples_for_inference(
     error_checking.assert_is_string(example_file_name)
     use_specific_ids = example_file_name == ''
 
+    generator_option_dict = copy.deepcopy(
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
+
     if use_specific_ids:
         error_checking.assert_is_string(example_id_file_name)
 
@@ -165,65 +169,56 @@ def get_examples_for_inference(
             example_id_file_name
         ))
         example_id_strings = read_example_ids_from_netcdf(example_id_file_name)
-        num_examples_per_batch = len(example_id_strings)
-    else:
-        error_checking.assert_is_string(example_dir_name)
-        error_checking.assert_is_integer(num_examples)
-        error_checking.assert_is_greater(num_examples, 0)
 
-        example_dir_name = os.path.split(example_file_name)[0]
-        year = example_io.file_name_to_year(example_file_name)
-        first_time_unix_sec, last_time_unix_sec = (
-            time_conversion.first_and_last_times_in_year(year)
+        generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
+            example_dir_name
         )
 
-        this_example_dict = example_io.read_file(example_file_name)
-        num_examples_per_batch = len(
-            this_example_dict[example_utils.VALID_TIMES_KEY]
+        predictor_matrix, target_array = (
+            neural_net.create_data_specific_examples(
+                option_dict=generator_option_dict,
+                net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+                example_id_strings=example_id_strings
+            )
         )
 
-    generator_option_dict = copy.deepcopy(
-        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+        return predictor_matrix, target_array, example_id_strings
+
+    error_checking.assert_is_string(example_dir_name)
+    error_checking.assert_is_integer(num_examples)
+    error_checking.assert_is_greater(num_examples, 0)
+
+    example_dir_name = os.path.split(example_file_name)[0]
+    year = example_io.file_name_to_year(example_file_name)
+    first_time_unix_sec, last_time_unix_sec = (
+        time_conversion.first_and_last_times_in_year(year)
     )
-    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
-    generator_option_dict[neural_net.BATCH_SIZE_KEY] = num_examples_per_batch
 
-    if use_specific_ids:
-        generator = neural_net.data_generator_specific_examples(
-            option_dict=generator_option_dict,
-            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-            example_id_strings=example_id_strings
-        )
+    generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
+        example_dir_name
+    )
+    generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
+    generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
+
+    predictor_matrix, target_array, example_id_strings = neural_net.create_data(
+        option_dict=generator_option_dict, for_inference=True,
+        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+        is_loss_constrained_mse=False
+    )
+
+    good_indices = subset_examples(
+        indices_to_keep=numpy.array([-1], dtype=int),
+        num_examples_to_keep=num_examples,
+        num_examples_total=len(example_id_strings)
+    )
+
+    predictor_matrix = predictor_matrix[good_indices, ...]
+    example_id_strings = [example_id_strings[i] for i in good_indices]
+
+    if isinstance(target_array, list):
+        target_array = [t[good_indices, ...] for t in target_array]
     else:
-        generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
-        generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
-
-        generator = neural_net.data_generator(
-            option_dict=generator_option_dict, for_inference=True,
-            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-            is_loss_constrained_mse=False
-        )
-
-    print(SEPARATOR_STRING)
-
-    if use_specific_ids:
-        predictor_matrix, target_array = next(generator)
-    else:
-        predictor_matrix, target_array, example_id_strings = next(generator)
-
-        good_indices = subset_examples(
-            indices_to_keep=numpy.array([-1], dtype=int),
-            num_examples_to_keep=num_examples,
-            num_examples_total=len(example_id_strings)
-        )
-
-        predictor_matrix = predictor_matrix[good_indices, ...]
-        example_id_strings = [example_id_strings[i] for i in good_indices]
-
-        if isinstance(target_array, list):
-            target_array = [t[good_indices, ...] for t in target_array]
-        else:
-            target_array = target_array[good_indices, ...]
+        target_array = target_array[good_indices, ...]
 
     return predictor_matrix, target_array, example_id_strings
 
