@@ -1157,7 +1157,7 @@ def data_generator(option_dict, for_inference, net_type_string,
             target_norm_type_string=target_norm_type_string,
             target_min_norm_value=target_min_norm_value,
             target_max_norm_value=target_max_norm_value
-        )[0]
+        )
 
         all_desired_id_strings += (
             this_example_dict[example_utils.EXAMPLE_IDS_KEY]
