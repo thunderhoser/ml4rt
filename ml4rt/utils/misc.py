@@ -289,8 +289,19 @@ def get_raw_examples(
 
         print('Reading data from: "{0:s}"...'.format(example_file_name))
         example_dict = example_io.read_file(example_file_name)
-        example_dict = example_utils.reduce_sample_size(
-            example_dict=example_dict, num_examples_to_keep=num_examples
-        )[0]
+
+        num_examples_total = len(example_dict[example_utils.VALID_TIMES_KEY])
+        desired_indices = numpy.linspace(
+            0, num_examples_total - 1, num=num_examples_total, dtype=int
+        )
+
+        if num_examples < num_examples_total:
+            desired_indices = numpy.random.choice(
+                desired_indices, size=num_examples, replace=False
+            )
+
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=desired_indices
+        )
 
     return example_dict

@@ -249,16 +249,16 @@ def write_file(example_dict, netcdf_file_name):
     num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
     num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
     num_scalar_predictors = len(
-        example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
+        example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
     )
     num_vector_predictors = len(
-        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
     )
     num_scalar_targets = len(
-        example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
+        example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
     )
     num_vector_targets = len(
-        example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
+        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
     )
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
