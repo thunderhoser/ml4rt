@@ -567,9 +567,11 @@ def create_model(option_dict, loss_function, num_output_channels=1):
         )
 
     if zero_out_top_heating_rate:
+        print(num_heights_for_loss - 1)
+
         this_function = _zero_top_heating_rate_function(
             heating_rate_channel_index=heating_rate_channel_index,
-            height_index=num_heights - 1
+            height_index=num_heights_for_loss - 1
         )
         second_conv_layer1_object = keras.layers.Lambda(this_function)(
             second_conv_layer1_object
