@@ -327,11 +327,13 @@ def _read_specific_examples(
             example_file_names[this_file_index]
         )
 
+        # TODO(thunderhoser): Allowing missing examples is a hack.
         these_indices = example_utils.find_examples(
             all_id_strings=this_example_dict[example_utils.EXAMPLE_IDS_KEY],
             desired_id_strings=these_example_id_strings,
-            allow_missing=False
+            allow_missing=True
         )
+        these_indices = these_indices[these_indices >= 0]
         this_example_dict = example_utils.subset_by_index(
             example_dict=this_example_dict, desired_indices=these_indices
         )
