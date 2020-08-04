@@ -527,7 +527,7 @@ def create_model(option_dict, loss_function, num_output_channels=1):
 
         second_conv_layer1_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=num_output_channels if i == 2 else 64,
+            num_filters=2 * num_output_channels if i == 2 else 64,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object
         )(this_input_layer_object)
