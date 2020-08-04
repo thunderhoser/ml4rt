@@ -1915,7 +1915,7 @@ def train_model_sans_generator(
         epochs=num_epochs, steps_per_epoch=None, shuffle=True, verbose=1,
         callbacks=list_of_callback_objects,
         validation_data=(validation_predictor_matrix, validation_target_array),
-        validation_batch_size=validation_option_dict[BATCH_SIZE_KEY],
+        # validation_batch_size=validation_option_dict[BATCH_SIZE_KEY],
         validation_steps=None
     )
 
