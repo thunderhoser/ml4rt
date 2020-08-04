@@ -1004,6 +1004,137 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
     return numpy.array([height_indices[0], field_indices[0]], dtype=int)
 
 
+def create_data(option_dict, for_inference, net_type_string,
+                is_loss_constrained_mse=None):
+    """Creates data for any kind of neural net.
+
+    This method is the same as `data_generator`, except that it returns all the
+    data at once, rather than generating batches on the fly.
+
+    :param option_dict: See doc for `data_generator`.
+    :param for_inference: Same.
+    :param net_type_string: Same.
+    :param is_loss_constrained_mse: Same.
+    :return: predictor_matrix: Same.
+    :return: target_array: Same.
+    :return: example_id_strings: Same.
+    """
+
+    option_dict = _check_generator_args(option_dict)
+    check_net_type(net_type_string)
+
+    if net_type_string != CNN_TYPE_STRING:
+        is_loss_constrained_mse = False
+
+    error_checking.assert_is_boolean(is_loss_constrained_mse)
+
+    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
+    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
+    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = option_dict[HEIGHTS_KEY]
+    first_time_unix_sec = option_dict[FIRST_TIME_KEY]
+    last_time_unix_sec = option_dict[LAST_TIME_KEY]
+    min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
+    max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
+    omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY] and not for_inference
+
+    all_field_names = (
+        scalar_predictor_names + vector_predictor_names +
+        scalar_target_names + vector_target_names
+    )
+    if omit_heating_rate:
+        all_field_names = [
+            f for f in all_field_names
+            if f != example_utils.SHORTWAVE_HEATING_RATE_NAME
+        ]
+
+    normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
+    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
+    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
+    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
+    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
+    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_utils.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    )
+
+    example_file_names = example_io.find_many_files(
+        directory_name=example_dir_name,
+        first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec,
+        raise_error_if_any_missing=False
+    )
+
+    example_dicts = []
+
+    for this_file_name in example_file_names:
+        this_example_dict = _read_file_for_generator(
+            example_file_name=this_file_name,
+            first_time_unix_sec=first_time_unix_sec,
+            last_time_unix_sec=last_time_unix_sec,
+            field_names=all_field_names, heights_m_agl=heights_m_agl,
+            min_column_lwp_kg_m02=min_column_lwp_kg_m02,
+            max_column_lwp_kg_m02=max_column_lwp_kg_m02,
+            training_example_dict=training_example_dict,
+            predictor_norm_type_string=predictor_norm_type_string,
+            predictor_min_norm_value=predictor_min_norm_value,
+            predictor_max_norm_value=predictor_max_norm_value,
+            target_norm_type_string=target_norm_type_string,
+            target_min_norm_value=target_min_norm_value,
+            target_max_norm_value=target_max_norm_value
+        )
+
+        example_dicts.append(this_example_dict)
+
+    example_dict = example_utils.concat_examples(example_dicts)
+
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+    desired_indices = numpy.linspace(
+        0, num_examples - 1, num=num_examples, dtype=int
+    )
+    numpy.random.shuffle(desired_indices)
+
+    example_dict = example_utils.subset_by_index(
+        example_dict=example_dict, desired_indices=desired_indices
+    )
+
+    predictor_matrix = predictors_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string
+    )[0]
+    predictor_matrix = predictor_matrix.astype('float32')
+
+    prelim_target_list = targets_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse
+    )
+
+    if net_type_string == CNN_TYPE_STRING:
+        vector_target_matrix = prelim_target_list[0]
+        target_array = [vector_target_matrix.astype('float32')]
+
+        if len(prelim_target_list) > 1:
+            scalar_target_matrix = prelim_target_list[1]
+            target_array.append(scalar_target_matrix.astype('float32'))
+    else:
+        target_array = prelim_target_list[0].astype('float32')
+
+    return (
+        predictor_matrix,
+        target_array,
+        example_dict[example_utils.EXAMPLE_IDS_KEY]
+    )
+
+
 def data_generator(option_dict, for_inference, net_type_string,
                    is_loss_constrained_mse=None):
     """Generates examples for any kind of neural net.
@@ -1443,12 +1574,13 @@ def data_generator_specific_examples(option_dict, net_type_string,
         yield predictor_matrix, second_output
 
 
-def train_model(
+def train_model_with_generator(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
-        num_validation_batches_per_epoch, validation_option_dict,
-        net_type_string, loss_function, do_early_stopping=True):
-    """Trains any kind of neural net.
+        validation_option_dict, net_type_string, loss_function,
+        use_generator_for_validn=False, num_validation_batches_per_epoch=None,
+        do_early_stopping=True):
+    """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
         or `keras.models.Sequential`).
@@ -1458,8 +1590,6 @@ def train_model(
     :param num_training_batches_per_epoch: Number of training batches per epoch.
     :param training_option_dict: See doc for `data_generator`.  This dictionary
         will be used to generate training data.
-    :param num_validation_batches_per_epoch: Number of validation batches per
-        epoch.
     :param validation_option_dict: See doc for `data_generator`.  For validation
         only, the following values will replace corresponding values in
         `training_option_dict`:
@@ -1471,6 +1601,13 @@ def train_model(
     :param net_type_string: Neural-net type (must be accepted by
         `check_net_type`).
     :param loss_function: Loss function.
+    :param use_generator_for_validn: Boolean flag.  If True, will use
+        generator for validation data.  If False, will load all validation data
+        into memory at once.
+    :param num_validation_batches_per_epoch: Number of validation batches per
+        epoch.  This is used only if `use_generator_for_validn = True`.  If
+        `use_generator_for_validn = False`, all validation data will be used at
+        each epoch.
     :param do_early_stopping: Boolean flag.  If True, will stop training early
         if validation loss has not improved over last several epochs (see
         constants at top of file for what exactly this means).
@@ -1481,14 +1618,18 @@ def train_model(
     )
 
     error_checking.assert_is_integer(num_epochs)
-    # error_checking.assert_is_geq(num_epochs, 10)
     error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_integer(num_training_batches_per_epoch)
     error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
-    error_checking.assert_is_integer(num_validation_batches_per_epoch)
-    error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
     check_net_type(net_type_string)
+    error_checking.assert_is_boolean(use_generator_for_validn)
     error_checking.assert_is_boolean(do_early_stopping)
+
+    if use_generator_for_validn:
+        error_checking.assert_is_integer(num_validation_batches_per_epoch)
+        error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
+    else:
+        num_validation_batches_per_epoch = None
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1552,18 +1693,139 @@ def train_model(
         net_type_string=net_type_string,
         is_loss_constrained_mse=is_loss_constrained_mse
     )
-    validation_generator = data_generator(
-        option_dict=validation_option_dict, for_inference=False,
-        net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse
-    )
+
+    if use_generator_for_validn:
+        validation_generator = data_generator(
+            option_dict=validation_option_dict, for_inference=False,
+            net_type_string=net_type_string,
+            is_loss_constrained_mse=is_loss_constrained_mse
+        )
+
+        validation_data_arg = validation_generator
+        validation_steps_arg = num_validation_batches_per_epoch
+    else:
+        validation_predictor_matrix, validation_target_array = create_data(
+            option_dict=validation_option_dict, for_inference=False,
+            net_type_string=net_type_string,
+            is_loss_constrained_mse=is_loss_constrained_mse
+        )[:2]
+
+        validation_data_arg = (
+            validation_predictor_matrix, validation_target_array
+        )
+        validation_steps_arg = None
 
     model_object.fit_generator(
         generator=training_generator,
-        steps_per_epoch=num_training_batches_per_epoch, epochs=num_epochs,
-        verbose=1, callbacks=list_of_callback_objects,
-        validation_data=validation_generator,
-        validation_steps=num_validation_batches_per_epoch
+        steps_per_epoch=num_training_batches_per_epoch,
+        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        validation_data=validation_data_arg,
+        validation_steps=validation_steps_arg
+    )
+
+
+def train_model_sans_generator(
+        model_object, output_dir_name, num_epochs, training_option_dict,
+        validation_option_dict, net_type_string, loss_function,
+        do_early_stopping=True):
+    """Trains any kind of neural net without generator.
+
+    :param model_object: See doc for `train_model_with_generator`.
+    :param output_dir_name: Same.
+    :param num_epochs: Same.
+    :param training_option_dict: Same.
+    :param validation_option_dict: Same.
+    :param net_type_string: Same.
+    :param loss_function: Same.
+    :param do_early_stopping: Same.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 2)
+    check_net_type(net_type_string)
+    error_checking.assert_is_boolean(do_early_stopping)
+
+    training_option_dict = _check_generator_args(training_option_dict)
+
+    validation_keys_to_keep = [
+        EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
+    ]
+
+    for this_key in list(training_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    validation_option_dict = _check_generator_args(validation_option_dict)
+
+    model_file_name = (
+        output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
+    )
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=do_early_stopping, save_weights_only=False, mode='min',
+        period=1
+    )
+    list_of_callback_objects = [history_object, checkpoint_object]
+
+    if do_early_stopping:
+        early_stopping_object = keras.callbacks.EarlyStopping(
+            monitor='val_loss', min_delta=LOSS_PATIENCE,
+            patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
+        )
+        list_of_callback_objects.append(early_stopping_object)
+
+        plateau_object = keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
+            patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+            min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+        )
+        list_of_callback_objects.append(plateau_object)
+
+    metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    _write_metafile(
+        dill_file_name=metafile_name, num_epochs=num_epochs,
+        num_training_batches_per_epoch=None,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=None,
+        validation_option_dict=validation_option_dict,
+        net_type_string=net_type_string, loss_function=loss_function
+    )
+
+    is_loss_constrained_mse = determine_if_loss_constrained_mse(loss_function)
+
+    training_predictor_matrix, training_target_array = create_data(
+        option_dict=training_option_dict, for_inference=False,
+        net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse
+    )[:2]
+
+    validation_predictor_matrix, validation_target_array = create_data(
+        option_dict=validation_option_dict, for_inference=False,
+        net_type_string=net_type_string,
+        is_loss_constrained_mse=is_loss_constrained_mse
+    )[:2]
+
+    model_object.fit(
+        x=training_predictor_matrix, y=training_target_array,
+        batch_size=training_option_dict[BATCH_SIZE_KEY],
+        epochs=num_epochs, steps_per_epoch=None, shuffle=True, verbose=1,
+        callbacks=list_of_callback_objects,
+        validation_data=(validation_predictor_matrix, validation_target_array),
+        validation_batch_size=validation_option_dict[BATCH_SIZE_KEY],
+        validation_steps=None
     )
 
 

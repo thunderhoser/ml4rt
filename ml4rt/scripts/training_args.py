@@ -30,6 +30,8 @@ NET_TYPE_ARG_NAME = 'net_type_string'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 INPUT_MODEL_FILE_ARG_NAME = 'input_model_file_name'
 OUTPUT_MODEL_DIR_ARG_NAME = 'output_model_dir_name'
+USE_GENERATOR_FOR_TRAIN_ARG_NAME = 'use_generator_for_training'
+USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
@@ -65,6 +67,14 @@ INPUT_MODEL_FILE_HELP_STRING = (
 OUTPUT_MODEL_DIR_HELP_STRING = (
     'Name of output directory.  Model will be saved here.'
 )
+USE_GENERATOR_FOR_TRAIN_HELP_STRING = (
+    'Boolean flag.  If 1, will use generator for training data.  If 0, will '
+    'load all training data into memory at once.'
+)
+USE_GENERATOR_FOR_VALIDN_HELP_STRING = (
+    'Same as `{0:s}` but for validation (monitoring) data.'
+).format(USE_GENERATOR_FOR_TRAIN_ARG_NAME)
+
 PREDICTOR_NAMES_HELP_STRING = (
     'List of predictor variables.  Each must be accepted by '
     '`example_utils.check_field_name`.'
@@ -150,6 +160,14 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + OUTPUT_MODEL_DIR_ARG_NAME, type=str, required=True,
         help=OUTPUT_MODEL_DIR_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + USE_GENERATOR_FOR_TRAIN_ARG_NAME, type=int, required=False,
+        default=0, help=USE_GENERATOR_FOR_TRAIN_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + USE_GENERATOR_FOR_VALIDN_ARG_NAME, type=int, required=False,
+        default=0, help=USE_GENERATOR_FOR_VALIDN_HELP_STRING
     )
     parser_object.add_argument(
         '--' + PREDICTOR_NAMES_ARG_NAME, type=str, nargs='+', required=False,

@@ -15,7 +15,9 @@ INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
 
 def _run(net_type_string, example_dir_name, input_model_file_name,
-         output_model_dir_name, predictor_names, target_names, heights_m_agl,
+         output_model_dir_name,
+         use_generator_for_training, use_generator_for_validn,
+         predictor_names, target_names, heights_m_agl,
          omit_heating_rate, first_training_time_string,
          last_training_time_string, first_validn_time_string,
          last_validn_time_string, normalization_file_name,
@@ -30,6 +32,8 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     :param example_dir_name: Same.
     :param input_model_file_name: Same.
     :param output_model_dir_name: Same.
+    :param use_generator_for_training: Same.
+    :param use_generator_for_validn: Same.
     :param predictor_names: Same.
     :param target_names: Same.
     :param heights_m_agl: Same.
@@ -138,16 +142,27 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
 
     print(SEPARATOR_STRING)
 
-    neural_net.train_model(
-        model_object=model_object, output_dir_name=output_model_dir_name,
-        num_epochs=num_epochs,
-        num_training_batches_per_epoch=num_training_batches_per_epoch,
-        training_option_dict=training_option_dict,
-        num_validation_batches_per_epoch=num_validn_batches_per_epoch,
-        validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string,
-        loss_function=loss_function, do_early_stopping=True
-    )
+    if use_generator_for_training:
+        neural_net.train_model_with_generator(
+            model_object=model_object, output_dir_name=output_model_dir_name,
+            num_epochs=num_epochs,
+            num_training_batches_per_epoch=num_training_batches_per_epoch,
+            training_option_dict=training_option_dict,
+            use_generator_for_validn=use_generator_for_validn,
+            num_validation_batches_per_epoch=num_validn_batches_per_epoch,
+            validation_option_dict=validation_option_dict,
+            net_type_string=net_type_string,
+            loss_function=loss_function, do_early_stopping=True
+        )
+    else:
+        neural_net.train_model_sans_generator(
+            model_object=model_object, output_dir_name=output_model_dir_name,
+            num_epochs=num_epochs,
+            training_option_dict=training_option_dict,
+            validation_option_dict=validation_option_dict,
+            net_type_string=net_type_string,
+            loss_function=loss_function, do_early_stopping=True
+        )
 
 
 if __name__ == '__main__':
@@ -166,6 +181,12 @@ if __name__ == '__main__':
         output_model_dir_name=getattr(
             INPUT_ARG_OBJECT, training_args.OUTPUT_MODEL_DIR_ARG_NAME
         ),
+        use_generator_for_training=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.USE_GENERATOR_FOR_TRAIN_ARG_NAME
+        )),
+        use_generator_for_validn=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.USE_GENERATOR_FOR_VALIDN_ARG_NAME
+        )),
         predictor_names=getattr(
             INPUT_ARG_OBJECT, training_args.PREDICTOR_NAMES_ARG_NAME
         ),
