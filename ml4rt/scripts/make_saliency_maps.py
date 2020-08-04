@@ -4,7 +4,7 @@ import copy
 import os.path
 import argparse
 import numpy
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
@@ -145,11 +145,11 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
 
     if is_layer_output:
         dummy_example_dict = {
-            example_io.SCALAR_TARGET_NAMES_KEY:
+            example_utils.SCALAR_TARGET_NAMES_KEY:
                 generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-            example_io.VECTOR_TARGET_NAMES_KEY:
+            example_utils.VECTOR_TARGET_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-            example_io.HEIGHTS_KEY:
+            example_utils.HEIGHTS_KEY:
                 generator_option_dict[neural_net.HEIGHTS_KEY]
         }
 
@@ -181,11 +181,11 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
 
     if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
         dummy_example_dict = {
-            example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            example_utils.SCALAR_PREDICTOR_NAMES_KEY:
                 generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-            example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            example_utils.VECTOR_PREDICTOR_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-            example_io.HEIGHTS_KEY:
+            example_utils.HEIGHTS_KEY:
                 generator_option_dict[neural_net.HEIGHTS_KEY]
         }
 
@@ -194,10 +194,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
             net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
         )
         scalar_saliency_matrix = (
-            dummy_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+            dummy_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
         )
         vector_saliency_matrix = (
-            dummy_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+            dummy_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
         )
     else:
         num_scalar_predictors = len(

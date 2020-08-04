@@ -8,7 +8,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.io import prediction_io
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import saliency
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
@@ -34,14 +34,14 @@ VECTOR_PREDICTOR_COLOURS_BY_SET = [
 ]
 
 FIRST_SCALAR_PREDICTOR_NAMES = [
-    example_io.ZENITH_ANGLE_NAME, example_io.ALBEDO_NAME,
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME
 ]
 FIRST_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 SECOND_SCALAR_PREDICTOR_NAMES = [
-    example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
-    example_io.COLUMN_ICE_WATER_PATH_NAME
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME
 ]
 SECOND_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
@@ -53,35 +53,36 @@ SCALAR_PREDICTOR_COLOURS_BY_SET = [
 ]
 
 PREDICTOR_NAME_TO_VERBOSE = {
-    example_io.TEMPERATURE_NAME: 'Temperature',
-    example_io.SPECIFIC_HUMIDITY_NAME: 'Specific\nhumidity',
-    example_io.RELATIVE_HUMIDITY_NAME: 'Relative\nhumidity',
-    example_io.WATER_VAPOUR_PATH_NAME: 'Downward WVP',
-    example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 'Upward WVP',
-    example_io.PRESSURE_NAME: 'Pressure',
-    example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
-    example_io.ICE_WATER_CONTENT_NAME: 'IWC',
-    example_io.LIQUID_WATER_PATH_NAME: 'Downward LWP',
-    example_io.ICE_WATER_PATH_NAME: 'Downward IWP',
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME: 'Upward LWP',
-    example_io.UPWARD_ICE_WATER_PATH_NAME: 'Upward IWP',
-    example_io.ZENITH_ANGLE_NAME: 'Zenith angle',
-    example_io.LATITUDE_NAME: 'Latitude',
-    example_io.LONGITUDE_NAME: 'Longitude',
-    example_io.ALBEDO_NAME: 'Albedo',
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'Column LWP',
-    example_io.COLUMN_ICE_WATER_PATH_NAME: 'Column IWP'
+    example_utils.TEMPERATURE_NAME: 'Temperature',
+    example_utils.SPECIFIC_HUMIDITY_NAME: 'Specific\nhumidity',
+    example_utils.RELATIVE_HUMIDITY_NAME: 'Relative\nhumidity',
+    example_utils.WATER_VAPOUR_PATH_NAME: 'Downward WVP',
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME: 'Upward WVP',
+    example_utils.PRESSURE_NAME: 'Pressure',
+    example_utils.LIQUID_WATER_CONTENT_NAME: 'LWC',
+    example_utils.ICE_WATER_CONTENT_NAME: 'IWC',
+    example_utils.LIQUID_WATER_PATH_NAME: 'Downward LWP',
+    example_utils.ICE_WATER_PATH_NAME: 'Downward IWP',
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME: 'Upward LWP',
+    example_utils.UPWARD_ICE_WATER_PATH_NAME: 'Upward IWP',
+    example_utils.ZENITH_ANGLE_NAME: 'Zenith angle',
+    example_utils.LATITUDE_NAME: 'Latitude',
+    example_utils.LONGITUDE_NAME: 'Longitude',
+    example_utils.ALBEDO_NAME: 'Albedo',
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 'Column LWP',
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: 'Column IWP'
 }
 
 TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta z}$',
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'up flux',
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
+        r'$\frac{\Delta F_{up}}{\Delta z}$',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
         r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
 }
 
 TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS
@@ -211,7 +212,7 @@ def _get_target_values(
     )
     channel_index = vector_target_names.index(target_field_name)
 
-    height_index = example_io.match_heights(
+    height_index = example_utils.match_heights(
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY],
         desired_height_m_agl=target_height_m_agl
     )
@@ -250,18 +251,21 @@ def _plot_saliency_one_example(
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
-        example_io.SCALAR_PREDICTOR_VALS_KEY:
+        example_utils.HEIGHTS_KEY:
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
             saliency_dict[saliency.SCALAR_SALIENCY_KEY][[example_index], ...],
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             saliency_dict[saliency.VECTOR_SALIENCY_KEY][[example_index], ...]
     }
 
-    scalar_predictor_names = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+    scalar_predictor_names = (
+        example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
+    )
     scalar_saliency_matrix = saliency_dict[saliency.SCALAR_SALIENCY_KEY]
 
     num_scalar_dim = len(scalar_saliency_matrix.shape) - 1
@@ -287,7 +291,7 @@ def _plot_saliency_one_example(
 
     for k in range(num_predictor_sets):
         these_flags = numpy.array([
-            n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            n in example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
             for n in VECTOR_PREDICTOR_NAMES_BY_SET[k]
         ], dtype=bool)
 
@@ -340,7 +344,7 @@ def _plot_saliency_one_example(
 
     for k in range(num_predictor_sets):
         these_flags = numpy.array([
-            n in example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+            n in example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
             for n in SCALAR_PREDICTOR_NAMES_BY_SET[k]
         ], dtype=bool)
 

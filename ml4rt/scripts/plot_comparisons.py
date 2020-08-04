@@ -8,8 +8,9 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.io import rrtm_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
@@ -17,39 +18,41 @@ from ml4rt.plotting import profile_plotting
 FIGURE_RESOLUTION_DPI = 300
 
 FLUX_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
 FLUX_INCREMENT_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME,
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME
 ]
 
 TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'Downwelling shortwave flux',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'Upwelling shortwave flux',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'Shortwave heating rate',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'Downwelling shortwave flux',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'Upwelling shortwave flux',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'Shortwave heating rate',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
         r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta z}$'
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
+        r'$\frac{\Delta F_{up}}{\Delta z}$'
 }
 
 TARGET_NAME_TO_UNITS = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$'
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$'
 }
 
 TARGET_NAME_TO_COLOUR = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME:
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME:
         profile_plotting.DOWNWELLING_FLUX_COLOUR,
-    example_io.SHORTWAVE_UP_FLUX_NAME: profile_plotting.UPWELLING_FLUX_COLOUR,
-    example_io.SHORTWAVE_HEATING_RATE_NAME:
+    example_utils.SHORTWAVE_UP_FLUX_NAME:
+        profile_plotting.UPWELLING_FLUX_COLOUR,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME:
         profile_plotting.HEATING_RATE_COLOUR,
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
         profile_plotting.DOWNWELLING_FLUX_COLOUR,
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME:
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
         profile_plotting.UPWELLING_FLUX_COLOUR
 }
 
@@ -130,17 +133,19 @@ def _plot_comparisons_fancy(
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     target_example_dict = {
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.HEIGHTS_KEY:
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+        example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
     }
 
     prediction_example_dict = {
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.HEIGHTS_KEY:
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.VECTOR_TARGET_VALS_KEY: vector_prediction_matrix
+        example_utils.VECTOR_TARGET_VALS_KEY: vector_prediction_matrix
     }
 
     num_examples = vector_target_matrix.shape[0]
@@ -229,7 +234,7 @@ def _fluxes_increments_to_actual(vector_target_matrix, vector_prediction_matrix,
                                  model_metadata_dict):
     """If necessary, converts flux increments to actual fluxes.
 
-    This method is a wrapper for `example_io.fluxes_increments_to_actual`.
+    This method is a wrapper for `example_utils.fluxes_increments_to_actual`.
 
     :param vector_target_matrix: numpy array with actual target values.
     :param vector_prediction_matrix: numpy array with predicted values.
@@ -261,43 +266,45 @@ def _fluxes_increments_to_actual(vector_target_matrix, vector_prediction_matrix,
     num_heights = vector_target_matrix.shape[1]
 
     base_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.SCALAR_PREDICTOR_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, 0), 0.),
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.full((num_examples, num_heights, 0), 0.),
-        example_io.SCALAR_TARGET_NAMES_KEY: [],
-        example_io.SCALAR_TARGET_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY: [],
+        example_utils.SCALAR_TARGET_VALS_KEY: numpy.full((num_examples, 0), 0.),
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
-        example_io.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
+        example_utils.HEIGHTS_KEY:
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
     }
 
     target_example_dict = copy.deepcopy(base_example_dict)
-    target_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         vector_target_matrix
     )
-    target_example_dict = example_io.fluxes_increments_to_actual(
+    target_example_dict = example_utils.fluxes_increments_to_actual(
         target_example_dict
     )
     vector_target_matrix = (
-        target_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     prediction_example_dict = copy.deepcopy(base_example_dict)
-    prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         vector_prediction_matrix
     )
-    prediction_example_dict = example_io.fluxes_increments_to_actual(
+    prediction_example_dict = example_utils.fluxes_increments_to_actual(
         prediction_example_dict
     )
     vector_prediction_matrix = (
-        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] = (
-        target_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        target_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
     )
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = (
         generator_option_dict
@@ -311,7 +318,7 @@ def _fluxes_to_heating_rate(
         prediction_file_name, example_dir_name):
     """If necessary, converts fluxes to heating rates.
 
-    This method is a wrapper for `example_io.fluxes_to_heating_rate`.
+    This method is a wrapper for `example_utils.fluxes_to_heating_rate`.
 
     :param vector_target_matrix: See doc for `_fluxes_increments_to_actual`.
     :param vector_prediction_matrix: Same.
@@ -328,7 +335,7 @@ def _fluxes_to_heating_rate(
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
     need_heating_rate = (
-        example_io.SHORTWAVE_HEATING_RATE_NAME not in vector_target_names
+        example_utils.SHORTWAVE_HEATING_RATE_NAME not in vector_target_names
     )
     have_fluxes = all([
         t in vector_target_names for t in FLUX_NAMES
@@ -346,53 +353,55 @@ def _fluxes_to_heating_rate(
         example_dir_name=example_dir_name,
         example_id_file_name=prediction_file_name
     )
-    this_example_dict = example_io.subset_by_height(
+    this_example_dict = example_utils.subset_by_height(
         example_dict=this_example_dict,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
-    pressure_matrix_pascals = example_io.get_field_from_dict(
-        example_dict=this_example_dict, field_name=example_io.PRESSURE_NAME
+    pressure_matrix_pascals = example_utils.get_field_from_dict(
+        example_dict=this_example_dict, field_name=example_utils.PRESSURE_NAME
     )
     pressure_matrix_pascals = pressure_matrix_pascals[:num_examples, ...]
 
     base_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.SCALAR_PREDICTOR_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, 0), 0.),
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [example_utils.PRESSURE_NAME],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.expand_dims(pressure_matrix_pascals, axis=-1),
-        example_io.SCALAR_TARGET_NAMES_KEY: [],
-        example_io.SCALAR_TARGET_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY: [],
+        example_utils.SCALAR_TARGET_VALS_KEY: numpy.full((num_examples, 0), 0.),
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
-        example_io.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
+        example_utils.HEIGHTS_KEY:
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
     }
 
     target_example_dict = copy.deepcopy(base_example_dict)
-    target_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         vector_target_matrix
     )
-    target_example_dict = example_io.fluxes_to_heating_rate(
+    target_example_dict = example_utils.fluxes_to_heating_rate(
         target_example_dict
     )
     vector_target_matrix = (
-        target_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     prediction_example_dict = copy.deepcopy(base_example_dict)
-    prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         vector_prediction_matrix
     )
-    prediction_example_dict = example_io.fluxes_to_heating_rate(
+    prediction_example_dict = example_utils.fluxes_to_heating_rate(
         prediction_example_dict
     )
     vector_prediction_matrix = (
-        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] = (
-        target_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        target_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
     )
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = (
         generator_option_dict
@@ -429,17 +438,19 @@ def _remove_flux_increments(vector_target_matrix, vector_prediction_matrix,
     num_heights = vector_target_matrix.shape[1]
 
     base_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.SCALAR_PREDICTOR_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, 0), 0.),
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.full((num_examples, num_heights, 0), 0.),
-        example_io.SCALAR_TARGET_NAMES_KEY: [],
-        example_io.SCALAR_TARGET_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY: [],
+        example_utils.SCALAR_TARGET_VALS_KEY: numpy.full((num_examples, 0), 0.),
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
-        example_io.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
+        example_utils.HEIGHTS_KEY:
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
     }
 
     field_names_to_keep = [
@@ -447,30 +458,30 @@ def _remove_flux_increments(vector_target_matrix, vector_prediction_matrix,
     ]
 
     target_example_dict = copy.deepcopy(base_example_dict)
-    target_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         vector_target_matrix
     )
-    target_example_dict = example_io.subset_by_field(
+    target_example_dict = example_utils.subset_by_field(
         example_dict=target_example_dict, field_names=field_names_to_keep
     )
     vector_target_matrix = (
-        target_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     prediction_example_dict = copy.deepcopy(base_example_dict)
-    prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         vector_prediction_matrix
     )
-    prediction_example_dict = example_io.subset_by_field(
+    prediction_example_dict = example_utils.subset_by_field(
         example_dict=prediction_example_dict,
         field_names=field_names_to_keep
     )
     vector_prediction_matrix = (
-        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] = (
-        target_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        target_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
     )
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = (
         generator_option_dict
@@ -564,7 +575,7 @@ def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
     plot_fancy = all([
-        t in vector_target_names for t in example_io.DEFAULT_VECTOR_TARGET_NAMES
+        t in vector_target_names for t in rrtm_io.DEFAULT_VECTOR_TARGET_NAMES
     ])
 
     if plot_fancy:

@@ -7,7 +7,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
@@ -22,51 +22,52 @@ DOWN_FLUX_HANDLE_KEY = 'down_flux_axes_object'
 UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
 
 PREDICTOR_NAME_TO_VERBOSE = {
-    example_io.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
-    example_io.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
-    example_io.RELATIVE_HUMIDITY_NAME: r'Relative humidity',
-    example_io.WATER_VAPOUR_PATH_NAME:
+    example_utils.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
+    example_utils.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
+    example_utils.RELATIVE_HUMIDITY_NAME: r'Relative humidity',
+    example_utils.WATER_VAPOUR_PATH_NAME:
         r'Downward water-vapour path (kg m$^{-2}$)',
-    example_io.UPWARD_WATER_VAPOUR_PATH_NAME:
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME:
         r'Upward water-vapour path (kg m$^{-2}$)',
-    example_io.PRESSURE_NAME: 'Pressure (mb)',
-    example_io.LIQUID_WATER_CONTENT_NAME: r'Liquid-water content (g m$^{-3}$)',
-    example_io.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
-    example_io.LIQUID_WATER_PATH_NAME:
+    example_utils.PRESSURE_NAME: 'Pressure (mb)',
+    example_utils.LIQUID_WATER_CONTENT_NAME:
+        r'Liquid-water content (g m$^{-3}$)',
+    example_utils.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
+    example_utils.LIQUID_WATER_PATH_NAME:
         r'Downward liquid-water path (g m$^{-2}$)',
-    example_io.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME:
+    example_utils.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME:
         r'Upward liquid-water path (g m$^{-2}$)',
-    example_io.UPWARD_ICE_WATER_PATH_NAME:
+    example_utils.UPWARD_ICE_WATER_PATH_NAME:
         r'Upward ice-water path (mg m$^{-2}$)',
-    example_io.ZENITH_ANGLE_NAME: r'Zenith angle ($^{\circ}$)',
-    example_io.ALBEDO_NAME: 'Albedo',
-    example_io.LATITUDE_NAME: r'Latitude ($^{\circ}$N)',
-    example_io.LONGITUDE_NAME: r'Longitude ($^{\circ}$E)',
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME:
+    example_utils.ZENITH_ANGLE_NAME: r'Zenith angle ($^{\circ}$)',
+    example_utils.ALBEDO_NAME: 'Albedo',
+    example_utils.LATITUDE_NAME: r'Latitude ($^{\circ}$N)',
+    example_utils.LONGITUDE_NAME: r'Longitude ($^{\circ}$E)',
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
         r'Column liquid-water path (g m$^{-2}$)',
-    example_io.COLUMN_ICE_WATER_PATH_NAME:
+    example_utils.COLUMN_ICE_WATER_PATH_NAME:
         r'Column ice-water path (mg m$^{-2}$)'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
-    example_io.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
-    example_io.RELATIVE_HUMIDITY_NAME: 1.,
-    example_io.WATER_VAPOUR_PATH_NAME: 1.,
-    example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 1.,
-    example_io.PRESSURE_NAME: PASCALS_TO_MB,
-    example_io.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
-    example_io.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
-    example_io.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_io.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_io.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
-    example_io.ZENITH_ANGLE_NAME: RADIANS_TO_DEGREES,
-    example_io.ALBEDO_NAME: 1.,
-    example_io.LATITUDE_NAME: 1.,
-    example_io.LONGITUDE_NAME: 1.,
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_io.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
+    example_utils.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
+    example_utils.RELATIVE_HUMIDITY_NAME: 1.,
+    example_utils.WATER_VAPOUR_PATH_NAME: 1.,
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME: 1.,
+    example_utils.PRESSURE_NAME: PASCALS_TO_MB,
+    example_utils.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
+    example_utils.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
+    example_utils.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_utils.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_utils.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_utils.ZENITH_ANGLE_NAME: RADIANS_TO_DEGREES,
+    example_utils.ALBEDO_NAME: 1.,
+    example_utils.LATITUDE_NAME: 1.,
+    example_utils.LONGITUDE_NAME: 1.,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
 }
 
 DEFAULT_LINE_WIDTH = 2
@@ -201,8 +202,8 @@ def plot_predictors(
     error_checking.assert_is_leq(num_predictors, 4)
 
     for k in range(num_predictors):
-        assert predictor_names[k] in example_io.ALL_PREDICTOR_NAMES
-        # assert predictor_names[k] in example_io.ALL_VECTOR_PREDICTOR_NAMES
+        assert predictor_names[k] in example_utils.ALL_PREDICTOR_NAMES
+        # assert predictor_names[k] in example_utils.ALL_VECTOR_PREDICTOR_NAMES
 
     assert len(predictor_colours) == num_predictors
     assert len(predictor_line_widths) == num_predictors
@@ -241,28 +242,28 @@ def plot_predictors(
         figure_object = handle_dict[FIGURE_HANDLE_KEY]
         axes_objects = handle_dict[AXES_OBJECTS_KEY]
 
-    heights_km_agl = METRES_TO_KM * example_dict[example_io.HEIGHTS_KEY]
+    heights_km_agl = METRES_TO_KM * example_dict[example_utils.HEIGHTS_KEY]
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(num_predictors):
-        if predictor_names[k] in example_io.ALL_SCALAR_PREDICTOR_NAMES:
+        if predictor_names[k] in example_utils.ALL_SCALAR_PREDICTOR_NAMES:
 
             # TODO(thunderhoser): This is a HACK to deal with saliency maps.
-            j = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY].index(
+            j = example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
                 predictor_names[k]
             )
             these_predictor_values = (
-                example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY][
+                example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY][
                     example_index, :, j
                 ]
             )
         else:
-            these_predictor_values = example_io.get_field_from_dict(
+            these_predictor_values = example_utils.get_field_from_dict(
                 example_dict=example_dict, field_name=predictor_names[k]
             )[example_index, ...]
 
         if include_units:
-            if predictor_names[k] == example_io.TEMPERATURE_NAME:
+            if predictor_names[k] == example_utils.TEMPERATURE_NAME:
                 these_predictor_values = temperature_conv.kelvins_to_celsius(
                     these_predictor_values
                 )
@@ -358,11 +359,11 @@ def plot_targets(
         down_flux_axes_object = handle_dict[DOWN_FLUX_HANDLE_KEY]
         up_flux_axes_object = handle_dict[UP_FLUX_HANDLE_KEY]
 
-    heights_km_agl = METRES_TO_KM * example_dict[example_io.HEIGHTS_KEY]
+    heights_km_agl = METRES_TO_KM * example_dict[example_utils.HEIGHTS_KEY]
 
-    heating_rates_kelvins_day01 = example_io.get_field_from_dict(
+    heating_rates_kelvins_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_io.SHORTWAVE_HEATING_RATE_NAME
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
     )[example_index, ...]
 
     heating_rate_axes_object.plot(
@@ -370,9 +371,9 @@ def plot_targets(
         color=HEATING_RATE_COLOUR, linewidth=line_width, linestyle=line_style
     )
 
-    downwelling_fluxes_w_m02 = example_io.get_field_from_dict(
+    downwelling_fluxes_w_m02 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_io.SHORTWAVE_DOWN_FLUX_NAME
+        field_name=example_utils.SHORTWAVE_DOWN_FLUX_NAME
     )[example_index, ...]
 
     down_flux_axes_object.plot(
@@ -381,9 +382,9 @@ def plot_targets(
         linestyle=line_style
     )
 
-    upwelling_fluxes_w_m02 = example_io.get_field_from_dict(
+    upwelling_fluxes_w_m02 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_io.SHORTWAVE_UP_FLUX_NAME
+        field_name=example_utils.SHORTWAVE_UP_FLUX_NAME
     )[example_index, ...]
 
     up_flux_axes_object.plot(

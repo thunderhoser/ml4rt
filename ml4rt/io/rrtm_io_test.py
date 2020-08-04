@@ -5,9 +5,9 @@ import unittest
 import numpy
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
-from ml4rt.io import example_io
-from ml4rt.io import example_io_test
 from ml4rt.io import rrtm_io
+from ml4rt.utils import example_utils
+from ml4rt.utils import example_utils_test
 
 TOLERANCE = 1e-6
 
@@ -31,17 +31,17 @@ CENTER_HEIGHTS_M_AGL = numpy.array([
 ], dtype=float)
 
 THESE_VECTOR_PREDICTOR_NAMES = [
-    example_io.SPECIFIC_HUMIDITY_NAME, example_io.TEMPERATURE_NAME,
-    example_io.PRESSURE_NAME
+    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME
 ]
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
     HUMIDITY_MATRIX_KG_KG01, TEMPERATURE_MATRIX_KELVINS, PRESSURE_MATRIX_PASCALS
 ), axis=-1)
 
 EXAMPLE_DICT_SANS_DENSITY = {
-    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
-    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
 AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
@@ -72,8 +72,8 @@ RELATIVE_HUMIDITY_MATRIX = moisture_conv.dewpoint_to_relative_humidity(
 EXAMPLE_DICT_SANS_RH = copy.deepcopy(EXAMPLE_DICT_SANS_DENSITY)
 
 THESE_VECTOR_PREDICTOR_NAMES = [
-    example_io.SPECIFIC_HUMIDITY_NAME, example_io.TEMPERATURE_NAME,
-    example_io.PRESSURE_NAME, example_io.RELATIVE_HUMIDITY_NAME
+    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.RELATIVE_HUMIDITY_NAME
 ]
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
     HUMIDITY_MATRIX_KG_KG01, TEMPERATURE_MATRIX_KELVINS,
@@ -81,9 +81,9 @@ THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
 ), axis=-1)
 
 EXAMPLE_DICT_WITH_RH = {
-    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
-    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
 # The following constants are used to test _layerwise_water_path_to_content,
@@ -137,7 +137,8 @@ UPWARD_PATH_MATRIX_KG_M02 = numpy.array([
 ], dtype=float)
 
 ORIG_VECTOR_PREDICTOR_NAMES = [
-    example_io.LIQUID_WATER_CONTENT_NAME, example_io.ICE_WATER_CONTENT_NAME
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_CONTENT_NAME
 ]
 ORIG_VECTOR_PREDICTOR_MATRIX = numpy.stack(
     (WATER_CONTENT_MATRIX_KG_M03, WATER_CONTENT_MATRIX_KG_M03 / 1000), axis=-1
@@ -145,14 +146,14 @@ ORIG_VECTOR_PREDICTOR_MATRIX = numpy.stack(
 VALID_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
 
 EXAMPLE_DICT_WITHOUT_PATHS = {
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: ORIG_VECTOR_PREDICTOR_NAMES,
-    example_io.VECTOR_PREDICTOR_VALS_KEY: ORIG_VECTOR_PREDICTOR_MATRIX,
-    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: ORIG_VECTOR_PREDICTOR_NAMES,
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: ORIG_VECTOR_PREDICTOR_MATRIX,
+    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
 THESE_VECTOR_PREDICTOR_NAMES = ORIG_VECTOR_PREDICTOR_NAMES + [
-    example_io.LIQUID_WATER_PATH_NAME, example_io.ICE_WATER_PATH_NAME
+    example_utils.LIQUID_WATER_PATH_NAME, example_utils.ICE_WATER_PATH_NAME
 ]
 NEW_PREDICTOR_MATRIX = numpy.stack(
     (DOWNWARD_PATH_MATRIX_KG_M02, DOWNWARD_PATH_MATRIX_KG_M02 / 1000), axis=-1
@@ -162,16 +163,16 @@ THIS_VECTOR_PREDICTOR_MATRIX = numpy.concatenate(
 )
 
 EXAMPLE_DICT_WITH_DOWNWARD_PATHS = {
-    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
 THESE_VECTOR_PREDICTOR_NAMES = ORIG_VECTOR_PREDICTOR_NAMES + [
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME,
-    example_io.UPWARD_ICE_WATER_PATH_NAME
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME,
+    example_utils.UPWARD_ICE_WATER_PATH_NAME
 ]
 NEW_PREDICTOR_MATRIX = numpy.stack(
     (UPWARD_PATH_MATRIX_KG_M02, UPWARD_PATH_MATRIX_KG_M02 / 1000), axis=-1
@@ -181,17 +182,17 @@ THIS_VECTOR_PREDICTOR_MATRIX = numpy.concatenate(
 )
 
 EXAMPLE_DICT_WITH_UPWARD_PATHS = {
-    example_io.VECTOR_PREDICTOR_NAMES_KEY:
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_io.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_io.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
+    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
 }
 
 # The following constants are used to test find_file and file_name_to_year.
-EXAMPLE_DIR_NAME = 'foo'
+RRTM_DIRECTORY_NAME = 'foo'
 YEAR = 2018
-EXAMPLE_FILE_NAME = 'foo/radiative_transfer_examples_2018.nc'
+RRTM_FILE_NAME = 'foo/rrtm_output_2018.nc'
 
 # The following constants are used to test find_many_files.
 FIRST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
@@ -200,14 +201,11 @@ FIRST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
 LAST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
     '2005-01-01-000000', '%Y-%m-%d-%H%M%S'
 )
-EXAMPLE_FILE_NAMES = [
-    'foo/radiative_transfer_examples_1999.nc',
-    'foo/radiative_transfer_examples_2000.nc',
-    'foo/radiative_transfer_examples_2001.nc',
-    'foo/radiative_transfer_examples_2002.nc',
-    'foo/radiative_transfer_examples_2003.nc',
-    'foo/radiative_transfer_examples_2004.nc',
-    'foo/radiative_transfer_examples_2005.nc'
+RRTM_FILE_NAMES = [
+    'foo/rrtm_output_1999.nc', 'foo/rrtm_output_2000.nc',
+    'foo/rrtm_output_2001.nc', 'foo/rrtm_output_2002.nc',
+    'foo/rrtm_output_2003.nc', 'foo/rrtm_output_2004.nc',
+    'foo/rrtm_output_2005.nc'
 ]
 
 
@@ -232,7 +230,7 @@ class RrtmIoTests(unittest.TestCase):
             copy.deepcopy(EXAMPLE_DICT_SANS_RH)
         )
 
-        self.assertTrue(example_io_test._compare_example_dicts(
+        self.assertTrue(example_utils_test._compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_RH
         ))
 
@@ -275,7 +273,7 @@ class RrtmIoTests(unittest.TestCase):
             get_lwp=True, get_iwp=True, get_wvp=False, integrate_upward=False
         )
 
-        self.assertTrue(example_io_test._compare_example_dicts(
+        self.assertTrue(example_utils_test._compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_DOWNWARD_PATHS
         ))
 
@@ -290,7 +288,7 @@ class RrtmIoTests(unittest.TestCase):
             get_lwp=True, get_iwp=True, get_wvp=False, integrate_upward=True
         )
 
-        self.assertTrue(example_io_test._compare_example_dicts(
+        self.assertTrue(example_utils_test._compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_UPWARD_PATHS
         ))
 
@@ -298,30 +296,30 @@ class RrtmIoTests(unittest.TestCase):
         """Ensures correct output from find_file."""
 
         this_file_name = rrtm_io.find_file(
-            directory_name=EXAMPLE_DIR_NAME, year=YEAR,
+            directory_name=RRTM_DIRECTORY_NAME, year=YEAR,
             raise_error_if_missing=False
         )
 
-        self.assertTrue(this_file_name == EXAMPLE_FILE_NAME)
+        self.assertTrue(this_file_name == RRTM_FILE_NAME)
 
     def test_file_name_to_year(self):
         """Ensures correct output from file_name_to_year."""
 
-        this_year = rrtm_io.file_name_to_year(EXAMPLE_FILE_NAME)
+        this_year = rrtm_io.file_name_to_year(RRTM_FILE_NAME)
         self.assertTrue(this_year == YEAR)
 
     def test_find_many_files(self):
         """Ensures correct output from find_many_files."""
 
         these_file_names = rrtm_io.find_many_files(
-            directory_name=EXAMPLE_DIR_NAME,
+            directory_name=RRTM_DIRECTORY_NAME,
             first_time_unix_sec=FIRST_FILE_TIME_UNIX_SEC,
             last_time_unix_sec=LAST_FILE_TIME_UNIX_SEC,
             raise_error_if_any_missing=False,
             raise_error_if_all_missing=False, test_mode=True
         )
 
-        self.assertTrue(these_file_names == EXAMPLE_FILE_NAMES)
+        self.assertTrue(these_file_names == RRTM_FILE_NAMES)
 
 
 if __name__ == '__main__':

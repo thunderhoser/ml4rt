@@ -9,7 +9,7 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 
 MIN_BAD_VALUE = 1e30
 
@@ -21,62 +21,64 @@ HEIGHTS_KEY = 'height'
 STANDARD_ATMO_FLAGS_KEY = 'stdatmos'
 
 DEFAULT_SCALAR_PREDICTOR_NAMES = [
-    example_io.ZENITH_ANGLE_NAME, example_io.ALBEDO_NAME,
-    example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME,
-    example_io.COLUMN_ICE_WATER_PATH_NAME
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME
 ]
 
 DEFAULT_VECTOR_PREDICTOR_NAMES = [
-    example_io.PRESSURE_NAME, example_io.TEMPERATURE_NAME,
-    example_io.SPECIFIC_HUMIDITY_NAME, example_io.LIQUID_WATER_CONTENT_NAME,
-    example_io.ICE_WATER_CONTENT_NAME
+    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_CONTENT_NAME
 ]
 
 DEFAULT_SCALAR_TARGET_NAMES = [
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
 ]
 
 DEFAULT_VECTOR_TARGET_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
-    example_io.SHORTWAVE_HEATING_RATE_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME
 ]
 
 PREDICTOR_NAME_TO_ORIG = {
-    example_io.ZENITH_ANGLE_NAME: 'sza',
-    example_io.LATITUDE_NAME: 'lat',
-    example_io.LONGITUDE_NAME: 'lon',
-    example_io.ALBEDO_NAME: 'albedo',
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'lwp',
-    example_io.COLUMN_ICE_WATER_PATH_NAME: 'iwp',
-    example_io.PRESSURE_NAME: 'p',
-    example_io.TEMPERATURE_NAME: 't',
-    example_io.SPECIFIC_HUMIDITY_NAME: 'q',
-    example_io.LIQUID_WATER_CONTENT_NAME: 'lwc',
-    example_io.ICE_WATER_CONTENT_NAME: 'iwc'
+    example_utils.ZENITH_ANGLE_NAME: 'sza',
+    example_utils.LATITUDE_NAME: 'lat',
+    example_utils.LONGITUDE_NAME: 'lon',
+    example_utils.ALBEDO_NAME: 'albedo',
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 'lwp',
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: 'iwp',
+    example_utils.PRESSURE_NAME: 'p',
+    example_utils.TEMPERATURE_NAME: 't',
+    example_utils.SPECIFIC_HUMIDITY_NAME: 'q',
+    example_utils.LIQUID_WATER_CONTENT_NAME: 'lwc',
+    example_utils.ICE_WATER_CONTENT_NAME: 'iwc'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
-    example_io.ZENITH_ANGLE_NAME: DEG_TO_RADIANS,
-    example_io.LATITUDE_NAME: 1.,
-    example_io.LONGITUDE_NAME: 1.,
-    example_io.ALBEDO_NAME: 1.,
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 0.001,
-    example_io.COLUMN_ICE_WATER_PATH_NAME: 0.001,
-    example_io.PRESSURE_NAME: 100.,
-    example_io.TEMPERATURE_NAME: 1.,
-    example_io.SPECIFIC_HUMIDITY_NAME: 0.001,
-    example_io.LIQUID_WATER_CONTENT_NAME: 0.001,
-    example_io.ICE_WATER_CONTENT_NAME: 0.001
+    example_utils.ZENITH_ANGLE_NAME: DEG_TO_RADIANS,
+    example_utils.LATITUDE_NAME: 1.,
+    example_utils.LONGITUDE_NAME: 1.,
+    example_utils.ALBEDO_NAME: 1.,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 0.001,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: 0.001,
+    example_utils.PRESSURE_NAME: 100.,
+    example_utils.TEMPERATURE_NAME: 1.,
+    example_utils.SPECIFIC_HUMIDITY_NAME: 0.001,
+    example_utils.LIQUID_WATER_CONTENT_NAME: 0.001,
+    example_utils.ICE_WATER_CONTENT_NAME: 0.001
 }
 
 TARGET_NAME_TO_ORIG = {
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfcflux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'toaflux',
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'fluxd',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'fluxu',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'hr'
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfcflux',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'toaflux',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'fluxd',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'fluxu',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'hr'
 }
 
 
@@ -97,8 +99,8 @@ def _layerwise_water_path_to_content(
         (kg m^-3).
     """
 
-    edge_heights_m_agl = example_io.get_grid_cell_edges(heights_m_agl)
-    grid_cell_widths_metres = example_io.get_grid_cell_widths(
+    edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
+    grid_cell_widths_metres = example_utils.get_grid_cell_widths(
         edge_heights_m_agl
     )
 
@@ -127,8 +129,8 @@ def _water_content_to_layerwise_path(
     :return: layerwise_path_matrix_kg_m02: Same.
     """
 
-    edge_heights_m_agl = example_io.get_grid_cell_edges(heights_m_agl)
-    grid_cell_widths_metres = example_io.get_grid_cell_widths(
+    edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
+    grid_cell_widths_metres = example_utils.get_grid_cell_widths(
         edge_heights_m_agl
     )
 
@@ -157,14 +159,15 @@ def _get_air_density(example_dict):
         (kg m^-3).
     """
 
-    specific_humidity_matrix_kg_kg01 = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.SPECIFIC_HUMIDITY_NAME
+    specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.SPECIFIC_HUMIDITY_NAME
     )
-    temperature_matrix_kelvins = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.TEMPERATURE_NAME
+    temperature_matrix_kelvins = example_utils.get_field_from_dict(
+        example_dict=example_dict, field_name=example_utils.TEMPERATURE_NAME
     )
-    pressure_matrix_pascals = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.PRESSURE_NAME
+    pressure_matrix_pascals = example_utils.get_field_from_dict(
+        example_dict=example_dict, field_name=example_utils.PRESSURE_NAME
     )
 
     mixing_ratio_matrix_kg_kg01 = (
@@ -201,14 +204,15 @@ def _specific_to_relative_humidity(example_dict):
     :return: example_dict: Same as input but with extra predictor variable.
     """
 
-    specific_humidity_matrix_kg_kg01 = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.SPECIFIC_HUMIDITY_NAME
+    specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.SPECIFIC_HUMIDITY_NAME
     )
-    temperature_matrix_kelvins = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.TEMPERATURE_NAME
+    temperature_matrix_kelvins = example_utils.get_field_from_dict(
+        example_dict=example_dict, field_name=example_utils.TEMPERATURE_NAME
     )
-    pressure_matrix_pascals = example_io.get_field_from_dict(
-        example_dict=example_dict, field_name=example_io.PRESSURE_NAME
+    pressure_matrix_pascals = example_utils.get_field_from_dict(
+        example_dict=example_dict, field_name=example_utils.PRESSURE_NAME
     )
 
     dewpoint_matrix_kelvins = moisture_conv.specific_humidity_to_dewpoint(
@@ -223,21 +227,27 @@ def _specific_to_relative_humidity(example_dict):
         total_pressures_pascals=pressure_matrix_pascals
     )
 
-    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
-    found_rh = example_io.RELATIVE_HUMIDITY_NAME in vector_predictor_names
+    vector_predictor_names = (
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    )
+    found_rh = example_utils.RELATIVE_HUMIDITY_NAME in vector_predictor_names
     if not found_rh:
-        vector_predictor_names.append(example_io.RELATIVE_HUMIDITY_NAME)
+        vector_predictor_names.append(example_utils.RELATIVE_HUMIDITY_NAME)
 
-    rh_index = vector_predictor_names.index(example_io.RELATIVE_HUMIDITY_NAME)
-    example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+    rh_index = (
+        vector_predictor_names.index(example_utils.RELATIVE_HUMIDITY_NAME)
+    )
+    example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY] = (
+        vector_predictor_names
+    )
 
     if found_rh:
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY][..., rh_index] = (
+        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., rh_index] = (
             relative_humidity_matrix
         )
     else:
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
-            example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
             obj=rh_index, values=relative_humidity_matrix, axis=-1
         )
 
@@ -271,16 +281,18 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     :return: example_dict: Same as input but with extra predictor variables.
     """
 
-    vector_predictor_names = example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    vector_predictor_names = (
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    )
 
     if integrate_upward:
-        this_liquid_path_name = example_io.UPWARD_LIQUID_WATER_PATH_NAME
-        this_ice_path_name = example_io.UPWARD_ICE_WATER_PATH_NAME
-        this_vapour_path_name = example_io.UPWARD_WATER_VAPOUR_PATH_NAME
+        this_liquid_path_name = example_utils.UPWARD_LIQUID_WATER_PATH_NAME
+        this_ice_path_name = example_utils.UPWARD_ICE_WATER_PATH_NAME
+        this_vapour_path_name = example_utils.UPWARD_WATER_VAPOUR_PATH_NAME
     else:
-        this_liquid_path_name = example_io.LIQUID_WATER_PATH_NAME
-        this_ice_path_name = example_io.ICE_WATER_PATH_NAME
-        this_vapour_path_name = example_io.WATER_VAPOUR_PATH_NAME
+        this_liquid_path_name = example_utils.LIQUID_WATER_PATH_NAME
+        this_ice_path_name = example_utils.ICE_WATER_PATH_NAME
+        this_vapour_path_name = example_utils.WATER_VAPOUR_PATH_NAME
 
     get_lwp = get_lwp and this_liquid_path_name not in vector_predictor_names
     get_iwp = get_iwp and this_ice_path_name not in vector_predictor_names
@@ -289,15 +301,15 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     if not (get_lwp or get_iwp or get_wvp):
         return example_dict
 
-    edge_heights_m_agl = example_io.get_grid_cell_edges(
-        example_dict[example_io.HEIGHTS_KEY]
+    edge_heights_m_agl = example_utils.get_grid_cell_edges(
+        example_dict[example_utils.HEIGHTS_KEY]
     )
-    grid_cell_widths_metres = example_io.get_grid_cell_widths(
+    grid_cell_widths_metres = example_utils.get_grid_cell_widths(
         edge_heights_m_agl
     )
 
-    num_examples = len(example_dict[example_io.VALID_TIMES_KEY])
-    num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+    num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
 
     grid_cell_width_matrix_metres = numpy.reshape(
         grid_cell_widths_metres, (1, num_heights)
@@ -307,9 +319,9 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     )
 
     if get_lwp:
-        lwc_matrix_kg_m03 = example_io.get_field_from_dict(
+        lwc_matrix_kg_m03 = example_utils.get_field_from_dict(
             example_dict=example_dict,
-            field_name=example_io.LIQUID_WATER_CONTENT_NAME
+            field_name=example_utils.LIQUID_WATER_CONTENT_NAME
         )
 
         if integrate_upward:
@@ -322,19 +334,21 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
                 axis=1
             ))
 
-        example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY].append(
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].append(
             this_liquid_path_name
         )
 
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
-            example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
-            numpy.expand_dims(lwp_matrix_kg_m02, axis=-1)
-        ), axis=-1)
+        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
+            numpy.concatenate((
+                example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
+                numpy.expand_dims(lwp_matrix_kg_m02, axis=-1)
+            ), axis=-1)
+        )
 
     if get_iwp:
-        iwc_matrix_kg_m03 = example_io.get_field_from_dict(
+        iwc_matrix_kg_m03 = example_utils.get_field_from_dict(
             example_dict=example_dict,
-            field_name=example_io.ICE_WATER_CONTENT_NAME
+            field_name=example_utils.ICE_WATER_CONTENT_NAME
         )
 
         if integrate_upward:
@@ -347,20 +361,22 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
                 axis=1
             ))
 
-        example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY].append(
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].append(
             this_ice_path_name
         )
 
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
-            example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
-            numpy.expand_dims(iwp_matrix_kg_m02, axis=-1)
-        ), axis=-1)
+        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
+            numpy.concatenate((
+                example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
+                numpy.expand_dims(iwp_matrix_kg_m02, axis=-1)
+            ), axis=-1)
+        )
 
     if get_wvp:
         air_density_matrix_kg_m03 = _get_air_density(example_dict)
-        specific_humidity_matrix_kg_kg01 = example_io.get_field_from_dict(
+        specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
             example_dict=example_dict,
-            field_name=example_io.SPECIFIC_HUMIDITY_NAME
+            field_name=example_utils.SPECIFIC_HUMIDITY_NAME
         )
         vapour_content_matrix_kg_m03 = (
             specific_humidity_matrix_kg_kg01 * air_density_matrix_kg_m03
@@ -379,14 +395,16 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
                 axis=1
             ))
 
-        example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY].append(
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].append(
             this_vapour_path_name
         )
 
-        example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = numpy.concatenate((
-            example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
-            numpy.expand_dims(vapour_path_matrix_kg_m02, axis=-1)
-        ), axis=-1)
+        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
+            numpy.concatenate((
+                example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
+                numpy.expand_dims(vapour_path_matrix_kg_m02, axis=-1)
+            ), axis=-1)
+        )
 
     return example_dict
 
@@ -487,7 +505,7 @@ def find_many_files(
     return rrtm_file_names
 
 
-def read_file(rrtm_file_name, allow_bad_values=False):
+def read_file(netcdf_file_name, allow_bad_values=False):
     """Reads RRTM data from NetCDF file.
 
     E = number of examples
@@ -497,7 +515,7 @@ def read_file(rrtm_file_name, allow_bad_values=False):
     T_s = number of scalar targets
     T_v = number of vector targets
 
-    :param rrtm_file_name: Path to NetCDF file with learning examples.
+    :param netcdf_file_name: Path to NetCDF file with learning examples.
     :param allow_bad_values: Boolean flag.  If True, will allow bad values and
         remove examples that have bad values.
 
@@ -530,37 +548,37 @@ def read_file(rrtm_file_name, allow_bad_values=False):
     error_checking.assert_is_boolean(allow_bad_values)
 
     # TODO(thunderhoser): This is a HACK.
-    if not os.path.isfile(rrtm_file_name):
-        rrtm_file_name = rrtm_file_name.replace(
+    if not os.path.isfile(netcdf_file_name):
+        netcdf_file_name = netcdf_file_name.replace(
             '/home/ryan.lagerquist', '/home/ralager'
         )
 
-    dataset_object = netCDF4.Dataset(rrtm_file_name)
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES),
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES),
-        example_io.SCALAR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY:
             copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES),
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES),
-        example_io.VALID_TIMES_KEY: numpy.array(
+        example_utils.VALID_TIMES_KEY: numpy.array(
             dataset_object.variables[VALID_TIMES_KEY][:],
             dtype=int
         ),
-        example_io.HEIGHTS_KEY: KM_TO_METRES * numpy.array(
+        example_utils.HEIGHTS_KEY: KM_TO_METRES * numpy.array(
             dataset_object.variables[HEIGHTS_KEY][:], dtype=float
         ),
-        example_io.STANDARD_ATMO_FLAGS_KEY: numpy.array(
+        example_utils.STANDARD_ATMO_FLAGS_KEY: numpy.array(
             numpy.round(dataset_object.variables[STANDARD_ATMO_FLAGS_KEY][:]),
             dtype=int
         )
     }
 
-    num_examples = len(example_dict[example_io.VALID_TIMES_KEY])
-    num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+    num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
     num_scalar_predictors = len(DEFAULT_SCALAR_PREDICTOR_NAMES)
     num_vector_predictors = len(DEFAULT_VECTOR_PREDICTOR_NAMES)
     num_scalar_targets = len(DEFAULT_SCALAR_TARGET_NAMES)
@@ -602,12 +620,12 @@ def read_file(rrtm_file_name, allow_bad_values=False):
         )
 
         if DEFAULT_VECTOR_PREDICTOR_NAMES[k] in [
-                example_io.LIQUID_WATER_CONTENT_NAME,
-                example_io.ICE_WATER_CONTENT_NAME
+                example_utils.LIQUID_WATER_CONTENT_NAME,
+                example_utils.ICE_WATER_CONTENT_NAME
         ]:
             vector_predictor_matrix[..., k] = _layerwise_water_path_to_content(
                 layerwise_path_matrix_kg_m02=vector_predictor_matrix[..., k],
-                heights_m_agl=example_dict[example_io.HEIGHTS_KEY]
+                heights_m_agl=example_dict[example_utils.HEIGHTS_KEY]
             )
 
     for k in range(num_scalar_targets):
@@ -627,16 +645,16 @@ def read_file(rrtm_file_name, allow_bad_values=False):
         )
 
     example_dict.update({
-        example_io.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
-        example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix,
-        example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-        example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+        example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix,
+        example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+        example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
     })
 
     dataset_object.close()
 
-    example_dict[example_io.EXAMPLE_IDS_KEY] = example_io.create_example_ids(
-        example_dict
+    example_dict[example_utils.EXAMPLE_IDS_KEY] = (
+        example_utils.create_example_ids(example_dict)
     )
 
     if allow_bad_values:
@@ -662,21 +680,21 @@ def read_file(rrtm_file_name, allow_bad_values=False):
             )
             warnings.warn(warning_string)
 
-        example_dict = example_io.subset_by_index(
+        example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )
 
-    longitude_index = example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY].index(
-        example_io.LONGITUDE_NAME
+    longitude_index = (
+        example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
+            example_utils.LONGITUDE_NAME
+        )
     )
 
-    example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY][:, longitude_index] = (
+    k = example_utils.SCALAR_PREDICTOR_VALS_KEY
+
+    example_dict[k][:, longitude_index] = (
         longitude_conv.convert_lng_positive_in_west(
-            longitudes_deg=
-            example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY][
-                :, longitude_index
-            ],
-            allow_nan=False
+            longitudes_deg=example_dict[k][:, longitude_index], allow_nan=False
         )
     )
 
@@ -691,5 +709,5 @@ def read_file(rrtm_file_name, allow_bad_values=False):
     )
 
     example_dict = _specific_to_relative_humidity(example_dict)
-    example_dict = example_io.fluxes_actual_to_increments(example_dict)
-    return example_io.fluxes_increments_to_actual(example_dict)
+    example_dict = example_utils.fluxes_actual_to_increments(example_dict)
+    return example_utils.fluxes_increments_to_actual(example_dict)

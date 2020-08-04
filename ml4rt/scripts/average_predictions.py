@@ -2,7 +2,7 @@
 
 import argparse
 import numpy
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.io import prediction_io
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
@@ -88,19 +88,20 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
     )
 
     dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [
-            example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
-            example_io.ZENITH_ANGLE_NAME
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [
+            example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+            example_utils.ZENITH_ANGLE_NAME
         ],
-        example_io.SCALAR_PREDICTOR_VALS_KEY: dummy_scalar_predictor_matrix,
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.TEMPERATURE_NAME],
-        example_io.VECTOR_PREDICTOR_VALS_KEY: dummy_vector_predictor_matrix,
-        example_io.HEIGHTS_KEY: numpy.array([10.]),
-        example_io.VALID_TIMES_KEY: numpy.array([0], dtype=int),
-        example_io.STANDARD_ATMO_FLAGS_KEY: numpy.array([0], dtype=int)
+        example_utils.SCALAR_PREDICTOR_VALS_KEY: dummy_scalar_predictor_matrix,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+            [example_utils.TEMPERATURE_NAME],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: dummy_vector_predictor_matrix,
+        example_utils.HEIGHTS_KEY: numpy.array([10.]),
+        example_utils.VALID_TIMES_KEY: numpy.array([0], dtype=int),
+        example_utils.STANDARD_ATMO_FLAGS_KEY: numpy.array([0], dtype=int)
     }
 
-    example_id_strings = example_io.create_example_ids(dummy_example_dict)
+    example_id_strings = example_utils.create_example_ids(dummy_example_dict)
     print(example_id_strings)
 
     print('Writing mean example to: "{0:s}"...'.format(output_file_name))

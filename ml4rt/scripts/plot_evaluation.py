@@ -7,8 +7,9 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
@@ -40,40 +41,41 @@ ORIG_UNIT_SCORE_NAMES = [
 SQUARED_UNIT_SCORE_NAMES = [evaluation_plotting.MSE_NAME]
 
 TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
         r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta z}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
+        r'$\frac{\Delta F_{up}}{\Delta z}$',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
     evaluation.NET_FLUX_NAME: 'net flux',
     evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
     evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
 }
 
 TARGET_NAME_TO_UNITS = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
     evaluation.NET_FLUX_NAME: r'W m$^{-2}$',
     evaluation.HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
     evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
 }
 
 TARGET_NAME_TO_SQUARED_UNITS = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     evaluation.NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     evaluation.HIGHEST_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     evaluation.LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
@@ -351,7 +353,7 @@ def _plot_attributes_diagram(
         ].values[scalar_target_index, ...]
 
         climo_value = mean_training_example_dict[
-            example_io.SCALAR_TARGET_VALS_KEY
+            example_utils.SCALAR_TARGET_VALS_KEY
         ][0, scalar_target_index]
 
         output_file_name = '{0:s}/{1:s}_reliability.jpg'.format(
@@ -397,15 +399,15 @@ def _plot_attributes_diagram(
         ).tolist()
 
         mean_scalar_target_matrix = (
-            mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+            mean_training_example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
         )
 
         if target_name == evaluation.NET_FLUX_NAME:
             surface_down_flux_index = scalar_target_names.index(
-                example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
             )
             toa_up_flux_index = scalar_target_names.index(
-                example_io.SHORTWAVE_TOA_UP_FLUX_NAME
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
             )
             climo_value = (
                 mean_scalar_target_matrix[0, surface_down_flux_index] -
@@ -454,7 +456,7 @@ def _plot_attributes_diagram(
         ].values[height_index, vector_target_index, ...]
 
         climo_value = mean_training_example_dict[
-            example_io.VECTOR_TARGET_VALS_KEY
+            example_utils.VECTOR_TARGET_VALS_KEY
         ][0, height_index, vector_target_index]
 
         output_file_name = '{0:s}/{1:s}_{2:05d}metres_reliability.jpg'.format(
@@ -468,7 +470,7 @@ def _plot_attributes_diagram(
             )
 
             try:
-                baseline_height_index = example_io.match_heights(
+                baseline_height_index = example_utils.match_heights(
                     heights_m_agl=baseline_heights_m_agl,
                     desired_height_m_agl=height_m_agl
                 )
@@ -620,12 +622,12 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     heights_m_agl = main_results_xarray.coords[evaluation.HEIGHT_DIM].values
 
     example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.HEIGHTS_KEY: heights_m_agl,
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
+        example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
+        example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
     }
 
@@ -639,7 +641,7 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     ))
 
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_io.subset_by_height(
+    training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
     mean_training_example_dict = normalization.create_mean_example(

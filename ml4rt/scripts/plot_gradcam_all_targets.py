@@ -9,7 +9,7 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import plotting_utils
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import gradcam
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
@@ -21,12 +21,13 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 METRES_TO_KM = 0.001
 
 TARGET_NAME_TO_VERBOSE = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
-    example_io.SHORTWAVE_DOWN_FLUX_INC_NAME:
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
+    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
         r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_io.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_io.SHORTWAVE_UP_FLUX_INC_NAME: r'$\frac{\Delta F_{up}}{\Delta z}$',
-    example_io.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'up flux',
+    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
+        r'$\frac{\Delta F_{up}}{\Delta z}$',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
 }
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)

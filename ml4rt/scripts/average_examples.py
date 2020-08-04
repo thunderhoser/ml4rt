@@ -3,6 +3,7 @@
 import argparse
 import numpy
 from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.scripts import make_saliency_maps
 
@@ -86,18 +87,18 @@ def _run(example_file_name, num_examples, example_dir_name,
     )
 
     num_examples = len(
-        example_dict[example_io.VALID_TIMES_KEY]
+        example_dict[example_utils.VALID_TIMES_KEY]
     )
 
     print('Averaging {0:d} examples...'.format(num_examples))
-    mean_example_dict = example_io.average_examples(
+    mean_example_dict = example_utils.average_examples(
         example_dict=example_dict, use_pmm=use_pmm,
         max_pmm_percentile_level=max_pmm_percentile_level
     )
 
-    mean_example_dict[example_io.VALID_TIMES_KEY] = numpy.array([-1], dtype=int)
-    mean_example_dict[example_io.STANDARD_ATMO_FLAGS_KEY] = numpy.array(
-        [example_io.US_STANDARD_ATMO_ENUM], dtype=int
+    mean_example_dict[example_utils.VALID_TIMES_KEY] = numpy.array([-1], dtype=int)
+    mean_example_dict[example_utils.STANDARD_ATMO_FLAGS_KEY] = numpy.array(
+        [example_utils.US_STANDARD_ATMO_ENUM], dtype=int
     )
 
     print('Writing mean example to: "{0:s}"...'.format(output_file_name))

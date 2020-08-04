@@ -3,7 +3,7 @@
 import numpy
 import keras.backend as K
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 
 
 def weighted_mse():
@@ -153,9 +153,9 @@ def flux_increment_loss_dense(
 
     error_checking.assert_is_boolean(use_magnitude_weight)
 
-    edge_heights_m_agl = example_io.get_grid_cell_edges(heights_m_agl)
+    edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
     grid_cell_widths_metres = (
-        example_io.get_grid_cell_widths(edge_heights_m_agl)
+        example_utils.get_grid_cell_widths(edge_heights_m_agl)
     )
 
     num_heights = len(heights_m_agl)
@@ -257,9 +257,9 @@ def flux_increment_loss_not_dense(
 
     error_checking.assert_is_boolean(use_magnitude_weight)
 
-    edge_heights_m_agl = example_io.get_grid_cell_edges(heights_m_agl)
+    edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
     grid_cell_widths_metres = (
-        example_io.get_grid_cell_widths(edge_heights_m_agl)
+        example_utils.get_grid_cell_widths(edge_heights_m_agl)
     )
 
     num_heights = len(heights_m_agl)

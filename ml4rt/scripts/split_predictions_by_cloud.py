@@ -10,7 +10,7 @@ This script allows for three different cloud regimes:
 import copy
 import argparse
 import numpy
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.io import prediction_io
 from ml4rt.utils import misc as misc_utils
 
@@ -91,7 +91,7 @@ def _run(input_file_name, example_dir_name, for_ice, min_path_kg_m02,
     )
     print(SEPARATOR_STRING)
 
-    cloud_layer_counts = example_io.find_cloud_layers(
+    cloud_layer_counts = example_utils.find_cloud_layers(
         example_dict=example_dict, min_path_kg_m02=min_path_kg_m02,
         for_ice=for_ice
     )[-1]

@@ -8,7 +8,7 @@ from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 
 EXAMPLE_DIMENSION_KEY = 'example'
@@ -180,7 +180,7 @@ def write_file(
     :param heights_m_agl: length-H numpy array of heights (metres above ground
         level).
     :param example_id_strings: length-E list of IDs created by
-        `example_io.create_example_ids`.
+        `example_utils.create_example_ids`.
     :param model_file_name: Path to file with trained model (readable by
         `neural_net.read_model`).
     """
@@ -223,7 +223,7 @@ def write_file(
         numpy.array(example_id_strings),
         exact_dimensions=numpy.array([num_examples], dtype=int)
     )
-    example_io.parse_example_ids(example_id_strings)
+    example_utils.parse_example_ids(example_id_strings)
 
     error_checking.assert_is_string(model_file_name)
 
@@ -564,15 +564,15 @@ def subset_by_standard_atmo(prediction_dict, standard_atmo_enum):
 
     :param prediction_dict: See doc for `write_file`.
     :param standard_atmo_enum: See doc for
-        `example_io.check_standard_atmo_type`.
+        `example_utils.check_standard_atmo_type`.
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
-    example_io.check_standard_atmo_type(standard_atmo_enum)
+    example_utils.check_standard_atmo_type(standard_atmo_enum)
 
-    all_standard_atmo_enums = example_io.parse_example_ids(
+    all_standard_atmo_enums = example_utils.parse_example_ids(
         prediction_dict[EXAMPLE_IDS_KEY]
-    )[example_io.STANDARD_ATMO_FLAGS_KEY]
+    )[example_utils.STANDARD_ATMO_FLAGS_KEY]
 
     good_indices = numpy.where(all_standard_atmo_enums == standard_atmo_enum)[0]
 
@@ -611,9 +611,9 @@ def subset_by_zenith_angle(
 
     error_checking.assert_is_boolean(max_inclusive)
 
-    all_zenith_angles_rad = example_io.parse_example_ids(
+    all_zenith_angles_rad = example_utils.parse_example_ids(
         prediction_dict[EXAMPLE_IDS_KEY]
-    )[example_io.ZENITH_ANGLES_KEY]
+    )[example_utils.ZENITH_ANGLES_KEY]
 
     min_flags = all_zenith_angles_rad >= min_zenith_angle_rad
 
@@ -649,9 +649,9 @@ def subset_by_month(prediction_dict, desired_month):
     error_checking.assert_is_geq(desired_month, 1)
     error_checking.assert_is_leq(desired_month, 12)
 
-    all_times_unix_sec = example_io.parse_example_ids(
+    all_times_unix_sec = example_utils.parse_example_ids(
         prediction_dict[EXAMPLE_IDS_KEY]
-    )[example_io.VALID_TIMES_KEY]
+    )[example_utils.VALID_TIMES_KEY]
 
     all_months = numpy.array([
         int(time_conversion.unix_sec_to_string(t, '%m'))

@@ -10,6 +10,7 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -178,7 +179,7 @@ def get_examples_for_inference(
 
         this_example_dict = example_io.read_file(example_file_name)
         num_examples_per_batch = len(
-            this_example_dict[example_io.VALID_TIMES_KEY]
+            this_example_dict[example_utils.VALID_TIMES_KEY]
         )
 
     generator_option_dict = copy.deepcopy(
@@ -254,11 +255,12 @@ def get_raw_examples(
         ))
         example_id_strings = read_example_ids_from_netcdf(example_id_file_name)
 
-        valid_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
-            example_io.VALID_TIMES_KEY
-        ]
+        valid_times_unix_sec = example_utils.parse_example_ids(
+            example_id_strings
+        )[example_utils.VALID_TIMES_KEY]
+
         example_file_names = example_io.find_many_files(
-            example_dir_name=example_dir_name,
+            directory_name=example_dir_name,
             first_time_unix_sec=numpy.min(valid_times_unix_sec),
             last_time_unix_sec=numpy.max(valid_times_unix_sec)
         )
@@ -270,14 +272,14 @@ def get_raw_examples(
             print('Reading data from: "{0:s}"...'.format(example_file_names[i]))
             example_dicts[i] = example_io.read_file(example_file_names[i])
 
-        example_dict = example_io.concat_examples(example_dicts)
+        example_dict = example_utils.concat_examples(example_dicts)
 
-        good_indices = example_io.find_examples(
-            all_id_strings=example_dict[example_io.EXAMPLE_IDS_KEY],
+        good_indices = example_utils.find_examples(
+            all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
             desired_id_strings=example_id_strings, allow_missing=False
         )
 
-        example_dict = example_io.subset_by_index(
+        example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )
     else:
@@ -287,7 +289,7 @@ def get_raw_examples(
 
         print('Reading data from: "{0:s}"...'.format(example_file_name))
         example_dict = example_io.read_file(example_file_name)
-        example_dict = example_io.reduce_sample_size(
+        example_dict = example_utils.reduce_sample_size(
             example_dict=example_dict, num_examples_to_keep=num_examples
         )[0]
 

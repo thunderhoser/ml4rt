@@ -6,7 +6,7 @@ import netCDF4
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import saliency_maps as saliency_utils
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 
 DUMMY_EXAMPLE_ID_PMM = 'pmm'
@@ -186,7 +186,7 @@ def write_file(
     if target_field_name is None:
         target_height_m_agl = None
     else:
-        example_io.check_field_name(target_field_name)
+        example_utils.check_field_name(target_field_name)
 
     if target_height_m_agl is not None:
         target_height_m_agl = int(numpy.round(target_height_m_agl))

@@ -5,7 +5,7 @@ import numpy
 import netCDF4
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
@@ -276,13 +276,13 @@ def _make_prediction_function(model_object, model_metadata_dict):
             )
 
             example_dict = {
-                example_io.SCALAR_PREDICTOR_NAMES_KEY: generator_option_dict[
+                example_utils.SCALAR_PREDICTOR_NAMES_KEY: generator_option_dict[
                     neural_net.SCALAR_PREDICTOR_NAMES_KEY
                 ],
-                example_io.VECTOR_PREDICTOR_NAMES_KEY: generator_option_dict[
+                example_utils.VECTOR_PREDICTOR_NAMES_KEY: generator_option_dict[
                     neural_net.VECTOR_PREDICTOR_NAMES_KEY
                 ],
-                example_io.HEIGHTS_KEY: generator_option_dict[
+                example_utils.HEIGHTS_KEY: generator_option_dict[
                     neural_net.HEIGHTS_KEY
                 ]
             }
@@ -733,11 +733,11 @@ def run_forward_test(
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_utils.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     new_example_dict = neural_net.predictors_numpy_to_dict(
@@ -898,11 +898,11 @@ def run_backwards_test(
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_utils.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     new_example_dict = neural_net.predictors_numpy_to_dict(

@@ -5,8 +5,9 @@ import os.path
 import argparse
 import numpy
 from gewittergefahr.gg_utils import time_conversion
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
@@ -18,7 +19,7 @@ ZERO_HEATING_HEIGHT_M_AGL = 49999.
 MAX_HEIGHT_M_AGL = 50001.
 
 TARGET_VALUE_KEYS = [
-    example_io.SCALAR_TARGET_VALS_KEY, example_io.VECTOR_TARGET_VALS_KEY
+    example_utils.SCALAR_TARGET_VALS_KEY, example_utils.VECTOR_TARGET_VALS_KEY
 ]
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
@@ -80,11 +81,11 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
     )
 
     generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = [
-        example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
-        example_io.ZENITH_ANGLE_NAME
+        example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+        example_utils.ZENITH_ANGLE_NAME
     ]
     generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
-        example_io.PRESSURE_NAME
+        example_utils.PRESSURE_NAME
     ]
     generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     generator_option_dict[neural_net.BATCH_SIZE_KEY] = NUM_EXAMPLES_PER_BATCH
@@ -96,11 +97,11 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
     )
 
     dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_utils.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     pressure_matrix_pascals = None
@@ -117,7 +118,7 @@ def _get_unnormalized_pressure(model_metadata_dict, example_id_strings):
             net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
         )
         this_pressure_matrix_pascals = (
-            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY][..., 0]
+            this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., 0]
         )
 
         if pressure_matrix_pascals is None:
@@ -147,19 +148,20 @@ def _get_predicted_heating_rates(
     )
 
     this_dict = {
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.PRESSURE_NAME],
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [example_utils.PRESSURE_NAME],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.expand_dims(pressure_matrix_pascals, axis=-1),
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.SCALAR_PREDICTOR_VALS_KEY: numpy.full((num_examples, 0), 0.),
-        example_io.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, 0), 0.),
+        example_utils.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int)
     }
     prediction_example_dict.update(this_dict)
 
     prediction_example_dict = (
-        example_io.fluxes_increments_to_actual(prediction_example_dict)
+        example_utils.fluxes_increments_to_actual(prediction_example_dict)
     )
-    prediction_example_dict = example_io.fluxes_to_heating_rate(
+    prediction_example_dict = example_utils.fluxes_to_heating_rate(
         prediction_example_dict
     )
 
@@ -167,7 +169,7 @@ def _get_predicted_heating_rates(
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     )
-    return example_io.subset_by_field(
+    return example_utils.subset_by_field(
         example_dict=prediction_example_dict, field_names=target_names
     )
 
@@ -202,7 +204,7 @@ def _targets_numpy_to_dict(
 
         if vector_target_matrix.shape[-1] == len(vector_target_names) - 1:
             heating_rate_index = vector_target_names.index(
-                example_io.SHORTWAVE_HEATING_RATE_NAME
+                example_utils.SHORTWAVE_HEATING_RATE_NAME
             )
             vector_target_matrix = numpy.insert(
                 vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
@@ -220,11 +222,11 @@ def _targets_numpy_to_dict(
         target_matrices = [scalar_target_matrix]
 
     example_dict = {
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.SCALAR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY:
+        example_utils.HEIGHTS_KEY:
             generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
@@ -384,20 +386,20 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_io.subset_by_height(
+    training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
 
     num_examples = len(example_id_strings)
-    num_heights = len(prediction_example_dict[example_io.HEIGHTS_KEY])
+    num_heights = len(prediction_example_dict[example_utils.HEIGHTS_KEY])
 
     this_dict = {
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: [],
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.full((num_examples, num_heights, 0), 0.),
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_io.SCALAR_PREDICTOR_VALS_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
             numpy.full((num_examples, 0), 0.)
     }
 
@@ -407,9 +409,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     if target_norm_type_string is not None:
         print('Denormalizing predicted values...')
 
-        down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
+        down_flux_inc_matrix_w_m03 = example_utils.get_field_from_dict(
             example_dict=prediction_example_dict,
-            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+            field_name=example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
         print(down_flux_inc_matrix_w_m03[0, ...])
         print('\n')
@@ -426,9 +428,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_targets=True
         )
 
-        down_flux_inc_matrix_w_m03 = example_io.get_field_from_dict(
+        down_flux_inc_matrix_w_m03 = example_utils.get_field_from_dict(
             example_dict=prediction_example_dict,
-            field_name=example_io.SHORTWAVE_DOWN_FLUX_INC_NAME
+            field_name=example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME
         )
         print(down_flux_inc_matrix_w_m03[0, ...])
         print('\n\n\n')
@@ -451,9 +453,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
 
-    if example_io.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
+    if example_utils.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
         heating_rate_index = vector_target_names.index(
-            example_io.SHORTWAVE_HEATING_RATE_NAME
+            example_utils.SHORTWAVE_HEATING_RATE_NAME
         )
 
         heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
@@ -462,10 +464,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         )[0]
 
         vector_target_matrix = (
-            prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+            prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
         )
         vector_target_matrix[..., heating_rate_index][..., height_indices] = 0.
-        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
             vector_target_matrix
         )
 
@@ -474,10 +476,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         all_heights_m_agl[all_heights_m_agl < MAX_HEIGHT_M_AGL]
     )
 
-    target_example_dict = example_io.subset_by_height(
+    target_example_dict = example_utils.subset_by_height(
         example_dict=target_example_dict, heights_m_agl=desired_heights_m_agl
     )
-    prediction_example_dict = example_io.subset_by_height(
+    prediction_example_dict = example_utils.subset_by_height(
         example_dict=prediction_example_dict,
         heights_m_agl=desired_heights_m_agl
     )
@@ -488,13 +490,13 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     prediction_io.write_file(
         netcdf_file_name=output_file_name,
         scalar_target_matrix=
-        target_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
+        target_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
         vector_target_matrix=
-        target_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
         scalar_prediction_matrix=
-        prediction_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
+        prediction_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
         vector_prediction_matrix=
-        prediction_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
         heights_m_agl=desired_heights_m_agl,
         example_id_strings=example_id_strings, model_file_name=model_file_name
     )

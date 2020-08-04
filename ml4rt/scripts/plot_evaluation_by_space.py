@@ -11,8 +11,8 @@ from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
 from ml4rt.scripts import plot_evaluation
 
@@ -518,11 +518,11 @@ def _augment_eval_table(result_table_xarray):
         return result_table_xarray
 
     example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY:
             result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values,
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             result_table_xarray.coords[evaluation.VECTOR_FIELD_DIM].values,
-        example_io.HEIGHTS_KEY:
+        example_utils.HEIGHTS_KEY:
             numpy.round(
                 result_table_xarray.coords[evaluation.HEIGHT_DIM].values
             ).astype(int)

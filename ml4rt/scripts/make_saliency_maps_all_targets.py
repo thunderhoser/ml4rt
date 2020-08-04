@@ -5,7 +5,7 @@ import os.path
 import argparse
 import numpy
 from ml4rt.utils import misc as misc_utils
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.scripts import make_saliency_maps
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
@@ -179,11 +179,11 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     )
 
     dummy_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
-        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.HEIGHTS_KEY: heights_m_agl
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
+        example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
+        example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
+        example_utils.HEIGHTS_KEY: heights_m_agl
     }
 
     for k in range(num_scalar_targets):
@@ -210,10 +210,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
                 net_type_string=net_type_string
             )
             saliency_matrix_scalar_p_scalar_t[..., k] = (
-                new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+                new_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
             )
             saliency_matrix_vector_p_scalar_t[..., k] = (
-                new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+                new_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
             )
         else:
             saliency_matrix_scalar_p_scalar_t[..., k] = (
@@ -257,10 +257,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
                     net_type_string=net_type_string
                 )
                 saliency_matrix_scalar_p_vector_t[..., j, k] = (
-                    new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+                    new_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
                 )
                 saliency_matrix_vector_p_vector_t[..., j, k] = (
-                    new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+                    new_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
                 )
             else:
                 saliency_matrix_scalar_p_vector_t[..., j, k] = (

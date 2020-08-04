@@ -9,7 +9,7 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import plotting_utils
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import saliency
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
@@ -24,24 +24,24 @@ METRES_TO_KM = 0.001
 TARGET_NAME_TO_VERBOSE = plot_saliency_maps.TARGET_NAME_TO_VERBOSE
 
 PREDICTOR_NAME_TO_VERBOSE = {
-    example_io.TEMPERATURE_NAME: 'temperature',
-    example_io.SPECIFIC_HUMIDITY_NAME: 'spec humidity',
-    example_io.RELATIVE_HUMIDITY_NAME: 'rel humidity',
-    example_io.WATER_VAPOUR_PATH_NAME: 'downward WVP',
-    example_io.UPWARD_WATER_VAPOUR_PATH_NAME: 'upward WVP',
-    example_io.PRESSURE_NAME: 'pressure',
-    example_io.LIQUID_WATER_CONTENT_NAME: 'LWC',
-    example_io.ICE_WATER_CONTENT_NAME: 'IWC',
-    example_io.LIQUID_WATER_PATH_NAME: 'downward LWP',
-    example_io.ICE_WATER_PATH_NAME: 'downward IWP',
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME: 'upward LWP',
-    example_io.UPWARD_ICE_WATER_PATH_NAME: 'upward IWP',
-    example_io.ZENITH_ANGLE_NAME: 'zenith angle',
-    example_io.LATITUDE_NAME: 'latitude',
-    example_io.LONGITUDE_NAME: 'longitude',
-    example_io.ALBEDO_NAME: 'albedo',
-    example_io.COLUMN_LIQUID_WATER_PATH_NAME: 'column LWP',
-    example_io.COLUMN_ICE_WATER_PATH_NAME: 'column IWP'
+    example_utils.TEMPERATURE_NAME: 'temperature',
+    example_utils.SPECIFIC_HUMIDITY_NAME: 'spec humidity',
+    example_utils.RELATIVE_HUMIDITY_NAME: 'rel humidity',
+    example_utils.WATER_VAPOUR_PATH_NAME: 'downward WVP',
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME: 'upward WVP',
+    example_utils.PRESSURE_NAME: 'pressure',
+    example_utils.LIQUID_WATER_CONTENT_NAME: 'LWC',
+    example_utils.ICE_WATER_CONTENT_NAME: 'IWC',
+    example_utils.LIQUID_WATER_PATH_NAME: 'downward LWP',
+    example_utils.ICE_WATER_PATH_NAME: 'downward IWP',
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME: 'upward LWP',
+    example_utils.UPWARD_ICE_WATER_PATH_NAME: 'upward IWP',
+    example_utils.ZENITH_ANGLE_NAME: 'zenith angle',
+    example_utils.LATITUDE_NAME: 'latitude',
+    example_utils.LONGITUDE_NAME: 'longitude',
+    example_utils.ALBEDO_NAME: 'albedo',
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 'column LWP',
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: 'column IWP'
 }
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)

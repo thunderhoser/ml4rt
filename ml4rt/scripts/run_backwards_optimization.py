@@ -5,6 +5,7 @@ import os.path
 import argparse
 import numpy
 from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
@@ -150,7 +151,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_io.subset_by_height(
+    training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
@@ -202,13 +203,13 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
 
     if example_file_name == '':
         example_file_name = example_io.find_many_files(
-            example_dir_name=example_dir_name,
+            directory_name=example_dir_name,
             first_time_unix_sec=0, last_time_unix_sec=int(1e12),
             raise_error_if_any_missing=False, raise_error_if_all_missing=True
         )[0]
 
     first_example_dict = example_io.read_file(example_file_name)
-    first_example_dict = example_io.subset_by_height(
+    first_example_dict = example_utils.subset_by_height(
         example_dict=first_example_dict,
         heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
     )
@@ -237,10 +238,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         )
 
     init_scalar_predictor_matrix = (
-        init_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        init_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
     init_vector_predictor_matrix = (
-        init_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        init_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
     )
 
     final_example_dict = copy.deepcopy(first_example_dict)
@@ -265,10 +266,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
         )
 
     final_scalar_predictor_matrix = (
-        final_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        final_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
     final_vector_predictor_matrix = (
-        final_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        final_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
     )
 
     print('Writing results to file: "{0:s}"...'.format(output_file_name))

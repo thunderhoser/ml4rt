@@ -4,11 +4,10 @@ import os.path
 import argparse
 import numpy
 import matplotlib
-
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import gradcam
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
@@ -168,9 +167,9 @@ def _run(gradcam_file_name, use_log_scale, prediction_file_name,
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     dummy_example_dict = {
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
+        example_utils.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     target_field_name, target_height_m_agl = (

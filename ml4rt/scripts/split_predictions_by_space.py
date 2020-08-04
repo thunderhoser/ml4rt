@@ -4,8 +4,8 @@ import copy
 import argparse
 import numpy
 from gewittergefahr.gg_utils import grids
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -102,12 +102,12 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
     # Read data.
     print('Reading data from: "{0:s}"...'.format(input_file_name))
     prediction_dict = prediction_io.read_file(input_file_name)
-    example_metadata_dict = example_io.parse_example_ids(
+    example_metadata_dict = example_utils.parse_example_ids(
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     )
 
-    example_latitudes_deg = example_metadata_dict[example_io.LATITUDES_KEY]
-    example_longitudes_deg = example_metadata_dict[example_io.LONGITUDES_KEY]
+    example_latitudes_deg = example_metadata_dict[example_utils.LATITUDES_KEY]
+    example_longitudes_deg = example_metadata_dict[example_utils.LONGITUDES_KEY]
 
     these_limits_deg = numpy.array([
         min_latitude_deg, max_latitude_deg, min_longitude_deg, max_longitude_deg

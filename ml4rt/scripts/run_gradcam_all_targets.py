@@ -3,7 +3,7 @@
 import os.path
 import argparse
 import numpy
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import gradcam
 from ml4rt.machine_learning import neural_net
@@ -132,9 +132,9 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
 
     dummy_example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY: [],
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.HEIGHTS_KEY: heights_m_agl
+        example_utils.SCALAR_TARGET_NAMES_KEY: [],
+        example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
+        example_utils.HEIGHTS_KEY: heights_m_agl
     }
 
     num_examples = len(example_id_strings)

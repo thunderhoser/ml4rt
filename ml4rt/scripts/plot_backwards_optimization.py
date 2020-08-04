@@ -9,7 +9,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import backwards_optimization as bwo
 from ml4rt.plotting import profile_plotting
@@ -85,52 +85,56 @@ def _plot_results_one_example(
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     base_example_dict = {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.HEIGHTS_KEY: generator_option_dict[neural_net.HEIGHTS_KEY]
     }
 
     init_example_dict = copy.deepcopy(base_example_dict)
-    init_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+    init_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
         bwo_dict[bwo.INIT_SCALAR_PREDICTORS_KEY][[example_index], ...]
     )
-    init_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+    init_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
         bwo_dict[bwo.INIT_VECTOR_PREDICTORS_KEY][[example_index], ...]
     )
 
     final_example_dict = copy.deepcopy(base_example_dict)
-    final_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+    final_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
         bwo_dict[bwo.FINAL_SCALAR_PREDICTORS_KEY][[example_index], ...]
     )
-    final_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+    final_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
         bwo_dict[bwo.FINAL_VECTOR_PREDICTORS_KEY][[example_index], ...]
     )
 
     diff_example_dict = copy.deepcopy(base_example_dict)
-    diff_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
-        final_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] -
-        init_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+    diff_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
+        final_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] -
+        init_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
-    diff_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
-        final_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] -
-        init_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    diff_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
+        final_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] -
+        init_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
     )
 
-    predictor_names = diff_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+    predictor_names = (
+        diff_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    )
 
-    if example_io.TEMPERATURE_NAME in predictor_names:
-        temperature_index = predictor_names.index(example_io.TEMPERATURE_NAME)
+    if example_utils.TEMPERATURE_NAME in predictor_names:
+        temperature_index = predictor_names.index(
+            example_utils.TEMPERATURE_NAME
+        )
         diff_predictor_matrix = (
-            diff_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+            diff_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
         )
         diff_predictor_matrix[..., temperature_index] = (
             temperature_conv.celsius_to_kelvins(
                 diff_predictor_matrix[..., temperature_index]
             )
         )
-        diff_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+        diff_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
             diff_predictor_matrix
         )
 
@@ -138,7 +142,7 @@ def _plot_results_one_example(
 
     for k in range(num_predictor_sets):
         these_flags = numpy.array([
-            n in base_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            n in base_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
             for n in PREDICTOR_NAMES_BY_SET[k]
         ], dtype=bool)
 

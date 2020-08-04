@@ -7,6 +7,7 @@ import numpy
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
@@ -172,7 +173,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
     )
 
     if target_height_m_agl is not None:
-        height_index = example_io.match_heights(
+        height_index = example_utils.match_heights(
             heights_m_agl=heights_m_agl,
             desired_height_m_agl=target_height_m_agl
         )
@@ -220,20 +221,20 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
             normalization_file_name
         ))
         training_example_dict = example_io.read_file(normalization_file_name)
-        training_example_dict = example_io.subset_by_height(
+        training_example_dict = example_utils.subset_by_height(
             example_dict=training_example_dict, heights_m_agl=heights_m_agl
         )
 
         dummy_example_dict = {
-            example_io.SCALAR_PREDICTOR_NAMES_KEY:
+            example_utils.SCALAR_PREDICTOR_NAMES_KEY:
                 generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-            example_io.VECTOR_PREDICTOR_NAMES_KEY:
+            example_utils.VECTOR_PREDICTOR_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-            example_io.SCALAR_TARGET_NAMES_KEY:
+            example_utils.SCALAR_TARGET_NAMES_KEY:
                 generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-            example_io.VECTOR_TARGET_NAMES_KEY:
+            example_utils.VECTOR_TARGET_NAMES_KEY:
                 generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-            example_io.HEIGHTS_KEY: heights_m_agl
+            example_utils.HEIGHTS_KEY: heights_m_agl
         }
 
         mean_training_example_dict = normalization.create_mean_example(
@@ -242,7 +243,7 @@ def _run(input_prediction_file_name, target_name, target_height_m_agl,
         )
 
         climo_prediction_matrix = mean_training_example_dict[
-            example_io.VECTOR_TARGET_VALS_KEY
+            example_utils.VECTOR_TARGET_VALS_KEY
         ][..., target_index]
 
         num_examples = vector_prediction_matrix.shape[0]

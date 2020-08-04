@@ -3,7 +3,7 @@
 import copy
 import unittest
 import numpy
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 
 TOLERANCE = 1e-6
@@ -15,7 +15,7 @@ VALID_TIMES_UNIX_SEC = numpy.array([0, 300, 600, 1200], dtype=int)
 STANDARD_ATMO_FLAGS = numpy.array([0, 1, 2, 3], dtype=int)
 
 SCALAR_PREDICTOR_NAMES = [
-    example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME
+    example_utils.ZENITH_ANGLE_NAME, example_utils.LATITUDE_NAME
 ]
 ZENITH_ANGLES_RADIANS = numpy.array([0, 1, 2, 3], dtype=float)
 LATITUDES_DEG_N = numpy.array([40.02, 40.02, 40.02, 40.02])
@@ -24,7 +24,7 @@ SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
 ))
 
 VECTOR_PREDICTOR_NAMES = [
-    example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME
+    example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME
 ]
 TEMPERATURE_MATRIX_KELVINS = numpy.array([
     [290, 295],
@@ -42,14 +42,14 @@ VECTOR_PREDICTOR_MATRIX = numpy.stack(
     (TEMPERATURE_MATRIX_KELVINS, SPEC_HUMIDITY_MATRIX_KG_KG01), axis=-1
 )
 
-SCALAR_TARGET_NAMES = [example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]
+SCALAR_TARGET_NAMES = [example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]
 SURFACE_DOWN_FLUXES_W_M02 = numpy.array([200, 200, 200, 200], dtype=float)
 SCALAR_TARGET_MATRIX = numpy.reshape(
     SURFACE_DOWN_FLUXES_W_M02, (len(SURFACE_DOWN_FLUXES_W_M02), 1)
 )
 
 VECTOR_TARGET_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
 
 DOWNWELLING_FLUX_MATRIX_W_M02 = numpy.array([
@@ -71,17 +71,17 @@ VECTOR_TARGET_MATRIX = numpy.stack(
 )
 
 EXAMPLE_DICT = {
-    example_io.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
-    example_io.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
-    example_io.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
-    example_io.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
-    example_io.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
-    example_io.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
-    example_io.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
-    example_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
-    example_io.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_io.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS
+    example_utils.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
+    example_utils.SCALAR_PREDICTOR_VALS_KEY: SCALAR_PREDICTOR_MATRIX,
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: VECTOR_PREDICTOR_MATRIX,
+    example_utils.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
+    example_utils.SCALAR_TARGET_VALS_KEY: SCALAR_TARGET_MATRIX,
+    example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
+    example_utils.VECTOR_TARGET_VALS_KEY: VECTOR_TARGET_MATRIX,
+    example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
+    example_utils.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS
 }
 
 THIS_ZENITH_ANGLE_MATRIX = numpy.array([
@@ -99,10 +99,10 @@ CNN_PREDICTOR_MATRIX = numpy.concatenate(
     (VECTOR_PREDICTOR_MATRIX, THIS_SCALAR_PREDICTOR_MATRIX), axis=-1
 )
 CNN_PREDICTOR_NAME_MATRIX = numpy.array([
-    [example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
-     example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME],
-    [example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
-     example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME]
+    [example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
+     example_utils.ZENITH_ANGLE_NAME, example_utils.LATITUDE_NAME],
+    [example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
+     example_utils.ZENITH_ANGLE_NAME, example_utils.LATITUDE_NAME]
 ])
 CNN_HEIGHT_MATRIX_M_AGL = numpy.array([
     [100, 100, numpy.nan, numpy.nan],
@@ -137,9 +137,9 @@ DENSE_NET_PREDICTOR_MATRIX = numpy.array([
     [287, 292.5, 0.0075, 0.01, 3, 40.02]
 ])
 DENSE_NET_PREDICTOR_NAME_MATRIX = numpy.array([
-    example_io.TEMPERATURE_NAME, example_io.TEMPERATURE_NAME,
-    example_io.SPECIFIC_HUMIDITY_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
-    example_io.ZENITH_ANGLE_NAME, example_io.LATITUDE_NAME
+    example_utils.TEMPERATURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.ZENITH_ANGLE_NAME, example_utils.LATITUDE_NAME
 ])
 DENSE_NET_HEIGHT_MATRIX_M_AGL = numpy.array(
     [100, 500, 100, 500, numpy.nan, numpy.nan]
@@ -165,9 +165,11 @@ CNN_NEURON_INDICES_LIST = [
 ]
 CNN_HEIGHTS_M_AGL = [100, 100, 500, 500, None]
 CNN_TARGET_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
 ]
 
 DENSE_NET_NEURON_INDICES_LIST = [
@@ -179,9 +181,11 @@ DENSE_NET_NEURON_INDICES_LIST = [
 ]
 DENSE_NET_HEIGHTS_M_AGL = [100, 500, 100, 500, None]
 DENSE_NET_TARGET_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_DOWN_FLUX_NAME,
-    example_io.SHORTWAVE_UP_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
 ]
 
 U_NET_NEURON_INDICES_LIST = [
@@ -192,8 +196,10 @@ U_NET_NEURON_INDICES_LIST = [
 ]
 U_NET_HEIGHTS_M_AGL = [100, 100, 500, 500]
 U_NET_TARGET_NAMES = [
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME,
-    example_io.SHORTWAVE_DOWN_FLUX_NAME, example_io.SHORTWAVE_UP_FLUX_NAME
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
 
 
@@ -286,11 +292,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.CNN_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
             VECTOR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY],
+            this_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY],
             SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
@@ -306,11 +312,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
             VECTOR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY],
+            this_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY],
             SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
@@ -326,11 +332,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.U_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY],
             VECTOR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY],
+            this_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY],
             SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
@@ -385,14 +391,14 @@ class NeuralNetTests(unittest.TestCase):
         """
 
         this_scalar_target_matrix = (
-            EXAMPLE_DICT[example_io.SCALAR_TARGET_VALS_KEY] + 0.
+            EXAMPLE_DICT[example_utils.SCALAR_TARGET_VALS_KEY] + 0.
         )
         this_scalar_target_matrix = numpy.full(
             (this_scalar_target_matrix.shape[0], 0), 0.
         )
 
         this_example_dict = copy.deepcopy(EXAMPLE_DICT)
-        this_example_dict[example_io.SCALAR_TARGET_VALS_KEY] = (
+        this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = (
             this_scalar_target_matrix
         )
 
@@ -460,11 +466,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.CNN_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
             VECTOR_TARGET_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
+            this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
             SCALAR_TARGET_MATRIX, atol=TOLERANCE
         ))
 
@@ -480,11 +486,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.CNN_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
             VECTOR_TARGET_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(
-            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY].size == 0
+            this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY].size == 0
         )
 
     def test_targets_numpy_to_dict_dense_net(self):
@@ -499,11 +505,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.DENSE_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
             VECTOR_TARGET_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY],
+            this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
             SCALAR_TARGET_MATRIX, atol=TOLERANCE
         ))
 
@@ -519,11 +525,11 @@ class NeuralNetTests(unittest.TestCase):
             net_type_string=neural_net.U_NET_TYPE_STRING
         )
         self.assertTrue(numpy.allclose(
-            this_example_dict[example_io.VECTOR_TARGET_VALS_KEY],
+            this_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
             VECTOR_TARGET_MATRIX, atol=TOLERANCE
         ))
         self.assertTrue(
-            this_example_dict[example_io.SCALAR_TARGET_VALS_KEY].size == 0
+            this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY].size == 0
         )
 
     def test_neuron_indices_to_target_var_cnn(self):

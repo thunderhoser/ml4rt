@@ -3,7 +3,7 @@
 import numpy
 import scipy.stats
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 
 DUMMY_HEIGHT_M_AGL = 10
 
@@ -15,11 +15,11 @@ Z_SCORE_NORM_STRING = 'z_score'
 VALID_NORM_TYPE_STRINGS = [MINMAX_NORM_STRING, Z_SCORE_NORM_STRING]
 
 TARGET_NAME_TO_LOG_FLAG = {
-    example_io.SHORTWAVE_DOWN_FLUX_NAME: False,
-    example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: False,
-    example_io.SHORTWAVE_UP_FLUX_NAME: True,
-    example_io.SHORTWAVE_TOA_UP_FLUX_NAME: True,
-    example_io.SHORTWAVE_HEATING_RATE_NAME: True
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: False,
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: False,
+    example_utils.SHORTWAVE_UP_FLUX_NAME: True,
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: True,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: True
 }
 
 
@@ -254,17 +254,17 @@ def normalize_data(
 
     if apply_to_predictors:
         scalar_predictor_names = (
-            new_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+            new_example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
         )
     else:
         scalar_predictor_names = []
 
     new_scalar_predictor_matrix = (
-        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
 
     for k in range(len(scalar_predictor_names)):
-        these_training_values = example_io.get_field_from_dict(
+        these_training_values = example_utils.get_field_from_dict(
             example_dict=training_example_dict,
             field_name=scalar_predictor_names[k]
         )
@@ -277,23 +277,23 @@ def normalize_data(
             max_normalized_value=max_normalized_value
         )
 
-    new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+    new_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
         new_scalar_predictor_matrix
     )
 
     if apply_to_targets:
         scalar_target_names = (
-            new_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+            new_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
         )
     else:
         scalar_target_names = []
 
     new_scalar_target_matrix = (
-        new_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+        new_example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
     )
 
     for k in range(len(scalar_target_names)):
-        these_training_values = example_io.get_field_from_dict(
+        these_training_values = example_utils.get_field_from_dict(
             example_dict=training_example_dict,
             field_name=scalar_target_names[k]
         )
@@ -306,29 +306,29 @@ def normalize_data(
             max_normalized_value=max_normalized_value
         )
 
-    new_example_dict[example_io.SCALAR_TARGET_VALS_KEY] = (
+    new_example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = (
         new_scalar_target_matrix
     )
 
     if apply_to_predictors:
         vector_predictor_names = (
-            new_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
         )
     else:
         vector_predictor_names = []
 
     new_vector_predictor_matrix = (
-        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
     )
     heights_m_agl = (
-        numpy.round(new_example_dict[example_io.HEIGHTS_KEY]).astype(int)
+        numpy.round(new_example_dict[example_utils.HEIGHTS_KEY]).astype(int)
     )
     num_heights = len(heights_m_agl)
 
     for k in range(len(vector_predictor_names)):
         if separate_heights:
             for j in range(num_heights):
-                these_training_values = example_io.get_field_from_dict(
+                these_training_values = example_utils.get_field_from_dict(
                     example_dict=training_example_dict,
                     field_name=vector_predictor_names[k],
                     height_m_agl=heights_m_agl[j]
@@ -344,7 +344,7 @@ def normalize_data(
                     )
                 )
         else:
-            these_training_values = example_io.get_field_from_dict(
+            these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=vector_predictor_names[k]
             )
@@ -357,25 +357,25 @@ def normalize_data(
                 max_normalized_value=max_normalized_value
             )
 
-    new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+    new_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
         new_vector_predictor_matrix
     )
 
     if apply_to_targets:
         vector_target_names = (
-            new_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+            new_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
         )
     else:
         vector_target_names = []
 
     new_vector_target_matrix = (
-        new_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        new_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     for k in range(len(vector_target_names)):
         if separate_heights:
             for j in range(num_heights):
-                these_training_values = example_io.get_field_from_dict(
+                these_training_values = example_utils.get_field_from_dict(
                     example_dict=training_example_dict,
                     field_name=vector_target_names[k],
                     height_m_agl=heights_m_agl[j]
@@ -389,7 +389,7 @@ def normalize_data(
                     max_normalized_value=max_normalized_value
                 )
         else:
-            these_training_values = example_io.get_field_from_dict(
+            these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=vector_target_names[k]
             )
@@ -402,7 +402,7 @@ def normalize_data(
                 max_normalized_value=max_normalized_value
             )
 
-    new_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    new_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         new_vector_target_matrix
     )
     return new_example_dict
@@ -446,17 +446,17 @@ def denormalize_data(
 
     if apply_to_predictors:
         scalar_predictor_names = (
-            new_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+            new_example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
         )
     else:
         scalar_predictor_names = []
 
     new_scalar_predictor_matrix = (
-        new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
 
     for k in range(len(scalar_predictor_names)):
-        these_training_values = example_io.get_field_from_dict(
+        these_training_values = example_utils.get_field_from_dict(
             example_dict=training_example_dict,
             field_name=scalar_predictor_names[k]
         )
@@ -469,23 +469,23 @@ def denormalize_data(
             max_normalized_value=max_normalized_value
         )
 
-    new_example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY] = (
+    new_example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
         new_scalar_predictor_matrix
     )
 
     if apply_to_targets:
         scalar_target_names = (
-            new_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+            new_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
         )
     else:
         scalar_target_names = []
 
     new_scalar_target_matrix = (
-        new_example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+        new_example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
     )
 
     for k in range(len(scalar_target_names)):
-        these_training_values = example_io.get_field_from_dict(
+        these_training_values = example_utils.get_field_from_dict(
             example_dict=training_example_dict,
             field_name=scalar_target_names[k]
         )
@@ -498,43 +498,44 @@ def denormalize_data(
             max_normalized_value=max_normalized_value
         )
 
-    new_example_dict[example_io.SCALAR_TARGET_VALS_KEY] = (
+    new_example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = (
         new_scalar_target_matrix
     )
 
     if apply_to_predictors:
         vector_predictor_names = (
-            new_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
         )
     else:
         vector_predictor_names = []
 
     new_vector_predictor_matrix = (
-        new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+        new_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
     )
     heights_m_agl = (
-        numpy.round(new_example_dict[example_io.HEIGHTS_KEY]).astype(int)
+        numpy.round(new_example_dict[example_utils.HEIGHTS_KEY]).astype(int)
     )
     num_heights = len(heights_m_agl)
 
     for k in range(len(vector_predictor_names)):
         if separate_heights:
             for j in range(num_heights):
-                these_training_values = example_io.get_field_from_dict(
+                these_training_values = example_utils.get_field_from_dict(
                     example_dict=training_example_dict,
                     field_name=vector_predictor_names[k],
                     height_m_agl=heights_m_agl[j]
                 )
 
                 new_vector_predictor_matrix[..., j, k] = _denorm_one_variable(
-                    normalized_values_new=new_vector_predictor_matrix[..., j, k],
+                    normalized_values_new=
+                    new_vector_predictor_matrix[..., j, k],
                     orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
         else:
-            these_training_values = example_io.get_field_from_dict(
+            these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=vector_predictor_names[k]
             )
@@ -547,25 +548,25 @@ def denormalize_data(
                 max_normalized_value=max_normalized_value
             )
 
-    new_example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY] = (
+    new_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
         new_vector_predictor_matrix
     )
 
     if apply_to_targets:
         vector_target_names = (
-            new_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+            new_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
         )
     else:
         vector_target_names = []
 
     new_vector_target_matrix = (
-        new_example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        new_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
 
     for k in range(len(vector_target_names)):
         if separate_heights:
             for j in range(num_heights):
-                these_training_values = example_io.get_field_from_dict(
+                these_training_values = example_utils.get_field_from_dict(
                     example_dict=training_example_dict,
                     field_name=vector_target_names[k],
                     height_m_agl=heights_m_agl[j]
@@ -579,7 +580,7 @@ def denormalize_data(
                     max_normalized_value=max_normalized_value
                 )
         else:
-            these_training_values = example_io.get_field_from_dict(
+            these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=vector_target_names[k]
             )
@@ -592,7 +593,7 @@ def denormalize_data(
                 max_normalized_value=max_normalized_value
             )
 
-    new_example_dict[example_io.VECTOR_TARGET_VALS_KEY] = (
+    new_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
         new_vector_target_matrix
     )
     return new_example_dict
@@ -603,18 +604,22 @@ def create_mean_example(new_example_dict, training_example_dict):
 
     :param new_example_dict: See doc for `normalize_data`.
     :param training_example_dict: Same.
-    :return: mean_example_dict: See doc for `example_io.average_examples`.
+    :return: mean_example_dict: See doc for `example_utils.average_examples`.
     """
 
     scalar_predictor_names = (
-        new_example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        new_example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
     )
-    scalar_target_names = new_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    scalar_target_names = (
+        new_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
+    )
     vector_predictor_names = (
-        new_example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
     )
-    vector_target_names = new_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = new_example_dict[example_io.HEIGHTS_KEY]
+    vector_target_names = (
+        new_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    )
+    heights_m_agl = new_example_dict[example_utils.HEIGHTS_KEY]
 
     num_scalar_predictors = len(scalar_predictor_names)
     num_scalar_targets = len(scalar_target_names)
@@ -632,14 +637,14 @@ def create_mean_example(new_example_dict, training_example_dict):
     )
 
     for k in range(num_scalar_predictors):
-        these_training_values = example_io.get_field_from_dict(
+        these_training_values = example_utils.get_field_from_dict(
             example_dict=training_example_dict,
             field_name=scalar_predictor_names[k]
         )
         mean_scalar_predictor_values[k] = numpy.mean(these_training_values)
 
     for k in range(num_scalar_targets):
-        these_training_values = example_io.get_field_from_dict(
+        these_training_values = example_utils.get_field_from_dict(
             example_dict=training_example_dict,
             field_name=scalar_target_names[k]
         )
@@ -647,7 +652,7 @@ def create_mean_example(new_example_dict, training_example_dict):
 
     for j in range(num_heights):
         for k in range(num_vector_predictors):
-            these_training_values = example_io.get_field_from_dict(
+            these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=vector_predictor_names[k],
                 height_m_agl=heights_m_agl[j]
@@ -657,7 +662,7 @@ def create_mean_example(new_example_dict, training_example_dict):
             )
 
         for k in range(num_vector_targets):
-            these_training_values = example_io.get_field_from_dict(
+            these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=vector_target_names[k],
                 height_m_agl=heights_m_agl[j]
@@ -665,17 +670,17 @@ def create_mean_example(new_example_dict, training_example_dict):
             mean_vector_target_matrix[j, k] = numpy.mean(these_training_values)
 
     return {
-        example_io.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
-        example_io.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
-        example_io.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
-        example_io.VECTOR_TARGET_NAMES_KEY: vector_target_names,
-        example_io.HEIGHTS_KEY: heights_m_agl,
-        example_io.SCALAR_PREDICTOR_VALS_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
+        example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
+        example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
+        example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
             numpy.expand_dims(mean_scalar_predictor_values, axis=0),
-        example_io.SCALAR_TARGET_VALS_KEY:
+        example_utils.SCALAR_TARGET_VALS_KEY:
             numpy.expand_dims(mean_scalar_target_values, axis=0),
-        example_io.VECTOR_PREDICTOR_VALS_KEY:
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.expand_dims(mean_vector_predictor_matrix, axis=0),
-        example_io.VECTOR_TARGET_VALS_KEY:
+        example_utils.VECTOR_TARGET_VALS_KEY:
             numpy.expand_dims(mean_vector_target_matrix, axis=0)
     }

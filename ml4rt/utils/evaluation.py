@@ -8,6 +8,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
@@ -99,7 +100,7 @@ def _check_args(
 
     num_examples = scalar_target_matrix.shape[0]
     num_scalar_targets = len(
-        mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+        mean_training_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
     )
 
     these_expected_dim = numpy.array(
@@ -121,7 +122,7 @@ def _check_args(
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = len(
-        mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+        mean_training_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
     )
 
     these_expected_dim = numpy.array(
@@ -341,7 +342,7 @@ def get_aux_fields(prediction_dict, example_dict):
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
 
-    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
     aux_target_field_names = []
     aux_predicted_field_names = []
 
@@ -351,10 +352,10 @@ def get_aux_fields(prediction_dict, example_dict):
 
     try:
         surface_down_flux_index = scalar_target_names.index(
-            example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
         )
         toa_up_flux_index = scalar_target_names.index(
-            example_io.SHORTWAVE_TOA_UP_FLUX_NAME
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
         )
 
         aux_target_field_names.append(NET_FLUX_NAME)
@@ -379,20 +380,22 @@ def get_aux_fields(prediction_dict, example_dict):
         surface_down_flux_index = -1
         toa_up_flux_index = -1
 
-    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+    vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
     if toa_up_flux_index >= 0:
         try:
             this_field_index = vector_target_names.index(
-                example_io.SHORTWAVE_UP_FLUX_NAME
+                example_utils.SHORTWAVE_UP_FLUX_NAME
             )
-            this_height_index = example_io.match_heights(
+            this_height_index = example_utils.match_heights(
                 heights_m_agl=heights_m_agl,
                 desired_height_m_agl=ASSUMED_TOA_HEIGHT_M_AGL
             )
 
-            aux_target_field_names.append(example_io.SHORTWAVE_TOA_UP_FLUX_NAME)
+            aux_target_field_names.append(
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
             aux_predicted_field_names.append(HIGHEST_UP_FLUX_NAME)
 
             this_target_matrix = (
@@ -415,15 +418,15 @@ def get_aux_fields(prediction_dict, example_dict):
     if surface_down_flux_index >= 0:
         try:
             this_field_index = vector_target_names.index(
-                example_io.SHORTWAVE_DOWN_FLUX_NAME
+                example_utils.SHORTWAVE_DOWN_FLUX_NAME
             )
-            this_height_index = example_io.match_heights(
+            this_height_index = example_utils.match_heights(
                 heights_m_agl=heights_m_agl,
                 desired_height_m_agl=ASSUMED_SURFACE_HEIGHT_M_AGL
             )
 
             aux_target_field_names.append(
-                example_io.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
             )
             aux_predicted_field_names.append(LOWEST_DOWN_FLUX_NAME)
 
@@ -496,15 +499,15 @@ def get_scores_all_variables(
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
 
     example_dict = {
-        example_io.SCALAR_TARGET_NAMES_KEY:
+        example_utils.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-        example_io.VECTOR_TARGET_NAMES_KEY:
+        example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_io.SCALAR_PREDICTOR_NAMES_KEY:
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
-        example_io.VECTOR_PREDICTOR_NAMES_KEY:
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_io.HEIGHTS_KEY: heights_m_agl
+        example_utils.HEIGHTS_KEY: heights_m_agl
     }
 
     normalization_file_name = (
@@ -516,7 +519,7 @@ def get_scores_all_variables(
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_io.subset_by_height(
+    training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
 
@@ -605,7 +608,7 @@ def get_scores_all_variables(
         )
 
         this_climo_value = mean_training_example_dict[
-            example_io.SCALAR_TARGET_VALS_KEY
+            example_utils.SCALAR_TARGET_VALS_KEY
         ][0, k]
 
         scalar_mse_skill_scores[k] = _get_mse_ss_one_scalar(
@@ -637,7 +640,7 @@ def get_scores_all_variables(
             )
 
             this_climo_value = mean_training_example_dict[
-                example_io.VECTOR_TARGET_VALS_KEY
+                example_utils.VECTOR_TARGET_VALS_KEY
             ][0, j, k]
 
             vector_mse_ss_matrix[j, k] = _get_mse_ss_one_scalar(
@@ -667,11 +670,12 @@ def get_scores_all_variables(
             if aux_target_field_names[k] != NET_FLUX_NAME:
                 continue
 
+            this_key = example_utils.SCALAR_TARGET_VALS_KEY
+
             this_climo_value = (
-                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
-                    0, surface_down_flux_index] -
-                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
-                    0, toa_up_flux_index]
+                mean_training_example_dict[this_key][0, surface_down_flux_index]
+                -
+                mean_training_example_dict[this_key][0, toa_up_flux_index]
             )
 
             aux_mse_skill_scores[k] = _get_mse_ss_one_scalar(
@@ -700,7 +704,7 @@ def get_scores_all_variables(
         )
 
         this_climo_value = mean_training_example_dict[
-            example_io.SCALAR_TARGET_VALS_KEY
+            example_utils.SCALAR_TARGET_VALS_KEY
         ][0, k]
 
         scalar_mae_skill_scores[k] = _get_mae_ss_one_scalar(
@@ -732,7 +736,7 @@ def get_scores_all_variables(
             )
 
             this_climo_value = mean_training_example_dict[
-                example_io.VECTOR_TARGET_VALS_KEY
+                example_utils.VECTOR_TARGET_VALS_KEY
             ][0, j, k]
 
             vector_mae_ss_matrix[j, k] = _get_mae_ss_one_scalar(
@@ -762,11 +766,12 @@ def get_scores_all_variables(
             if aux_target_field_names[k] != NET_FLUX_NAME:
                 continue
 
+            this_key = example_utils.SCALAR_TARGET_VALS_KEY
+
             this_climo_value = (
-                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
-                    0, surface_down_flux_index] -
-                mean_training_example_dict[example_io.SCALAR_TARGET_VALS_KEY][
-                    0, toa_up_flux_index]
+                mean_training_example_dict[this_key][0, surface_down_flux_index]
+                -
+                mean_training_example_dict[this_key][0, toa_up_flux_index]
             )
 
             aux_mae_skill_scores[k] = _get_mae_ss_one_scalar(
@@ -1102,10 +1107,10 @@ def get_scores_all_variables(
 
     metadata_dict = {
         SCALAR_FIELD_DIM:
-            mean_training_example_dict[example_io.SCALAR_TARGET_NAMES_KEY],
+            mean_training_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
         HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM:
-            mean_training_example_dict[example_io.VECTOR_TARGET_NAMES_KEY],
+            mean_training_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
         RELIABILITY_BIN_DIM: bin_indices
     }
 

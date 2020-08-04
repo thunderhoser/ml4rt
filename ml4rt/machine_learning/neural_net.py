@@ -10,6 +10,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import cnn
 from ml4rt.io import example_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import keras_metrics as custom_metrics
 
@@ -67,11 +68,11 @@ TARGET_MIN_NORM_VALUE_KEY = 'target_min_norm_value'
 TARGET_MAX_NORM_VALUE_KEY = 'target_max_norm_value'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
-    SCALAR_PREDICTOR_NAMES_KEY: example_io.ALL_SCALAR_PREDICTOR_NAMES,
-    VECTOR_PREDICTOR_NAMES_KEY: example_io.ALL_VECTOR_PREDICTOR_NAMES,
-    SCALAR_TARGET_NAMES_KEY: example_io.ALL_SCALAR_TARGET_NAMES,
-    VECTOR_TARGET_NAMES_KEY: example_io.ALL_VECTOR_TARGET_NAMES,
-    HEIGHTS_KEY: example_io.DEFAULT_HEIGHTS_M_AGL,
+    SCALAR_PREDICTOR_NAMES_KEY: example_utils.ALL_SCALAR_PREDICTOR_NAMES,
+    VECTOR_PREDICTOR_NAMES_KEY: example_utils.ALL_VECTOR_PREDICTOR_NAMES,
+    SCALAR_TARGET_NAMES_KEY: example_utils.ALL_SCALAR_TARGET_NAMES,
+    VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
+    HEIGHTS_KEY: example_utils.DEFAULT_HEIGHTS_M_AGL,
     MIN_COLUMN_LWP_KEY: 0.,
     MAX_COLUMN_LWP_KEY: LARGE_FLOAT,
     OMIT_HEATING_RATE_KEY: False,
@@ -154,9 +155,9 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_boolean(omit_heating_rate)
 
     required_vector_target_names = [
-        example_io.SHORTWAVE_UP_FLUX_INC_NAME,
-        example_io.SHORTWAVE_DOWN_FLUX_INC_NAME,
-        example_io.SHORTWAVE_HEATING_RATE_NAME
+        example_utils.SHORTWAVE_UP_FLUX_INC_NAME,
+        example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME,
+        example_utils.SHORTWAVE_HEATING_RATE_NAME
     ]
     this_flag = all([
         n in option_dict[VECTOR_TARGET_NAMES_KEY]
@@ -225,21 +226,21 @@ def _read_file_for_generator(
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
 
-    example_dict = example_io.subset_by_time(
+    example_dict = example_utils.subset_by_time(
         example_dict=example_dict,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec
     )[0]
 
-    example_dict = example_io.subset_by_column_lwp(
+    example_dict = example_utils.subset_by_column_lwp(
         example_dict=example_dict, min_lwp_kg_m02=min_column_lwp_kg_m02,
         max_lwp_kg_m02=max_column_lwp_kg_m02
     )[0]
 
-    example_dict = example_io.subset_by_field(
+    example_dict = example_utils.subset_by_field(
         example_dict=example_dict, field_names=field_names
     )
-    example_dict = example_io.subset_by_height(
+    example_dict = example_utils.subset_by_height(
         example_dict=example_dict, heights_m_agl=heights_m_agl
     )
 
@@ -299,9 +300,11 @@ def _read_specific_examples(
     file_years = numpy.array(
         [example_io.file_name_to_year(f) for f in example_file_names], dtype=int
     )
-    example_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
-        example_io.VALID_TIMES_KEY
-    ]
+
+    example_times_unix_sec = example_utils.parse_example_ids(
+        example_id_strings
+    )[example_utils.VALID_TIMES_KEY]
+
     example_years = numpy.array([
         int(time_conversion.unix_sec_to_string(t, '%Y'))
         for t in example_times_unix_sec
@@ -324,25 +327,25 @@ def _read_specific_examples(
             example_file_names[this_file_index]
         )
 
-        these_indices = example_io.find_examples(
-            all_id_strings=this_example_dict[example_io.EXAMPLE_IDS_KEY],
+        these_indices = example_utils.find_examples(
+            all_id_strings=this_example_dict[example_utils.EXAMPLE_IDS_KEY],
             desired_id_strings=these_example_id_strings,
             allow_missing=False
         )
-        this_example_dict = example_io.subset_by_index(
+        this_example_dict = example_utils.subset_by_index(
             example_dict=this_example_dict, desired_indices=these_indices
         )
 
-        this_example_dict = example_io.subset_by_field(
+        this_example_dict = example_utils.subset_by_field(
             example_dict=this_example_dict, field_names=field_names
         )
-        this_example_dict = example_io.subset_by_height(
+        this_example_dict = example_utils.subset_by_height(
             example_dict=this_example_dict, heights_m_agl=heights_m_agl
         )
 
         example_dicts.append(this_example_dict)
 
-    example_dict = example_io.concat_examples(example_dicts)
+    example_dict = example_utils.concat_examples(example_dicts)
 
     if predictor_norm_type_string is not None:
         print('Applying {0:s} normalization to predictors...'.format(
@@ -456,19 +459,21 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
 
     check_net_type(net_type_string)
 
-    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
     vector_predictor_names = numpy.array(
-        example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
     )
     scalar_predictor_names = numpy.array(
-        example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
     )
 
     num_heights = len(heights_m_agl)
     num_vector_predictors = len(vector_predictor_names)
     num_scalar_predictors = len(scalar_predictor_names)
 
-    vector_predictor_matrix = example_dict[example_io.VECTOR_PREDICTOR_VALS_KEY]
+    vector_predictor_matrix = (
+        example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
+    )
     vector_height_matrix_m_agl = numpy.reshape(
         heights_m_agl, (num_heights, 1)
     )
@@ -483,7 +488,7 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
     )
 
     scalar_predictor_matrix = (
-        example_dict[example_io.SCALAR_PREDICTOR_VALS_KEY]
+        example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
 
     if net_type_string != DENSE_NET_TYPE_STRING:
@@ -570,7 +575,7 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     check_net_type(net_type_string)
 
     num_scalar_predictors = len(
-        example_dict[example_io.SCALAR_PREDICTOR_NAMES_KEY]
+        example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
     )
 
     if net_type_string == DENSE_NET_TYPE_STRING:
@@ -587,9 +592,9 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
                 predictor_matrix[:, :-num_scalar_predictors]
             )
 
-        num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+        num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
         num_vector_predictors = len(
-            example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
         )
         num_examples = vector_predictor_matrix.shape[0]
 
@@ -600,8 +605,8 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
         )
 
         return {
-            example_io.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
-            example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
+            example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
+            example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
         }
 
     error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=3)
@@ -616,8 +621,8 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
         vector_predictor_matrix = predictor_matrix[..., :-num_scalar_predictors]
 
     return {
-        example_io.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
-        example_io.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
+        example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
     }
 
 
@@ -638,10 +643,12 @@ def targets_dict_to_numpy(example_dict, net_type_string,
     check_net_type(net_type_string)
 
     if net_type_string == U_NET_TYPE_STRING:
-        return [example_dict[example_io.VECTOR_TARGET_VALS_KEY]]
+        return [example_dict[example_utils.VECTOR_TARGET_VALS_KEY]]
 
     if net_type_string == DENSE_NET_TYPE_STRING:
-        vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
+        vector_target_matrix = (
+            example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
+        )
         num_examples = vector_target_matrix.shape[0]
         num_heights = vector_target_matrix.shape[1]
         num_fields = vector_target_matrix.shape[2]
@@ -653,7 +660,7 @@ def targets_dict_to_numpy(example_dict, net_type_string,
 
         target_matrix = numpy.concatenate((
             vector_target_matrix,
-            example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+            example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
         ), axis=-1)
 
         return [target_matrix]
@@ -661,8 +668,12 @@ def targets_dict_to_numpy(example_dict, net_type_string,
     error_checking.assert_is_boolean(is_loss_constrained_mse)
 
     if not is_loss_constrained_mse:
-        vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
-        scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+        vector_target_matrix = (
+            example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
+        )
+        scalar_target_matrix = (
+            example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
+        )
 
         if scalar_target_matrix.size == 0:
             return [vector_target_matrix]
@@ -670,18 +681,18 @@ def targets_dict_to_numpy(example_dict, net_type_string,
         return [vector_target_matrix, scalar_target_matrix]
 
     up_flux_channel_index = (
-        example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
-            example_io.SHORTWAVE_UP_FLUX_NAME
+        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
+            example_utils.SHORTWAVE_UP_FLUX_NAME
         )
     )
     down_flux_channel_index = (
-        example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
-            example_io.SHORTWAVE_DOWN_FLUX_NAME
+        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
+            example_utils.SHORTWAVE_DOWN_FLUX_NAME
         )
     )
 
-    vector_target_matrix = example_dict[example_io.VECTOR_TARGET_VALS_KEY]
-    scalar_target_matrix = example_dict[example_io.SCALAR_TARGET_VALS_KEY]
+    vector_target_matrix = example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
+    scalar_target_matrix = example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
 
     this_vector_target_matrix = numpy.stack((
         vector_target_matrix[:, -1, up_flux_channel_index],
@@ -731,8 +742,8 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
         )
 
         return {
-            example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
         }
 
     if net_type_string == DENSE_NET_TYPE_STRING:
@@ -742,7 +753,7 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
         error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
 
         num_scalar_targets = len(
-            example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
         )
 
         if num_scalar_targets == 0:
@@ -752,9 +763,9 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
             scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
             vector_target_matrix = target_matrix[:, :-num_scalar_targets]
 
-        num_heights = len(example_dict[example_io.HEIGHTS_KEY])
+        num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
         num_vector_targets = len(
-            example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
         )
         num_examples = vector_target_matrix.shape[0]
 
@@ -773,8 +784,8 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
                 order='F'
             )
             heating_rate_index = (
-                example_dict[example_io.VECTOR_TARGET_NAMES_KEY].index(
-                    example_io.SHORTWAVE_HEATING_RATE_NAME
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
+                    example_utils.SHORTWAVE_HEATING_RATE_NAME
                 )
             )
             vector_target_matrix = numpy.insert(
@@ -783,8 +794,8 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
             )
 
         return {
-            example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
         }
 
     vector_target_matrix = target_matrices[0]
@@ -806,8 +817,8 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     )
 
     return {
-        example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-        example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+        example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+        example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
     }
 
 
@@ -842,8 +853,8 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
     error_checking.assert_is_geq(num_indices, min_num_indices)
     error_checking.assert_is_leq(num_indices, max_num_indices)
 
-    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+    vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
     if num_indices == 2:
         return (
@@ -851,7 +862,7 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
             heights_m_agl[neuron_indices[0]]
         )
 
-    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
+    scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
     num_scalar_targets = len(scalar_target_names)
     num_vector_targets = len(vector_target_names)
     num_heights = len(heights_m_agl)
@@ -868,10 +879,10 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
             example_dict=example_dict, net_type_string=net_type_string
         )
         scalar_target_matrix_orig = (
-            example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, ...]
+            example_dict[example_utils.SCALAR_TARGET_VALS_KEY][0, ...]
         )
         vector_target_matrix_orig = (
-            example_dict[example_io.VECTOR_TARGET_VALS_KEY][0, ...]
+            example_dict[example_utils.VECTOR_TARGET_VALS_KEY][0, ...]
         )
 
         these_indices = numpy.where(
@@ -901,7 +912,7 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
         example_dict=example_dict, net_type_string=net_type_string
     )
     scalar_target_matrix_orig = (
-        example_dict[example_io.SCALAR_TARGET_VALS_KEY][0, ...]
+        example_dict[example_utils.SCALAR_TARGET_VALS_KEY][0, ...]
     )
 
     these_indices = numpy.where(
@@ -926,9 +937,9 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
     check_net_type(net_type_string)
     error_checking.assert_is_string(target_name)
 
-    scalar_target_names = example_dict[example_io.SCALAR_TARGET_NAMES_KEY]
-    vector_target_names = example_dict[example_io.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_io.HEIGHTS_KEY]
+    scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
     num_scalar_targets = len(scalar_target_names)
     num_vector_targets = len(vector_target_names)
@@ -944,8 +955,8 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
         scalar_target_matrix_orig[:, channel_index] = SENTINEL_VALUE
 
         new_example_dict = {
-            example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
-            example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
+            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
+            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
         }
 
         scalar_target_matrix_keras = targets_dict_to_numpy(
@@ -960,14 +971,14 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
         return numpy.array([neuron_index], dtype=int)
 
     channel_index = vector_target_names.index(target_name)
-    height_index = example_io.match_heights(
+    height_index = example_utils.match_heights(
         heights_m_agl=heights_m_agl, desired_height_m_agl=height_m_agl
     )
     vector_target_matrix_orig[:, height_index, channel_index] = SENTINEL_VALUE
 
     new_example_dict = {
-        example_io.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
-        example_io.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
+        example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
+        example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
     }
 
     target_matrices_keras = targets_dict_to_numpy(
@@ -1009,12 +1020,12 @@ def data_generator(option_dict, for_inference, net_type_string,
         `example_io.read_file`.
     option_dict['num_examples_per_batch']: Batch size.
     option_dict['predictor_names']: 1-D list with names of predictor variables
-        (valid names listed in example_io.py).
+        (valid names listed in example_utils.py).
     option_dict['target_names']: Same but for target variables.
     option_dict['first_time_unix_sec']: Start time (will not generate examples
         before this time).
-    option_dict['last_time_unix_sec']: End time (will not generate examples after
-        this time).
+    option_dict['last_time_unix_sec']: End time (will not generate examples
+        after this time).
     option_dict['min_column_lwp_kg_m02']: Minimum full-column liquid-water path
         (LWP; kg m^-2).
     option_dict['max_column_lwp_kg_m02']: Max full-column LWP (kg m^-2).
@@ -1056,7 +1067,8 @@ def data_generator(option_dict, for_inference, net_type_string,
         values.
 
     :return: example_id_strings: [returned only if `for_inference == True`]
-        length-E list of example IDs created by `example_io.create_example_ids`.
+        length-E list of example IDs created by
+        `example_utils.create_example_ids`.
 
     If net type is dense net...
 
@@ -1100,7 +1112,7 @@ def data_generator(option_dict, for_inference, net_type_string,
     if omit_heating_rate:
         all_field_names = [
             f for f in all_field_names
-            if f != example_io.SHORTWAVE_HEATING_RATE_NAME
+            if f != example_utils.SHORTWAVE_HEATING_RATE_NAME
         ]
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
@@ -1117,12 +1129,12 @@ def data_generator(option_dict, for_inference, net_type_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_io.subset_by_height(
+    training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
 
     example_file_names = example_io.find_many_files(
-        example_dir_name=example_dir_name,
+        directory_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec,
         raise_error_if_any_missing=False
@@ -1147,7 +1159,9 @@ def data_generator(option_dict, for_inference, net_type_string,
             target_max_norm_value=target_max_norm_value
         )[0]
 
-        all_desired_id_strings += this_example_dict[example_io.EXAMPLE_IDS_KEY]
+        all_desired_id_strings += (
+            this_example_dict[example_utils.EXAMPLE_IDS_KEY]
+        )
 
     example_index = 0
 
@@ -1190,7 +1204,7 @@ def data_generator(option_dict, for_inference, net_type_string,
                 target_max_norm_value=target_max_norm_value
             )
 
-            these_id_strings = this_example_dict[example_io.EXAMPLE_IDS_KEY]
+            these_id_strings = this_example_dict[example_utils.EXAMPLE_IDS_KEY]
             example_id_strings += these_id_strings
             example_index += len(these_id_strings)
 
@@ -1280,9 +1294,9 @@ def data_generator_specific_examples(option_dict, net_type_string,
     option_dict = _check_generator_args(option_dict)
     check_net_type(net_type_string)
 
-    example_times_unix_sec = example_io.parse_example_ids(example_id_strings)[
-        example_io.VALID_TIMES_KEY
-    ]
+    example_times_unix_sec = example_utils.parse_example_ids(
+        example_id_strings
+    )[example_utils.VALID_TIMES_KEY]
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -1311,12 +1325,12 @@ def data_generator_specific_examples(option_dict, net_type_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_io.subset_by_height(
+    training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
 
     example_file_names = example_io.find_many_files(
-        example_dir_name=example_dir_name,
+        directory_name=example_dir_name,
         first_time_unix_sec=numpy.min(example_times_unix_sec),
         last_time_unix_sec=numpy.max(example_times_unix_sec),
         raise_error_if_any_missing=False
@@ -1359,7 +1373,9 @@ def data_generator_specific_examples(option_dict, net_type_string,
                 target_max_norm_value=target_max_norm_value
             )
 
-            example_index += len(this_example_dict[example_io.EXAMPLE_IDS_KEY])
+            example_index += len(
+                this_example_dict[example_utils.EXAMPLE_IDS_KEY]
+            )
 
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string

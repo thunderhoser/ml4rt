@@ -3,8 +3,8 @@
 import copy
 import unittest
 import numpy
-from ml4rt.io import example_io
 from ml4rt.io import prediction_io
+from ml4rt.utils import example_utils
 
 TOLERANCE = 1e-6
 
@@ -76,9 +76,10 @@ DUMMY_SCALAR_PREDICTOR_MATRIX = numpy.array([
 ])
 
 DUMMY_STANDARD_ATMO_ENUMS = numpy.array([
-    example_io.MIDLATITUDE_WINTER_ENUM, example_io.MIDLATITUDE_SUMMER_ENUM,
-    example_io.TROPICS_ENUM, example_io.MIDLATITUDE_WINTER_ENUM,
-    example_io.SUBARCTIC_SUMMER_ENUM
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.MIDLATITUDE_SUMMER_ENUM,
+    example_utils.TROPICS_ENUM, example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.SUBARCTIC_SUMMER_ENUM
 ])
 
 DUMMY_VECTOR_PREDICTOR_MATRIX = numpy.array([0, 1, 2, 3, 4], dtype=float)
@@ -90,20 +91,20 @@ DUMMY_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
 )
 
 DUMMY_EXAMPLE_DICT = {
-    example_io.SCALAR_PREDICTOR_NAMES_KEY: [
-        example_io.LATITUDE_NAME, example_io.LONGITUDE_NAME,
-        example_io.ZENITH_ANGLE_NAME
+    example_utils.SCALAR_PREDICTOR_NAMES_KEY: [
+        example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+        example_utils.ZENITH_ANGLE_NAME
     ],
-    example_io.SCALAR_PREDICTOR_VALS_KEY: DUMMY_SCALAR_PREDICTOR_MATRIX,
-    example_io.VECTOR_PREDICTOR_NAMES_KEY: [example_io.TEMPERATURE_NAME],
-    example_io.VECTOR_PREDICTOR_VALS_KEY: DUMMY_VECTOR_PREDICTOR_MATRIX,
-    example_io.HEIGHTS_KEY: numpy.array([10.]),
-    example_io.VALID_TIMES_KEY:
+    example_utils.SCALAR_PREDICTOR_VALS_KEY: DUMMY_SCALAR_PREDICTOR_MATRIX,
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: [example_utils.TEMPERATURE_NAME],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: DUMMY_VECTOR_PREDICTOR_MATRIX,
+    example_utils.HEIGHTS_KEY: numpy.array([10.]),
+    example_utils.VALID_TIMES_KEY:
         numpy.array([1e9, 1.1e9, 1.2e9, 1.3e9, 1.4e9], dtype=int),
-    example_io.STANDARD_ATMO_FLAGS_KEY: DUMMY_STANDARD_ATMO_ENUMS
+    example_utils.STANDARD_ATMO_FLAGS_KEY: DUMMY_STANDARD_ATMO_ENUMS
 }
 
-EXAMPLE_ID_STRINGS = example_io.create_example_ids(DUMMY_EXAMPLE_DICT)
+EXAMPLE_ID_STRINGS = example_utils.create_example_ids(DUMMY_EXAMPLE_DICT)
 MODEL_FILE_NAME = 'foo'
 
 PREDICTION_DICT = {
@@ -117,7 +118,7 @@ PREDICTION_DICT = {
 }
 
 # The following constants are used to test subset_by_standard_atmo.
-STANDARD_ATMO_ENUM = example_io.MIDLATITUDE_WINTER_ENUM + 0
+STANDARD_ATMO_ENUM = example_utils.MIDLATITUDE_WINTER_ENUM + 0
 THESE_INDICES = numpy.array([0, 3], dtype=int)
 
 PREDICTION_DICT_SUBSET_BY_ATMO = {

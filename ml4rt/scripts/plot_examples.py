@@ -7,7 +7,8 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import example_io
+from ml4rt.io import rrtm_io
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
@@ -21,22 +22,23 @@ PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
 FIRST_PREDICTOR_NAMES = [
-    example_io.TEMPERATURE_NAME, example_io.SPECIFIC_HUMIDITY_NAME,
-    example_io.RELATIVE_HUMIDITY_NAME, example_io.WATER_VAPOUR_PATH_NAME
+    example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.RELATIVE_HUMIDITY_NAME, example_utils.WATER_VAPOUR_PATH_NAME
 ]
 FIRST_PREDICTOR_COLOURS = [
     BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
 ]
 
 SECOND_PREDICTOR_NAMES = [
-    example_io.LIQUID_WATER_CONTENT_NAME, example_io.LIQUID_WATER_PATH_NAME,
-    example_io.UPWARD_LIQUID_WATER_PATH_NAME
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.LIQUID_WATER_PATH_NAME,
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME
 ]
 SECOND_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
 THIRD_PREDICTOR_NAMES = [
-    example_io.ICE_WATER_CONTENT_NAME, example_io.ICE_WATER_PATH_NAME,
-    example_io.UPWARD_ICE_WATER_PATH_NAME
+    example_utils.ICE_WATER_CONTENT_NAME, example_utils.ICE_WATER_PATH_NAME,
+    example_utils.UPWARD_ICE_WATER_PATH_NAME
 ]
 THIRD_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
 
@@ -115,12 +117,14 @@ def _plot_one_example(
         here.
     """
 
-    example_id_string = example_dict[example_io.EXAMPLE_IDS_KEY][example_index]
+    example_id_string = (
+        example_dict[example_utils.EXAMPLE_IDS_KEY][example_index]
+    )
     num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
 
     for k in range(num_predictor_sets):
         these_flags = numpy.array([
-            n in example_dict[example_io.VECTOR_PREDICTOR_NAMES_KEY]
+            n in example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
             for n in PREDICTOR_NAMES_BY_SET[k]
         ], dtype=bool)
 
@@ -215,18 +219,18 @@ def _run(example_file_name, num_examples, example_dir_name,
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
         )
         all_field_names = (
-            vector_predictor_names + example_io.DEFAULT_VECTOR_TARGET_NAMES
+            vector_predictor_names + rrtm_io.DEFAULT_VECTOR_TARGET_NAMES
         )
 
-        example_dict = example_io.subset_by_field(
+        example_dict = example_utils.subset_by_field(
             example_dict=example_dict, field_names=all_field_names
         )
-        example_dict = example_io.subset_by_height(
+        example_dict = example_utils.subset_by_height(
             example_dict=example_dict,
             heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
         )
 
-    num_examples = len(example_dict[example_io.VALID_TIMES_KEY])
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
 
     for i in range(num_examples):
         _plot_one_example(
