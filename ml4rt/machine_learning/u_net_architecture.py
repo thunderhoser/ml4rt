@@ -576,7 +576,7 @@ def create_model(option_dict, loss_function, num_output_channels=1):
         )
 
     model_object = keras.models.Model(
-        input=input_layer_object, output=second_conv_layer1_object
+        inputs=input_layer_object, outputs=second_conv_layer1_object
     )
 
     model_object.compile(

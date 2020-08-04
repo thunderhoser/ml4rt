@@ -1,6 +1,7 @@
 """Methods for building, training, and applying neural nets."""
 
 import copy
+import random
 import os.path
 import dill
 import numpy
@@ -1159,9 +1160,9 @@ def data_generator(option_dict, for_inference, net_type_string,
             target_max_norm_value=target_max_norm_value
         )
 
-        all_desired_id_strings += (
-            this_example_dict[example_utils.EXAMPLE_IDS_KEY]
-        )
+        these_id_strings = this_example_dict[example_utils.EXAMPLE_IDS_KEY]
+        random.shuffle(these_id_strings)
+        all_desired_id_strings += these_id_strings
 
     example_index = 0
 
