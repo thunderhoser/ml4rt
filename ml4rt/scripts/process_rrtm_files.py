@@ -156,12 +156,12 @@ def _remove_examples_in_wrong_year(example_dict, desired_year):
         time_conversion.first_and_last_times_in_year(desired_year)
     )
 
-    num_examples_orig = example_dict[example_utils.VALID_TIMES_KEY]
+    num_examples_orig = len(example_dict[example_utils.VALID_TIMES_KEY])
     example_dict = example_utils.subset_by_time(
         example_dict=example_dict, first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec
     )[0]
-    num_examples = example_dict[example_utils.VALID_TIMES_KEY]
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
 
     print('Removed {0:d} of {1:d} examples for being in the wrong year.'.format(
         num_examples_orig - num_examples, num_examples_orig
