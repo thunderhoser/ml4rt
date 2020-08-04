@@ -10,6 +10,8 @@ from ml4rt.scripts import training_args
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+NONE_STRINGS = ['', 'none', 'None']
+
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
@@ -54,6 +56,11 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     :param num_training_batches_per_epoch: Same.
     :param num_validn_batches_per_epoch: Same.
     """
+
+    if predictor_norm_type_string in NONE_STRINGS:
+        predictor_norm_type_string = None
+    if target_norm_type_string in NONE_STRINGS:
+        target_norm_type_string = None
 
     neural_net.check_net_type(net_type_string)
 
