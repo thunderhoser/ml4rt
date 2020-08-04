@@ -144,6 +144,31 @@ def _process_files_one_year(
     return example_utils.concat_examples(example_dicts)
 
 
+def _remove_examples_in_wrong_year(example_dict, desired_year):
+    """Removes examples in the wrong year.
+
+    :param example_dict: Dictionary in format created by `example_io.read_file`.
+    :param desired_year: Year that belongs in this dictionary (integer).
+    :return: example_dict: Same as input but maybe with fewer examples.
+    """
+
+    first_time_unix_sec, last_time_unix_sec = (
+        time_conversion.first_and_last_times_in_year(desired_year)
+    )
+
+    num_examples_orig = example_dict[example_utils.VALID_TIMES_KEY]
+    example_dict = example_utils.subset_by_time(
+        example_dict=example_dict, first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec
+    )[0]
+    num_examples = example_dict[example_utils.VALID_TIMES_KEY]
+
+    print('Removed {0:d} of {1:d} examples for being in the wrong year.'.format(
+        num_examples_orig - num_examples, num_examples_orig
+    ))
+    return example_dict
+
+
 def _remove_duplicate_examples(example_dict):
     """Removes duplicate examples from dictionary.
 
@@ -194,6 +219,9 @@ def _run(rrtm_directory_name, input_example_dir_name,
         )
         print('\n')
 
+        this_example_dict = _remove_examples_in_wrong_year(
+            example_dict=this_example_dict, desired_year=this_year
+        )
         this_example_dict = _remove_duplicate_examples(this_example_dict)
         this_output_file_name = example_io.find_file(
             directory_name=output_example_dir_name, year=this_year,
