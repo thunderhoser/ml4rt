@@ -18,6 +18,7 @@ SCALAR_TARGET_DIMENSION_KEY = 'scalar_target'
 EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 
 MODEL_FILE_KEY = 'model_file_name'
+ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
 SCALAR_TARGETS_KEY = 'scalar_target_matrix'
 SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGETS_KEY = 'vector_target_matrix'
@@ -160,7 +161,7 @@ def file_name_to_metadata(prediction_file_name):
 def write_file(
         netcdf_file_name, scalar_target_matrix, vector_target_matrix,
         scalar_prediction_matrix, vector_prediction_matrix, heights_m_agl,
-        example_id_strings, model_file_name):
+        example_id_strings, model_file_name, isotonic_model_file_name=None):
     """Writes predictions to NetCDF file.
 
     E = number of examples
@@ -183,6 +184,10 @@ def write_file(
         `example_utils.create_example_ids`.
     :param model_file_name: Path to file with trained model (readable by
         `neural_net.read_model`).
+    :param isotonic_model_file_name: Path to file with trained isotonic-
+        regression models (readable by `isotonic_regression.read_file`) used to
+        make predictions.  If isotonic regression was not used, leave this as
+        None.
     """
 
     # Check input args.
@@ -226,6 +231,9 @@ def write_file(
     example_utils.parse_example_ids(example_id_strings)
 
     error_checking.assert_is_string(model_file_name)
+    if isotonic_model_file_name is None:
+        isotonic_model_file_name = ''
+    error_checking.assert_is_string(isotonic_model_file_name)
 
     # Write to NetCDF file.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
@@ -234,6 +242,7 @@ def write_file(
     )
 
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
+    dataset_object.setncattr(ISOTONIC_MODEL_FILE_KEY, isotonic_model_file_name)
 
     num_examples = vector_target_matrix.shape[0]
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
@@ -323,6 +332,7 @@ def read_file(netcdf_file_name):
     prediction_dict['vector_prediction_matrix']: Same.
     prediction_dict['example_id_strings']: Same.
     prediction_dict['model_file_name']: Same.
+    prediction_dict['isotonic_model_file_name']: Same.
     """
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
@@ -335,8 +345,13 @@ def read_file(netcdf_file_name):
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
         ],
-        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
+        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY)),
+        ISOTONIC_MODEL_FILE_KEY:
+            str(getattr(dataset_object, ISOTONIC_MODEL_FILE_KEY))
     }
+
+    if prediction_dict[ISOTONIC_MODEL_FILE_KEY] == '':
+        prediction_dict[ISOTONIC_MODEL_FILE_KEY] = None
 
     if HEIGHTS_KEY in dataset_object.variables:
         prediction_dict[HEIGHTS_KEY] = dataset_object.variables[HEIGHTS_KEY][:]
@@ -501,6 +516,10 @@ def average_predictions(
         (metres above ground level).
     mean_prediction_dict['model_file_name']: Path to file with trained model
         (readable by `neural_net.read_model`).
+    mean_prediction_dict['isotonic_model_file_name']: Path to file with trained
+        isotonic-regression models (readable by `isotonic_regression.read_file`)
+        used to make predictions.  If isotonic regression was not used, this is
+        None.
     """
 
     error_checking.assert_is_boolean(use_pmm)
@@ -555,7 +574,8 @@ def average_predictions(
         VECTOR_TARGETS_KEY: mean_vector_target_matrix,
         VECTOR_PREDICTIONS_KEY: mean_vector_prediction_matrix,
         HEIGHTS_KEY: prediction_dict[HEIGHTS_KEY],
-        MODEL_FILE_KEY: prediction_dict[MODEL_FILE_KEY]
+        MODEL_FILE_KEY: prediction_dict[MODEL_FILE_KEY],
+        ISOTONIC_MODEL_FILE_KEY: prediction_dict[ISOTONIC_MODEL_FILE_KEY]
     }
 
 

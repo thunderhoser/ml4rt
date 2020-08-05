@@ -48,15 +48,21 @@ def _run(prediction_file_name, separate_by_height, output_dir_name):
     :param prediction_file_name: See documentation at top of file.
     :param separate_by_height: Same.
     :param output_dir_name: Same.
+    :raises: ValueError: if predictions in `prediction_file_name` were made with
+        isotonic regression.
     """
 
-    # TODO(thunderhoser): Verify that predictions do not include isotonic
-    # regression.  prediction_io.py needs to have isotonic_models_file_name
-    # in these files as a key.
     print('Reading original predictions from: "{0:s}"...'.format(
         prediction_file_name
     ))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    if prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY] is not None:
+        raise ValueError(
+            'Predictions used for training isotonic regression must be made '
+            'with base model only (i.e., must not already include isotonic '
+            'regression).'
+        )
 
     orig_vector_prediction_matrix = (
         None if prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].size == 0

@@ -47,12 +47,20 @@ def _run(input_prediction_file_name, model_file_name,
     :param input_prediction_file_name: See documentation at top of file.
     :param model_file_name: Same.
     :param output_prediction_file_name: Same.
+    :raises: ValueError: if predictions in `input_prediction_file_name` were
+        made with isotonic regression.
     """
 
     print('Reading original predictions from: "{0:s}"...'.format(
         input_prediction_file_name
     ))
     prediction_dict = prediction_io.read_file(input_prediction_file_name)
+
+    if prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY] is not None:
+        raise ValueError(
+            'Input predictions must be made with base model only (i.e., must '
+            'not already include isotonic regression).'
+        )
 
     orig_vector_prediction_matrix = (
         None if prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].size == 0
@@ -92,7 +100,8 @@ def _run(input_prediction_file_name, model_file_name,
         vector_prediction_matrix=new_vector_prediction_matrix,
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=model_file_name
     )
 
 
