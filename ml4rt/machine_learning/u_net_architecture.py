@@ -446,11 +446,16 @@ def create_model(option_dict, loss_function, num_output_channels=1):
             )(dense_output_layer_object)
 
             if i == num_dense_layers - 1:
+                this_name = (
+                    None if dense_layer_dropout_rates[i] > 0 else 'dense_output'
+                )
+
                 dense_output_layer_object = (
                     architecture_utils.get_activation_layer(
                         activation_function_string=output_activ_function_name,
                         alpha_for_relu=output_activ_function_alpha,
-                        alpha_for_elu=output_activ_function_alpha
+                        alpha_for_elu=output_activ_function_alpha,
+                        layer_name=this_name
                     )(dense_output_layer_object)
                 )
             else:
@@ -463,9 +468,14 @@ def create_model(option_dict, loss_function, num_output_channels=1):
                 )
 
             if dense_layer_dropout_rates[i] > 0:
+                this_name = (
+                    'dense_output' if i == num_dense_layers - 1 else None
+                )
+
                 dense_output_layer_object = (
                     architecture_utils.get_dropout_layer(
-                        dropout_fraction=dense_layer_dropout_rates[i]
+                        dropout_fraction=dense_layer_dropout_rates[i],
+                        layer_name=this_name
                     )(dense_output_layer_object)
                 )
 
@@ -642,13 +652,21 @@ def create_model(option_dict, loss_function, num_output_channels=1):
         weight_regularizer=regularizer_object
     )(second_conv_layer1_object)
 
+    this_name = (
+        None if num_heights > num_heights_for_loss or zero_out_top_heating_rate
+        else 'conv_output'
+    )
+
     second_conv_layer1_object = architecture_utils.get_activation_layer(
         activation_function_string=output_activ_function_name,
         alpha_for_relu=output_activ_function_alpha,
-        alpha_for_elu=output_activ_function_alpha
+        alpha_for_elu=output_activ_function_alpha,
+        layer_name=this_name
     )(second_conv_layer1_object)
 
     if num_heights > num_heights_for_loss:
+        this_name = None if zero_out_top_heating_rate else 'conv_output'
+
         print('Heating rate at top {0:d} heights will always be zero!'.format(
             num_heights - num_heights_for_loss
         ))
@@ -656,9 +674,9 @@ def create_model(option_dict, loss_function, num_output_channels=1):
         this_function = (
             _zero_top_heights_function(num_heights - num_heights_for_loss)
         )
-        second_conv_layer1_object = keras.layers.Lambda(this_function)(
-            second_conv_layer1_object
-        )
+        second_conv_layer1_object = keras.layers.Lambda(
+            this_function, name=this_name
+        )(second_conv_layer1_object)
 
     if zero_out_top_heating_rate:
         print('Heating rate at height index {0:d} will always be zero!'.format(
@@ -669,9 +687,9 @@ def create_model(option_dict, loss_function, num_output_channels=1):
             heating_rate_channel_index=heating_rate_channel_index,
             height_index=num_heights_for_loss - 1
         )
-        second_conv_layer1_object = keras.layers.Lambda(this_function)(
-            second_conv_layer1_object
-        )
+        second_conv_layer1_object = keras.layers.Lambda(
+            this_function, name='conv_output'
+        )(second_conv_layer1_object)
 
     if any_dense_layers:
         model_object = keras.models.Model(
@@ -683,10 +701,21 @@ def create_model(option_dict, loss_function, num_output_channels=1):
             inputs=input_layer_object, outputs=second_conv_layer1_object
         )
 
-    model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
-    )
+    if any_dense_layers:
+        loss_dict = {
+            'conv_output': loss_function,
+            'dense_output': keras.losses.mse
+        }
+
+        model_object.compile(
+            loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
+    else:
+        model_object.compile(
+            loss=loss_function, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
 
     model_object.summary()
     return model_object
