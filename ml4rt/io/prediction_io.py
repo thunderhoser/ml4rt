@@ -345,10 +345,15 @@ def read_file(netcdf_file_name):
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
         ],
-        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY)),
-        ISOTONIC_MODEL_FILE_KEY:
-            str(getattr(dataset_object, ISOTONIC_MODEL_FILE_KEY))
+        MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
+
+    if ISOTONIC_MODEL_FILE_KEY in prediction_dict:
+        prediction_dict[ISOTONIC_MODEL_FILE_KEY] = str(
+            getattr(dataset_object, ISOTONIC_MODEL_FILE_KEY)
+        )
+    else:
+        prediction_dict[ISOTONIC_MODEL_FILE_KEY] = ''
 
     if prediction_dict[ISOTONIC_MODEL_FILE_KEY] == '':
         prediction_dict[ISOTONIC_MODEL_FILE_KEY] = None
