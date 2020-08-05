@@ -642,9 +642,8 @@ def targets_dict_to_numpy(example_dict, net_type_string,
     """
 
     check_net_type(net_type_string)
-
-    if net_type_string == U_NET_TYPE_STRING:
-        return [example_dict[example_utils.VECTOR_TARGET_VALS_KEY]]
+    if net_type_string != CNN_TYPE_STRING:
+        is_loss_constrained_mse = False
 
     if net_type_string == DENSE_NET_TYPE_STRING:
         vector_target_matrix = (
@@ -729,23 +728,6 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     """
 
     check_net_type(net_type_string)
-
-    if net_type_string == U_NET_TYPE_STRING:
-        vector_target_matrix = target_matrices[0]
-
-        error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-        error_checking.assert_is_numpy_array(
-            vector_target_matrix, num_dimensions=3
-        )
-
-        scalar_target_matrix = numpy.full(
-            (vector_target_matrix.shape[0], 0), 0.
-        )
-
-        return {
-            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
-        }
 
     if net_type_string == DENSE_NET_TYPE_STRING:
         target_matrix = target_matrices[0]
@@ -840,10 +822,7 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
     error_checking.assert_is_geq_numpy_array(neuron_indices, 0)
     check_net_type(net_type_string)
 
-    if net_type_string == U_NET_TYPE_STRING:
-        min_num_indices = 2
-        max_num_indices = 2
-    elif net_type_string == DENSE_NET_TYPE_STRING:
+    if net_type_string == DENSE_NET_TYPE_STRING:
         min_num_indices = 1
         max_num_indices = 1
     else:
@@ -900,7 +879,7 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
             heights_m_agl[these_height_indices[0]]
         )
 
-    # If execution reaches this point, the net is a CNN.
+    # If execution reaches this point, the net is a CNN or U-net.
     vector_target_matrix_keras = numpy.full(
         (1, num_heights, num_vector_targets), 0.
     )
@@ -1058,30 +1037,19 @@ def data_generator(option_dict, for_inference, net_type_string,
         Boolean flag.  If True, loss function is constrained MSE (mean squared
         error).
 
-    If net type is CNN...
+    :return: predictor_matrix: numpy array of predictor values.  If net type is
+        dense, the array will be E x P.  Otherwise, will be E x H x P.
+    :return: target_array: If net type is dense, this is a numpy array (E x T)
+        of target values.  Otherwise, a list with two elements:
 
-    :return: predictor_matrix: E-by-H-by-P numpy array of predictor values.
-    :return: target_list: List with 2 items.
-    target_list[0] = vector_target_matrix: numpy array (E x H x T_v) of target
+    target_array[0] = vector_target_matrix: numpy array (E x H x T_v) of target
         values.
-    target_list[1] = scalar_target_matrix: numpy array (E x T_s) of target
+    target_array[1] = scalar_target_matrix: numpy array (E x T_s) of target
         values.
 
     :return: example_id_strings: [returned only if `for_inference == True`]
         length-E list of example IDs created by
         `example_utils.create_example_ids`.
-
-    If net type is dense net...
-
-    :return: predictor_matrix: E-by-P numpy array of predictor values.
-    :return: target_matrix: E-by-T numpy array of target values.
-    :return: example_id_strings: Same as for CNN.
-
-    If net type is U-net...
-
-    :return: predictor_matrix: E-by-H-by-P numpy array of predictor values.
-    :return: target_matrix: numpy array (E x H x T_v) of target values.
-    :return: example_id_strings: Same as for CNN.
     """
 
     option_dict = _check_generator_args(option_dict)
@@ -1215,7 +1183,11 @@ def data_generator(option_dict, for_inference, net_type_string,
                 is_loss_constrained_mse=is_loss_constrained_mse
             )
 
-            if net_type_string == CNN_TYPE_STRING:
+            if net_type_string == DENSE_NET_TYPE_STRING:
+                this_vector_target_matrix = None
+                this_scalar_target_matrix = None
+                this_target_matrix = this_target_list[0]
+            else:
                 this_vector_target_matrix = this_target_list[0]
                 this_target_matrix = None
 
@@ -1223,10 +1195,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                     this_scalar_target_matrix = None
                 else:
                     this_scalar_target_matrix = this_target_list[1]
-            else:
-                this_vector_target_matrix = None
-                this_scalar_target_matrix = None
-                this_target_matrix = this_target_list[0]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
@@ -1261,13 +1229,13 @@ def data_generator(option_dict, for_inference, net_type_string,
 
         predictor_matrix = predictor_matrix.astype('float32')
 
-        if net_type_string == CNN_TYPE_STRING:
+        if net_type_string == DENSE_NET_TYPE_STRING:
+            target_array = target_matrix.astype('float32')
+        else:
             target_array = [vector_target_matrix.astype('float32')]
 
             if scalar_target_matrix is not None:
                 target_array.append(scalar_target_matrix.astype('float32'))
-        else:
-            target_array = target_matrix.astype('float32')
 
         if for_inference:
             yield predictor_matrix, target_array, example_id_strings
@@ -1389,15 +1357,15 @@ def create_data(option_dict, for_inference, net_type_string,
         is_loss_constrained_mse=is_loss_constrained_mse
     )
 
-    if net_type_string == CNN_TYPE_STRING:
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        target_array = prelim_target_list[0].astype('float32')
+    else:
         vector_target_matrix = prelim_target_list[0]
         target_array = [vector_target_matrix.astype('float32')]
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
             target_array.append(scalar_target_matrix.astype('float32'))
-    else:
-        target_array = prelim_target_list[0].astype('float32')
 
     return (
         predictor_matrix,
@@ -1513,7 +1481,11 @@ def data_generator_specific_examples(option_dict, net_type_string,
                 is_loss_constrained_mse=False
             )
 
-            if net_type_string == CNN_TYPE_STRING:
+            if net_type_string == DENSE_NET_TYPE_STRING:
+                this_vector_target_matrix = None
+                this_scalar_target_matrix = None
+                this_target_matrix = this_target_list[0]
+            else:
                 this_vector_target_matrix = this_target_list[0]
                 this_target_matrix = None
 
@@ -1521,10 +1493,6 @@ def data_generator_specific_examples(option_dict, net_type_string,
                     this_scalar_target_matrix = None
                 else:
                     this_scalar_target_matrix = this_target_list[1]
-            else:
-                this_vector_target_matrix = None
-                this_scalar_target_matrix = None
-                this_target_matrix = this_target_list[0]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
@@ -1559,13 +1527,13 @@ def data_generator_specific_examples(option_dict, net_type_string,
 
         predictor_matrix = predictor_matrix.astype('float32')
 
-        if net_type_string == CNN_TYPE_STRING:
+        if net_type_string == DENSE_NET_TYPE_STRING:
+            target_array = target_matrix.astype('float32')
+        else:
             target_array = [vector_target_matrix.astype('float32')]
 
             if scalar_target_matrix is not None:
                 target_array.append(scalar_target_matrix.astype('float32'))
-        else:
-            target_array = target_matrix.astype('float32')
 
         yield predictor_matrix, target_array
 
@@ -1652,15 +1620,15 @@ def create_data_specific_examples(
         is_loss_constrained_mse=False
     )
 
-    if net_type_string == CNN_TYPE_STRING:
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        target_array = prelim_target_list[0].astype('float32')
+    else:
         vector_target_matrix = prelim_target_list[0]
         target_array = [vector_target_matrix.astype('float32')]
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
             target_array.append(scalar_target_matrix.astype('float32'))
-    else:
-        target_array = prelim_target_list[0].astype('float32')
 
     return predictor_matrix, target_array
 
@@ -2034,25 +2002,18 @@ def apply_model(
     :param is_loss_constrained_mse: See doc for `data_generator`.
     :param verbose: Boolean flag.  If True, will print progress messages.
 
-    If net type is CNN...
+    :return: prediction_list: If net type is dense, this list has the following
+        items.
 
-    :return: prediction_list: List with the following elements.
+    prediction_list[0] = prediction_matrix: E-by-T numpy array of predicted
+        values.
+
+    Otherwise, has the following items.
+
     prediction_list[0] = vector_prediction_matrix: numpy array (E x H x T_v) of
         predicted values.
     prediction_list[1] = scalar_prediction_matrix: numpy array (E x T_s) of
         predicted values.
-
-    If net type is U-net...
-
-    :return: prediction_list: List with the following elements.
-    prediction_list[0] = prediction_matrix: numpy array (E x H x T_v) of
-        predicted values.
-
-    If net type is dense net...
-
-    :return: prediction_list: List with the following elements.
-    prediction_list[0] = prediction_matrix: E-by-T numpy array of predicted
-        values.
     """
 
     check_net_type(net_type_string)
@@ -2094,7 +2055,14 @@ def apply_model(
             predictor_matrix[these_indices, ...], batch_size=len(these_indices)
         )
 
-        if net_type_string == CNN_TYPE_STRING:
+        if net_type_string == DENSE_NET_TYPE_STRING:
+            if prediction_matrix is None:
+                prediction_matrix = this_output + 0.
+            else:
+                prediction_matrix = numpy.concatenate(
+                    (prediction_matrix, this_output), axis=0
+                )
+        else:
             if not isinstance(this_output, list):
                 this_output = [this_output]
 
@@ -2112,13 +2080,6 @@ def apply_model(
                     scalar_prediction_matrix = numpy.concatenate(
                         (scalar_prediction_matrix, this_output[1]), axis=0
                     )
-        else:
-            if prediction_matrix is None:
-                prediction_matrix = this_output + 0.
-            else:
-                prediction_matrix = numpy.concatenate(
-                    (prediction_matrix, this_output), axis=0
-                )
 
     if verbose:
         print('Have applied {0:s} to all {1:d} examples!'.format(
@@ -2128,15 +2089,15 @@ def apply_model(
     if is_loss_constrained_mse:
         scalar_prediction_matrix = scalar_prediction_matrix[:, 2:]
 
-    if net_type_string == CNN_TYPE_STRING:
-        if scalar_prediction_matrix is None:
-            scalar_prediction_matrix = numpy.full(
-                (vector_prediction_matrix.shape[0], 0), 0.
-            )
+    if net_type_string == DENSE_NET_TYPE_STRING:
+        return [prediction_matrix]
 
-        return [vector_prediction_matrix, scalar_prediction_matrix]
+    if scalar_prediction_matrix is None:
+        scalar_prediction_matrix = numpy.full(
+            (vector_prediction_matrix.shape[0], 0), 0.
+        )
 
-    return [prediction_matrix]
+    return [vector_prediction_matrix, scalar_prediction_matrix]
 
 
 def get_feature_maps(

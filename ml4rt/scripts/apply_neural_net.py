@@ -170,20 +170,22 @@ def _targets_numpy_to_dict(
     """
 
     net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+
     generator_option_dict = copy.deepcopy(
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
+    vector_target_names = (
+        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+    )
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
-    # TODO(thunderhoser): Get rid of this HACK.
-    if add_heating_rate and net_type_string in [
-            neural_net.CNN_TYPE_STRING, neural_net.U_NET_TYPE_STRING
-    ]:
-        vector_target_names = (
-            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
-        )
-
-        if vector_target_matrix.shape[-1] == len(vector_target_names) - 1:
+    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+        target_matrices = [scalar_target_matrix]
+    else:
+        if (
+                add_heating_rate and
+                vector_target_matrix.shape[-1] == len(vector_target_names) - 1
+        ):
             heating_rate_index = vector_target_names.index(
                 example_utils.SHORTWAVE_HEATING_RATE_NAME
             )
@@ -191,16 +193,9 @@ def _targets_numpy_to_dict(
                 vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
             )
 
-    if net_type_string == neural_net.CNN_TYPE_STRING:
         target_matrices = [vector_target_matrix]
-
         if scalar_target_matrix is not None:
             target_matrices.append(scalar_target_matrix)
-
-    elif net_type_string == neural_net.U_NET_TYPE_STRING:
-        target_matrices = [vector_target_matrix]
-    else:
-        target_matrices = [scalar_target_matrix]
 
     example_dict = {
         example_utils.VECTOR_TARGET_NAMES_KEY:
@@ -287,20 +282,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     vector_target_matrix = None
     vector_prediction_matrix = None
 
-    if net_type_string == neural_net.CNN_TYPE_STRING:
+    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
+        scalar_target_matrix = target_array
+        scalar_prediction_matrix = prediction_array[0]
+    else:
         vector_target_matrix = target_array[0]
         vector_prediction_matrix = prediction_array[0]
 
         if len(target_array) == 2:
             scalar_target_matrix = target_array[1]
             scalar_prediction_matrix = prediction_array[1]
-
-    elif net_type_string == neural_net.DENSE_NET_TYPE_STRING:
-        scalar_target_matrix = target_array
-        scalar_prediction_matrix = prediction_array[0]
-    else:
-        vector_target_matrix = target_array
-        vector_prediction_matrix = prediction_array[0]
 
     target_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_target_matrix,

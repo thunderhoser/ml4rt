@@ -116,7 +116,9 @@ U_NET_HEIGHT_MATRIX_M_AGL = CNN_HEIGHT_MATRIX_M_AGL + 0
 CNN_TARGET_MATRICES_DEFAULT_LOSS = [
     VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.
 ]
-U_NET_TARGET_MATRICES = [VECTOR_TARGET_MATRIX + 0.]
+U_NET_TARGET_MATRICES = [
+    VECTOR_TARGET_MATRIX + 0., SCALAR_TARGET_MATRIX + 0.
+]
 
 THIS_SCALAR_TARGET_MATRIX = numpy.array([
     [150, 300, 200],
@@ -528,9 +530,10 @@ class NeuralNetTests(unittest.TestCase):
             this_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
             VECTOR_TARGET_MATRIX, atol=TOLERANCE
         ))
-        self.assertTrue(
-            this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY].size == 0
-        )
+        self.assertTrue(numpy.allclose(
+            this_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
+            SCALAR_TARGET_MATRIX, atol=TOLERANCE
+        ))
 
     def test_neuron_indices_to_target_var_cnn(self):
         """Ensures correct output from neuron_indices_to_target_var.
