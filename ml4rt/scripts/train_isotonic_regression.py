@@ -1,4 +1,4 @@
-"""Trains isotonic-regression model."""
+"""Trains isotonic-regression models to bias-correct one base ML model."""
 
 import argparse
 from ml4rt.io import prediction_io
