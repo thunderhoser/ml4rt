@@ -182,7 +182,7 @@ def apply_models(
 
     have_vectors = (
         orig_vector_prediction_matrix is not None
-        or vector_model_object_matrix is not None
+        or vector_model_object_matrix.size > 0
     )
 
     if have_vectors:
@@ -210,7 +210,7 @@ def apply_models(
 
     have_scalars = (
         orig_scalar_prediction_matrix is not None
-        or scalar_model_objects is not None
+        or len(scalar_model_objects) > 0
     )
 
     if have_scalars:
