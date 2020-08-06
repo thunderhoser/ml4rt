@@ -2010,10 +2010,17 @@ def read_model(hdf5_file_name):
     loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
 
     if isinstance(loss_function_or_dict, dict):
+        custom_object_dict['loss'] = None
+
         for this_key in loss_function_or_dict:
             custom_object_dict[this_key + '_loss'] = (
                 loss_function_or_dict[this_key]
             )
+
+            if custom_object_dict['loss'] is None:
+                custom_object_dict['loss'] = loss_function_or_dict[this_key]
+            else:
+                custom_object_dict['loss'] += loss_function_or_dict[this_key]
     else:
         custom_object_dict['loss'] = loss_function_or_dict
 
