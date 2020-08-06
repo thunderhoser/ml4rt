@@ -293,7 +293,7 @@ def _plot_inset_histogram(
         tick_indices.append(i)
 
     x_tick_values = fake_bin_centers[tick_indices]
-    x_tick_labels = ['{0:.1g}'.format(b) for b in bin_centers[tick_indices]]
+    x_tick_labels = ['{0:.2g}'.format(b) for b in bin_centers[tick_indices]]
     inset_axes_object.set_xticks(x_tick_values)
     inset_axes_object.set_xticklabels(x_tick_labels)
 

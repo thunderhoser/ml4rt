@@ -499,6 +499,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         weight_regularizer=regularizer_object
     )(this_layer_object(conv_layer5_object))
 
+    num_upconv_heights = upconv_layer4_object.get_shape()[1]
+    num_desired_heights = conv_layer4_object.get_shape()[1]
+    if num_desired_heights == num_upconv_heights + 1:
+        upconv_layer4_object = keras.layers.ZeroPadding1D(
+            padding=(0, 1)
+        )(upconv_layer4_object)
+
     merged_layer4_object = keras.layers.Concatenate(axis=-1)(
         [conv_layer4_object, upconv_layer4_object]
     )
@@ -537,6 +544,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object
     )(this_layer_object(second_conv_layer4_object))
+
+    num_upconv_heights = upconv_layer3_object.get_shape()[1]
+    num_desired_heights = conv_layer3_object.get_shape()[1]
+    if num_desired_heights == num_upconv_heights + 1:
+        upconv_layer3_object = keras.layers.ZeroPadding1D(
+            padding=(0, 1)
+        )(upconv_layer3_object)
 
     merged_layer3_object = keras.layers.Concatenate(axis=-1)(
         [conv_layer3_object, upconv_layer3_object]
@@ -577,6 +591,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         weight_regularizer=regularizer_object
     )(this_layer_object(second_conv_layer3_object))
 
+    num_upconv_heights = upconv_layer2_object.get_shape()[1]
+    num_desired_heights = conv_layer2_object.get_shape()[1]
+    if num_desired_heights == num_upconv_heights + 1:
+        upconv_layer2_object = keras.layers.ZeroPadding1D(
+            padding=(0, 1)
+        )(upconv_layer2_object)
+
     merged_layer2_object = keras.layers.Concatenate(axis=-1)(
         [conv_layer2_object, upconv_layer2_object]
     )
@@ -615,6 +636,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object
     )(this_layer_object(second_conv_layer2_object))
+
+    num_upconv_heights = upconv_layer1_object.get_shape()[1]
+    num_desired_heights = conv_layer1_object.get_shape()[1]
+    if num_desired_heights == num_upconv_heights + 1:
+        upconv_layer1_object = keras.layers.ZeroPadding1D(
+            padding=(0, 1)
+        )(upconv_layer1_object)
 
     merged_layer1_object = keras.layers.Concatenate(axis=-1)(
         [conv_layer1_object, upconv_layer1_object]
