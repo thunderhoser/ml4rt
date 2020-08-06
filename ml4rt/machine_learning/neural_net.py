@@ -2088,13 +2088,9 @@ def read_metafile(dill_file_name):
         metadata_dict[TRAINING_OPTIONS_KEY] = t
         metadata_dict[VALIDATION_OPTIONS_KEY] = v
 
-    if LOSS_FUNCTION_OR_DICT_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        loss_function = metadata_dict[TRAINING_OPTIONS_KEY]['loss_function']
-        metadata_dict[TRAINING_OPTIONS_KEY][LOSS_FUNCTION_OR_DICT_KEY] = (
-            loss_function
-        )
-        metadata_dict[VALIDATION_OPTIONS_KEY][LOSS_FUNCTION_OR_DICT_KEY] = (
-            loss_function
+    if LOSS_FUNCTION_OR_DICT_KEY not in metadata_dict:
+        metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
+            metadata_dict['loss_function']
         )
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
