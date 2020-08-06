@@ -234,7 +234,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
             max_normalized_value=
             generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
             separate_heights=True, apply_to_predictors=True,
-            apply_to_targets=False
+            apply_to_vector_targets=False, apply_to_scalar_targets=False
         )
 
     init_scalar_predictor_matrix = (
@@ -262,7 +262,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
             max_normalized_value=
             generator_option_dict[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY],
             separate_heights=True, apply_to_predictors=True,
-            apply_to_targets=False
+            apply_to_vector_targets=False, apply_to_scalar_targets=False
         )
 
     final_scalar_predictor_matrix = (

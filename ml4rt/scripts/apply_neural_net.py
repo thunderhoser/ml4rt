@@ -258,12 +258,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    target_norm_type_string = copy.deepcopy(
-        generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY]
+    vector_target_norm_type_string = copy.deepcopy(
+        generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY]
     )
-    generator_option_dict[neural_net.TARGET_NORM_TYPE_KEY] = None
-    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
+    scalar_target_norm_type_string = copy.deepcopy(
+        generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY]
+    )
+    generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
+    generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
+    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict, for_inference=True,
         net_type_string=net_type_string, is_loss_constrained_mse=False
@@ -334,34 +338,49 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     target_example_dict.update(this_dict)
     prediction_example_dict.update(this_dict)
 
-    if target_norm_type_string is not None:
-        print('Denormalizing predicted values...')
+    if vector_target_norm_type_string is not None:
+        print('Denormalizing predicted vectors...')
 
-        down_flux_inc_matrix_w_m03 = example_utils.get_field_from_dict(
-            example_dict=prediction_example_dict,
-            field_name=example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME
-        )
-        print(down_flux_inc_matrix_w_m03[0, ...])
-        print('\n')
+        # down_flux_inc_matrix_w_m03 = example_utils.get_field_from_dict(
+        #     example_dict=prediction_example_dict,
+        #     field_name=example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME
+        # )
+        # print(down_flux_inc_matrix_w_m03[0, ...])
+        # print('\n')
 
         prediction_example_dict = normalization.denormalize_data(
             new_example_dict=prediction_example_dict,
             training_example_dict=training_example_dict,
-            normalization_type_string=target_norm_type_string,
+            normalization_type_string=vector_target_norm_type_string,
             min_normalized_value=
-            generator_option_dict[neural_net.TARGET_MIN_NORM_VALUE_KEY],
+            generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
-            generator_option_dict[neural_net.TARGET_MAX_NORM_VALUE_KEY],
+            generator_option_dict[neural_net.VECTOR_TARGET_MAX_VALUE_KEY],
             separate_heights=True, apply_to_predictors=False,
-            apply_to_targets=True
+            apply_to_vector_targets=True, apply_to_scalar_targets=False
         )
 
-        down_flux_inc_matrix_w_m03 = example_utils.get_field_from_dict(
-            example_dict=prediction_example_dict,
-            field_name=example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME
+        # down_flux_inc_matrix_w_m03 = example_utils.get_field_from_dict(
+        #     example_dict=prediction_example_dict,
+        #     field_name=example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME
+        # )
+        # print(down_flux_inc_matrix_w_m03[0, ...])
+        # print('\n\n\n')
+
+    if scalar_target_norm_type_string is not None:
+        print('Denormalizing predicted scalars...')
+
+        prediction_example_dict = normalization.denormalize_data(
+            new_example_dict=prediction_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=scalar_target_norm_type_string,
+            min_normalized_value=
+            generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.SCALAR_TARGET_MAX_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
-        print(down_flux_inc_matrix_w_m03[0, ...])
-        print('\n\n\n')
 
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 

@@ -44,9 +44,12 @@ NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
 PREDICTOR_MIN_VALUE_ARG_NAME = 'predictor_min_norm_value'
 PREDICTOR_MAX_VALUE_ARG_NAME = 'predictor_max_norm_value'
-TARGET_NORM_TYPE_ARG_NAME = 'target_norm_type_string'
-TARGET_MIN_VALUE_ARG_NAME = 'target_min_norm_value'
-TARGET_MAX_VALUE_ARG_NAME = 'target_max_norm_value'
+VECTOR_TARGET_NORM_TYPE_ARG_NAME = 'vector_target_norm_type_string'
+VECTOR_TARGET_MIN_VALUE_ARG_NAME = 'vector_target_min_norm_value'
+VECTOR_TARGET_MAX_VALUE_ARG_NAME = 'vector_target_max_norm_value'
+SCALAR_TARGET_NORM_TYPE_ARG_NAME = 'scalar_target_norm_type_string'
+SCALAR_TARGET_MIN_VALUE_ARG_NAME = 'scalar_target_min_norm_value'
+SCALAR_TARGET_MAX_VALUE_ARG_NAME = 'scalar_target_max_norm_value'
 BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 NUM_EPOCHS_ARG_NAME = 'num_epochs'
 NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
@@ -115,16 +118,28 @@ PREDICTOR_MIN_VALUE_HELP_STRING = (
 PREDICTOR_MAX_VALUE_HELP_STRING = (
     'Max value if you have chosen min-max normalization.'
 )
-TARGET_NORM_TYPE_HELP_STRING = (
-    'Same as `{0:s}` but for target variables.'
+VECTOR_TARGET_NORM_TYPE_HELP_STRING = (
+    'Same as `{0:s}` but for vector target variables.'
 ).format(PREDICTOR_NORM_TYPE_ARG_NAME)
 
-TARGET_MIN_VALUE_HELP_STRING = (
-    'Same as `{0:s}` but for target variables.'
+VECTOR_TARGET_MIN_VALUE_HELP_STRING = (
+    'Same as `{0:s}` but for vector target variables.'
 ).format(PREDICTOR_MIN_VALUE_ARG_NAME)
 
-TARGET_MAX_VALUE_HELP_STRING = (
-    'Same as `{0:s}` but for target variables.'
+VECTOR_TARGET_MAX_VALUE_HELP_STRING = (
+    'Same as `{0:s}` but for vector target variables.'
+).format(PREDICTOR_MAX_VALUE_ARG_NAME)
+
+SCALAR_TARGET_NORM_TYPE_HELP_STRING = (
+    'Same as `{0:s}` but for scalar target variables.'
+).format(PREDICTOR_NORM_TYPE_ARG_NAME)
+
+SCALAR_TARGET_MIN_VALUE_HELP_STRING = (
+    'Same as `{0:s}` but for scalar target variables.'
+).format(PREDICTOR_MIN_VALUE_ARG_NAME)
+
+SCALAR_TARGET_MAX_VALUE_HELP_STRING = (
+    'Same as `{0:s}` but for scalar target variables.'
 ).format(PREDICTOR_MAX_VALUE_ARG_NAME)
 
 BATCH_SIZE_HELP_STRING = (
@@ -219,16 +234,28 @@ def add_input_args(parser_object):
         default=1., help=PREDICTOR_MAX_VALUE_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + TARGET_NORM_TYPE_ARG_NAME, type=str, required=True,
-        help=TARGET_NORM_TYPE_HELP_STRING
+        '--' + VECTOR_TARGET_NORM_TYPE_ARG_NAME, type=str, required=True,
+        help=VECTOR_TARGET_NORM_TYPE_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + TARGET_MIN_VALUE_ARG_NAME, type=float, required=False,
-        default=0., help=TARGET_MIN_VALUE_HELP_STRING
+        '--' + VECTOR_TARGET_MIN_VALUE_ARG_NAME, type=float, required=False,
+        default=0., help=VECTOR_TARGET_MIN_VALUE_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + TARGET_MAX_VALUE_ARG_NAME, type=float, required=False,
-        default=1., help=TARGET_MAX_VALUE_HELP_STRING
+        '--' + VECTOR_TARGET_MAX_VALUE_ARG_NAME, type=float, required=False,
+        default=1., help=VECTOR_TARGET_MAX_VALUE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + SCALAR_TARGET_NORM_TYPE_ARG_NAME, type=str, required=True,
+        help=SCALAR_TARGET_NORM_TYPE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + SCALAR_TARGET_MIN_VALUE_ARG_NAME, type=float, required=False,
+        default=0., help=SCALAR_TARGET_MIN_VALUE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + SCALAR_TARGET_MAX_VALUE_ARG_NAME, type=float, required=False,
+        default=1., help=SCALAR_TARGET_MAX_VALUE_HELP_STRING
     )
     parser_object.add_argument(
         '--' + BATCH_SIZE_ARG_NAME, type=int, required=False, default=1024,

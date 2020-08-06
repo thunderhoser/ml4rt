@@ -211,7 +211,7 @@ def normalize_data(
         new_example_dict, training_example_dict, normalization_type_string,
         min_normalized_value=-1., max_normalized_value=1.,
         separate_heights=False, apply_to_predictors=True,
-        apply_to_targets=True):
+        apply_to_vector_targets=True, apply_to_scalar_targets=True):
     """Normalizes data (both predictor and target variables).
 
     :param new_example_dict: Dictionary with learning examples to be normalized
@@ -230,20 +230,29 @@ def normalize_data(
         at each height.
     :param apply_to_predictors: Boolean flag.  If True, will normalize
         predictors.
-    :param apply_to_targets: Boolean flag.  If True, will normalize targets.
+    :param apply_to_vector_targets: Boolean flag.  If True, will normalize
+        vector target variables.
+    :param apply_to_scalar_targets: Boolean flag.  If True, will normalize
+        scalar target variables.
     :return: example_dict: Same as input but with normalized values.
-    :raises: ValueError: if `apply_to_predictors == apply_to_targets == False`.
+    :raises: ValueError: if `apply_to_predictors == apply_to_vector_targets ==
+        apply_to_scalar_targets == False`.
     """
 
     error_checking.assert_is_boolean(separate_heights)
     error_checking.assert_is_boolean(apply_to_predictors)
-    error_checking.assert_is_boolean(apply_to_targets)
+    error_checking.assert_is_boolean(apply_to_vector_targets)
+    error_checking.assert_is_boolean(apply_to_scalar_targets)
 
-    if not (apply_to_predictors or apply_to_targets):
-        error_string = (
-            'Either `apply_to_predictors` or `apply_to_targets` must be True.'
+    if not (
+            apply_to_predictors
+            or apply_to_vector_targets
+            or apply_to_scalar_targets
+    ):
+        raise ValueError(
+            'One of `apply_to_predictors`, `apply_to_vector_targets`, and '
+            '`apply_to_scalar_targets` must be True.'
         )
-        raise ValueError(error_string)
 
     _check_normalization_type(normalization_type_string)
 
@@ -281,7 +290,7 @@ def normalize_data(
         new_scalar_predictor_matrix
     )
 
-    if apply_to_targets:
+    if apply_to_scalar_targets:
         scalar_target_names = (
             new_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
         )
@@ -361,7 +370,7 @@ def normalize_data(
         new_vector_predictor_matrix
     )
 
-    if apply_to_targets:
+    if apply_to_vector_targets:
         vector_target_names = (
             new_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
         )
@@ -412,7 +421,7 @@ def denormalize_data(
         new_example_dict, training_example_dict, normalization_type_string,
         min_normalized_value=-1., max_normalized_value=1.,
         separate_heights=False, apply_to_predictors=True,
-        apply_to_targets=True):
+        apply_to_vector_targets=True, apply_to_scalar_targets=True):
     """Denormalizes data (both predictor and target variables).
 
     :param new_example_dict: See doc for `normalize_data`.
@@ -422,20 +431,27 @@ def denormalize_data(
     :param max_normalized_value: Same.
     :param separate_heights: Same.
     :param apply_to_predictors: Same.
-    :param apply_to_targets: Same.
+    :param apply_to_vector_targets: Same.
+    :param apply_to_scalar_targets: Same.
     :return: example_dict: Same as input but with denormalized values.
-    :raises: ValueError: if `apply_to_predictors == apply_to_targets == False`.
+    :raises: ValueError: if `apply_to_predictors == apply_to_vector_targets ==
+        apply_to_scalar_targets == False`.
     """
 
     error_checking.assert_is_boolean(separate_heights)
     error_checking.assert_is_boolean(apply_to_predictors)
-    error_checking.assert_is_boolean(apply_to_targets)
+    error_checking.assert_is_boolean(apply_to_vector_targets)
+    error_checking.assert_is_boolean(apply_to_scalar_targets)
 
-    if not (apply_to_predictors or apply_to_targets):
-        error_string = (
-            'Either `apply_to_predictors` or `apply_to_targets` must be True.'
+    if not (
+            apply_to_predictors
+            or apply_to_vector_targets
+            or apply_to_scalar_targets
+    ):
+        raise ValueError(
+            'One of `apply_to_predictors`, `apply_to_vector_targets`, and '
+            '`apply_to_scalar_targets` must be True.'
         )
-        raise ValueError(error_string)
 
     _check_normalization_type(normalization_type_string)
 
@@ -473,7 +489,7 @@ def denormalize_data(
         new_scalar_predictor_matrix
     )
 
-    if apply_to_targets:
+    if apply_to_scalar_targets:
         scalar_target_names = (
             new_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
         )
@@ -552,7 +568,7 @@ def denormalize_data(
         new_vector_predictor_matrix
     )
 
-    if apply_to_targets:
+    if apply_to_vector_targets:
         vector_target_names = (
             new_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
         )

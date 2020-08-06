@@ -24,8 +24,10 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
          last_training_time_string, first_validn_time_string,
          last_validn_time_string, normalization_file_name,
          predictor_norm_type_string, predictor_min_norm_value,
-         predictor_max_norm_value, target_norm_type_string,
-         target_min_norm_value, target_max_norm_value, num_examples_per_batch,
+         predictor_max_norm_value, vector_target_norm_type_string,
+         vector_target_min_norm_value, vector_target_max_norm_value,
+         scalar_target_norm_type_string, scalar_target_min_norm_value,
+         scalar_target_max_norm_value, num_examples_per_batch,
          num_epochs, num_training_batches_per_epoch,
          num_validn_batches_per_epoch):
     """Trains neural net
@@ -48,9 +50,12 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
-    :param target_norm_type_string: Same.
-    :param target_min_norm_value: Same.
-    :param target_max_norm_value: Same.
+    :param vector_target_norm_type_string: Same.
+    :param vector_target_min_norm_value: Same.
+    :param vector_target_max_norm_value: Same.
+    :param scalar_target_norm_type_string: Same.
+    :param scalar_target_min_norm_value: Same.
+    :param scalar_target_max_norm_value: Same.
     :param num_examples_per_batch: Same.
     :param num_epochs: Same.
     :param num_training_batches_per_epoch: Same.
@@ -59,8 +64,10 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
 
     if predictor_norm_type_string in NONE_STRINGS:
         predictor_norm_type_string = None
-    if target_norm_type_string in NONE_STRINGS:
-        target_norm_type_string = None
+    if vector_target_norm_type_string in NONE_STRINGS:
+        vector_target_norm_type_string = None
+    if scalar_target_norm_type_string in NONE_STRINGS:
+        scalar_target_norm_type_string = None
 
     neural_net.check_net_type(net_type_string)
 
@@ -117,9 +124,12 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
         neural_net.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
         neural_net.PREDICTOR_MIN_NORM_VALUE_KEY: predictor_min_norm_value,
         neural_net.PREDICTOR_MAX_NORM_VALUE_KEY: predictor_max_norm_value,
-        neural_net.TARGET_NORM_TYPE_KEY: target_norm_type_string,
-        neural_net.TARGET_MIN_NORM_VALUE_KEY: target_min_norm_value,
-        neural_net.TARGET_MAX_NORM_VALUE_KEY: target_max_norm_value,
+        neural_net.VECTOR_TARGET_NORM_TYPE_KEY: vector_target_norm_type_string,
+        neural_net.VECTOR_TARGET_MIN_VALUE_KEY: vector_target_min_norm_value,
+        neural_net.VECTOR_TARGET_MAX_VALUE_KEY: vector_target_max_norm_value,
+        neural_net.SCALAR_TARGET_NORM_TYPE_KEY: scalar_target_norm_type_string,
+        neural_net.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
+        neural_net.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
         neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
         # neural_net.MIN_COLUMN_LWP_KEY: 0.05,
@@ -231,14 +241,23 @@ if __name__ == '__main__':
         predictor_max_norm_value=getattr(
             INPUT_ARG_OBJECT, training_args.PREDICTOR_MAX_VALUE_ARG_NAME
         ),
-        target_norm_type_string=getattr(
-            INPUT_ARG_OBJECT, training_args.TARGET_NORM_TYPE_ARG_NAME
+        vector_target_norm_type_string=getattr(
+            INPUT_ARG_OBJECT, training_args.VECTOR_TARGET_NORM_TYPE_ARG_NAME
         ),
-        target_min_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.TARGET_MIN_VALUE_ARG_NAME
+        vector_target_min_norm_value=getattr(
+            INPUT_ARG_OBJECT, training_args.VECTOR_TARGET_MIN_VALUE_ARG_NAME
         ),
-        target_max_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.TARGET_MAX_VALUE_ARG_NAME
+        vector_target_max_norm_value=getattr(
+            INPUT_ARG_OBJECT, training_args.VECTOR_TARGET_MAX_VALUE_ARG_NAME
+        ),
+        scalar_target_norm_type_string=getattr(
+            INPUT_ARG_OBJECT, training_args.SCALAR_TARGET_NORM_TYPE_ARG_NAME
+        ),
+        scalar_target_min_norm_value=getattr(
+            INPUT_ARG_OBJECT, training_args.SCALAR_TARGET_MIN_VALUE_ARG_NAME
+        ),
+        scalar_target_max_norm_value=getattr(
+            INPUT_ARG_OBJECT, training_args.SCALAR_TARGET_MAX_VALUE_ARG_NAME
         ),
         num_examples_per_batch=getattr(
             INPUT_ARG_OBJECT, training_args.BATCH_SIZE_ARG_NAME

@@ -64,9 +64,12 @@ NORMALIZATION_FILE_KEY = 'normalization_file_name'
 PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
 PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
 PREDICTOR_MAX_NORM_VALUE_KEY = 'predictor_max_norm_value'
-TARGET_NORM_TYPE_KEY = 'target_norm_type_string'
-TARGET_MIN_NORM_VALUE_KEY = 'target_min_norm_value'
-TARGET_MAX_NORM_VALUE_KEY = 'target_max_norm_value'
+VECTOR_TARGET_NORM_TYPE_KEY = 'vector_target_norm_type_string'
+VECTOR_TARGET_MIN_VALUE_KEY = 'vector_target_min_norm_value'
+VECTOR_TARGET_MAX_VALUE_KEY = 'vector_target_max_norm_value'
+SCALAR_TARGET_NORM_TYPE_KEY = 'scalar_target_norm_type_string'
+SCALAR_TARGET_MIN_VALUE_KEY = 'scalar_target_min_norm_value'
+SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_PREDICTOR_NAMES_KEY: example_utils.ALL_SCALAR_PREDICTOR_NAMES,
@@ -80,9 +83,12 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
-    TARGET_NORM_TYPE_KEY: normalization.MINMAX_NORM_STRING,
-    TARGET_MIN_NORM_VALUE_KEY: 0.,
-    TARGET_MAX_NORM_VALUE_KEY: 1.
+    VECTOR_TARGET_NORM_TYPE_KEY: normalization.MINMAX_NORM_STRING,
+    VECTOR_TARGET_MIN_VALUE_KEY: 0.,
+    VECTOR_TARGET_MAX_VALUE_KEY: 1.,
+    SCALAR_TARGET_NORM_TYPE_KEY: normalization.MINMAX_NORM_STRING,
+    SCALAR_TARGET_MIN_VALUE_KEY: 0.,
+    SCALAR_TARGET_MAX_VALUE_KEY: 1.
 }
 
 METRIC_FUNCTION_LIST = [
@@ -149,8 +155,14 @@ def _check_generator_args(option_dict):
 
     if option_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
         error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
-    if option_dict[TARGET_NORM_TYPE_KEY] is not None:
-        error_checking.assert_is_string(option_dict[TARGET_NORM_TYPE_KEY])
+    if option_dict[VECTOR_TARGET_NORM_TYPE_KEY] is not None:
+        error_checking.assert_is_string(
+            option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
+        )
+    if option_dict[SCALAR_TARGET_NORM_TYPE_KEY] is not None:
+        error_checking.assert_is_string(
+            option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
+        )
 
     omit_heating_rate = option_dict[OMIT_HEATING_RATE_KEY]
     error_checking.assert_is_boolean(omit_heating_rate)
@@ -200,7 +212,9 @@ def _read_file_for_generator(
         heights_m_agl, min_column_lwp_kg_m02, max_column_lwp_kg_m02,
         training_example_dict, predictor_norm_type_string,
         predictor_min_norm_value, predictor_max_norm_value,
-        target_norm_type_string, target_min_norm_value, target_max_norm_value):
+        vector_target_norm_type_string, vector_target_min_norm_value,
+        vector_target_max_norm_value, scalar_target_norm_type_string,
+        scalar_target_min_norm_value, scalar_target_max_norm_value):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -218,9 +232,12 @@ def _read_file_for_generator(
     :param predictor_norm_type_string: See doc for `data_generator`.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
-    :param target_norm_type_string: Same.
-    :param target_min_norm_value: Same.
-    :param target_max_norm_value: Same.
+    :param vector_target_norm_type_string: Same.
+    :param vector_target_min_norm_value: Same.
+    :param vector_target_max_norm_value: Same.
+    :param scalar_target_norm_type_string: Same.
+    :param scalar_target_min_norm_value: Same.
+    :param scalar_target_max_norm_value: Same.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
@@ -255,22 +272,36 @@ def _read_file_for_generator(
             normalization_type_string=predictor_norm_type_string,
             min_normalized_value=predictor_min_norm_value,
             max_normalized_value=predictor_max_norm_value,
-            separate_heights=True,
-            apply_to_predictors=True, apply_to_targets=False
+            separate_heights=True, apply_to_predictors=True,
+            apply_to_vector_targets=False, apply_to_scalar_targets=False
         )
 
-    if target_norm_type_string is not None:
-        print('Applying {0:s} normalization to targets...'.format(
-            target_norm_type_string.upper()
+    if vector_target_norm_type_string is not None:
+        print('Applying {0:s} normalization to vector targets...'.format(
+            vector_target_norm_type_string.upper()
         ))
         example_dict = normalization.normalize_data(
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
-            normalization_type_string=target_norm_type_string,
-            min_normalized_value=target_min_norm_value,
-            max_normalized_value=target_max_norm_value,
-            separate_heights=True,
-            apply_to_predictors=False, apply_to_targets=True
+            normalization_type_string=vector_target_norm_type_string,
+            min_normalized_value=vector_target_min_norm_value,
+            max_normalized_value=vector_target_max_norm_value,
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=True, apply_to_scalar_targets=False
+        )
+
+    if scalar_target_norm_type_string is not None:
+        print('Applying {0:s} normalization to scalar targets...'.format(
+            scalar_target_norm_type_string.upper()
+        ))
+        example_dict = normalization.normalize_data(
+            new_example_dict=example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=scalar_target_norm_type_string,
+            min_normalized_value=scalar_target_min_norm_value,
+            max_normalized_value=scalar_target_max_norm_value,
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
 
     return example_dict
@@ -280,7 +311,9 @@ def _read_specific_examples(
         example_file_names, example_id_strings, field_names, heights_m_agl,
         training_example_dict, predictor_norm_type_string,
         predictor_min_norm_value, predictor_max_norm_value,
-        target_norm_type_string, target_min_norm_value, target_max_norm_value):
+        vector_target_norm_type_string, vector_target_min_norm_value,
+        vector_target_max_norm_value, scalar_target_norm_type_string,
+        scalar_target_min_norm_value, scalar_target_max_norm_value):
     """Reads specific examples for generator.
 
     :param example_file_names: 1-D list of paths to input files (will be read by
@@ -292,9 +325,12 @@ def _read_specific_examples(
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
-    :param target_norm_type_string: Same.
-    :param target_min_norm_value: Same.
-    :param target_max_norm_value: Same.
+    :param vector_target_norm_type_string: Same.
+    :param vector_target_min_norm_value: Same.
+    :param vector_target_max_norm_value: Same.
+    :param scalar_target_norm_type_string: Same.
+    :param scalar_target_min_norm_value: Same.
+    :param scalar_target_max_norm_value: Same.
     :return: example_dict: Same.
     """
 
@@ -358,22 +394,36 @@ def _read_specific_examples(
             normalization_type_string=predictor_norm_type_string,
             min_normalized_value=predictor_min_norm_value,
             max_normalized_value=predictor_max_norm_value,
-            separate_heights=True,
-            apply_to_predictors=True, apply_to_targets=False
+            separate_heights=True, apply_to_predictors=True,
+            apply_to_vector_targets=False, apply_to_scalar_targets=False
         )
 
-    if target_norm_type_string is not None:
-        print('Applying {0:s} normalization to targets...'.format(
-            target_norm_type_string.upper()
+    if vector_target_norm_type_string is not None:
+        print('Applying {0:s} normalization to vector targets...'.format(
+            vector_target_norm_type_string.upper()
         ))
         example_dict = normalization.normalize_data(
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
-            normalization_type_string=target_norm_type_string,
-            min_normalized_value=target_min_norm_value,
-            max_normalized_value=target_max_norm_value,
-            separate_heights=True,
-            apply_to_predictors=False, apply_to_targets=True
+            normalization_type_string=vector_target_norm_type_string,
+            min_normalized_value=vector_target_min_norm_value,
+            max_normalized_value=vector_target_max_norm_value,
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=True, apply_to_scalar_targets=False
+        )
+
+    if scalar_target_norm_type_string is not None:
+        print('Applying {0:s} normalization to scalar targets...'.format(
+            scalar_target_norm_type_string.upper()
+        ))
+        example_dict = normalization.normalize_data(
+            new_example_dict=example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=scalar_target_norm_type_string,
+            min_normalized_value=scalar_target_min_norm_value,
+            max_normalized_value=scalar_target_max_norm_value,
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
 
     return example_dict
@@ -1020,12 +1070,18 @@ def data_generator(option_dict, for_inference, net_type_string,
     option_dict['predictor_min_norm_value']: Minimum normalized value for
         predictors (used only if normalization type is min-max).
     option_dict['predictor_max_norm_value']: Same but max value.
-    option_dict['target_norm_type_string']: Normalization type for targets (must
-        be accepted by `normalization._check_normalization_type`).  If you do
-        not want to normalize targets, make this None.
-    option_dict['target_min_norm_value']: Minimum normalized value for targets
-        (used only if normalization type is min-max).
-    option_dict['target_max_norm_value']: Same but max value.
+    option_dict['vector_target_norm_type_string']: Normalization type for vector
+        targets (must be accepted by `normalization._check_normalization_type`).
+        If you do not want to normalize vector targets, make this None.
+    option_dict['vector_target_min_norm_value']: Minimum normalized value for
+        vector targets (used only if normalization type is min-max).
+    option_dict['vector_target_max_norm_value']: Same but max value.
+    option_dict['scalar_target_norm_type_string']: Same as
+        "vector_target_norm_type_string" but for scalar targets.
+    option_dict['scalar_target_min_norm_value']: Same as
+        "vector_target_min_norm_value" but for scalar targets.
+    option_dict['scalar_target_max_norm_value']: Same as
+        "vector_target_max_norm_value" but for scalar targets.
 
     :param for_inference: Boolean flag.  If True, generator is being used for
         inference stage (applying trained model to new data).  If False,
@@ -1088,9 +1144,12 @@ def data_generator(option_dict, for_inference, net_type_string,
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
-    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
-    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
+    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
+    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
+    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
+    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
+    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
     print((
         'Reading training examples (for normalization) from: "{0:s}"...'
@@ -1123,9 +1182,12 @@ def data_generator(option_dict, for_inference, net_type_string,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
             predictor_max_norm_value=predictor_max_norm_value,
-            target_norm_type_string=target_norm_type_string,
-            target_min_norm_value=target_min_norm_value,
-            target_max_norm_value=target_max_norm_value
+            vector_target_norm_type_string=vector_target_norm_type_string,
+            vector_target_min_norm_value=vector_target_min_norm_value,
+            vector_target_max_norm_value=vector_target_max_norm_value,
+            scalar_target_norm_type_string=scalar_target_norm_type_string,
+            scalar_target_min_norm_value=scalar_target_min_norm_value,
+            scalar_target_max_norm_value=scalar_target_max_norm_value
         )
 
         these_id_strings = this_example_dict[example_utils.EXAMPLE_IDS_KEY]
@@ -1166,9 +1228,12 @@ def data_generator(option_dict, for_inference, net_type_string,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,
-                target_norm_type_string=target_norm_type_string,
-                target_min_norm_value=target_min_norm_value,
-                target_max_norm_value=target_max_norm_value
+                vector_target_norm_type_string=vector_target_norm_type_string,
+                vector_target_min_norm_value=vector_target_min_norm_value,
+                vector_target_max_norm_value=vector_target_max_norm_value,
+                scalar_target_norm_type_string=scalar_target_norm_type_string,
+                scalar_target_min_norm_value=scalar_target_min_norm_value,
+                scalar_target_max_norm_value=scalar_target_max_norm_value
             )
 
             these_id_strings = this_example_dict[example_utils.EXAMPLE_IDS_KEY]
@@ -1293,9 +1358,12 @@ def create_data(option_dict, for_inference, net_type_string,
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
-    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
-    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
+    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
+    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
+    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
+    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
+    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
     print((
         'Reading training examples (for normalization) from: "{0:s}"...'
@@ -1328,9 +1396,12 @@ def create_data(option_dict, for_inference, net_type_string,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
             predictor_max_norm_value=predictor_max_norm_value,
-            target_norm_type_string=target_norm_type_string,
-            target_min_norm_value=target_min_norm_value,
-            target_max_norm_value=target_max_norm_value
+            vector_target_norm_type_string=vector_target_norm_type_string,
+            vector_target_min_norm_value=vector_target_min_norm_value,
+            vector_target_max_norm_value=vector_target_max_norm_value,
+            scalar_target_norm_type_string=scalar_target_norm_type_string,
+            scalar_target_min_norm_value=scalar_target_min_norm_value,
+            scalar_target_max_norm_value=scalar_target_max_norm_value
         )
 
         example_dicts.append(this_example_dict)
@@ -1413,9 +1484,12 @@ def data_generator_specific_examples(option_dict, net_type_string,
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
-    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
-    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
+    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
+    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
+    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
+    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
+    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
     print((
         'Reading training examples (for normalization) from: "{0:s}"...'
@@ -1464,9 +1538,12 @@ def data_generator_specific_examples(option_dict, net_type_string,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,
-                target_norm_type_string=target_norm_type_string,
-                target_min_norm_value=target_min_norm_value,
-                target_max_norm_value=target_max_norm_value
+                vector_target_norm_type_string=vector_target_norm_type_string,
+                vector_target_min_norm_value=vector_target_min_norm_value,
+                vector_target_max_norm_value=vector_target_max_norm_value,
+                scalar_target_norm_type_string=scalar_target_norm_type_string,
+                scalar_target_min_norm_value=scalar_target_min_norm_value,
+                scalar_target_max_norm_value=scalar_target_max_norm_value
             )
 
             example_index += len(
@@ -1576,9 +1653,12 @@ def create_data_specific_examples(
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    target_norm_type_string = option_dict[TARGET_NORM_TYPE_KEY]
-    target_min_norm_value = option_dict[TARGET_MIN_NORM_VALUE_KEY]
-    target_max_norm_value = option_dict[TARGET_MAX_NORM_VALUE_KEY]
+    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
+    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
+    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
+    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
+    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
+    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
     print((
         'Reading training examples (for normalization) from: "{0:s}"...'
@@ -1605,9 +1685,12 @@ def create_data_specific_examples(
         predictor_norm_type_string=predictor_norm_type_string,
         predictor_min_norm_value=predictor_min_norm_value,
         predictor_max_norm_value=predictor_max_norm_value,
-        target_norm_type_string=target_norm_type_string,
-        target_min_norm_value=target_min_norm_value,
-        target_max_norm_value=target_max_norm_value
+        vector_target_norm_type_string=vector_target_norm_type_string,
+        vector_target_min_norm_value=vector_target_min_norm_value,
+        vector_target_max_norm_value=vector_target_max_norm_value,
+        scalar_target_norm_type_string=scalar_target_norm_type_string,
+        scalar_target_min_norm_value=scalar_target_min_norm_value,
+        scalar_target_max_norm_value=scalar_target_max_norm_value
     )
 
     predictor_matrix = predictors_dict_to_numpy(
