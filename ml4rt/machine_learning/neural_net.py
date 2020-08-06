@@ -112,12 +112,12 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 NET_TYPE_KEY = 'net_type_string'
-LOSS_FUNCTION_KEY = 'loss_function'
+LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
-    LOSS_FUNCTION_KEY
+    LOSS_FUNCTION_OR_DICT_KEY
 ]
 
 
@@ -432,7 +432,7 @@ def _read_specific_examples(
 def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, net_type_string, loss_function):
+        validation_option_dict, net_type_string, loss_function_or_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -442,7 +442,7 @@ def _write_metafile(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param net_type_string: Same.
-    :param loss_function: Same.
+    :param loss_function_or_dict: Same.
     """
 
     metadata_dict = {
@@ -452,7 +452,7 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         NET_TYPE_KEY: net_type_string,
-        LOSS_FUNCTION_KEY: loss_function
+        LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
@@ -481,14 +481,18 @@ def check_net_type(net_type_string):
     raise ValueError(error_string)
 
 
-def determine_if_loss_constrained_mse(loss_function):
+def determine_if_loss_constrained_mse(loss_function_or_dict):
     """Determines whether or not loss function is constrained MSE.
 
-    :param loss_function: Function object.
+    :param loss_function_or_dict: See doc for `train_model_with_generator`.
     :return: is_loss_constrained_mse: Boolean flag.
     """
 
-    loss_function_string = dill.dumps(loss_function)
+    if isinstance(loss_function_or_dict, dict):
+        loss_function_string = dill.dumps(loss_function_or_dict['conv_output'])
+    else:
+        loss_function_string = dill.dumps(loss_function_or_dict)
+
     loss_function_string = ''.join(map(chr, loss_function_string))
     return 'toa_up_flux_index' in loss_function_string
 
@@ -1719,7 +1723,7 @@ def create_data_specific_examples(
 def train_model_with_generator(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
-        validation_option_dict, net_type_string, loss_function,
+        validation_option_dict, net_type_string, loss_function_or_dict,
         use_generator_for_validn=False, num_validation_batches_per_epoch=None,
         do_early_stopping=True):
     """Trains any kind of neural net with generator.
@@ -1742,7 +1746,9 @@ def train_model_with_generator(
 
     :param net_type_string: Neural-net type (must be accepted by
         `check_net_type`).
-    :param loss_function: Loss function.
+    :param loss_function_or_dict: Loss function(s).  If the net has one loss
+        function, this should be a function handle.  If the net has multiple
+        loss functions, this should be a dictionary.
     :param use_generator_for_validn: Boolean flag.  If True, will use
         generator for validation data.  If False, will load all validation data
         into memory at once.
@@ -1825,10 +1831,13 @@ def train_model_with_generator(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string, loss_function=loss_function
+        net_type_string=net_type_string,
+        loss_function_or_dict=loss_function_or_dict
     )
 
-    is_loss_constrained_mse = determine_if_loss_constrained_mse(loss_function)
+    is_loss_constrained_mse = determine_if_loss_constrained_mse(
+        loss_function_or_dict
+    )
 
     training_generator = data_generator(
         option_dict=training_option_dict, for_inference=False,
@@ -1868,7 +1877,7 @@ def train_model_with_generator(
 
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
-        validation_option_dict, net_type_string, loss_function,
+        validation_option_dict, net_type_string, loss_function_or_dict,
         do_early_stopping=True):
     """Trains any kind of neural net without generator.
 
@@ -1878,7 +1887,7 @@ def train_model_sans_generator(
     :param training_option_dict: Same.
     :param validation_option_dict: Same.
     :param net_type_string: Same.
-    :param loss_function: Same.
+    :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
     """
 
@@ -1943,10 +1952,13 @@ def train_model_sans_generator(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=None,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string, loss_function=loss_function
+        net_type_string=net_type_string,
+        loss_function_or_dict=loss_function_or_dict
     )
 
-    is_loss_constrained_mse = determine_if_loss_constrained_mse(loss_function)
+    is_loss_constrained_mse = determine_if_loss_constrained_mse(
+        loss_function_or_dict
+    )
 
     training_predictor_matrix, training_target_array = create_data(
         option_dict=training_option_dict, for_inference=False,
@@ -1995,7 +2007,7 @@ def read_model(hdf5_file_name):
 
     metadata_dict = read_metafile(metafile_name)
     custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
-    custom_object_dict['loss'] = metadata_dict[LOSS_FUNCTION_KEY]
+    custom_object_dict['loss'] = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
 
     return keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
@@ -2037,7 +2049,7 @@ def read_metafile(dill_file_name):
     metadata_dict['num_validation_batches_per_epoch']: Same.
     metadata_dict['validation_option_dict']: Same.
     metadata_dict['net_type_string']: Same.
-    metadata_dict['loss_function']: Same.
+    metadata_dict['loss_function_or_dict']: Same.
 
     :raises: ValueError: if any expected key is not found in dictionary.
     """
@@ -2050,8 +2062,40 @@ def read_metafile(dill_file_name):
 
     if OMIT_HEATING_RATE_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         metadata_dict[TRAINING_OPTIONS_KEY][OMIT_HEATING_RATE_KEY] = False
-    if OMIT_HEATING_RATE_KEY not in metadata_dict[VALIDATION_OPTIONS_KEY]:
         metadata_dict[VALIDATION_OPTIONS_KEY][OMIT_HEATING_RATE_KEY] = False
+
+    if VECTOR_TARGET_NORM_TYPE_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t = metadata_dict[TRAINING_OPTIONS_KEY]
+        v = metadata_dict[VALIDATION_OPTIONS_KEY]
+
+        target_norm_type_string = t['target_norm_type_string']
+        target_min_norm_value = t['target_min_norm_value']
+        target_max_norm_value = t['target_max_norm_value']
+
+        t[VECTOR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
+        t[VECTOR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
+        t[VECTOR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
+        t[SCALAR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
+        t[SCALAR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
+        t[SCALAR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
+        v[VECTOR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
+        v[VECTOR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
+        v[VECTOR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
+        v[SCALAR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
+        v[SCALAR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
+        v[SCALAR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
+
+        metadata_dict[TRAINING_OPTIONS_KEY] = t
+        metadata_dict[VALIDATION_OPTIONS_KEY] = v
+
+    if LOSS_FUNCTION_OR_DICT_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        loss_function = metadata_dict[TRAINING_OPTIONS_KEY]['loss_function']
+        metadata_dict[TRAINING_OPTIONS_KEY][LOSS_FUNCTION_OR_DICT_KEY] = (
+            loss_function
+        )
+        metadata_dict[VALIDATION_OPTIONS_KEY][LOSS_FUNCTION_OR_DICT_KEY] = (
+            loss_function
+        )
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:

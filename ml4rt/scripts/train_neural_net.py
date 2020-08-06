@@ -152,9 +152,11 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
         model_dir_name=os.path.split(input_model_file_name)[0]
     )
 
-    print('Reading loss function from: "{0:s}"...'.format(input_metafile_name))
-    loss_function = neural_net.read_metafile(input_metafile_name)[
-        neural_net.LOSS_FUNCTION_KEY
+    print('Reading loss function(s) from: "{0:s}"...'.format(
+        input_metafile_name
+    ))
+    loss_function_or_dict = neural_net.read_metafile(input_metafile_name)[
+        neural_net.LOSS_FUNCTION_OR_DICT_KEY
     ]
 
     print(SEPARATOR_STRING)
@@ -169,7 +171,7 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             validation_option_dict=validation_option_dict,
             net_type_string=net_type_string,
-            loss_function=loss_function, do_early_stopping=True
+            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True
         )
     else:
         neural_net.train_model_sans_generator(
@@ -178,7 +180,7 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
             training_option_dict=training_option_dict,
             validation_option_dict=validation_option_dict,
             net_type_string=net_type_string,
-            loss_function=loss_function, do_early_stopping=True
+            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True
         )
 
 

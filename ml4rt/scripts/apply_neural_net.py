@@ -248,7 +248,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     metadata_dict = neural_net.read_metafile(metafile_name)
 
     is_loss_constrained_mse = neural_net.determine_if_loss_constrained_mse(
-        metadata_dict[neural_net.LOSS_FUNCTION_KEY]
+        metadata_dict[neural_net.LOSS_FUNCTION_OR_DICT_KEY]
     )
 
     generator_option_dict = copy.deepcopy(
