@@ -186,7 +186,8 @@ def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
     return zeroing_function
 
 
-def create_model(option_dict, loss_function, num_output_channels=1):
+def create_model(option_dict, vector_loss_function, num_output_channels=1,
+                 scalar_loss_function=None):
     """Creates U-net.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -233,8 +234,10 @@ def create_model(option_dict, loss_function, num_output_channels=1):
     option_dict['heating_rate_channel_index']: Channel index for heating rate.
         Used only if `zero_out_top_heating_rate = True`.
 
-    :param loss_function: Function handle.
+    :param vector_loss_function: Loss function for vector outputs.
     :param num_output_channels: Number of output channels.
+    :param scalar_loss_function: Loss function scalar outputs.  If there are no
+        dense layers, leave this alone.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
@@ -703,8 +706,8 @@ def create_model(option_dict, loss_function, num_output_channels=1):
 
     if any_dense_layers:
         loss_dict = {
-            'conv_output': loss_function,
-            'dense_output': keras.losses.mse
+            'conv_output': vector_loss_function,
+            'dense_output': scalar_loss_function
         }
 
         model_object.compile(
@@ -713,7 +716,7 @@ def create_model(option_dict, loss_function, num_output_channels=1):
         )
     else:
         model_object.compile(
-            loss=loss_function, optimizer=keras.optimizers.Adam(),
+            loss=vector_loss_function, optimizer=keras.optimizers.Adam(),
             metrics=neural_net.METRIC_FUNCTION_LIST
         )
 
