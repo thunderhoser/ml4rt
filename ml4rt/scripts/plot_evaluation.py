@@ -1096,9 +1096,9 @@ if __name__ == '__main__':
 
     _run(
         evaluation_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
-        line_styles=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
-        line_colour_strings=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
-        line_legend_strings=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        line_styles=getattr(INPUT_ARG_OBJECT, LINE_STYLES_ARG_NAME),
+        line_colour_strings=getattr(INPUT_ARG_OBJECT, LINE_COLOURS_ARG_NAME),
+        line_legend_strings=getattr(INPUT_ARG_OBJECT, LINE_LEGENDS_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
