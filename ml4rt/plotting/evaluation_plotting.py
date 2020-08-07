@@ -84,7 +84,7 @@ def _check_score_name(score_name):
 def _plot_reliability_curve(
         axes_object, mean_predictions, mean_observations, min_value_to_plot,
         max_value_to_plot, line_colour=RELIABILITY_LINE_COLOUR,
-        line_style='solid'):
+        line_style='solid', line_width=RELIABILITY_LINE_WIDTH):
     """Plots reliability curve.
 
     B = number of bins
@@ -97,6 +97,8 @@ def _plot_reliability_curve(
     :param max_value_to_plot: Same.
     :param line_colour: Line colour (in any format accepted by matplotlib).
     :param line_style: Line style (in any format accepted by matplotlib).
+    :param line_width: Line width (in any format accepted by matplotlib).
+    :return: main_line_handle: Handle for main line (reliability curve).
     """
 
     perfect_x_coords = numpy.array([min_value_to_plot, max_value_to_plot])
@@ -111,19 +113,22 @@ def _plot_reliability_curve(
         numpy.isnan(mean_predictions), numpy.isnan(mean_observations)
     )
 
-    if not numpy.all(nan_flags):
+    if numpy.all(nan_flags):
+        main_line_handle = None
+    else:
         real_indices = numpy.where(numpy.invert(nan_flags))[0]
 
-        axes_object.plot(
+        main_line_handle = axes_object.plot(
             mean_predictions[real_indices], mean_observations[real_indices],
-            color=line_colour, linestyle=line_style,
-            linewidth=RELIABILITY_LINE_WIDTH
-        )
+            color=line_colour, linestyle=line_style, linewidth=line_width
+        )[0]
 
     axes_object.set_xlabel('Prediction')
     axes_object.set_ylabel('Conditional mean observation')
     axes_object.set_xlim(min_value_to_plot, max_value_to_plot)
     axes_object.set_ylim(min_value_to_plot, max_value_to_plot)
+
+    return main_line_handle
 
 
 def _get_positive_skill_area(mean_value_in_training, min_value_in_plot,
@@ -244,7 +249,8 @@ def _plot_attr_diagram_background(
 
 
 def _plot_inset_histogram(
-        figure_object, bin_centers, bin_counts, has_predictions):
+        figure_object, bin_centers, bin_counts, has_predictions,
+        bar_colour=HISTOGRAM_FACE_COLOUR):
     """Plots histogram as inset in attributes diagram.
 
     B = number of bins
@@ -257,6 +263,7 @@ def _plot_inset_histogram(
         These values will be plotted on the y-axis.
     :param has_predictions: Boolean flag.  If True, histogram will contain
         prediction frequencies.  If False, will contain observation frequencies.
+    :param bar_colour: Bar colour (in any format accepted by matplotlib).
     """
 
     bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
@@ -275,7 +282,7 @@ def _plot_inset_histogram(
 
     inset_axes_object.bar(
         fake_bin_centers[real_indices], bin_frequencies[real_indices], 1.,
-        color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
+        color=bar_colour, edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
     inset_axes_object.set_ylim(bottom=0.)
@@ -313,7 +320,9 @@ def _plot_inset_histogram(
 def plot_attributes_diagram(
         figure_object, axes_object, mean_predictions, mean_observations,
         example_counts, mean_value_in_training, min_value_to_plot,
-        max_value_to_plot, inv_mean_observations=None, inv_example_counts=None):
+        max_value_to_plot, line_colour=RELIABILITY_LINE_COLOUR,
+        line_style='solid', line_width=RELIABILITY_LINE_WIDTH,
+        inv_mean_observations=None, inv_example_counts=None):
     """Plots attributes diagram.
 
     If `inv_mean_observations is None` and `inv_example_counts is None`, this
@@ -334,10 +343,14 @@ def plot_attributes_diagram(
     :param min_value_to_plot: Minimum value in plot (for both x- and y-axes).
     :param max_value_to_plot: Max value in plot (for both x- and y-axes).
         If None, will be determined automatically.
+    :param line_colour: See doc for `_plot_reliability_curve`.
+    :param line_width: Same.
+    :param line_style: Same.
     :param inv_mean_observations: length-B numpy array of mean observed values
         for inverted reliability curve.
     :param inv_example_counts: length-B numpy array of example counts for
         inverted reliability curve.
+    :return: main_line_handle: See doc for `_plot_reliability_curve`.
     """
 
     # Check input args.
@@ -382,20 +395,22 @@ def plot_attributes_diagram(
 
     _plot_inset_histogram(
         figure_object=figure_object, bin_centers=mean_predictions,
-        bin_counts=example_counts, has_predictions=True
+        bin_counts=example_counts, has_predictions=True, bar_colour=line_colour
     )
 
     if plot_obs_histogram:
         _plot_inset_histogram(
             figure_object=figure_object, bin_centers=inv_mean_observations,
-            bin_counts=inv_example_counts, has_predictions=False
+            bin_counts=inv_example_counts, has_predictions=False,
+            bar_colour=line_colour
         )
 
-    _plot_reliability_curve(
+    return _plot_reliability_curve(
         axes_object=axes_object, mean_predictions=mean_predictions,
         mean_observations=mean_observations,
         min_value_to_plot=min_value_to_plot,
-        max_value_to_plot=max_value_to_plot
+        max_value_to_plot=max_value_to_plot,
+        line_colour=line_colour, line_style=line_style, line_width=line_width
     )
 
 
@@ -471,6 +486,7 @@ def plot_score_profile(
     :param are_axes_new: Boolean flag.  If True, axes are new (do not already
         contain plot).
     :param line_style: Line style (in any format accepted by matplotlib).
+    :return: main_line_handle: Handle for main line (score profile).
     """
 
     error_checking.assert_is_numpy_array(heights_m_agl, num_dimensions=1)
@@ -519,10 +535,10 @@ def plot_score_profile(
 
     finite_indices = numpy.where(numpy.isfinite(score_values))[0]
 
-    axes_object.plot(
+    main_line_handle = axes_object.plot(
         score_values[finite_indices], heights_km_agl[finite_indices],
         color=line_colour, linestyle=line_style, linewidth=line_width
-    )
+    )[0]
 
     if score_name in possibly_negative_score_names:
         x_min = numpy.minimum(
@@ -554,6 +570,8 @@ def plot_score_profile(
     )
     axes_object.set_yticklabels(y_tick_strings)
     axes_object.set_ylabel('Height (km AGL)')
+
+    return main_line_handle
 
 
 def plot_error_distribution(

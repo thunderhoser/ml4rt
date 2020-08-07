@@ -3,10 +3,12 @@
 import os.path
 import argparse
 import numpy
+import xarray
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
@@ -88,19 +90,35 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
-INPUT_FILE_ARG_NAME = 'main_eval_file_name'
-BASELINE_FILE_ARG_NAME = 'baseline_eval_file_name'
+INPUT_FILES_ARG_NAME = 'input_eval_file_names'
+LINE_STYLES_ARG_NAME = 'line_styles'
+LINE_COLOURS_ARG_NAME = 'line_colours'
+LINE_LEGENDS_ARG_NAME = 'line_legend_strings'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PLOT_BY_HEIGHT_ARG_NAME = 'plot_by_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
-INPUT_FILE_HELP_STRING = (
-    'Path to input file (will be read by `evaluation.write_file`).'
+INPUT_FILES_HELP_STRING = (
+    'Space-separated list of paths to input files (each will be read by '
+    '`evaluation.write_file`).'
 )
-BASELINE_FILE_HELP_STRING = (
-    'Same as `{0:s}` but containing evaluation results for a baseline model.  '
-    'If you do not want to plot a baseline, leave this argument alone.'
-)
+LINE_STYLES_HELP_STRING = (
+    'Space-separated list of line styles (in any format accepted by '
+    'matplotlib).  Must have same length as `{0:s}`.'
+).format(INPUT_FILES_ARG_NAME)
+
+LINE_COLOURS_HELP_STRING = (
+    'Space-separated list of line colours.  Each colour must be a length-3 '
+    'array of (R, G, B) intensities ranging from 0...255.  Colours in each '
+    'array should be underscore-separated, so the list should look like '
+    '"0_0_0 217_95_2", for examples.  List must have same length as `{0:s}`.'
+).format(INPUT_FILES_ARG_NAME)
+
+LINE_LEGENDS_HELP_STRING = (
+    'Space-separated list of line legends (in any format accepted by '
+    'matplotlib).  Must have same length as `{0:s}`.'
+).format(INPUT_FILES_ARG_NAME)
+
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
     'axis.'
@@ -115,12 +133,20 @@ OUTPUT_DIR_HELP_STRING = (
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + INPUT_FILE_ARG_NAME, type=str, required=True,
-    help=INPUT_FILE_HELP_STRING
+    '--' + INPUT_FILES_ARG_NAME, type=str, nargs='+', required=True,
+    help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + BASELINE_FILE_ARG_NAME, type=str, required=False, default='',
-    help=BASELINE_FILE_HELP_STRING
+    '--' + LINE_STYLES_ARG_NAME, type=str, nargs='+', required=True,
+    help=LINE_STYLES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LINE_COLOURS_ARG_NAME, type=str, nargs='+', required=True,
+    help=LINE_COLOURS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LINE_LEGENDS_ARG_NAME, type=str, nargs='+', required=True,
+    help=LINE_LEGENDS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
@@ -137,15 +163,15 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _plot_taylor_diagram(
-        main_results_xarray, output_dir_name, scalar_target_index=None,
+        evaluation_table_array, output_dir_name, scalar_target_index=None,
         aux_target_index=None, vector_target_index=None, height_index=None):
     """Plots Taylor diagram for one field.
 
     In this case, "field" means one scalar variable or one vector variable at
     one height.
 
-    :param main_results_xarray: xarray table with main evaluation results
-        (format described in `evaluation.read_file`).
+    :param evaluation_table_array: Evaluation results (in format returned by
+        `evaluation.read_file`).
     :param output_dir_name: Name of output directory (figure will be saved
         here).
     :param scalar_target_index: Index for scalar target variable.
@@ -155,19 +181,19 @@ def _plot_taylor_diagram(
     """
 
     if scalar_target_index is not None:
-        target_name = main_results_xarray.coords[
+        target_name = evaluation_table_array.coords[
             evaluation.SCALAR_FIELD_DIM
         ].values[scalar_target_index]
 
-        target_stdev = main_results_xarray[
+        target_stdev = evaluation_table_array[
             evaluation.SCALAR_TARGET_STDEV_KEY
         ].values[scalar_target_index]
 
-        prediction_stdev = main_results_xarray[
+        prediction_stdev = evaluation_table_array[
             evaluation.SCALAR_PREDICTION_STDEV_KEY
         ].values[scalar_target_index]
 
-        correlation = main_results_xarray[
+        correlation = evaluation_table_array[
             evaluation.SCALAR_CORRELATION_KEY
         ].values[scalar_target_index]
 
@@ -176,23 +202,23 @@ def _plot_taylor_diagram(
         )
 
     elif aux_target_index is not None:
-        target_name = main_results_xarray.coords[
+        target_name = evaluation_table_array.coords[
             evaluation.AUX_TARGET_FIELD_DIM
         ].values[aux_target_index]
 
-        predicted_target_name = main_results_xarray.coords[
+        predicted_target_name = evaluation_table_array.coords[
             evaluation.AUX_PREDICTED_FIELD_DIM
         ].values[aux_target_index]
 
-        target_stdev = main_results_xarray[
+        target_stdev = evaluation_table_array[
             evaluation.AUX_TARGET_STDEV_KEY
         ].values[aux_target_index]
 
-        prediction_stdev = main_results_xarray[
+        prediction_stdev = evaluation_table_array[
             evaluation.AUX_PREDICTION_STDEV_KEY
         ].values[aux_target_index]
 
-        correlation = main_results_xarray[
+        correlation = evaluation_table_array[
             evaluation.AUX_CORRELATION_KEY
         ].values[aux_target_index]
 
@@ -201,23 +227,23 @@ def _plot_taylor_diagram(
         )
 
     else:
-        target_name = main_results_xarray.coords[
+        target_name = evaluation_table_array.coords[
             evaluation.VECTOR_FIELD_DIM
         ].values[vector_target_index]
 
-        height_m_agl = main_results_xarray.coords[
+        height_m_agl = evaluation_table_array.coords[
             evaluation.HEIGHT_DIM
         ].values[height_index]
 
-        target_stdev = main_results_xarray[
+        target_stdev = evaluation_table_array[
             evaluation.VECTOR_TARGET_STDEV_KEY
         ].values[height_index, vector_target_index]
 
-        prediction_stdev = main_results_xarray[
+        prediction_stdev = evaluation_table_array[
             evaluation.VECTOR_PREDICTION_STDEV_KEY
         ].values[height_index, vector_target_index]
 
-        correlation = main_results_xarray[
+        correlation = evaluation_table_array[
             evaluation.VECTOR_CORRELATION_KEY
         ].values[height_index, vector_target_index]
 
@@ -276,81 +302,84 @@ def _plot_taylor_diagram(
 
 
 def _plot_attributes_diagram(
-        main_results_xarray, baseline_results_xarray,
-        mean_training_example_dict, output_dir_name, scalar_target_index=None,
-        aux_target_index=None, vector_target_index=None, height_index=None):
+        evaluation_tables_xarray, line_styles, line_colours,
+        line_legend_strings, mean_training_example_dict, output_dir_name,
+        scalar_target_index=None, aux_target_index=None,
+        vector_target_index=None, height_index=None):
     """Plots attributes diagram for one field.
 
     In this case, "field" means one scalar variable or one vector variable at
     one height.
 
-    :param main_results_xarray: xarray table with main evaluation results
-        (format described in `evaluation.read_file`).
-    :param baseline_results_xarray: Same but with evaluation results for
-        baseline model.
+    :param evaluation_tables_xarray: See doc for `_plot_score_profile`.
+    :param line_styles: Same.
+    :param line_colours: Same.
+    :param line_legend_strings: Same.
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
-    :param output_dir_name: See doc for `_plot_taylor_diagram`.
-    :param scalar_target_index: Same.
+    :param output_dir_name: Name of output directory.  Figure will be saved
+        here.
+    :param scalar_target_index: See doc for `_plot_taylor_diagram`.
     :param aux_target_index: Same.
     :param vector_target_index: Same.
     :param height_index: Same.
     """
 
-    if baseline_results_xarray is None:
-        baseline_scalar_target_names = []
-        baseline_aux_target_names = []
-        baseline_vector_target_names = []
-        baseline_heights_m_agl = []
-    else:
-        baseline_scalar_target_names = (
-            baseline_results_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
-        ).tolist()
+    scalar_target_names_by_file = [
+        t.coords[evaluation.SCALAR_FIELD_DIM].values.tolist()
+        for t in evaluation_tables_xarray
+    ]
+    vector_target_names_by_file = [
+        t.coords[evaluation.VECTOR_FIELD_DIM].values.tolist()
+        for t in evaluation_tables_xarray
+    ]
+    heights_by_file_m_agl = (
+        t.coords[evaluation.HEIGHT_DIM].values for t in evaluation_tables_xarray
+    )
+    aux_target_names_by_file = [
+        t.coords[evaluation.AUX_TARGET_FIELD_DIM].values.tolist()
+        if evaluation.AUX_TARGET_FIELD_DIM in t.coords
+        else []
+        for t in evaluation_tables_xarray
+    ]
 
-        try:
-            baseline_aux_target_names = baseline_results_xarray.coords[
-                evaluation.AUX_TARGET_FIELD_DIM
-            ].values.tolist()
-        except:
-            baseline_aux_target_names = []
+    num_files = len(evaluation_tables_xarray)
+    scalar_target_index_by_file = [None] * num_files
+    vector_target_index_by_file = [None] * num_files
+    height_index_by_file = [None] * num_files
+    aux_target_index_by_file = [None] * num_files
 
-        baseline_vector_target_names = (
-            baseline_results_xarray.coords[evaluation.VECTOR_FIELD_DIM].values
-        ).tolist()
-
-        baseline_heights_m_agl = (
-            baseline_results_xarray.coords[evaluation.HEIGHT_DIM].values
-        )
-
-    baseline_scalar_target_index = None
-    baseline_aux_target_index = None
-    baseline_vector_target_index = None
-    baseline_height_index = None
+    t = evaluation_tables_xarray[0]
 
     if scalar_target_index is not None:
-        target_name = main_results_xarray.coords[
-            evaluation.SCALAR_FIELD_DIM
-        ].values[scalar_target_index]
-
-        mean_predictions = main_results_xarray[
-            evaluation.SCALAR_RELIABILITY_X_KEY
-        ].values[scalar_target_index, ...]
-
-        mean_observations = main_results_xarray[
-            evaluation.SCALAR_RELIABILITY_Y_KEY
-        ].values[scalar_target_index, ...]
-
-        example_counts = main_results_xarray[
-            evaluation.SCALAR_RELIABILITY_COUNT_KEY
-        ].values[scalar_target_index, ...]
-
-        inverted_mean_observations = main_results_xarray[
-            evaluation.SCALAR_INV_RELIABILITY_X_KEY
-        ].values[scalar_target_index, ...]
-
-        inverted_example_counts = main_results_xarray[
-            evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY
-        ].values[scalar_target_index, ...]
+        target_name = (
+            t.coords[evaluation.SCALAR_FIELD_DIM].values[scalar_target_index]
+        )
+        mean_predictions = (
+            t[evaluation.SCALAR_RELIABILITY_X_KEY].values[
+                scalar_target_index, ...
+            ]
+        )
+        mean_observations = (
+            t[evaluation.SCALAR_RELIABILITY_Y_KEY].values[
+                scalar_target_index, ...
+            ]
+        )
+        example_counts = (
+            t[evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[
+                scalar_target_index, ...
+            ]
+        )
+        inverted_mean_observations = (
+            t[evaluation.SCALAR_INV_RELIABILITY_X_KEY].values[
+                scalar_target_index, ...
+            ]
+        )
+        inverted_example_counts = (
+            t[evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY].values[
+                scalar_target_index, ...
+            ]
+        )
 
         climo_value = mean_training_example_dict[
             example_utils.SCALAR_TARGET_VALS_KEY
@@ -360,42 +389,44 @@ def _plot_attributes_diagram(
             output_dir_name, target_name.replace('_', '-')
         )
 
-        if target_name in baseline_scalar_target_names:
-            baseline_scalar_target_index = baseline_scalar_target_names.index(
-                target_name
-            )
+        scalar_target_index_by_file = [
+            n.index(target_name) if target_name in n else -1
+            for n in scalar_target_names_by_file
+        ]
 
     elif aux_target_index is not None:
-        target_name = main_results_xarray.coords[
-            evaluation.AUX_TARGET_FIELD_DIM
-        ].values[aux_target_index]
-
-        predicted_target_name = main_results_xarray.coords[
-            evaluation.AUX_PREDICTED_FIELD_DIM
-        ].values[aux_target_index]
-
-        mean_predictions = main_results_xarray[
-            evaluation.AUX_RELIABILITY_X_KEY
-        ].values[aux_target_index, ...]
-
-        mean_observations = main_results_xarray[
-            evaluation.AUX_RELIABILITY_Y_KEY
-        ].values[aux_target_index, ...]
-
-        example_counts = main_results_xarray[
-            evaluation.AUX_RELIABILITY_COUNT_KEY
-        ].values[aux_target_index, ...]
-
-        inverted_mean_observations = main_results_xarray[
-            evaluation.AUX_INV_RELIABILITY_X_KEY
-        ].values[aux_target_index, ...]
-
-        inverted_example_counts = main_results_xarray[
-            evaluation.AUX_INV_RELIABILITY_COUNT_KEY
-        ].values[aux_target_index, ...]
+        target_name = (
+            t.coords[evaluation.AUX_TARGET_FIELD_DIM].values[aux_target_index]
+        )
+        predicted_target_name = (
+            t.coords[evaluation.AUX_PREDICTED_FIELD_DIM].values[
+                aux_target_index
+            ]
+        )
+        mean_predictions = (
+            t[evaluation.AUX_RELIABILITY_X_KEY].values[aux_target_index, ...]
+        )
+        mean_observations = (
+            t[evaluation.AUX_RELIABILITY_Y_KEY].values[aux_target_index, ...]
+        )
+        example_counts = (
+            t[evaluation.AUX_RELIABILITY_COUNT_KEY].values[
+                aux_target_index, ...
+            ]
+        )
+        inverted_mean_observations = (
+            t[evaluation.AUX_INV_RELIABILITY_X_KEY].values[
+                aux_target_index, ...
+            ]
+        )
+        inverted_example_counts = (
+            t[evaluation.AUX_INV_RELIABILITY_COUNT_KEY].values[
+                aux_target_index, ...
+            ]
+        )
 
         scalar_target_names = (
-            main_results_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
+            t.coords[evaluation.SCALAR_FIELD_DIM].values
         ).tolist()
 
         mean_scalar_target_matrix = (
@@ -421,39 +452,41 @@ def _plot_attributes_diagram(
             output_dir_name, target_name.replace('_', '-')
         )
 
-        if target_name in baseline_aux_target_names:
-            baseline_aux_target_index = baseline_aux_target_names.index(
-                target_name
-            )
-
+        aux_target_index_by_file = [
+            n.index(target_name) if target_name in n else -1
+            for n in aux_target_names_by_file
+        ]
     else:
-        target_name = main_results_xarray.coords[
-            evaluation.VECTOR_FIELD_DIM
-        ].values[vector_target_index]
+        target_name = (
+            t.coords[evaluation.VECTOR_FIELD_DIM].values[vector_target_index]
+        )
+        height_m_agl = t.coords[evaluation.HEIGHT_DIM].values[height_index]
 
-        height_m_agl = main_results_xarray.coords[
-            evaluation.HEIGHT_DIM
-        ].values[height_index]
-
-        mean_predictions = main_results_xarray[
-            evaluation.VECTOR_RELIABILITY_X_KEY
-        ].values[height_index, vector_target_index, ...]
-
-        mean_observations = main_results_xarray[
-            evaluation.VECTOR_RELIABILITY_Y_KEY
-        ].values[height_index, vector_target_index, ...]
-
-        example_counts = main_results_xarray[
-            evaluation.VECTOR_RELIABILITY_COUNT_KEY
-        ].values[height_index, vector_target_index, ...]
-
-        inverted_mean_observations = main_results_xarray[
-            evaluation.VECTOR_INV_RELIABILITY_X_KEY
-        ].values[height_index, vector_target_index, ...]
-
-        inverted_example_counts = main_results_xarray[
-            evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY
-        ].values[height_index, vector_target_index, ...]
+        mean_predictions = (
+            t[evaluation.VECTOR_RELIABILITY_X_KEY].values[
+                height_index, vector_target_index, ...
+            ]
+        )
+        mean_observations = (
+            t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[
+                height_index, vector_target_index, ...
+            ]
+        )
+        example_counts = (
+            t[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[
+                height_index, vector_target_index, ...
+            ]
+        )
+        inverted_mean_observations = (
+            t[evaluation.VECTOR_INV_RELIABILITY_X_KEY].values[
+                height_index, vector_target_index, ...
+            ]
+        )
+        inverted_example_counts = (
+            t[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values[
+                height_index, vector_target_index, ...
+            ]
+        )
 
         climo_value = mean_training_example_dict[
             example_utils.VECTOR_TARGET_VALS_KEY
@@ -464,18 +497,19 @@ def _plot_attributes_diagram(
             int(numpy.round(height_m_agl))
         )
 
-        if target_name in baseline_vector_target_names:
-            baseline_vector_target_index = baseline_vector_target_names.index(
-                target_name
-            )
+        vector_target_index_by_file = [
+            n.index(target_name) if target_name in n else -1
+            for n in vector_target_names_by_file
+        ]
 
+        for i in range(num_files):
             try:
-                baseline_height_index = example_utils.match_heights(
-                    heights_m_agl=baseline_heights_m_agl,
+                height_index_by_file[i] = example_utils.match_heights(
+                    heights_m_agl=heights_by_file_m_agl[i],
                     desired_height_m_agl=height_m_agl
                 )
             except ValueError:
-                baseline_vector_target_index = None
+                vector_target_index_by_file[i] = None
 
     concat_values = numpy.concatenate((mean_predictions, mean_observations))
     max_value_to_plot = numpy.nanpercentile(concat_values, 99.9)
@@ -486,15 +520,23 @@ def _plot_attributes_diagram(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
 
-    evaluation_plotting.plot_attributes_diagram(
+    legend_handles = []
+    legend_strings = []
+
+    this_handle = evaluation_plotting.plot_attributes_diagram(
         figure_object=figure_object, axes_object=axes_object,
         mean_predictions=mean_predictions, mean_observations=mean_observations,
         example_counts=example_counts, mean_value_in_training=climo_value,
         min_value_to_plot=min_value_to_plot,
         max_value_to_plot=max_value_to_plot,
         inv_mean_observations=inverted_mean_observations,
-        inv_example_counts=inverted_example_counts
+        inv_example_counts=inverted_example_counts,
+        line_colour=line_colours[0], line_style=line_styles[0], line_width=4
     )
+
+    if this_handle is not None:
+        legend_handles.append(this_handle)
+        legend_strings.append(line_legend_strings[0])
 
     axes_object.set_xlabel('Prediction ({0:s})'.format(
         TARGET_NAME_TO_UNITS[target_name]
@@ -522,43 +564,60 @@ def _plot_attributes_diagram(
 
     axes_object.set_title(title_string)
 
-    mean_predictions = None
-    mean_observations = None
+    for i in range(1, num_files):
+        mean_predictions = None
+        mean_observations = None
+        t = evaluation_tables_xarray[i]
 
-    if baseline_scalar_target_index is not None:
-        mean_predictions = baseline_results_xarray[
-            evaluation.SCALAR_RELIABILITY_X_KEY
-        ].values[baseline_scalar_target_index, ...]
+        if scalar_target_index_by_file[i] is not None:
+            k = scalar_target_index_by_file[i]
+            mean_predictions = (
+                t[evaluation.SCALAR_RELIABILITY_X_KEY].values[k, ...]
+            )
+            mean_observations = (
+                t[evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, ...]
+            )
+        elif aux_target_index_by_file[i] is not None:
+            k = aux_target_index_by_file[i]
+            mean_predictions = (
+                t[evaluation.AUX_RELIABILITY_X_KEY].values[k, ...]
+            )
+            mean_observations = (
+                t[evaluation.AUX_RELIABILITY_Y_KEY].values[k, ...]
+            )
+        elif vector_target_index_by_file[i] is not None:
+            j = height_index_by_file[i]
+            k = vector_target_index_by_file[i]
 
-        mean_observations = baseline_results_xarray[
-            evaluation.SCALAR_RELIABILITY_Y_KEY
-        ].values[baseline_scalar_target_index, ...]
+            mean_predictions = (
+                t[evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, ...]
+            )
+            mean_observations = (
+                t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, ...]
+            )
 
-    elif baseline_aux_target_index is not None:
-        mean_predictions = baseline_results_xarray[
-            evaluation.AUX_RELIABILITY_X_KEY
-        ].values[baseline_aux_target_index, ...]
+        if mean_predictions is None:
+            continue
 
-        mean_observations = baseline_results_xarray[
-            evaluation.AUX_RELIABILITY_Y_KEY
-        ].values[baseline_aux_target_index, ...]
-
-    elif baseline_vector_target_index is not None:
-        mean_predictions = baseline_results_xarray[
-            evaluation.VECTOR_RELIABILITY_X_KEY
-        ].values[baseline_height_index, baseline_vector_target_index, ...]
-
-        mean_observations = baseline_results_xarray[
-            evaluation.VECTOR_RELIABILITY_Y_KEY
-        ].values[baseline_height_index, baseline_vector_target_index, ...]
-
-    if mean_predictions is not None:
-        evaluation_plotting._plot_reliability_curve(
+        this_handle = evaluation_plotting._plot_reliability_curve(
             axes_object=axes_object, mean_predictions=mean_predictions,
             mean_observations=mean_observations,
             min_value_to_plot=min_value_to_plot,
             max_value_to_plot=max_value_to_plot,
-            line_style='dashed'
+            line_colour=line_colours[i], line_style=line_styles[i], line_width=2
+        )
+
+        if this_handle is None:
+            continue
+
+        legend_handles.append(this_handle)
+        legend_strings.append(line_legend_strings[0])
+
+    if len(legend_handles) > 0:
+        axes_object.legend(
+            legend_handles, legend_strings, loc='center left',
+            bbox_to_anchor=(0, 0), fancybox=True, shadow=False,
+            facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
@@ -569,39 +628,170 @@ def _plot_attributes_diagram(
     pyplot.close(figure_object)
 
 
-def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
-         plot_by_height, output_dir_name):
+def _plot_score_profile(
+        evaluation_tables_xarray, line_styles, line_colours,
+        line_legend_strings, target_name, score_name, use_log_scale,
+        output_dir_name):
+    """Plots vertical profile of one score.
+
+    N = number of models being evaluated
+
+    :param evaluation_tables_xarray: length-N list of evaluation tables (in
+        format returned by `evaluation.read_file`).
+    :param line_styles: length-N list of line styles.
+    :param line_colours: length-N list of line colours.
+    :param line_legend_strings: length-N list of line legends.
+    :param target_name: Name of target variable for which score is being plotted.
+    :param score_name: Name of score being plotted.
+    :param use_log_scale: Boolean flag.  If True, will plot heights (y-axis) in
+        log scale.
+    :param output_dir_name: Name of output directory.  Figure will be saved
+        here.
+    """
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    vector_target_names_by_file = [
+        t.coords[evaluation.VECTOR_FIELD_DIM].values.tolist()
+        for t in evaluation_tables_xarray
+    ]
+    heights_by_file_m_agl = (
+        t.coords[evaluation.HEIGHT_DIM].values for t in evaluation_tables_xarray
+    )
+
+    score_key = SCORE_NAME_TO_PROFILE_KEY[score_name]
+    legend_handles = []
+    legend_strings = []
+    num_files = len(evaluation_tables_xarray)
+
+    for i in range(num_files):
+        try:
+            k = vector_target_names_by_file[i].index(target_name)
+        except ValueError:
+            if i == 0:
+                raise
+            continue
+
+        this_handle = evaluation_plotting.plot_score_profile(
+            heights_m_agl=heights_by_file_m_agl[i],
+            score_values=evaluation_tables_xarray[i][score_key].values[:, k],
+            score_name=score_name, line_colour=line_colours[i],
+            line_width=4 if i == 0 else 2, line_style=line_styles[i],
+            use_log_scale=use_log_scale, axes_object=axes_object,
+            are_axes_new=i == 0
+        )
+
+        legend_handles.append(this_handle)
+        legend_strings.append(line_legend_strings[i])
+
+    axes_object.legend(
+        legend_handles, legend_strings, loc='center left',
+        bbox_to_anchor=(0, 0.5), fancybox=True, shadow=False,
+        facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
+    )
+
+    score_name_verbose = SCORE_NAME_TO_VERBOSE[score_name]
+    k = vector_target_names_by_file[0].index(target_name)
+    prmse = evaluation_tables_xarray[0][evaluation.VECTOR_PRMSE_KEY].values[k]
+    title_string = '{0:s} for {1:s} (PRMSE = {2:.2f} {3:s})'.format(
+        score_name_verbose, TARGET_NAME_TO_VERBOSE[target_name],
+        prmse, TARGET_NAME_TO_UNITS[target_name]
+    )
+
+    x_label_string = '{0:s}'.format(score_name_verbose)
+
+    if score_name in SQUARED_UNIT_SCORE_NAMES:
+        x_label_string += ' ({0:s})'.format(
+            TARGET_NAME_TO_SQUARED_UNITS[target_name]
+        )
+    elif score_name in ORIG_UNIT_SCORE_NAMES:
+        x_label_string += ' ({0:s})'.format(TARGET_NAME_TO_UNITS[target_name])
+
+    axes_object.set_xlabel(x_label_string)
+    axes_object.set_title(title_string)
+
+    this_file_name = '{0:s}/{1:s}_{2:s}_profile.jpg'.format(
+        output_dir_name, target_name.replace('_', '-'),
+        score_name.replace('_', '-')
+    )
+    print('Saving figure to: "{0:s}"...'.format(this_file_name))
+    figure_object.savefig(
+        this_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+
+def _run(evaluation_file_names, line_styles, line_colour_strings,
+         line_legend_strings, use_log_scale, plot_by_height, output_dir_name):
     """Plots model evaluation.
 
     This is effectively the main method.
 
-    :param main_eval_file_name: See documentation at top of file.
-    :param baseline_eval_file_name: Same.
+    :param evaluation_file_names: See documentation at top of file.
+    :param line_styles: Same.
+    :param line_colour_strings: Same.
+    :param line_legend_strings: Same.
     :param use_log_scale: Same.
     :param plot_by_height: Same.
     :param output_dir_name: Same.
     """
 
+    # Check input args.
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
 
-    print('Reading data from: "{0:s}"...'.format(main_eval_file_name))
-    main_results_xarray = evaluation.read_file(main_eval_file_name)
+    num_files = len(evaluation_file_names)
+    expected_dim = numpy.array([num_files], dtype=int)
 
-    if baseline_eval_file_name == '':
-        baseline_results_xarray = None
-    else:
-        print('Reading data from: "{0:s}"...'.format(baseline_eval_file_name))
-        baseline_results_xarray = evaluation.read_file(baseline_eval_file_name)
+    error_checking.assert_is_string_list(line_styles)
+    error_checking.assert_is_numpy_array(
+        numpy.array(line_styles), exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_string_list(line_legend_strings)
+    error_checking.assert_is_numpy_array(
+        numpy.array(line_legend_strings), exact_dimensions=expected_dim
+    )
+    line_legend_strings = [s.replace('_', ' ') for s in line_legend_strings]
+
+    error_checking.assert_is_string_list(line_colour_strings)
+    error_checking.assert_is_numpy_array(
+        numpy.array(line_colour_strings), exact_dimensions=expected_dim
+    )
+    line_colours = [
+        numpy.from_string(s, dtype=float, sep='_') / 255
+        for s in line_colour_strings
+    ]
+
+    for i in range(num_files):
+        error_checking.assert_is_numpy_array(
+            line_colours[i], exact_dimensions=numpy.array([3], dtype=int)
+        )
+        error_checking.assert_is_geq_numpy_array(line_colours[i], 0.)
+        error_checking.assert_is_leq_numpy_array(line_colours[i], 1.)
+
+    # Housekeeping.
+    evaluation_tables_xarray = [xarray.Dataset()] * num_files
+
+    for i in range(num_files):
+        print('Reading data from: "{0:s}"...'.format(evaluation_file_names[i]))
+        evaluation_tables_xarray[i] = evaluation.read_file(
+            evaluation_file_names[i]
+        )
 
     prediction_file_name = (
-        main_results_xarray.attrs[evaluation.PREDICTION_FILE_KEY]
+        evaluation_tables_xarray[0].attrs[evaluation.PREDICTION_FILE_KEY]
     )
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
 
-    model_file_name = main_results_xarray.attrs[evaluation.MODEL_FILE_KEY]
+    model_file_name = (
+        evaluation_tables_xarray[0].attrs[evaluation.MODEL_FILE_KEY]
+    )
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
@@ -611,15 +801,17 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    scalar_target_names = main_results_xarray.coords[
+    scalar_target_names = evaluation_tables_xarray[0].coords[
         evaluation.SCALAR_FIELD_DIM
     ].values.tolist()
 
-    vector_target_names = main_results_xarray.coords[
+    vector_target_names = evaluation_tables_xarray[0].coords[
         evaluation.VECTOR_FIELD_DIM
     ].values.tolist()
 
-    heights_m_agl = main_results_xarray.coords[evaluation.HEIGHT_DIM].values
+    heights_m_agl = (
+        evaluation_tables_xarray[0].coords[evaluation.HEIGHT_DIM].values
+    )
 
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
@@ -649,26 +841,12 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
         training_example_dict=training_example_dict
     )
 
-    if baseline_results_xarray is None:
-        baseline_vector_target_names = []
-        baseline_heights_m_agl = []
-    else:
-        baseline_vector_target_names = baseline_results_xarray.coords[
-            evaluation.VECTOR_FIELD_DIM
-        ].values.tolist()
-
-        baseline_heights_m_agl = (
-            baseline_results_xarray.coords[evaluation.HEIGHT_DIM].values
-        )
-
+    # Do actual stuff.
     for k in range(len(vector_target_names)):
         this_target_name_verbose = (
             TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
         )
         this_unit_string = TARGET_NAME_TO_UNITS[vector_target_names[k]]
-        this_squared_unit_string = (
-            TARGET_NAME_TO_SQUARED_UNITS[vector_target_names[k]]
-        )
 
         # Plot error distribution.
         this_figure_object, this_axes_object = pyplot.subplots(
@@ -706,77 +884,26 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
         # Plot error profiles.
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
-            this_figure_object, this_axes_object = pyplot.subplots(
-                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+            _plot_score_profile(
+                evaluation_tables_xarray=evaluation_tables_xarray,
+                line_styles=line_styles, line_colours=line_colours,
+                line_legend_strings=line_legend_strings,
+                target_name=vector_target_names[k],
+                score_name=this_score_name, use_log_scale=use_log_scale,
+                output_dir_name=output_dir_name
             )
-
-            this_key = SCORE_NAME_TO_PROFILE_KEY[this_score_name]
-
-            evaluation_plotting.plot_score_profile(
-                heights_m_agl=heights_m_agl,
-                score_values=main_results_xarray[this_key].values[:, k],
-                score_name=this_score_name, line_colour=PROFILE_COLOUR,
-                line_width=2, line_style='solid', use_log_scale=use_log_scale,
-                axes_object=this_axes_object, are_axes_new=True
-            )
-
-            if vector_target_names[k] in baseline_vector_target_names:
-                this_index = baseline_vector_target_names.index(
-                    vector_target_names[k]
-                )
-
-                evaluation_plotting.plot_score_profile(
-                    heights_m_agl=baseline_heights_m_agl,
-                    score_values=
-                    baseline_results_xarray[this_key].values[:, this_index],
-                    score_name=this_score_name, line_colour=PROFILE_COLOUR,
-                    line_width=2, line_style='dashed',
-                    use_log_scale=use_log_scale,
-                    axes_object=this_axes_object, are_axes_new=False
-                )
-
-            this_score_name_verbose = SCORE_NAME_TO_VERBOSE[this_score_name]
-            this_prmse = (
-                main_results_xarray[evaluation.VECTOR_PRMSE_KEY].values[k]
-            )
-            this_title_string = (
-                '{0:s} for {1:s} (PRMSE = {2:.2f} {3:s})'
-            ).format(
-                this_score_name_verbose, this_target_name_verbose, this_prmse,
-                this_unit_string
-            )
-
-            this_x_label_string = '{0:s}'.format(this_score_name_verbose)
-
-            if this_score_name in SQUARED_UNIT_SCORE_NAMES:
-                this_x_label_string += ' ({0:s})'.format(
-                    this_squared_unit_string
-                )
-            elif this_score_name in ORIG_UNIT_SCORE_NAMES:
-                this_x_label_string += ' ({0:s})'.format(this_unit_string)
-
-            this_axes_object.set_xlabel(this_x_label_string)
-            this_axes_object.set_title(this_title_string)
-
-            this_file_name = '{0:s}/{1:s}_{2:s}_profile.jpg'.format(
-                output_dir_name, vector_target_names[k].replace('_', '-'),
-                this_score_name.replace('_', '-')
-            )
-            print('Saving figure to: "{0:s}"...'.format(this_file_name))
-
-            this_figure_object.savefig(
-                this_file_name, dpi=FIGURE_RESOLUTION_DPI,
-                pad_inches=0, bbox_inches='tight'
-            )
-            pyplot.close(this_figure_object)
 
         # Plot reliability curves for all heights in the same figure.
         this_mean_prediction_matrix = numpy.take(
-            main_results_xarray[evaluation.VECTOR_RELIABILITY_X_KEY].values,
+            evaluation_tables_xarray[0][
+                evaluation.VECTOR_RELIABILITY_X_KEY
+            ].values,
             axis=1, indices=k
         )
         this_mean_target_matrix = numpy.take(
-            main_results_xarray[evaluation.VECTOR_RELIABILITY_Y_KEY].values,
+            evaluation_tables_xarray[0][
+                evaluation.VECTOR_RELIABILITY_Y_KEY
+            ].values,
             axis=1, indices=k
         )
         this_combined_matrix = numpy.concatenate(
@@ -817,15 +944,15 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
         pyplot.close(this_figure_object)
 
         # Plot Taylor diagram for all heights in the same figure.
-        these_target_stdevs = main_results_xarray[
+        these_target_stdevs = evaluation_tables_xarray[0][
             evaluation.VECTOR_TARGET_STDEV_KEY
         ].values[..., k]
 
-        these_prediction_stdevs = main_results_xarray[
+        these_prediction_stdevs = evaluation_tables_xarray[0][
             evaluation.VECTOR_PREDICTION_STDEV_KEY
         ].values[..., k]
 
-        these_correlations = main_results_xarray[
+        these_correlations = evaluation_tables_xarray[0][
             evaluation.VECTOR_CORRELATION_KEY
         ].values[..., k]
 
@@ -899,14 +1026,15 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
         pyplot.close(this_figure_object)
 
         _plot_attributes_diagram(
-            main_results_xarray=main_results_xarray,
-            baseline_results_xarray=baseline_results_xarray,
+            evaluation_tables_xarray=evaluation_tables_xarray,
+            line_styles=line_styles, line_colours=line_colours,
+            line_legend_strings=line_legend_strings,
             mean_training_example_dict=mean_training_example_dict,
             output_dir_name=output_dir_name, scalar_target_index=k
         )
 
         _plot_taylor_diagram(
-            main_results_xarray=main_results_xarray,
+            evaluation_table_array=evaluation_tables_xarray[0],
             output_dir_name=output_dir_name, scalar_target_index=k
         )
 
@@ -914,21 +1042,24 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
 
     try:
         aux_target_field_names = (
-            main_results_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+            evaluation_tables_xarray[0].coords[
+                evaluation.AUX_TARGET_FIELD_DIM
+            ].values
         )
     except:
         aux_target_field_names = []
 
     for k in range(len(aux_target_field_names)):
         _plot_attributes_diagram(
-            main_results_xarray=main_results_xarray,
-            baseline_results_xarray=baseline_results_xarray,
+            evaluation_tables_xarray=evaluation_tables_xarray,
+            line_styles=line_styles, line_colours=line_colours,
+            line_legend_strings=line_legend_strings,
             mean_training_example_dict=mean_training_example_dict,
             output_dir_name=output_dir_name, aux_target_index=k
         )
 
         _plot_taylor_diagram(
-            main_results_xarray=main_results_xarray,
+            evaluation_table_array=evaluation_tables_xarray[0],
             output_dir_name=output_dir_name, aux_target_index=k
         )
 
@@ -941,15 +1072,16 @@ def _run(main_eval_file_name, baseline_eval_file_name, use_log_scale,
     for k in range(len(vector_target_names)):
         for j in range(len(heights_m_agl)):
             _plot_attributes_diagram(
-                main_results_xarray=main_results_xarray,
-                baseline_results_xarray=baseline_results_xarray,
+                evaluation_tables_xarray=evaluation_tables_xarray,
+                line_styles=line_styles, line_colours=line_colours,
+                line_legend_strings=line_legend_strings,
                 mean_training_example_dict=mean_training_example_dict,
                 output_dir_name=output_dir_name,
                 vector_target_index=k, height_index=j
             )
 
             _plot_taylor_diagram(
-                main_results_xarray=main_results_xarray,
+                evaluation_table_array=evaluation_tables_xarray[0],
                 output_dir_name=output_dir_name,
                 vector_target_index=k, height_index=j
             )
@@ -962,10 +1094,10 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        main_eval_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
-        baseline_eval_file_name=getattr(
-            INPUT_ARG_OBJECT, BASELINE_FILE_ARG_NAME
-        ),
+        evaluation_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        line_styles=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        line_colour_strings=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        line_legend_strings=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
