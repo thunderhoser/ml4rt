@@ -333,9 +333,9 @@ def _plot_attributes_diagram(
         t.coords[evaluation.VECTOR_FIELD_DIM].values.tolist()
         for t in evaluation_tables_xarray
     ]
-    heights_by_file_m_agl = (
+    heights_by_file_m_agl = [
         t.coords[evaluation.HEIGHT_DIM].values for t in evaluation_tables_xarray
-    )
+    ]
     aux_target_names_by_file = [
         t.coords[evaluation.AUX_TARGET_FIELD_DIM].values.tolist()
         if evaluation.AUX_TARGET_FIELD_DIM in t.coords
@@ -657,9 +657,9 @@ def _plot_score_profile(
         t.coords[evaluation.VECTOR_FIELD_DIM].values.tolist()
         for t in evaluation_tables_xarray
     ]
-    heights_by_file_m_agl = (
+    heights_by_file_m_agl = [
         t.coords[evaluation.HEIGHT_DIM].values for t in evaluation_tables_xarray
-    )
+    ]
 
     score_key = SCORE_NAME_TO_PROFILE_KEY[score_name]
     legend_handles = []
@@ -762,7 +762,6 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     error_checking.assert_is_numpy_array(
         numpy.array(line_colour_strings), exact_dimensions=expected_dim
     )
-    print(line_colour_strings)
     line_colours = [
         numpy.fromstring(s, dtype=float, sep='_') / 255
         for s in line_colour_strings
