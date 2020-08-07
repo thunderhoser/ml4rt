@@ -1753,9 +1753,9 @@ def train_model_with_generator(
         generator for validation data.  If False, will load all validation data
         into memory at once.
     :param num_validation_batches_per_epoch: Number of validation batches per
-        epoch.  This is used only if `use_generator_for_validn = True`.  If
-        `use_generator_for_validn = False`, all validation data will be used at
-        each epoch.
+        epoch.  If `use_generator_for_validn == False and
+        num_validation_batches_per_epoch is None`, will use all validation
+        examples at each epoch.
     :param do_early_stopping: Boolean flag.  If True, will stop training early
         if validation loss has not improved over last several epochs (see
         constants at top of file for what exactly this means).
@@ -1773,11 +1773,9 @@ def train_model_with_generator(
     error_checking.assert_is_boolean(use_generator_for_validn)
     error_checking.assert_is_boolean(do_early_stopping)
 
-    if use_generator_for_validn:
+    if use_generator_for_validn or num_validation_batches_per_epoch is not None:
         error_checking.assert_is_integer(num_validation_batches_per_epoch)
         error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
-    else:
-        num_validation_batches_per_epoch = None
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1853,7 +1851,6 @@ def train_model_with_generator(
         )
 
         validation_data_arg = validation_generator
-        validation_steps_arg = num_validation_batches_per_epoch
     else:
         validation_predictor_matrix, validation_target_array = create_data(
             option_dict=validation_option_dict, for_inference=False,
@@ -1864,21 +1861,21 @@ def train_model_with_generator(
         validation_data_arg = (
             validation_predictor_matrix, validation_target_array
         )
-        validation_steps_arg = None
 
     model_object.fit_generator(
         generator=training_generator,
         steps_per_epoch=num_training_batches_per_epoch,
         epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
         validation_data=validation_data_arg,
-        validation_steps=validation_steps_arg
+        validation_steps=num_validation_batches_per_epoch
     )
 
 
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        do_early_stopping=True):
+        do_early_stopping=True, num_training_batches_per_epoch=None,
+        num_validation_batches_per_epoch=None):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1889,6 +1886,10 @@ def train_model_sans_generator(
     :param net_type_string: Same.
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
+    :param num_training_batches_per_epoch: Number of training batches per
+        epoch.  If `num_training_batches_per_epoch is None`, will use all
+        training examples at each epoch.
+    :param num_validation_batches_per_epoch: Same but for validation data.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1900,8 +1901,15 @@ def train_model_sans_generator(
     check_net_type(net_type_string)
     error_checking.assert_is_boolean(do_early_stopping)
 
-    training_option_dict = _check_generator_args(training_option_dict)
+    if num_training_batches_per_epoch is not None:
+        error_checking.assert_is_integer(num_training_batches_per_epoch)
+        error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
 
+    if num_validation_batches_per_epoch is not None:
+        error_checking.assert_is_integer(num_validation_batches_per_epoch)
+        error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
+
+    training_option_dict = _check_generator_args(training_option_dict)
     validation_keys_to_keep = [
         EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
     ]
@@ -1948,9 +1956,9 @@ def train_model_sans_generator(
 
     _write_metafile(
         dill_file_name=metafile_name, num_epochs=num_epochs,
-        num_training_batches_per_epoch=None,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,
-        num_validation_batches_per_epoch=None,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
         net_type_string=net_type_string,
         loss_function_or_dict=loss_function_or_dict
@@ -1975,11 +1983,14 @@ def train_model_sans_generator(
     model_object.fit(
         x=training_predictor_matrix, y=training_target_array,
         batch_size=training_option_dict[BATCH_SIZE_KEY],
-        epochs=num_epochs, steps_per_epoch=None, shuffle=True, verbose=1,
-        callbacks=list_of_callback_objects,
+        epochs=num_epochs, steps_per_epoch=num_training_batches_per_epoch,
+        shuffle=True, verbose=1, callbacks=list_of_callback_objects,
         validation_data=(validation_predictor_matrix, validation_target_array),
-        # validation_batch_size=validation_option_dict[BATCH_SIZE_KEY],
-        validation_steps=None
+        validation_batch_size=(
+            None if num_validation_batches_per_epoch is None
+            else validation_option_dict[BATCH_SIZE_KEY]
+        ),
+        validation_steps=num_validation_batches_per_epoch
     )
 
 

@@ -132,6 +132,13 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
         last_validn_time_string, training_args.TIME_FORMAT
     )
 
+    if num_training_batches_per_epoch <= 0:
+        num_training_batches_per_epoch = (
+            None if use_generator_for_training else 50
+        )
+    if num_validn_batches_per_epoch <= 0:
+        num_validn_batches_per_epoch = None if use_generator_for_validn else 50
+
     training_option_dict = {
         neural_net.EXAMPLE_DIRECTORY_KEY: example_dir_name,
         neural_net.BATCH_SIZE_KEY: num_examples_per_batch,
@@ -211,7 +218,9 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
         neural_net.train_model_sans_generator(
             model_object=model_object, output_dir_name=output_model_dir_name,
             num_epochs=num_epochs,
+            num_training_batches_per_epoch=num_training_batches_per_epoch,
             training_option_dict=training_option_dict,
+            num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             validation_option_dict=validation_option_dict,
             net_type_string=net_type_string,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True

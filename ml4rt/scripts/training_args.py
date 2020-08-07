@@ -146,10 +146,14 @@ BATCH_SIZE_HELP_STRING = (
     'Number of examples in each training and validation (monitoring) batch.'
 )
 NUM_EPOCHS_HELP_STRING = 'Number of epochs.'
-NUM_TRAINING_BATCHES_HELP_STRING = 'Number of training batches per epoch.'
+NUM_TRAINING_BATCHES_HELP_STRING = (
+    'Number of training batches per epoch.  If `{0:s} == 0` and you want to use'
+    ' all training examples at each epoch, leave this argument alone.'
+).format(USE_GENERATOR_FOR_TRAIN_ARG_NAME)
+
 NUM_VALIDN_BATCHES_HELP_STRING = (
-    'Number of validation (monitoring) batches per epoch.'
-)
+    'Same as `{0:s}` but for validation (monitoring) data.'
+).format(NUM_TRAINING_BATCHES_ARG_NAME)
 
 
 def add_input_args(parser_object):
@@ -267,11 +271,11 @@ def add_input_args(parser_object):
     )
     parser_object.add_argument(
         '--' + NUM_TRAINING_BATCHES_ARG_NAME, type=int, required=False,
-        default=32, help=NUM_TRAINING_BATCHES_HELP_STRING
+        default=-1, help=NUM_TRAINING_BATCHES_HELP_STRING
     )
     parser_object.add_argument(
         '--' + NUM_VALIDN_BATCHES_ARG_NAME, type=int, required=False,
-        default=16, help=NUM_VALIDN_BATCHES_HELP_STRING
+        default=-1, help=NUM_VALIDN_BATCHES_HELP_STRING
     )
 
     return parser_object
