@@ -611,12 +611,12 @@ def _plot_attributes_diagram(
             continue
 
         legend_handles.append(this_handle)
-        legend_strings.append(line_legend_strings[0])
+        legend_strings.append(line_legend_strings[i])
 
     if len(legend_handles) > 0:
         axes_object.legend(
             legend_handles, legend_strings, loc='center left',
-            bbox_to_anchor=(0, 0), fancybox=True, shadow=False,
+            bbox_to_anchor=(0, 0.5), fancybox=True, shadow=False,
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
