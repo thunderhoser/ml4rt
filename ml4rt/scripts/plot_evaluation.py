@@ -763,7 +763,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
         numpy.array(line_colour_strings), exact_dimensions=expected_dim
     )
     line_colours = [
-        numpy.from_string(s, dtype=float, sep='_') / 255
+        numpy.fromstring(s, dtype=float, sep='_') / 255
         for s in line_colour_strings
     ]
 
