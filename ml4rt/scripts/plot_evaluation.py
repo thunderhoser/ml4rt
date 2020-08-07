@@ -762,6 +762,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     error_checking.assert_is_numpy_array(
         numpy.array(line_colour_strings), exact_dimensions=expected_dim
     )
+    print(line_colour_strings)
     line_colours = [
         numpy.fromstring(s, dtype=float, sep='_') / 255
         for s in line_colour_strings
