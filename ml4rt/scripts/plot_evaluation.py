@@ -511,7 +511,47 @@ def _plot_attributes_diagram(
             except ValueError:
                 vector_target_index_by_file[i] = None
 
-    concat_values = numpy.concatenate((mean_predictions, mean_observations))
+    mean_predictions_by_file = [None] * num_files
+    mean_observations_by_file = [None] * num_files
+    mean_predictions_by_file[0] = mean_predictions
+    mean_observations_by_file[0] = mean_observations
+
+    for i in range(1, num_files):
+        t = evaluation_tables_xarray[i]
+
+        if scalar_target_index_by_file[i] is not None:
+            k = scalar_target_index_by_file[i]
+            mean_predictions_by_file[i] = (
+                t[evaluation.SCALAR_RELIABILITY_X_KEY].values[k, ...]
+            )
+            mean_observations_by_file[i] = (
+                t[evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, ...]
+            )
+        elif aux_target_index_by_file[i] is not None:
+            k = aux_target_index_by_file[i]
+            mean_predictions_by_file[i] = (
+                t[evaluation.AUX_RELIABILITY_X_KEY].values[k, ...]
+            )
+            mean_observations_by_file[i] = (
+                t[evaluation.AUX_RELIABILITY_Y_KEY].values[k, ...]
+            )
+        elif vector_target_index_by_file[i] is not None:
+            j = height_index_by_file[i]
+            k = vector_target_index_by_file[i]
+
+            mean_predictions_by_file[i] = (
+                t[evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, ...]
+            )
+            mean_observations_by_file[i] = (
+                t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, ...]
+            )
+
+    these_arrays = [
+        a for a in mean_predictions_by_file + mean_observations_by_file
+        if a is not None
+    ]
+
+    concat_values = numpy.concatenate(these_arrays)
     max_value_to_plot = numpy.nanpercentile(concat_values, 99.9)
     min_value_to_plot = numpy.nanpercentile(concat_values, 0.1)
     min_value_to_plot = numpy.minimum(min_value_to_plot, 0.)
@@ -565,43 +605,13 @@ def _plot_attributes_diagram(
     axes_object.set_title(title_string)
 
     for i in range(1, num_files):
-        mean_predictions = None
-        mean_observations = None
-        t = evaluation_tables_xarray[i]
-
-        if scalar_target_index_by_file[i] is not None:
-            k = scalar_target_index_by_file[i]
-            mean_predictions = (
-                t[evaluation.SCALAR_RELIABILITY_X_KEY].values[k, ...]
-            )
-            mean_observations = (
-                t[evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, ...]
-            )
-        elif aux_target_index_by_file[i] is not None:
-            k = aux_target_index_by_file[i]
-            mean_predictions = (
-                t[evaluation.AUX_RELIABILITY_X_KEY].values[k, ...]
-            )
-            mean_observations = (
-                t[evaluation.AUX_RELIABILITY_Y_KEY].values[k, ...]
-            )
-        elif vector_target_index_by_file[i] is not None:
-            j = height_index_by_file[i]
-            k = vector_target_index_by_file[i]
-
-            mean_predictions = (
-                t[evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, ...]
-            )
-            mean_observations = (
-                t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, ...]
-            )
-
-        if mean_predictions is None:
+        if mean_predictions_by_file[i] is None:
             continue
 
         this_handle = evaluation_plotting._plot_reliability_curve(
-            axes_object=axes_object, mean_predictions=mean_predictions,
-            mean_observations=mean_observations,
+            axes_object=axes_object,
+            mean_predictions=mean_predictions_by_file[i],
+            mean_observations=mean_observations_by_file[i],
             min_value_to_plot=min_value_to_plot,
             max_value_to_plot=max_value_to_plot,
             line_colour=line_colours[i], line_style=line_styles[i], line_width=2

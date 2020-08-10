@@ -540,24 +540,27 @@ def plot_score_profile(
         color=line_colour, linestyle=line_style, linewidth=line_width
     )[0]
 
+    x_max = numpy.maximum(
+        numpy.max(score_values[finite_indices]), 0.
+    )
+
+    if not are_axes_new:
+        x_max = numpy.maximum(x_max, orig_x_limits[1])
+
     if score_name in possibly_negative_score_names:
         x_min = numpy.minimum(
             numpy.min(score_values[finite_indices]), 0.
         )
-        x_max = numpy.maximum(
-            numpy.max(score_values[finite_indices]), 0.
-        )
 
         if not are_axes_new:
             x_min = numpy.minimum(x_min, orig_x_limits[0])
-            x_max = numpy.maximum(x_max, orig_x_limits[1])
 
         if score_name in skill_score_names:
             x_min = numpy.maximum(x_min, -1.)
-
-        axes_object.set_xlim(x_min, x_max)
     else:
-        axes_object.set_xlim(left=0.)
+        x_min = 0.
+
+    axes_object.set_xlim(x_min, x_max)
 
     if use_log_scale:
         axes_object.set_ylim(min_height_km_agl, max_height_km_agl)
