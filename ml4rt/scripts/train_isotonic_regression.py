@@ -6,12 +6,12 @@ from ml4rt.machine_learning import isotonic_regression
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
+INPUT_FILES_ARG_NAME = 'input_prediction_file_names'
 SEPARATE_BY_HEIGHT_ARG_NAME = 'separate_by_height'
 OUTPUT_DIR_ARG_NAME = 'output_model_dir_name'
 
-INPUT_FILE_HELP_STRING = (
-    'Path to input file, containing model predictions without isotonic '
+INPUT_FILES_HELP_STRING = (
+    'Paths to input files, each containing model predictions without isotonic '
     'regression.  Will be read by `prediction_io.read_file`.'
 )
 SEPARATE_BY_HEIGHT_HELP_STRING = (
@@ -27,8 +27,8 @@ OUTPUT_DIR_HELP_STRING = (
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + INPUT_FILE_ARG_NAME, type=str, required=True,
-    help=INPUT_FILE_HELP_STRING
+    '--' + INPUT_FILES_ARG_NAME, type=str, nargs='+', required=True,
+    help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + SEPARATE_BY_HEIGHT_ARG_NAME, type=int, required=False, default=1,
@@ -40,28 +40,34 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(prediction_file_name, separate_by_height, output_dir_name):
+def _run(prediction_file_names, separate_by_height, output_dir_name):
     """Trains isotonic-regression model.
 
     This is effectively the main method.
 
-    :param prediction_file_name: See documentation at top of file.
+    :param prediction_file_names: See documentation at top of file.
     :param separate_by_height: Same.
     :param output_dir_name: Same.
-    :raises: ValueError: if predictions in `prediction_file_name` were made with
-        isotonic regression.
+    :raises: ValueError: if predictions in `prediction_file_names` were made
+        with isotonic regression.
     """
 
-    print('Reading original predictions from: "{0:s}"...'.format(
-        prediction_file_name
-    ))
-    prediction_dict = prediction_io.read_file(prediction_file_name)
+    num_files = len(prediction_file_names)
+    prediction_dicts = [dict()] * num_files
+
+    for i in range(num_files):
+        print('Reading original predictions from: "{0:s}"...'.format(
+            prediction_file_names[i]
+        ))
+        prediction_dicts[i] = prediction_io.read_file(prediction_file_names[i])
+
+    prediction_dict = prediction_io.concat_predictions(prediction_dicts)
 
     if prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY] is not None:
         raise ValueError(
-            'Predictions used for training isotonic regression must be made '
-            'with base model only (i.e., must not already include isotonic '
-            'regression).'
+            'Predictions used for training isotonic regression must be made'
+            ' with base model only (i.e., must not already include isotonic'
+            ' regression).'
         )
 
     orig_vector_prediction_matrix = (
@@ -112,7 +118,7 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        prediction_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
         separate_by_height=bool(
             getattr(INPUT_ARG_OBJECT, SEPARATE_BY_HEIGHT_ARG_NAME)
         ),

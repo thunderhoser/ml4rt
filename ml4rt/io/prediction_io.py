@@ -1,5 +1,6 @@
 """Input/output methods for model predictions."""
 
+import copy
 import os.path
 import numpy
 import netCDF4
@@ -10,6 +11,8 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
+
+TOLERANCE = 1e-6
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
@@ -722,5 +725,64 @@ def subset_by_index(prediction_dict, desired_indices):
             prediction_dict[this_key] = (
                 prediction_dict[this_key][desired_indices, ...]
             )
+
+    return prediction_dict
+
+
+def concat_predictions(prediction_dicts):
+    """Concatenates many dictionaries with predictions into one.
+
+    :param prediction_dicts: List of dictionaries, each in the format returned
+        by `read_file`.
+    :return: prediction_dict: Single dictionary, also in the format returned by
+        `read_file`.
+    :raises: ValueError: if any two dictionaries have predictions created with
+        different models.
+    """
+
+    prediction_dict = copy.deepcopy(prediction_dicts[0])
+    keys_to_match = [MODEL_FILE_KEY, ISOTONIC_MODEL_FILE_KEY, HEIGHTS_KEY]
+
+    for i in range(1, len(prediction_dicts)):
+        if not numpy.allclose(
+                prediction_dict[HEIGHTS_KEY], prediction_dicts[i][HEIGHTS_KEY],
+                atol=TOLERANCE
+        ):
+            error_string = (
+                '1st and {0:d}th dictionaries have different height coords '
+                '(units are m AGL).  1st dictionary:\n{1:s}\n\n'
+                '{0:d}th dictionary:\n{2:s}'
+            ).format(
+                i + 1, str(prediction_dict[HEIGHTS_KEY]),
+                str(prediction_dicts[i][HEIGHTS_KEY])
+            )
+
+            raise ValueError(error_string)
+
+        for this_key in keys_to_match:
+            if this_key == HEIGHTS_KEY:
+                continue
+
+            if prediction_dict[this_key] == prediction_dicts[i][this_key]:
+                continue
+
+            error_string = (
+                '1st and {0:d}th dictionaries have different values for '
+                '"{1:s}".  1st dictionary:\n{2:s}\n\n'
+                '{0:d}th dictionary:\n{3:s}'
+            ).format(
+                i + 1, this_key, str(prediction_dict[this_key]),
+                str(prediction_dicts[i][this_key])
+            )
+
+            raise ValueError(error_string)
+
+        for this_key in ONE_PER_EXAMPLE_KEYS:
+            if isinstance(prediction_dict[this_key], list):
+                prediction_dict[this_key] += prediction_dicts[i][this_key]
+            else:
+                prediction_dict[this_key] = numpy.concatenate((
+                    prediction_dict[this_key], prediction_dicts[i][this_key]
+                ), axis=0)
 
     return prediction_dict
