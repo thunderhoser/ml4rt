@@ -1986,10 +1986,10 @@ def train_model_sans_generator(
         epochs=num_epochs, steps_per_epoch=num_training_batches_per_epoch,
         shuffle=True, verbose=1, callbacks=list_of_callback_objects,
         validation_data=(validation_predictor_matrix, validation_target_array),
-        validation_batch_size=(
-            None if num_validation_batches_per_epoch is None
-            else validation_option_dict[BATCH_SIZE_KEY]
-        ),
+        # validation_batch_size=(
+        #     None if num_validation_batches_per_epoch is None
+        #     else validation_option_dict[BATCH_SIZE_KEY]
+        # ),
         validation_steps=num_validation_batches_per_epoch
     )
 
