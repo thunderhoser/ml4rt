@@ -96,10 +96,16 @@ def _run(example_file_name, num_examples, example_dir_name,
         max_pmm_percentile_level=max_pmm_percentile_level
     )
 
-    mean_example_dict[example_utils.VALID_TIMES_KEY] = numpy.array([-1], dtype=int)
+    mean_example_dict[example_utils.VALID_TIMES_KEY] = numpy.array(
+        [-1], dtype=int
+    )
     mean_example_dict[example_utils.STANDARD_ATMO_FLAGS_KEY] = numpy.array(
         [example_utils.US_STANDARD_ATMO_ENUM], dtype=int
     )
+    mean_example_dict[example_utils.EXAMPLE_IDS_KEY] = [
+        example_utils.get_dummy_example_id()
+    ]
+    print(mean_example_dict[example_utils.EXAMPLE_IDS_KEY])
 
     print('Writing mean example to: "{0:s}"...'.format(output_file_name))
     example_io.write_file(

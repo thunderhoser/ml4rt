@@ -785,6 +785,20 @@ def create_example_ids(example_dict):
     ]
 
 
+def get_dummy_example_id():
+    """Creates dummy example ID.
+
+    :return: dummy_id_string: Dummy example ID.
+    """
+
+    return (
+        'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_'
+        'time={3:010d}_atmo={4:1d}_temp-10m-kelvins={5:010.6f}'
+    ).format(
+        0, 0, 0, 0, 0, 0
+    )
+
+
 def parse_example_ids(example_id_strings):
     """Parses example IDs.
 

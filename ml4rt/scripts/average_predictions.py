@@ -74,34 +74,7 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
         max_pmm_percentile_level=max_pmm_percentile_level
     )
 
-    dummy_scalar_predictor_matrix = numpy.array([0, 0, 0], dtype=float)
-    dummy_scalar_predictor_matrix = numpy.expand_dims(
-        dummy_scalar_predictor_matrix, axis=0
-    )
-
-    dummy_vector_predictor_matrix = numpy.array([0.])
-    dummy_vector_predictor_matrix = numpy.expand_dims(
-        dummy_vector_predictor_matrix, axis=-1
-    )
-    dummy_vector_predictor_matrix = numpy.expand_dims(
-        dummy_vector_predictor_matrix, axis=-1
-    )
-
-    dummy_example_dict = {
-        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [
-            example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
-            example_utils.ZENITH_ANGLE_NAME
-        ],
-        example_utils.SCALAR_PREDICTOR_VALS_KEY: dummy_scalar_predictor_matrix,
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-            [example_utils.TEMPERATURE_NAME],
-        example_utils.VECTOR_PREDICTOR_VALS_KEY: dummy_vector_predictor_matrix,
-        example_utils.HEIGHTS_KEY: numpy.array([10.]),
-        example_utils.VALID_TIMES_KEY: numpy.array([0], dtype=int),
-        example_utils.STANDARD_ATMO_FLAGS_KEY: numpy.array([0], dtype=int)
-    }
-
-    example_id_strings = example_utils.create_example_ids(dummy_example_dict)
+    example_id_strings = [example_utils.get_dummy_example_id()]
     print(example_id_strings)
 
     print('Writing mean example to: "{0:s}"...'.format(output_file_name))
