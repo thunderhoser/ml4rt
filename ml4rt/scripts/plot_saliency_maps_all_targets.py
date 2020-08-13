@@ -63,12 +63,17 @@ pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
 pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
 SALIENCY_FILE_ARG_NAME = 'input_saliency_file_name'
+NUM_EXAMPLES_ARG_NAME = 'num_examples_to_plot'
 COLOUR_MAP_ARG_NAME = 'colour_map_name'
 MAX_PERCENTILE_ARG_NAME = 'max_colour_percentile'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 SALIENCY_FILE_HELP_STRING = (
     'Path to saliency file (will be read by `saliency.read_all_targets_file`).'
+)
+NUM_EXAMPLES_HELP_STRING = (
+    'Number of examples for which to plot saliency maps.  If you want to plot '
+    'all examples, leave this alone.'
 )
 COLOUR_MAP_HELP_STRING = (
     'Colour scheme (must be accepted by `matplotlib.pyplot.get_cmap`).'
@@ -87,6 +92,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + SALIENCY_FILE_ARG_NAME, type=str, required=True,
     help=SALIENCY_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_EXAMPLES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + COLOUR_MAP_ARG_NAME, type=str, required=False, default='seismic',
@@ -663,13 +672,14 @@ def _plot_saliency_one_example(
         )
 
 
-def _run(saliency_file_name, colour_map_name, max_colour_percentile,
-         output_dir_name):
+def _run(saliency_file_name, num_examples_to_plot, colour_map_name,
+         max_colour_percentile, output_dir_name):
     """Plots saliency maps for all target variables.
 
     This is effectively the main method.
 
     :param saliency_file_name: See documentation at top of file.
+    :param num_examples_to_plot: Same.
     :param colour_map_name: Same.
     :param max_colour_percentile: Same.
     :param output_dir_name: Same.
@@ -693,10 +703,18 @@ def _run(saliency_file_name, colour_map_name, max_colour_percentile,
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
 
-    num_examples = len(saliency_dict[saliency.EXAMPLE_IDS_KEY])
+    num_examples_total = len(saliency_dict[saliency.EXAMPLE_IDS_KEY])
+
+    if num_examples_to_plot <= 0:
+        num_examples_to_plot = num_examples_total
+
+    num_examples_to_plot = numpy.minimum(
+        num_examples_to_plot, num_examples_total
+    )
+
     print(SEPARATOR_STRING)
 
-    for i in range(num_examples):
+    for i in range(num_examples_to_plot):
         _plot_saliency_one_example(
             saliency_dict=saliency_dict, example_index=i,
             model_metadata_dict=model_metadata_dict,
@@ -712,6 +730,7 @@ if __name__ == '__main__':
 
     _run(
         saliency_file_name=getattr(INPUT_ARG_OBJECT, SALIENCY_FILE_ARG_NAME),
+        num_examples_to_plot=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         colour_map_name=getattr(INPUT_ARG_OBJECT, COLOUR_MAP_ARG_NAME),
         max_colour_percentile=getattr(
             INPUT_ARG_OBJECT, MAX_PERCENTILE_ARG_NAME
