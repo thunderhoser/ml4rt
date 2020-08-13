@@ -23,14 +23,15 @@ GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
 FIRST_PREDICTOR_NAMES = [
     example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
-    example_utils.RELATIVE_HUMIDITY_NAME, example_utils.WATER_VAPOUR_PATH_NAME
+    example_utils.RELATIVE_HUMIDITY_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME
 ]
 FIRST_PREDICTOR_COLOURS = [
     BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
 ]
 
 SECOND_PREDICTOR_NAMES = [
-    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.WATER_VAPOUR_PATH_NAME,
     example_utils.LIQUID_WATER_PATH_NAME,
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME
 ]
@@ -122,7 +123,8 @@ def _plot_one_example(
     )
     num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
 
-    for k in range(num_predictor_sets):
+    # for k in range(num_predictor_sets):
+    for k in range(1):
         these_flags = numpy.array([
             n in example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
             for n in PREDICTOR_NAMES_BY_SET[k]
