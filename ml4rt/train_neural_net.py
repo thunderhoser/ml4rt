@@ -5,14 +5,13 @@ import os.path
 import argparse
 import numpy
 import keras.losses
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.deep_learning import architecture_utils
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import example_utils
 import neural_net
 import u_net_architecture
@@ -32,7 +31,7 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
         numpy.array([0.5, 0.5, 0.5, numpy.nan]),
     u_net_architecture.NUM_INPUT_CHANNELS_KEY: 16,
     u_net_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
-        architecture_utils.RELU_FUNCTION_STRING,
+        u_net_architecture.RELU_FUNCTION_STRING,
     u_net_architecture.ZERO_OUT_TOP_HR_KEY: True,
     u_net_architecture.HEATING_RATE_INDEX_KEY: 0
 }
