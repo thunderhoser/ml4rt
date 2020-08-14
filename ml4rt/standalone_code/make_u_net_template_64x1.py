@@ -1,8 +1,18 @@
 """Makes U-net template where output is 64 heights x 1 channel."""
 
+import sys
 import errno
 import os.path
 import keras
+
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+print(sys.path)
+
 from . import u_net_architecture
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
