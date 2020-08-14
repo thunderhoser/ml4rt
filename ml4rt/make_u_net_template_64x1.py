@@ -14,11 +14,12 @@ import custom_losses
 import file_system_utils
 import neural_net
 
-if 'hfe' in socket.gethostname():
-    HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-else:
-    HOME_DIR_NAME = os.path.expanduser('~')
+# if 'hfe' in socket.gethostname():
+#     HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
+# else:
+#     HOME_DIR_NAME = os.path.expanduser('~')
 
+HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 MODEL_FILE_NAME = '{0:s}/ml4rt_models/templates/u_net_64x1.h5'.format(
     HOME_DIR_NAME
 )
