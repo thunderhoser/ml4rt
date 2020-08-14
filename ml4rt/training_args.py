@@ -4,14 +4,14 @@ import sys
 import socket
 import os.path
 
-# THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.expanduser(__file__))
-# ))
-# sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-from ml4rt import example_utils
-from ml4rt import normalization
-from ml4rt import neural_net
+import example_utils
+import normalization
+import neural_net
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 

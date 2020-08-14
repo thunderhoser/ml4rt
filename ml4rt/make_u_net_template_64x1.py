@@ -1,19 +1,18 @@
 """Makes U-net template where output is 64 heights x 1 channel."""
 
 import sys
-import errno
 import socket
 import os.path
 
-# THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.expanduser(__file__))
-# ))
-# sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-from ml4rt import u_net_architecture
-from ml4rt import custom_losses
-from ml4rt import file_system_utils
-from ml4rt import neural_net
+import u_net_architecture
+import custom_losses
+import file_system_utils
+import neural_net
 
 if 'hfe' in socket.gethostname():
     HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'

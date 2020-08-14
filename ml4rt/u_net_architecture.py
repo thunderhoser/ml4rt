@@ -6,13 +6,13 @@ import numpy
 import keras
 from keras import backend as K
 
-# THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.expanduser(__file__))
-# ))
-# sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-from ml4rt import neural_net
-from ml4rt import error_checking
+import neural_net
+import error_checking
 
 KERNEL_INITIALIZER_NAME = 'glorot_uniform'
 BIAS_INITIALIZER_NAME = 'zeros'

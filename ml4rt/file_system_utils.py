@@ -4,12 +4,12 @@ import os
 import sys
 import errno
 
-# THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.expanduser(__file__))
-# ))
-# sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-from ml4rt import error_checking
+import error_checking
 
 
 def mkdir_recursive_if_necessary(directory_name=None, file_name=None):

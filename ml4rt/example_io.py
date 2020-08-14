@@ -5,15 +5,15 @@ import os.path
 import numpy
 import netCDF4
 
-# THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.expanduser(__file__))
-# ))
-# sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-from ml4rt import time_conversion
-from ml4rt import file_system_utils
-from ml4rt import error_checking
-from ml4rt import example_utils
+import time_conversion
+import file_system_utils
+import error_checking
+import example_utils
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
