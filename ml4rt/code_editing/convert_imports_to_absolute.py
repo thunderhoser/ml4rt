@@ -1,11 +1,11 @@
-"""Converts all imports of ml4rt code from absolute to relative."""
+"""Converts all imports of ml4rt code from relative to absolute."""
 
 import os
 import glob
 
 
 def _run():
-    """Converts all imports of ml4rt code from absolute to relative.
+    """Converts all imports of ml4rt code from relative to absolute.
 
     This is effectively the main method.
     """
@@ -23,7 +23,7 @@ def _run():
     for this_file_name in module_file_names:
         for this_module_name in module_names:
             this_command_string = (
-                "sed -i 's/from ml4rt import {0:s}/import {0:s}/g' {1:s}"
+                "sed -i 's/import {0:s}/from ml4rt import {0:s}/g' {1:s}"
             ).format(this_module_name, this_file_name)
 
             os.system(this_command_string)
