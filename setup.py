@@ -2,10 +2,7 @@
 
 from setuptools import setup
 
-PACKAGE_NAMES = [
-    'ml4rt', 'ml4rt.io', 'ml4rt.utils', 'ml4rt.machine_learning',
-    'ml4rt.plotting', 'ml4rt.scripts', 'ml4rt.outside_code'
-]
+PACKAGE_NAMES = ['ml4rt']
 KEYWORDS = [
     'machine learning', 'deep learning', 'artificial intelligence',
     'data mining', 'weather', 'meteorology', 'thunderstorm', 'wind', 'tornado'
