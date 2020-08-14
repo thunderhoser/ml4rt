@@ -13,7 +13,7 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 print(sys.path)
 
-from . import u_net_architecture
+import u_net_architecture
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 MODEL_FILE_NAME = '{0:s}/ml4rt_models/templates/u_net_64x1.h5'.format(
