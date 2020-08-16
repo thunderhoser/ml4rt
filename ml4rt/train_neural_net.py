@@ -56,7 +56,7 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
          scalar_target_norm_type_string, scalar_target_min_norm_value,
          scalar_target_max_norm_value, num_examples_per_batch,
          num_epochs, num_training_batches_per_epoch,
-         num_validn_batches_per_epoch):
+         num_validn_batches_per_epoch, plateau_lr_multiplier):
     """Trains neural net
 
     :param net_type_string: See documentation at top of training_args.py.
@@ -87,6 +87,7 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     :param num_epochs: Same.
     :param num_training_batches_per_epoch: Same.
     :param num_validn_batches_per_epoch: Same.
+    :param plateau_lr_multiplier: Same.
     """
 
     if predictor_norm_type_string in NONE_STRINGS:
@@ -211,7 +212,8 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             validation_option_dict=validation_option_dict,
             net_type_string=net_type_string,
-            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True
+            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
+            plateau_lr_multiplier=plateau_lr_multiplier
         )
     else:
         neural_net.train_model_sans_generator(
@@ -219,7 +221,8 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
             num_epochs=num_epochs, training_option_dict=training_option_dict,
             validation_option_dict=validation_option_dict,
             net_type_string=net_type_string,
-            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True
+            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
+            plateau_lr_multiplier=plateau_lr_multiplier
         )
 
 
@@ -309,5 +312,8 @@ if __name__ == '__main__':
         ),
         num_validn_batches_per_epoch=getattr(
             INPUT_ARG_OBJECT, training_args.NUM_VALIDN_BATCHES_ARG_NAME
+        ),
+        plateau_lr_multiplier=getattr(
+            INPUT_ARG_OBJECT, training_args.PLATEAU_LR_MULTIPLIER_ARG_NAME
         )
     )

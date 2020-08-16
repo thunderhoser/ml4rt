@@ -67,6 +67,7 @@ BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 NUM_EPOCHS_ARG_NAME = 'num_epochs'
 NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
 NUM_VALIDN_BATCHES_ARG_NAME = 'num_validn_batches_per_epoch'
+PLATEAU_LR_MULTIPLIER_ARG_NAME = 'plateau_lr_multiplier'
 
 NET_TYPE_HELP_STRING = (
     'Neural-net type (must be accepted by `neural_net.check_net_type`).'
@@ -162,6 +163,10 @@ NUM_EPOCHS_HELP_STRING = 'Number of epochs.'
 NUM_TRAINING_BATCHES_HELP_STRING = 'Number of training batches per epoch.'
 NUM_VALIDN_BATCHES_HELP_STRING = (
     'Number of validation (monitoring) batches per epoch.'
+)
+PLATEAU_LR_MULTIPLIER_HELP_STRING = (
+    'Multiplier for learning rate.  Learning rate will be multiplied by this '
+    'factor upon plateau in validation performance.'
 )
 
 
@@ -285,6 +290,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + NUM_VALIDN_BATCHES_ARG_NAME, type=int, required=False,
         default=16, help=NUM_VALIDN_BATCHES_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + PLATEAU_LR_MULTIPLIER_ARG_NAME, type=float, required=False,
+        default=0.5, help=PLATEAU_LR_MULTIPLIER_HELP_STRING
     )
 
     return parser_object
