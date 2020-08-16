@@ -163,6 +163,12 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
         netcdf_file_name = netcdf_file_name.replace(
+            '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist',
+            '/home/ryan.lagerquist'
+        )
+
+    if not os.path.isfile(netcdf_file_name):
+        netcdf_file_name = netcdf_file_name.replace(
             '/home/ryan.lagerquist', '/home/ralager'
         )
 
