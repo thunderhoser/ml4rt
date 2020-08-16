@@ -15,6 +15,7 @@ from ml4rt.io import example_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import keras_metrics as custom_metrics
+from ml4rt.machine_learning import keras_losses as custom_losses
 
 SENTINEL_VALUE = -9999.
 
@@ -2118,6 +2119,16 @@ def read_metafile(dill_file_name):
         metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
             metadata_dict['loss_function']
         )
+
+    # TODO(thunderhoser): This is a HACK to deal with Hera not letting me
+    # install Dill.
+    if isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str):
+        if 'dual_weighted_mse' in metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]:
+            metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
+                custom_losses.dual_weighted_mse()
+            )
+        else:
+            metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = keras.losses.mse
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
