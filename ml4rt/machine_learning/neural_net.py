@@ -23,9 +23,9 @@ LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
 PLATEAU_PATIENCE_EPOCHS = 10
-PLATEAU_LEARNING_RATE_MULTIPLIER = 0.5
+DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
-EARLY_STOPPING_PATIENCE_EPOCHS = 20
+EARLY_STOPPING_PATIENCE_EPOCHS = 30
 LOSS_PATIENCE = 0.
 
 CNN_TYPE_STRING = 'cnn'
@@ -115,11 +115,13 @@ NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 NET_TYPE_KEY = 'net_type_string'
 LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
+EARLY_STOPPING_KEY = 'do_early_stopping'
+PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
-    LOSS_FUNCTION_OR_DICT_KEY
+    LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY
 ]
 
 
@@ -434,7 +436,8 @@ def _read_specific_examples(
 def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, net_type_string, loss_function_or_dict):
+        validation_option_dict, net_type_string, loss_function_or_dict,
+        do_early_stopping, plateau_lr_multiplier):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -445,6 +448,8 @@ def _write_metafile(
     :param validation_option_dict: Same.
     :param net_type_string: Same.
     :param loss_function_or_dict: Same.
+    :param do_early_stopping: Same.
+    :param plateau_lr_multiplier: Same.
     """
 
     metadata_dict = {
@@ -454,7 +459,9 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         NET_TYPE_KEY: net_type_string,
-        LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict
+        LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
+        EARLY_STOPPING_KEY: do_early_stopping,
+        PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
@@ -1727,7 +1734,8 @@ def train_model_with_generator(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
         use_generator_for_validn=False, num_validation_batches_per_epoch=None,
-        do_early_stopping=True):
+        do_early_stopping=True,
+        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER):
     """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1761,6 +1769,9 @@ def train_model_with_generator(
     :param do_early_stopping: Boolean flag.  If True, will stop training early
         if validation loss has not improved over last several epochs (see
         constants at top of file for what exactly this means).
+    :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
+        rate will be multiplied by this factor upon plateau in validation
+        performance.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1774,6 +1785,10 @@ def train_model_with_generator(
     check_net_type(net_type_string)
     error_checking.assert_is_boolean(use_generator_for_validn)
     error_checking.assert_is_boolean(do_early_stopping)
+
+    if do_early_stopping:
+        error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
+        error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
 
     if use_generator_for_validn:
         error_checking.assert_is_integer(num_validation_batches_per_epoch)
@@ -1818,7 +1833,7 @@ def train_model_with_generator(
         list_of_callback_objects.append(early_stopping_object)
 
         plateau_object = keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
+            monitor='val_loss', factor=plateau_lr_multiplier,
             patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
             min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
         )
@@ -1834,7 +1849,9 @@ def train_model_with_generator(
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
         net_type_string=net_type_string,
-        loss_function_or_dict=loss_function_or_dict
+        loss_function_or_dict=loss_function_or_dict,
+        do_early_stopping=do_early_stopping,
+        plateau_lr_multiplier=plateau_lr_multiplier
     )
 
     is_loss_constrained_mse = determine_if_loss_constrained_mse(
@@ -1880,7 +1897,8 @@ def train_model_with_generator(
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        do_early_stopping=True):
+        do_early_stopping=True,
+        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1891,6 +1909,7 @@ def train_model_sans_generator(
     :param net_type_string: Same.
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
+    :param plateau_lr_multiplier: Same.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1901,6 +1920,10 @@ def train_model_sans_generator(
     error_checking.assert_is_geq(num_epochs, 2)
     check_net_type(net_type_string)
     error_checking.assert_is_boolean(do_early_stopping)
+
+    if do_early_stopping:
+        error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
+        error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1939,7 +1962,7 @@ def train_model_sans_generator(
         list_of_callback_objects.append(early_stopping_object)
 
         plateau_object = keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss', factor=PLATEAU_LEARNING_RATE_MULTIPLIER,
+            monitor='val_loss', factor=plateau_lr_multiplier,
             patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
             min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
         )
@@ -1955,7 +1978,9 @@ def train_model_sans_generator(
         num_validation_batches_per_epoch=None,
         validation_option_dict=validation_option_dict,
         net_type_string=net_type_string,
-        loss_function_or_dict=loss_function_or_dict
+        loss_function_or_dict=loss_function_or_dict,
+        do_early_stopping=do_early_stopping,
+        plateau_lr_multiplier=plateau_lr_multiplier
     )
 
     is_loss_constrained_mse = determine_if_loss_constrained_mse(
@@ -2114,6 +2139,12 @@ def read_metafile(dill_file_name):
 
         metadata_dict[TRAINING_OPTIONS_KEY] = t
         metadata_dict[VALIDATION_OPTIONS_KEY] = v
+
+    if EARLY_STOPPING_KEY not in metadata_dict:
+        metadata_dict[EARLY_STOPPING_KEY] = True
+
+    if PLATEAU_LR_MUTIPLIER_KEY not in metadata_dict:
+        metadata_dict[PLATEAU_LR_MUTIPLIER_KEY] = 0.5
 
     if LOSS_FUNCTION_OR_DICT_KEY not in metadata_dict:
         metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
