@@ -6,6 +6,7 @@ import os.path
 import dill
 import numpy
 import keras
+import tensorflow.keras as tf_keras
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -1994,7 +1995,7 @@ def read_model(hdf5_file_name):
     error_checking.assert_file_exists(hdf5_file_name)
 
     try:
-        return keras.models.load_model(
+        return tf_keras.models.load_model(
             hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
         )
     except ValueError:
@@ -2034,7 +2035,7 @@ def read_model(hdf5_file_name):
     else:
         custom_object_dict['loss'] = loss_function_or_dict
 
-    return keras.models.load_model(
+    return tf_keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
     )
 
