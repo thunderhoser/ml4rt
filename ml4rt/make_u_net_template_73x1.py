@@ -19,13 +19,13 @@ import neural_net
 #     HOME_DIR_NAME = os.path.expanduser('~')
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-MODEL_FILE_NAME = '{0:s}/ml4rt_models/templates/u_net_64x1.h5'.format(
+MODEL_FILE_NAME = '{0:s}/ml4rt_models/templates/u_net_73x1.h5'.format(
     HOME_DIR_NAME
 )
 
 ARCHITECTURE_OPTION_DICT = {
-    u_net_architecture.NUM_HEIGHTS_KEY: 64,
-    u_net_architecture.NUM_HEIGHTS_FOR_LOSS_KEY: 64,
+    u_net_architecture.NUM_HEIGHTS_KEY: 73,
+    u_net_architecture.NUM_HEIGHTS_FOR_LOSS_KEY: 73,
     u_net_architecture.NUM_INPUT_CHANNELS_KEY: 16,
     u_net_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
         u_net_architecture.RELU_FUNCTION_STRING
