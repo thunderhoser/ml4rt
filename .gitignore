@@ -17,3 +17,7 @@ dist/
 core.*
 ml4rt/scratch_space/
 ml4rt/dead_scratch_code/
+
+# Slurm output.
+*.out
+core.*
