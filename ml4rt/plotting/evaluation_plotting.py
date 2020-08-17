@@ -1,12 +1,11 @@
 """Plotting methods for model evaluation."""
 
 import numpy
-from descartes import PolygonPatch
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.colors
+import matplotlib.patches
 from matplotlib import pyplot
-from gewittergefahr.gg_utils import polygons
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import plotting_utils
 from ml4rt.outside_code import taylor_diagram
@@ -208,19 +207,22 @@ def _plot_attr_diagram_background(
     skill_area_colour = matplotlib.colors.to_rgba(
         ZERO_SKILL_LINE_COLOUR, POSITIVE_SKILL_AREA_OPACITY
     )
-    left_polygon_object = polygons.vertex_arrays_to_polygon_object(
+
+    left_polygon_coord_matrix = numpy.transpose(numpy.vstack((
         x_coords_left, y_coords_left
-    )
-    left_patch_object = PolygonPatch(
-        left_polygon_object, lw=0, ec=skill_area_colour, fc=skill_area_colour
+    )))
+    left_patch_object = matplotlib.patches.Polygon(
+        left_polygon_coord_matrix, lw=0,
+        ec=skill_area_colour, fc=skill_area_colour
     )
     axes_object.add_patch(left_patch_object)
 
-    right_polygon_object = polygons.vertex_arrays_to_polygon_object(
+    right_polygon_coord_matrix = numpy.transpose(numpy.vstack((
         x_coords_right, y_coords_right
-    )
-    right_patch_object = PolygonPatch(
-        right_polygon_object, lw=0, ec=skill_area_colour, fc=skill_area_colour
+    )))
+    right_patch_object = matplotlib.patches.Polygon(
+        right_polygon_coord_matrix, lw=0,
+        ec=skill_area_colour, fc=skill_area_colour
     )
     axes_object.add_patch(right_patch_object)
 
