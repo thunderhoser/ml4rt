@@ -38,7 +38,7 @@ set batch_size=${BATCH_SIZES[$SLURM_ARRAY_TASK_ID]}
 
 set plateau_lr_mult_string=`printf "%.1f" $plateau_lr_multiplier`
 set batch_size_string=`printf "%04d" $batch_size`
-set top_model_dir_name="${TOP_OUTPUT_DIR_NAME}/plateau-lr-multiplier=${plateau_lr_mult_string}_batch-size=${batch_size_string}"
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/plateau-lr-multiplier=${plateau_lr_mult_string}_batch-size=${batch_size_string}"
 
 set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
