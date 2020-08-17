@@ -140,7 +140,6 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
     :param allow_missing_ids: [used only if `id_strings_to_read is not None`]
         Boolean flag.  If True, will allow missing IDs.  If False, will throw
         error for missing IDs.
-
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (E x P_s) with values
         of scalar predictors.
