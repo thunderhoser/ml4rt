@@ -142,7 +142,7 @@ def _check_generator_args(option_dict):
     option_dict.update(orig_option_dict)
 
     error_checking.assert_is_integer(option_dict[BATCH_SIZE_KEY])
-    error_checking.assert_is_geq(option_dict[BATCH_SIZE_KEY], 32)
+    error_checking.assert_is_geq(option_dict[BATCH_SIZE_KEY], 2)
 
     error_checking.assert_is_numpy_array(
         numpy.array(option_dict[SCALAR_PREDICTOR_NAMES_KEY]), num_dimensions=1
