@@ -93,7 +93,8 @@ def _plot_scores_2d(
     print(max_colour_value)
 
     colour_bar_object = plotting_utils.plot_linear_colour_bar(
-        axes_object_or_matrix=axes_object, data_matrix=score_matrix,
+        axes_object_or_matrix=axes_object,
+        data_matrix=score_matrix[numpy.invert(numpy.isnan(score_matrix))],
         colour_map_object=colour_map_object,
         min_value=min_colour_value, max_value=max_colour_value,
         orientation_string='horizontal', extend_min=False, extend_max=False,
