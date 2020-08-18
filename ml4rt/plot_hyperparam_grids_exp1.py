@@ -88,13 +88,18 @@ def _plot_scores_2d(
     pyplot.xticks(x_tick_values, x_tick_labels)
     pyplot.yticks(y_tick_values, y_tick_labels)
 
-    plotting_utils.plot_linear_colour_bar(
+    colour_bar_object = plotting_utils.plot_linear_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=score_matrix,
         colour_map_object=colour_map_object,
         min_value=min_colour_value, max_value=max_colour_value,
         orientation_string='horizontal', extend_min=False, extend_max=False,
         fraction_of_axis_length=0.8, font_size=FONT_SIZE
     )
+
+    tick_values = colour_bar_object.get_ticks()
+    tick_strings = ['{0:.2g}'.format(v) for v in tick_values]
+    colour_bar_object.set_ticks(tick_values)
+    colour_bar_object.set_ticklabels(tick_strings)
 
     return figure_object, axes_object
 
@@ -167,8 +172,8 @@ def _run(experiment_dir_name):
 
     figure_object, axes_object = _plot_scores_2d(
         score_matrix=prmse_matrix_k_day01,
-        min_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 1),
-        max_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 99),
+        min_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 0),
+        max_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 95),
         x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
     )
 
@@ -186,8 +191,8 @@ def _run(experiment_dir_name):
 
     figure_object, axes_object = _plot_scores_2d(
         score_matrix=dwmse_matrix_k3_day03,
-        min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 1),
-        max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 99),
+        min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
+        max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
         x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
     )
 
