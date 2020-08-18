@@ -34,7 +34,7 @@ EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + EXPERIMENT_DIR_ARG_NAME, type=str, nargs='+', required=True,
+    '--' + EXPERIMENT_DIR_ARG_NAME, type=str, required=True,
     help=EXPERIMENT_DIR_HELP_STRING
 )
 
@@ -116,11 +116,6 @@ def _run(experiment_dir_name):
 
     for i in range(num_multipliers):
         for j in range(num_batch_sizes):
-            print(experiment_dir_name)
-            print(PLATEAU_LR_MULTIPLIERS[i])
-            print(BATCH_SIZES[j])
-            print('\n\n')
-
             this_model_dir_name = (
                 '{0:s}/plateau-lr-multiplier={1:.1f}_batch-size={2:04d}'
             ).format(
