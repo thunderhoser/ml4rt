@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="evaluate_hyperparams"
+#SBATCH --job-name="plot_eval_by_batch_size"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -13,7 +13,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=evaluate_hyperparams_%A_%a.out
+#SBATCH --output=plot_eval_by_batch_size_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -26,7 +26,7 @@ set BATCH_SIZES=(16 32 64 128 256 512 1024 2048 4096 8192)
 set batch_size=${BATCH_SIZES[$SLURM_ARRAY_TASK_ID]}
 set batch_size_string=`printf "%04d" $batch_size`
 
-if ($#batch_size < 511) then
+if ($batch_size < 511) then
     set plateau_lr_mult_strings=("0.7" "0.8" "0.9")
     set line_styles_string="solid dashed solid"
     set line_colours_string="178_223_138 51_160_44 0_0_0"
