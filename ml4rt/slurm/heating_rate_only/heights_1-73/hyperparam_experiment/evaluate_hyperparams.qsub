@@ -46,7 +46,7 @@ while ($i <= ${#plateau_lr_mult_strings})
     set these_model_file_names={${this_directory_name}/model*.h5}
     set this_model_file_name=${these_model_file_names[$#these_model_file_names]}
     set this_model_dir_name=`echo $this_model_file_name | rev | cut -c 4- | rev`
-    set evaluation_file_names_string="${evaluation_file_names_string} ${model_dir_name}/validation/evaluation.nc"
+    set evaluation_file_names_string="${evaluation_file_names_string} ${this_model_dir_name}/validation/evaluation.nc"
     
     @ i = $i + 1
 end
