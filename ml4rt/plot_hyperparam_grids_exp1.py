@@ -116,6 +116,11 @@ def _run(experiment_dir_name):
 
     for i in range(num_multipliers):
         for j in range(num_batch_sizes):
+            print(experiment_dir_name)
+            print(PLATEAU_LR_MULTIPLIERS[i])
+            print(BATCH_SIZES[j])
+            print('\n\n')
+
             this_model_dir_name = (
                 '{0:s}/plateau-lr-multiplier={1:.1f}_batch-size={2:04d}'
             ).format(
