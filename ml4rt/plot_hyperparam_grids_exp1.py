@@ -7,6 +7,7 @@ import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
+import matplotlib.colors
 from matplotlib import pyplot
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -88,15 +89,15 @@ def _plot_scores_2d(
     pyplot.xticks(x_tick_values, x_tick_labels)
     pyplot.yticks(y_tick_values, y_tick_labels)
 
-    print(score_matrix)
-    print(min_colour_value)
-    print(max_colour_value)
+    colour_norm_object = matplotlib.colors.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value, clip=False
+    )
 
-    colour_bar_object = plotting_utils.plot_linear_colour_bar(
+    colour_bar_object = plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object,
         data_matrix=score_matrix[numpy.invert(numpy.isnan(score_matrix))],
         colour_map_object=colour_map_object,
-        min_value=min_colour_value, max_value=max_colour_value,
+        colour_norm_object=colour_norm_object,
         orientation_string='horizontal', extend_min=False, extend_max=False,
         fraction_of_axis_length=1., font_size=FONT_SIZE
     )
