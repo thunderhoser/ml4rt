@@ -19,12 +19,20 @@ import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-PLATEAU_LR_MULTIPLIERS = numpy.array([0.9, 0.8, 0.7, 0.6, 0.5])
+PLATEAU_LR_MULTIPLIERS = numpy.array([0.5, 0.6, 0.7, 0.8, 0.9])
 BATCH_SIZES = numpy.array(
     [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192], dtype=int
 )
 
-FONT_SIZE = 30
+FONT_SIZE = 20
+pyplot.rc('font', size=FONT_SIZE)
+pyplot.rc('axes', titlesize=FONT_SIZE)
+pyplot.rc('axes', labelsize=FONT_SIZE)
+pyplot.rc('xtick', labelsize=FONT_SIZE)
+pyplot.rc('ytick', labelsize=FONT_SIZE)
+pyplot.rc('legend', fontsize=FONT_SIZE)
+pyplot.rc('figure', titlesize=FONT_SIZE)
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -84,7 +92,7 @@ def _plot_scores_2d(
         axes_object_or_matrix=axes_object, data_matrix=score_matrix,
         colour_map_object=colour_map_object,
         min_value=min_colour_value, max_value=max_colour_value,
-        orientation_string='vertical', extend_min=False, extend_max=False,
+        orientation_string='horizontal', extend_min=False, extend_max=False,
         fraction_of_axis_length=0.8, font_size=FONT_SIZE
     )
 
