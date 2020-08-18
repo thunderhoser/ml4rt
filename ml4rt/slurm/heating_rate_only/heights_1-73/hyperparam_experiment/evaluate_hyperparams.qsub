@@ -1,0 +1,63 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="evaluate_hyperparams"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --mem=8G
+#SBATCH --time=02:00:00
+#SBATCH --array=1-10
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_hyperparams_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/heating_rate_only/heights_1-73/hyperparam_experiment"
+
+set BATCH_SIZES=(16 32 64 128 256 512 1024 2048 4096 8192)
+set batch_size=${BATCH_SIZES[$SLURM_ARRAY_TASK_ID]}
+set batch_size_string=`printf "%04d" $batch_size`
+
+if ($#batch_size < 511) then
+    set plateau_lr_mult_strings=("0.7" "0.8" "0.9")
+    set line_styles_string="solid dashed solid"
+    set line_colours_string="178_223_138 51_160_44 0_0_0"
+    set line_legends_string="Multiplier_=_0.7 Multiplier_=_0.8 Multiplier_=_0.9"
+else
+    set plateau_lr_mult_strings=("0.5" "0.6" "0.7" "0.8" "0.9")
+    set line_styles_string="solid dashed solid dashed solid"
+    set line_colours_string="166_206_227 31_120_180 178_223_138 51_160_44 0_0_0"
+    set line_legends_string="Multiplier_=_0.5 Multiplier_=_0.6 Multiplier_=_0.7 Multiplier_=_0.8 Multiplier_=_0.9"
+endif
+
+set evaluation_file_names_string=""
+set i=1
+
+while ($i <= ${#plateau_lr_mult_strings})
+    set this_directory_name="${TOP_MODEL_DIR_NAME}/plateau-lr-multiplier=${plateau_lr_mult_strings[$i]}_batch-size=${batch_size_string}"
+    set these_model_file_names={${this_directory_name}/model*.h5}
+    set this_model_file_name=${these_model_file_names[$#these_model_file_names]}
+    set this_model_dir_name=`echo $this_model_file_name | rev | cut -c 4- | rev`
+    set evaluation_file_names_string="${evaluation_file_names_string} ${model_dir_name}/validation/evaluation.nc"
+    
+    @ i = $i + 1
+end
+
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/batch-size=${batch_size_string}"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${evaluation_file_names_string}" \
+--line_styles ${line_styles_string} \
+--line_colours ${line_colours_string} \
+--line_legend_strings ${line_legends_string} \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${evaluation_dir_name}"
