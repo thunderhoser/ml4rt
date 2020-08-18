@@ -93,7 +93,7 @@ def _plot_scores_2d(
         colour_map_object=colour_map_object,
         min_value=min_colour_value, max_value=max_colour_value,
         orientation_string='horizontal', extend_min=False, extend_max=False,
-        fraction_of_axis_length=0.8, font_size=FONT_SIZE
+        fraction_of_axis_length=1., font_size=FONT_SIZE
     )
 
     tick_values = colour_bar_object.get_ticks()

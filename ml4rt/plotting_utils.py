@@ -16,7 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import error_checking
 
 VERTICAL_CBAR_PADDING = 0.05
-HORIZONTAL_CBAR_PADDING = 0.01
+HORIZONTAL_CBAR_PADDING = 0.075
 DEFAULT_CBAR_ORIENTATION_STRING = 'horizontal'
 
 FONT_SIZE = 30
