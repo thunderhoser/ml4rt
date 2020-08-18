@@ -63,7 +63,7 @@ while ($i <= ${#prediction_file_names})
 end
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${evaluation_file_names[0]}" "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" \
+--input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" \
 --line_styles "solid" "solid" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" \
 --line_legend_strings "No_cloud" "Single-layer_cloud" "Multi-layer_cloud" \
