@@ -45,9 +45,9 @@ python3 -u "${CODE_DIR_NAME}/split_predictions_by_cloud.py" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --for_ice=0 \
 --min_path_kg_m02=0.025 \
---output_prediction_dir_name="${validation_dir_name}"
+--output_prediction_dir_name="${validation_dir_name}/by_cloud_regime"
 
-set prediction_file_names=("${validation_dir_name}/by_cloud_regime/no_cloud/predictions.nc" "${validation_dir_name}/by_cloud_regime/single_layer_cloud/predictions.nc" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud/predictions.nc")
+set prediction_file_names=("${validation_dir_name}/by_cloud_regime/predictions_no-cloud.nc" "${validation_dir_name}/by_cloud_regime/predictions_single-layer-cloud.nc" "${validation_dir_name}/by_cloud_regime/predictions_multi-layer-cloud.nc")
 set prediction_dir_names=("${validation_dir_name}/by_cloud_regime/no_cloud" "${validation_dir_name}/by_cloud_regime/single_layer_cloud" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud")
 set evaluation_file_names=("${validation_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
 set evaluation_dir_name="${validation_dir_name}/by_cloud_regime/evaluation"
