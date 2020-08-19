@@ -15,6 +15,7 @@ import time_conversion
 import example_utils
 import neural_net
 import u_net_architecture
+import architecture_utils
 import custom_losses
 import training_args
 
@@ -31,7 +32,7 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
         numpy.array([0.5, 0.5, 0.5, numpy.nan]),
     u_net_architecture.NUM_INPUT_CHANNELS_KEY: 16,
     u_net_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
-        u_net_architecture.RELU_FUNCTION_STRING,
+        architecture_utils.RELU_FUNCTION_STRING,
     u_net_architecture.ZERO_OUT_TOP_HR_KEY: True,
     u_net_architecture.HEATING_RATE_INDEX_KEY: 0
 }

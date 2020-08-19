@@ -9,6 +9,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import u_net_architecture
+import architecture_utils
 import custom_losses
 import file_system_utils
 import neural_net
@@ -28,7 +29,7 @@ ARCHITECTURE_OPTION_DICT = {
     u_net_architecture.NUM_HEIGHTS_FOR_LOSS_KEY: 64,
     u_net_architecture.NUM_INPUT_CHANNELS_KEY: 16,
     u_net_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
-        u_net_architecture.RELU_FUNCTION_STRING
+        architecture_utils.RELU_FUNCTION_STRING
 }
 
 LOSS_FUNCTION = custom_losses.dual_weighted_mse()
