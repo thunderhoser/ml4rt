@@ -1,4 +1,4 @@
-"""Plots scores on hyperparameter grid for Experiment 1."""
+"""Plots scores on hyperparameter grid for Experiment 2."""
 
 import sys
 import glob
@@ -20,10 +20,9 @@ import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-PLATEAU_LR_MULTIPLIERS = numpy.array([0.5, 0.6, 0.7, 0.8, 0.9])
-BATCH_SIZES = numpy.array(
-    [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192], dtype=int
-)
+CONV_LAYER_DROPOUT_RATES = numpy.array([0.3, 0.4, 0.5, 0.6, 0.7])
+UPCONV_LAYER_DROPOUT_RATES = numpy.array([-1, 0.3, 0.4, 0.5, 0.6, 0.7])
+SKIP_LAYER_DROPOUT_RATES = numpy.array([-1, 0.3, 0.4, 0.5, 0.6, 0.7])
 
 FONT_SIZE = 20
 pyplot.rc('font', size=FONT_SIZE)
@@ -157,72 +156,81 @@ def _run(experiment_dir_name):
     :param experiment_dir_name: See documentation at top of file.
     """
 
-    num_multipliers = len(PLATEAU_LR_MULTIPLIERS)
-    num_batch_sizes = len(BATCH_SIZES)
-
-    prmse_matrix_k_day01 = numpy.full(
-        (num_multipliers, num_batch_sizes), numpy.nan
-    )
-    dwmse_matrix_k3_day03 = numpy.full(
-        (num_multipliers, num_batch_sizes), numpy.nan
+    num_conv_dropout_rates = len(CONV_LAYER_DROPOUT_RATES)
+    num_upconv_dropout_rates = len(UPCONV_LAYER_DROPOUT_RATES)
+    num_skip_dropout_rates = len(SKIP_LAYER_DROPOUT_RATES)
+    dimensions = (
+        num_conv_dropout_rates, num_upconv_dropout_rates, num_skip_dropout_rates
     )
 
-    y_tick_labels = ['{0:.1f}'.format(m) for m in PLATEAU_LR_MULTIPLIERS]
-    x_tick_labels = ['{0:d}'.format(s) for s in BATCH_SIZES]
-    y_axis_label = 'Learning-rate multiplier'
-    x_axis_label = 'Batch size'
+    prmse_matrix_k_day01 = numpy.full(dimensions, numpy.nan)
+    dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
 
-    for i in range(num_multipliers):
-        for j in range(num_batch_sizes):
-            this_model_dir_name = (
-                '{0:s}/plateau-lr-multiplier={1:.1f}_batch-size={2:04d}'
-            ).format(
-                experiment_dir_name, PLATEAU_LR_MULTIPLIERS[i], BATCH_SIZES[j]
-            )
+    y_tick_labels = ['{0:.1f}'.format(d) for d in UPCONV_LAYER_DROPOUT_RATES]
+    x_tick_labels = ['{0:.1f}'.format(d) for d in SKIP_LAYER_DROPOUT_RATES]
+    y_axis_label = 'Upconv-layer dropout rate'
+    x_axis_label = 'Skip-layer dropout rate'
 
-            prmse_matrix_k_day01[i, j], dwmse_matrix_k3_day03[i, j] = (
-                _read_scores_one_model(this_model_dir_name)
-            )
+    for i in range(num_conv_dropout_rates):
+        for j in range(num_upconv_dropout_rates):
+            for k in range(num_skip_dropout_rates):
+                this_model_dir_name = (
+                    '{0:s}/conv-dropout={1:.1f}_upconv-dropout={2:.1f}_'
+                    'skip-dropout={3:.1f}'
+                ).format(
+                    experiment_dir_name, CONV_LAYER_DROPOUT_RATES[i],
+                    UPCONV_LAYER_DROPOUT_RATES[j], SKIP_LAYER_DROPOUT_RATES[k]
+                )
+
+                (
+                    prmse_matrix_k_day01[i, j, k],
+                    dwmse_matrix_k3_day03[i, j, k]
+                ) = _read_scores_one_model(this_model_dir_name)
 
     print(SEPARATOR_STRING)
 
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=prmse_matrix_k_day01,
-        min_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 0),
-        max_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+    for i in range(num_conv_dropout_rates):
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=prmse_matrix_k_day01[i, ...],
+            min_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 0),
+            max_colour_value=numpy.nanpercentile(prmse_matrix_k_day01, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    axes_object.set_title(r'Profile RMSE (K day$^{-1}$)')
-    figure_file_name = '{0:s}/prmse_grid.jpg'.format(experiment_dir_name)
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(r'Profile RMSE (K day$^{-1}$)')
+        figure_file_name = '{0:s}/conv-dropout={1:.1f}_prmse_grid.jpg'.format(
+            experiment_dir_name, CONV_LAYER_DROPOUT_RATES[i]
+        )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=dwmse_matrix_k3_day03,
-        min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
-        max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=dwmse_matrix_k3_day03[i, ...],
+            min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
+            max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    axes_object.set_title(r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)')
-    figure_file_name = '{0:s}/dwmse_grid.jpg'.format(experiment_dir_name)
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)')
+        figure_file_name = '{0:s}/conv-dropout={1:.1f}_dwmse_grid.jpg'.format(
+            experiment_dir_name, CONV_LAYER_DROPOUT_RATES[i]
+        )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
 
 if __name__ == '__main__':
