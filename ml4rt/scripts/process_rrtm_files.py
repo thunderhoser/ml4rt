@@ -23,9 +23,12 @@ RRTM_DIRECTORY_HELP_STRING = (
     'Name of top-level directory with daily RRTM files.  Files therein will be '
     'read by `rrtm_io.read_file`.'
 )
+
+# TODO(thunderhoser): Fix documentation for this input arg.  It exists only
+# because of the first couple files that Dave Turner sent me.
 INPUT_EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with input example files.  Files therein will be found '
-    'by `example_io.find_file` and read by `example_io.read_file`.  These files'
+    'by `rrtm_io.find_file` and read by `rrtm_io.read_file`.  These files'
     ' will be concatenated with RRTM files to create new example files.  If you'
     ' do not have existing example files, leave this argument alone.'
 )
@@ -129,7 +132,7 @@ def _process_files_one_year(
     if input_example_dir_name is None:
         example_file_name = None
     else:
-        example_file_name = example_io.find_file(
+        example_file_name = rrtm_io.find_file(
             directory_name=input_example_dir_name, year=year,
             raise_error_if_missing=False
         )
@@ -139,7 +142,7 @@ def _process_files_one_year(
 
     if example_file_name is not None:
         print('Reading data from: "{0:s}"...'.format(example_file_name))
-        example_dicts.append(example_io.read_file(example_file_name))
+        example_dicts.append(rrtm_io.read_file(example_file_name))
 
     return example_utils.concat_examples(example_dicts)
 
