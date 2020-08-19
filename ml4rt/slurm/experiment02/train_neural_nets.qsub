@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=24:00:00
-#SBATCH --array=1-50
+#SBATCH --array=1-125
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -22,24 +22,34 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set INPUT_MODEL_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/templates/u_net_73x1.h5"
-set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/heating_rate_only/heights_1-73/hyperparam_experiment"
+set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment02/templates"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment02"
 
-set PLATEAU_LR_MULTIPLIERS=(0.9 0.9 0.9 0.9 0.9 0.9 0.9 0.9 0.9 0.9 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.8 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5)
-set BATCH_SIZES=(16 32 64 128 256 512 1024 2048 4096 8192 16 32 64 128 256 512 1024 2048 4096 8192 16 32 64 128 256 512 1024 2048 4096 8192 16 32 64 128 256 512 1024 2048 4096 8192 16 32 64 128 256 512 1024 2048 4096 8192)
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data/for_base_model"
+set NORMALIZATION_FILE_NAME="${EXAMPLE_DIR_NAME}/learning_examples_20170101-20181224.nc"
 
-set this_plateau_lr_multiplier=${PLATEAU_LR_MULTIPLIERS[$SLURM_ARRAY_TASK_ID]}
-set this_batch_size=${BATCH_SIZES[$SLURM_ARRAY_TASK_ID]}
+set CONV_LAYER_DROPOUT_RATES=(0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7)
+set UPCONV_LAYER_DROPOUT_RATES=(-1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 -1.0 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7)
+set SKIP_LAYER_DROPOUT_RATES=(-1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7)
 
-set this_plateau_lr_mult_string=`printf "%.1f" $this_plateau_lr_multiplier`
-set this_batch_size_string=`printf "%04d" $this_batch_size`
-set this_model_dir_name="${TOP_OUTPUT_DIR_NAME}/plateau-lr-multiplier=${this_plateau_lr_mult_string}_batch-size=${this_batch_size_string}"
-echo $this_model_dir_name
+set conv_layer_dropout_rate=${CONV_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set upconv_layer_dropout_rate=${UPCONV_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set skip_layer_dropout_rate=${SKIP_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+
+set conv_layer_dropout_string=`printf "%.1f" $conv_layer_dropout_rate`
+set upconv_layer_dropout_string=`printf "%.1f" $upconv_layer_dropout_rate`
+set skip_layer_dropout_string=`printf "%.1f" $skip_layer_dropout_rate`
+
+set template_file_name="${TEMPLATE_DIR_NAME}/model_conv-dropout=${conv_layer_dropout_string}_upconv-dropout=${upconv_layer_dropout_string}_skip-dropout=${skip_layer_dropout_string}.h5"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/conv-dropout=${conv_layer_dropout_string}_upconv-dropout=${upconv_layer_dropout_string}_skip-dropout=${skip_layer_dropout_string}"
+echo $output_dir_name
 
 python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --net_type_string="u_net" \
---input_model_file_name="${INPUT_MODEL_FILE_NAME}" \
---output_model_dir_name="${this_model_dir_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--input_model_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
 --use_generator_for_training=0 \
 --use_generator_for_validn=0 \
 --target_names "shortwave_heating_rate_k_day01" \
@@ -47,5 +57,5 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --omit_heating_rate=0 \
 --vector_target_norm_type_string='' \
 --scalar_target_norm_type_string='' \
---num_examples_per_batch=${this_batch_size_string} \
---plateau_lr_multiplier=${this_plateau_lr_mult_string}
+--num_examples_per_batch=256 \
+--plateau_lr_multiplier=0.6

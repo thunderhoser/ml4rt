@@ -21,9 +21,10 @@ TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 #     HOME_DIR_NAME = os.path.expanduser('~')
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-DEFAULT_EXAMPLE_DIR_NAME = '{0:s}/ml4rt_project/examples/with_new_data'.format(
-    HOME_DIR_NAME
-)
+DEFAULT_EXAMPLE_DIR_NAME = (
+    '{0:s}/ml4rt_project/examples/with_new_data/for_base_model'
+).format(HOME_DIR_NAME)
+
 DEFAULT_NORM_FILE_NAME = '{0:s}/learning_examples_20170101-20181224.nc'.format(
     DEFAULT_EXAMPLE_DIR_NAME
 )
