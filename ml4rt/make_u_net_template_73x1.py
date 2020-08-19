@@ -1,4 +1,4 @@
-"""Makes U-net template where output is 64 heights x 1 channel."""
+"""Makes U-net template where output is 73 heights x 1 channel."""
 
 import sys
 import os.path
