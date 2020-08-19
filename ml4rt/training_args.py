@@ -1,7 +1,6 @@
 """Contains list of input arguments for training a neural net."""
 
 import sys
-import socket
 import os.path
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -21,12 +20,16 @@ TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 #     HOME_DIR_NAME = os.path.expanduser('~')
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-DEFAULT_EXAMPLE_DIR_NAME = (
+DEFAULT_TRAINING_DIR_NAME = (
     '{0:s}/ml4rt_project/examples/with_new_data/for_base_model'
 ).format(HOME_DIR_NAME)
 
+DEFAULT_VALIDATION_DIR_NAME = (
+    '{0:s}/ml4rt_project/examples/with_new_data'
+).format(HOME_DIR_NAME)
+
 DEFAULT_NORM_FILE_NAME = '{0:s}/learning_examples_20170101-20181224.nc'.format(
-    DEFAULT_EXAMPLE_DIR_NAME
+    DEFAULT_TRAINING_DIR_NAME
 )
 
 DEFAULT_PREDICTOR_NAMES = example_utils.ALL_VECTOR_PREDICTOR_NAMES + [
@@ -41,7 +44,8 @@ NET_TYPE_TO_DEFAULT_HEIGHTS_M_AGL = {
 }
 
 NET_TYPE_ARG_NAME = 'net_type_string'
-EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
+TRAINING_DIR_ARG_NAME = 'input_training_dir_name'
+VALIDATION_DIR_ARG_NAME = 'input_validation_dir_name'
 INPUT_MODEL_FILE_ARG_NAME = 'input_model_file_name'
 OUTPUT_MODEL_DIR_ARG_NAME = 'output_model_dir_name'
 USE_GENERATOR_FOR_TRAIN_ARG_NAME = 'use_generator_for_training'
@@ -73,11 +77,14 @@ PLATEAU_LR_MULTIPLIER_ARG_NAME = 'plateau_lr_multiplier'
 NET_TYPE_HELP_STRING = (
     'Neural-net type (must be accepted by `neural_net.check_net_type`).'
 )
-EXAMPLE_DIR_HELP_STRING = (
-    'Name of directory with examples for both training and validation.  Files '
-    'therein will be found by `example_io.find_file` and read by '
-    '`example_io.read_file`.'
+TRAINING_DIR_HELP_STRING = (
+    'Name of directory with training examples.  Files therein will be found by '
+    '`example_io.find_file` and read by `example_io.read_file`.'
 )
+VALIDATION_DIR_HELP_STRING = (
+    'Same as `{0:s}` but for validation (monitoring) examples.'
+).format(TRAINING_DIR_ARG_NAME)
+
 INPUT_MODEL_FILE_HELP_STRING = (
     'Path to file with untrained model (defining architecture, optimizer, and '
     'loss function).  Will be read by `neural_net.read_model`.'
@@ -184,8 +191,12 @@ def add_input_args(parser_object):
         help=NET_TYPE_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False,
-        default=DEFAULT_EXAMPLE_DIR_NAME, help=EXAMPLE_DIR_HELP_STRING
+        '--' + TRAINING_DIR_ARG_NAME, type=str, required=False,
+        default=DEFAULT_TRAINING_DIR_NAME, help=TRAINING_DIR_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + VALIDATION_DIR_ARG_NAME, type=str, required=False,
+        default=DEFAULT_VALIDATION_DIR_NAME, help=VALIDATION_DIR_HELP_STRING
     )
     parser_object.add_argument(
         '--' + INPUT_MODEL_FILE_ARG_NAME, type=str, required=True,

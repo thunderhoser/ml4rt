@@ -44,8 +44,8 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
 
-def _run(net_type_string, example_dir_name, input_model_file_name,
-         output_model_dir_name,
+def _run(net_type_string, training_dir_name, validation_dir_name,
+         input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
          predictor_names, target_names, heights_m_agl,
          omit_heating_rate, first_training_time_string,
@@ -61,7 +61,8 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     """Trains neural net
 
     :param net_type_string: See documentation at top of training_args.py.
-    :param example_dir_name: Same.
+    :param training_dir_name: Same.
+    :param validation_dir_name: Same.
     :param input_model_file_name: Same.
     :param output_model_dir_name: Same.
     :param use_generator_for_training: Same.
@@ -141,7 +142,7 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     )
 
     training_option_dict = {
-        neural_net.EXAMPLE_DIRECTORY_KEY: example_dir_name,
+        neural_net.EXAMPLE_DIRECTORY_KEY: training_dir_name,
         neural_net.BATCH_SIZE_KEY: num_examples_per_batch,
         neural_net.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
         neural_net.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
@@ -166,7 +167,7 @@ def _run(net_type_string, example_dir_name, input_model_file_name,
     }
 
     validation_option_dict = {
-        neural_net.EXAMPLE_DIRECTORY_KEY: example_dir_name,
+        neural_net.EXAMPLE_DIRECTORY_KEY: validation_dir_name,
         neural_net.BATCH_SIZE_KEY: num_examples_per_batch,
         neural_net.FIRST_TIME_KEY: first_validn_time_unix_sec,
         neural_net.LAST_TIME_KEY: last_validn_time_unix_sec
@@ -234,8 +235,11 @@ if __name__ == '__main__':
         net_type_string=getattr(
             INPUT_ARG_OBJECT, training_args.NET_TYPE_ARG_NAME
         ),
-        example_dir_name=getattr(
-            INPUT_ARG_OBJECT, training_args.EXAMPLE_DIR_ARG_NAME
+        training_dir_name=getattr(
+            INPUT_ARG_OBJECT, training_args.TRAINING_DIR_ARG_NAME
+        ),
+        validation_dir_name=getattr(
+            INPUT_ARG_OBJECT, training_args.VALIDATION_DIR_ARG_NAME
         ),
         input_model_file_name=getattr(
             INPUT_ARG_OBJECT, training_args.INPUT_MODEL_FILE_ARG_NAME
