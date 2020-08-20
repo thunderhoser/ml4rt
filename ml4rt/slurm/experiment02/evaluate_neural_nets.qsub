@@ -33,7 +33,7 @@ set skip_layer_dropout_rate=${SKIP_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set conv_layer_dropout_string=`printf "%.1f" $conv_layer_dropout_rate`
 set upconv_layer_dropout_string=`printf "%.1f" $upconv_layer_dropout_rate`
 set skip_layer_dropout_string=`printf "%.1f" $skip_layer_dropout_rate`
-set top_model_dir_name="${TOP_OUTPUT_DIR_NAME}/conv-dropout=${conv_layer_dropout_string}_upconv-dropout=${upconv_layer_dropout_string}_skip-dropout=${skip_layer_dropout_string}"
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/conv-dropout=${conv_layer_dropout_string}_upconv-dropout=${upconv_layer_dropout_string}_skip-dropout=${skip_layer_dropout_string}"
 
 set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
