@@ -21,21 +21,21 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment02"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment03"
 
-set UPCONV_LAYER_DROPOUT_RATES=(-1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7 -1.0 0.3 0.4 0.5 0.6 0.7)
-set SKIP_LAYER_DROPOUT_RATES=(-1.0 -1.0 -1.0 -1.0 -1.0 -1.0 0.3 0.3 0.3 0.3 0.3 0.3 0.4 0.4 0.4 0.4 0.4 0.4 0.5 0.5 0.5 0.5 0.5 0.5 0.6 0.6 0.6 0.6 0.6 0.6 0.7 0.7 0.7 0.7 0.7 0.7)
+set UPCONV_LAYER_DROPOUT_RATES=(-1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2)
+set SKIP_LAYER_DROPOUT_RATES=(-1.0 -1.0 -1.0 -1.0 -1.0 -1.0 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2)
 
 set upconv_layer_dropout_rate=${UPCONV_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set skip_layer_dropout_rate=${SKIP_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 
-set upconv_layer_dropout_string=`printf "%.1f" $upconv_layer_dropout_rate`
-set skip_layer_dropout_string=`printf "%.1f" $skip_layer_dropout_rate`
+set upconv_layer_dropout_string=`printf "%.2f" $upconv_layer_dropout_rate`
+set skip_layer_dropout_string=`printf "%.2f" $skip_layer_dropout_rate`
 
-set conv_layer_dropout_strings=("0.3" "0.4" "0.5" "0.6" "0.7")
+set conv_layer_dropout_strings=("0.05" "0.10" "0.15" "0.20" "0.25")
 set line_styles_string="solid dashed solid dashed solid"
 set line_colours_string="27_158_119 27_158_119 217_95_2 217_95_2 117_112_179"
-set line_legends_string="Conv_dropout_=_0.3 Conv_dropout_=_0.4 Conv_dropout_=_0.5 Conv_dropout_=_0.6 Conv_dropout_=_0.7"
+set line_legends_string="Conv_dropout_=_0.05 Conv_dropout_=_0.10 Conv_dropout_=_0.15 Conv_dropout_=_0.20 Conv_dropout_=_0.25"
 
 set evaluation_file_names_string=""
 set i=1
