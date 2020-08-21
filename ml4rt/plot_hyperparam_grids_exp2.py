@@ -240,7 +240,7 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_ylabel(y_axis_label)
         axes_object.set_title(r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)')
         figure_file_name = (
-            '{0:s}/{1:s}conv-dropout={1:.1f}_dwmse_grid.jpg'
+            '{0:s}/{1:s}conv-dropout={2:.1f}_dwmse_grid.jpg'
         ).format(
             experiment_dir_name,
             'isotonic_regression/' if isotonic_flag else '',
