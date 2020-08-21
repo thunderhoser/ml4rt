@@ -214,8 +214,12 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
         axes_object.set_title(r'Profile RMSE (K day$^{-1}$)')
-        figure_file_name = '{0:s}/conv-dropout={1:.1f}_prmse_grid.jpg'.format(
-            experiment_dir_name, CONV_LAYER_DROPOUT_RATES[i]
+        figure_file_name = (
+            '{0:s}/{1:s}conv-dropout={2:.1f}_prmse_grid.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            CONV_LAYER_DROPOUT_RATES[i]
         )
 
         print('Saving figure to: "{0:s}"...'.format(figure_file_name))
@@ -235,8 +239,12 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
         axes_object.set_title(r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)')
-        figure_file_name = '{0:s}/conv-dropout={1:.1f}_dwmse_grid.jpg'.format(
-            experiment_dir_name, CONV_LAYER_DROPOUT_RATES[i]
+        figure_file_name = (
+            '{0:s}/{1:s}conv-dropout={1:.1f}_dwmse_grid.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            CONV_LAYER_DROPOUT_RATES[i]
         )
 
         print('Saving figure to: "{0:s}"...'.format(figure_file_name))
