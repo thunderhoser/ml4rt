@@ -205,6 +205,52 @@ def _run(experiment_dir_name, isotonic_flag):
 
     print(SEPARATOR_STRING)
 
+    these_prmse_k_day01 = numpy.ravel(prmse_matrix_k_day01)
+    these_prmse_k_day01[numpy.isnan(these_prmse_k_day01)] = numpy.inf
+    linear_sort_indices = numpy.argsort(these_prmse_k_day01)
+    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
+        linear_sort_indices, prmse_matrix_k_day01.shape
+    )
+
+    for m in range(len(i_sort_indices)):
+        i = i_sort_indices[m]
+        j = j_sort_indices[m]
+        k = k_sort_indices[m]
+
+        print((
+            '{0:d}th-lowest PRMSE = {1:.2g} K day^-1 ... '
+            'conv dropout rate = {2:.2f} ... upconv dropout rate = {3:.2f} ... '
+            'skip-layer dropout rate = {4:.2f}'
+        ).format(
+            m + 1, prmse_matrix_k_day01[i, j, k], CONV_LAYER_DROPOUT_RATES[i],
+            UPCONV_LAYER_DROPOUT_RATES[j], SKIP_LAYER_DROPOUT_RATES[k]
+        ))
+
+    print(SEPARATOR_STRING)
+
+    these_dwmse_k3_day03 = numpy.ravel(dwmse_matrix_k3_day03)
+    these_dwmse_k3_day03[numpy.isnan(these_dwmse_k3_day03)] = numpy.inf
+    linear_sort_indices = numpy.argsort(these_dwmse_k3_day03)
+    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
+        linear_sort_indices, dwmse_matrix_k3_day03.shape
+    )
+
+    for m in range(len(i_sort_indices)):
+        i = i_sort_indices[m]
+        j = j_sort_indices[m]
+        k = k_sort_indices[m]
+
+        print((
+            '{0:d}th-lowest DWMSE = {1:.2g} K^3 day^-3 ... '
+            'conv dropout rate = {2:.2f} ... upconv dropout rate = {3:.2f} ... '
+            'skip-layer dropout rate = {4:.2f}'
+        ).format(
+            m + 1, dwmse_matrix_k3_day03[i, j, k], CONV_LAYER_DROPOUT_RATES[i],
+            UPCONV_LAYER_DROPOUT_RATES[j], SKIP_LAYER_DROPOUT_RATES[k]
+        ))
+
+    print(SEPARATOR_STRING)
+
     for i in range(num_conv_dropout_rates):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=prmse_matrix_k_day01[i, ...],
