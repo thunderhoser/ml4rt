@@ -23,8 +23,8 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment03"
 
-set UPCONV_LAYER_DROPOUT_RATES=(-1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2 -1.0 0.1 0.1 0.1 0.2 0.2)
-set SKIP_LAYER_DROPOUT_RATES=(-1.0 -1.0 -1.0 -1.0 -1.0 -1.0 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2 0.2)
+set UPCONV_LAYER_DROPOUT_RATES=(-1.00 0.05 0.10 0.15 0.20 0.25 -1.00 0.05 0.10 0.15 0.20 0.25 -1.00 0.05 0.10 0.15 0.20 0.25 -1.00 0.05 0.10 0.15 0.20 0.25 -1.00 0.05 0.10 0.15 0.20 0.25 -1.00 0.05 0.10 0.15 0.20 0.25)
+set SKIP_LAYER_DROPOUT_RATES=(-1.00 -1.00 -1.00 -1.00 -1.00 -1.00 0.05 0.05 0.05 0.05 0.05 0.05 0.10 0.10 0.10 0.10 0.10 0.10 0.15 0.15 0.15 0.15 0.15 0.15 0.20 0.20 0.20 0.20 0.20 0.20 0.25 0.25 0.25 0.25 0.25 0.25)
 
 set upconv_layer_dropout_rate=${UPCONV_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set skip_layer_dropout_rate=${SKIP_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
