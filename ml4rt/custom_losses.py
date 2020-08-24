@@ -14,6 +14,26 @@ import error_checking
 import example_utils
 
 
+def scaled_mse(scaling_factor):
+    """Scaled MSE (mean squared error).
+
+    :param scaling_factor: Scaling factor.
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (scaled MSE).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Scaled MSE.
+        """
+
+        return scaling_factor * K.mean((prediction_tensor - target_tensor) ** 2)
+
+    return loss
+
+
 def weighted_mse():
     """Weighted MSE (mean squared error).
 

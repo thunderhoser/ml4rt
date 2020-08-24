@@ -108,8 +108,8 @@ def _run():
                 print(this_option_dict)
                 print(SEPARATOR_STRING)
 
-                this_scalar_loss_function = (
-                    SCALAR_LOSS_FUNCTION_WEIGHTS[k] * keras.losses.mse
+                this_scalar_loss_function = custom_losses.scaled_mse(
+                    SCALAR_LOSS_FUNCTION_WEIGHTS[k]
                 )
                 this_loss_dict = {
                     'conv_output': VECTOR_LOSS_FUNCTION,
