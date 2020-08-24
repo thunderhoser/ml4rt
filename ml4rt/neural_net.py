@@ -458,8 +458,14 @@ def _write_metafile(
     """
 
     this_loss_arg = copy.deepcopy(loss_function_or_dict)
-    if not isinstance(this_loss_arg, dict):
-        this_loss_arg = str(this_loss_arg)
+
+    if isinstance(this_loss_arg, dict):
+        for this_key in this_loss_arg:
+            if callable(this_loss_arg[this_key]):
+                this_loss_arg[this_key] = str(this_loss_arg[this_key])
+    else:
+        if callable(this_loss_arg):
+            this_loss_arg = str(this_loss_arg)
 
     metadata_dict = {
         NUM_EPOCHS_KEY: num_epochs,
@@ -2164,13 +2170,26 @@ def read_metafile(dill_file_name):
 
     # TODO(thunderhoser): This is a HACK to deal with Hera not letting me
     # install Dill.
-    if isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str):
-        if 'dual_weighted_mse' in metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]:
-            metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
-                custom_losses.dual_weighted_mse()
-            )
+    loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
+
+    if isinstance(loss_function_or_dict, str):
+        if 'dual_weighted_mse' in loss_function_or_dict:
+            loss_function_or_dict = custom_losses.dual_weighted_mse()
         else:
-            metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = keras.losses.mse
+            loss_function_or_dict = keras.losses.mse
+    else:
+        for this_key in loss_function_or_dict:
+            if isinstance(loss_function_or_dict[this_key], str):
+                if 'dual_weighted_mse' in loss_function_or_dict[this_key]:
+                    loss_function_or_dict[this_key] = (
+                        custom_losses.dual_weighted_mse()
+                    )
+            else:
+                loss_function_or_dict[this_key] = custom_losses.scaled_mse(
+                    loss_function_or_dict[this_key]
+                )
+
+    metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = loss_function_or_dict
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
