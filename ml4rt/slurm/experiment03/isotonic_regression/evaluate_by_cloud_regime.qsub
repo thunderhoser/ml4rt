@@ -73,11 +73,20 @@ while ($i <= ${#isotonic_prediction_file_names})
     @ i = $i + 1
 end
 
+# python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+# --input_eval_file_names "${isotonic_eval_file_names[1]}" "${base_model_eval_file_names[1]}" "${isotonic_eval_file_names[2]}" "${base_model_eval_file_names[2]}" "${isotonic_eval_file_names[3]}" "${base_model_eval_file_names[3]}" \
+# --line_styles "solid" "dashed" "solid" "dashed" "solid" "dashed" \
+# --line_colours "27_158_119" "27_158_119" "217_95_2" "217_95_2" "117_112_179" "117_112_179" \
+# --line_legend_strings "No_cloud_(IR)" "No_cloud_(base)" "Single-layer_cloud_(IR)" "Single-layer_cloud_(base)" "Multi-layer_cloud_(IR)" "Multi-layer_cloud_(base)" \
+# --use_log_scale=1 \
+# --plot_by_height=1 \
+# --output_dir_name="${isotonic_eval_dir_name}"
+
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${isotonic_eval_file_names[1]}" "${base_model_eval_file_names[1]}" "${isotonic_eval_file_names[2]}" "${base_model_eval_file_names[2]}" "${isotonic_eval_file_names[3]}" "${base_model_eval_file_names[3]}" \
---line_styles "solid" "dashed" "solid" "dashed" "solid" "dashed" \
---line_colours "27_158_119" "27_158_119" "217_95_2" "217_95_2" "117_112_179" "117_112_179" \
---line_legend_strings "No_cloud_(IR)" "No_cloud_(base)" "Single-layer_cloud_(IR)" "Single-layer_cloud_(base)" "Multi-layer_cloud_(IR)" "Multi-layer_cloud_(base)" \
+--input_eval_file_names "${isotonic_eval_file_names[1]}" "${isotonic_eval_file_names[2]}" "${isotonic_eval_file_names[3]}" \
+--line_styles "solid" "solid" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" \
+--line_legend_strings "No_cloud" "Single-layer_cloud" "Multi-layer_cloud" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${isotonic_eval_dir_name}"
