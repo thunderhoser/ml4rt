@@ -20,7 +20,7 @@ import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-CONV_LAYER_DROPOUT_RATES = numpy.array([0.05, 0.1, 0.15, 0.2, 0.25])
+CONV_LAYER_DROPOUT_RATES = numpy.array([-1, 0.05, 0.1, 0.15, 0.2, 0.25])
 UPCONV_LAYER_DROPOUT_RATES = numpy.array([
     -1, 0.05, 0.1, 0.15, 0.2, 0.25
 ])
@@ -179,8 +179,14 @@ def _run(experiment_dir_name, isotonic_flag):
     prmse_matrix_k_day01 = numpy.full(dimensions, numpy.nan)
     dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
 
-    y_tick_labels = ['{0:.2f}'.format(d) for d in UPCONV_LAYER_DROPOUT_RATES]
-    x_tick_labels = ['{0:.2f}'.format(d) for d in SKIP_LAYER_DROPOUT_RATES]
+    y_tick_labels = [
+        '{0:.2f}'.format(d).replace('-1', '0')
+        for d in UPCONV_LAYER_DROPOUT_RATES
+    ]
+    x_tick_labels = [
+        '{0:.2f}'.format(d).replace('-1', '0')
+        for d in SKIP_LAYER_DROPOUT_RATES
+    ]
     y_axis_label = 'Upconv-layer dropout rate'
     x_axis_label = 'Skip-layer dropout rate'
 
@@ -261,7 +267,12 @@ def _run(experiment_dir_name, isotonic_flag):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title(r'Profile RMSE (K day$^{-1}$)')
+        title_string = r'Profile RMSE (K day$^{-1}$)'
+        title_string += ' with normal-conv-layer dropout rate = {0:.2f}'.format(
+            CONV_LAYER_DROPOUT_RATES[i]
+        )
+
+        axes_object.set_title(title_string)
         figure_file_name = (
             '{0:s}/{1:s}conv-dropout={2:.2f}_prmse_grid.jpg'
         ).format(
@@ -286,7 +297,12 @@ def _run(experiment_dir_name, isotonic_flag):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title(r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)')
+        title_string = r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)'
+        title_string += ' with normal-conv-layer dropout rate = {0:.2f}'.format(
+            CONV_LAYER_DROPOUT_RATES[i]
+        )
+
+        axes_object.set_title(title_string)
         figure_file_name = (
             '{0:s}/{1:s}conv-dropout={2:.2f}_dwmse_grid.jpg'
         ).format(

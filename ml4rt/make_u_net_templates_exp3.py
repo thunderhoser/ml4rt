@@ -28,7 +28,7 @@ OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/experiment03/templates'.format(
     HOME_DIR_NAME
 )
 
-CONV_LAYER_DROPOUT_RATES = numpy.array([0.05, 0.1, 0.15, 0.2, 0.25])
+CONV_LAYER_DROPOUT_RATES = numpy.array([-1, 0.05, 0.1, 0.15, 0.2, 0.25])
 UPCONV_LAYER_DROPOUT_RATES = numpy.array([
     -1, 0.05, 0.1, 0.15, 0.2, 0.25
 ])
