@@ -86,7 +86,7 @@ def _run():
         these_neuron_counts = architecture_utils.get_dense_layer_dimensions(
             num_input_units=4096, num_classes=2,
             num_dense_layers=DENSE_LAYER_COUNTS[i], for_classification=False
-        )
+        )[1]
 
         for j in range(num_dropout_rates):
             these_dropout_rates = numpy.full(
