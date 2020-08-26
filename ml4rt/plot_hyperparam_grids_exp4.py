@@ -5,6 +5,7 @@ import glob
 import os.path
 import argparse
 import numpy
+from scipy.stats import rankdata
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.colors
@@ -225,6 +226,75 @@ def _print_ranking_one_score(score_matrix, score_name):
         ))
 
 
+def _print_ranking_all_scores(
+        prmse_matrix_k_day01, dwmse_matrix_k3_day03,
+        down_flux_rmse_matrix_w_m02, up_flux_rmse_matrix_w_m02):
+    """Prints ranking for one score.
+
+    C = number of dense-layer counts
+    D = number of dense-layer dropout rates
+    W = number of weights for scalar loss function
+
+    :param prmse_matrix_k_day01: C-by-D-by-W numpy array of profile RMSE.
+    :param dwmse_matrix_k3_day03: C-by-D-by-W numpy array of dual-weighted MSE.
+    :param down_flux_rmse_matrix_w_m02: C-by-D-by-W numpy array of RMSE for
+        surface downwelling flux.
+    :param up_flux_rmse_matrix_w_m02: C-by-D-by-W numpy array of RMSE for TOA
+        upwelling flux.
+    """
+
+    these_scores = numpy.replace(
+        numpy.ravel(prmse_matrix_k_day01), numpy.nan, numpy.inf
+    )
+    sort_indices_1d = numpy.argsort(these_scores)
+    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
+        sort_indices_1d, prmse_matrix_k_day01.shape
+    )
+
+    these_scores = numpy.replace(
+        numpy.ravel(dwmse_matrix_k3_day03), numpy.nan, numpy.inf
+    )
+    dwmse_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'), dwmse_matrix_k3_day03.shape
+    )
+
+    these_scores = numpy.replace(
+        numpy.ravel(down_flux_rmse_matrix_w_m02), numpy.nan, numpy.inf
+    )
+    down_flux_rmse_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        down_flux_rmse_matrix_w_m02.shape
+    )
+
+    these_scores = numpy.replace(
+        numpy.ravel(up_flux_rmse_matrix_w_m02), numpy.nan, numpy.inf
+    )
+    up_flux_rmse_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        up_flux_rmse_matrix_w_m02.shape
+    )
+
+    for m in range(len(i_sort_indices)):
+        i = i_sort_indices[m]
+        j = j_sort_indices[m]
+        k = k_sort_indices[m]
+
+        print((
+            '{0:d}th-lowest PRMSE = {1:.4g} K day^-1 ... '
+            'num dense layers = {2:d} ... '
+            'dense-layer dropout rate = {3:.3f} ... '
+            'weight for scalar loss function = {4:.1f} ... '
+            'ranks for DWMSE, down-flux RMSE, and up-flux RMSE = '
+            '{5:.1f}, {6:.1f}, {7:.1f}'
+        ).format(
+            m + 1, prmse_matrix_k_day01[i, j, k],
+            DENSE_LAYER_COUNTS[i], DENSE_LAYER_DROPOUT_RATES[j],
+            SCALAR_LOSS_FUNCTION_WEIGHTS[k],
+            dwmse_rank_matrix[i, j, k], down_flux_rmse_rank_matrix[i, j, k],
+            up_flux_rmse_rank_matrix[i, j, k]
+        ))
+
+
 def _run(experiment_dir_name, isotonic_flag):
     """Plots scores on hyperparameter grid for Experiment 1.
 
@@ -300,6 +370,14 @@ def _run(experiment_dir_name, isotonic_flag):
     _print_ranking_one_score(
         score_matrix=up_flux_rmse_matrix_w_m02,
         score_name='RMSE for up flux (W m^-2)'
+    )
+    print(SEPARATOR_STRING)
+
+    _print_ranking_all_scores(
+        prmse_matrix_k_day01=prmse_matrix_k_day01,
+        dwmse_matrix_k3_day03=dwmse_matrix_k3_day03,
+        down_flux_rmse_matrix_w_m02=down_flux_rmse_matrix_w_m02,
+        up_flux_rmse_matrix_w_m02=up_flux_rmse_matrix_w_m02
     )
     print(SEPARATOR_STRING)
 
