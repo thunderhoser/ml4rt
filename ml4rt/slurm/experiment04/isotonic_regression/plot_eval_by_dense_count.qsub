@@ -40,7 +40,7 @@ set line_legends_string="2_dense_layers 3_dense_layers 4_dense_layers 5_dense_la
 set evaluation_file_names_string=""
 set i=1
 
-while ($i <= ${#conv_layer_dropout_strings})
+while ($i <= ${#dense_layer_count_strings})
     set this_directory_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_strings[$i]}_dense-dropout=${dense_layer_dropout_string}_scalar-lf-weight=${scalar_loss_function_weight_string}"
     set these_model_file_names={${this_directory_name}/model*.h5}
     set this_model_file_name=${these_model_file_names[$#these_model_file_names]}

@@ -216,7 +216,7 @@ def _print_ranking_one_score(score_matrix, score_name):
         k = k_sort_indices[m]
 
         print((
-            '{0:d}th-lowest {1:s} = {2:.2g} ... num dense layers = {3:d} ... '
+            '{0:d}th-lowest {1:s} = {2:.4g} ... num dense layers = {3:d} ... '
             'dense-layer dropout rate = {4:.3f} ... '
             'weight for scalar loss function = {5:.1f}'
         ).format(
