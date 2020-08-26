@@ -269,6 +269,7 @@ def apply_models(
             k + 1, num_scalar_targets
         ))
 
+        print(scalar_model_objects[k])
         new_scalar_prediction_matrix[:, k] = scalar_model_objects[k].predict(
             X=orig_scalar_prediction_matrix[:, k]
         )
