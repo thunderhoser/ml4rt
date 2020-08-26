@@ -243,32 +243,28 @@ def _print_ranking_all_scores(
         upwelling flux.
     """
 
-    these_scores = numpy.replace(
-        numpy.ravel(prmse_matrix_k_day01), numpy.nan, numpy.inf
-    )
+    these_scores = numpy.ravel(prmse_matrix_k_day01)
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
     sort_indices_1d = numpy.argsort(these_scores)
     i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
         sort_indices_1d, prmse_matrix_k_day01.shape
     )
 
-    these_scores = numpy.replace(
-        numpy.ravel(dwmse_matrix_k3_day03), numpy.nan, numpy.inf
-    )
+    these_scores = numpy.ravel(dwmse_matrix_k3_day03)
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
     dwmse_rank_matrix = numpy.reshape(
         rankdata(these_scores, method='average'), dwmse_matrix_k3_day03.shape
     )
 
-    these_scores = numpy.replace(
-        numpy.ravel(down_flux_rmse_matrix_w_m02), numpy.nan, numpy.inf
-    )
+    these_scores = numpy.ravel(down_flux_rmse_matrix_w_m02)
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
     down_flux_rmse_rank_matrix = numpy.reshape(
         rankdata(these_scores, method='average'),
         down_flux_rmse_matrix_w_m02.shape
     )
 
-    these_scores = numpy.replace(
-        numpy.ravel(up_flux_rmse_matrix_w_m02), numpy.nan, numpy.inf
-    )
+    these_scores = numpy.ravel(up_flux_rmse_matrix_w_m02)
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
     up_flux_rmse_rank_matrix = numpy.reshape(
         rankdata(these_scores, method='average'),
         up_flux_rmse_matrix_w_m02.shape
