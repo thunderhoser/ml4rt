@@ -44,7 +44,7 @@ def _delete_unused_models_one_hp_set(model_dir_name):
             continue
 
         print('DELETING file: "{0:s}"...'.format(model_file_names[i]))
-        # os.remove(model_file_names[i])
+        os.remove(model_file_names[i])
 
 
 def _run(experiment_dir_name):
