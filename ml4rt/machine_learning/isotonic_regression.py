@@ -263,7 +263,7 @@ def apply_models(
         ))
 
         new_scalar_prediction_matrix[:, k] = scalar_model_objects[k].predict(
-            X=orig_scalar_prediction_matrix[:, k]
+            orig_scalar_prediction_matrix[:, k]
         )
 
     if num_scalar_targets > 0:

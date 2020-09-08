@@ -140,6 +140,13 @@ THIS_SCALAR_TARGET_MATRIX = numpy.reshape(
     (len(THESE_SHORTWAVE_SURFACE_DOWN_FLUXES), 1)
 )
 
+# TEMPERATURE_MATRIX_KELVINS = numpy.array([
+#     [290, 295],
+#     [289, 294],
+#     [288, 293],
+#     [287, 292.5]
+# ])
+
 THIS_TEMPERATURE_MATRIX = numpy.array([
     [10, 16],
     [9, 15],

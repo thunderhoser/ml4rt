@@ -14,14 +14,6 @@ MINMAX_NORM_STRING = 'minmax'
 Z_SCORE_NORM_STRING = 'z_score'
 VALID_NORM_TYPE_STRINGS = [MINMAX_NORM_STRING, Z_SCORE_NORM_STRING]
 
-TARGET_NAME_TO_LOG_FLAG = {
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME: False,
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: False,
-    example_utils.SHORTWAVE_UP_FLUX_NAME: True,
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: True,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: True
-}
-
 
 def _check_normalization_type(normalization_type_string):
     """Ensures that normalization type is valid.

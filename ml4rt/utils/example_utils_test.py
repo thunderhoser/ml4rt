@@ -678,7 +678,7 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
     """
 
     first_keys = list(first_example_dict.keys())
-    second_keys = list(first_example_dict.keys())
+    second_keys = list(second_example_dict.keys())
     if set(first_keys) != set(second_keys):
         return False
 

@@ -688,7 +688,7 @@ def _plot_score_profile(
             heights_m_agl=heights_by_file_m_agl[i],
             score_values=evaluation_tables_xarray[i][score_key].values[:, k],
             score_name=score_name, line_colour=line_colours[i],
-            line_width=4 if i == 0 else 2, line_style=line_styles[i],
+            line_width=4, line_style=line_styles[i],
             use_log_scale=use_log_scale, axes_object=axes_object,
             are_axes_new=i == 0
         )
