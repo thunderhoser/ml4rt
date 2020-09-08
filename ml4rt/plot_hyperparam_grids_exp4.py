@@ -1,4 +1,4 @@
-"""Plots scores on hyperparameter grid for Experiment 3."""
+"""Plots scores on hyperparameter grid for Experiment 4."""
 
 import sys
 import glob
@@ -292,7 +292,7 @@ def _print_ranking_all_scores(
 
 
 def _run(experiment_dir_name, isotonic_flag):
-    """Plots scores on hyperparameter grid for Experiment 1.
+    """Plots scores on hyperparameter grid for Experiment 4.
 
     This is effectively the main method.
 

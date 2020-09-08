@@ -161,7 +161,7 @@ def _read_scores_one_model(model_dir_name, isotonic_flag):
 
 
 def _run(experiment_dir_name, isotonic_flag):
-    """Plots scores on hyperparameter grid for Experiment 1.
+    """Plots scores on hyperparameter grid for Experiment 3.
 
     This is effectively the main method.
 
