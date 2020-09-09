@@ -42,10 +42,15 @@ FIGURE_RESOLUTION_DPI = 300
 
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
 ISOTONIC_FLAG_ARG_NAME = 'isotonic_flag'
+NEW_LOCATIONS_FLAG_ARG_NAME = 'new_locations_flag'
 
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 ISOTONIC_FLAG_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot results with(out) isotonic regression.'
+)
+NEW_LOCATIONS_FLAG_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot results on new (same) locations as '
+    'training.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -56,6 +61,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + ISOTONIC_FLAG_ARG_NAME, type=int, required=False, default=0,
     help=ISOTONIC_FLAG_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NEW_LOCATIONS_FLAG_ARG_NAME, type=int, required=False, default=0,
+    help=NEW_LOCATIONS_FLAG_HELP_STRING
 )
 
 
@@ -121,12 +130,13 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_scores_one_model(model_dir_name, isotonic_flag):
+def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag):
     """Reads scores for one model.
 
     :param model_dir_name: Name of directory with trained model and evaluation
         data.
     :param isotonic_flag: See documentation at top of file.
+    :param new_locations_flag: Same.
     :return: prmse_k_day01: Profile root mean squared error (RMSE):
     :return: dwmse_k3_day03: Dual-weighted mean squared error.
     :return: down_flux_rmse_w_m02: RMSE for surface downwelling flux.
@@ -141,8 +151,10 @@ def _read_scores_one_model(model_dir_name, isotonic_flag):
 
     model_file_names.sort()
     model_file_name = model_file_names[-1]
-    evaluation_file_name = '{0:s}/{1:s}validation/evaluation.nc'.format(
-        model_file_name[:-3], 'isotonic_regression/' if isotonic_flag else ''
+    evaluation_file_name = '{0:s}/{1:s}validation{2:s}/evaluation.nc'.format(
+        model_file_name[:-3],
+        'isotonic_regression/' if isotonic_flag else '',
+        '_new_locations' if new_locations_flag else ''
     )
 
     if not os.path.isfile(evaluation_file_name):
@@ -291,13 +303,14 @@ def _print_ranking_all_scores(
         ))
 
 
-def _run(experiment_dir_name, isotonic_flag):
+def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
     """Plots scores on hyperparameter grid for Experiment 4.
 
     This is effectively the main method.
 
     :param experiment_dir_name: See documentation at top of file.
     :param isotonic_flag: Same.
+    :param new_locations_flag: Same.
     """
 
     num_dense_layer_counts = len(DENSE_LAYER_COUNTS)
@@ -342,7 +355,8 @@ def _run(experiment_dir_name, isotonic_flag):
                     up_flux_rmse_matrix_w_m02[i, j, k]
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
-                    isotonic_flag=isotonic_flag
+                    isotonic_flag=isotonic_flag,
+                    new_locations_flag=new_locations_flag
                 )
 
     print(SEPARATOR_STRING)
@@ -392,9 +406,10 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(title_string)
 
         figure_file_name = (
-            '{0:s}/{1:s}num-dense-layers={2:d}_prmse_grid.jpg'
+            '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_prmse_grid.jpg'
         ).format(
             experiment_dir_name,
+            'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -420,9 +435,10 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(title_string)
 
         figure_file_name = (
-            '{0:s}/{1:s}num-dense-layers={2:d}_dwmse_grid.jpg'
+            '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_dwmse_grid.jpg'
         ).format(
             experiment_dir_name,
+            'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -450,9 +466,10 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(title_string)
 
         figure_file_name = (
-            '{0:s}/{1:s}num-dense-layers={2:d}_down_flux_rmse_grid.jpg'
+            '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_down_flux_rmse_grid.jpg'
         ).format(
             experiment_dir_name,
+            'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -478,9 +495,10 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(title_string)
 
         figure_file_name = (
-            '{0:s}/{1:s}num-dense-layers={2:d}_up_flux_rmse_grid.jpg'
+            '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_up_flux_rmse_grid.jpg'
         ).format(
             experiment_dir_name,
+            'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -498,5 +516,8 @@ if __name__ == '__main__':
 
     _run(
         experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME),
-        isotonic_flag=bool(getattr(INPUT_ARG_OBJECT, ISOTONIC_FLAG_ARG_NAME))
+        isotonic_flag=bool(getattr(INPUT_ARG_OBJECT, ISOTONIC_FLAG_ARG_NAME)),
+        new_locations_flag=bool(getattr(
+            INPUT_ARG_OBJECT, NEW_LOCATIONS_FLAG_ARG_NAME
+        ))
     )
