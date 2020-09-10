@@ -20,6 +20,7 @@ import evaluation
 import plotting_utils
 import example_utils
 import prediction_io
+import file_system_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -412,6 +413,10 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
             'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
+        )
+
+        file_system_utils.mkdir_recursive_if_necessary(
+            file_name=figure_file_name
         )
 
         print('Saving figure to: "{0:s}"...'.format(figure_file_name))
