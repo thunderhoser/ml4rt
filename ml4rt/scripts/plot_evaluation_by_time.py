@@ -44,6 +44,7 @@ BIAS_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 MAE_SKILL_COLOUR = MAE_COLOUR
 MSE_SKILL_COLOUR = RMSE_COLOUR
 CORRELATION_COLOUR = BIAS_COLOUR
+KGE_COLOUR = numpy.full(3, 0.)
 POLYGON_OPACITY = 0.5
 
 HISTOGRAM_EDGE_WIDTH = 1.5
@@ -376,7 +377,7 @@ def _plot_scores_with_units(
 
 def _plot_unitless_scores(
         mae_skill_score_matrix, mse_skill_score_matrix, correlation_matrix,
-        num_examples_array, plot_legend, confidence_level=None):
+        kge_matrix, num_examples_array, plot_legend, confidence_level=None):
     """Plots scores without physical units, for one time split and one field.
 
     B = number of bootstrap replicates
@@ -387,6 +388,7 @@ def _plot_unitless_scores(
     :param mse_skill_score_matrix: T-by-B numpy array of MSE (mean squared
         error) skill scores.
     :param correlation_matrix: T-by-B numpy array of correlations.
+    :param kge_matrix: T-by-B numpy array of KGE values.
     :param num_examples_array: length-T numpy array with number of examples for
         each time chunk.
     :param plot_legend: See doc for `_plot_scores_with_units`.
@@ -484,6 +486,30 @@ def _plot_unitless_scores(
         polygon_colour = matplotlib.colors.to_rgba(
             CORRELATION_COLOUR, POLYGON_OPACITY
         )
+        patch_object = PolygonPatch(
+            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        )
+        main_axes_object.add_patch(patch_object)
+
+    # Plot mean KGE.
+    this_handle = main_axes_object.plot(
+        x_values, numpy.mean(kge_matrix, axis=1),
+        color=KGE_COLOUR, linewidth=LINE_WIDTH, marker=MARKER_TYPE,
+        markersize=MARKER_SIZE, markerfacecolor=KGE_COLOUR,
+        markeredgecolor=KGE_COLOUR, markeredgewidth=0
+    )[0]
+
+    legend_handles.append(this_handle)
+    legend_strings.append('KGE')
+
+    # Plot confidence interval for KGE.
+    if num_bootstrap_reps > 1:
+        polygon_object = _confidence_interval_to_polygon(
+            x_values=x_values, y_value_matrix=kge_matrix,
+            confidence_level=confidence_level
+        )
+
+        polygon_colour = matplotlib.colors.to_rgba(KGE_COLOUR, POLYGON_OPACITY)
         patch_object = PolygonPatch(
             polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
         )
@@ -610,6 +636,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ])
+    scalar_kge_matrix = numpy.vstack([
+        t[evaluation.SCALAR_KGE_KEY].values for t in evaluation_tables_xarray
+    ])
     scalar_target_matrices = [
         t[SCALAR_TARGET_KEY].values for t in evaluation_tables_xarray
     ]
@@ -647,6 +676,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_skill_score_matrix=scalar_mae_skill_matrix[:, [k]],
             mse_skill_score_matrix=scalar_mse_skill_matrix[:, [k]],
             correlation_matrix=scalar_correlation_matrix[:, [k]],
+            kge_matrix=scalar_kge_matrix[:, [k]],
             num_examples_array=num_examples_array, plot_legend=True
         )
         axes_object.set_title('Scores for {0:s}'.format(
@@ -695,6 +725,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
         ])
+        aux_kge_matrix = numpy.vstack([
+            t[evaluation.AUX_KGE_KEY].values for t in evaluation_tables_xarray
+        ])
         aux_target_matrices = [
             t[AUX_TARGET_KEY].values for t in evaluation_tables_xarray
         ]
@@ -731,6 +764,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             mae_skill_score_matrix=aux_mae_skill_matrix[:, [k]],
             mse_skill_score_matrix=aux_mse_skill_matrix[:, [k]],
             correlation_matrix=aux_correlation_matrix[:, [k]],
+            kge_matrix=aux_kge_matrix[:, [k]],
             num_examples_array=num_examples_array, plot_legend=True
         )
         axes_object.set_title('Scores for {0:s}'.format(
@@ -780,6 +814,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
         t[evaluation.VECTOR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
+    vector_kge_matrix = numpy.stack([
+        t[evaluation.VECTOR_KGE_KEY].values for t in evaluation_tables_xarray
+    ], axis=0)
     vector_target_matrices = [
         t[VECTOR_TARGET_KEY].values for t in evaluation_tables_xarray
     ]
@@ -822,6 +859,7 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
                 mae_skill_score_matrix=vector_mae_skill_matrix[:, j, [k]],
                 mse_skill_score_matrix=vector_mse_skill_matrix[:, j, [k]],
                 correlation_matrix=vector_correlation_matrix[:, j, [k]],
+                kge_matrix=vector_kge_matrix[:, j, [k]],
                 num_examples_array=num_examples_array, plot_legend=True
             )
             axes_object.set_title('Scores for {0:s} at {1:d} m AGL'.format(

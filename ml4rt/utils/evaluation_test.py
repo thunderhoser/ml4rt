@@ -26,6 +26,23 @@ SIMPLE_CORRELATION = numpy.corrcoef(
     SIMPLE_TARGET_VALUES, SIMPLE_PREDICTED_VALUES
 )[0, 1]
 
+MEAN_TARGET_VALUE = 232.
+MEAN_PREDICTED_VALUE = 179.
+STDEV_TARGET_VALUE = numpy.std(SIMPLE_TARGET_VALUES, ddof=1)
+STDEV_PREDICTED_VALUE = numpy.std(SIMPLE_PREDICTED_VALUES, ddof=1)
+
+VARIANCE_BIAS = (
+    (STDEV_PREDICTED_VALUE / MEAN_PREDICTED_VALUE) *
+    (STDEV_TARGET_VALUE / MEAN_TARGET_VALUE) ** -1
+)
+MEAN_BIAS = MEAN_PREDICTED_VALUE / MEAN_TARGET_VALUE
+
+SIMPLE_KGE = 1. - numpy.sqrt(
+    (SIMPLE_CORRELATION - 1.) ** 2 +
+    (VARIANCE_BIAS - 1.) ** 2 +
+    (MEAN_BIAS - 1.) ** 2
+)
+
 # The following constants are used to test _get_prmse_one_variable.
 TARGET_MATRIX = numpy.array([
     [200, 175, 150, 125, 100],
@@ -142,6 +159,16 @@ class EvaluationTests(unittest.TestCase):
         self.assertTrue(numpy.isclose(
             this_correlation, SIMPLE_CORRELATION, atol=TOLERANCE
         ))
+
+    def test_get_kge_one_scalar(self):
+        """Ensures correct output from _get_kge_one_scalar."""
+
+        this_kge = evaluation._get_kge_one_scalar(
+            target_values=SIMPLE_TARGET_VALUES,
+            predicted_values=SIMPLE_PREDICTED_VALUES
+        )
+
+        self.assertTrue(numpy.isclose(this_kge, SIMPLE_KGE, atol=TOLERANCE))
 
     def test_get_prmse_one_variable(self):
         """Ensures correct output from _get_prmse_one_variable."""

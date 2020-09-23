@@ -53,6 +53,9 @@ AUX_BIAS_KEY = 'aux_bias'
 SCALAR_CORRELATION_KEY = 'scalar_correlation'
 VECTOR_CORRELATION_KEY = 'vector_correlation'
 AUX_CORRELATION_KEY = 'aux_correlation'
+SCALAR_KGE_KEY = 'scalar_kge'
+VECTOR_KGE_KEY = 'vector_kge'
+AUX_KGE_KEY = 'aux_kge'
 VECTOR_PRMSE_KEY = 'vector_prmse'
 SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x'
 SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y'
@@ -241,6 +244,38 @@ def _get_correlation_one_scalar(target_values, predicted_values):
     )
 
     return correlation
+
+
+def _get_kge_one_scalar(target_values, predicted_values):
+    """Computes KGE (Kling-Gupta efficiency) for one scalar target variable.
+
+    :param target_values: See doc for `_get_mse_one_scalar`.
+    :param predicted_values: Same.
+    :return: kge: Self-explanatory.
+    """
+
+    correlation = _get_correlation_one_scalar(
+        target_values=target_values, predicted_values=predicted_values
+    )
+
+    mean_target_value = numpy.mean(target_values)
+    mean_predicted_value = numpy.mean(predicted_values)
+    stdev_target_value = numpy.std(target_values, ddof=1)
+    stdev_predicted_value = numpy.std(predicted_values, ddof=1)
+
+    variance_bias = (
+        (stdev_predicted_value / mean_predicted_value) *
+        (stdev_target_value / mean_target_value) ** -1
+    )
+    mean_bias = mean_predicted_value / mean_target_value
+
+    kge = 1. - numpy.sqrt(
+        (correlation - 1.) ** 2 +
+        (variance_bias - 1.) ** 2 +
+        (mean_bias - 1.) ** 2
+    )
+
+    return kge
 
 
 def _get_prmse_one_variable(target_matrix, prediction_matrix):
@@ -838,56 +873,72 @@ def get_scores_all_variables(
         }
         main_data_dict.update(new_dict)
 
-    print('Computing correlations...')
+    print('Computing correlations and KGE values...')
 
-    # Correlations of scalar fields.
+    # Correlation and KGE for scalar fields.
     scalar_correlations = numpy.full(num_scalar_targets, numpy.nan)
+    scalar_kge_values = numpy.full(num_scalar_targets, numpy.nan)
 
     for k in range(num_scalar_targets):
         scalar_correlations[k] = _get_correlation_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k]
         )
+        scalar_kge_values[k] = _get_kge_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k]
+        )
 
     these_dim = (SCALAR_FIELD_DIM,)
     new_dict = {
-        SCALAR_CORRELATION_KEY: (these_dim, scalar_correlations)
+        SCALAR_CORRELATION_KEY: (these_dim, scalar_correlations),
+        SCALAR_KGE_KEY: (these_dim, scalar_kge_values)
     }
     main_data_dict.update(new_dict)
 
-    # Correlations of vector fields.
+    # Correlation and KGE for vector fields.
     vector_correlation_matrix = numpy.full(
         (num_heights, num_vector_targets), numpy.nan
     )
+    vector_kge_matrix = numpy.full((num_heights, num_vector_targets), numpy.nan)
 
     for j in range(num_heights):
         for k in range(num_vector_targets):
-            vector_correlation_matrix[j, k] = (
-                _get_correlation_one_scalar(
-                    target_values=vector_target_matrix[:, j, k],
-                    predicted_values=vector_prediction_matrix[:, j, k]
-                )
+            vector_correlation_matrix[j, k] = _get_correlation_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k]
+            )
+            vector_kge_matrix[j, k] = _get_kge_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k]
             )
 
     these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
     new_dict = {
-        VECTOR_CORRELATION_KEY: (these_dim, vector_correlation_matrix)
+        VECTOR_CORRELATION_KEY: (these_dim, vector_correlation_matrix),
+        VECTOR_KGE_KEY: (these_dim, vector_kge_matrix)
     }
     main_data_dict.update(new_dict)
 
-    # Correlations of auxiliary fields.
+    # Correlation and KGE for auxiliary fields.
     if num_aux_targets > 0:
         aux_correlations = numpy.full(num_aux_targets, numpy.nan)
+        aux_kge_values = numpy.full(num_aux_targets, numpy.nan)
 
         for k in range(num_aux_targets):
             aux_correlations[k] = _get_correlation_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k]
             )
+            aux_kge_values[k] = _get_kge_one_scalar(
+                target_values=aux_target_matrix[:, k],
+                predicted_values=aux_prediction_matrix[:, k]
+            )
 
         these_dim = (AUX_TARGET_FIELD_DIM,)
         new_dict = {
-            AUX_CORRELATION_KEY: (these_dim, aux_correlations)
+            AUX_CORRELATION_KEY: (these_dim, aux_correlations),
+            AUX_KGE_KEY: (these_dim, aux_kge_values)
         }
         main_data_dict.update(new_dict)
 

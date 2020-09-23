@@ -200,8 +200,8 @@ def _plot_score_one_field(
 def _plot_all_scores_one_field(
         latitude_matrix_deg, longitude_matrix_deg, mae_matrix, rmse_matrix,
         bias_matrix, mae_skill_score_matrix, mse_skill_score_matrix,
-        correlation_matrix, skewness_matrix, field_name, output_dir_name,
-        height_m_agl=None):
+        correlation_matrix, kge_matrix, skewness_matrix, field_name,
+        output_dir_name, height_m_agl=None):
     """Plots all evaluation scores for one field.
 
     M = number of rows in grid
@@ -215,6 +215,7 @@ def _plot_all_scores_one_field(
     :param mae_skill_score_matrix: Same but for MAE skill score.
     :param mse_skill_score_matrix: Same but for MSE skill score.
     :param correlation_matrix: Same but for correlation.
+    :param kge_matrix: Same but for KGE (Kling-Gupta efficiency).
     :param skewness_matrix: Same but for skewness.
     :param field_name: Name of field for which scores are being plotted.
     :param output_dir_name: Name of output directory.  Figures will be saved
@@ -424,6 +425,35 @@ def _plot_all_scores_one_field(
     )
     pyplot.close(figure_object)
 
+    # Plot KGE.
+    this_min_value = numpy.nanpercentile(kge_matrix, MIN_COLOUR_PERCENTILE)
+    this_max_value = numpy.nanpercentile(kge_matrix, MAX_COLOUR_PERCENTILE)
+
+    figure_object, axes_object = _plot_score_one_field(
+        latitude_matrix_deg=latitude_matrix_deg,
+        longitude_matrix_deg=longitude_matrix_deg,
+        score_matrix=kge_matrix,
+        colour_map_object=DEFAULT_COLOUR_MAP_OBJECT,
+        min_colour_value=this_min_value, max_colour_value=this_max_value,
+        taper_cbar_top=this_max_value != 1, taper_cbar_bottom=True,
+        log_scale=False
+    )
+
+    axes_object.set_title('Kling-Gupta efficiency', fontsize=TITLE_FONT_SIZE)
+    plotting_utils.label_axes(
+        axes_object=axes_object, label_string='(g)',
+        font_size=PANEL_LETTER_FONT_SIZE
+    )
+
+    panel_file_names.append('{0:s}_kge.jpg'.format(out_file_name_prefix))
+    print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
+
+    figure_object.savefig(
+        panel_file_names[-1], dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
     # Plot skewness.
     this_max_value = numpy.nanpercentile(
         numpy.absolute(skewness_matrix), MAX_COLOUR_PERCENTILE
@@ -440,7 +470,7 @@ def _plot_all_scores_one_field(
 
     axes_object.set_title('Skewness of actual values', fontsize=TITLE_FONT_SIZE)
     plotting_utils.label_axes(
-        axes_object=axes_object, label_string='(g)',
+        axes_object=axes_object, label_string='(h)',
         font_size=PANEL_LETTER_FONT_SIZE
     )
 
@@ -653,6 +683,10 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         nan_array if t is None else t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ])
+    scalar_kge_matrix = numpy.vstack([
+        nan_array if t is None else t[evaluation.SCALAR_KGE_KEY].values
+        for t in evaluation_tables_xarray
+    ])
     scalar_skewness_matrix = numpy.vstack([
         nan_array if t is None else t[SCALAR_SKEWNESS_KEY].values
         for t in evaluation_tables_xarray
@@ -676,6 +710,7 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             correlation_matrix=numpy.reshape(
                 scalar_correlation_matrix[:, k], grid_dim_tuple
             ),
+            kge_matrix=numpy.reshape(scalar_kge_matrix[:, k], grid_dim_tuple),
             skewness_matrix=numpy.reshape(
                 scalar_skewness_matrix[:, k], grid_dim_tuple
             ),
@@ -714,6 +749,10 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             nan_array if t is None else t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
         ])
+        aux_kge_matrix = numpy.vstack([
+            nan_array if t is None else t[evaluation.AUX_KGE_KEY].values
+            for t in evaluation_tables_xarray
+        ])
         aux_skewness_matrix = numpy.vstack([
             nan_array if t is None else t[AUX_SKEWNESS_KEY].values
             for t in evaluation_tables_xarray
@@ -735,6 +774,7 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
             correlation_matrix=numpy.reshape(
                 aux_correlation_matrix[:, k], grid_dim_tuple
             ),
+            kge_matrix=numpy.reshape(aux_kge_matrix[:, k], grid_dim_tuple),
             skewness_matrix=numpy.reshape(
                 aux_skewness_matrix[:, k], grid_dim_tuple
             ),
@@ -774,6 +814,10 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
         nan_array if t is None else t[evaluation.VECTOR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
     ], axis=0)
+    vector_kge_matrix = numpy.stack([
+        nan_array if t is None else t[evaluation.VECTOR_KGE_KEY].values
+        for t in evaluation_tables_xarray
+    ], axis=0)
     vector_skewness_matrix = numpy.stack([
         nan_array if t is None else t[VECTOR_SKEWNESS_KEY].values
         for t in evaluation_tables_xarray
@@ -801,6 +845,9 @@ def _run(evaluation_dir_name, grid_metafile_name, output_dir_name):
                 ),
                 correlation_matrix=numpy.reshape(
                     vector_correlation_matrix[:, j, k], grid_dim_tuple
+                ),
+                kge_matrix=numpy.reshape(
+                    vector_kge_matrix[:, j, k], grid_dim_tuple
                 ),
                 skewness_matrix=numpy.reshape(
                     vector_skewness_matrix[:, j, k], grid_dim_tuple
