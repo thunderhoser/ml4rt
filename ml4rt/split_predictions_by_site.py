@@ -118,7 +118,7 @@ def _run(input_file_name, top_output_dir_name):
         )
 
         this_output_file_name = '{0:s}/{1:s}/predictions.nc'.format(
-            top_output_dir_name, site_names[j].replace
+            top_output_dir_name, site_names[j]
         )
         print('Writing {0:d} examples to: "{1:s}"...'.format(
             len(these_indices), this_output_file_name
