@@ -1185,12 +1185,14 @@ def get_scores_all_variables(
     return result_table_xarray
 
 
-def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
-              grid_column=None, raise_error_if_missing=True):
+def find_file(
+        directory_name, zenith_angle_bin=None, albedo_bin=None, month=None,
+        grid_row=None, grid_column=None, raise_error_if_missing=True):
     """Finds NetCDF file with evaluation results.
 
     :param directory_name: See doc for `prediction_io.find_file`.
     :param zenith_angle_bin: Same.
+    :param albedo_bin: Same.
     :param month: Same.
     :param grid_row: Same.
     :param grid_column: Same.
@@ -1200,7 +1202,8 @@ def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
 
     prediction_file_name = prediction_io.find_file(
         directory_name=directory_name, zenith_angle_bin=zenith_angle_bin,
-        month=month, grid_row=grid_row, grid_column=grid_column,
+        albedo_bin=albedo_bin, month=month,
+        grid_row=grid_row, grid_column=grid_column,
         raise_error_if_missing=raise_error_if_missing
     )
 

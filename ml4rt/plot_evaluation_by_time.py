@@ -27,6 +27,14 @@ import plot_evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+MONTH_STRING = 'month'
+ZENITH_ANGLE_STRING = 'zenith_angle'
+ALBEDO_STRING = 'albedo'
+VALID_SPLIT_TYPE_STRINGS = [
+    MONTH_STRING, ZENITH_ANGLE_STRING,
+    ALBEDO_STRING
+]
+
 MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 RADIANS_TO_DEGREES = 180. / numpy.pi
@@ -78,6 +86,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
+NUM_ALBEDO_BINS_ARG_NAME = 'num_albedo_bins'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -86,6 +95,7 @@ INPUT_DIR_HELP_STRING = (
     'read by `evaluation.read_file`.'
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
+NUM_ALBEDO_BINS_HELP_STRING = 'Number of bins for albedo.'
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -98,6 +108,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_ANGLE_BINS_ARG_NAME, type=int, required=False, default=9,
     help=NUM_ANGLE_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_ALBEDO_BINS_ARG_NAME, type=int, required=False, default=20,
+    help=NUM_ALBEDO_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -563,22 +577,42 @@ def _plot_unitless_scores(
     return figure_object, main_axes_object
 
 
-def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
-                               num_zenith_angle_bins=None):
+def _check_split_type(split_type_string):
+    """Error-checks split type.
+
+    :param split_type_string: Split type.
+    :raises: ValueError: if `split_type_string not in VALID_SPLIT_TYPE_STRINGS`.
+    """
+
+    error_checking.assert_is_string(split_type_string)
+    if split_type_string in VALID_SPLIT_TYPE_STRINGS:
+        return
+
+    error_string = (
+        '\nValid split types (listed below) do not include "{0:s}":\n{1:s}'
+    ).format(split_type_string, str(VALID_SPLIT_TYPE_STRINGS))
+
+    raise ValueError(error_string)
+
+
+def _plot_all_scores_one_split(
+        evaluation_dir_name, output_dir_name, split_type_string, num_bins=None):
     """Plots all scores for one time split.
 
     :param evaluation_dir_name: See documentation at top of file.
     :param output_dir_name: Same.
-    :param by_month: Boolean flag.  If True (False), will plot scores by month
-        (solar zenith angle).
-    :param num_zenith_angle_bins: See documentation at top of file.
+    :param split_type_string: Method used to split evaluation files (must be
+        accepted by `_check_split_type`).
+    :param num_bins: [used only if split type is zenith angle or albedo]
+        Number of bins for zenith angle or albedo.
     """
 
+    _check_split_type(split_type_string)
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
 
-    if by_month:
+    if split_type_string == MONTH_STRING:
         months = numpy.linspace(1, 12, num=12, dtype=int)
         evaluation_file_names = [
             evaluation.find_file(directory_name=evaluation_dir_name, month=k)
@@ -587,10 +621,9 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
 
         x_tick_label_strings = MONTH_STRINGS
         x_axis_label_string = ''
-    else:
-        bin_indices = numpy.linspace(
-            0, num_zenith_angle_bins - 1, num=num_zenith_angle_bins, dtype=int
-        )
+
+    elif split_type_string == ZENITH_ANGLE_STRING:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
         evaluation_file_names = [
             evaluation.find_file(
                 directory_name=evaluation_dir_name, zenith_angle_bin=k
@@ -599,17 +632,17 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
 
         bin_edge_angles_deg = RADIANS_TO_DEGREES * numpy.linspace(
             MIN_ZENITH_ANGLE_RAD, MAX_ZENITH_ANGLE_RAD,
-            num=num_zenith_angle_bins + 1, dtype=float
+            num=num_bins + 1, dtype=float
         )
 
-        x_tick_label_strings = ['foo'] * num_zenith_angle_bins
+        x_tick_label_strings = ['foo'] * num_bins
 
-        for k in range(num_zenith_angle_bins):
+        for k in range(num_bins):
             x_tick_label_strings[k] = '[{0:.1f}, {1:.1f}'.format(
                 bin_edge_angles_deg[k], bin_edge_angles_deg[k + 1]
             )
 
-            if k == num_zenith_angle_bins - 1:
+            if k == num_bins - 1:
                 x_tick_label_strings[k] += ']'
             else:
                 x_tick_label_strings[k] += ')'
@@ -617,6 +650,28 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             x_tick_label_strings[k] += r'$^{\circ}$'
 
         x_axis_label_string = 'Solar zenith angle'
+    else:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, albedo_bin=k
+            ) for k in bin_indices
+        ]
+
+        edge_albedos = numpy.linspace(0, 1, num=num_bins + 1, dtype=float)
+        x_tick_label_strings = ['foo'] * num_bins
+
+        for k in range(num_bins):
+            x_tick_label_strings[k] = '[{0:.3f}, {1:.3f}'.format(
+                edge_albedos[k], edge_albedos[k + 1]
+            )
+
+            if k == num_bins - 1:
+                x_tick_label_strings[k] += ']'
+            else:
+                x_tick_label_strings[k] += ')'
+
+        x_axis_label_string = 'Albedo'
 
     evaluation_tables_xarray = _read_files_one_split(evaluation_file_names)
     print(SEPARATOR_STRING)
@@ -892,13 +947,15 @@ def _plot_all_scores_one_split(evaluation_dir_name, output_dir_name, by_month,
             pyplot.close(figure_object)
 
 
-def _run(evaluation_dir_name, num_zenith_angle_bins, top_output_dir_name):
+def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
+         top_output_dir_name):
     """Plots evaluation scores by time of day and year.
 
     This is effectively the main method.
 
     :param evaluation_dir_name: See documentation at top of file.
     :param num_zenith_angle_bins: Same.
+    :param num_albedo_bins: Same.
     :param top_output_dir_name: Same.
     """
 
@@ -907,14 +964,20 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, top_output_dir_name):
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
         output_dir_name='{0:s}/by_month'.format(top_output_dir_name),
-        by_month=True
+        split_type_string=MONTH_STRING
     )
     print(SEPARATOR_STRING)
 
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
         output_dir_name='{0:s}/by_zenith_angle'.format(top_output_dir_name),
-        by_month=False, num_zenith_angle_bins=num_zenith_angle_bins
+        split_type_string=ZENITH_ANGLE_STRING, num_bins=num_zenith_angle_bins
+    )
+
+    _plot_all_scores_one_split(
+        evaluation_dir_name=evaluation_dir_name,
+        output_dir_name='{0:s}/by_albedo'.format(top_output_dir_name),
+        split_type_string=ALBEDO_STRING, num_bins=num_albedo_bins
     )
 
 
@@ -926,5 +989,6 @@ if __name__ == '__main__':
         num_zenith_angle_bins=getattr(
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
+        num_albedo_bins=getattr(INPUT_ARG_OBJECT, NUM_ALBEDO_BINS_ARG_NAME),
         top_output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
