@@ -4,6 +4,7 @@ import copy
 import argparse
 import numpy
 from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 
@@ -23,20 +24,27 @@ SITE_NAME_TO_LATLNG = {
     'eureka_nu_ocean': numpy.array([79.7353, -86.6392]),
     'barrow_ak_ocean': numpy.array([71.4970, -157.0623]),
     'lamont_ok': numpy.array([36.6053, -97.4857]),
-    'azores_arm_site': numpy.array([39.0916, -28.0257]),
+    'azores_arm_site': numpy.array([39.0827, -28.0923]),
     'villum_greenland_land': numpy.array([81.4876, -16.1932]),
     'summit_greenland_land': numpy.array([72.5790, -38.3127]),
     'alert_nu_land': numpy.array([82.4291, -61.9947]),
-    'yopp_arctic_ocean_site3': numpy.array([81.0000, -135.0000]),
-    'sheba': numpy.array([76.0000, -165.0000]),
+    'yopp_arctic_ocean_site3': numpy.array([81.0731, -134.8826]),
+    'sheba': numpy.array([76.0152, -164.7252]),
     'cherskii_russia_ocean': numpy.array([69.7849, 161.2023]),
     'tiksi_russia_ocean': numpy.array([71.6260, 129.7669]),
     'pallas_sodankyla_russia_land': numpy.array([67.8995, 24.1929]),
-    'lindenberg_germany': numpy.array([52.2081, 14.1197]),
-    'fino3_tower_north_sea': numpy.array([55.1950, 7.1580]),
-    'yopp_arctic_ocean_site2': numpy.array([90.0000, 0.0000]),
-    'yopp_arctic_ocean_site1': numpy.array([85.0000, 10.0000])
+    'lindenberg_germany': numpy.array([52.2341, 14.1223]),
+    'fino3_tower_north_sea': numpy.array([55.1932, 7.1276]),
+    'yopp_arctic_ocean_site2': numpy.array([89.9983, 164.0000]),
+    'yopp_arctic_ocean_site1': numpy.array([84.9823, 10.0999])
 }
+
+for this_key in SITE_NAME_TO_LATLNG:
+    SITE_NAME_TO_LATLNG[this_key][1] = (
+        lng_conversion.convert_lng_positive_in_west(
+            SITE_NAME_TO_LATLNG[this_key][1]
+        )
+    )
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
@@ -110,7 +118,7 @@ def _run(input_file_name, top_output_dir_name):
         )
 
         this_output_file_name = '{0:s}/{1:s}/predictions.nc'.format(
-            top_output_dir_name, site_names[j].replace
+            top_output_dir_name, site_names[j]
         )
         print('Writing {0:d} examples to: "{1:s}"...'.format(
             len(these_indices), this_output_file_name
@@ -140,6 +148,18 @@ def _run(input_file_name, top_output_dir_name):
 
     if numpy.all(example_written_flags):
         return
+
+    # bad_latitudes_deg_n = (
+    #     example_latitudes_deg_n[example_written_flags == False]
+    # )
+    # bad_longitudes_deg_e = (
+    #     example_longitudes_deg_e[example_written_flags == False]
+    # )
+    # bad_coord_matrix = numpy.transpose(numpy.vstack((
+    #     bad_latitudes_deg_n, bad_longitudes_deg_e
+    # )))
+    # bad_coord_matrix = numpy.unique(bad_coord_matrix, axis=0)
+    # print(bad_coord_matrix)
 
     error_string = (
         '{0:d} of {1:d} examples could not be assigned to a site.  This is a '
