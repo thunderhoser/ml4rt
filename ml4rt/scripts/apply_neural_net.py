@@ -297,6 +297,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             scalar_target_matrix = target_array[1]
             scalar_prediction_matrix = prediction_array[1]
 
+    # TODO(thunderhoser): This is a HACK to deal with bad data for 2 examples
+    # for new sites.
+    vector_target_matrix[numpy.isnan(vector_target_matrix)] = 0.
+
     target_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_target_matrix,
         vector_target_matrix=vector_target_matrix,

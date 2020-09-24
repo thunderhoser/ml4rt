@@ -5,9 +5,8 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.colors
+import matplotlib.patches
 from matplotlib import pyplot
-from descartes import PolygonPatch
-from gewittergefahr.gg_utils import polygons
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
@@ -190,11 +189,13 @@ def _confidence_interval_to_polygon(x_values, y_value_matrix, confidence_level):
 
     P = number of points
     B = number of bootstrap replicates
+    V = number of vertices in resulting polygon = 2 * P + 1
 
     :param x_values: length-P numpy array of x-values.
     :param y_value_matrix: P-by-B numpy array of y-values.
     :param confidence_level: Confidence level (in range 0...1).
-    :return: polygon_object: Instance of `shapely.geometry.Polygon`.
+    :return: polygon_coord_matrix: V-by-2 numpy array of coordinates
+        (x-coordinates in first column, y-coords in second).
     """
 
     min_percentile = 50 * (1. - confidence_level)
@@ -218,16 +219,16 @@ def _confidence_interval_to_polygon(x_values, y_value_matrix, confidence_level):
     real_y_values_bottom = y_values_bottom[real_indices]
     real_y_values_top = y_values_top[real_indices]
 
-    these_x = numpy.concatenate((
+    x_vertices = numpy.concatenate((
         real_x_values, real_x_values[::-1], real_x_values[[0]]
     ))
-    these_y = numpy.concatenate((
+    y_vertices = numpy.concatenate((
         real_y_values_top, real_y_values_bottom[::-1], real_y_values_top[[0]]
     ))
 
-    return polygons.vertex_arrays_to_polygon_object(
-        exterior_x_coords=these_x, exterior_y_coords=these_y
-    )
+    return numpy.transpose(numpy.vstack((
+        x_vertices, y_vertices
+    )))
 
 
 def _plot_scores_with_units(
@@ -301,14 +302,14 @@ def _plot_scores_with_units(
 
     # Plot confidence interval for MAE.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=mae_matrix,
             confidence_level=confidence_level
         )
 
         polygon_colour = matplotlib.colors.to_rgba(MAE_COLOUR, POLYGON_OPACITY)
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         axes_object.add_patch(patch_object)
 
@@ -325,14 +326,14 @@ def _plot_scores_with_units(
 
     # Plot confidence interval for RMSE.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=rmse_matrix,
             confidence_level=confidence_level
         )
 
         polygon_colour = matplotlib.colors.to_rgba(RMSE_COLOUR, POLYGON_OPACITY)
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         axes_object.add_patch(patch_object)
 
@@ -349,14 +350,14 @@ def _plot_scores_with_units(
 
     # Plot confidence interval for bias.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=bias_matrix,
             confidence_level=confidence_level
         )
 
         polygon_colour = matplotlib.colors.to_rgba(BIAS_COLOUR, POLYGON_OPACITY)
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         axes_object.add_patch(patch_object)
 
@@ -426,7 +427,7 @@ def _plot_unitless_scores(
 
     # Plot confidence interval for MAE skill score.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=mae_skill_score_matrix,
             confidence_level=confidence_level
         )
@@ -434,8 +435,8 @@ def _plot_unitless_scores(
         polygon_colour = matplotlib.colors.to_rgba(
             MAE_SKILL_COLOUR, POLYGON_OPACITY
         )
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         main_axes_object.add_patch(patch_object)
 
@@ -452,7 +453,7 @@ def _plot_unitless_scores(
 
     # Plot confidence interval for MSE skill score.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=mse_skill_score_matrix,
             confidence_level=confidence_level
         )
@@ -460,8 +461,8 @@ def _plot_unitless_scores(
         polygon_colour = matplotlib.colors.to_rgba(
             MSE_SKILL_COLOUR, POLYGON_OPACITY
         )
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         main_axes_object.add_patch(patch_object)
 
@@ -478,7 +479,7 @@ def _plot_unitless_scores(
 
     # Plot confidence interval for correlation.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=correlation_matrix,
             confidence_level=confidence_level
         )
@@ -486,8 +487,8 @@ def _plot_unitless_scores(
         polygon_colour = matplotlib.colors.to_rgba(
             CORRELATION_COLOUR, POLYGON_OPACITY
         )
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         main_axes_object.add_patch(patch_object)
 
@@ -504,14 +505,14 @@ def _plot_unitless_scores(
 
     # Plot confidence interval for KGE.
     if num_bootstrap_reps > 1:
-        polygon_object = _confidence_interval_to_polygon(
+        polygon_coord_matrix = _confidence_interval_to_polygon(
             x_values=x_values, y_value_matrix=kge_matrix,
             confidence_level=confidence_level
         )
 
         polygon_colour = matplotlib.colors.to_rgba(KGE_COLOUR, POLYGON_OPACITY)
-        patch_object = PolygonPatch(
-            polygon_object, lw=0, ec=polygon_object, fc=polygon_colour
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         main_axes_object.add_patch(patch_object)
 
