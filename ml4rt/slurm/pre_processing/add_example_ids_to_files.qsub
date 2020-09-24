@@ -26,8 +26,8 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data"
-set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data/new_ids"
+set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data/for_base_model"
+set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data/for_base_model/new_ids"
 
 python3 -u "${CODE_DIR_NAME}/add_example_ids_to_files.py" \
 --input_example_dir_name="${INPUT_EXAMPLE_DIR_NAME}" \
@@ -35,8 +35,8 @@ python3 -u "${CODE_DIR_NAME}/add_example_ids_to_files.py" \
 --last_year=2020 \
 --output_example_dir_name="${OUTPUT_EXAMPLE_DIR_NAME}"
 
-set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/new_locations"
-set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/new_locations/new_ids"
+set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/new_locations/for_isotonic_regression"
+set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/new_locations/for_isotonic_regression/new_ids"
 
 python3 -u "${CODE_DIR_NAME}/add_example_ids_to_files.py" \
 --input_example_dir_name="${INPUT_EXAMPLE_DIR_NAME}" \
