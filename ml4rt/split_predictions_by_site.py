@@ -102,6 +102,9 @@ def _run(input_file_name, top_output_dir_name):
         example_metadata_dict[example_utils.LONGITUDES_KEY],
         LATLNG_TOLERANCE_DEG
     )
+    example_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+        example_longitudes_deg_e
+    )
 
     num_examples = len(example_latitudes_deg_n)
     example_written_flags = numpy.full(num_examples, False, dtype=bool)
@@ -157,17 +160,17 @@ def _run(input_file_name, top_output_dir_name):
     if numpy.all(example_written_flags):
         return
 
-    bad_latitudes_deg_n = (
-        example_latitudes_deg_n[example_written_flags == False]
-    )
-    bad_longitudes_deg_e = (
-        example_longitudes_deg_e[example_written_flags == False]
-    )
-    bad_coord_matrix = numpy.transpose(numpy.vstack((
-        bad_latitudes_deg_n, bad_longitudes_deg_e
-    )))
-    bad_coord_matrix = numpy.unique(bad_coord_matrix, axis=0)
-    print(bad_coord_matrix)
+    # bad_latitudes_deg_n = (
+    #     example_latitudes_deg_n[example_written_flags == False]
+    # )
+    # bad_longitudes_deg_e = (
+    #     example_longitudes_deg_e[example_written_flags == False]
+    # )
+    # bad_coord_matrix = numpy.transpose(numpy.vstack((
+    #     bad_latitudes_deg_n, bad_longitudes_deg_e
+    # )))
+    # bad_coord_matrix = numpy.unique(bad_coord_matrix, axis=0)
+    # print(bad_coord_matrix)
 
     error_string = (
         '{0:d} of {1:d} examples could not be assigned to a site.  This is a '
