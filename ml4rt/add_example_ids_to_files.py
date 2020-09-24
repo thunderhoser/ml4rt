@@ -83,7 +83,9 @@ def _run(input_example_dir_name, first_year, last_year,
         for y in years
     ]
 
-    this_input_file_name = '{0:s}/learning_examples_20170101-2018224.nc'.format(
+    this_input_file_name = (
+        '{0:s}/learning_examples_20170101-20181224.nc'
+    ).format(
         input_example_dir_name
     )
 
@@ -91,7 +93,7 @@ def _run(input_example_dir_name, first_year, last_year,
         input_file_names.append(this_input_file_name)
 
         this_output_file_name = (
-            '{0:s}/learning_examples_20170101-2018224.nc'
+            '{0:s}/learning_examples_20170101-20181224.nc'
         ).format(output_example_dir_name)
 
         output_file_names.append(this_output_file_name)
