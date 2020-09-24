@@ -38,10 +38,15 @@ DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 MAX_ZENITH_ANGLE_RADIANS = numpy.pi / 2
 
 ZENITH_ANGLE_BIN_KEY = 'zenith_angle_bin'
+ALBEDO_BIN_KEY = 'albedo_bin'
 MONTH_KEY = 'month'
 GRID_ROW_KEY = 'grid_row'
 GRID_COLUMN_KEY = 'grid_column'
-METADATA_KEYS = [ZENITH_ANGLE_BIN_KEY, MONTH_KEY, GRID_ROW_KEY, GRID_COLUMN_KEY]
+
+METADATA_KEYS = [
+    ZENITH_ANGLE_BIN_KEY, ALBEDO_BIN_KEY, MONTH_KEY,
+    GRID_ROW_KEY, GRID_COLUMN_KEY
+]
 
 GRID_ROW_DIMENSION_KEY = 'row'
 GRID_COLUMN_DIMENSION_KEY = 'column'
@@ -49,14 +54,17 @@ LATITUDES_KEY = 'latitude_deg_n'
 LONGITUDES_KEY = 'longitude_deg_e'
 
 
-def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
-              grid_column=None, raise_error_if_missing=True):
+def find_file(
+        directory_name, zenith_angle_bin=None, albedo_bin=None, month=None,
+        grid_row=None, grid_column=None, raise_error_if_missing=True):
     """Finds NetCDF file with predictions.
 
     :param directory_name: Name of directory where file is expected.
     :param zenith_angle_bin: Zenith-angle bin (non-negative integer).  If file
         does not contain predictions for a specific zenith-angle bin, leave this
         alone.
+    :param albedo_bin: Albedo bin (non-negative integer).  If file does not
+        contain predictions for a specific albedo bin, leave this alone.
     :param month: Month (integer from 1...12).  If file does not contain
         predictions for a specific month, leave this alone.
     :param grid_row: Grid row (non-negative integer).  If file does not contain
@@ -81,6 +89,16 @@ def find_file(directory_name, zenith_angle_bin=None, month=None, grid_row=None,
         ).format(
             directory_name, ZENITH_ANGLE_BIN_KEY.replace('_', '-'),
             zenith_angle_bin
+        )
+
+    elif albedo_bin is not None:
+        error_checking.assert_is_integer(albedo_bin)
+        error_checking.assert_is_geq(albedo_bin, 0)
+
+        prediction_file_name = (
+            '{0:s}/predictions_{1:s}={2:03d}.nc'
+        ).format(
+            directory_name, ALBEDO_BIN_KEY.replace('_', '-'), albedo_bin
         )
 
     elif month is not None:
@@ -127,6 +145,7 @@ def file_name_to_metadata(prediction_file_name):
     :param prediction_file_name: Path to NetCDF file with predictions.
     :return: metadata_dict: Dictionary with the following keys.
     metadata_dict['zenith_angle_bin']: See input doc for `find_file`.
+    metadata_dict['albedo_bin']: Same.
     metadata_dict['month']: Same.
     metadata_dict['grid_row']: Same.
     metadata_dict['grid_column']: Same.
@@ -602,19 +621,12 @@ def subset_by_standard_atmo(prediction_dict, standard_atmo_enum):
         prediction_dict[EXAMPLE_IDS_KEY]
     )[example_utils.STANDARD_ATMO_FLAGS_KEY]
 
-    good_indices = numpy.where(all_standard_atmo_enums == standard_atmo_enum)[0]
-
-    for this_key in ONE_PER_EXAMPLE_KEYS:
-        if isinstance(prediction_dict[this_key], list):
-            prediction_dict[this_key] = [
-                prediction_dict[this_key][k] for k in good_indices
-            ]
-        else:
-            prediction_dict[this_key] = (
-                prediction_dict[this_key][good_indices, ...]
-            )
-
-    return prediction_dict
+    desired_indices = numpy.where(
+        all_standard_atmo_enums == standard_atmo_enum
+    )[0]
+    return subset_by_index(
+        prediction_dict=prediction_dict, desired_indices=desired_indices
+    )
 
 
 def subset_by_zenith_angle(
@@ -650,19 +662,48 @@ def subset_by_zenith_angle(
     else:
         max_flags = all_zenith_angles_rad < max_zenith_angle_rad
 
-    good_indices = numpy.where(numpy.logical_and(min_flags, max_flags))[0]
+    desired_indices = numpy.where(numpy.logical_and(min_flags, max_flags))[0]
+    return subset_by_index(
+        prediction_dict=prediction_dict, desired_indices=desired_indices
+    )
 
-    for this_key in ONE_PER_EXAMPLE_KEYS:
-        if isinstance(prediction_dict[this_key], list):
-            prediction_dict[this_key] = [
-                prediction_dict[this_key][k] for k in good_indices
-            ]
-        else:
-            prediction_dict[this_key] = (
-                prediction_dict[this_key][good_indices, ...]
-            )
 
-    return prediction_dict
+def subset_by_albedo(
+        prediction_dict, min_albedo, max_albedo, max_inclusive=None):
+    """Subsets examples by albedo.
+
+    :param prediction_dict: See doc for `write_file`.
+    :param min_albedo: Minimum albedo (unitless).
+    :param max_albedo: Max albedo (unitless).
+    :param max_inclusive: Boolean flag.  If True (False), `max_albedo` will be
+        included in subset.
+    :return: prediction_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_geq(min_albedo, 0.)
+    error_checking.assert_is_leq(max_albedo, 1.)
+    error_checking.assert_is_greater(max_albedo, min_albedo)
+
+    if max_inclusive is None:
+        max_inclusive = max_albedo == 1.
+
+    error_checking.assert_is_boolean(max_inclusive)
+
+    all_albedos = example_utils.parse_example_ids(
+        prediction_dict[EXAMPLE_IDS_KEY]
+    )[example_utils.ALBEDOS_KEY]
+
+    min_flags = all_albedos >= min_albedo
+
+    if max_inclusive:
+        max_flags = all_albedos <= max_albedo
+    else:
+        max_flags = all_albedos < max_albedo
+
+    desired_indices = numpy.where(numpy.logical_and(min_flags, max_flags))[0]
+    return subset_by_index(
+        prediction_dict=prediction_dict, desired_indices=desired_indices
+    )
 
 
 def subset_by_month(prediction_dict, desired_month):
@@ -686,19 +727,10 @@ def subset_by_month(prediction_dict, desired_month):
         for t in all_times_unix_sec
     ], dtype=int)
 
-    good_indices = numpy.where(all_months == desired_month)[0]
-
-    for this_key in ONE_PER_EXAMPLE_KEYS:
-        if isinstance(prediction_dict[this_key], list):
-            prediction_dict[this_key] = [
-                prediction_dict[this_key][k] for k in good_indices
-            ]
-        else:
-            prediction_dict[this_key] = (
-                prediction_dict[this_key][good_indices, ...]
-            )
-
-    return prediction_dict
+    desired_indices = numpy.where(all_months == desired_month)[0]
+    return subset_by_index(
+        prediction_dict=prediction_dict, desired_indices=desired_indices
+    )
 
 
 def subset_by_index(prediction_dict, desired_indices):

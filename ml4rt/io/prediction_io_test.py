@@ -68,11 +68,11 @@ VECTOR_PREDICTION_MATRIX = numpy.stack(
 )
 
 DUMMY_SCALAR_PREDICTOR_MATRIX = numpy.array([
-    [0, 1, 0.5],
-    [2, 3, 0.6],
-    [4, 5, 0.7],
-    [6, 7, 0.8],
-    [8, 9, 0.9]
+    [0, 1, 0, 0.5],
+    [2, 3, 0.25, 0.6],
+    [4, 5, 0.5, 0.7],
+    [6, 7, 0.75, 0.8],
+    [8, 9, 1, 0.9]
 ])
 
 DUMMY_STANDARD_ATMO_ENUMS = numpy.array([
@@ -93,7 +93,7 @@ DUMMY_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
 DUMMY_EXAMPLE_DICT = {
     example_utils.SCALAR_PREDICTOR_NAMES_KEY: [
         example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
-        example_utils.ZENITH_ANGLE_NAME
+        example_utils.ALBEDO_NAME, example_utils.ZENITH_ANGLE_NAME
     ],
     example_utils.SCALAR_PREDICTOR_VALS_KEY: DUMMY_SCALAR_PREDICTOR_MATRIX,
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: [example_utils.TEMPERATURE_NAME],
@@ -162,6 +162,28 @@ PREDICTION_DICT_SUBSET_BY_ANGLE = {
     ]
 }
 
+# The following constants are used to test subset_by_albedo.
+MIN_ALBEDO = 0.5
+MAX_ALBEDO = 1
+THESE_INDICES = numpy.array([2, 3, 4], dtype=int)
+
+PREDICTION_DICT_SUBSET_BY_ALBEDO = {
+    prediction_io.SCALAR_TARGETS_KEY:
+        SCALAR_TARGET_MATRIX[THESE_INDICES, ...],
+    prediction_io.SCALAR_PREDICTIONS_KEY:
+        SCALAR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.VECTOR_TARGETS_KEY:
+        VECTOR_TARGET_MATRIX[THESE_INDICES, ...],
+    prediction_io.VECTOR_PREDICTIONS_KEY:
+        VECTOR_PREDICTION_MATRIX[THESE_INDICES, ...],
+    prediction_io.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    prediction_io.MODEL_FILE_KEY: MODEL_FILE_NAME,
+    prediction_io.ISOTONIC_MODEL_FILE_KEY: ISOTONIC_MODEL_FILE_NAME,
+    prediction_io.EXAMPLE_IDS_KEY: [
+        EXAMPLE_ID_STRINGS[k] for k in THESE_INDICES
+    ]
+}
+
 # The following constants are used to test subset_by_month.
 DESIRED_MONTH = 11
 THESE_INDICES = numpy.array([1], dtype=int)
@@ -213,6 +235,7 @@ DIRECTORY_NAME = 'foo'
 GRID_ROW = 0
 GRID_COLUMN = 666
 ZENITH_ANGLE_BIN = 99
+ALBEDO_BIN = 1
 FILE_MONTH = 12
 
 FILE_NAME_DEFAULT = 'foo/predictions.nc'
@@ -220,10 +243,12 @@ FILE_NAME_SPATIAL = (
     'foo/grid-row=000/predictions_grid-row=000_grid-column=666.nc'
 )
 FILE_NAME_ANGULAR = 'foo/predictions_zenith-angle-bin=099.nc'
+FILE_NAME_ALBEDO = 'foo/predictions_albedo-bin=001.nc'
 FILE_NAME_MONTHLY = 'foo/predictions_month=12.nc'
 
 METADATA_DICT_DEFAULT = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.ALBEDO_BIN_KEY: None,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
@@ -231,6 +256,7 @@ METADATA_DICT_DEFAULT = {
 
 METADATA_DICT_SPATIAL = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.ALBEDO_BIN_KEY: None,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: 0,
     prediction_io.GRID_COLUMN_KEY: 666
@@ -238,6 +264,15 @@ METADATA_DICT_SPATIAL = {
 
 METADATA_DICT_ANGULAR = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: 99,
+    prediction_io.ALBEDO_BIN_KEY: None,
+    prediction_io.MONTH_KEY: None,
+    prediction_io.GRID_ROW_KEY: None,
+    prediction_io.GRID_COLUMN_KEY: None
+}
+
+METADATA_DICT_ALBEDO = {
+    prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.ALBEDO_BIN_KEY: 1,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
@@ -245,6 +280,7 @@ METADATA_DICT_ANGULAR = {
 
 METADATA_DICT_MONTHLY = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
+    prediction_io.ALBEDO_BIN_KEY: None,
     prediction_io.MONTH_KEY: 12,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
@@ -332,6 +368,17 @@ class PredictionIoTests(unittest.TestCase):
             this_prediction_dict, PREDICTION_DICT_SUBSET_BY_ANGLE
         ))
 
+    def test_subset_by_albedo(self):
+        """Ensures correct output from subset_by_albedo."""
+
+        this_prediction_dict = prediction_io.subset_by_albedo(
+            prediction_dict=copy.deepcopy(PREDICTION_DICT),
+            min_albedo=MIN_ALBEDO, max_albedo=MAX_ALBEDO
+        )
+        self.assertTrue(_compare_prediction_dicts(
+            this_prediction_dict, PREDICTION_DICT_SUBSET_BY_ALBEDO
+        ))
+
     def test_subset_by_month(self):
         """Ensures correct output from subset_by_month."""
 
@@ -378,6 +425,18 @@ class PredictionIoTests(unittest.TestCase):
         )
         self.assertTrue(this_file_name == FILE_NAME_ANGULAR)
 
+    def test_find_file_albedo(self):
+        """Ensures correct output from find_file.
+
+        In this case, splitting by albedo.
+        """
+
+        this_file_name = prediction_io.find_file(
+            directory_name=DIRECTORY_NAME, albedo_bin=ALBEDO_BIN,
+            raise_error_if_missing=False
+        )
+        self.assertTrue(this_file_name == FILE_NAME_ALBEDO)
+
     def test_find_file_monthly(self):
         """Ensures correct output from find_file.
 
@@ -422,6 +481,17 @@ class PredictionIoTests(unittest.TestCase):
             FILE_NAME_ANGULAR
         )
         self.assertTrue(this_metadata_dict == METADATA_DICT_ANGULAR)
+
+    def test_file_name_to_metadata_albedo(self):
+        """Ensures correct output from file_name_to_metadata.
+
+        In this case, splitting by albedo.
+        """
+
+        this_metadata_dict = prediction_io.file_name_to_metadata(
+            FILE_NAME_ALBEDO
+        )
+        self.assertTrue(this_metadata_dict == METADATA_DICT_ALBEDO)
 
     def test_file_name_to_metadata_monthly(self):
         """Ensures correct output from file_name_to_metadata.

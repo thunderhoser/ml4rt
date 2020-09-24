@@ -488,16 +488,17 @@ FIRST_EXAMPLE_DICT_AVERAGE = {
 
 # The following constants are used to test create_example_ids and
 # parse_example_ids.
-LATITUDES_FOR_IDS_DEG_N = numpy.array([40, 40.04, 53.5, 40.0381113])
-LONGITUDES_FOR_IDS_DEG_E = numpy.array([255, 254.74, 246.5, 254.7440276])
-ZENITH_ANGLES_FOR_IDS_RAD = numpy.array([0.5, 0.666, 0.7777777, 1])
-TEMPERATURES_FOR_IDS_KELVINS = numpy.array([230, 240, 250, 260], dtype=float)
+LATITUDES_FOR_ID_DEG_N = numpy.array([40, 40.04, 53.5, 40.0381113])
+LONGITUDES_FOR_ID_DEG_E = numpy.array([255, 254.74, 246.5, 254.7440276])
+ZENITH_ANGLES_FOR_ID_RAD = numpy.array([0.5, 0.666, 0.7777777, 1])
+ALBEDOS_FOR_ID = numpy.array([0.25, 0.5, 0.75, 1])
+TEMPERATURES_FOR_ID_KELVINS = numpy.array([230, 240, 250, 260], dtype=float)
 
-TIMES_FOR_IDS_UNIX_SEC = numpy.array([
+TIMES_FOR_ID_UNIX_SEC = numpy.array([
     0, int(1e7), int(1e8), int(1e9)
 ], dtype=int)
 
-STANDARD_ATMO_FLAGS_FOR_IDS = numpy.array([
+STANDARD_ATMO_FLAGS_FOR_ID = numpy.array([
     example_utils.MIDLATITUDE_WINTER_ENUM,
     example_utils.MIDLATITUDE_WINTER_ENUM,
     example_utils.SUBARCTIC_WINTER_ENUM,
@@ -505,44 +506,49 @@ STANDARD_ATMO_FLAGS_FOR_IDS = numpy.array([
 ], dtype=int)
 
 THIS_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack((
-    LATITUDES_FOR_IDS_DEG_N, LONGITUDES_FOR_IDS_DEG_E, ZENITH_ANGLES_FOR_IDS_RAD
+    LATITUDES_FOR_ID_DEG_N, LONGITUDES_FOR_ID_DEG_E, ALBEDOS_FOR_ID,
+    ZENITH_ANGLES_FOR_ID_RAD
 )))
 
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
-    TEMPERATURES_FOR_IDS_KELVINS, axis=-1
+    TEMPERATURES_FOR_ID_KELVINS, axis=-1
 )
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
     THIS_VECTOR_PREDICTOR_MATRIX, axis=-1
 )
 
-EXAMPLE_DICT_FOR_IDS = {
+EXAMPLE_DICT_FOR_ID = {
     example_utils.SCALAR_PREDICTOR_NAMES_KEY: [
         example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
-        example_utils.ZENITH_ANGLE_NAME
+        example_utils.ALBEDO_NAME, example_utils.ZENITH_ANGLE_NAME
     ],
     example_utils.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: [example_utils.TEMPERATURE_NAME],
     example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
     example_utils.HEIGHTS_KEY: numpy.array([10.]),
-    example_utils.VALID_TIMES_KEY: TIMES_FOR_IDS_UNIX_SEC,
-    example_utils.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS_FOR_IDS
+    example_utils.VALID_TIMES_KEY: TIMES_FOR_ID_UNIX_SEC,
+    example_utils.STANDARD_ATMO_FLAGS_KEY: STANDARD_ATMO_FLAGS_FOR_ID
 }
 
 EXAMPLE_ID_STRINGS = [
     'lat=40.000000_long=255.000000_zenith-angle-rad=0.500000_'
-    'time=0000000000_atmo={0:d}_temp-10m-kelvins=230.000000'.format(
+    'time=0000000000_atmo={0:d}_albedo=0.250000_'
+    'temp-10m-kelvins=230.000000'.format(
         example_utils.MIDLATITUDE_WINTER_ENUM
     ),
     'lat=40.040000_long=254.740000_zenith-angle-rad=0.666000_'
-    'time=0010000000_atmo={0:d}_temp-10m-kelvins=240.000000'.format(
+    'time=0010000000_atmo={0:d}_albedo=0.500000_'
+    'temp-10m-kelvins=240.000000'.format(
         example_utils.MIDLATITUDE_WINTER_ENUM
     ),
     'lat=53.500000_long=246.500000_zenith-angle-rad=0.777778_'
-    'time=0100000000_atmo={0:d}_temp-10m-kelvins=250.000000'.format(
+    'time=0100000000_atmo={0:d}_albedo=0.750000_'
+    'temp-10m-kelvins=250.000000'.format(
         example_utils.SUBARCTIC_WINTER_ENUM
     ),
     'lat=40.038111_long=254.744028_zenith-angle-rad=1.000000_'
-    'time=1000000000_atmo={0:d}_temp-10m-kelvins=260.000000'.format(
+    'time=1000000000_atmo={0:d}_albedo=1.000000_'
+    'temp-10m-kelvins=260.000000'.format(
         example_utils.MIDLATITUDE_WINTER_ENUM
     )
 ]
@@ -1130,7 +1136,7 @@ class ExampleUtilsTests(unittest.TestCase):
         """Ensures correct output from create_example_ids."""
 
         these_id_strings = example_utils.create_example_ids(
-            EXAMPLE_DICT_FOR_IDS
+            EXAMPLE_DICT_FOR_ID
         )
         self.assertTrue(these_id_strings == EXAMPLE_ID_STRINGS)
 
@@ -1140,6 +1146,7 @@ class ExampleUtilsTests(unittest.TestCase):
         metadata_dict = example_utils.parse_example_ids(EXAMPLE_ID_STRINGS)
         these_latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
         these_longitudes_deg_e = metadata_dict[example_utils.LONGITUDES_KEY]
+        these_albedos = metadata_dict[example_utils.ALBEDOS_KEY]
         these_zenith_angles_rad = metadata_dict[example_utils.ZENITH_ANGLES_KEY]
         these_times_unix_sec = metadata_dict[example_utils.VALID_TIMES_KEY]
         these_standard_atmo_flags = (
@@ -1150,22 +1157,25 @@ class ExampleUtilsTests(unittest.TestCase):
         )
 
         self.assertTrue(numpy.allclose(
-            these_latitudes_deg_n, LATITUDES_FOR_IDS_DEG_N, atol=TOLERANCE
+            these_latitudes_deg_n, LATITUDES_FOR_ID_DEG_N, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            these_longitudes_deg_e, LONGITUDES_FOR_IDS_DEG_E, atol=TOLERANCE
+            these_longitudes_deg_e, LONGITUDES_FOR_ID_DEG_E, atol=TOLERANCE
         ))
         self.assertTrue(numpy.allclose(
-            these_zenith_angles_rad, ZENITH_ANGLES_FOR_IDS_RAD, atol=TOLERANCE
+            these_albedos, ALBEDOS_FOR_ID, atol=TOLERANCE
+        ))
+        self.assertTrue(numpy.allclose(
+            these_zenith_angles_rad, ZENITH_ANGLES_FOR_ID_RAD, atol=TOLERANCE
         ))
         self.assertTrue(numpy.array_equal(
-            these_times_unix_sec, TIMES_FOR_IDS_UNIX_SEC
+            these_times_unix_sec, TIMES_FOR_ID_UNIX_SEC
         ))
         self.assertTrue(numpy.array_equal(
-            these_standard_atmo_flags, STANDARD_ATMO_FLAGS_FOR_IDS
+            these_standard_atmo_flags, STANDARD_ATMO_FLAGS_FOR_ID
         ))
         self.assertTrue(numpy.allclose(
-            these_10m_temps_kelvins, TEMPERATURES_FOR_IDS_KELVINS,
+            these_10m_temps_kelvins, TEMPERATURES_FOR_ID_KELVINS,
             atol=TOLERANCE
         ))
 

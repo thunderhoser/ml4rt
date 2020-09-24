@@ -94,6 +94,9 @@ def _run(input_file_name, top_output_dir_name):
         example_metadata_dict[example_utils.LONGITUDES_KEY],
         LATLNG_TOLERANCE_DEG
     )
+    example_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+        example_longitudes_deg_e
+    )
 
     num_examples = len(example_latitudes_deg_n)
     example_written_flags = numpy.full(num_examples, False, dtype=bool)
