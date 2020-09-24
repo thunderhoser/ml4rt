@@ -1,8 +1,8 @@
 """Helper methods for learning examples."""
 
+import os
 import sys
 import copy
-import os.path
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -19,6 +19,8 @@ GRAVITY_CONSTANT_M_S02 = 9.8066
 DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 1004.
 # GRAVITY_CONSTANT_M_S02 = 9.80665
 # DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
+
+DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
 DEFAULT_HEIGHTS_M_AGL = numpy.array([
     10, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 350,
@@ -45,6 +47,7 @@ EXAMPLE_IDS_KEY = 'example_id_strings'
 LATITUDES_KEY = 'latitudes_deg_n'
 LONGITUDES_KEY = 'longitudes_deg_e'
 ZENITH_ANGLES_KEY = 'zenith_angles_rad'
+ALBEDOS_KEY = 'albedos'
 TEMPERATURES_10M_KEY = 'temperatures_10m_kelvins'
 
 DICTIONARY_KEYS = [
@@ -770,6 +773,9 @@ def create_example_ids(example_dict):
     zenith_angles_rad = get_field_from_dict(
         example_dict=example_dict, field_name=ZENITH_ANGLE_NAME
     )
+    albedos = get_field_from_dict(
+        example_dict=example_dict, field_name=ALBEDO_NAME
+    )
     valid_times_unix_sec = example_dict[VALID_TIMES_KEY]
     standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
 
@@ -779,13 +785,15 @@ def create_example_ids(example_dict):
 
     return [
         'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_' \
-        'time={3:010d}_atmo={4:1d}_temp-10m-kelvins={5:010.6f}'.format(
-            lat, long, theta, t, f, t10
+        'time={3:010d}_atmo={4:1d}_albedo={5:.6f}_' \
+        'temp-10m-kelvins={6:010.6f}'.format(
+            lat, long, theta, t, f, alpha, t10
         )
-        for lat, long, theta, t, f, t10 in
+        for lat, long, theta, t, f, alpha, t10 in
         zip(
             latitudes_deg_n, longitudes_deg_e, zenith_angles_rad,
-            valid_times_unix_sec, standard_atmo_flags, temperatures_10m_kelvins
+            valid_times_unix_sec, standard_atmo_flags, albedos,
+            temperatures_10m_kelvins
         )
     ]
 
@@ -798,9 +806,9 @@ def get_dummy_example_id():
 
     return (
         'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_'
-        'time={3:010d}_atmo={4:1d}_temp-10m-kelvins={5:010.6f}'
+        'time={3:010d}_atmo={4:1d}_albedo={5:.6f}_temp-10m-kelvins={6:010.6f}'
     ).format(
-        0, 0, 0, 0, 0, 0
+        0, 0, 0, 0, 0, 0, 0
     )
 
 
@@ -819,6 +827,7 @@ def parse_example_ids(example_id_strings):
     metadata_dict['valid_times_unix_sec']: length-E numpy array of valid times.
     metadata_dict['standard_atmo_flags']: length-E numpy array of standard-
         atmosphere flags (integers).
+    metadata_dict['albedos']: length-E numpy array of albedos (unitless).
     metadata_dict['temperatures_10m_kelvins']: length-E numpy array of
         temperatures at 10 m above ground level.
     """
@@ -833,6 +842,7 @@ def parse_example_ids(example_id_strings):
     zenith_angles_rad = numpy.full(num_examples, numpy.nan)
     valid_times_unix_sec = numpy.full(num_examples, -1, dtype=int)
     standard_atmo_flags = numpy.full(num_examples, -1, dtype=int)
+    albedos = numpy.full(num_examples, numpy.nan)
     temperatures_10m_kelvins = numpy.full(num_examples, numpy.nan)
 
     for i in range(num_examples):
@@ -855,9 +865,12 @@ def parse_example_ids(example_id_strings):
         assert these_words[4].startswith('atmo=')
         standard_atmo_flags[i] = int(these_words[4].replace('atmo=', ''))
 
-        assert these_words[5].startswith('temp-10m-kelvins=')
+        assert these_words[5].startswith('albedo=')
+        albedos[i] = float(these_words[5].replace('albedo=', ''))
+
+        assert these_words[6].startswith('temp-10m-kelvins=')
         temperatures_10m_kelvins[i] = float(
-            these_words[5].replace('temp-10m-kelvins=', '')
+            these_words[6].replace('temp-10m-kelvins=', '')
         )
 
     return {
@@ -866,6 +879,7 @@ def parse_example_ids(example_id_strings):
         ZENITH_ANGLES_KEY: zenith_angles_rad,
         VALID_TIMES_KEY: valid_times_unix_sec,
         STANDARD_ATMO_FLAGS_KEY: standard_atmo_flags,
+        ALBEDOS_KEY: albedos,
         TEMPERATURES_10M_KEY: temperatures_10m_kelvins
     }
 
