@@ -29,7 +29,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data"
 set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/with_new_data/new_ids"
 
-python3 -u "${CODE_DIR_NAME}/delete_unused_models_exp4.py" \
+python3 -u "${CODE_DIR_NAME}/add_example_ids_to_files.py" \
 --input_example_dir_name="${INPUT_EXAMPLE_DIR_NAME}" \
 --first_year=2017 \
 --last_year=2020 \
@@ -38,7 +38,7 @@ python3 -u "${CODE_DIR_NAME}/delete_unused_models_exp4.py" \
 set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/new_locations"
 set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/new_locations/new_ids"
 
-python3 -u "${CODE_DIR_NAME}/delete_unused_models_exp4.py" \
+python3 -u "${CODE_DIR_NAME}/add_example_ids_to_files.py" \
 --input_example_dir_name="${INPUT_EXAMPLE_DIR_NAME}" \
 --first_year=2017 \
 --last_year=2020 \
