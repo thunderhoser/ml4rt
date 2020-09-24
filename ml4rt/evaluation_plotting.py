@@ -1,7 +1,7 @@
 """Plotting methods for model evaluation."""
 
+import os
 import sys
-import os.path
 import numpy
 import matplotlib
 matplotlib.use('agg')
@@ -29,9 +29,10 @@ MAE_NAME = 'mean_absolute_error'
 MAE_SKILL_SCORE_NAME = 'mae_skill_score'
 BIAS_NAME = 'bias'
 CORRELATION_NAME = 'correlation'
+KGE_NAME = 'kge'
 VALID_SCORE_NAMES = [
     MSE_NAME, MSE_SKILL_SCORE_NAME, MAE_NAME, MAE_SKILL_SCORE_NAME,
-    BIAS_NAME, CORRELATION_NAME
+    BIAS_NAME, CORRELATION_NAME, KGE_NAME
 ]
 
 RELIABILITY_LINE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -531,7 +532,7 @@ def plot_score_profile(
 
     skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
     possibly_negative_score_names = (
-        skill_score_names + [BIAS_NAME, CORRELATION_NAME]
+        skill_score_names + [BIAS_NAME, CORRELATION_NAME, KGE_NAME]
     )
 
     if score_name in possibly_negative_score_names:

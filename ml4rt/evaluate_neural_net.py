@@ -1,7 +1,7 @@
 """Evaluates trained neural net."""
 
+import os
 import sys
-import os.path
 import argparse
 import numpy
 
@@ -74,7 +74,7 @@ def _run(prediction_file_name, output_dir_name):
             'Variable = "{0:s}" ... stdev of target and predicted values = '
             '{1:f}, {2:f} ... MSE and skill score = {3:f}, {4:f} ... '
             'MAE and skill score = {5:f}, {6:f} ... bias = {7:f} ... '
-            'correlation = {8:f}'
+            'correlation = {8:f} ... KGE = {9:f}'
         ).format(
             scalar_target_names[k],
             result_table_xarray[evaluation.SCALAR_TARGET_STDEV_KEY].values[k],
@@ -86,7 +86,8 @@ def _run(prediction_file_name, output_dir_name):
             result_table_xarray[evaluation.SCALAR_MAE_KEY].values[k],
             result_table_xarray[evaluation.SCALAR_MAE_SKILL_KEY].values[k],
             result_table_xarray[evaluation.SCALAR_BIAS_KEY].values[k],
-            result_table_xarray[evaluation.SCALAR_CORRELATION_KEY].values[k]
+            result_table_xarray[evaluation.SCALAR_CORRELATION_KEY].values[k],
+            result_table_xarray[evaluation.SCALAR_KGE_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
@@ -111,7 +112,7 @@ def _run(prediction_file_name, output_dir_name):
                 'stdev of target and predicted values = {2:f}, {3:f} ... '
                 'MSE and skill score = {4:f}, {5:f} ... '
                 'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
-                'correlation = {9:f}'
+                'correlation = {9:f} ... KGE = {10:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
                 result_table_xarray[
@@ -131,7 +132,8 @@ def _run(prediction_file_name, output_dir_name):
                 result_table_xarray[evaluation.VECTOR_BIAS_KEY].values[j, k],
                 result_table_xarray[
                     evaluation.VECTOR_CORRELATION_KEY
-                ].values[j, k]
+                ].values[j, k],
+                result_table_xarray[evaluation.VECTOR_KGE_KEY].values[j, k]
             ))
 
         print(SEPARATOR_STRING)
@@ -154,7 +156,7 @@ def _run(prediction_file_name, output_dir_name):
             'stdev of target and predicted values = {2:f}, {3:f} ... '
             'MSE and skill score = {4:f}, {5:f} ... '
             'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
-            'correlation = {9:f}'
+            'correlation = {9:f} ... KGE = {10:f}'
         ).format(
             aux_target_field_names[k], aux_predicted_field_names[k],
             result_table_xarray[evaluation.AUX_TARGET_STDEV_KEY].values[k],
@@ -164,7 +166,8 @@ def _run(prediction_file_name, output_dir_name):
             result_table_xarray[evaluation.AUX_MAE_KEY].values[k],
             result_table_xarray[evaluation.AUX_MAE_SKILL_KEY].values[k],
             result_table_xarray[evaluation.AUX_BIAS_KEY].values[k],
-            result_table_xarray[evaluation.AUX_CORRELATION_KEY].values[k]
+            result_table_xarray[evaluation.AUX_CORRELATION_KEY].values[k],
+            result_table_xarray[evaluation.AUX_KGE_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)

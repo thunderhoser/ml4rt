@@ -1,7 +1,7 @@
 """Plots model evaluation."""
 
+import os
 import sys
-import os.path
 import argparse
 import numpy
 import xarray
@@ -32,7 +32,8 @@ SCORE_NAME_TO_VERBOSE = {
     evaluation_plotting.MAE_NAME: 'Mean absolute error',
     evaluation_plotting.MAE_SKILL_SCORE_NAME: 'MAE skill score',
     evaluation_plotting.BIAS_NAME: 'Bias',
-    evaluation_plotting.CORRELATION_NAME: 'Correlation'
+    evaluation_plotting.CORRELATION_NAME: 'Correlation',
+    evaluation_plotting.KGE_NAME: 'Kling-Gupta efficiency'
 }
 
 SCORE_NAME_TO_PROFILE_KEY = {
@@ -41,7 +42,8 @@ SCORE_NAME_TO_PROFILE_KEY = {
     evaluation_plotting.MAE_NAME: evaluation.VECTOR_MAE_KEY,
     evaluation_plotting.MAE_SKILL_SCORE_NAME: evaluation.VECTOR_MAE_SKILL_KEY,
     evaluation_plotting.BIAS_NAME: evaluation.VECTOR_BIAS_KEY,
-    evaluation_plotting.CORRELATION_NAME: evaluation.VECTOR_CORRELATION_KEY
+    evaluation_plotting.CORRELATION_NAME: evaluation.VECTOR_CORRELATION_KEY,
+    evaluation_plotting.KGE_NAME: evaluation.VECTOR_KGE_KEY
 }
 
 ORIG_UNIT_SCORE_NAMES = [
