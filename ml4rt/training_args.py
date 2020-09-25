@@ -33,8 +33,7 @@ DEFAULT_NORM_FILE_NAME = '{0:s}/learning_examples_20170101-20181224.nc'.format(
 )
 
 DEFAULT_PREDICTOR_NAMES = example_utils.ALL_VECTOR_PREDICTOR_NAMES + [
-    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
-    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME
 ]
 
 NET_TYPE_TO_DEFAULT_HEIGHTS_M_AGL = {
