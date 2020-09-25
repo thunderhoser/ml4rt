@@ -49,7 +49,7 @@ set site_names_verbose=("Azores" "Villum_GL" "Summit_GL" "Alert_NU" "Pallas_RU" 
 
 set i=1
 
-while ($i <= ${#${evaluation_file_names})
+while ($i <= ${#evaluation_file_names})
     python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
     --input_eval_file_names "${evaluation_file_names[$i]}" \
     --line_styles "solid" \
