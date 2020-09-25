@@ -33,7 +33,7 @@ SITE_NAME_TO_LATLNG = {
     'barrow_ak_ocean': numpy.array([71.4970, -157.0623]),
     'lamont_ok': numpy.array([36.6053, -97.4857]),
     'azores_arm_site': numpy.array([39.0827, -28.0923]),
-    'villum_greenland_land': numpy.array([81.4876, -16.1932]),
+    'villum_greenland_land': numpy.array([81.4876, -16.1931]),
     'summit_greenland_land': numpy.array([72.5790, -38.3127]),
     'alert_nu_land': numpy.array([82.4291, -61.9947]),
     'yopp_arctic_ocean_site3': numpy.array([81.0731, -134.8826]),
@@ -160,17 +160,17 @@ def _run(input_file_name, top_output_dir_name):
     if numpy.all(example_written_flags):
         return
 
-    bad_latitudes_deg_n = (
-        example_latitudes_deg_n[example_written_flags == False]
-    )
-    bad_longitudes_deg_e = (
-        example_longitudes_deg_e[example_written_flags == False]
-    )
-    bad_coord_matrix = numpy.transpose(numpy.vstack((
-        bad_latitudes_deg_n, bad_longitudes_deg_e
-    )))
-    bad_coord_matrix = numpy.unique(bad_coord_matrix, axis=0)
-    print(bad_coord_matrix)
+    # bad_latitudes_deg_n = (
+    #     example_latitudes_deg_n[example_written_flags == False]
+    # )
+    # bad_longitudes_deg_e = (
+    #     example_longitudes_deg_e[example_written_flags == False]
+    # )
+    # bad_coord_matrix = numpy.transpose(numpy.vstack((
+    #     bad_latitudes_deg_n, bad_longitudes_deg_e
+    # )))
+    # bad_coord_matrix = numpy.unique(bad_coord_matrix, axis=0)
+    # print(bad_coord_matrix)
 
     error_string = (
         '{0:d} of {1:d} examples could not be assigned to a site.  This is a '
