@@ -54,6 +54,7 @@ def _run(prediction_file_name, output_dir_name):
     output_file_name = evaluation.find_file(
         directory_name=output_dir_name,
         zenith_angle_bin=file_metadata_dict[prediction_io.ZENITH_ANGLE_BIN_KEY],
+        albedo_bin=file_metadata_dict[prediction_io.ALBEDO_BIN_KEY],
         month=file_metadata_dict[prediction_io.MONTH_KEY],
         grid_row=file_metadata_dict[prediction_io.GRID_ROW_KEY],
         grid_column=file_metadata_dict[prediction_io.GRID_COLUMN_KEY],
