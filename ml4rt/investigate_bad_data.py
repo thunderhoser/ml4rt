@@ -37,7 +37,12 @@ def _run():
         these_heating_rates_k_day01 = numpy.sort(numpy.ravel(
             these_heating_rates_k_day01
         ))
-        print(these_heating_rates_k_day01)
+        these_heating_rates_k_day01 = these_heating_rates_k_day01[::-1]
+
+        for i in range(100):
+            print(these_heating_rates_k_day01[i])
+
+        print('\n\n\n*********\n\n\n')
 
 
 if __name__ == '__main__':
