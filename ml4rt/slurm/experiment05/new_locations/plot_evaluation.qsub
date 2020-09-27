@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="evaluate_neural_nets"
+#SBATCH --job-name="plot_evaluation"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -14,7 +14,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=evaluate_neural_nets_%A_%a.out
+#SBATCH --output=plot_evaluation_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -41,8 +41,14 @@ set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set prediction_file_name="${model_dir_name}/validation_new_locations/predictions.nc"
-set validation_dir_name="${model_dir_name}/validation_new_locations"
+set evaluation_dir_name="${model_dir_name}/validation_new_locations/evaluation"
+set evaluation_file_name="${evaluation_dir_name}.nc"
 
-python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
---input_prediction_file_name="${prediction_file_name}" \
---output_dir_name="${validation_dir_name}"
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${evaluation_file_name}" \
+--line_styles "solid" \
+--line_colours "217_95_2" \
+--line_legend_strings "New_model" \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${evaluation_dir_name}"
