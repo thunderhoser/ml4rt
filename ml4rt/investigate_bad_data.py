@@ -12,7 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import example_io
 import example_utils
 
-HOME_DIR_NAME = os.path.expanduser('~')
+HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 EXAMPLE_DIR_NAME = '{0:s}/ml4rt_project/examples/new_locations'.format(
     HOME_DIR_NAME
 )
