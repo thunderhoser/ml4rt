@@ -12,7 +12,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
-import number_rounding
+import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
 import example_utils
@@ -207,18 +207,16 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     # TODO(thunderhoser): This is a HACK to deal with potentially bad data.
     if exclude_summit_greenland:
         metadata_dict = example_utils.parse_example_ids(example_id_strings)
-        latitudes_deg_n = number_rounding.round_to_nearest(
-            metadata_dict[example_utils.LATITUDES_KEY], 1e-4
-        )
-        longitudes_deg_e = number_rounding.round_to_nearest(
-            metadata_dict[example_utils.LONGITUDES_KEY], 1e-4
+        latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
+        longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+            metadata_dict[example_utils.LONGITUDES_KEY]
         )
 
-        good_indices = numpy.where(numpy.invert(numpy.logical_and(
-            latitudes_deg_n == SUMMIT_LATITUDE_DEG_N,
-            longitudes_deg_e == SUMMIT_LONGITUDE_DEG_E
-        )))[0]
-
+        bad_flags = numpy.logical_and(
+            numpy.isclose(latitudes_deg_n, SUMMIT_LATITUDE_DEG_N, atol=1e-4),
+            numpy.isclose(longitudes_deg_e, SUMMIT_LONGITUDE_DEG_E, atol=1e-4)
+        )
+        good_indices = numpy.where(numpy.invert(bad_flags))[0]
         indices_to_read = indices_to_read[good_indices]
 
         warning_string = (
