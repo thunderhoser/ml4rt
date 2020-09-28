@@ -1,12 +1,17 @@
 """Helper methods for learning examples."""
 
 import os.path
+import warnings
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
+
+SUMMIT_LATITUDE_DEG_N = 72.5790
+SUMMIT_LONGITUDE_DEG_E = 321.6873
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
@@ -116,8 +121,8 @@ def find_many_files(
     return example_file_names
 
 
-def read_file(netcdf_file_name, id_strings_to_read=None,
-              allow_missing_ids=False):
+def read_file(netcdf_file_name, exclude_summit_greenland=False,
+              id_strings_to_read=None, allow_missing_ids=False):
     """Reads learning examples from NetCDF file.
 
     E = number of examples
@@ -128,6 +133,8 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
     T_v = number of vector targets
 
     :param netcdf_file_name: Path to input file.
+    :param exclude_summit_greenland: Boolean flag.  If True, will not read data
+        from Summit, Greenland.
     :param id_strings_to_read: 1-D list of IDs for examples to read.  If None,
         will read all examples.
     :param allow_missing_ids: [used only if `id_strings_to_read is not None`]
@@ -163,12 +170,6 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
         netcdf_file_name = netcdf_file_name.replace(
-            '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist',
-            '/home/ryan.lagerquist'
-        )
-
-    if not os.path.isfile(netcdf_file_name):
-        netcdf_file_name = netcdf_file_name.replace(
             '/home/ryan.lagerquist', '/home/ralager'
         )
 
@@ -186,12 +187,41 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
             0, num_examples - 1, num=num_examples, dtype=int
         )
     else:
+        exclude_summit_greenland = False
+
         indices_to_read = example_utils.find_examples(
             all_id_strings=example_id_strings,
             desired_id_strings=id_strings_to_read,
             allow_missing=allow_missing_ids
         )
         indices_to_read = indices_to_read[indices_to_read >= 0]
+
+    error_checking.assert_is_boolean(exclude_summit_greenland)
+
+    # TODO(thunderhoser): This is a HACK to deal with potentially bad data.
+    if exclude_summit_greenland:
+        metadata_dict = example_utils.parse_example_ids(example_id_strings)
+        latitudes_deg_n = number_rounding.round_to_nearest(
+            metadata_dict[example_utils.LATITUDES_KEY], 1e-4
+        )
+        longitudes_deg_e = number_rounding.round_to_nearest(
+            metadata_dict[example_utils.LONGITUDES_KEY], 1e-4
+        )
+
+        good_indices = numpy.where(numpy.invert(numpy.logical_and(
+            latitudes_deg_n == SUMMIT_LATITUDE_DEG_N,
+            longitudes_deg_e == SUMMIT_LONGITUDE_DEG_E
+        )))[0]
+
+        indices_to_read = indices_to_read[good_indices]
+
+        warning_string = (
+            'Removing {0:d} of {1:d} examples (profiles), because they are at '
+            'Summit GL.'
+        ).format(
+            len(indices_to_read) - len(good_indices), len(indices_to_read)
+        )
+        warnings.warn(warning_string)
 
     example_dict = {
         example_utils.EXAMPLE_IDS_KEY:
@@ -237,6 +267,29 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
     )
 
     dataset_object.close()
+
+    # TODO(thunderhoser): This is a HACK for dealing with bad RRTM values.
+    heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
+    desired_indices = numpy.where(
+        numpy.all(heating_rate_matrix_k_day01 < 80., axis=1)
+    )[0]
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+
+    if len(desired_indices) != num_examples:
+        warning_string = (
+            'Removing {0:d} of {1:d} examples (profiles), because they have '
+            'heating rates > 80 K/day.'
+        ).format(num_examples - len(desired_indices), num_examples)
+
+        warnings.warn(warning_string)
+
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=desired_indices
+        )
+
     return example_dict
 
 

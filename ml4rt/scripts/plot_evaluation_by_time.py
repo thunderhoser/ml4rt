@@ -153,9 +153,13 @@ def _augment_eval_table(result_table_xarray):
 
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY:
-            result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values,
+            numpy.array(
+                result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values
+            ).tolist(),
         example_utils.VECTOR_TARGET_NAMES_KEY:
-            result_table_xarray.coords[evaluation.VECTOR_FIELD_DIM].values,
+            numpy.array(
+                result_table_xarray.coords[evaluation.VECTOR_FIELD_DIM].values
+            ).tolist(),
         example_utils.HEIGHTS_KEY:
             numpy.round(
                 result_table_xarray.coords[evaluation.HEIGHT_DIM].values
@@ -668,9 +672,9 @@ def _plot_all_scores_one_split(
     evaluation_tables_xarray = _read_files_one_split(evaluation_file_names)
     print(SEPARATOR_STRING)
 
-    scalar_field_names = (
+    scalar_field_names = numpy.array(
         evaluation_tables_xarray[0].coords[evaluation.SCALAR_FIELD_DIM].values
-    )
+    ).tolist()
     scalar_mae_matrix = numpy.vstack([
         t[evaluation.SCALAR_MAE_KEY].values for t in evaluation_tables_xarray
     ])
@@ -755,11 +759,11 @@ def _plot_all_scores_one_split(
     print(SEPARATOR_STRING)
 
     try:
-        aux_field_names = (
+        aux_field_names = numpy.array(
             evaluation_tables_xarray[0].coords[
                 evaluation.AUX_TARGET_FIELD_DIM
             ].values
-        )
+        ).tolist()
         aux_mae_matrix = numpy.vstack([
             t[evaluation.AUX_MAE_KEY].values for t in evaluation_tables_xarray
         ])
@@ -842,9 +846,9 @@ def _plot_all_scores_one_split(
 
     print(SEPARATOR_STRING)
 
-    vector_field_names = (
+    vector_field_names = numpy.array(
         evaluation_tables_xarray[0].coords[evaluation.VECTOR_FIELD_DIM].values
-    )
+    ).tolist()
     heights_m_agl = numpy.round(
         evaluation_tables_xarray[0].coords[evaluation.HEIGHT_DIM].values
     ).astype(int)
