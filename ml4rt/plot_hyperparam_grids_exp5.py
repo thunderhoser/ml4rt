@@ -44,6 +44,7 @@ FIGURE_RESOLUTION_DPI = 300
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
 ISOTONIC_FLAG_ARG_NAME = 'isotonic_flag'
 NEW_LOCATIONS_FLAG_ARG_NAME = 'new_locations_flag'
+EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 ISOTONIC_FLAG_HELP_STRING = (
@@ -52,6 +53,9 @@ ISOTONIC_FLAG_HELP_STRING = (
 NEW_LOCATIONS_FLAG_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot results on new (same) locations as '
     'training.'
+)
+EXCLUDE_SUMMIT_HELP_STRING = (
+    'Boolean flag.  If 1, will not apply to examples from Summit.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -66,6 +70,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NEW_LOCATIONS_FLAG_ARG_NAME, type=int, required=False, default=0,
     help=NEW_LOCATIONS_FLAG_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXCLUDE_SUMMIT_ARG_NAME, type=int, required=False, default=0,
+    help=EXCLUDE_SUMMIT_HELP_STRING
 )
 
 
@@ -131,13 +139,15 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag):
+def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag,
+                           exclude_summit_greenland):
     """Reads scores for one model.
 
     :param model_dir_name: Name of directory with trained model and evaluation
         data.
     :param isotonic_flag: See documentation at top of file.
     :param new_locations_flag: Same.
+    :param exclude_summit_greenland: Same.
     :return: prmse_k_day01: Profile root mean squared error (RMSE):
     :return: dwmse_k3_day03: Dual-weighted mean squared error.
     :return: down_flux_rmse_w_m02: RMSE for surface downwelling flux.
@@ -155,7 +165,8 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag):
     evaluation_file_name = '{0:s}/{1:s}validation{2:s}/evaluation.nc'.format(
         model_file_name[:-3],
         'isotonic_regression/' if isotonic_flag else '',
-        '_new_locations' if new_locations_flag else ''
+        '_new_loc_sans_summit/' if exclude_summit_greenland
+        else '_new_locations/' if new_locations_flag else ''
     )
 
     if not os.path.isfile(evaluation_file_name):
@@ -303,7 +314,8 @@ def _print_ranking_all_scores(
         ))
 
 
-def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
+def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
+         exclude_summit_greenland):
     """Plots scores on hyperparameter grid for Experiment 5.
 
     This is effectively the main method.
@@ -311,7 +323,10 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
     :param experiment_dir_name: See documentation at top of file.
     :param isotonic_flag: Same.
     :param new_locations_flag: Same.
+    :param exclude_summit_greenland: Same.
     """
+
+    exclude_summit_greenland = exclude_summit_greenland and new_locations_flag
 
     num_dense_layer_counts = len(DENSE_LAYER_COUNTS)
     num_dropout_rates = len(DENSE_LAYER_DROPOUT_RATES)
@@ -356,7 +371,8 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     isotonic_flag=isotonic_flag,
-                    new_locations_flag=new_locations_flag
+                    new_locations_flag=new_locations_flag,
+                    exclude_summit_greenland=exclude_summit_greenland
                 )
 
     print(SEPARATOR_STRING)
@@ -409,7 +425,8 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_prmse_grid.jpg'
         ).format(
             experiment_dir_name,
-            'new_locations/' if new_locations_flag else '',
+            'new_loc_sans_summit/' if exclude_summit_greenland
+            else 'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -442,7 +459,8 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_dwmse_grid.jpg'
         ).format(
             experiment_dir_name,
-            'new_locations/' if new_locations_flag else '',
+            'new_loc_sans_summit/' if exclude_summit_greenland
+            else 'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -473,7 +491,8 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_down_flux_rmse_grid.jpg'
         ).format(
             experiment_dir_name,
-            'new_locations/' if new_locations_flag else '',
+            'new_loc_sans_summit/' if exclude_summit_greenland
+            else 'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -502,7 +521,8 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag):
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_up_flux_rmse_grid.jpg'
         ).format(
             experiment_dir_name,
-            'new_locations/' if new_locations_flag else '',
+            'new_loc_sans_summit/' if exclude_summit_greenland
+            else 'new_locations/' if new_locations_flag else '',
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -523,5 +543,8 @@ if __name__ == '__main__':
         isotonic_flag=bool(getattr(INPUT_ARG_OBJECT, ISOTONIC_FLAG_ARG_NAME)),
         new_locations_flag=bool(getattr(
             INPUT_ARG_OBJECT, NEW_LOCATIONS_FLAG_ARG_NAME
-        ))
+        )),
+        exclude_summit_greenland=bool(getattr(
+            INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME
+        )),
     )
