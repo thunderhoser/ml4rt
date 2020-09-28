@@ -1,12 +1,13 @@
 """Methods for building, training, and applying neural nets."""
 
+import os
 import sys
 import copy
-import pickle
 import random
-import os.path
+import pickle
 import numpy
 import keras
+import tensorflow.keras as tf_keras
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -16,6 +17,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import time_conversion
 import file_system_utils
 import error_checking
+import cnn
 import example_io
 import example_utils
 import normalization
@@ -223,7 +225,8 @@ def _read_file_for_generator(
         predictor_min_norm_value, predictor_max_norm_value,
         vector_target_norm_type_string, vector_target_min_norm_value,
         vector_target_max_norm_value, scalar_target_norm_type_string,
-        scalar_target_min_norm_value, scalar_target_max_norm_value):
+        scalar_target_min_norm_value, scalar_target_max_norm_value,
+        exclude_summit_greenland=False):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -247,11 +250,16 @@ def _read_file_for_generator(
     :param scalar_target_norm_type_string: Same.
     :param scalar_target_min_norm_value: Same.
     :param scalar_target_max_norm_value: Same.
+    :param exclude_summit_greenland: Boolean flag.  If True, will exclude
+        examples from Summit.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
-    example_dict = example_io.read_file(example_file_name)
+    example_dict = example_io.read_file(
+        netcdf_file_name=example_file_name,
+        exclude_summit_greenland=exclude_summit_greenland
+    )
 
     example_dict = example_utils.subset_by_time(
         example_dict=example_dict,
@@ -457,16 +465,6 @@ def _write_metafile(
     :param plateau_lr_multiplier: Same.
     """
 
-    this_loss_arg = copy.deepcopy(loss_function_or_dict)
-
-    if isinstance(this_loss_arg, dict):
-        for this_key in this_loss_arg:
-            if callable(this_loss_arg[this_key]):
-                this_loss_arg[this_key] = str(this_loss_arg[this_key])
-    else:
-        if callable(this_loss_arg):
-            this_loss_arg = str(this_loss_arg)
-
     metadata_dict = {
         NUM_EPOCHS_KEY: num_epochs,
         NUM_TRAINING_BATCHES_KEY: num_training_batches_per_epoch,
@@ -474,7 +472,7 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         NET_TYPE_KEY: net_type_string,
-        LOSS_FUNCTION_OR_DICT_KEY: this_loss_arg,
+        LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
         EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier
     }
@@ -512,15 +510,13 @@ def determine_if_loss_constrained_mse(loss_function_or_dict):
     :return: is_loss_constrained_mse: Boolean flag.
     """
 
-    # if isinstance(loss_function_or_dict, dict):
-    #     loss_function_string = dill.dumps(loss_function_or_dict['conv_output'])
-    # else:
-    #     loss_function_string = dill.dumps(loss_function_or_dict)
-    #
-    # loss_function_string = ''.join(map(chr, loss_function_string))
-    # return 'toa_up_flux_index' in loss_function_string
+    if isinstance(loss_function_or_dict, dict):
+        loss_function_string = pickle.dumps(loss_function_or_dict['conv_output'])
+    else:
+        loss_function_string = pickle.dumps(loss_function_or_dict)
 
-    return False
+    loss_function_string = ''.join(map(chr, loss_function_string))
+    return 'toa_up_flux_index' in loss_function_string
 
 
 def predictors_dict_to_numpy(example_dict, net_type_string):
@@ -1339,7 +1335,7 @@ def data_generator(option_dict, for_inference, net_type_string,
 
 
 def create_data(option_dict, for_inference, net_type_string,
-                is_loss_constrained_mse=None):
+                is_loss_constrained_mse=None, exclude_summit_greenland=False):
     """Creates data for any kind of neural net.
 
     This method is the same as `data_generator`, except that it returns all the
@@ -1349,6 +1345,8 @@ def create_data(option_dict, for_inference, net_type_string,
     :param for_inference: Same.
     :param net_type_string: Same.
     :param is_loss_constrained_mse: Same.
+    :param exclude_summit_greenland: Boolean flag.  If True, will exclude
+        examples from Summit.
     :return: predictor_matrix: Same.
     :return: target_array: Same.
     :return: example_id_strings: Same.
@@ -1361,6 +1359,7 @@ def create_data(option_dict, for_inference, net_type_string,
         is_loss_constrained_mse = False
 
     error_checking.assert_is_boolean(is_loss_constrained_mse)
+    error_checking.assert_is_boolean(exclude_summit_greenland)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
@@ -1431,7 +1430,8 @@ def create_data(option_dict, for_inference, net_type_string,
             vector_target_max_norm_value=vector_target_max_norm_value,
             scalar_target_norm_type_string=scalar_target_norm_type_string,
             scalar_target_min_norm_value=scalar_target_min_norm_value,
-            scalar_target_max_norm_value=scalar_target_max_norm_value
+            scalar_target_max_norm_value=scalar_target_max_norm_value,
+            exclude_summit_greenland=exclude_summit_greenland
         )
 
         example_dicts.append(this_example_dict)
@@ -2039,7 +2039,7 @@ def read_model(hdf5_file_name):
     error_checking.assert_file_exists(hdf5_file_name)
 
     try:
-        return keras.models.load_model(
+        return tf_keras.models.load_model(
             hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
         )
     except ValueError:
@@ -2079,7 +2079,7 @@ def read_model(hdf5_file_name):
     else:
         custom_object_dict['loss'] = loss_function_or_dict
 
-    return keras.models.load_model(
+    return tf_keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
     )
 
@@ -2171,26 +2171,13 @@ def read_metafile(dill_file_name):
 
     # TODO(thunderhoser): This is a HACK to deal with Hera not letting me
     # install Dill.
-    loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
-
-    if isinstance(loss_function_or_dict, str):
-        if 'dual_weighted_mse' in loss_function_or_dict:
-            loss_function_or_dict = custom_losses.dual_weighted_mse()
+    if isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str):
+        if 'dual_weighted_mse' in metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]:
+            metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
+                custom_losses.dual_weighted_mse()
+            )
         else:
-            loss_function_or_dict = keras.losses.mse
-    else:
-        for this_key in loss_function_or_dict:
-            if isinstance(loss_function_or_dict[this_key], str):
-                if 'dual_weighted_mse' in loss_function_or_dict[this_key]:
-                    loss_function_or_dict[this_key] = (
-                        custom_losses.dual_weighted_mse()
-                    )
-            else:
-                loss_function_or_dict[this_key] = custom_losses.scaled_mse(
-                    loss_function_or_dict[this_key]
-                )
-
-    metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = loss_function_or_dict
+            metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = keras.losses.mse
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
@@ -2320,3 +2307,65 @@ def apply_model(
         )
 
     return [vector_prediction_matrix, scalar_prediction_matrix]
+
+
+def get_feature_maps(
+        model_object, predictor_matrix, num_examples_per_batch,
+        feature_layer_name, verbose=False):
+    """Uses trained neural net (of any kind) to create feature maps.
+
+    :param model_object: See doc for `apply_model`.
+    :param predictor_matrix: Same.
+    :param num_examples_per_batch: Same.
+    :param feature_layer_name: Feature maps will be returned for this layer.
+    :param verbose: See doc for `apply_model`.
+    :return: feature_matrix: numpy array of feature maps.
+    """
+
+    num_examples_per_batch = _check_inference_args(
+        predictor_matrix=predictor_matrix,
+        num_examples_per_batch=num_examples_per_batch, verbose=verbose
+    )
+
+    partial_model_object = cnn.model_to_feature_generator(
+        model_object=model_object, feature_layer_name=feature_layer_name
+    )
+
+    feature_matrix = None
+    num_examples = predictor_matrix.shape[0]
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        this_first_index = i
+        this_last_index = min(
+            [i + num_examples_per_batch - 1, num_examples - 1]
+        )
+
+        these_indices = numpy.linspace(
+            this_first_index, this_last_index,
+            num=this_last_index - this_first_index + 1, dtype=int
+        )
+
+        if verbose:
+            print((
+                'Creating feature maps for examples {0:d}-{1:d} of {2:d}...'
+            ).format(
+                this_first_index + 1, this_last_index + 1, num_examples
+            ))
+
+        this_feature_matrix = partial_model_object.predict(
+            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
+        )
+
+        if feature_matrix is None:
+            feature_matrix = this_feature_matrix + 0.
+        else:
+            feature_matrix = numpy.concatenate(
+                (feature_matrix, this_feature_matrix), axis=0
+            )
+
+    if verbose:
+        print('Have created feature maps for all {0:d} examples!'.format(
+            num_examples
+        ))
+
+    return feature_matrix
