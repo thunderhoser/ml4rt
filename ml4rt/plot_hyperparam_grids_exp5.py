@@ -197,24 +197,9 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag):
         numpy.absolute(vector_target_matrix),
         numpy.absolute(vector_prediction_matrix)
     )
-
-    print(weight_matrix)
-    print(numpy.min(weight_matrix))
-    print(numpy.mean(weight_matrix))
-    print(numpy.max(weight_matrix))
-    print('\n')
-
-    print(numpy.mean(
-        (vector_prediction_matrix - vector_target_matrix) ** 2
-    ))
-    print('\n')
-
     dwmse_k3_day03 = numpy.mean(
         weight_matrix * (vector_prediction_matrix - vector_target_matrix) ** 2
     )
-    print(dwmse_k3_day03)
-    print('\n\n\n************\n\n\n')
-
     return (
         prmse_k_day01, dwmse_k3_day03, down_flux_rmse_w_m02, up_flux_rmse_w_m02
     )

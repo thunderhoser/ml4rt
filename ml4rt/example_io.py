@@ -239,6 +239,7 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
 
     dataset_object.close()
 
+    # TODO(thunderhoser): This is a HACK for dealing with bad RRTM values.
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
