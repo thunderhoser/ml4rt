@@ -218,7 +218,8 @@ def _read_file_for_generator(
         predictor_min_norm_value, predictor_max_norm_value,
         vector_target_norm_type_string, vector_target_min_norm_value,
         vector_target_max_norm_value, scalar_target_norm_type_string,
-        scalar_target_min_norm_value, scalar_target_max_norm_value):
+        scalar_target_min_norm_value, scalar_target_max_norm_value,
+        exclude_summit_greenland=False):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -242,11 +243,16 @@ def _read_file_for_generator(
     :param scalar_target_norm_type_string: Same.
     :param scalar_target_min_norm_value: Same.
     :param scalar_target_max_norm_value: Same.
+    :param exclude_summit_greenland: Boolean flag.  If True, will exclude
+        examples from Summit.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
-    example_dict = example_io.read_file(example_file_name)
+    example_dict = example_io.read_file(
+        netcdf_file_name=example_file_name,
+        exclude_summit_greenland=exclude_summit_greenland
+    )
 
     example_dict = example_utils.subset_by_time(
         example_dict=example_dict,
@@ -1322,7 +1328,7 @@ def data_generator(option_dict, for_inference, net_type_string,
 
 
 def create_data(option_dict, for_inference, net_type_string,
-                is_loss_constrained_mse=None):
+                is_loss_constrained_mse=None, exclude_summit_greenland=False):
     """Creates data for any kind of neural net.
 
     This method is the same as `data_generator`, except that it returns all the
@@ -1332,6 +1338,8 @@ def create_data(option_dict, for_inference, net_type_string,
     :param for_inference: Same.
     :param net_type_string: Same.
     :param is_loss_constrained_mse: Same.
+    :param exclude_summit_greenland: Boolean flag.  If True, will exclude
+        examples from Summit.
     :return: predictor_matrix: Same.
     :return: target_array: Same.
     :return: example_id_strings: Same.
@@ -1344,6 +1352,7 @@ def create_data(option_dict, for_inference, net_type_string,
         is_loss_constrained_mse = False
 
     error_checking.assert_is_boolean(is_loss_constrained_mse)
+    error_checking.assert_is_boolean(exclude_summit_greenland)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
@@ -1414,7 +1423,8 @@ def create_data(option_dict, for_inference, net_type_string,
             vector_target_max_norm_value=vector_target_max_norm_value,
             scalar_target_norm_type_string=scalar_target_norm_type_string,
             scalar_target_min_norm_value=scalar_target_min_norm_value,
-            scalar_target_max_norm_value=scalar_target_max_norm_value
+            scalar_target_max_norm_value=scalar_target_max_norm_value,
+            exclude_summit_greenland=exclude_summit_greenland
         )
 
         example_dicts.append(this_example_dict)

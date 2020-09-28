@@ -26,6 +26,7 @@ MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
 LAST_TIME_ARG_NAME = 'last_time_string'
+EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 MODEL_FILE_HELP_STRING = (
@@ -40,6 +41,9 @@ TIME_HELP_STRING = (
     ' examples from `{0:s}` to `{1:s}`.'
 ).format(FIRST_TIME_ARG_NAME, LAST_TIME_ARG_NAME)
 
+EXCLUDE_SUMMIT_HELP_STRING = (
+    'Boolean flag.  If 1, will not apply to examples from Summit.'
+)
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file (will be written by `prediction_io.write_file`).'
 )
@@ -58,6 +62,10 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + LAST_TIME_ARG_NAME, type=str, required=True, help=TIME_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXCLUDE_SUMMIT_ARG_NAME, type=int, required=False, default=0,
+    help=EXCLUDE_SUMMIT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -217,7 +225,7 @@ def _targets_numpy_to_dict(
 
 
 def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
-         output_file_name):
+         exclude_summit_greenland, output_file_name):
     """Applies trained neural net in inference mode.
 
     This is effectively the main method.
@@ -226,6 +234,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     :param example_dir_name: Same.
     :param first_time_string: Same.
     :param last_time_string: Same.
+    :param exclude_summit_greenland: Same.
     :param output_file_name: Same.
     """
 
@@ -270,7 +279,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict, for_inference=True,
-        net_type_string=net_type_string, is_loss_constrained_mse=False
+        net_type_string=net_type_string, is_loss_constrained_mse=False,
+        exclude_summit_greenland=exclude_summit_greenland
     )
     print(SEPARATOR_STRING)
 
@@ -457,5 +467,8 @@ if __name__ == '__main__':
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         first_time_string=getattr(INPUT_ARG_OBJECT, FIRST_TIME_ARG_NAME),
         last_time_string=getattr(INPUT_ARG_OBJECT, LAST_TIME_ARG_NAME),
+        exclude_summit_greenland=bool(getattr(
+            INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME
+        )),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
