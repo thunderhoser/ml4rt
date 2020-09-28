@@ -1,7 +1,8 @@
 """Helper methods for learning examples."""
 
+import os
 import sys
-import os.path
+import warnings
 import numpy
 import netCDF4
 
@@ -237,6 +238,28 @@ def read_file(netcdf_file_name, id_strings_to_read=None,
     )
 
     dataset_object.close()
+
+    heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
+    desired_indices = numpy.where(
+        numpy.all(heating_rate_matrix_k_day01 < 80., axis=1)
+    )[0]
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+
+    if len(desired_indices) != num_examples:
+        warning_string = (
+            'Removing {0:d} of {1:d} examples (profiles), because they have '
+            'heating rates > 80 K/day.'
+        ).format(num_examples - len(desired_indices), num_examples)
+
+        warnings.warn(warning_string)
+
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=desired_indices
+        )
+
     return example_dict
 
 
