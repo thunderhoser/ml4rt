@@ -44,7 +44,14 @@ SITE_NAME_TO_LATLNG = {
     'lindenberg_germany': numpy.array([52.2341, 14.1223]),
     'fino3_tower_north_sea': numpy.array([55.1932, 7.1276]),
     'yopp_arctic_ocean_site2': numpy.array([89.9983, 164.0000]),
-    'yopp_arctic_ocean_site1': numpy.array([84.9823, 10.0999])
+    'yopp_arctic_ocean_site1': numpy.array([84.9823, 10.0999]),
+    'bishop_grenada': numpy.array([12.049037, 298.225193]),
+    'rohlsen_us_virgin_islands': numpy.array([17.658863, 295.181625]),
+    'san_juan_pr': numpy.array([18.428686, 294.029716]),
+    'hilo_hi': numpy.array([19.711315, 204.901398]),
+    'guantanamo_bay': numpy.array([19.843439, 284.852074]),
+    'honolulu_hi': numpy.array([21.326672, 202.113266]),
+    'perdido_oil_rig': numpy.array([26.133038, 265.124474])
 }
 
 for this_key in SITE_NAME_TO_LATLNG:
