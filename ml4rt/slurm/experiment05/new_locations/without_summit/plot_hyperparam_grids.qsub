@@ -25,5 +25,5 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 python3 -u "${CODE_DIR_NAME}/plot_hyperparam_grids_exp5.py" \
 --experiment_dir_name="${TOP_MODEL_DIR_NAME}" \
 --isotonic_flag=0 \
---new_locations_flag=1 \
+--location_set_string="new" \
 --exclude_summit_greenland=1

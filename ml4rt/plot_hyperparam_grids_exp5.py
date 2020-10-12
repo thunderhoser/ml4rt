@@ -41,19 +41,27 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
+ORIG_LOCATION_SET_STRING = 'orig'
+NEW_LOCATION_SET_STRING = 'new'
+TROPICAL_LOCATION_SET_STRING = 'tropical'
+VALID_LOCATION_SET_STRINGS = [
+    ORIG_LOCATION_SET_STRING, NEW_LOCATION_SET_STRING,
+    TROPICAL_LOCATION_SET_STRING
+]
+
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
 ISOTONIC_FLAG_ARG_NAME = 'isotonic_flag'
-NEW_LOCATIONS_FLAG_ARG_NAME = 'new_locations_flag'
+LOCATION_SET_ARG_NAME = 'location_set_string'
 EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 ISOTONIC_FLAG_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot results with(out) isotonic regression.'
 )
-NEW_LOCATIONS_FLAG_HELP_STRING = (
-    'Boolean flag.  If 1 (0), will plot results on new (same) locations as '
-    'training.'
-)
+LOCATION_SET_HELP_STRING = (
+    'Location set.  Must be in the following list:\n{0:s}'
+).format(str(VALID_LOCATION_SET_STRINGS))
+
 EXCLUDE_SUMMIT_HELP_STRING = (
     'Boolean flag.  If 1, will not apply to examples from Summit.'
 )
@@ -68,8 +76,8 @@ INPUT_ARG_PARSER.add_argument(
     help=ISOTONIC_FLAG_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NEW_LOCATIONS_FLAG_ARG_NAME, type=int, required=False, default=0,
-    help=NEW_LOCATIONS_FLAG_HELP_STRING
+    '--' + LOCATION_SET_ARG_NAME, type=str, required=True,
+    help=LOCATION_SET_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXCLUDE_SUMMIT_ARG_NAME, type=int, required=False, default=0,
@@ -139,14 +147,14 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag,
+def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string,
                            exclude_summit_greenland):
     """Reads scores for one model.
 
     :param model_dir_name: Name of directory with trained model and evaluation
         data.
     :param isotonic_flag: See documentation at top of file.
-    :param new_locations_flag: Same.
+    :param location_set_string: Same.
     :param exclude_summit_greenland: Same.
     :return: prmse_k_day01: Profile root mean squared error (RMSE):
     :return: dwmse_k3_day03: Dual-weighted mean squared error.
@@ -162,11 +170,20 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, new_locations_flag,
 
     model_file_names.sort()
     model_file_name = model_file_names[-1]
+
+    if location_set_string == TROPICAL_LOCATION_SET_STRING:
+        location_subdir_name = '_tropical_sites'
+    elif exclude_summit_greenland:
+        location_subdir_name = '_new_loc_sans_summit'
+    elif location_set_string == NEW_LOCATION_SET_STRING:
+        location_subdir_name = '_new_locations'
+    else:
+        location_subdir_name = ''
+
     evaluation_file_name = '{0:s}/{1:s}validation{2:s}/evaluation.nc'.format(
         model_file_name[:-3],
         'isotonic_regression/' if isotonic_flag else '',
-        '_new_loc_sans_summit/' if exclude_summit_greenland
-        else '_new_locations/' if new_locations_flag else ''
+        location_subdir_name
     )
 
     if not os.path.isfile(evaluation_file_name):
@@ -314,7 +331,7 @@ def _print_ranking_all_scores(
         ))
 
 
-def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
+def _run(experiment_dir_name, isotonic_flag, location_set_string,
          exclude_summit_greenland):
     """Plots scores on hyperparameter grid for Experiment 5.
 
@@ -322,11 +339,23 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
 
     :param experiment_dir_name: See documentation at top of file.
     :param isotonic_flag: Same.
-    :param new_locations_flag: Same.
+    :param location_set_string: Same.
     :param exclude_summit_greenland: Same.
+    :raises: ValueError: if
+        `location_set_string not in VALID_LOCATION_SET_STRINGS`.
     """
 
-    exclude_summit_greenland = exclude_summit_greenland and new_locations_flag
+    if location_set_string not in VALID_LOCATION_SET_STRINGS:
+        error_string = (
+            'Location set ("{0:s}") is not in the following list:\n{1:s}'
+        ).format(location_set_string, str(VALID_LOCATION_SET_STRINGS))
+
+        raise ValueError(error_string)
+
+    exclude_summit_greenland = (
+        exclude_summit_greenland
+        and location_set_string == NEW_LOCATION_SET_STRING
+    )
 
     num_dense_layer_counts = len(DENSE_LAYER_COUNTS)
     num_dropout_rates = len(DENSE_LAYER_DROPOUT_RATES)
@@ -371,7 +400,7 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     isotonic_flag=isotonic_flag,
-                    new_locations_flag=new_locations_flag,
+                    location_set_string=location_set_string,
                     exclude_summit_greenland=exclude_summit_greenland
                 )
 
@@ -421,12 +450,19 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
         title_string += ' with {0:d} dense layers'.format(DENSE_LAYER_COUNTS[i])
         axes_object.set_title(title_string)
 
+        if location_set_string == TROPICAL_LOCATION_SET_STRING:
+            location_subdir_name = 'tropical_sites/'
+        elif exclude_summit_greenland:
+            location_subdir_name = 'new_loc_sans_summit/'
+        elif location_set_string == NEW_LOCATION_SET_STRING:
+            location_subdir_name = 'new_locations/'
+        else:
+            location_subdir_name = ''
+
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_prmse_grid.jpg'
         ).format(
-            experiment_dir_name,
-            'new_loc_sans_summit/' if exclude_summit_greenland
-            else 'new_locations/' if new_locations_flag else '',
+            experiment_dir_name, location_subdir_name,
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -458,9 +494,7 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_dwmse_grid.jpg'
         ).format(
-            experiment_dir_name,
-            'new_loc_sans_summit/' if exclude_summit_greenland
-            else 'new_locations/' if new_locations_flag else '',
+            experiment_dir_name, location_subdir_name,
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -490,9 +524,7 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_down_flux_rmse_grid.jpg'
         ).format(
-            experiment_dir_name,
-            'new_loc_sans_summit/' if exclude_summit_greenland
-            else 'new_locations/' if new_locations_flag else '',
+            experiment_dir_name, location_subdir_name,
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -520,9 +552,7 @@ def _run(experiment_dir_name, isotonic_flag, new_locations_flag,
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_up_flux_rmse_grid.jpg'
         ).format(
-            experiment_dir_name,
-            'new_loc_sans_summit/' if exclude_summit_greenland
-            else 'new_locations/' if new_locations_flag else '',
+            experiment_dir_name, location_subdir_name,
             'isotonic_regression/' if isotonic_flag else '',
             DENSE_LAYER_COUNTS[i]
         )
@@ -541,9 +571,7 @@ if __name__ == '__main__':
     _run(
         experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME),
         isotonic_flag=bool(getattr(INPUT_ARG_OBJECT, ISOTONIC_FLAG_ARG_NAME)),
-        new_locations_flag=bool(getattr(
-            INPUT_ARG_OBJECT, NEW_LOCATIONS_FLAG_ARG_NAME
-        )),
+        location_set_string=getattr(INPUT_ARG_OBJECT, LOCATION_SET_ARG_NAME),
         exclude_summit_greenland=bool(getattr(
             INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME
         )),

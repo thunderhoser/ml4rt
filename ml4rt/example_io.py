@@ -217,7 +217,6 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
             numpy.isclose(longitudes_deg_e, SUMMIT_LONGITUDE_DEG_E, atol=1e-4)
         )
         good_indices = numpy.where(numpy.invert(bad_flags))[0]
-        indices_to_read = indices_to_read[good_indices]
 
         warning_string = (
             'Removing {0:d} of {1:d} examples (profiles), because they are at '
@@ -226,6 +225,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
             len(indices_to_read) - len(good_indices), len(indices_to_read)
         )
         warnings.warn(warning_string)
+
+        indices_to_read = indices_to_read[good_indices]
 
     example_dict = {
         example_utils.EXAMPLE_IDS_KEY:
