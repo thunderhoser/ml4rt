@@ -1,4 +1,4 @@
-"""Makes U-net templates for Experiment 5."""
+"""Makes U-net templates for Experiment 6."""
 
 import sys
 import copy
@@ -25,7 +25,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 #     HOME_DIR_NAME = os.path.expanduser('~')
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/experiment05/templates'.format(
+OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/experiment06/templates'.format(
     HOME_DIR_NAME
 )
 
@@ -68,7 +68,7 @@ DUMMY_GENERATOR_OPTION_DICT = {
 
 
 def _run():
-    """Makes U-net templates for Experiment 5.
+    """Makes U-net templates for Experiment 6.
 
     This is effectively the main method.
     """
@@ -107,8 +107,11 @@ def _run():
                 print(this_option_dict)
                 print(SEPARATOR_STRING)
 
-                this_scalar_loss_function = custom_losses.scaled_mse(
-                    SCALAR_LOSS_FUNCTION_WEIGHTS[k]
+                this_scalar_loss_function = (
+                    custom_losses.scaled_mse(SCALAR_LOSS_FUNCTION_WEIGHTS[k]) +
+                    custom_losses.scaled_mse_for_net_flux(
+                        SCALAR_LOSS_FUNCTION_WEIGHTS[k]
+                    )
                 )
                 this_loss_dict = {
                     'conv_output': VECTOR_LOSS_FUNCTION,

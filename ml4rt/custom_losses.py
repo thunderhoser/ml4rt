@@ -34,6 +34,37 @@ def scaled_mse(scaling_factor):
     return loss
 
 
+def scaled_mse_for_net_flux(scaling_factor):
+    """Scaled MSE (mean squared error) for net flux.
+
+    This method expects two channels: surface downwelling flux and
+    top-of-atmosphere (TOA) upwelling flux.  This method penalizes only errors
+    in the net flux, which is surface downwelling minus TOA upwelling.
+
+    :param scaling_factor: Scaling factor.
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (scaled MSE for net flux).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Scaled MSE for net flux.
+        """
+
+        predicted_net_flux_tensor = (
+            prediction_tensor[..., 0] - prediction_tensor[..., 1]
+        )
+        target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
+
+        return scaling_factor * K.mean(
+            (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
+        )
+
+    return loss
+
+
 def weighted_mse():
     """Weighted MSE (mean squared error).
 
