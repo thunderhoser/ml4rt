@@ -112,9 +112,13 @@ def _run():
                         SCALAR_LOSS_FUNCTION_WEIGHTS[k]
                     )
                 )
+                this_scalar_loss_string = (
+                    'custom_losses.scaled_mse_for_net_flux({0:.10f})'
+                ).format(SCALAR_LOSS_FUNCTION_WEIGHTS[k])
+
                 this_loss_dict = {
-                    'conv_output': VECTOR_LOSS_FUNCTION,
-                    'dense_output': SCALAR_LOSS_FUNCTION_WEIGHTS[k]
+                    'conv_output': 'custom_losses.dual_weighted_mse()',
+                    'dense_output': this_scalar_loss_string
                 }
 
                 this_model_object = u_net_architecture.create_model(
