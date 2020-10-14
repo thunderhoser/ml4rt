@@ -114,7 +114,7 @@ def _run():
                 )
                 this_loss_dict = {
                     'conv_output': VECTOR_LOSS_FUNCTION,
-                    'dense_output': this_scalar_loss_function
+                    'dense_output': SCALAR_LOSS_FUNCTION_WEIGHTS[k]
                 }
 
                 this_model_object = u_net_architecture.create_model(
