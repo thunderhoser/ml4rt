@@ -108,7 +108,6 @@ def _run():
                 print(SEPARATOR_STRING)
 
                 this_scalar_loss_function = (
-                    custom_losses.scaled_mse(SCALAR_LOSS_FUNCTION_WEIGHTS[k]) +
                     custom_losses.scaled_mse_for_net_flux(
                         SCALAR_LOSS_FUNCTION_WEIGHTS[k]
                     )
