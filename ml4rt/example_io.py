@@ -278,7 +278,6 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
 
 def write_file(example_dict, netcdf_file_name):
     """Writes learning examples to NetCDF file.
-w
 
     :param example_dict: See doc for `read_processed_file`.
     :param netcdf_file_name: Path to output file.
