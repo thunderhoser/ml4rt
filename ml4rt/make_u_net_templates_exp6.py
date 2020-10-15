@@ -30,7 +30,7 @@ OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/experiment06/templates'.format(
 )
 
 DENSE_LAYER_COUNTS = numpy.array([2, 3, 4, 5], dtype=int)
-DENSE_LAYER_DROPOUT_RATES = numpy.array([0.125, 0.25, 0.375, 0.5, 0.625, 0.75])
+DENSE_LAYER_DROPOUT_RATES = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
 SCALAR_LOSS_FUNCTION_WEIGHTS = numpy.array([1, 2.5, 5, 10, 25, 50])
 
 NUM_LEVELS = 4
