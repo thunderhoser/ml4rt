@@ -672,6 +672,10 @@ def _plot_score_profile(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
 
+    for this_table in evaluation_tables_xarray:
+        print(this_table)
+        print('\n\n\n**********************\n\n\n')
+
     vector_target_names_by_file = [
         t.coords[evaluation.VECTOR_FIELD_DIM].values.tolist()
         for t in evaluation_tables_xarray
