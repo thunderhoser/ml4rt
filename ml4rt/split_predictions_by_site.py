@@ -34,7 +34,7 @@ SITE_NAME_TO_LATLNG = {
     'lamont_ok': numpy.array([36.5693, 262.5687]),
     'azores_arm_site': numpy.array([39.0827, -28.0923]),
     'villum_greenland_land': numpy.array([81.4876, -16.1931]),
-    'summit_greenland_land': numpy.array([72.5790, -38.3127]),
+    # 'summit_greenland_land': numpy.array([72.5790, -38.3127]),
     'alert_nu_land': numpy.array([82.4291, -61.9947]),
     'yopp_arctic_ocean_site3': numpy.array([81.0731, -134.8826]),
     'sheba': numpy.array([76.0152, -164.7252]),

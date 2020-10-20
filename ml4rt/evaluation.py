@@ -303,8 +303,9 @@ def _get_prmse_one_variable(target_matrix, prediction_matrix):
     ))
 
 
-def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
-                              max_bin_edge, invert=False):
+def _get_rel_curve_one_scalar(
+        target_values, predicted_values, num_bins, min_bin_edge, max_bin_edge,
+        invert=False):
     """Computes reliability curve for one scalar target variable.
 
     B = number of bins
@@ -312,6 +313,7 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
     :param target_values: See doc for `_get_mse_one_scalar`.
     :param predicted_values: Same.
     :param num_bins: Number of bins (points in curve).
+    :param min_bin_edge: Value at lower edge of first bin.
     :param max_bin_edge: Value at upper edge of last bin.
     :param invert: Boolean flag.  If True, will return inverted reliability
         curve, which bins by target value and relates target value to
@@ -324,10 +326,11 @@ def _get_rel_curve_one_scalar(target_values, predicted_values, num_bins,
     """
 
     max_bin_edge = max([max_bin_edge, numpy.finfo(float).eps])
+    min_bin_edge = min([min_bin_edge, 0.])
 
     bin_index_by_example = histograms.create_histogram(
         input_values=target_values if invert else predicted_values,
-        num_bins=num_bins, min_value=0., max_value=max_bin_edge
+        num_bins=num_bins, min_value=min_bin_edge, max_value=max_bin_edge
     )[0]
 
     mean_predictions = numpy.full(num_bins, numpy.nan)
@@ -716,8 +719,7 @@ def get_scores_all_variables(
 
             this_climo_value = (
                 mean_training_example_dict[this_key][0, surface_down_flux_index]
-                -
-                mean_training_example_dict[this_key][0, toa_up_flux_index]
+                - mean_training_example_dict[this_key][0, toa_up_flux_index]
             )
 
             aux_mse_skill_scores[k] = _get_mse_ss_one_scalar(
@@ -812,8 +814,7 @@ def get_scores_all_variables(
 
             this_climo_value = (
                 mean_training_example_dict[this_key][0, surface_down_flux_index]
-                -
-                mean_training_example_dict[this_key][0, toa_up_flux_index]
+                - mean_training_example_dict[this_key][0, toa_up_flux_index]
             )
 
             aux_mae_skill_scores[k] = _get_mae_ss_one_scalar(
@@ -993,8 +994,8 @@ def get_scores_all_variables(
         ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
-            invert=False
+            num_bins=num_reliability_bins,
+            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
         )
 
         if num_examples == 0:
@@ -1011,8 +1012,8 @@ def get_scores_all_variables(
         ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
-            invert=True
+            num_bins=num_reliability_bins,
+            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
         )
 
     these_dim = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
@@ -1059,8 +1060,8 @@ def get_scores_all_variables(
             ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
-                invert=False
+                num_bins=num_reliability_bins,
+                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
             )
 
             if num_examples == 0:
@@ -1077,8 +1078,8 @@ def get_scores_all_variables(
             ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
-                invert=True
+                num_bins=num_reliability_bins,
+                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
             )
 
     these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
@@ -1108,8 +1109,12 @@ def get_scores_all_variables(
 
         for k in range(num_aux_targets):
             if num_examples == 0:
+                min_bin_edge = 0.
                 max_bin_edge = 1.
             else:
+                min_bin_edge = numpy.percentile(
+                    aux_prediction_matrix[:, k], 100. - max_bin_edge_percentile
+                )
                 max_bin_edge = numpy.percentile(
                     aux_prediction_matrix[:, k], max_bin_edge_percentile
                 )
@@ -1121,13 +1126,17 @@ def get_scores_all_variables(
             ) = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
-                invert=False
+                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
+                max_bin_edge=max_bin_edge, invert=False
             )
 
             if num_examples == 0:
+                min_bin_edge = 0.
                 max_bin_edge = 1.
             else:
+                min_bin_edge = numpy.percentile(
+                    aux_target_matrix[:, k], 100. - max_bin_edge_percentile
+                )
                 max_bin_edge = numpy.percentile(
                     aux_target_matrix[:, k], max_bin_edge_percentile
                 )
@@ -1139,8 +1148,8 @@ def get_scores_all_variables(
             ) = _get_rel_curve_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, max_bin_edge=max_bin_edge,
-                invert=True
+                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
+                max_bin_edge=max_bin_edge, invert=True
             )
 
         these_dim = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
