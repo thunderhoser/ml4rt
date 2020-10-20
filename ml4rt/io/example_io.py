@@ -5,7 +5,7 @@ import warnings
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
@@ -201,19 +201,16 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     # TODO(thunderhoser): This is a HACK to deal with potentially bad data.
     if exclude_summit_greenland:
         metadata_dict = example_utils.parse_example_ids(example_id_strings)
-        latitudes_deg_n = number_rounding.round_to_nearest(
-            metadata_dict[example_utils.LATITUDES_KEY], 1e-4
-        )
-        longitudes_deg_e = number_rounding.round_to_nearest(
-            metadata_dict[example_utils.LONGITUDES_KEY], 1e-4
+        latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
+        longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+            metadata_dict[example_utils.LONGITUDES_KEY]
         )
 
-        good_indices = numpy.where(numpy.invert(numpy.logical_and(
-            latitudes_deg_n == SUMMIT_LATITUDE_DEG_N,
-            longitudes_deg_e == SUMMIT_LONGITUDE_DEG_E
-        )))[0]
-
-        indices_to_read = indices_to_read[good_indices]
+        bad_flags = numpy.logical_and(
+            numpy.isclose(latitudes_deg_n, SUMMIT_LATITUDE_DEG_N, atol=1e-4),
+            numpy.isclose(longitudes_deg_e, SUMMIT_LONGITUDE_DEG_E, atol=1e-4)
+        )
+        good_indices = numpy.where(numpy.invert(bad_flags))[0]
 
         warning_string = (
             'Removing {0:d} of {1:d} examples (profiles), because they are at '
@@ -222,6 +219,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
             len(indices_to_read) - len(good_indices), len(indices_to_read)
         )
         warnings.warn(warning_string)
+
+        indices_to_read = indices_to_read[good_indices]
 
     example_dict = {
         example_utils.EXAMPLE_IDS_KEY:
@@ -267,29 +266,6 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     )
 
     dataset_object.close()
-
-    # TODO(thunderhoser): This is a HACK for dealing with bad RRTM values.
-    heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-    desired_indices = numpy.where(
-        numpy.all(heating_rate_matrix_k_day01 < 80., axis=1)
-    )[0]
-    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
-
-    if len(desired_indices) != num_examples:
-        warning_string = (
-            'Removing {0:d} of {1:d} examples (profiles), because they have '
-            'heating rates > 80 K/day.'
-        ).format(num_examples - len(desired_indices), num_examples)
-
-        warnings.warn(warning_string)
-
-        example_dict = example_utils.subset_by_index(
-            example_dict=example_dict, desired_indices=desired_indices
-        )
-
     return example_dict
 
 

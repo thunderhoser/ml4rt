@@ -616,7 +616,7 @@ def _plot_attributes_diagram(
             mean_observations=mean_observations_by_file[i],
             min_value_to_plot=min_value_to_plot,
             max_value_to_plot=max_value_to_plot,
-            line_colour=line_colours[i], line_style=line_styles[i], line_width=2
+            line_colour=line_colours[i], line_style=line_styles[i], line_width=4
         )
 
         if this_handle is None:

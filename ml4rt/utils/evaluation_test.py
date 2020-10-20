@@ -65,6 +65,7 @@ PRMSE = numpy.mean(numpy.array(
 
 # The following constants are used to test _get_rel_curve_one_scalar.
 NUM_BINS = 5
+MIN_BIN_EDGE = 0.
 MAX_BIN_EDGE = 10.
 
 TARGET_VALUES_NO_EMPTY_BINS = numpy.array(
@@ -188,7 +189,8 @@ class EvaluationTests(unittest.TestCase):
             evaluation._get_rel_curve_one_scalar(
                 target_values=TARGET_VALUES_NO_EMPTY_BINS,
                 predicted_values=PREDICTED_VALUES_NO_EMPTY_BINS,
-                num_bins=NUM_BINS, max_bin_edge=MAX_BIN_EDGE
+                num_bins=NUM_BINS, min_bin_edge=MIN_BIN_EDGE,
+                max_bin_edge=MAX_BIN_EDGE
             )
         )
 
@@ -210,7 +212,8 @@ class EvaluationTests(unittest.TestCase):
             evaluation._get_rel_curve_one_scalar(
                 target_values=TARGET_VALUES_ONE_EMPTY_BIN,
                 predicted_values=PREDICTED_VALUES_ONE_EMPTY_BIN,
-                num_bins=NUM_BINS, max_bin_edge=MAX_BIN_EDGE
+                num_bins=NUM_BINS, min_bin_edge=MIN_BIN_EDGE,
+                max_bin_edge=MAX_BIN_EDGE
             )
         )
 

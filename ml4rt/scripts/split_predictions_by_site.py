@@ -26,7 +26,7 @@ SITE_NAME_TO_LATLNG = {
     'lamont_ok': numpy.array([36.5693, 262.5687]),
     'azores_arm_site': numpy.array([39.0827, -28.0923]),
     'villum_greenland_land': numpy.array([81.4876, -16.1931]),
-    'summit_greenland_land': numpy.array([72.5790, -38.3127]),
+    # 'summit_greenland_land': numpy.array([72.5790, -38.3127]),
     'alert_nu_land': numpy.array([82.4291, -61.9947]),
     'yopp_arctic_ocean_site3': numpy.array([81.0731, -134.8826]),
     'sheba': numpy.array([76.0152, -164.7252]),
@@ -36,7 +36,14 @@ SITE_NAME_TO_LATLNG = {
     'lindenberg_germany': numpy.array([52.2341, 14.1223]),
     'fino3_tower_north_sea': numpy.array([55.1932, 7.1276]),
     'yopp_arctic_ocean_site2': numpy.array([89.9983, 164.0000]),
-    'yopp_arctic_ocean_site1': numpy.array([84.9823, 10.0999])
+    'yopp_arctic_ocean_site1': numpy.array([84.9823, 10.0999]),
+    'bishop_grenada': numpy.array([12.049037, 298.225193]),
+    'rohlsen_us_virgin_islands': numpy.array([17.658863, 295.181625]),
+    'san_juan_pr': numpy.array([18.428686, 294.029716]),
+    'hilo_hi': numpy.array([19.711315, 204.901398]),
+    'guantanamo_bay': numpy.array([19.843439, 284.852074]),
+    'honolulu_hi': numpy.array([21.326672, 202.113266]),
+    'perdido_oil_rig': numpy.array([26.133038, 265.124474])
 }
 
 for this_key in SITE_NAME_TO_LATLNG:
