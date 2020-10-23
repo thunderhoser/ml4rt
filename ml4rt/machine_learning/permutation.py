@@ -644,50 +644,70 @@ def run_backwards_test_one_step(
         PERMUTED_FLAGS_KEY: permuted_flag_matrix,
         DEPERMUTED_CHANNELS_KEY: depermuted_channel_indices,
         DEPERMUTED_HEIGHTS_KEY: depermuted_height_indices,
-        DEPERMUTED_COSTS_KEY: depermuted_cost_matrix,
+        DEPERMUTED_COSTS_KEY: depermuted_cost_matrix
     }
 
 
-def mse_cost_function(target_matrices, prediction_matrices):
-    """Implements MSE (mean squared error) as cost function.
+def make_cost_function(heating_rate_weight, flux_weight, include_net_flux):
+    """Creates cost function.
 
-    N = number of target matrices
-
-    :param target_matrices: length-N list of numpy arrays containing actual
-        (target) values.
-    :param prediction_matrices: length-N list of numpy arrays containing
-        predicted values.
-    :return: cost: MSE.
+    :param heating_rate_weight: Weight for vector part of loss function (the one
+        that penalizes heating rates).
+    :param flux_weight: Weight for scalar part of loss function (the one that
+        penalizes fluxes).
+    :param include_net_flux: Boolean flag.  If True, will penalize surface
+        downwelling flux, TOA upwelling flux, and net flux.  If False, will
+        penalize only the first two.
+    :return: cost_function: Function (see below).
     """
 
-    mse_by_matrix = numpy.array([
-        numpy.mean((t - p) ** 2) for t, p in
-        zip(target_matrices, prediction_matrices)
-    ])
-    num_values_by_matrix = numpy.array(
-        [t.size for t in target_matrices], dtype=float
-    )
+    error_checking.assert_is_geq(heating_rate_weight, 0.)
+    error_checking.assert_is_geq(flux_weight, 0.)
+    error_checking.assert_is_greater(heating_rate_weight + flux_weight, 0.)
+    error_checking.assert_is_boolean(include_net_flux)
 
-    return numpy.average(mse_by_matrix, weights=num_values_by_matrix)
+    def cost_function(target_matrices, prediction_matrices):
+        """Actual cost function.
 
+        N = number of target matrices
 
-def dual_weighted_mse_cost_function(target_matrices, prediction_matrices):
-    """Implements dual-weighted MSE (mean squared error) as cost function.
+        :param target_matrices: length-N list of numpy arrays containing actual
+            (target) values.
+        :param prediction_matrices: length-N list of numpy arrays containing
+            predicted values.
+        :return: cost: The cost (scalar).
+        """
 
-    :param target_matrices: See doc for `mse_cost_function`.
-    :param prediction_matrices: Same.
-    :return: cost: Dual-weighted MSE.
-    """
+        dwmse_for_heating_rates = numpy.mean(
+            numpy.maximum(target_matrices[0], prediction_matrices[0]) *
+            (target_matrices[0] - prediction_matrices[0]) ** 2
+        )
 
-    dwmse_by_matrix = numpy.array([
-        numpy.mean(numpy.maximum(t, p) * (t - p) ** 2) for t, p in
-        zip(target_matrices, prediction_matrices)
-    ])
-    num_values_by_matrix = numpy.array(
-        [t.size for t in target_matrices], dtype=float
-    )
+        if len(target_matrices) == 1:
+            return dwmse_for_heating_rates
 
-    return numpy.average(dwmse_by_matrix, weights=num_values_by_matrix)
+        mse_for_fluxes = numpy.mean(
+            (target_matrices[1] - prediction_matrices[1]) ** 2
+        )
+
+        if include_net_flux:
+            predicted_net_flux_matrix_w_m02 = (
+                prediction_matrices[1][..., 0] - prediction_matrices[1][..., 1]
+            )
+            target_net_flux_matrix_w_m02 = (
+                target_matrices[1][..., 0] - target_matrices[1][..., 1]
+            )
+            mse_for_fluxes += numpy.mean(
+                (target_net_flux_matrix_w_m02 - predicted_net_flux_matrix_w_m02)
+                ** 2
+            )
+
+        return (
+            heating_rate_weight * dwmse_for_heating_rates +
+            flux_weight * mse_for_fluxes
+        )
+
+    return cost_function
 
 
 def run_forward_test(

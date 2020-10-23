@@ -61,8 +61,7 @@ SECOND_HEIGHTS_M_AGL = numpy.array(
     [2000, 100, 2000, 2000, 10, 10, 2000, 100, 10, 100, 10, 100], dtype=int
 )
 
-# The following constants are used to test mse_cost_function and
-# dual_weighted_mse_cost_function.
+# The following constants are used to test make_cost_function.
 FIRST_TARGET_MATRIX = numpy.array([
     [1, 2, 3, 4],
     [5, 6, 7, 8],
@@ -85,22 +84,40 @@ SECOND_TARGET_MATRIX = numpy.array([
     [20, 10]
 ], dtype=float)
 
+# ACTUAL_NET_FLUXES_W_M02 = numpy.array([-10, -10, -10, 10, 10, 10], dtype=float)
+# PREDICTED_NET_FLUXES_W_M02 = numpy.array([-9, -9, -9, 9, 9, 9], dtype=float)
+
 FIRST_PREDICTION_MATRIX = 0.75 * FIRST_TARGET_MATRIX
 SECOND_PREDICTION_MATRIX = 0.9 * SECOND_TARGET_MATRIX
 TARGET_MATRICES = [FIRST_TARGET_MATRIX, SECOND_TARGET_MATRIX]
 PREDICTION_MATRICES = [FIRST_PREDICTION_MATRIX, SECOND_PREDICTION_MATRIX]
 
-MEAN_SQUARED_ERROR = (7938.75 + 182) / (72 + 12)
-
-THESE_NUMBERS = numpy.linspace(1, 72, num=72, dtype=float)
-FIRST_ERRORS = THESE_NUMBERS * (0.25 * THESE_NUMBERS) ** 2
-THESE_NUMBERS = numpy.linspace(10, 60, num=6, dtype=float)
-THESE_NUMBERS = numpy.concatenate((THESE_NUMBERS, THESE_NUMBERS))
-SECOND_ERRORS = THESE_NUMBERS * (0.1 * THESE_NUMBERS) ** 2
-
-DUAL_WEIGHTED_MSE = (
-    (numpy.sum(FIRST_ERRORS) + numpy.sum(SECOND_ERRORS)) / (72 + 12)
+ACTUAL_HEATING_RATES_K_DAY01 = numpy.linspace(1, 72, num=72, dtype=float)
+DWMSE_FOR_HEATING_RATES = numpy.mean(
+    ACTUAL_HEATING_RATES_K_DAY01 * (0.25 * ACTUAL_HEATING_RATES_K_DAY01) ** 2
 )
+MSE_FOR_FLUXES_SANS_NET = numpy.mean((0.1 * SECOND_TARGET_MATRIX) ** 2)
+MSE_FOR_FLUXES_WITH_NET = MSE_FOR_FLUXES_SANS_NET + 1.
+
+FIRST_HEATING_RATE_WEIGHT = 1.
+FIRST_FLUX_WEIGHT = 0.
+FIRST_INCLUDE_NET_FLUX_FLAG = True
+FIRST_COST = DWMSE_FOR_HEATING_RATES + 0.
+
+SECOND_HEATING_RATE_WEIGHT = 0.
+SECOND_FLUX_WEIGHT = 1.
+SECOND_INCLUDE_NET_FLUX_FLAG = True
+SECOND_COST = MSE_FOR_FLUXES_WITH_NET + 0.
+
+THIRD_HEATING_RATE_WEIGHT = 0.
+THIRD_FLUX_WEIGHT = 1.
+THIRD_INCLUDE_NET_FLUX_FLAG = False
+THIRD_COST = MSE_FOR_FLUXES_SANS_NET + 0.
+
+FOURTH_HEATING_RATE_WEIGHT = 2.
+FOURTH_FLUX_WEIGHT = 5.
+FOURTH_INCLUDE_NET_FLUX_FLAG = True
+FOURTH_COST = 2 * DWMSE_FOR_HEATING_RATES + 5 * MSE_FOR_FLUXES_WITH_NET
 
 
 class PermutationTests(unittest.TestCase):
@@ -264,29 +281,81 @@ class PermutationTests(unittest.TestCase):
             these_heights_m_agl, SECOND_HEIGHTS_M_AGL, atol=TOLERANCE
         ))
 
-    def test_mse_cost_function(self):
-        """Ensures correct output from mse_cost_function."""
+    def test_make_cost_function_first(self):
+        """Ensures correct output from make_cost_function.
 
-        this_mse = permutation.mse_cost_function(
+        In this case, using first set of inputs.
+        """
+
+        this_cost_function = permutation.make_cost_function(
+            heating_rate_weight=FIRST_HEATING_RATE_WEIGHT,
+            flux_weight=FIRST_FLUX_WEIGHT,
+            include_net_flux=FIRST_INCLUDE_NET_FLUX_FLAG
+        )
+
+        this_cost = this_cost_function(
             target_matrices=TARGET_MATRICES,
             prediction_matrices=PREDICTION_MATRICES
         )
 
-        self.assertTrue(numpy.isclose(
-            this_mse, MEAN_SQUARED_ERROR, atol=TOLERANCE
-        ))
+        self.assertTrue(numpy.isclose(this_cost, FIRST_COST, atol=TOLERANCE))
 
-    def test_dual_weighted_mse_cost_function(self):
-        """Ensures correct output from dual_weighted_mse_cost_function."""
+    def test_make_cost_function_second(self):
+        """Ensures correct output from make_cost_function.
 
-        this_error = permutation.dual_weighted_mse_cost_function(
+        In this case, using second set of inputs.
+        """
+
+        this_cost_function = permutation.make_cost_function(
+            heating_rate_weight=SECOND_HEATING_RATE_WEIGHT,
+            flux_weight=SECOND_FLUX_WEIGHT,
+            include_net_flux=SECOND_INCLUDE_NET_FLUX_FLAG
+        )
+
+        this_cost = this_cost_function(
             target_matrices=TARGET_MATRICES,
             prediction_matrices=PREDICTION_MATRICES
         )
 
-        self.assertTrue(numpy.isclose(
-            this_error, DUAL_WEIGHTED_MSE, atol=TOLERANCE
-        ))
+        self.assertTrue(numpy.isclose(this_cost, SECOND_COST, atol=TOLERANCE))
+
+    def test_make_cost_function_third(self):
+        """Ensures correct output from make_cost_function.
+
+        In this case, using third set of inputs.
+        """
+
+        this_cost_function = permutation.make_cost_function(
+            heating_rate_weight=THIRD_HEATING_RATE_WEIGHT,
+            flux_weight=THIRD_FLUX_WEIGHT,
+            include_net_flux=THIRD_INCLUDE_NET_FLUX_FLAG
+        )
+
+        this_cost = this_cost_function(
+            target_matrices=TARGET_MATRICES,
+            prediction_matrices=PREDICTION_MATRICES
+        )
+
+        self.assertTrue(numpy.isclose(this_cost, THIRD_COST, atol=TOLERANCE))
+
+    def test_make_cost_function_fourth(self):
+        """Ensures correct output from make_cost_function.
+
+        In this case, using fourth set of inputs.
+        """
+
+        this_cost_function = permutation.make_cost_function(
+            heating_rate_weight=FOURTH_HEATING_RATE_WEIGHT,
+            flux_weight=FOURTH_FLUX_WEIGHT,
+            include_net_flux=FOURTH_INCLUDE_NET_FLUX_FLAG
+        )
+
+        this_cost = this_cost_function(
+            target_matrices=TARGET_MATRICES,
+            prediction_matrices=PREDICTION_MATRICES
+        )
+
+        self.assertTrue(numpy.isclose(this_cost, FOURTH_COST, atol=TOLERANCE))
 
 
 if __name__ == '__main__':
