@@ -300,3 +300,54 @@ def get_raw_examples(
         )
 
     return example_dict
+
+
+def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
+    """Finds best and worst predictions.
+
+    E = total number of examples
+    H = number of heights
+    e = number of examples per set
+
+    :param bias_matrix: E-by-H numpy array of biases (predicted minus actual).
+    :param num_examples_per_set: Number of examples per set.
+    :return: high_bias_indices: length-e numpy array with indices of high-bias
+        examples.
+    :return: low_bias_indices: length-e numpy array with indices of low-bias
+        examples.
+    :return: low_abs_error_indices: length-e numpy array with indices of
+        low-absolute-error examples.
+    """
+
+    max_bias_by_example = numpy.max(bias_matrix, axis=1)
+    sort_indices = numpy.argsort(-1 * max_bias_by_example)
+    high_bias_indices = sort_indices[:num_examples_per_set]
+
+    for i in range(num_examples_per_set):
+        print('{0:d}th-greatest positive bias = {1:f}'.format(
+            i + 1, max_bias_by_example[high_bias_indices[i]]
+        ))
+
+    print(SEPARATOR_STRING)
+
+    min_bias_by_example = numpy.min(bias_matrix, axis=1)
+    sort_indices = numpy.argsort(min_bias_by_example)
+    low_bias_indices = sort_indices[:num_examples_per_set]
+
+    for i in range(num_examples_per_set):
+        print('{0:d}th-greatest negative bias = {1:f}'.format(
+            i + 1, min_bias_by_example[low_bias_indices[i]]
+        ))
+
+    print(SEPARATOR_STRING)
+
+    max_abs_error_by_example = numpy.max(numpy.absolute(bias_matrix), axis=1)
+    sort_indices = numpy.argsort(max_abs_error_by_example)
+    low_abs_error_indices = sort_indices[:num_examples_per_set]
+
+    for i in range(num_examples_per_set):
+        print('{0:d}th-smallest absolute error = {1:f}'.format(
+            i + 1, max_abs_error_by_example[low_abs_error_indices[i]]
+        ))
+
+    return high_bias_indices, low_bias_indices, low_abs_error_indices

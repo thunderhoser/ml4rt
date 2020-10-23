@@ -21,6 +21,30 @@ GRID_POINT_LONGITUDES_DEG = numpy.array(
     [240, 242, 244, 246, 248, 250, 252, 254, 256, 258, 260], dtype=float
 )
 
+# The following constants are used to test find_best_and_worst_predictions.
+BIAS_MATRIX = numpy.array([
+    [-6, 1, 4, 1, 10],
+    [9, 6, 7, -8, 7],
+    [-7, -5, -10, 3, -5],
+    [4, -9, 2, -4, 5],
+    [-8, -6, -4, -1, -2],
+    [-4, -8, -9, 2, 0],
+    [-2, 8, -8, 0, -8],
+    [5, 7, -8, 6, -8],
+    [5, 5, -10, 1, -3],
+    [-3, 2, 0, 3, 6],
+    [-2, -6, -6, -8, 5],
+    [-1, 3, 4, 4, -7],
+    [8, -9, 4, 6, -5],
+    [-1, -5, 2, 4, -3],
+    [-9, 1, 2, 8, 9]
+], dtype=float)
+
+NUM_EXAMPLES_PER_SET = 5
+HIGH_BIAS_INDICES = numpy.array([0, 1, 14, 6, 12], dtype=int)
+LOW_BIAS_INDICES = numpy.array([2, 8, 3, 5, 12], dtype=int)
+LOW_ABS_ERROR_INDICES = numpy.array([13, 9, 11, 4, 6], dtype=int)
+
 
 class MiscTests(unittest.TestCase):
     """Each method is a unit test for misc.py."""
@@ -42,6 +66,27 @@ class MiscTests(unittest.TestCase):
         ))
         self.assertTrue(numpy.allclose(
             these_longitudes_deg, GRID_POINT_LONGITUDES_DEG, atol=TOLERANCE
+        ))
+
+    def test_find_best_and_worst_predictions(self):
+        """Ensures correct output from find_best_and_worst_predictions."""
+
+        (
+            these_high_bias_indices,
+            these_low_bias_indices,
+            these_low_abs_error_indices
+        ) = misc.find_best_and_worst_predictions(
+            bias_matrix=BIAS_MATRIX, num_examples_per_set=NUM_EXAMPLES_PER_SET
+        )
+
+        self.assertTrue(numpy.array_equal(
+            these_high_bias_indices, HIGH_BIAS_INDICES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_low_bias_indices, LOW_BIAS_INDICES
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_low_abs_error_indices, LOW_ABS_ERROR_INDICES
         ))
 
 
