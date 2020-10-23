@@ -76,7 +76,9 @@ class MiscTests(unittest.TestCase):
             these_low_bias_indices,
             these_low_abs_error_indices
         ) = misc.find_best_and_worst_predictions(
-            bias_matrix=BIAS_MATRIX, num_examples_per_set=NUM_EXAMPLES_PER_SET
+            bias_matrix=BIAS_MATRIX,
+            absolute_error_matrix=numpy.absolute(BIAS_MATRIX),
+            num_examples_per_set=NUM_EXAMPLES_PER_SET
         )
 
         self.assertTrue(numpy.array_equal(

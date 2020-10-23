@@ -81,7 +81,7 @@ def create_latlng_grid(
         (deg E) of grid points.
     """
 
-    # TODO(thunderhosder): Make this handle wrap-around issues.
+    # TODO(thunderhoser): Make this handle wrap-around issues.
 
     min_longitude_deg = longitude_conv.convert_lng_positive_in_west(
         min_longitude_deg
@@ -302,7 +302,8 @@ def get_raw_examples(
     return example_dict
 
 
-def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
+def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,
+                                    num_examples_per_set):
     """Finds best and worst predictions.
 
     E = total number of examples
@@ -310,6 +311,7 @@ def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
     e = number of examples per set
 
     :param bias_matrix: E-by-H numpy array of biases (predicted minus actual).
+    :param absolute_error_matrix: E-by-H numpy array of absolute errors.
     :param num_examples_per_set: Number of examples per set.
     :return: high_bias_indices: length-e numpy array with indices of high-bias
         examples.
@@ -341,7 +343,7 @@ def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
 
     print(SEPARATOR_STRING)
 
-    max_abs_error_by_example = numpy.max(numpy.absolute(bias_matrix), axis=1)
+    max_abs_error_by_example = numpy.max(absolute_error_matrix, axis=1)
     sort_indices = numpy.argsort(max_abs_error_by_example)
     low_abs_error_indices = sort_indices[:num_examples_per_set]
 

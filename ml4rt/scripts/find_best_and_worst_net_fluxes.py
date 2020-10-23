@@ -85,12 +85,15 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][..., down_index] -
         prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][..., up_index]
     )
+
     biases_w_m02 = predictions_w_m02 - targets_w_m02
+    bias_matrix = numpy.expand_dims(biases_w_m02, axis=1)
 
     print(SEPARATOR_STRING)
     high_bias_indices, low_bias_indices, low_abs_error_indices = (
         misc_utils.find_best_and_worst_predictions(
-            bias_matrix=numpy.expand_dims(biases_w_m02, axis=1),
+            bias_matrix=bias_matrix,
+            absolute_error_matrix=numpy.absolute(bias_matrix),
             num_examples_per_set=num_examples_per_set
         )
     )
