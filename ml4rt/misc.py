@@ -11,7 +11,10 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import grids
+import number_rounding
 import time_conversion
+import longitude_conversion as longitude_conv
 import error_checking
 import example_io
 import example_utils
@@ -60,6 +63,65 @@ def subset_examples(indices_to_keep, num_examples_to_keep, num_examples_total):
 
     return numpy.random.choice(
         indices_to_keep, size=num_examples_to_keep, replace=False
+    )
+
+
+def create_latlng_grid(
+        min_latitude_deg, max_latitude_deg, latitude_spacing_deg,
+        min_longitude_deg, max_longitude_deg, longitude_spacing_deg):
+    """Creates lat-long grid.
+
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param min_latitude_deg: Minimum latitude (deg N) in grid.
+    :param max_latitude_deg: Max latitude (deg N) in grid.
+    :param latitude_spacing_deg: Spacing (deg N) between grid points in adjacent
+        rows.
+    :param min_longitude_deg: Minimum longitude (deg E) in grid.
+    :param max_longitude_deg: Max longitude (deg E) in grid.
+    :param longitude_spacing_deg: Spacing (deg E) between grid points in
+        adjacent columns.
+    :return: grid_point_latitudes_deg: length-M numpy array with latitudes
+        (deg N) of grid points.
+    :return: grid_point_longitudes_deg: length-N numpy array with longitudes
+        (deg E) of grid points.
+    """
+
+    # TODO(thunderhoser): Make this handle wrap-around issues.
+
+    min_longitude_deg = longitude_conv.convert_lng_positive_in_west(
+        min_longitude_deg
+    )
+    max_longitude_deg = longitude_conv.convert_lng_positive_in_west(
+        max_longitude_deg
+    )
+
+    min_latitude_deg = number_rounding.floor_to_nearest(
+        min_latitude_deg, latitude_spacing_deg
+    )
+    max_latitude_deg = number_rounding.ceiling_to_nearest(
+        max_latitude_deg, latitude_spacing_deg
+    )
+    min_longitude_deg = number_rounding.floor_to_nearest(
+        min_longitude_deg, longitude_spacing_deg
+    )
+    max_longitude_deg = number_rounding.ceiling_to_nearest(
+        max_longitude_deg, longitude_spacing_deg
+    )
+
+    num_grid_rows = 1 + int(numpy.round(
+        (max_latitude_deg - min_latitude_deg) / latitude_spacing_deg
+    ))
+    num_grid_columns = 1 + int(numpy.round(
+        (max_longitude_deg - min_longitude_deg) / longitude_spacing_deg
+    ))
+
+    return grids.get_latlng_grid_points(
+        min_latitude_deg=min_latitude_deg, min_longitude_deg=min_longitude_deg,
+        lat_spacing_deg=latitude_spacing_deg,
+        lng_spacing_deg=longitude_spacing_deg,
+        num_rows=num_grid_rows, num_columns=num_grid_columns
     )
 
 
@@ -247,7 +309,8 @@ def get_raw_examples(
     return example_dict
 
 
-def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
+def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,
+                                    num_examples_per_set):
     """Finds best and worst predictions.
 
     E = total number of examples
@@ -255,6 +318,7 @@ def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
     e = number of examples per set
 
     :param bias_matrix: E-by-H numpy array of biases (predicted minus actual).
+    :param absolute_error_matrix: E-by-H numpy array of absolute errors.
     :param num_examples_per_set: Number of examples per set.
     :return: high_bias_indices: length-e numpy array with indices of high-bias
         examples.
@@ -286,7 +350,7 @@ def find_best_and_worst_predictions(bias_matrix, num_examples_per_set):
 
     print(SEPARATOR_STRING)
 
-    max_abs_error_by_example = numpy.max(numpy.absolute(bias_matrix), axis=1)
+    max_abs_error_by_example = numpy.max(absolute_error_matrix, axis=1)
     sort_indices = numpy.argsort(max_abs_error_by_example)
     low_abs_error_indices = sort_indices[:num_examples_per_set]
 

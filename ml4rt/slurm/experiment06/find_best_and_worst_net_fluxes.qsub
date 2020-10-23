@@ -46,4 +46,4 @@ set output_dir_name="${model_dir_name}/validation/best_and_worst_net_fluxes"
 python3 -u "${CODE_DIR_NAME}/find_best_and_worst_net_fluxes.py" \
 --input_prediction_file_name="${input_file_name}" \
 --num_examples_per_set=100 \
---output_dir_name="${this_output_dir_name}"
+--output_dir_name="${output_dir_name}"

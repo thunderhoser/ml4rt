@@ -115,8 +115,13 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
     )
 
     bias_matrix = prediction_matrix_k_day01 - target_matrix_k_day01
+    absolute_error_matrix = numpy.absolute(bias_matrix)
+
     if average_over_height:
         bias_matrix = numpy.mean(bias_matrix, axis=1, keepdims=True)
+        absolute_error_matrix = numpy.mean(
+            absolute_error_matrix, axis=1, keepdims=True
+        )
 
     if scale_by_climo:
         normalization_file_name = (
@@ -132,7 +137,7 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         training_example_dict = example_io.read_file(normalization_file_name)
         training_example_dict = example_utils.subset_by_field(
             example_dict=training_example_dict,
-            field_names=example_utils.SHORTWAVE_HEATING_RATE_NAME
+            field_names=[example_utils.SHORTWAVE_HEATING_RATE_NAME]
         )
         training_example_dict = example_utils.subset_by_height(
             example_dict=training_example_dict,
@@ -158,11 +163,14 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         ][..., 0]
 
         bias_matrix = bias_matrix / climo_matrix_k_day01
+        absolute_error_matrix = absolute_error_matrix / climo_matrix_k_day01
 
     print(SEPARATOR_STRING)
     high_bias_indices, low_bias_indices, low_abs_error_indices = (
         misc_utils.find_best_and_worst_predictions(
-            bias_matrix=bias_matrix, num_examples_per_set=num_examples_per_set
+            bias_matrix=bias_matrix,
+            absolute_error_matrix=absolute_error_matrix,
+            num_examples_per_set=num_examples_per_set
         )
     )
     print(SEPARATOR_STRING)
