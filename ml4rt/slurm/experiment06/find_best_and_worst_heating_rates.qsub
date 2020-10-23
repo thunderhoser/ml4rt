@@ -44,7 +44,7 @@ set input_file_name="${model_dir_name}/validation/predictions.nc"
 set top_output_dir_name="${model_dir_name}/validation/best_and_worst_hr"
 set this_output_dir_name="${top_output_dir_name}/averaged=0_scaled=0"
 
-"${PYTHON_EXE_NAME}" -u "${CODE_DIR_NAME}/scripts/find_best_and_worst_heating_rates.py" \
+python3 -u "${CODE_DIR_NAME}/find_best_and_worst_heating_rates.py" \
 --input_prediction_file_name="${input_file_name}" \
 --average_over_height=0 \
 --scale_by_climo=0 \
@@ -53,7 +53,7 @@ set this_output_dir_name="${top_output_dir_name}/averaged=0_scaled=0"
 
 set this_output_dir_name="${top_output_dir_name}/averaged=0_scaled=1"
 
-"${PYTHON_EXE_NAME}" -u "${CODE_DIR_NAME}/scripts/find_best_and_worst_heating_rates.py" \
+python3 -u "${CODE_DIR_NAME}/find_best_and_worst_heating_rates.py" \
 --input_prediction_file_name="${input_file_name}" \
 --average_over_height=0 \
 --scale_by_climo=1 \
@@ -62,7 +62,7 @@ set this_output_dir_name="${top_output_dir_name}/averaged=0_scaled=1"
 
 set this_output_dir_name="${top_output_dir_name}/averaged=1"
 
-"${PYTHON_EXE_NAME}" -u "${CODE_DIR_NAME}/scripts/find_best_and_worst_heating_rates.py" \
+python3 -u "${CODE_DIR_NAME}/find_best_and_worst_heating_rates.py" \
 --input_prediction_file_name="${input_file_name}" \
 --average_over_height=1 \
 --scale_by_climo=0 \
