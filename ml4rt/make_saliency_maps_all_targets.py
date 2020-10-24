@@ -5,6 +5,7 @@ import sys
 import copy
 import argparse
 import numpy
+import tensorflow
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -16,6 +17,8 @@ import example_utils
 import make_saliency_maps
 import neural_net
 import saliency
+
+tensorflow.compat.v1.disable_eager_execution()
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 

@@ -5,6 +5,7 @@ import sys
 import copy
 import argparse
 import numpy
+import tensorflow
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -15,6 +16,8 @@ import example_utils
 import misc as misc_utils
 import neural_net
 import saliency
+
+tensorflow.compat.v1.disable_eager_execution()
 
 # TODO(thunderhoser): The input arg `is_layer_output` is a HACK.  I can't find a
 # reasonable automated way to determine if a layer is output, because Keras.
