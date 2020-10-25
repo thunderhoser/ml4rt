@@ -9,7 +9,6 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.io import prediction_io
-from ml4rt.io import rrtm_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
@@ -17,6 +16,10 @@ from ml4rt.plotting import profile_plotting
 
 FIGURE_RESOLUTION_DPI = 300
 
+VECTOR_TARGET_NAMES = [
+    example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
+]
 FLUX_NAMES = [
     example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
@@ -178,14 +181,15 @@ def _plot_comparisons_fancy(
 
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, model_metadata_dict,
-        use_log_scale, output_dir_name):
+        use_log_scale, title_strings, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
     :param vector_target_matrix: See doc for `_plot_comparisons_fancy`.
     :param vector_prediction_matrix: Same.
     :param model_metadata_dict: Same.
     :param use_log_scale: Same.
-    :param output_dir_name: Same.
+    :param title_strings: 1-D list of titles, one per example.
+    :param output_dir_name: See doc for `_plot_comparisons_fancy`.
     """
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
@@ -217,6 +221,8 @@ def _plot_comparisons_simple(
                 TARGET_NAME_TO_VERBOSE[target_names[k]],
                 TARGET_NAME_TO_UNITS[target_names[k]]
             ))
+
+            this_axes_object.set_title(title_strings[i])
 
             this_file_name = '{0:s}/comparison_{1:s}_example{2:06d}.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-'), i
@@ -490,6 +496,75 @@ def _remove_flux_increments(vector_target_matrix, vector_prediction_matrix,
     return vector_target_matrix, vector_prediction_matrix, model_metadata_dict
 
 
+def _get_flux_strings(
+        scalar_target_matrix, scalar_prediction_matrix, model_metadata_dict):
+    """For each example, returns string with actual and predicted fluxes.
+
+    E = number of examples
+    S = number of scalar target variables
+
+    :param scalar_target_matrix: E-by-S numpy array of actual values.
+    :param scalar_prediction_matrix: E-by-S numpy array of predicted values.
+    :param model_metadata_dict: Dictionary returned by
+        `neural_net.read_metadata`.
+    :return: flux_strings: length-E list of strings.
+    """
+
+    scalar_target_names = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
+        neural_net.SCALAR_TARGET_NAMES_KEY
+    ]
+    num_examples = scalar_target_matrix.shape[0]
+
+    try:
+        down_flux_index = scalar_target_names.index(
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+        )
+
+        down_flux_strings = [
+            '{0:.1f}, {1:.1f}'.format(a, p) for a, p in zip(
+                scalar_target_matrix[:, down_flux_index],
+                scalar_prediction_matrix[:, down_flux_index]
+            )
+        ]
+        down_flux_strings = [
+            r'True and pred $F_{down}^{sfc}$ = ' + s + r' W m$^{-2}$'
+            for s in down_flux_strings
+        ]
+    except ValueError:
+        down_flux_strings = None
+
+    try:
+        up_flux_index = scalar_target_names.index(
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+        )
+
+        up_flux_strings = [
+            '{0:.1f}, {1:.1f}'.format(a, p) for a, p in zip(
+                scalar_target_matrix[:, up_flux_index],
+                scalar_prediction_matrix[:, up_flux_index]
+            )
+        ]
+        up_flux_strings = [
+            r'True and pred $F_{up}^{TOA}$ = ' + s + r' W m$^{-2}$'
+            for s in up_flux_strings
+        ]
+    except ValueError:
+        up_flux_strings = None
+
+    if down_flux_strings is None and up_flux_strings is None:
+        return [' '] * num_examples
+
+    if down_flux_strings is not None and up_flux_strings is not None:
+        return [
+            d + '\n' + u for d, u in zip(down_flux_strings, up_flux_strings)
+        ]
+
+    if down_flux_strings is not None:
+        return down_flux_strings
+
+    return up_flux_strings
+
+
 def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
          output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
@@ -519,14 +594,24 @@ def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
     ))
 
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    num_examples_orig = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
+
+    if num_examples is not None and num_examples < num_examples_orig:
+        desired_indices = numpy.linspace(
+            0, num_examples - 1, num=num_examples, dtype=int
+        )
+        prediction_dict = prediction_io.subset_by_index(
+            prediction_dict=prediction_dict, desired_indices=desired_indices
+        )
+
     vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
     vector_prediction_matrix = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
-
-    if num_examples is not None:
-        vector_target_matrix = vector_target_matrix[:num_examples, ...]
-        vector_prediction_matrix = vector_prediction_matrix[:num_examples, ...]
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    scalar_prediction_matrix = (
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+    )
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
@@ -586,11 +671,18 @@ def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
             use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
     else:
+        title_strings = _get_flux_strings(
+            scalar_target_matrix=scalar_target_matrix,
+            scalar_prediction_matrix=scalar_prediction_matrix,
+            model_metadata_dict=model_metadata_dict
+        )
+
         _plot_comparisons_simple(
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,
             model_metadata_dict=model_metadata_dict,
-            use_log_scale=use_log_scale, output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, title_strings=title_strings,
+            output_dir_name=output_dir_name
         )
 
 
