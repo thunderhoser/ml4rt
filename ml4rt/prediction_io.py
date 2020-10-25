@@ -12,6 +12,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
+import prob_matched_means as pmm
 import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
@@ -519,6 +520,97 @@ def read_grid_metafile(netcdf_file_name):
     dataset_object.close()
 
     return grid_point_latitudes_deg, grid_point_longitudes_deg
+
+
+def average_predictions(
+        prediction_dict, use_pmm,
+        max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL):
+    """Averages predicted and target values over many examples.
+
+    H = number of heights
+    T_s = number of scalar targets
+    T_v = number of vector targets
+
+    :param prediction_dict: See doc for `write_file`.
+    :param use_pmm: Boolean flag.  If True, will use probability-matched means
+        for vector fields (vertical profiles).  If False, will use arithmetic
+        means for vector fields.
+    :param max_pmm_percentile_level: [used only if `use_pmm == True`]
+        Max percentile level for probability-matched means.
+    :return: mean_prediction_dict: Dictionary with the following keys.
+    mean_prediction_dict['scalar_target_matrix']: numpy array (1 x T_s) with
+        mean target (actual) values for scalar variables.
+    mean_prediction_dict['scalar_prediction_matrix']: Same but with predicted
+        values.
+    mean_prediction_dict['vector_target_matrix']: numpy array (1 x H x T_v) with
+        mean target (actual) values for vector variables.
+    mean_prediction_dict['vector_prediction_matrix']: Same but with predicted
+        values.
+    mean_prediction_dict['heights_m_agl']: length-H numpy array of heights
+        (metres above ground level).
+    mean_prediction_dict['model_file_name']: Path to file with trained model
+        (readable by `neural_net.read_model`).
+    mean_prediction_dict['isotonic_model_file_name']: Path to file with trained
+        isotonic-regression models (readable by `isotonic_regression.read_file`)
+        used to make predictions.  If isotonic regression was not used, this is
+        None.
+    """
+
+    error_checking.assert_is_boolean(use_pmm)
+    error_checking.assert_is_geq(max_pmm_percentile_level, 90.)
+    error_checking.assert_is_leq(max_pmm_percentile_level, 100.)
+
+    mean_scalar_target_matrix = numpy.mean(
+        prediction_dict[SCALAR_TARGETS_KEY], axis=0
+    )
+    mean_scalar_target_matrix = numpy.expand_dims(
+        mean_scalar_target_matrix, axis=0
+    )
+
+    mean_scalar_prediction_matrix = numpy.mean(
+        prediction_dict[SCALAR_PREDICTIONS_KEY], axis=0
+    )
+    mean_scalar_prediction_matrix = numpy.expand_dims(
+        mean_scalar_prediction_matrix, axis=0
+    )
+
+    if use_pmm:
+        mean_vector_target_matrix = pmm.run_pmm_many_variables(
+            input_matrix=prediction_dict[VECTOR_TARGETS_KEY],
+            max_percentile_level=max_pmm_percentile_level
+        )
+    else:
+        mean_vector_target_matrix = numpy.mean(
+            prediction_dict[VECTOR_TARGETS_KEY], axis=0
+        )
+
+    mean_vector_target_matrix = numpy.expand_dims(
+        mean_vector_target_matrix, axis=0
+    )
+
+    if use_pmm:
+        mean_vector_prediction_matrix = pmm.run_pmm_many_variables(
+            input_matrix=prediction_dict[VECTOR_PREDICTIONS_KEY],
+            max_percentile_level=max_pmm_percentile_level
+        )
+    else:
+        mean_vector_prediction_matrix = numpy.mean(
+            prediction_dict[VECTOR_PREDICTIONS_KEY], axis=0
+        )
+
+    mean_vector_prediction_matrix = numpy.expand_dims(
+        mean_vector_prediction_matrix, axis=0
+    )
+
+    return {
+        SCALAR_TARGETS_KEY: mean_scalar_target_matrix,
+        SCALAR_PREDICTIONS_KEY: mean_scalar_prediction_matrix,
+        VECTOR_TARGETS_KEY: mean_vector_target_matrix,
+        VECTOR_PREDICTIONS_KEY: mean_vector_prediction_matrix,
+        HEIGHTS_KEY: prediction_dict[HEIGHTS_KEY],
+        MODEL_FILE_KEY: prediction_dict[MODEL_FILE_KEY],
+        ISOTONIC_MODEL_FILE_KEY: prediction_dict[ISOTONIC_MODEL_FILE_KEY]
+    }
 
 
 def subset_by_standard_atmo(prediction_dict, standard_atmo_enum):
