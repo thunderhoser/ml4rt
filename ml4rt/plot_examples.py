@@ -135,8 +135,7 @@ def _plot_one_example(
     )
     num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
 
-    # for k in range(num_predictor_sets):
-    for k in range(1):
+    for k in range(num_predictor_sets):
         these_flags = numpy.array([
             n in example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
             for n in PREDICTOR_NAMES_BY_SET[k]
