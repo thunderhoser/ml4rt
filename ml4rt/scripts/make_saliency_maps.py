@@ -4,10 +4,13 @@ import copy
 import os.path
 import argparse
 import numpy
+import tensorflow
 from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
+
+tensorflow.compat.v1.disable_eager_execution()
 
 # TODO(thunderhoser): The input arg `is_layer_output` is a HACK.  I can't find a
 # reasonable automated way to determine if a layer is output, because Keras.

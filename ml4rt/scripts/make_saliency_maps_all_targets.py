@@ -4,11 +4,14 @@ import copy
 import os.path
 import argparse
 import numpy
+import tensorflow
 from ml4rt.utils import misc as misc_utils
 from ml4rt.utils import example_utils
 from ml4rt.scripts import make_saliency_maps
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import saliency
+
+tensorflow.compat.v1.disable_eager_execution()
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 

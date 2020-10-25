@@ -7,7 +7,6 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import rrtm_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
@@ -20,6 +19,12 @@ BLACK_COLOUR = numpy.full(3, 0.)
 ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+
+VECTOR_TARGET_NAMES = [
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME
+]
 
 FIRST_PREDICTOR_NAMES = [
     example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
@@ -123,8 +128,7 @@ def _plot_one_example(
     )
     num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
 
-    # for k in range(num_predictor_sets):
-    for k in range(1):
+    for k in range(num_predictor_sets):
         these_flags = numpy.array([
             n in example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
             for n in PREDICTOR_NAMES_BY_SET[k]
@@ -220,9 +224,7 @@ def _run(example_file_name, num_examples, example_dir_name,
         vector_predictor_names = (
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
         )
-        all_field_names = (
-            vector_predictor_names + rrtm_io.DEFAULT_VECTOR_TARGET_NAMES
-        )
+        all_field_names = vector_predictor_names + VECTOR_TARGET_NAMES
 
         example_dict = example_utils.subset_by_field(
             example_dict=example_dict, field_names=all_field_names

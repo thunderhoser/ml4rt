@@ -4,18 +4,14 @@ import argparse
 import numpy
 from gewittergefahr.gg_utils import prob_matched_means as pmm
 from ml4rt.machine_learning import saliency
-from ml4rt.machine_learning import gradcam
 from ml4rt.machine_learning import backwards_optimization as bwo
 
 SALIENCY_TYPE_STRING = 'saliency'
 SALIENCY_ALL_TARGETS_TYPE_STRING = 'saliency_all_targets'
-GRADCAM_TYPE_STRING = 'gradcam'
-GRADCAM_ALL_TARGETS_TYPE_STRING = 'gradcam_all_targets'
 BWO_TYPE_STRING = 'bwo'
 
 VALID_FILE_TYPE_STRINGS = [
     SALIENCY_TYPE_STRING, SALIENCY_ALL_TARGETS_TYPE_STRING,
-    GRADCAM_TYPE_STRING, GRADCAM_ALL_TARGETS_TYPE_STRING,
     BWO_TYPE_STRING
 ]
 
@@ -27,8 +23,7 @@ OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing interpretation maps to average.  Will be '
-    'read by `saliency.read_file`, `saliency.read_all_targets_file`, '
-    '`gradcam.read_file`, `gradcam.read_all_targets_file`, or '
+    'read by `saliency.read_file`, `saliency.read_all_targets_file`, or '
     '`backwards_optimization.read_file`.'
 )
 
@@ -47,8 +42,7 @@ MAX_PERCENTILE_HELP_STRING = (
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file.  Average interpretation map will be written here by '
-    '`saliency.write_file`, `saliency.write_all_targets_file`, '
-    '`gradcam.write_file`, `gradcam.write_all_targets_file`, or '
+    '`saliency.write_file`, `saliency.write_all_targets_file`, or '
     '`backwards_optimization.write_file`.'
 )
 
@@ -269,113 +263,6 @@ def _average_saliency_maps_all_targets(
     )
 
 
-def _average_cams(
-        input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
-    """Averages many class-activation maps.
-
-    :param input_file_name: See documentation at top of file.
-    :param use_pmm: Same.
-    :param max_pmm_percentile_level: Same.
-    :param output_file_name: Same.
-    """
-
-    print('Reading class-activation maps from: "{0:s}"...'.format(
-        input_file_name
-    ))
-    gradcam_dict = gradcam.read_file(input_file_name)
-    class_activation_matrix = gradcam_dict[gradcam.CLASS_ACTIVATIONS_KEY]
-
-    if use_pmm:
-        class_activation_matrix = numpy.expand_dims(
-            class_activation_matrix, axis=-1
-        )
-        class_activation_matrix = pmm.run_pmm_many_variables(
-            input_matrix=class_activation_matrix,
-            max_percentile_level=max_pmm_percentile_level
-        )[..., 0]
-    else:
-        class_activation_matrix = numpy.mean(class_activation_matrix, axis=0)
-
-    class_activation_matrix = numpy.expand_dims(class_activation_matrix, axis=0)
-
-    if use_pmm:
-        example_id_strings = [gradcam.DUMMY_EXAMPLE_ID_PMM]
-    else:
-        example_id_strings = [gradcam.DUMMY_EXAMPLE_ID_AVERAGE]
-
-    print('Writing average class-activation map to: "{0:s}"...'.format(
-        output_file_name
-    ))
-
-    gradcam.write_file(
-        netcdf_file_name=output_file_name,
-        class_activation_matrix=class_activation_matrix,
-        example_id_strings=example_id_strings,
-        model_file_name=gradcam_dict[gradcam.MODEL_FILE_KEY],
-        activation_layer_name=gradcam_dict[gradcam.ACTIVATION_LAYER_KEY],
-        vector_output_layer_name=gradcam_dict[gradcam.VECTOR_OUT_LAYER_KEY],
-        output_neuron_indices=gradcam_dict[gradcam.OUTPUT_NEURONS_KEY],
-        ideal_activation=gradcam_dict[gradcam.IDEAL_ACTIVATION_KEY]
-    )
-
-
-def _average_cams_all_targets(
-        input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
-    """Averages class-activation maps for each target variable.
-
-    :param input_file_name: See documentation at top of file.
-    :param use_pmm: Same.
-    :param max_pmm_percentile_level: Same.
-    :param output_file_name: Same.
-    """
-
-    print('Reading class-activation maps from: "{0:s}"...'.format(
-        input_file_name
-    ))
-    gradcam_dict = gradcam.read_all_targets_file(input_file_name)
-
-    class_activation_matrix = gradcam_dict[gradcam.CLASS_ACTIVATIONS_KEY]
-    num_heights = class_activation_matrix.shape[-2]
-    num_vector_targets = class_activation_matrix.shape[-1]
-
-    for j in range(num_heights):
-        for k in range(num_vector_targets):
-            if use_pmm:
-                this_activation_matrix = numpy.expand_dims(
-                    class_activation_matrix[..., j, k], axis=-1
-                )
-                this_activation_matrix = pmm.run_pmm_many_variables(
-                    input_matrix=this_activation_matrix,
-                    max_percentile_level=max_pmm_percentile_level
-                )[..., 0]
-                class_activation_matrix[0, ..., j, k] = this_activation_matrix
-            else:
-                class_activation_matrix[0, ..., j, k] = numpy.mean(
-                    class_activation_matrix[..., j, k], axis=0
-                )
-
-    class_activation_matrix = class_activation_matrix[[0], ...]
-
-    if use_pmm:
-        example_id_strings = [gradcam.DUMMY_EXAMPLE_ID_PMM]
-    else:
-        example_id_strings = [gradcam.DUMMY_EXAMPLE_ID_AVERAGE]
-
-    print('Writing average class-activation maps to: "{0:s}"...'.format(
-        output_file_name
-    ))
-
-    gradcam.write_all_targets_file(
-        netcdf_file_name=output_file_name,
-        class_activation_matrix=class_activation_matrix,
-        example_id_strings=example_id_strings,
-        model_file_name=gradcam_dict[gradcam.MODEL_FILE_KEY],
-        activation_layer_name=gradcam_dict[gradcam.ACTIVATION_LAYER_KEY],
-        vector_output_layer_name=gradcam_dict[gradcam.VECTOR_OUT_LAYER_KEY],
-        ideal_activation=gradcam_dict[gradcam.IDEAL_ACTIVATION_KEY]
-    )
-
-
 def _average_bwo_results(
         input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
     """Averages results of backwards optimization.
@@ -507,18 +394,6 @@ def _run(input_file_name, file_type_string, use_pmm, max_pmm_percentile_level,
         )
     elif file_type_string == SALIENCY_ALL_TARGETS_TYPE_STRING:
         _average_saliency_maps_all_targets(
-            input_file_name=input_file_name, use_pmm=use_pmm,
-            max_pmm_percentile_level=max_pmm_percentile_level,
-            output_file_name=output_file_name
-        )
-    elif file_type_string == GRADCAM_TYPE_STRING:
-        _average_cams(
-            input_file_name=input_file_name, use_pmm=use_pmm,
-            max_pmm_percentile_level=max_pmm_percentile_level,
-            output_file_name=output_file_name
-        )
-    elif file_type_string == GRADCAM_ALL_TARGETS_TYPE_STRING:
-        _average_cams_all_targets(
             input_file_name=input_file_name, use_pmm=use_pmm,
             max_pmm_percentile_level=max_pmm_percentile_level,
             output_file_name=output_file_name
