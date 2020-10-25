@@ -1,4 +1,4 @@
-"""Finds best and worst heating-rate predictions."""
+"""Finds extreme heating rates (largest, smallest, best/worst predicted)."""
 
 import os
 import sys
@@ -255,6 +255,78 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         low_abs_error_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
         low_abs_error_prediction_dict[prediction_io.MODEL_FILE_KEY]
+    )
+
+    if scale_by_climo:
+        return
+
+    if average_over_height:
+        mean_targets_k_day01 = numpy.mean(target_matrix_k_day01, axis=1)
+        sort_indices = numpy.argsort(-1 * mean_targets_k_day01)
+    else:
+        max_targets_k_day01 = numpy.max(target_matrix_k_day01, axis=1)
+        sort_indices = numpy.argsort(-1 * max_targets_k_day01)
+
+    large_hr_indices = sort_indices[:num_examples_per_set]
+    large_hr_prediction_dict = prediction_io.subset_by_index(
+        prediction_dict=copy.deepcopy(prediction_dict),
+        desired_indices=large_hr_indices
+    )
+    large_hr_file_name = (
+        '{0:s}/predictions_large-heating-rate.nc'.format(output_dir_name)
+    )
+
+    print('Writing examples with greatest heating rate to: "{0:s}"...'.format(
+        large_hr_file_name
+    ))
+    prediction_io.write_file(
+        netcdf_file_name=large_hr_file_name,
+        scalar_target_matrix=
+        large_hr_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
+        vector_target_matrix=
+        large_hr_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
+        scalar_prediction_matrix=
+        large_hr_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+        vector_prediction_matrix=
+        large_hr_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        heights_m_agl=large_hr_prediction_dict[prediction_io.HEIGHTS_KEY],
+        example_id_strings=
+        large_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
+        model_file_name=large_hr_prediction_dict[prediction_io.MODEL_FILE_KEY]
+    )
+
+    if not average_over_height:
+        return
+
+    mean_targets_k_day01 = numpy.mean(target_matrix_k_day01, axis=1)
+    sort_indices = numpy.argsort(mean_targets_k_day01)
+    small_hr_indices = sort_indices[:num_examples_per_set]
+
+    small_hr_prediction_dict = prediction_io.subset_by_index(
+        prediction_dict=copy.deepcopy(prediction_dict),
+        desired_indices=small_hr_indices
+    )
+    small_hr_file_name = (
+        '{0:s}/predictions_small-heating-rate.nc'.format(output_dir_name)
+    )
+
+    print('Writing examples with smallest heating rate to: "{0:s}"...'.format(
+        small_hr_file_name
+    ))
+    prediction_io.write_file(
+        netcdf_file_name=small_hr_file_name,
+        scalar_target_matrix=
+        small_hr_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
+        vector_target_matrix=
+        small_hr_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
+        scalar_prediction_matrix=
+        small_hr_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+        vector_prediction_matrix=
+        small_hr_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        heights_m_agl=small_hr_prediction_dict[prediction_io.HEIGHTS_KEY],
+        example_id_strings=
+        small_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
+        model_file_name=small_hr_prediction_dict[prediction_io.MODEL_FILE_KEY]
     )
 
 

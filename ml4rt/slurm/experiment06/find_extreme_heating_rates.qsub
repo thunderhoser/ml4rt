@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="find_best_and_worst_net_fluxes"
+#SBATCH --job-name="find_extreme_heating_rates"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -14,7 +14,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=find_best_and_worst_net_fluxes_%A_%a.out
+#SBATCH --output=find_extreme_heating_rates_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -41,9 +41,30 @@ set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set input_file_name="${model_dir_name}/validation/predictions.nc"
-set output_dir_name="${model_dir_name}/validation/best_and_worst_net_fluxes"
+set top_output_dir_name="${model_dir_name}/validation/extreme_heating_rates"
+set this_output_dir_name="${top_output_dir_name}/averaged=0_scaled=0"
 
-python3 -u "${CODE_DIR_NAME}/find_best_and_worst_net_fluxes.py" \
+python3 -u "${CODE_DIR_NAME}/find_extreme_heating_rates.py" \
 --input_prediction_file_name="${input_file_name}" \
+--average_over_height=0 \
+--scale_by_climo=0 \
 --num_examples_per_set=100 \
---output_dir_name="${output_dir_name}"
+--output_dir_name="${this_output_dir_name}"
+
+set this_output_dir_name="${top_output_dir_name}/averaged=0_scaled=1"
+
+python3 -u "${CODE_DIR_NAME}/find_extreme_heating_rates.py" \
+--input_prediction_file_name="${input_file_name}" \
+--average_over_height=0 \
+--scale_by_climo=1 \
+--num_examples_per_set=100 \
+--output_dir_name="${this_output_dir_name}"
+
+set this_output_dir_name="${top_output_dir_name}/averaged=1"
+
+python3 -u "${CODE_DIR_NAME}/find_extreme_heating_rates.py" \
+--input_prediction_file_name="${input_file_name}" \
+--average_over_height=1 \
+--scale_by_climo=0 \
+--num_examples_per_set=100 \
+--output_dir_name="${this_output_dir_name}"
