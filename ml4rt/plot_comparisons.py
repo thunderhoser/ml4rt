@@ -23,7 +23,7 @@ import profile_plotting
 
 FIGURE_RESOLUTION_DPI = 300
 
-VECTOR_TARGET_NAMES = [
+DEFAULT_VECTOR_TARGET_NAMES = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
@@ -121,8 +121,8 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _plot_comparisons_fancy(
-        vector_target_matrix, vector_prediction_matrix, model_metadata_dict,
-        use_log_scale, output_dir_name):
+        vector_target_matrix, vector_prediction_matrix, example_id_strings,
+        model_metadata_dict, use_log_scale, output_dir_name):
     """Plots fancy comparisons (with all target variables in the same plot).
 
     E = number of examples
@@ -133,6 +133,7 @@ def _plot_comparisons_fancy(
         values.
     :param vector_prediction_matrix: E-by-H-by-T numpy array of predicted
         values.
+    :param example_id_strings: length-E list of example IDs.
     :param model_metadata_dict: Dictionary returned by
         `neural_net.read_metadata`.
     :param use_log_scale: See documentation at top of file.
@@ -171,8 +172,8 @@ def _plot_comparisons_fancy(
             handle_dict=this_handle_dict
         )
 
-        this_file_name = '{0:s}/comparison_example{1:06d}.jpg'.format(
-            output_dir_name, i
+        this_file_name = '{0:s}/{1:s}_comparison.jpg'.format(
+            output_dir_name, example_id_strings[i].replace('_', '-')
         )
         print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
@@ -187,12 +188,13 @@ def _plot_comparisons_fancy(
 
 
 def _plot_comparisons_simple(
-        vector_target_matrix, vector_prediction_matrix, model_metadata_dict,
-        use_log_scale, title_strings, output_dir_name):
+        vector_target_matrix, vector_prediction_matrix, example_id_strings,
+        model_metadata_dict, use_log_scale, title_strings, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
     :param vector_target_matrix: See doc for `_plot_comparisons_fancy`.
     :param vector_prediction_matrix: Same.
+    :param example_id_strings: Same.
     :param model_metadata_dict: Same.
     :param use_log_scale: Same.
     :param title_strings: 1-D list of titles, one per example.
@@ -231,8 +233,9 @@ def _plot_comparisons_simple(
 
             this_axes_object.set_title(title_strings[i])
 
-            this_file_name = '{0:s}/comparison_{1:s}_example{2:06d}.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-'), i
+            this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
+                output_dir_name, example_id_strings[i].replace('_', '-'),
+                target_names[k].replace('_', '-')
             )
             print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
@@ -667,13 +670,14 @@ def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
     plot_fancy = all([
-        t in vector_target_names for t in VECTOR_TARGET_NAMES
+        t in vector_target_names for t in DEFAULT_VECTOR_TARGET_NAMES
     ])
 
     if plot_fancy:
         _plot_comparisons_fancy(
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,
+            example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
             use_log_scale=use_log_scale, output_dir_name=output_dir_name
         )
@@ -687,6 +691,7 @@ def _run(prediction_file_name, num_examples, example_dir_name, use_log_scale,
         _plot_comparisons_simple(
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,
+            example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
             use_log_scale=use_log_scale, title_strings=title_strings,
             output_dir_name=output_dir_name
