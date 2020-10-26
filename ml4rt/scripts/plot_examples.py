@@ -208,6 +208,16 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_id_file_name=example_id_file_name
     )
 
+    num_examples_total = len(example_dict[example_utils.VALID_TIMES_KEY])
+
+    if 0 < num_examples < num_examples_total:
+        desired_indices = numpy.linspace(
+            0, num_examples - 1, num=num_examples, dtype=int
+        )
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=desired_indices
+        )
+
     if model_file_name != '':
         model_metafile_name = neural_net.find_metafile(
             os.path.split(model_file_name)[0]
