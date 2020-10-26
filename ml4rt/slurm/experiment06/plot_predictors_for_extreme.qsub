@@ -40,6 +40,8 @@ set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
+rm -rfv "${model_dir_name}/validation/${naked_id_file_name}/predictor_plots"
+
 python3 -u "${CODE_DIR_NAME}/plot_examples.py" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --input_example_id_file_name="${model_dir_name}/validation/${naked_id_file_name}.nc" \
