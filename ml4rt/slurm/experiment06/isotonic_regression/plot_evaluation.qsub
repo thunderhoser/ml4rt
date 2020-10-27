@@ -44,8 +44,6 @@ set prediction_file_name="${model_dir_name}/isotonic_regression/validation/predi
 set evaluation_dir_name="${model_dir_name}/isotonic_regression/validation/evaluation"
 set evaluation_file_name="${evaluation_dir_name}.nc"
 
-rm -rfv "${evaluation_dir_name}"
-
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_name}" \
 --line_styles "solid" \

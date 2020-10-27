@@ -51,7 +51,6 @@ while ($i <= ${#dense_layer_count_strings})
 end
 
 set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dense-dropout=${dense_layer_dropout_string}_scalar-lf-weight=${scalar_loss_function_weight_string}"
-rm -rfv "${evaluation_dir_name}"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names ${evaluation_file_names_string} \
