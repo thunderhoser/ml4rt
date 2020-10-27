@@ -44,6 +44,8 @@ set validation_dir_name="${model_dir_name}/isotonic_regression/validation_tropic
 set evaluation_file_names=("${validation_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
 set evaluation_dir_name="${validation_dir_name}/by_cloud_regime/evaluation"
 
+rm -rfv "${evaluation_dir_name}"
+
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" \
 --line_styles "solid" "solid" "solid" \

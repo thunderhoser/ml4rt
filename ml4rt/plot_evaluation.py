@@ -369,7 +369,7 @@ def _plot_attributes_diagram(
             inv_mean_observations=inverted_mean_obs_by_set[main_index],
             inv_example_counts=inverted_example_counts_by_set[main_index],
             line_colour=line_colours[main_index],
-            line_style=line_styles[main_index], line_width=main_index
+            line_style=line_styles[main_index], line_width=4
         )
 
         if this_handle is not None:
@@ -634,7 +634,7 @@ def _plot_error_distributions(
             )
 
             axes_object.set_title(
-                'Error distribution for {0:s} ({1:s})\n'.format(
+                'Error distribution for {0:s} ({1:s})\n{2:s}'.format(
                     TARGET_NAME_TO_VERBOSE[scalar_target_names[k]],
                     TARGET_NAME_TO_UNITS[scalar_target_names[k]],
                     set_descriptions_verbose[i]
@@ -706,7 +706,7 @@ def _plot_error_distributions(
             )
 
             axes_object.set_title(
-                'Error distribution for {0:s} ({1:s})\n'.format(
+                'Error distribution for {0:s} ({1:s})\n{2:s}'.format(
                     TARGET_NAME_TO_VERBOSE[aux_target_names[k]],
                     TARGET_NAME_TO_UNITS[aux_target_names[k]],
                     set_descriptions_verbose[i]
@@ -864,7 +864,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
         )
 
         this_prediction_file_name = (
-            evaluation_tables_xarray[0].attrs[evaluation.PREDICTION_FILE_KEY]
+            evaluation_tables_xarray[i].attrs[evaluation.PREDICTION_FILE_KEY]
         )
 
         print('Reading data from: "{0:s}"...'.format(this_prediction_file_name))

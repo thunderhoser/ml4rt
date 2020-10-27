@@ -52,6 +52,11 @@ set ocean_eval_dir_name="${validation_dir_name}/by_site/evaluation_ocean"
 set high_arctic_eval_dir_name="${validation_dir_name}/by_site/evaluation_high_arctic"
 set misc_eval_dir_name="${validation_dir_name}/by_site/evaluation_misc"
 
+rm -rfv "${conus_eval_dir_name}"
+rm -rfv "${ocean_eval_dir_name}"
+rm -rfv "${high_arctic_eval_dir_name}"
+rm -rfv "${misc_eval_dir_name}"
+
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${conus_eval_file_names[1]}" "${conus_eval_file_names[2]}" "${conus_eval_file_names[3]}" "${conus_eval_file_names[4]}" "${conus_eval_file_names[5]}" "${conus_eval_file_names[6]}" "${conus_eval_file_names[7]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
