@@ -48,7 +48,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" \
 --line_styles "solid" "solid" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" \
---line_legend_strings "No_cloud" "Single-layer_cloud" "Multi-layer_cloud" \
+--set_descriptions "No_cloud" "Single-layer_cloud" "Multi-layer_cloud" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${evaluation_dir_name}"

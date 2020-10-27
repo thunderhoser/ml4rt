@@ -56,7 +56,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${conus_eval_file_names[1]}" "${conus_eval_file_names[2]}" "${conus_eval_file_names[3]}" "${conus_eval_file_names[4]}" "${conus_eval_file_names[5]}" "${conus_eval_file_names[6]}" "${conus_eval_file_names[7]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---line_legend_strings "Santa_Barbara_CA" "Bodega_Bay_CA" "Forks_WA" "Owego_NY" "Tupper_Lake_NY" "Bella_Mina_AL" "Lamont_OK" \
+--set_descriptions "Santa_Barbara_CA" "Bodega_Bay_CA" "Forks_WA" "Owego_NY" "Tupper_Lake_NY" "Bella_Mina_AL" "Lamont_OK" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${conus_eval_dir_name}"
@@ -65,7 +65,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${ocean_eval_file_names[1]}" "${ocean_eval_file_names[2]}" "${ocean_eval_file_names[3]}" "${ocean_eval_file_names[4]}" "${ocean_eval_file_names[5]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" \
---line_legend_strings "Barrow_AK" "Cherskii_RU" "Tiksi_RU" "FINO3" "Azores" \
+--set_descriptions "Barrow_AK" "Cherskii_RU" "Tiksi_RU" "FINO3" "Azores" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${ocean_eval_dir_name}"
@@ -74,7 +74,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${high_arctic_eval_file_names[1]}" "${high_arctic_eval_file_names[2]}" "${high_arctic_eval_file_names[3]}" "${high_arctic_eval_file_names[4]}" "${high_arctic_eval_file_names[5]}" "${high_arctic_eval_file_names[6]}" "${high_arctic_eval_file_names[7]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---line_legend_strings "Villum_GL" "Eureka_NU" "Alert_NU" "YOPP1" "YOPP2" "YOPP3" "SHEBA" \
+--set_descriptions "Villum_GL" "Eureka_NU" "Alert_NU" "YOPP1" "YOPP2" "YOPP3" "SHEBA" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${high_arctic_eval_dir_name}"
@@ -83,7 +83,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${misc_eval_file_names[1]}" "${misc_eval_file_names[2]}" "${misc_eval_file_names[3]}" "${misc_eval_file_names[4]}" \
 --line_styles "solid" "solid" "solid" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---line_legend_strings "Juelich_DE" "Lindenberg_DE" "Ny_Alesund_NO" "Pallas_Sodankyla_FI" \
+--set_descriptions "Juelich_DE" "Lindenberg_DE" "Ny_Alesund_NO" "Pallas_Sodankyla_FI" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${misc_eval_dir_name}"

@@ -56,7 +56,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names ${evaluation_file_names_string} \
 --line_styles ${line_styles_string} \
 --line_colours ${line_colours_string} \
---line_legend_strings ${line_legends_string} \
+--set_descriptions ${line_legends_string} \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${evaluation_dir_name}"

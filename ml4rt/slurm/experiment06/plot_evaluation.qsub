@@ -48,7 +48,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_name}" \
 --line_styles "solid" \
 --line_colours "217_95_2" \
---line_legend_strings "New_model" \
+--set_descriptions "New_model" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${evaluation_dir_name}"
