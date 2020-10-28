@@ -19,7 +19,7 @@ import imagemagick_utils
 # )
 
 IMAGE_DIR_NAME = (
-    '/home/ryan.lagerquist/scratch1/RDARCH/rda-ghpcs/'
+    '/scratch1/RDARCH/rda-ghpcs/'
     'Ryan.Lagerquist/ml4rt_models/experiment06/'
     'num-dense-layers=4_dense-dropout=0.300_scalar-lf-weight=001.0/'
     'model_epoch=205_val-loss=0.052551/isotonic_regression/'
