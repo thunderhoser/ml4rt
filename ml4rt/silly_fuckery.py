@@ -1,6 +1,14 @@
 """Silly fuckery."""
 
-from gewittergefahr.plotting import imagemagick_utils
+import os
+import sys
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import imagemagick_utils
 
 # IMAGE_DIR_NAME = (
 #     '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH/rda-ghpcs/'
