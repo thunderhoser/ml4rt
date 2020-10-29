@@ -51,12 +51,14 @@ def _overlay_text(
     """
 
     command_string = (
-        '"{0:s}" "{1:s}" -gravity northwest -pointsize {2:d} -font "{3:s}" '
+        '"{0:s}" "{1:s}" -pointsize {2:d} -font "{3:s}" '
         '-fill "rgb(0, 0, 0)" -annotate {4:+d}{5:+d} "{6:s}" "{1:s}"'
     ).format(
         CONVERT_EXE_NAME, image_file_name, TITLE_FONT_SIZE, TITLE_FONT_NAME,
         x_offset_from_left_px, y_offset_from_top_px, text_string
     )
+
+    print(command_string)
 
     exit_code = os.system(command_string)
     if exit_code == 0:
