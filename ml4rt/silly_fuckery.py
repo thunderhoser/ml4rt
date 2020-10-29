@@ -10,6 +10,10 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import imagemagick_utils
 
+CONVERT_EXE_NAME = '/usr/bin/convert'
+TITLE_FONT_SIZE = 150
+TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
+
 IMAGE_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment06/'
     'num-dense-layers=4_dense-dropout=0.300_scalar-lf-weight=001.0/'
@@ -28,7 +32,38 @@ PATHLESS_INPUT_FILE_NAMES = [
     'net-shortwave-flux-w-m02_attributes_new-model.jpg',
 ]
 
+LETTER_LABELS = ['(a)', '(e)', '(b)', '(f)', '(c)', '(g)', '(d)', '(h)']
+
 OUTPUT_FILE_NAME = '{0:s}/jtti-rt_figure02.jpg'.format(IMAGE_DIR_NAME)
+
+
+def _overlay_text(
+        image_file_name, x_offset_from_left_px, y_offset_from_top_px,
+        text_string):
+    """Overlays text on image.
+
+    :param image_file_name: Path to image file.
+    :param x_offset_from_left_px: Left-relative x-coordinate (pixels).
+    :param y_offset_from_top_px: Top-relative y-coordinate (pixels).
+    :param text_string: String to overlay.
+    :raises: ValueError: if ImageMagick command (which is ultimately a Unix
+        command) fails.
+    """
+
+    command_string = (
+        '"{0:s}" "{1:s}" -gravity northwest -pointsize {2:d} -font "{3:s}" '
+        '-fill "rgb(0, 0, 0)" -annotate {4:+d}{5:+d} "{6:s}" "{1:s}"'
+    ).format(
+        CONVERT_EXE_NAME, image_file_name, TITLE_FONT_SIZE, TITLE_FONT_NAME,
+        x_offset_from_left_px, y_offset_from_top_px, text_string
+    )
+
+    exit_code = os.system(command_string)
+    if exit_code == 0:
+        return
+
+    raise ValueError(imagemagick_utils.ERROR_STRING)
+
 
 input_file_names = [
     '{0:s}/{1:s}'.format(IMAGE_DIR_NAME, f) for f in PATHLESS_INPUT_FILE_NAMES
@@ -43,6 +78,12 @@ for i in range(len(input_file_names)):
     imagemagick_utils.trim_whitespace(
         input_file_name=input_file_names[i],
         output_file_name=resized_file_names[i]
+    )
+
+    _overlay_text(
+        image_file_name=resized_file_names[i],
+        x_offset_from_left_px=0, y_offset_from_top_px=0,
+        text_string=LETTER_LABELS[i]
     )
 
     imagemagick_utils.resize_image(
