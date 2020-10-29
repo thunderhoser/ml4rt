@@ -84,7 +84,7 @@ for i in range(len(input_file_names)):
 
     _overlay_text(
         image_file_name=resized_file_names[i],
-        x_offset_from_left_px=0, y_offset_from_top_px=0,
+        x_offset_from_left_px=0, y_offset_from_top_px=150,
         text_string=LETTER_LABELS[i]
     )
 
