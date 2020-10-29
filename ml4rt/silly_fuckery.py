@@ -11,7 +11,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import imagemagick_utils
 
 CONVERT_EXE_NAME = '/usr/bin/convert'
-TITLE_FONT_SIZE = 150
+TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
 IMAGE_DIR_NAME = (
@@ -84,14 +84,14 @@ for i in range(len(input_file_names)):
 
     _overlay_text(
         image_file_name=resized_file_names[i],
-        x_offset_from_left_px=0, y_offset_from_top_px=150,
+        x_offset_from_left_px=0, y_offset_from_top_px=TITLE_FONT_SIZE,
         text_string=LETTER_LABELS[i]
     )
 
     imagemagick_utils.resize_image(
         input_file_name=resized_file_names[i],
         output_file_name=resized_file_names[i],
-        output_size_pixels=int(2.5e6)
+        output_size_pixels=int(5e6)
     )
 
 imagemagick_utils.concatenate_images(
