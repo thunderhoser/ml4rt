@@ -98,3 +98,8 @@ imagemagick_utils.concatenate_images(
     input_file_names=resized_file_names, output_file_name=OUTPUT_FILE_NAME,
     num_panel_rows=4, num_panel_columns=2
 )
+
+imagemagick_utils.resize_image(
+    input_file_name=OUTPUT_FILE_NAME, output_file_name=OUTPUT_FILE_NAME,
+    output_size_pixels=int(2e7)
+)
