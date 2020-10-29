@@ -95,6 +95,6 @@ for i in range(len(input_file_names)):
     )
 
 imagemagick_utils.concatenate_images(
-    input_file_names=input_file_names, output_file_name=OUTPUT_FILE_NAME,
+    input_file_names=resized_file_names, output_file_name=OUTPUT_FILE_NAME,
     num_panel_rows=4, num_panel_columns=2
 )
