@@ -20,11 +20,11 @@ IMAGE_DIR_NAME = (
 PATHLESS_INPUT_FILE_NAMES = [
     'shortwave-heating-rate-k-day01_bias_profile.jpg',
     'shortwave-heating-rate-k-day01_reliability_new-model.jpg',
-    'shortwave-heating-rate-k-day01_correlation_profile.jpg',
-    'shortwave-surface-down-flux-w-m02_attributes_new-model.jpg',
     'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
-    'shortwave-toa-up-flux-w-m02_attributes_new-model.jpg',
+    'shortwave-surface-down-flux-w-m02_attributes_new-model.jpg',
     'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
+    'shortwave-toa-up-flux-w-m02_attributes_new-model.jpg',
+    'shortwave-heating-rate-k-day01_correlation_profile.jpg',
     'net-shortwave-flux-w-m02_attributes_new-model.jpg',
 ]
 
