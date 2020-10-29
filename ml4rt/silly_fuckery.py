@@ -84,12 +84,12 @@ for i in range(len(input_file_names)):
 
     _overlay_text(
         image_file_name=resized_file_names[i],
-        x_offset_from_left_px=100, y_offset_from_top_px=100,
+        x_offset_from_left_px=0, y_offset_from_top_px=0,
         text_string=LETTER_LABELS[i]
     )
 
     imagemagick_utils.resize_image(
-        input_file_name=input_file_names[i],
+        input_file_name=resized_file_names[i],
         output_file_name=resized_file_names[i],
         output_size_pixels=int(2.5e6)
     )
