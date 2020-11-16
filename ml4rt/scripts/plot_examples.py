@@ -26,17 +26,39 @@ VECTOR_TARGET_NAMES = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME
 ]
 
+# FIRST_PREDICTOR_NAMES = [
+#     example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
+#     example_utils.RELATIVE_HUMIDITY_NAME,
+#     example_utils.LIQUID_WATER_CONTENT_NAME
+# ]
+# FIRST_PREDICTOR_COLOURS = [
+#     BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
+# ]
+#
+# SECOND_PREDICTOR_NAMES = [
+#     example_utils.WATER_VAPOUR_PATH_NAME,
+#     example_utils.LIQUID_WATER_PATH_NAME,
+#     example_utils.UPWARD_LIQUID_WATER_PATH_NAME
+# ]
+# SECOND_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+#
+# THIRD_PREDICTOR_NAMES = [
+#     example_utils.ICE_WATER_CONTENT_NAME, example_utils.ICE_WATER_PATH_NAME,
+#     example_utils.UPWARD_ICE_WATER_PATH_NAME
+# ]
+# THIRD_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+
 FIRST_PREDICTOR_NAMES = [
     example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
-    example_utils.RELATIVE_HUMIDITY_NAME,
-    example_utils.LIQUID_WATER_CONTENT_NAME
+    example_utils.WATER_VAPOUR_PATH_NAME,
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME
 ]
 FIRST_PREDICTOR_COLOURS = [
     BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
 ]
 
 SECOND_PREDICTOR_NAMES = [
-    example_utils.WATER_VAPOUR_PATH_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
     example_utils.LIQUID_WATER_PATH_NAME,
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME
 ]
@@ -79,7 +101,9 @@ MODEL_FILE_HELP_STRING = (
     'specified, this script will plot only the variables/heights used by the '
     'model.'
 )
-OUTPUT_DIR_HELP_STRING = 'Name of output directory (figures will be saved here).'
+OUTPUT_DIR_HELP_STRING = (
+    'Name of output directory (figures will be saved here).'
+)
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
