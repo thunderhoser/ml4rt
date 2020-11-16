@@ -174,7 +174,7 @@ def _plot_histogram_one_target(
         input_file_name=output_file_name, output_file_name=output_file_name,
         output_size_pixels=int(2.5e6)
     )
-    
+
     return output_file_name
 
 

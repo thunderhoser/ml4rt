@@ -78,7 +78,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     """Plots all sites wtih data.
 
     This is effectively the main method.
-    
+
     :param tropical_example_dir_name: See documentation at top of file.
     :param non_tropical_example_dir_name: Same.
     :param output_file_name: Same.
