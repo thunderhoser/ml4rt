@@ -30,7 +30,7 @@ DENSE_LAYER_DROPOUT_RATES = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
 SCALAR_LOSS_FUNCTION_WEIGHTS = numpy.array([1, 2.5, 5, 10, 25, 50])
 
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.5
+BEST_MARKER_SIZE_GRID_CELLS = 0.3
 BEST_MARKER_COLOUR = numpy.full(3, 1.)
 
 FONT_SIZE = 30
@@ -154,13 +154,14 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string):
     :return: dwmse_k3_day03: Dual-weighted mean squared error.
     :return: down_flux_rmse_w_m02: RMSE for surface downwelling flux.
     :return: up_flux_rmse_w_m02: RMSE for TOA upwelling flux.
+    :return: net_flux_rmse_w_m02: RMSE for net flux.
     """
 
     model_file_pattern = '{0:s}/model*.h5'.format(model_dir_name)
     model_file_names = glob.glob(model_file_pattern)
 
     if len(model_file_names) == 0:
-        return numpy.nan, numpy.nan
+        return numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan
 
     model_file_names.sort()
     model_file_name = model_file_names[-1]
@@ -179,7 +180,7 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string):
     )
 
     if not os.path.isfile(evaluation_file_name):
-        return numpy.nan, numpy.nan, numpy.nan, numpy.nan
+        return numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan
 
     print('Reading data from: "{0:s}"...'.format(evaluation_file_name))
     evaluation_table_xarray = evaluation.read_file(evaluation_file_name)
@@ -188,6 +189,10 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string):
     )
     scalar_target_names = evaluation_table_xarray.coords[
         evaluation.SCALAR_FIELD_DIM
+    ].values.tolist()
+
+    aux_target_names = evaluation_table_xarray.coords[
+        evaluation.AUX_TARGET_FIELD_DIM
     ].values.tolist()
 
     prmse_k_day01 = (
@@ -206,6 +211,11 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string):
         evaluation_table_xarray[evaluation.SCALAR_MSE_KEY].values[j]
     )
 
+    j = aux_target_names.index(evaluation.NET_FLUX_NAME)
+    net_flux_rmse_w_m02 = numpy.sqrt(
+        evaluation_table_xarray[evaluation.AUX_MSE_KEY].values[j]
+    )
+
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
     vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
@@ -221,7 +231,8 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string):
         weight_matrix * (vector_prediction_matrix - vector_target_matrix) ** 2
     )
     return (
-        prmse_k_day01, dwmse_k3_day03, down_flux_rmse_w_m02, up_flux_rmse_w_m02
+        prmse_k_day01, dwmse_k3_day03, down_flux_rmse_w_m02, up_flux_rmse_w_m02,
+        net_flux_rmse_w_m02
     )
 
 
@@ -260,7 +271,8 @@ def _print_ranking_one_score(score_matrix, score_name):
 
 def _print_ranking_all_scores(
         prmse_matrix_k_day01, dwmse_matrix_k3_day03,
-        down_flux_rmse_matrix_w_m02, up_flux_rmse_matrix_w_m02):
+        down_flux_rmse_matrix_w_m02, up_flux_rmse_matrix_w_m02,
+        net_flux_rmse_matrix_w_m02):
     """Prints ranking for one score.
 
     C = number of dense-layer counts
@@ -273,6 +285,8 @@ def _print_ranking_all_scores(
         surface downwelling flux.
     :param up_flux_rmse_matrix_w_m02: C-by-D-by-W numpy array of RMSE for TOA
         upwelling flux.
+    :param net_flux_rmse_matrix_w_m02: C-by-D-by-W numpy array of RMSE for net
+        flux.
     """
 
     these_scores = numpy.ravel(prmse_matrix_k_day01)
@@ -302,6 +316,13 @@ def _print_ranking_all_scores(
         up_flux_rmse_matrix_w_m02.shape
     )
 
+    these_scores = numpy.ravel(net_flux_rmse_matrix_w_m02)
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    net_flux_rmse_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        net_flux_rmse_matrix_w_m02.shape
+    )
+
     for m in range(len(i_sort_indices)):
         i = i_sort_indices[m]
         j = j_sort_indices[m]
@@ -312,14 +333,15 @@ def _print_ranking_all_scores(
             'num dense layers = {2:d} ... '
             'dense-layer dropout rate = {3:.3f} ... '
             'weight for scalar loss function = {4:.1f} ... '
-            'ranks for DWMSE, down-flux RMSE, and up-flux RMSE = '
-            '{5:.1f}, {6:.1f}, {7:.1f}'
+            'DWMSE rank = {5:.1f} ... down-flux-RMSE rank = {6:.1f} ... '
+            'up-flux-RMSE rank = {7:.1f} ... net-flux-RMSE rank = {8:.1f}'
         ).format(
             m + 1, prmse_matrix_k_day01[i, j, k],
             DENSE_LAYER_COUNTS[i], DENSE_LAYER_DROPOUT_RATES[j],
             SCALAR_LOSS_FUNCTION_WEIGHTS[k],
             dwmse_rank_matrix[i, j, k], down_flux_rmse_rank_matrix[i, j, k],
-            up_flux_rmse_rank_matrix[i, j, k]
+            up_flux_rmse_rank_matrix[i, j, k],
+            net_flux_rmse_rank_matrix[i, j, k]
         ))
 
 
@@ -361,6 +383,9 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
         experiment_dir_name
     )
 
+    # TODO(thunderhoser): Remove this HACK.
+    os.remove(score_file_name)
+
     if os.path.isfile(score_file_name):
         print('Reading scores from: "{0:s}"...'.format(score_file_name))
         pickle_file_handle = open(score_file_name, 'rb')
@@ -368,6 +393,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
         dwmse_matrix_k3_day03 = pickle.load(pickle_file_handle)
         down_flux_rmse_matrix_w_m02 = pickle.load(pickle_file_handle)
         up_flux_rmse_matrix_w_m02 = pickle.load(pickle_file_handle)
+        net_flux_rmse_matrix_w_m02 = pickle.load(pickle_file_handle)
         pickle_file_handle.close()
     else:
         dimensions = (
@@ -377,6 +403,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
         dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
         down_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
         up_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
+        net_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
 
         for i in range(num_dense_layer_counts):
             for j in range(num_dropout_rates):
@@ -394,7 +421,8 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
                         prmse_matrix_k_day01[i, j, k],
                         dwmse_matrix_k3_day03[i, j, k],
                         down_flux_rmse_matrix_w_m02[i, j, k],
-                        up_flux_rmse_matrix_w_m02[i, j, k]
+                        up_flux_rmse_matrix_w_m02[i, j, k],
+                        net_flux_rmse_matrix_w_m02[i, j, k]
                     ) = _read_scores_one_model(
                         model_dir_name=this_model_dir_name,
                         isotonic_flag=isotonic_flag,
@@ -409,6 +437,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
     pickle.dump(dwmse_matrix_k3_day03, pickle_file_handle)
     pickle.dump(down_flux_rmse_matrix_w_m02, pickle_file_handle)
     pickle.dump(up_flux_rmse_matrix_w_m02, pickle_file_handle)
+    pickle.dump(net_flux_rmse_matrix_w_m02, pickle_file_handle)
     pickle_file_handle.close()
 
     _print_ranking_one_score(
@@ -433,11 +462,18 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
     )
     print(SEPARATOR_STRING)
 
+    _print_ranking_one_score(
+        score_matrix=net_flux_rmse_matrix_w_m02,
+        score_name='RMSE for net flux (W m^-2)'
+    )
+    print(SEPARATOR_STRING)
+
     _print_ranking_all_scores(
         prmse_matrix_k_day01=prmse_matrix_k_day01,
         dwmse_matrix_k3_day03=dwmse_matrix_k3_day03,
         down_flux_rmse_matrix_w_m02=down_flux_rmse_matrix_w_m02,
-        up_flux_rmse_matrix_w_m02=up_flux_rmse_matrix_w_m02
+        up_flux_rmse_matrix_w_m02=up_flux_rmse_matrix_w_m02,
+        net_flux_rmse_matrix_w_m02=net_flux_rmse_matrix_w_m02
     )
     print(SEPARATOR_STRING)
 
@@ -461,6 +497,11 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
         this_index, up_flux_rmse_matrix_w_m02.shape
     )
 
+    this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
+    min_net_flux_rmse_indices = numpy.unravel_index(
+        this_index, net_flux_rmse_matrix_w_m02.shape
+    )
+
     for i in range(num_dense_layer_counts):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=prmse_matrix_k_day01[i, ...],
@@ -476,9 +517,6 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
             marker_size_px = figure_width_px * (
                 BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
-            print(min_prmse_indices[2])
-            print(min_prmse_indices[1])
-            print('\n\n\n\n******\n\n\n\n')
 
             axes_object.plot(
                 min_prmse_indices[2], min_prmse_indices[1],
@@ -638,6 +676,50 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
 
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_up_flux_rmse_grid.jpg'
+        ).format(
+            experiment_dir_name, location_subdir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            DENSE_LAYER_COUNTS[i]
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=net_flux_rmse_matrix_w_m02[i, ...],
+            min_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 0),
+            max_colour_value=
+            numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        if min_net_flux_rmse_indices[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+            axes_object.plot(
+                min_net_flux_rmse_indices[2], min_net_flux_rmse_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=BEST_MARKER_COLOUR,
+                markeredgecolor=BEST_MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title('{0:d} dense layers'.format(
+            DENSE_LAYER_COUNTS[i]
+        ))
+
+        figure_file_name = (
+            '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_net_flux_rmse_grid.jpg'
         ).format(
             experiment_dir_name, location_subdir_name,
             'isotonic_regression/' if isotonic_flag else '',
