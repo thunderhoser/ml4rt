@@ -56,7 +56,6 @@ VALID_LOCATION_SET_STRINGS = [
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
 ISOTONIC_FLAG_ARG_NAME = 'isotonic_flag'
 LOCATION_SET_ARG_NAME = 'location_set_string'
-EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 ISOTONIC_FLAG_HELP_STRING = (
@@ -65,10 +64,6 @@ ISOTONIC_FLAG_HELP_STRING = (
 LOCATION_SET_HELP_STRING = (
     'Location set.  Must be in the following list:\n{0:s}'
 ).format(str(VALID_LOCATION_SET_STRINGS))
-
-EXCLUDE_SUMMIT_HELP_STRING = (
-    'Boolean flag.  If 1, will not apply to examples from Summit.'
-)
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
@@ -82,10 +77,6 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + LOCATION_SET_ARG_NAME, type=str, required=True,
     help=LOCATION_SET_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + EXCLUDE_SUMMIT_ARG_NAME, type=int, required=False, default=0,
-    help=EXCLUDE_SUMMIT_HELP_STRING
 )
 
 
@@ -140,7 +131,7 @@ def _plot_scores_2d(
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
         orientation_string='horizontal', extend_min=False, extend_max=False,
-        fraction_of_axis_length=0.8, font_size=FONT_SIZE
+        padding=0.09, fraction_of_axis_length=0.8, font_size=FONT_SIZE
     )
 
     tick_values = colour_bar_object.get_ticks()
@@ -151,15 +142,13 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string,
-                           exclude_summit_greenland):
+def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string):
     """Reads scores for one model.
 
     :param model_dir_name: Name of directory with trained model and evaluation
         data.
     :param isotonic_flag: See documentation at top of file.
     :param location_set_string: Same.
-    :param exclude_summit_greenland: Same.
     :return: prmse_k_day01: Profile root mean squared error (RMSE):
     :return: dwmse_k3_day03: Dual-weighted mean squared error.
     :return: down_flux_rmse_w_m02: RMSE for surface downwelling flux.
@@ -177,8 +166,6 @@ def _read_scores_one_model(model_dir_name, isotonic_flag, location_set_string,
 
     if location_set_string == TROPICAL_LOCATION_SET_STRING:
         location_subdir_name = '_tropical_sites'
-    elif exclude_summit_greenland:
-        location_subdir_name = '_new_loc_sans_summit'
     elif location_set_string == NEW_LOCATION_SET_STRING:
         location_subdir_name = '_new_locations'
     else:
@@ -335,8 +322,7 @@ def _print_ranking_all_scores(
         ))
 
 
-def _run(experiment_dir_name, isotonic_flag, location_set_string,
-         exclude_summit_greenland):
+def _run(experiment_dir_name, isotonic_flag, location_set_string):
     """Plots scores on hyperparameter grid for Experiment 6.
 
     This is effectively the main method.
@@ -344,7 +330,6 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
     :param experiment_dir_name: See documentation at top of file.
     :param isotonic_flag: Same.
     :param location_set_string: Same.
-    :param exclude_summit_greenland: Same.
     :raises: ValueError: if
         `location_set_string not in VALID_LOCATION_SET_STRINGS`.
     """
@@ -355,11 +340,6 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
         ).format(location_set_string, str(VALID_LOCATION_SET_STRINGS))
 
         raise ValueError(error_string)
-
-    exclude_summit_greenland = (
-        exclude_summit_greenland
-        and location_set_string == NEW_LOCATION_SET_STRING
-    )
 
     num_dense_layer_counts = len(DENSE_LAYER_COUNTS)
     num_dropout_rates = len(DENSE_LAYER_DROPOUT_RATES)
@@ -404,8 +384,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     isotonic_flag=isotonic_flag,
-                    location_set_string=location_set_string,
-                    exclude_summit_greenland=exclude_summit_greenland
+                    location_set_string=location_set_string
                 )
 
     print(SEPARATOR_STRING)
@@ -491,8 +470,6 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
 
         if location_set_string == TROPICAL_LOCATION_SET_STRING:
             location_subdir_name = 'tropical_sites/'
-        elif exclude_summit_greenland:
-            location_subdir_name = 'new_loc_sans_summit/'
         elif location_set_string == NEW_LOCATION_SET_STRING:
             location_subdir_name = 'new_locations/'
         else:
@@ -655,8 +632,5 @@ if __name__ == '__main__':
     _run(
         experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME),
         isotonic_flag=bool(getattr(INPUT_ARG_OBJECT, ISOTONIC_FLAG_ARG_NAME)),
-        location_set_string=getattr(INPUT_ARG_OBJECT, LOCATION_SET_ARG_NAME),
-        exclude_summit_greenland=bool(getattr(
-            INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME
-        )),
+        location_set_string=getattr(INPUT_ARG_OBJECT, LOCATION_SET_ARG_NAME)
     )
