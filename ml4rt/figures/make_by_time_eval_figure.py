@@ -1,38 +1,31 @@
-"""Creates figure showing model evaluation by cloud regime."""
+"""Creates figure showing model evaluation by time."""
 
 import os
 import argparse
+import numpy
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
-
-PATHLESS_INPUT_FILE_NAMES = [
-    'shortwave-surface-down-flux-w-m02_attributes_multi-layer-cloud.jpg',
-    'shortwave-toa-up-flux-w-m02_attributes_multi-layer-cloud.jpg',
-    'net-shortwave-flux-w-m02_attributes_multi-layer-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_no-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_single-layer-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_multi-layer-cloud.jpg',
-    'shortwave-heating-rate-k-day01_bias_profile.jpg',
-    'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
-    'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg'
-]
 
 CONVERT_EXE_NAME = '/usr/bin/convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
-NUM_PANEL_ROWS = 3
-NUM_PANEL_COLUMNS = 3
+NUM_PANEL_COLUMNS = 2
 PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
+HEIGHTS_ARG_NAME = 'heights_m_agl'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing evaluation figures created by '
-    'plot_evaluation.py.  This script will panel some of those figures '
+    'plot_evaluation_by_time.py.  This script will panel some of those figures '
     'together.'
+)
+HEIGHTS_HELP_STRING = (
+    'The figure will include scores for net flux and heating rate at these '
+    'heights (metres above ground level).'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Output images (paneled figure and temporary '
@@ -43,6 +36,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
     help=INPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + HEIGHTS_ARG_NAME, type=int, nargs='+', required=True,
+    help=HEIGHTS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -78,12 +75,13 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, output_dir_name):
+def _run(input_dir_name, heights_m_agl, output_dir_name):
     """Creates figure showing overall model evaluation.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
+    :param heights_m_agl: Same.
     :param output_dir_name: Same.
     """
 
@@ -91,13 +89,33 @@ def _run(input_dir_name, output_dir_name):
         directory_name=output_dir_name
     )
 
+    num_heights = len(heights_m_agl)
+    pathless_input_file_names = []
+
+    for j in range(num_heights):
+        first_file_name = (
+            'shortwave-heating-rate-k-day01_{0:05d}metres_scores_without_units'
+            '.jpg'
+        ).format(heights_m_agl[j])
+
+        second_file_name = (
+            'shortwave-heating-rate-k-day01_{0:05d}metres_scores_with_units.jpg'
+        ).format(heights_m_agl[j])
+
+        pathless_input_file_names += [first_file_name, second_file_name]
+
+    pathless_input_file_names += [
+        'net-shortwave-flux-w-m02_scores_without_units.jpg',
+        'net-shortwave-flux-w-m02_scores_with_units.jpg'
+    ]
+
     panel_file_names = [
         '{0:s}/{1:s}'.format(input_dir_name, p)
-        for p in PATHLESS_INPUT_FILE_NAMES
+        for p in pathless_input_file_names
     ]
     resized_panel_file_names = [
         '{0:s}/{1:s}'.format(output_dir_name, p)
-        for p in PATHLESS_INPUT_FILE_NAMES
+        for p in pathless_input_file_names
     ]
 
     letter_label = None
@@ -136,7 +154,7 @@ def _run(input_dir_name, output_dir_name):
     imagemagick_utils.concatenate_images(
         input_file_names=resized_panel_file_names,
         output_file_name=concat_figure_file_name,
-        num_panel_rows=NUM_PANEL_ROWS, num_panel_columns=NUM_PANEL_COLUMNS
+        num_panel_rows=num_heights + 1, num_panel_columns=NUM_PANEL_COLUMNS
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_figure_file_name,
@@ -150,5 +168,8 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        heights_m_agl=numpy.array(
+            getattr(INPUT_ARG_OBJECT, HEIGHTS_ARG_NAME), dtype=int
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
