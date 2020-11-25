@@ -43,7 +43,7 @@ POSITIVE_SKILL_AREA_OPACITY = 0.2
 HISTOGRAM_FACE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
 HISTOGRAM_EDGE_WIDTH = 2.
-HISTOGRAM_FONT_SIZE = 16
+HISTOGRAM_FONT_SIZE = 24
 
 TAYLOR_TARGET_MARKER_TYPE = '*'
 TAYLOR_TARGET_MARKER_SIZE = 24
@@ -52,7 +52,7 @@ TAYLOR_PREDICTION_MARKER_SIZE = 20
 
 DEFAULT_HEIGHT_CMAP_OBJECT = pyplot.get_cmap('viridis')
 
-FONT_SIZE = 25
+FONT_SIZE = 36
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -272,9 +272,9 @@ def _plot_inset_histogram(
     bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
 
     if has_predictions:
-        inset_axes_object = figure_object.add_axes([0.675, 0.1625, 0.2, 0.2])
+        inset_axes_object = figure_object.add_axes([0.675, 0.2, 0.2, 0.2])
     else:
-        inset_axes_object = figure_object.add_axes([0.175, 0.65, 0.2, 0.2])
+        inset_axes_object = figure_object.add_axes([0.2, 0.65, 0.2, 0.2])
 
     num_bins = len(bin_centers)
     fake_bin_centers = (
