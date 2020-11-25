@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+from PIL import Image
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -142,10 +143,12 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
         else:
             letter_label = chr(ord(letter_label) + 1)
 
+        image_matrix = Image.open(resized_panel_file_names[i])
+        _, figure_height_px = image_matrix.size
+
         _overlay_text(
             image_file_name=resized_panel_file_names[i],
-            x_offset_from_left_px=-100,
-            y_offset_from_top_px=TITLE_FONT_SIZE - 100,
+            x_offset_from_left_px=0, y_offset_from_top_px=figure_height_px,
             text_string='({0:s})'.format(letter_label)
         )
         imagemagick_utils.resize_image(
