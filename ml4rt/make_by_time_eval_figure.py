@@ -144,7 +144,8 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
 
         _overlay_text(
             image_file_name=resized_panel_file_names[i],
-            x_offset_from_left_px=0, y_offset_from_top_px=TITLE_FONT_SIZE,
+            x_offset_from_left_px=-100,
+            y_offset_from_top_px=TITLE_FONT_SIZE - 100,
             text_string='({0:s})'.format(letter_label)
         )
         imagemagick_utils.resize_image(
