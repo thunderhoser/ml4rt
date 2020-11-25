@@ -1,8 +1,9 @@
 """Plots scores on hyperparameter grid for Experiment 6."""
 
+import os
 import sys
 import glob
-import os.path
+import pickle
 import argparse
 import numpy
 from scipy.stats import rankdata
@@ -344,14 +345,6 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
     num_dense_layer_counts = len(DENSE_LAYER_COUNTS)
     num_dropout_rates = len(DENSE_LAYER_DROPOUT_RATES)
     num_loss_function_weights = len(SCALAR_LOSS_FUNCTION_WEIGHTS)
-    dimensions = (
-        num_dense_layer_counts, num_dropout_rates, num_loss_function_weights
-    )
-
-    prmse_matrix_k_day01 = numpy.full(dimensions, numpy.nan)
-    dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
-    down_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
-    up_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
 
     y_tick_labels = [
         '{0:.1f}'.format(d).replace('-1', '0')
@@ -364,30 +357,59 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
     y_axis_label = 'Dense-layer dropout rate'
     x_axis_label = r'$\alpha$-coefficient in loss function'
 
-    for i in range(num_dense_layer_counts):
-        for j in range(num_dropout_rates):
-            for k in range(num_loss_function_weights):
-                this_model_dir_name = (
-                    '{0:s}/num-dense-layers={1:d}_dense-dropout={2:.3f}_'
-                    'scalar-lf-weight={3:05.1f}'
-                ).format(
-                    experiment_dir_name, DENSE_LAYER_COUNTS[i],
-                    DENSE_LAYER_DROPOUT_RATES[j],
-                    SCALAR_LOSS_FUNCTION_WEIGHTS[k]
-                )
+    score_file_name = '{0:s}/scores_on_hyperparam_grid.p'.format(
+        experiment_dir_name
+    )
 
-                (
-                    prmse_matrix_k_day01[i, j, k],
-                    dwmse_matrix_k3_day03[i, j, k],
-                    down_flux_rmse_matrix_w_m02[i, j, k],
-                    up_flux_rmse_matrix_w_m02[i, j, k]
-                ) = _read_scores_one_model(
-                    model_dir_name=this_model_dir_name,
-                    isotonic_flag=isotonic_flag,
-                    location_set_string=location_set_string
-                )
+    if os.path.isfile(score_file_name):
+        print('Reading scores from: "{0:s}"...'.format(score_file_name))
+        pickle_file_handle = open(score_file_name, 'rb')
+        prmse_matrix_k_day01 = pickle.load(pickle_file_handle)
+        dwmse_matrix_k3_day03 = pickle.load(pickle_file_handle)
+        down_flux_rmse_matrix_w_m02 = pickle.load(pickle_file_handle)
+        up_flux_rmse_matrix_w_m02 = pickle.load(pickle_file_handle)
+        pickle_file_handle.close()
+    else:
+        dimensions = (
+            num_dense_layer_counts, num_dropout_rates, num_loss_function_weights
+        )
+        prmse_matrix_k_day01 = numpy.full(dimensions, numpy.nan)
+        dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
+        down_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
+        up_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
 
-    print(SEPARATOR_STRING)
+        for i in range(num_dense_layer_counts):
+            for j in range(num_dropout_rates):
+                for k in range(num_loss_function_weights):
+                    this_model_dir_name = (
+                        '{0:s}/num-dense-layers={1:d}_dense-dropout={2:.3f}_'
+                        'scalar-lf-weight={3:05.1f}'
+                    ).format(
+                        experiment_dir_name, DENSE_LAYER_COUNTS[i],
+                        DENSE_LAYER_DROPOUT_RATES[j],
+                        SCALAR_LOSS_FUNCTION_WEIGHTS[k]
+                    )
+
+                    (
+                        prmse_matrix_k_day01[i, j, k],
+                        dwmse_matrix_k3_day03[i, j, k],
+                        down_flux_rmse_matrix_w_m02[i, j, k],
+                        up_flux_rmse_matrix_w_m02[i, j, k]
+                    ) = _read_scores_one_model(
+                        model_dir_name=this_model_dir_name,
+                        isotonic_flag=isotonic_flag,
+                        location_set_string=location_set_string
+                    )
+
+        print(SEPARATOR_STRING)
+
+    print('Writing scores to: "{0:s}"...'.format(score_file_name))
+    pickle_file_handle = open(score_file_name, 'wb')
+    pickle.dump(prmse_matrix_k_day01, pickle_file_handle)
+    pickle.dump(dwmse_matrix_k3_day03, pickle_file_handle)
+    pickle.dump(down_flux_rmse_matrix_w_m02, pickle_file_handle)
+    pickle.dump(up_flux_rmse_matrix_w_m02, pickle_file_handle)
+    pickle_file_handle.close()
 
     _print_ranking_one_score(
         score_matrix=prmse_matrix_k_day01, score_name='PRMSE (K day^-1)'
@@ -454,6 +476,10 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
             marker_size_px = figure_width_px * (
                 BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
+            print(min_prmse_indices[2])
+            print(min_prmse_indices[1])
+            print('\n\n\n\n******\n\n\n\n')
+
             axes_object.plot(
                 min_prmse_indices[2], min_prmse_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
