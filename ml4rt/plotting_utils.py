@@ -18,6 +18,11 @@ import error_checking
 DEFAULT_FIGURE_WIDTH_INCHES = 15.
 DEFAULT_FIGURE_HEIGHT_INCHES = 15.
 
+DEFAULT_LABEL_FONT_SIZE = 50
+DEFAULT_LABEL_FONT_COLOUR = numpy.full(3, 0.)
+DEFAULT_LABEL_X_NORMALIZED = 0.
+DEFAULT_LABEL_Y_NORMALIZED = 1.
+
 VERTICAL_CBAR_PADDING = 0.05
 HORIZONTAL_CBAR_PADDING = 0.075
 DEFAULT_CBAR_ORIENTATION_STRING = 'horizontal'
@@ -238,3 +243,35 @@ def plot_linear_colour_bar(
         orientation_string=orientation_string, padding=padding,
         extend_min=extend_min, extend_max=extend_max,
         fraction_of_axis_length=fraction_of_axis_length, font_size=font_size)
+
+
+def label_axes(
+        axes_object, label_string, font_size=DEFAULT_LABEL_FONT_SIZE,
+        font_colour=DEFAULT_LABEL_FONT_COLOUR,
+        x_coord_normalized=DEFAULT_LABEL_X_NORMALIZED,
+        y_coord_normalized=DEFAULT_LABEL_Y_NORMALIZED):
+    """Adds text label to axes.
+
+    :param axes_object: Axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    :param label_string: Label.
+    :param font_size: Font size.
+    :param font_colour: Font colour.
+    :param x_coord_normalized: Normalized x-coordinate (from 0...1, where 1 is
+        the right side).
+    :param y_coord_normalized: Normalized y-coordinate (from 0...1, where 1 is
+        the top).
+    """
+
+    error_checking.assert_is_string(label_string)
+    # error_checking.assert_is_geq(x_coord_normalized, 0.)
+    # error_checking.assert_is_leq(x_coord_normalized, 1.)
+    # error_checking.assert_is_geq(y_coord_normalized, 0.)
+    # error_checking.assert_is_leq(y_coord_normalized, 1.)
+
+    axes_object.text(
+        x_coord_normalized, y_coord_normalized, label_string,
+        fontsize=font_size, color=colour_from_numpy_to_tuple(font_colour),
+        horizontalalignment='right', verticalalignment='bottom',
+        transform=axes_object.transAxes
+    )

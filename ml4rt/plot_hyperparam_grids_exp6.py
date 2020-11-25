@@ -28,7 +28,11 @@ DENSE_LAYER_COUNTS = numpy.array([2, 3, 4, 5], dtype=int)
 DENSE_LAYER_DROPOUT_RATES = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
 SCALAR_LOSS_FUNCTION_WEIGHTS = numpy.array([1, 2.5, 5, 10, 25, 50])
 
-FONT_SIZE = 20
+BEST_MARKER_TYPE = '*'
+BEST_MARKER_SIZE_GRID_CELLS = 50
+BEST_MARKER_COLOUR = numpy.full(3, 1.)
+
+FONT_SIZE = 30
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -370,7 +374,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
     up_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
 
     y_tick_labels = [
-        '{0:.3f}'.format(d).replace('-1', '0')
+        '{0:.1f}'.format(d).replace('-1', '0')
         for d in DENSE_LAYER_DROPOUT_RATES
     ]
     x_tick_labels = [
@@ -378,7 +382,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
         for d in SCALAR_LOSS_FUNCTION_WEIGHTS
     ]
     y_axis_label = 'Dense-layer dropout rate'
-    x_axis_label = 'Loss-function weight for fluxes'
+    x_axis_label = r'$\alpha$-coefficient in loss function'
 
     for i in range(num_dense_layer_counts):
         for j in range(num_dropout_rates):
@@ -436,6 +440,26 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
     )
     print(SEPARATOR_STRING)
 
+    this_index = numpy.argmin(numpy.ravel(prmse_matrix_k_day01))
+    min_prmse_indices = numpy.unravel_index(
+        this_index, prmse_matrix_k_day01.shape
+    )
+
+    this_index = numpy.argmin(numpy.ravel(dwmse_matrix_k3_day03))
+    min_dwmse_indices = numpy.unravel_index(
+        this_index, dwmse_matrix_k3_day03.shape
+    )
+
+    this_index = numpy.argmin(numpy.ravel(down_flux_rmse_matrix_w_m02))
+    min_down_flux_rmse_indices = numpy.unravel_index(
+        this_index, down_flux_rmse_matrix_w_m02.shape
+    )
+
+    this_index = numpy.argmin(numpy.ravel(up_flux_rmse_matrix_w_m02))
+    min_up_flux_rmse_indices = numpy.unravel_index(
+        this_index, up_flux_rmse_matrix_w_m02.shape
+    )
+
     for i in range(num_dense_layer_counts):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=prmse_matrix_k_day01[i, ...],
@@ -444,11 +468,26 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
+        if min_prmse_indices[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+            axes_object.plot(
+                min_prmse_indices[2], min_prmse_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=BEST_MARKER_COLOUR,
+                markeredgecolor=BEST_MARKER_COLOUR
+            )
+
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        title_string = r'Profile RMSE (K day$^{-1}$)'
-        title_string += ' with {0:d} dense layers'.format(DENSE_LAYER_COUNTS[i])
-        axes_object.set_title(title_string)
+        axes_object.set_title('{0:d} dense layers'.format(
+            DENSE_LAYER_COUNTS[i]
+        ))
 
         if location_set_string == TROPICAL_LOCATION_SET_STRING:
             location_subdir_name = 'tropical_sites/'
@@ -485,11 +524,26 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
+        if min_dwmse_indices[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+            axes_object.plot(
+                min_dwmse_indices[2], min_dwmse_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=BEST_MARKER_COLOUR,
+                markeredgecolor=BEST_MARKER_COLOUR
+            )
+
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        title_string = r'Dual-weighted MSE (K$^{3}$ day$^{-3}$)'
-        title_string += ' with {0:d} dense layers'.format(DENSE_LAYER_COUNTS[i])
-        axes_object.set_title(title_string)
+        axes_object.set_title('{0:d} dense layers'.format(
+            DENSE_LAYER_COUNTS[i]
+        ))
 
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_dwmse_grid.jpg'
@@ -515,11 +569,26 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
+        if min_down_flux_rmse_indices[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+            axes_object.plot(
+                min_down_flux_rmse_indices[2], min_down_flux_rmse_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=BEST_MARKER_COLOUR,
+                markeredgecolor=BEST_MARKER_COLOUR
+            )
+
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        title_string = r'RMSE for surface down flux (W m$^{-2}$)'
-        title_string += ' with {0:d} dense layers'.format(DENSE_LAYER_COUNTS[i])
-        axes_object.set_title(title_string)
+        axes_object.set_title('{0:d} dense layers'.format(
+            DENSE_LAYER_COUNTS[i]
+        ))
 
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_down_flux_rmse_grid.jpg'
@@ -543,11 +612,26 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string,
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
+        if min_up_flux_rmse_indices[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+            axes_object.plot(
+                min_up_flux_rmse_indices[2], min_up_flux_rmse_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=BEST_MARKER_COLOUR,
+                markeredgecolor=BEST_MARKER_COLOUR
+            )
+
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        title_string = r'RMSE for TOA up flux (W m$^{-2}$)'
-        title_string += ' with {0:d} dense layers'.format(DENSE_LAYER_COUNTS[i])
-        axes_object.set_title(title_string)
+        axes_object.set_title('{0:d} dense layers'.format(
+            DENSE_LAYER_COUNTS[i]
+        ))
 
         figure_file_name = (
             '{0:s}/{1:s}{2:s}num-dense-layers={3:d}_up_flux_rmse_grid.jpg'
