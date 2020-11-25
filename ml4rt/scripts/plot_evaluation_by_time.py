@@ -67,7 +67,7 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
-FONT_SIZE = 30
+FONT_SIZE = 36
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -386,8 +386,8 @@ def _plot_scores_with_units(
 
     if plot_legend:
         axes_object.legend(
-            legend_handles, legend_strings, loc='upper left',
-            bbox_to_anchor=(0, 1), fancybox=True, shadow=False,
+            legend_handles, legend_strings, loc='upper right',
+            bbox_to_anchor=(1, 1), fancybox=True, shadow=False,
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
