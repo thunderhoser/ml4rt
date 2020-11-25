@@ -59,9 +59,9 @@ TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
         r'$\frac{\Delta F_{up}}{\Delta z}$',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface downwelling flux',
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA upwelling flux',
-    evaluation.NET_FLUX_NAME: 'net flux',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'$F_{down}^{sfc}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'$F_{up}^{TOA}$',
+    evaluation.NET_FLUX_NAME: r'$F_{net}$',
     evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
     evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
 }
@@ -414,7 +414,7 @@ def _plot_attributes_diagram(
         if len(legend_handles) > 1:
             axes_object.legend(
                 legend_handles, legend_strings, loc='center left',
-                bbox_to_anchor=(0, 0.5), fancybox=True, shadow=False,
+                bbox_to_anchor=(0, 0.35), fancybox=True, shadow=False,
                 facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
             )
 
@@ -501,14 +501,14 @@ def _plot_score_profile(
         TARGET_NAME_TO_VERBOSE[target_name]
     )
 
-    if num_evaluation_sets == 1:
-        k = target_indices[0]
-        prmse = (
-            evaluation_tables_xarray[0][evaluation.VECTOR_PRMSE_KEY].values[k]
-        )
-        title_string += ' (PRMSE = {0:.2f} {1:s})'.format(
-            prmse, TARGET_NAME_TO_UNITS[target_name]
-        )
+    # if num_evaluation_sets == 1:
+    #     k = target_indices[0]
+    #     prmse = (
+    #         evaluation_tables_xarray[0][evaluation.VECTOR_PRMSE_KEY].values[k]
+    #     )
+    #     title_string += ' (PRMSE = {0:.2f} {1:s})'.format(
+    #         prmse, TARGET_NAME_TO_UNITS[target_name]
+    #     )
 
     x_label_string = '{0:s}'.format(SCORE_NAME_TO_VERBOSE[score_name])
 
@@ -593,13 +593,14 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            axes_object.set_title(
-                'Error distribution for {0:s} ({1:s})\n{2:s}'.format(
-                    TARGET_NAME_TO_VERBOSE[vector_target_names[k]],
-                    TARGET_NAME_TO_UNITS[vector_target_names[k]],
-                    set_descriptions_verbose[i]
-                )
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[k]],
+                TARGET_NAME_TO_UNITS[vector_target_names[k]]
             )
+            if num_evaluation_sets > 1:
+                title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
+
+            axes_object.set_title(title_string)
 
             figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
                 output_dir_name, vector_target_names[k].replace('_', '-'),
@@ -633,13 +634,14 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            axes_object.set_title(
-                'Error distribution for {0:s} ({1:s})\n{2:s}'.format(
-                    TARGET_NAME_TO_VERBOSE[scalar_target_names[k]],
-                    TARGET_NAME_TO_UNITS[scalar_target_names[k]],
-                    set_descriptions_verbose[i]
-                )
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
+                TARGET_NAME_TO_VERBOSE[scalar_target_names[k]],
+                TARGET_NAME_TO_UNITS[scalar_target_names[k]]
             )
+            if num_evaluation_sets > 1:
+                title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
+
+            axes_object.set_title(title_string)
 
             figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
                 output_dir_name, scalar_target_names[k].replace('_', '-'),
@@ -705,13 +707,14 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            axes_object.set_title(
-                'Error distribution for {0:s} ({1:s})\n{2:s}'.format(
-                    TARGET_NAME_TO_VERBOSE[aux_target_names[k]],
-                    TARGET_NAME_TO_UNITS[aux_target_names[k]],
-                    set_descriptions_verbose[i]
-                )
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
+                TARGET_NAME_TO_VERBOSE[aux_target_names[k]],
+                TARGET_NAME_TO_UNITS[aux_target_names[k]],
             )
+            if num_evaluation_sets > 1:
+                title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
+
+            axes_object.set_title(title_string)
 
             figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
                 output_dir_name, aux_target_names[k].replace('_', '-'),
@@ -768,12 +771,14 @@ def _plot_reliability_by_height(
                 max_value_to_plot=max_value_to_plot, axes_object=axes_object
             )
 
-            axes_object.set_title(
-                'Reliability curves for {0:s}\n{1:s}'.format(
-                    TARGET_NAME_TO_VERBOSE[vector_target_names[k]],
-                    set_descriptions_verbose[i]
-                )
+            title_string = 'Reliability curves for {0:s}'.format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
             )
+            if num_evaluation_sets > 1:
+                title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
+
+            axes_object.set_title(title_string)
+
             axes_object.set_xlabel('Prediction ({0:s})'.format(
                 TARGET_NAME_TO_UNITS[vector_target_names[k]]
             ))
