@@ -1,5 +1,6 @@
 """Plots distribution of each target variable."""
 
+import copy
 import argparse
 import numpy
 import matplotlib
@@ -23,7 +24,8 @@ TARGET_NAMES_IN_FILE = [
 ]
 
 SHORTWAVE_NET_FLUX_NAME = 'shortwave_net_flux_w_m02'
-TARGET_NAMES = TARGET_NAMES_IN_FILE + [SHORTWAVE_NET_FLUX_NAME]
+TARGET_NAMES = copy.deepcopy(TARGET_NAMES_IN_FILE)
+TARGET_NAMES.insert(-1, SHORTWAVE_NET_FLUX_NAME)
 
 TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_HEATING_RATE_NAME:
