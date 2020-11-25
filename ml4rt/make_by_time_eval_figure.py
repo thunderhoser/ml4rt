@@ -153,7 +153,7 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
             output_size_pixels=PANEL_SIZE_PX
         )
 
-    concat_figure_file_name = '{0:s}/evaluation_by_cloud_regime.jpg'.format(
+    concat_figure_file_name = '{0:s}/evaluation_by_time.jpg'.format(
         output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(concat_figure_file_name))
