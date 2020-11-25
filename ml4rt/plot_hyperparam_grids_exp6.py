@@ -383,9 +383,6 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
         experiment_dir_name
     )
 
-    # TODO(thunderhoser): Remove this HACK.
-    os.remove(score_file_name)
-
     if os.path.isfile(score_file_name):
         print('Reading scores from: "{0:s}"...'.format(score_file_name))
         pickle_file_handle = open(score_file_name, 'rb')
