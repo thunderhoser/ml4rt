@@ -49,7 +49,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" "${evaluation_file_names[4]}" "${evaluation_file_names[5]}" "${evaluation_file_names[6]}" "${evaluation_file_names[7]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---set_descriptions "Hilo_HI" "Honolulu_HI" "Guantanamo_Bay" "San_Juan_PR" "Rohlsen_USVI" "Bishop_Grenada" "Perdido_oil_rig" \
+--set_descriptions "Hilo_HI" "Honolulu_HI" "Guantanamo_Bay" "San_Juan_PR" "Rohlsen_USVI" "Bishop,_Grenada" "Perdido_oil_rig" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${evaluation_dir_name}"
