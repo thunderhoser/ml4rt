@@ -2,7 +2,6 @@
 
 import os
 import argparse
-from PIL import Image
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 
@@ -154,12 +153,9 @@ def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
         else:
             letter_label = chr(ord(letter_label) + 1)
 
-        image_matrix = Image.open(resized_panel_file_names[i])
-        _, figure_height_px = image_matrix.size
-
         _overlay_text(
             image_file_name=resized_panel_file_names[i],
-            x_offset_from_left_px=0, y_offset_from_top_px=figure_height_px - 50,
+            x_offset_from_left_px=0, y_offset_from_top_px=TITLE_FONT_SIZE,
             text_string='({0:s})'.format(letter_label)
         )
         imagemagick_utils.resize_image(
