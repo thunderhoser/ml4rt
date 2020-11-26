@@ -1,9 +1,8 @@
-"""Creates figure showing model evaluation by time."""
+"""Creates figure showing model evaluation by site."""
 
 import os
 import argparse
 from PIL import Image
-import numpy
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 
@@ -11,12 +10,14 @@ CONVERT_EXE_NAME = '/usr/bin/convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
-NUM_PANEL_COLUMNS = 2
+NUM_PANEL_ROWS = 3
+NUM_PANEL_COLUMNS = 3
 PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
-HEIGHTS_ARG_NAME = 'heights_m_agl'
+SITES_FOR_RELIA_ARG_NAME = 'site_names_for_reliability'
+SITE_FOR_HISTO_ARG_NAME = 'site_name_for_histograms'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -24,9 +25,13 @@ INPUT_DIR_HELP_STRING = (
     'plot_evaluation_by_time.py.  This script will panel some of those figures '
     'together.'
 )
-HEIGHTS_HELP_STRING = (
-    'The figure will include scores for net flux and heating rate at these '
-    'heights (metres above ground level).'
+SITES_FOR_RELIA_HELP_STRING = (
+    'Names of sites for which height-coded reliability curves will be plotted.'
+    '  Site names must match those in file names, and there must be 3 sites.'
+)
+SITE_FOR_HISTO_HELP_STRING = (
+    'Name of site used for inset histograms in attributes diagrams.  Site name '
+    'must match those in file names.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Output images (paneled figure and temporary '
@@ -39,8 +44,12 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + HEIGHTS_ARG_NAME, type=int, nargs='+', required=True,
-    help=HEIGHTS_HELP_STRING
+    '--' + SITES_FOR_RELIA_ARG_NAME, type=str, nargs=3, required=True,
+    help=SITES_FOR_RELIA_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SITE_FOR_HISTO_ARG_NAME, type=str, required=True,
+    help=SITE_FOR_HISTO_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -76,13 +85,15 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, heights_m_agl, output_dir_name):
+def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
+         output_dir_name):
     """Creates figure showing overall model evaluation.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
-    :param heights_m_agl: Same.
+    :param site_names_for_reliability: Same.
+    :param site_name_for_histogram: Same.
     :param output_dir_name: Same.
     """
 
@@ -90,24 +101,31 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
         directory_name=output_dir_name
     )
 
-    num_heights = len(heights_m_agl)
-    pathless_input_file_names = []
+    pathless_input_file_names = [
+        'shortwave-heating-rate-k-day01_bias_profile.jpg',
+        'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
+        'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg'
+    ]
 
-    for j in range(num_heights):
-        first_file_name = (
-            'shortwave-heating-rate-k-day01_{0:05d}metres_scores_without_units'
-            '.jpg'
-        ).format(heights_m_agl[j])
+    num_sites_for_relia = len(site_names_for_reliability)
 
-        second_file_name = (
-            'shortwave-heating-rate-k-day01_{0:05d}metres_scores_with_units.jpg'
-        ).format(heights_m_agl[j])
+    for j in range(num_sites_for_relia):
+        this_file_name = (
+            'shortwave-heating-rate-k-day01_reliability_{0:s}.jpg'
+        ).format(site_names_for_reliability[j])
 
-        pathless_input_file_names += [first_file_name, second_file_name]
+        pathless_input_file_names.append(this_file_name)
 
     pathless_input_file_names += [
-        'net-shortwave-flux-w-m02_scores_without_units.jpg',
-        'net-shortwave-flux-w-m02_scores_with_units.jpg'
+        'shortwave-surface-down-flux-w-m02_attributes_{0:s}.jpg'.format(
+            site_name_for_histogram
+        ),
+        'shortwave-toa-up-flux-w-m02_attributes_{0:s}.jpg'.format(
+            site_name_for_histogram
+        ),
+        'net-shortwave-flux-w-m02_attributes_{0:s}.jpg'.format(
+            site_name_for_histogram
+        )
     ]
 
     panel_file_names = [
@@ -150,7 +168,7 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
             output_size_pixels=PANEL_SIZE_PX
         )
 
-    concat_figure_file_name = '{0:s}/evaluation_by_time.jpg'.format(
+    concat_figure_file_name = '{0:s}/evaluation_by_site.jpg'.format(
         output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(concat_figure_file_name))
@@ -158,7 +176,7 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
     imagemagick_utils.concatenate_images(
         input_file_names=resized_panel_file_names,
         output_file_name=concat_figure_file_name,
-        num_panel_rows=num_heights + 1, num_panel_columns=NUM_PANEL_COLUMNS
+        num_panel_rows=NUM_PANEL_ROWS, num_panel_columns=NUM_PANEL_COLUMNS
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_figure_file_name,
@@ -172,8 +190,11 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
-        heights_m_agl=numpy.array(
-            getattr(INPUT_ARG_OBJECT, HEIGHTS_ARG_NAME), dtype=int
+        site_names_for_reliability=getattr(
+            INPUT_ARG_OBJECT, SITES_FOR_RELIA_ARG_NAME
+        ),
+        site_name_for_histogram=getattr(
+            INPUT_ARG_OBJECT, SITE_FOR_HISTO_ARG_NAME
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
