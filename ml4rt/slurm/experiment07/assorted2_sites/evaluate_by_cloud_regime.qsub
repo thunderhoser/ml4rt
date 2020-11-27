@@ -1,0 +1,55 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="evaluate_by_cloud_regime"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=02:00:00
+#SBATCH --array=1-4
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_by_cloud_regime_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment07"
+
+set DENSE_LAYER_COUNTS=(3 3 4 2)
+set DENSE_LAYER_DROPOUT_RATES=(0 0.1 0 0.1)
+set SCALAR_LOSS_FUNCTION_WEIGHTS=(50 2.5 25 50)
+
+set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set scalar_loss_function_weight=${SCALAR_LOSS_FUNCTION_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+
+set dense_layer_count_string=`printf "%d" $dense_layer_count`
+set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
+set scalar_loss_function_weight_string=`printf "%05.1f" $scalar_loss_function_weight`
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_scalar-lf-weight=${scalar_loss_function_weight_string}"
+
+set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+
+set testing_dir_name="${model_dir_name}/testing"
+set prediction_file_names=("${testing_dir_name}/by_cloud_regime/predictions_no-cloud.nc" "${testing_dir_name}/by_cloud_regime/predictions_single-layer-cloud.nc" "${testing_dir_name}/by_cloud_regime/predictions_multi-layer-cloud.nc")
+set prediction_dir_names=("${testing_dir_name}/by_cloud_regime/no_cloud" "${testing_dir_name}/by_cloud_regime/single_layer_cloud" "${testing_dir_name}/by_cloud_regime/multi_layer_cloud")
+
+set i=1
+
+while ($i <= ${#prediction_file_names})
+    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+    --input_prediction_file_name="${prediction_file_names[$i]}" \
+    --output_dir_name="${prediction_dir_names[$i]}"
+
+    @ i = $i + 1
+end
