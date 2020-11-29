@@ -21,7 +21,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 # set EVALUATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment06/num-dense-layers=4_dense-dropout=0.300_scalar-lf-weight=001.0/model_epoch=205_val-loss=0.052551/isotonic_regression/validation_tropical_sites/by_time/evaluation/by_zenith_angle"
-set EVALUATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment06/num-dense-layers=3_dense-dropout=0.100_scalar-lf-weight=002.5/model_epoch=210_val-loss=0.052608/isotonic_regression/validation_tropical_sites/by_time/evaluation/by_zenith_angle"
+set EVALUATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment06/num-dense-layers=4_dense-dropout=0.100_scalar-lf-weight=001.0/model_epoch=191_val-loss=0.053974/isotonic_regression/validation_tropical_sites/by_time/evaluation/by_zenith_angle"
 set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/experiment1_eval_by_time"
 
 python3 -u "${CODE_DIR_NAME}/make_by_time_eval_figure.py" \

@@ -35,7 +35,7 @@ MARKER_COLOUR = numpy.full(3, 1.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.2
-SELECTED_MARKER_INDICES = numpy.array([1, 1, 1], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([2, 1, 0], dtype=int)
 # SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
 
 FONT_SIZE = 30
