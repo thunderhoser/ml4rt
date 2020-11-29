@@ -30,10 +30,11 @@ DENSE_LAYER_DROPOUT_RATES = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
 SCALAR_LOSS_FUNCTION_WEIGHTS = numpy.array([1, 2.5, 5, 10, 25, 50])
 
 BEST_MARKER_TYPE = '*'
-MARKER_SIZE_GRID_CELLS = 0.3
+BEST_MARKER_SIZE_GRID_CELLS = 0.3
 MARKER_COLOUR = numpy.full(3, 1.)
 
 SELECTED_MARKER_TYPE = 'o'
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.2
 # SELECTED_MARKER_INDICES = numpy.array([2, 3, 0], dtype=int)
 SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
 
@@ -480,7 +481,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
@@ -496,7 +497,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                SELECTED_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
@@ -544,7 +545,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_dwmse_indices[2], min_dwmse_indices[1],
@@ -559,7 +560,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                SELECTED_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
@@ -605,7 +606,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_down_flux_rmse_indices[2], min_down_flux_rmse_indices[1],
@@ -620,7 +621,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                SELECTED_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
@@ -664,7 +665,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_up_flux_rmse_indices[2], min_up_flux_rmse_indices[1],
@@ -679,7 +680,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                SELECTED_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
@@ -724,7 +725,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_net_flux_rmse_indices[2], min_net_flux_rmse_indices[1],
@@ -739,7 +740,7 @@ def _run(experiment_dir_name, isotonic_flag):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                SELECTED_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
