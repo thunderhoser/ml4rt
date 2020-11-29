@@ -30,8 +30,12 @@ DENSE_LAYER_DROPOUT_RATES = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5])
 SCALAR_LOSS_FUNCTION_WEIGHTS = numpy.array([1, 2.5, 5, 10, 25, 50])
 
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.3
-BEST_MARKER_COLOUR = numpy.full(3, 1.)
+MARKER_SIZE_GRID_CELLS = 0.3
+MARKER_COLOUR = numpy.full(3, 1.)
+
+SELECTED_MARKER_TYPE = 'o'
+# SELECTED_MARKER_INDICES = numpy.array([2, 3, 0], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
 
 FONT_SIZE = 30
 pyplot.rc('font', size=FONT_SIZE)
@@ -512,15 +516,31 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
 
             axes_object.plot(
                 min_prmse_indices[2], min_prmse_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=BEST_MARKER_COLOUR,
-                markeredgecolor=BEST_MARKER_COLOUR
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -567,14 +587,30 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_dwmse_indices[2], min_dwmse_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=BEST_MARKER_COLOUR,
-                markeredgecolor=BEST_MARKER_COLOUR
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -612,14 +648,30 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_down_flux_rmse_indices[2], min_down_flux_rmse_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=BEST_MARKER_COLOUR,
-                markeredgecolor=BEST_MARKER_COLOUR
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -655,14 +707,30 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_up_flux_rmse_indices[2], min_up_flux_rmse_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=BEST_MARKER_COLOUR,
-                markeredgecolor=BEST_MARKER_COLOUR
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -699,14 +767,30 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
             axes_object.plot(
                 min_net_flux_rmse_indices[2], min_net_flux_rmse_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=BEST_MARKER_COLOUR,
-                markeredgecolor=BEST_MARKER_COLOUR
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            figure_width_px = (
+                figure_object.get_size_inches()[0] * figure_object.dpi
+            )
+            marker_size_px = figure_width_px * (
+                MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
+            )
+
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
