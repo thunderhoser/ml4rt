@@ -491,12 +491,15 @@ def _run(experiment_dir_name, isotonic_flag):
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
+            print(SELECTED_MARKER_INDICES)
             figure_width_px = (
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
             marker_size_px = figure_width_px * (
                 MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[2]
             )
+            print(marker_size_px)
+            print('\n\n\n\n************\n\n\n\n')
 
             axes_object.plot(
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
