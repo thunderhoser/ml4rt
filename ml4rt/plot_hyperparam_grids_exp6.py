@@ -381,7 +381,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
         '{0:.1f}'.format(d).replace('-1', '0')
         for d in SCALAR_LOSS_FUNCTION_WEIGHTS
     ]
-    y_axis_label = 'Dense-layer dropout rate'
+    y_axis_label = 'Dropout rate in fully connected layers'
     x_axis_label = r'$\alpha$-coefficient in loss function'
 
     score_file_name = '{0:s}/scores_on_hyperparam_grid.p'.format(
@@ -546,7 +546,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title('{0:d} dense layers'.format(
+        axes_object.set_title('{0:d} fully connected layers'.format(
             DENSE_LAYER_COUNTS[i]
         ))
 
@@ -616,7 +616,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title('{0:d} dense layers'.format(
+        axes_object.set_title('{0:d} fully connected layers'.format(
             DENSE_LAYER_COUNTS[i]
         ))
 
@@ -677,7 +677,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title('{0:d} dense layers'.format(
+        axes_object.set_title('{0:d} fully connected layers'.format(
             DENSE_LAYER_COUNTS[i]
         ))
 
@@ -736,7 +736,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title('{0:d} dense layers'.format(
+        axes_object.set_title('{0:d} fully connected layers'.format(
             DENSE_LAYER_COUNTS[i]
         ))
 
@@ -796,7 +796,7 @@ def _run(experiment_dir_name, isotonic_flag, location_set_string):
 
         axes_object.set_xlabel(x_axis_label)
         axes_object.set_ylabel(y_axis_label)
-        axes_object.set_title('{0:d} dense layers'.format(
+        axes_object.set_title('{0:d} fully connected layers'.format(
             DENSE_LAYER_COUNTS[i]
         ))
 
