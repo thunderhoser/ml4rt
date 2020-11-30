@@ -20,7 +20,7 @@ PATHLESS_INPUT_FILE_NAMES = [
     'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
     'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
     'shortwave-heating-rate-k-day01_reliability_new-model.jpg',
-    'shortwave-heating-rate-k-day01_error-dist_new-model.jpg'
+    # 'shortwave-heating-rate-k-day01_error-dist_new-model.jpg'
 ]
 
 CONVERT_EXE_NAME = '/usr/bin/convert'

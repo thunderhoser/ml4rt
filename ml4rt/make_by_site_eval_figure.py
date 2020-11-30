@@ -108,9 +108,15 @@ def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
     )
 
     pathless_input_file_names = [
-        'shortwave-heating-rate-k-day01_bias_profile.jpg',
-        'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
-        'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg'
+        'shortwave-surface-down-flux-w-m02_attributes_{0:s}.jpg'.format(
+            site_name_for_histogram
+        ),
+        'shortwave-toa-up-flux-w-m02_attributes_{0:s}.jpg'.format(
+            site_name_for_histogram
+        ),
+        'net-shortwave-flux-w-m02_attributes_{0:s}.jpg'.format(
+            site_name_for_histogram
+        )
     ]
 
     num_sites_for_relia = len(site_names_for_reliability)
@@ -123,15 +129,9 @@ def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
         pathless_input_file_names.append(this_file_name)
 
     pathless_input_file_names += [
-        'shortwave-surface-down-flux-w-m02_attributes_{0:s}.jpg'.format(
-            site_name_for_histogram
-        ),
-        'shortwave-toa-up-flux-w-m02_attributes_{0:s}.jpg'.format(
-            site_name_for_histogram
-        ),
-        'net-shortwave-flux-w-m02_attributes_{0:s}.jpg'.format(
-            site_name_for_histogram
-        )
+        'shortwave-heating-rate-k-day01_bias_profile.jpg',
+        'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
+        'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg'
     ]
 
     panel_file_names = [

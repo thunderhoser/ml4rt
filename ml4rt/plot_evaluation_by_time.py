@@ -51,6 +51,8 @@ TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS
 MARKER_TYPE = 'o'
 MARKER_SIZE = 16
 LINE_WIDTH = 4
+REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
+REFERENCE_LINE_WIDTH = 3
 
 MAE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 RMSE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
@@ -314,6 +316,12 @@ def _plot_scores_with_units(
 
         legend_handles.append(this_dict['boxes'][0])
         legend_strings.append('Boxplot of\nactual values')
+
+    # Plot reference line.
+    axes_object.plot(
+        x_values, numpy.full(len(x_values), 0.), color=REFERENCE_LINE_COLOUR,
+        linewidth=REFERENCE_LINE_WIDTH, linestyle='dashed'
+    )
 
     # Plot mean MAE.
     this_handle = axes_object.plot(
