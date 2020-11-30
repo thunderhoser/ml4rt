@@ -319,7 +319,7 @@ def _plot_scores_with_units(
 
     # Plot reference line.
     axes_object.plot(
-        x_values, numpy.full(len(x_values), 0.), color=REFERENCE_LINE_COLOUR,
+        axes_object.get_xlim(), numpy.full(2, 0.), color=REFERENCE_LINE_COLOUR,
         linewidth=REFERENCE_LINE_WIDTH, linestyle='dashed'
     )
 
