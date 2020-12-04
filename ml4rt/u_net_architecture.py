@@ -1,7 +1,7 @@
 """Methods for building U-nets."""
 
+import os
 import sys
-import os.path
 import numpy
 import keras
 from keras import backend as K
@@ -241,13 +241,18 @@ def _zero_top_heights_function(num_heights_to_zero):
     return zeroing_function
 
 
-def _zero_top_heating_rate_function(heating_rate_channel_index, height_index):
+def zero_top_heating_rate_function(heating_rate_channel_index, height_index):
     """Returns function that zeroes predicted heating rate at top of profile.
 
     :param heating_rate_channel_index: Channel index for heating rate.
     :param height_index: Will zero out heating rate at this height.
     :return: zeroing_function: Function handle (see below).
     """
+
+    error_checking.assert_is_integer(heating_rate_channel_index)
+    error_checking.assert_is_geq(heating_rate_channel_index, 0)
+    error_checking.assert_is_integer(height_index)
+    error_checking.assert_is_geq(height_index, 0)
 
     def zeroing_function(orig_prediction_tensor):
         """Zeroes out predicted heating rate at top of profile.
@@ -627,7 +632,7 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
             num_heights_for_loss - 1
         ))
 
-        this_function = _zero_top_heating_rate_function(
+        this_function = zero_top_heating_rate_function(
             heating_rate_channel_index=heating_rate_channel_index,
             height_index=num_heights_for_loss - 1
         )
