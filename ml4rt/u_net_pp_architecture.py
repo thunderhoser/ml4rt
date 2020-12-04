@@ -161,7 +161,7 @@ def _check_args(option_dict):
     )
 
     error_checking.assert_is_boolean(option_dict[INCLUDE_PENULTIMATE_KEY])
-    error_checking.assert_is_leq_numpy_array(
+    error_checking.assert_is_leq(
         option_dict[PENULTIMATE_DROPOUT_RATE_KEY], 1., allow_nan=True
     )
 
