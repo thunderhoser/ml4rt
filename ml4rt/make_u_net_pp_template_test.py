@@ -41,7 +41,8 @@ OPTION_DICT = {
     u_net_pp_architecture.DENSE_LAYER_NEURON_NUMS_KEY:
         DENSE_LAYER_NEURON_COUNTS,
     u_net_pp_architecture.DENSE_LAYER_DROPOUT_RATES_KEY:
-        DENSE_LAYER_DROPOUT_RATES
+        DENSE_LAYER_DROPOUT_RATES,
+    u_net_pp_architecture.L2_WEIGHT_KEY: 1e-7
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
