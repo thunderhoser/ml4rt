@@ -42,6 +42,9 @@ OPTION_DICT = {
         DENSE_LAYER_NEURON_COUNTS,
     u_net_pp_architecture.DENSE_LAYER_DROPOUT_RATES_KEY:
         DENSE_LAYER_DROPOUT_RATES,
+    u_net_pp_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
+        architecture_utils.RELU_FUNCTION_STRING,
+    u_net_pp_architecture.OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     u_net_pp_architecture.L2_WEIGHT_KEY: 1e-7
 }
 
