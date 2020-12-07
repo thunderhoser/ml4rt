@@ -24,8 +24,8 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/leap-rt_seminar"
 
 set dense_layer_count=4
-set dense_layer_dropout_rate=0.3
-set scalar_loss_function_weight=1
+set dense_layer_dropout_rate=0
+set scalar_loss_function_weight=25
 
 set dense_layer_count_string=`printf "%d" $dense_layer_count`
 set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
