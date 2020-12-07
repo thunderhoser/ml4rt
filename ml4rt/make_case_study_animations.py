@@ -58,7 +58,6 @@ def _make_animation_one_set(input_predictor_dir_name, input_prediction_dir_name,
     predictor_file_pattern = (
         '{0:s}/*predictor-set-0.jpg'.format(input_predictor_dir_name)
     )
-    print(predictor_file_pattern)
 
     input_predictor_file_names = glob.glob(predictor_file_pattern)
     input_predictor_file_names.sort()
@@ -99,21 +98,21 @@ def _make_animation_one_set(input_predictor_dir_name, input_prediction_dir_name,
             input_file_name=input_predictor_file_names[i],
             output_file_name=output_predictor_file_names[i]
         )
-        # imagemagick_utils.resize_image(
-        #     input_file_name=output_predictor_file_names[i],
-        #     output_file_name=output_predictor_file_names[i],
-        #     output_size_pixels=int(1e6)
-        # )
+        imagemagick_utils.resize_image(
+            input_file_name=output_predictor_file_names[i],
+            output_file_name=output_predictor_file_names[i],
+            output_size_pixels=int(5e6)
+        )
 
         imagemagick_utils.trim_whitespace(
             input_file_name=input_prediction_file_names[i],
             output_file_name=output_prediction_file_names[i]
         )
-        # imagemagick_utils.resize_image(
-        #     input_file_name=output_prediction_file_names[i],
-        #     output_file_name=output_prediction_file_names[i],
-        #     output_size_pixels=int(1e6)
-        # )
+        imagemagick_utils.resize_image(
+            input_file_name=output_prediction_file_names[i],
+            output_file_name=output_prediction_file_names[i],
+            output_size_pixels=int(5e6)
+        )
 
         print('Concatenating panels to: "{0:s}"...'.format(
             concat_file_names[i]
