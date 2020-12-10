@@ -28,6 +28,7 @@ VECTOR_FIELD_DIM = 'vector_field'
 AUX_TARGET_FIELD_DIM = 'aux_target_field'
 AUX_PREDICTED_FIELD_DIM = 'aux_predicted_field'
 RELIABILITY_BIN_DIM = 'reliability_bin'
+BOOTSTRAP_REP_DIM = 'bootstrap_replicate'
 
 SCALAR_TARGET_STDEV_KEY = 'scalar_target_stdev'
 SCALAR_PREDICTION_STDEV_KEY = 'scalar_prediction_stdev'
@@ -85,6 +86,11 @@ AUX_TARGET_VALS_KEY = 'aux_target_matrix'
 AUX_PREDICTED_VALS_KEY = 'aux_prediction_matrix'
 SURFACE_DOWN_FLUX_INDEX_KEY = 'surface_down_flux_index'
 TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
+
+SCALAR_TARGET_VALS_KEY = 'scalar_target_matrix'
+SCALAR_PREDICTED_VALS_KEY = 'scalar_prediction_matrix'
+VECTOR_TARGET_VALS_KEY = 'vector_target_matrix'
+VECTOR_PREDICTED_VALS_KEY = 'vector_prediction_matrix'
 
 
 def _check_args(
@@ -342,6 +348,325 @@ def _get_rel_curve_one_scalar(
     return mean_predictions, mean_observations, example_counts
 
 
+def _get_scores_one_replicate(
+        result_table_xarray, prediction_dict, replicate_index,
+        example_indices_in_replicate, mean_training_example_dict,
+        max_bin_edge_percentile, climo_net_flux_w_m02=None):
+    """Computes scores for one bootstrap replicate.
+
+    E = number of examples
+    H = number of heights
+    T_s = number of scalar targets
+    T_v = number of vector targets
+    T_a = number of auxiliary targets
+
+    :param result_table_xarray: See doc for `get_scores_all_variables`.
+    :param prediction_dict: Dictionary with the following keys.
+        "scalar_target_matrix": numpy array (E x T_s) with actual values of
+        scalar targets.
+        "scalar_prediction_matrix": Same as "scalar_target_matrix" but with
+        predicted values.
+        "vector_target_matrix": numpy array (E x H x T_v) with actual values of
+        vector targets.
+        "vector_prediction_matrix": Same as "vector_target_matrix" but with
+        predicted values.
+        "aux_target_matrix": numpy array (E x T_a) with actual values of
+        auxiliary targets.
+        "aux_prediction_matrix": Same as "aux_target_matrix" but with
+        predicted values.
+
+    :param replicate_index: Index of current bootstrap replicate.
+    :param example_indices_in_replicate: 1-D numpy array with indices of
+        examples in this bootstrap replicate.
+    :param mean_training_example_dict: Dictionary created by
+        `normalization.create_mean_example`.
+    :param max_bin_edge_percentile: See doc for `get_scores_all_variables`.
+    :param climo_net_flux_w_m02: Average net flux (W m^-2) in training data.  If
+        auxiliary target variables do not include net flux, leave this alone.
+    :return: result_table_xarray: Same as input but with values filled for [i]th
+        bootstrap replicate, where i = `replicate_index`.
+    """
+
+    t = result_table_xarray
+    i = replicate_index + 0
+
+    full_scalar_target_matrix = prediction_dict[SCALAR_TARGET_VALS_KEY]
+    full_scalar_prediction_matrix = prediction_dict[SCALAR_PREDICTED_VALS_KEY]
+    full_vector_target_matrix = prediction_dict[VECTOR_TARGET_VALS_KEY]
+    full_vector_prediction_matrix = prediction_dict[VECTOR_PREDICTED_VALS_KEY]
+    full_aux_target_matrix = prediction_dict[AUX_TARGET_VALS_KEY]
+    full_aux_prediction_matrix = prediction_dict[AUX_PREDICTED_VALS_KEY]
+
+    scalar_target_matrix = (
+        full_scalar_target_matrix[example_indices_in_replicate, ...]
+    )
+    scalar_prediction_matrix = (
+        full_scalar_prediction_matrix[example_indices_in_replicate, ...]
+    )
+    vector_target_matrix = (
+        full_vector_target_matrix[example_indices_in_replicate, ...]
+    )
+    vector_prediction_matrix = (
+        full_vector_prediction_matrix[example_indices_in_replicate, ...]
+    )
+    aux_target_matrix = (
+        full_aux_target_matrix[example_indices_in_replicate, ...]
+    )
+    aux_prediction_matrix = (
+        full_aux_prediction_matrix[example_indices_in_replicate, ...]
+    )
+
+    num_examples = scalar_target_matrix.shape[0]
+    num_scalar_targets = scalar_target_matrix.shape[-1]
+    num_heights = vector_target_matrix.shape[-2]
+    num_vector_targets = vector_target_matrix.shape[-1]
+    num_reliability_bins = len(t.coords[RELIABILITY_BIN_DIM].values)
+
+    if AUX_TARGET_FIELD_DIM in t.coords:
+        aux_target_field_names = t.coords[AUX_TARGET_FIELD_DIM].values
+    else:
+        aux_target_field_names = []
+
+    num_aux_targets = len(aux_target_field_names)
+
+    for k in range(num_scalar_targets):
+        this_climo_value = mean_training_example_dict[
+            example_utils.SCALAR_TARGET_VALS_KEY
+        ][0, k]
+
+        t[SCALAR_MAE_KEY].values[k, i] = _get_mae_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k]
+        )
+        t[SCALAR_MAE_SKILL_KEY].values[k, i] = _get_mae_ss_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k],
+            mean_training_target_value=this_climo_value
+        )
+        t[SCALAR_MSE_KEY].values[k, i] = _get_mse_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k]
+        )
+        t[SCALAR_MSE_SKILL_KEY].values[k, i] = _get_mse_ss_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k],
+            mean_training_target_value=this_climo_value
+        )
+        t[SCALAR_BIAS_KEY].values[k, i] = _get_bias_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k]
+        )
+        t[SCALAR_CORRELATION_KEY].values[k, i] = _get_correlation_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k]
+        )
+        t[SCALAR_KGE_KEY].values[k, i] = _get_kge_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k]
+        )
+
+        if num_examples == 0:
+            max_bin_edge = 1.
+        else:
+            max_bin_edge = numpy.percentile(
+                full_scalar_prediction_matrix[:, k], max_bin_edge_percentile
+            )
+
+        (
+            t[SCALAR_RELIABILITY_X_KEY].values[k, :, i],
+            t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i],
+            t[SCALAR_RELIABILITY_COUNT_KEY].values[k, :, i]
+        ) = _get_rel_curve_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k],
+            num_bins=num_reliability_bins,
+            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+        )
+
+        if num_examples == 0:
+            max_bin_edge = 1.
+        else:
+            max_bin_edge = numpy.percentile(
+                full_scalar_target_matrix[:, k], max_bin_edge_percentile
+            )
+
+        (
+            t[SCALAR_INV_RELIABILITY_X_KEY].values[k, :, i],
+            t[SCALAR_INV_RELIABILITY_Y_KEY].values[k, :, i],
+            t[SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, :, i]
+        ) = _get_rel_curve_one_scalar(
+            target_values=scalar_target_matrix[:, k],
+            predicted_values=scalar_prediction_matrix[:, k],
+            num_bins=num_reliability_bins,
+            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
+        )
+
+    for k in range(num_vector_targets):
+        t[VECTOR_PRMSE_KEY].values[k, i] = _get_prmse_one_variable(
+            target_matrix=vector_target_matrix[..., k],
+            prediction_matrix=vector_prediction_matrix[..., k]
+        )
+
+        for j in range(num_heights):
+            this_climo_value = mean_training_example_dict[
+                example_utils.VECTOR_TARGET_VALS_KEY
+            ][0, j, k]
+
+            t[VECTOR_MAE_KEY].values[j, k, i] = _get_mae_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k]
+            )
+            t[VECTOR_MAE_SKILL_KEY].values[j, k, i] = _get_mae_ss_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k],
+                mean_training_target_value=this_climo_value
+            )
+            t[VECTOR_MSE_KEY].values[j, k, i] = _get_mse_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k]
+            )
+            t[VECTOR_MSE_SKILL_KEY].values[j, k, i] = _get_mse_ss_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k],
+                mean_training_target_value=this_climo_value
+            )
+            t[VECTOR_BIAS_KEY].values[j, k, i] = _get_bias_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k]
+            )
+            t[VECTOR_CORRELATION_KEY].values[j, k, i] = (
+                _get_correlation_one_scalar(
+                    target_values=vector_target_matrix[:, j, k],
+                    predicted_values=vector_prediction_matrix[:, j, k]
+                )
+            )
+            t[VECTOR_KGE_KEY].values[j, k, i] = _get_kge_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k]
+            )
+
+            if num_examples == 0:
+                max_bin_edge = 1.
+            else:
+                max_bin_edge = numpy.percentile(
+                    full_vector_prediction_matrix[:, j, k],
+                    max_bin_edge_percentile
+                )
+
+            (
+                t[VECTOR_RELIABILITY_X_KEY].values[j, k, :, i],
+                t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i],
+                t[VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :, i]
+            ) = _get_rel_curve_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k],
+                num_bins=num_reliability_bins,
+                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+            )
+
+            if num_examples == 0:
+                max_bin_edge = 1.
+            else:
+                max_bin_edge = numpy.percentile(
+                    full_vector_target_matrix[:, j, k], max_bin_edge_percentile
+                )
+
+            (
+                t[VECTOR_INV_RELIABILITY_X_KEY].values[j, k, :, i],
+                t[VECTOR_INV_RELIABILITY_Y_KEY].values[j, k, :, i],
+                t[VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, :, i]
+            ) = _get_rel_curve_one_scalar(
+                target_values=vector_target_matrix[:, j, k],
+                predicted_values=vector_prediction_matrix[:, j, k],
+                num_bins=num_reliability_bins,
+                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
+            )
+
+    for k in range(num_aux_targets):
+        t[AUX_MAE_KEY].values[k, i] = _get_mae_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k]
+        )
+        t[AUX_MSE_KEY].values[k, i] = _get_mse_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k]
+        )
+
+        if (
+                aux_target_field_names[k] == NET_FLUX_NAME and
+                climo_net_flux_w_m02 is not None
+        ):
+            t[AUX_MAE_SKILL_KEY].values[k, i] = _get_mae_ss_one_scalar(
+                target_values=aux_target_matrix[:, k],
+                predicted_values=aux_prediction_matrix[:, k],
+                mean_training_target_value=climo_net_flux_w_m02
+            )
+            t[AUX_MSE_SKILL_KEY].values[k, i] = _get_mse_ss_one_scalar(
+                target_values=aux_target_matrix[:, k],
+                predicted_values=aux_prediction_matrix[:, k],
+                mean_training_target_value=climo_net_flux_w_m02
+            )
+
+        t[AUX_BIAS_KEY].values[k, i] = _get_bias_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k]
+        )
+        t[AUX_CORRELATION_KEY].values[k, i] = _get_correlation_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k]
+        )
+        t[AUX_KGE_KEY].values[k, i] = _get_kge_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k]
+        )
+
+        if num_examples == 0:
+            min_bin_edge = 0.
+            max_bin_edge = 1.
+        else:
+            min_bin_edge = numpy.percentile(
+                full_aux_prediction_matrix[:, k], 100. - max_bin_edge_percentile
+            )
+            max_bin_edge = numpy.percentile(
+                full_aux_prediction_matrix[:, k], max_bin_edge_percentile
+            )
+
+        (
+            t[AUX_RELIABILITY_X_KEY].values[k, :, i],
+            t[AUX_RELIABILITY_Y_KEY].values[k, :, i],
+            t[AUX_RELIABILITY_COUNT_KEY].values[k, :, i]
+        ) = _get_rel_curve_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k],
+            num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
+            max_bin_edge=max_bin_edge, invert=False
+        )
+
+        if num_examples == 0:
+            min_bin_edge = 0.
+            max_bin_edge = 1.
+        else:
+            min_bin_edge = numpy.percentile(
+                full_aux_target_matrix[:, k], 100. - max_bin_edge_percentile
+            )
+            max_bin_edge = numpy.percentile(
+                full_aux_target_matrix[:, k], max_bin_edge_percentile
+            )
+
+        (
+            t[AUX_INV_RELIABILITY_X_KEY].values[k, :, i],
+            t[AUX_INV_RELIABILITY_Y_KEY].values[k, :, i],
+            t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :, i]
+        ) = _get_rel_curve_one_scalar(
+            target_values=aux_target_matrix[:, k],
+            predicted_values=aux_prediction_matrix[:, k],
+            num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
+            max_bin_edge=max_bin_edge, invert=True
+        )
+
+    return t
+
+
 def get_aux_fields(prediction_dict, example_dict):
     """Returns auxiliary fields.
 
@@ -496,13 +821,14 @@ def get_aux_fields(prediction_dict, example_dict):
 
 
 def get_scores_all_variables(
-        prediction_file_name,
+        prediction_file_name, num_bootstrap_reps,
         num_reliability_bins=DEFAULT_NUM_RELIABILITY_BINS,
         max_bin_edge_percentile=DEFAULT_MAX_BIN_EDGE_PERCENTILE):
     """Computes desired scores for all target variables.
 
     :param prediction_file_name: Path to file with predictions that will be
         evaluated.  This file will be read by `prediction_io.read_file`.
+    :param num_bootstrap_reps: Number of bootstrap replicates.
     :param num_reliability_bins: [used only if `get_reliability_curve == True`]
         Number of bins for each reliability curve.
     :param max_bin_edge_percentile:
@@ -516,6 +842,8 @@ def get_scores_all_variables(
     """
 
     error_checking.assert_is_string(prediction_file_name)
+    error_checking.assert_is_integer(num_bootstrap_reps)
+    error_checking.assert_is_greater(num_bootstrap_reps, 0)
     error_checking.assert_is_integer(num_reliability_bins)
     error_checking.assert_is_geq(num_reliability_bins, 10)
     error_checking.assert_is_leq(num_reliability_bins, 1000)
@@ -585,586 +913,228 @@ def get_scores_all_variables(
     surface_down_flux_index = aux_prediction_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
     toa_up_flux_index = aux_prediction_dict[TOA_UP_FLUX_INDEX_KEY]
 
-    print(
-        'Computing standard deviations of target (actual) and predicted '
-        'values...'
-    )
+    if surface_down_flux_index >= 0 and toa_up_flux_index >= 0:
+        this_key = example_utils.SCALAR_TARGET_VALS_KEY
+        climo_net_flux_w_m02 = (
+            mean_training_example_dict[this_key][0, surface_down_flux_index] -
+            mean_training_example_dict[this_key][0, toa_up_flux_index]
+        )
+    else:
+        climo_net_flux_w_m02 = None
 
-    # Standard deviations of scalar fields.
-    scalar_target_stdevs = numpy.std(scalar_target_matrix, axis=0, ddof=1)
-    scalar_prediction_stdevs = numpy.std(
-        scalar_prediction_matrix, axis=0, ddof=1
-    )
-
-    these_dim = (SCALAR_FIELD_DIM,)
-    main_data_dict = {
-        SCALAR_TARGET_STDEV_KEY: (these_dim, scalar_target_stdevs),
-        SCALAR_PREDICTION_STDEV_KEY: (these_dim, scalar_prediction_stdevs)
+    prediction_dict = {
+        SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+        SCALAR_PREDICTED_VALS_KEY: scalar_prediction_matrix,
+        VECTOR_TARGET_VALS_KEY: vector_target_matrix,
+        VECTOR_PREDICTED_VALS_KEY: vector_prediction_matrix,
+        AUX_TARGET_VALS_KEY: aux_target_matrix,
+        AUX_PREDICTED_VALS_KEY: aux_prediction_matrix
     }
-
-    # Standard deviations of vector fields.
-    vector_target_stdev_matrix = numpy.std(vector_target_matrix, axis=0, ddof=1)
-    vector_prediction_stdev_matrix = numpy.std(
-        vector_prediction_matrix, axis=0, ddof=1
-    )
-
-    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
-    new_dict = {
-        VECTOR_TARGET_STDEV_KEY: (these_dim, vector_target_stdev_matrix),
-        VECTOR_PREDICTION_STDEV_KEY: (these_dim, vector_prediction_stdev_matrix)
-    }
-    main_data_dict.update(new_dict)
-
-    # Standard deviations of auxiliary fields.
-    num_aux_targets = len(aux_target_field_names)
-
-    if num_aux_targets > 0:
-        aux_target_stdevs = numpy.std(aux_target_matrix, axis=0, ddof=1)
-        aux_prediction_stdevs = numpy.std(aux_prediction_matrix, axis=0, ddof=1)
-
-        these_dim = (AUX_TARGET_FIELD_DIM,)
-        new_dict = {
-            AUX_TARGET_STDEV_KEY: (these_dim, aux_target_stdevs),
-            AUX_PREDICTION_STDEV_KEY: (these_dim, aux_prediction_stdevs)
-        }
-        main_data_dict.update(new_dict)
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
     num_scalar_targets = scalar_target_matrix.shape[1]
+    num_aux_targets = len(aux_target_field_names)
 
-    print('Computing mean squared errors (MSE) and MSE skill scores...')
+    these_dimensions = (num_scalar_targets, num_bootstrap_reps)
+    these_dim_keys = (SCALAR_FIELD_DIM, BOOTSTRAP_REP_DIM)
 
-    # Mean squared errors of scalar fields.
-    scalar_mse_values = numpy.full(num_scalar_targets, numpy.nan)
-    scalar_mse_skill_scores = numpy.full(num_scalar_targets, numpy.nan)
-
-    for k in range(num_scalar_targets):
-        scalar_mse_values[k] = _get_mse_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k]
+    main_data_dict = {
+        SCALAR_TARGET_STDEV_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_PREDICTION_STDEV_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_MAE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_MAE_SKILL_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_MSE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_MSE_SKILL_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_BIAS_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_CORRELATION_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_KGE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         )
+    }
 
-        this_climo_value = mean_training_example_dict[
-            example_utils.SCALAR_TARGET_VALS_KEY
-        ][0, k]
+    these_dimensions = (
+        num_scalar_targets, num_reliability_bins, num_bootstrap_reps
+    )
+    these_dim_keys = (
+        SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM, BOOTSTRAP_REP_DIM
+    )
 
-        scalar_mse_skill_scores[k] = _get_mse_ss_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k],
-            mean_training_target_value=this_climo_value
-        )
-
-    these_dim = (SCALAR_FIELD_DIM,)
     new_dict = {
-        SCALAR_MSE_KEY: (these_dim, scalar_mse_values),
-        SCALAR_MSE_SKILL_KEY: (these_dim, scalar_mse_skill_scores)
+        SCALAR_RELIABILITY_X_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_RELIABILITY_Y_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_RELIABILITY_COUNT_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+        ),
+        SCALAR_INV_RELIABILITY_X_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_INV_RELIABILITY_Y_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_INV_RELIABILITY_COUNT_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+        )
     }
     main_data_dict.update(new_dict)
 
-    # Mean squared errors of vector fields.
-    vector_mse_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
-    )
-    vector_mse_ss_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
-    )
+    these_dimensions = (num_heights, num_vector_targets, num_bootstrap_reps)
+    these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM, BOOTSTRAP_REP_DIM)
 
-    for j in range(num_heights):
-        for k in range(num_vector_targets):
-            vector_mse_matrix[j, k] = _get_mse_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
-            )
-
-            this_climo_value = mean_training_example_dict[
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][0, j, k]
-
-            vector_mse_ss_matrix[j, k] = _get_mse_ss_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
-                mean_training_target_value=this_climo_value
-            )
-
-    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
     new_dict = {
-        VECTOR_MSE_KEY: (these_dim, vector_mse_matrix),
-        VECTOR_MSE_SKILL_KEY: (these_dim, vector_mse_ss_matrix)
+        VECTOR_TARGET_STDEV_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_PREDICTION_STDEV_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_MAE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_MAE_SKILL_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_MSE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_MSE_SKILL_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_BIAS_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_PRMSE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_CORRELATION_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_KGE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
     }
     main_data_dict.update(new_dict)
 
-    # Mean squared errors of auxiliary fields.
+    these_dimensions = (
+        num_heights, num_vector_targets, num_reliability_bins,
+        num_bootstrap_reps
+    )
+    these_dim_keys = (
+        HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM,
+        BOOTSTRAP_REP_DIM
+    )
+
+    new_dict = {
+        VECTOR_RELIABILITY_X_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_RELIABILITY_Y_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_RELIABILITY_COUNT_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+        ),
+        VECTOR_INV_RELIABILITY_X_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_INV_RELIABILITY_Y_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_INV_RELIABILITY_COUNT_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+        )
+    }
+    main_data_dict.update(new_dict)
+
     if num_aux_targets > 0:
-        aux_mse_values = numpy.full(num_aux_targets, numpy.nan)
-        aux_mse_skill_scores = numpy.full(num_aux_targets, numpy.nan)
+        these_dimensions = (num_aux_targets, num_bootstrap_reps)
+        these_dim_keys = (AUX_TARGET_FIELD_DIM, BOOTSTRAP_REP_DIM)
 
-        for k in range(num_aux_targets):
-            aux_mse_values[k] = _get_mse_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k]
-            )
-
-            if aux_target_field_names[k] != NET_FLUX_NAME:
-                continue
-
-            this_key = example_utils.SCALAR_TARGET_VALS_KEY
-
-            this_climo_value = (
-                mean_training_example_dict[this_key][0, surface_down_flux_index]
-                -
-                mean_training_example_dict[this_key][0, toa_up_flux_index]
-            )
-
-            aux_mse_skill_scores[k] = _get_mse_ss_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k],
-                mean_training_target_value=this_climo_value
-            )
-
-        these_dim = (AUX_TARGET_FIELD_DIM,)
         new_dict = {
-            AUX_MSE_KEY: (these_dim, aux_mse_values),
-            AUX_MSE_SKILL_KEY: (these_dim, aux_mse_skill_scores)
+            AUX_TARGET_STDEV_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_PREDICTION_STDEV_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_MAE_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_MAE_SKILL_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_MSE_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_MSE_SKILL_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_BIAS_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_CORRELATION_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_KGE_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            )
         }
         main_data_dict.update(new_dict)
 
-    print('Computing mean absolute errors (MAE) and MAE skill scores...')
-
-    # Mean absolute errors of scalar fields.
-    scalar_mae_values = numpy.full(num_scalar_targets, numpy.nan)
-    scalar_mae_skill_scores = numpy.full(num_scalar_targets, numpy.nan)
-
-    for k in range(num_scalar_targets):
-        scalar_mae_values[k] = _get_mae_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k]
+        these_dimensions = (
+            num_aux_targets, num_reliability_bins, num_bootstrap_reps
+        )
+        these_dim_keys = (
+            AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM, BOOTSTRAP_REP_DIM
         )
 
-        this_climo_value = mean_training_example_dict[
-            example_utils.SCALAR_TARGET_VALS_KEY
-        ][0, k]
-
-        scalar_mae_skill_scores[k] = _get_mae_ss_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k],
-            mean_training_target_value=this_climo_value
-        )
-
-    these_dim = (SCALAR_FIELD_DIM,)
-    new_dict = {
-        SCALAR_MAE_KEY: (these_dim, scalar_mae_values),
-        SCALAR_MAE_SKILL_KEY: (these_dim, scalar_mae_skill_scores)
-    }
-    main_data_dict.update(new_dict)
-
-    # Mean absolute errors of vector fields.
-    vector_mae_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
-    )
-    vector_mae_ss_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
-    )
-
-    for j in range(num_heights):
-        for k in range(num_vector_targets):
-            vector_mae_matrix[j, k] = _get_mae_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
-            )
-
-            this_climo_value = mean_training_example_dict[
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][0, j, k]
-
-            vector_mae_ss_matrix[j, k] = _get_mae_ss_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
-                mean_training_target_value=this_climo_value
-            )
-
-    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
-    new_dict = {
-        VECTOR_MAE_KEY: (these_dim, vector_mae_matrix),
-        VECTOR_MAE_SKILL_KEY: (these_dim, vector_mae_ss_matrix)
-    }
-    main_data_dict.update(new_dict)
-
-    # Mean absolute errors of auxiliary fields.
-    if num_aux_targets > 0:
-        aux_mae_values = numpy.full(num_aux_targets, numpy.nan)
-        aux_mae_skill_scores = numpy.full(num_aux_targets, numpy.nan)
-
-        for k in range(num_aux_targets):
-            aux_mae_values[k] = _get_mae_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k]
-            )
-
-            if aux_target_field_names[k] != NET_FLUX_NAME:
-                continue
-
-            this_key = example_utils.SCALAR_TARGET_VALS_KEY
-
-            this_climo_value = (
-                mean_training_example_dict[this_key][0, surface_down_flux_index]
-                -
-                mean_training_example_dict[this_key][0, toa_up_flux_index]
-            )
-
-            aux_mae_skill_scores[k] = _get_mae_ss_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k],
-                mean_training_target_value=this_climo_value
-            )
-
-        these_dim = (AUX_TARGET_FIELD_DIM,)
         new_dict = {
-            AUX_MAE_KEY: (these_dim, aux_mae_values),
-            AUX_MAE_SKILL_KEY: (these_dim, aux_mae_skill_scores)
+            AUX_RELIABILITY_X_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_RELIABILITY_Y_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_RELIABILITY_COUNT_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            ),
+            AUX_INV_RELIABILITY_X_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_INV_RELIABILITY_Y_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_INV_RELIABILITY_COUNT_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            )
         }
         main_data_dict.update(new_dict)
 
-    print('Computing biases...')
-
-    # Biases of scalar fields.
-    scalar_biases = numpy.full(num_scalar_targets, numpy.nan)
-
-    for k in range(num_scalar_targets):
-        scalar_biases[k] = _get_bias_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k]
-        )
-
-    these_dim = (SCALAR_FIELD_DIM,)
-    new_dict = {
-        SCALAR_BIAS_KEY: (these_dim, scalar_biases)
-    }
-    main_data_dict.update(new_dict)
-
-    # Biases of vector fields.
-    vector_bias_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
-    )
-
-    for j in range(num_heights):
-        for k in range(num_vector_targets):
-            vector_bias_matrix[j, k] = _get_bias_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
-            )
-
-    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
-    new_dict = {
-        VECTOR_BIAS_KEY: (these_dim, vector_bias_matrix)
-    }
-    main_data_dict.update(new_dict)
-
-    # Biases of auxiliary fields.
-    if num_aux_targets > 0:
-        aux_biases = numpy.full(num_aux_targets, numpy.nan)
-
-        for k in range(num_aux_targets):
-            aux_biases[k] = _get_bias_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k]
-            )
-
-        these_dim = (AUX_TARGET_FIELD_DIM,)
-        new_dict = {
-            AUX_BIAS_KEY: (these_dim, aux_biases)
-        }
-        main_data_dict.update(new_dict)
-
-    print('Computing correlations and KGE values...')
-
-    # Correlation and KGE for scalar fields.
-    scalar_correlations = numpy.full(num_scalar_targets, numpy.nan)
-    scalar_kge_values = numpy.full(num_scalar_targets, numpy.nan)
-
-    for k in range(num_scalar_targets):
-        scalar_correlations[k] = _get_correlation_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k]
-        )
-        scalar_kge_values[k] = _get_kge_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k]
-        )
-
-    these_dim = (SCALAR_FIELD_DIM,)
-    new_dict = {
-        SCALAR_CORRELATION_KEY: (these_dim, scalar_correlations),
-        SCALAR_KGE_KEY: (these_dim, scalar_kge_values)
-    }
-    main_data_dict.update(new_dict)
-
-    # Correlation and KGE for vector fields.
-    vector_correlation_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
-    )
-    vector_kge_matrix = numpy.full((num_heights, num_vector_targets), numpy.nan)
-
-    for j in range(num_heights):
-        for k in range(num_vector_targets):
-            vector_correlation_matrix[j, k] = _get_correlation_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
-            )
-            vector_kge_matrix[j, k] = _get_kge_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
-            )
-
-    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM)
-    new_dict = {
-        VECTOR_CORRELATION_KEY: (these_dim, vector_correlation_matrix),
-        VECTOR_KGE_KEY: (these_dim, vector_kge_matrix)
-    }
-    main_data_dict.update(new_dict)
-
-    # Correlation and KGE for auxiliary fields.
-    if num_aux_targets > 0:
-        aux_correlations = numpy.full(num_aux_targets, numpy.nan)
-        aux_kge_values = numpy.full(num_aux_targets, numpy.nan)
-
-        for k in range(num_aux_targets):
-            aux_correlations[k] = _get_correlation_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k]
-            )
-            aux_kge_values[k] = _get_kge_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k]
-            )
-
-        these_dim = (AUX_TARGET_FIELD_DIM,)
-        new_dict = {
-            AUX_CORRELATION_KEY: (these_dim, aux_correlations),
-            AUX_KGE_KEY: (these_dim, aux_kge_values)
-        }
-        main_data_dict.update(new_dict)
-
-    print('Computing profile root mean squared errors (PRMSE)...')
-
-    vector_prmse_values = numpy.full(num_vector_targets, numpy.nan)
-
-    for k in range(num_vector_targets):
-        vector_prmse_values[k] = _get_prmse_one_variable(
-            target_matrix=vector_target_matrix[..., k],
-            prediction_matrix=vector_prediction_matrix[..., k]
-        )
-
-    these_dim = (VECTOR_FIELD_DIM,)
-    new_dict = {
-        VECTOR_PRMSE_KEY: (these_dim, vector_prmse_values)
-    }
-    main_data_dict.update(new_dict)
-
-    print('Computing reliability curves...')
-
-    # Reliability curves for scalar fields.
-    these_dim = (num_scalar_targets, num_reliability_bins)
-    scalar_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-    scalar_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-    scalar_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
-    scalar_inv_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-    scalar_inv_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-    scalar_inv_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
-
-    num_examples = scalar_target_matrix.shape[0]
-
-    for k in range(num_scalar_targets):
-        if num_examples == 0:
-            max_bin_edge = 1.
-        else:
-            max_bin_edge = numpy.percentile(
-                scalar_prediction_matrix[:, k], max_bin_edge_percentile
-            )
-
-        (
-            scalar_reliability_x_matrix[k, :],
-            scalar_reliability_y_matrix[k, :],
-            scalar_reliability_count_matrix[k, :]
-        ) = _get_rel_curve_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins,
-            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
-        )
-
-        if num_examples == 0:
-            max_bin_edge = 1.
-        else:
-            max_bin_edge = numpy.percentile(
-                scalar_target_matrix[:, k], max_bin_edge_percentile
-            )
-
-        (
-            scalar_inv_reliability_y_matrix[k, :],
-            scalar_inv_reliability_x_matrix[k, :],
-            scalar_inv_reliability_count_matrix[k, :]
-        ) = _get_rel_curve_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins,
-            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
-        )
-
-    these_dim = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
-    new_dict = {
-        SCALAR_RELIABILITY_X_KEY: (these_dim, scalar_reliability_x_matrix),
-        SCALAR_RELIABILITY_Y_KEY: (these_dim, scalar_reliability_y_matrix),
-        SCALAR_RELIABILITY_COUNT_KEY:
-            (these_dim, scalar_reliability_count_matrix),
-        SCALAR_INV_RELIABILITY_X_KEY:
-            (these_dim, scalar_inv_reliability_x_matrix),
-        SCALAR_INV_RELIABILITY_Y_KEY:
-            (these_dim, scalar_inv_reliability_y_matrix),
-        SCALAR_INV_RELIABILITY_COUNT_KEY:
-            (these_dim, scalar_inv_reliability_count_matrix)
-    }
-    main_data_dict.update(new_dict)
-
-    # Reliability curves for vector fields.
-    these_dim = (num_heights, num_vector_targets, num_reliability_bins)
-    vector_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-    vector_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-    vector_reliability_count_matrix = numpy.full(
-        these_dim, -1, dtype=int
-    )
-    vector_inv_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-    vector_inv_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-    vector_inv_reliability_count_matrix = numpy.full(
-        these_dim, -1, dtype=int
-    )
-
-    for j in range(num_heights):
-        for k in range(num_vector_targets):
-            if num_examples == 0:
-                max_bin_edge = 1.
-            else:
-                max_bin_edge = numpy.percentile(
-                    vector_prediction_matrix[:, j, k], max_bin_edge_percentile
-                )
-
-            (
-                vector_reliability_x_matrix[j, k, :],
-                vector_reliability_y_matrix[j, k, :],
-                vector_reliability_count_matrix[j, k, :]
-            ) = _get_rel_curve_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins,
-                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
-            )
-
-            if num_examples == 0:
-                max_bin_edge = 1.
-            else:
-                max_bin_edge = numpy.percentile(
-                    vector_target_matrix[:, j, k], max_bin_edge_percentile
-                )
-
-            (
-                vector_inv_reliability_y_matrix[j, k, :],
-                vector_inv_reliability_x_matrix[j, k, :],
-                vector_inv_reliability_count_matrix[j, k, :]
-            ) = _get_rel_curve_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins,
-                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
-            )
-
-    these_dim = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
-    new_dict = {
-        VECTOR_RELIABILITY_X_KEY: (these_dim, vector_reliability_x_matrix),
-        VECTOR_RELIABILITY_Y_KEY: (these_dim, vector_reliability_y_matrix),
-        VECTOR_RELIABILITY_COUNT_KEY:
-            (these_dim, vector_reliability_count_matrix),
-        VECTOR_INV_RELIABILITY_X_KEY:
-            (these_dim, vector_inv_reliability_x_matrix),
-        VECTOR_INV_RELIABILITY_Y_KEY:
-            (these_dim, vector_inv_reliability_y_matrix),
-        VECTOR_INV_RELIABILITY_COUNT_KEY:
-            (these_dim, vector_inv_reliability_count_matrix)
-    }
-    main_data_dict.update(new_dict)
-
-    # Reliability curves for auxiliary fields.
-    if num_aux_targets > 0:
-        these_dim = (num_aux_targets, num_reliability_bins)
-        aux_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-        aux_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-        aux_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
-        aux_inv_reliability_x_matrix = numpy.full(these_dim, numpy.nan)
-        aux_inv_reliability_y_matrix = numpy.full(these_dim, numpy.nan)
-        aux_inv_reliability_count_matrix = numpy.full(these_dim, -1, dtype=int)
-
-        for k in range(num_aux_targets):
-            if num_examples == 0:
-                min_bin_edge = 0.
-                max_bin_edge = 1.
-            else:
-                min_bin_edge = numpy.percentile(
-                    aux_prediction_matrix[:, k], 100. - max_bin_edge_percentile
-                )
-                max_bin_edge = numpy.percentile(
-                    aux_prediction_matrix[:, k], max_bin_edge_percentile
-                )
-
-            (
-                aux_reliability_x_matrix[k, :],
-                aux_reliability_y_matrix[k, :],
-                aux_reliability_count_matrix[k, :]
-            ) = _get_rel_curve_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
-                max_bin_edge=max_bin_edge, invert=False
-            )
-
-            if num_examples == 0:
-                min_bin_edge = 0.
-                max_bin_edge = 1.
-            else:
-                min_bin_edge = numpy.percentile(
-                    aux_target_matrix[:, k], 100. - max_bin_edge_percentile
-                )
-                max_bin_edge = numpy.percentile(
-                    aux_target_matrix[:, k], max_bin_edge_percentile
-                )
-
-            (
-                aux_inv_reliability_y_matrix[k, :],
-                aux_inv_reliability_x_matrix[k, :],
-                aux_inv_reliability_count_matrix[k, :]
-            ) = _get_rel_curve_one_scalar(
-                target_values=aux_target_matrix[:, k],
-                predicted_values=aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
-                max_bin_edge=max_bin_edge, invert=True
-            )
-
-        these_dim = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
-        new_dict = {
-            AUX_RELIABILITY_X_KEY: (these_dim, aux_reliability_x_matrix),
-            AUX_RELIABILITY_Y_KEY: (these_dim, aux_reliability_y_matrix),
-            AUX_RELIABILITY_COUNT_KEY:
-                (these_dim, aux_reliability_count_matrix),
-            AUX_INV_RELIABILITY_X_KEY:
-                (these_dim, aux_inv_reliability_x_matrix),
-            AUX_INV_RELIABILITY_Y_KEY:
-                (these_dim, aux_inv_reliability_y_matrix),
-            AUX_INV_RELIABILITY_COUNT_KEY:
-                (these_dim, aux_inv_reliability_count_matrix)
-        }
-        main_data_dict.update(new_dict)
-
-    # Add metadata.
     bin_indices = numpy.linspace(
         0, num_reliability_bins - 1, num=num_reliability_bins, dtype=int
+    )
+    bootstrap_indices = numpy.linspace(
+        0, num_bootstrap_reps - 1, num=num_bootstrap_reps, dtype=int
     )
 
     metadata_dict = {
@@ -1173,7 +1143,8 @@ def get_scores_all_variables(
         HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM:
             mean_training_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
-        RELIABILITY_BIN_DIM: bin_indices
+        RELIABILITY_BIN_DIM: bin_indices,
+        BOOTSTRAP_REP_DIM: bootstrap_indices
     }
 
     if num_aux_targets > 0:
@@ -1185,6 +1156,37 @@ def get_scores_all_variables(
     )
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+
+    num_examples = scalar_target_matrix.shape[0]
+    if num_examples == 0:
+        num_examples = vector_target_matrix.shape[0]
+
+    example_indices = numpy.linspace(
+        0, num_examples - 1, num=num_examples, dtype=int
+    )
+
+    for i in range(num_bootstrap_reps):
+        if num_bootstrap_reps == 1:
+            these_indices = example_indices
+        else:
+            these_indices = numpy.random.choice(
+                example_indices, size=num_examples, replace=True
+            )
+
+        print((
+            'Computing scores for {0:d}th of {1:d} bootstrap replicates...'
+        ).format(
+            i + 1, num_bootstrap_reps
+        ))
+
+        result_table_xarray = _get_scores_one_replicate(
+            result_table_xarray=result_table_xarray,
+            prediction_dict=prediction_dict, replicate_index=i,
+            example_indices_in_replicate=these_indices,
+            mean_training_example_dict=mean_training_example_dict,
+            max_bin_edge_percentile=max_bin_edge_percentile,
+            climo_net_flux_w_m02=climo_net_flux_w_m02
+        )
 
     return result_table_xarray
 
