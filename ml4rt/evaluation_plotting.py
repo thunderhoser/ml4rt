@@ -19,7 +19,8 @@ import plotting_utils
 import taylor_diagram
 import profile_plotting
 
-# TODO(thunderhoser): Allow for confidence intervals.
+# TODO(thunderhoser): Incorporate confidence intervals into this module, instead
+# of scripts.
 
 METRES_TO_KM = 0.001
 
@@ -259,7 +260,7 @@ def _plot_attr_diagram_background(
     )
 
 
-def _plot_inset_histogram(
+def plot_inset_histogram(
         figure_object, bin_centers, bin_counts, has_predictions,
         bar_colour=HISTOGRAM_FACE_COLOUR):
     """Plots histogram as inset in attributes diagram.
@@ -277,6 +278,18 @@ def _plot_inset_histogram(
     :param bar_colour: Bar colour (in any format accepted by matplotlib).
     """
 
+    error_checking.assert_is_numpy_array(bin_centers, num_dimensions=1)
+    error_checking.assert_is_boolean(has_predictions)
+
+    num_bins = len(bin_centers)
+    expected_dim = numpy.array([num_bins], dtype=int)
+
+    error_checking.assert_is_integer_numpy_array(bin_counts)
+    error_checking.assert_is_geq_numpy_array(bin_counts, 0)
+    error_checking.assert_is_numpy_array(
+        bin_counts, exact_dimensions=expected_dim
+    )
+
     bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
 
     if has_predictions:
@@ -284,7 +297,6 @@ def _plot_inset_histogram(
     else:
         inset_axes_object = figure_object.add_axes([0.2, 0.65, 0.2, 0.2])
 
-    num_bins = len(bin_centers)
     fake_bin_centers = (
         0.5 + numpy.linspace(0, num_bins - 1, num=num_bins, dtype=float)
     )
@@ -330,15 +342,16 @@ def _plot_inset_histogram(
 
 def plot_attributes_diagram(
         figure_object, axes_object, mean_predictions, mean_observations,
-        example_counts, mean_value_in_training, min_value_to_plot,
-        max_value_to_plot, line_colour=RELIABILITY_LINE_COLOUR,
-        line_style='solid', line_width=RELIABILITY_LINE_WIDTH,
+        mean_value_in_training, min_value_to_plot, max_value_to_plot,
+        line_colour=RELIABILITY_LINE_COLOUR, line_style='solid',
+        line_width=RELIABILITY_LINE_WIDTH, example_counts=None,
         inv_mean_observations=None, inv_example_counts=None):
     """Plots attributes diagram.
 
-    If `inv_mean_observations is None` and `inv_example_counts is None`, this
-    method will plot only the histogram of predicted values, not the histogram
-    of observed values.
+    If `example_counts is None`, will not plot histogram of predicted values.
+
+    If `inv_mean_observations is None` and `inv_example_counts is None`, will
+    not plot histogram of observed values.
 
     B = number of bins
 
@@ -348,8 +361,6 @@ def plot_attributes_diagram(
         `matplotlib.axes._subplots.AxesSubplot`).
     :param mean_predictions: length-B numpy array of mean predicted values.
     :param mean_observations: length-B numpy array of mean observed values.
-    :param example_counts: length-B numpy array with number of examples in each
-        bin.
     :param mean_value_in_training: Mean of target variable in training data.
     :param min_value_to_plot: Minimum value in plot (for both x- and y-axes).
     :param max_value_to_plot: Max value in plot (for both x- and y-axes).
@@ -357,6 +368,8 @@ def plot_attributes_diagram(
     :param line_colour: See doc for `_plot_reliability_curve`.
     :param line_width: Same.
     :param line_style: Same.
+    :param example_counts: length-B numpy array with number of examples in each
+        bin.
     :param inv_mean_observations: length-B numpy array of mean observed values
         for inverted reliability curve.
     :param inv_example_counts: length-B numpy array of example counts for
@@ -373,11 +386,14 @@ def plot_attributes_diagram(
         mean_observations, exact_dimensions=expected_dim
     )
 
-    error_checking.assert_is_integer_numpy_array(example_counts)
-    error_checking.assert_is_geq_numpy_array(example_counts, 0)
-    error_checking.assert_is_numpy_array(
-        example_counts, exact_dimensions=expected_dim
-    )
+    plot_prediction_histogram = example_counts is not None
+
+    if plot_prediction_histogram:
+        error_checking.assert_is_integer_numpy_array(example_counts)
+        error_checking.assert_is_geq_numpy_array(example_counts, 0)
+        error_checking.assert_is_numpy_array(
+            example_counts, exact_dimensions=expected_dim
+        )
 
     error_checking.assert_is_not_nan(mean_value_in_training)
     error_checking.assert_is_geq(max_value_to_plot, min_value_to_plot)
@@ -404,13 +420,15 @@ def plot_attributes_diagram(
         min_value_in_plot=min_value_to_plot, max_value_in_plot=max_value_to_plot
     )
 
-    _plot_inset_histogram(
-        figure_object=figure_object, bin_centers=mean_predictions,
-        bin_counts=example_counts, has_predictions=True, bar_colour=line_colour
-    )
+    if plot_prediction_histogram:
+        plot_inset_histogram(
+            figure_object=figure_object, bin_centers=mean_predictions,
+            bin_counts=example_counts, has_predictions=True,
+            bar_colour=line_colour
+        )
 
     if plot_obs_histogram:
-        _plot_inset_histogram(
+        plot_inset_histogram(
             figure_object=figure_object, bin_centers=inv_mean_observations,
             bin_counts=inv_example_counts, has_predictions=False,
             bar_colour=line_colour

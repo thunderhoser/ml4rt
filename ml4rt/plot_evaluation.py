@@ -7,6 +7,8 @@ import numpy
 import xarray
 import matplotlib
 matplotlib.use('agg')
+import matplotlib.colors
+import matplotlib.patches
 from matplotlib import pyplot
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -23,6 +25,9 @@ import evaluation
 import normalization
 import neural_net
 import evaluation_plotting
+
+# TODO(thunderhoser): Incorporate confidence intervals into
+# evaluation_plotting.py.
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -92,6 +97,7 @@ TARGET_NAME_TO_SQUARED_UNITS = {
     evaluation.LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
+POLYGON_OPACITY = 0.5
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -100,6 +106,7 @@ INPUT_FILES_ARG_NAME = 'input_eval_file_names'
 LINE_STYLES_ARG_NAME = 'line_styles'
 LINE_COLOURS_ARG_NAME = 'line_colours'
 SET_DESCRIPTIONS_ARG_NAME = 'set_descriptions'
+CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PLOT_BY_HEIGHT_ARG_NAME = 'plot_by_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -125,6 +132,10 @@ SET_DESCRIPTIONS_HELP_STRING = (
     'have same length as `{0:s}`.'
 ).format(INPUT_FILES_ARG_NAME)
 
+CONFIDENCE_LEVEL_HELP_STRING = (
+    'Confidence level (from 0...1).  If you do not want to plot confidence '
+    'intervals, leave this alone.'
+)
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
     'axis.'
@@ -155,6 +166,10 @@ INPUT_ARG_PARSER.add_argument(
     help=SET_DESCRIPTIONS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=-1,
+    help=CONFIDENCE_LEVEL_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
     help=USE_LOG_SCALE_HELP_STRING
 )
@@ -168,9 +183,64 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _confidence_interval_to_polygon(x_value_matrix, y_value_matrix,
+                                    confidence_level):
+    """Turns confidence interval into polygon.
+
+    P = number of points
+    B = number of bootstrap replicates
+    V = number of vertices in resulting polygon = 2 * P + 1
+
+    :param x_value_matrix: P-by-B numpy array of x-values.
+    :param y_value_matrix: P-by-B numpy array of y-values.
+    :param confidence_level: Confidence level (in range 0...1).
+    :return: polygon_coord_matrix: V-by-2 numpy array of coordinates
+        (x-coordinates in first column, y-coords in second).
+    """
+
+    min_percentile = 50 * (1. - confidence_level)
+    max_percentile = 50 * (1. + confidence_level)
+
+    x_values_bottom = numpy.nanpercentile(
+        x_value_matrix, min_percentile, axis=1, interpolation='linear'
+    )
+    x_values_top = numpy.nanpercentile(
+        x_value_matrix, max_percentile, axis=1, interpolation='linear'
+    )
+    y_values_bottom = numpy.nanpercentile(
+        y_value_matrix, min_percentile, axis=1, interpolation='linear'
+    )
+    y_values_top = numpy.nanpercentile(
+        y_value_matrix, max_percentile, axis=1, interpolation='linear'
+    )
+
+    real_indices = numpy.where(numpy.invert(numpy.logical_or(
+        numpy.isnan(x_values_bottom), numpy.isnan(y_values_bottom)
+    )))[0]
+
+    if len(real_indices) == 0:
+        return None
+
+    x_values_bottom = x_values_bottom[real_indices]
+    x_values_top = x_values_top[real_indices]
+    y_values_bottom = y_values_bottom[real_indices]
+    y_values_top = y_values_top[real_indices]
+
+    x_vertices = numpy.concatenate((
+        x_values_top, x_values_bottom[::-1], x_values_top[[0]]
+    ))
+    y_vertices = numpy.concatenate((
+        y_values_top, y_values_bottom[::-1], y_values_top[[0]]
+    ))
+
+    return numpy.transpose(numpy.vstack((
+        x_vertices, y_vertices
+    )))
+
+
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
-        set_descriptions_abbrev, set_descriptions_verbose,
+        set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
         mean_training_example_dict, target_name, output_dir_name,
         height_m_agl=None):
     """Plots attributes diagram for each set and each target variable.
@@ -188,6 +258,7 @@ def _plot_attributes_diagram(
         for evaluation sets.
     :param set_descriptions_verbose: length-S list of verbose descriptions for
         evaluation sets.
+    :param confidence_level: See documentation at top of file.
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
     :param target_name: Name of target variable.
@@ -217,12 +288,16 @@ def _plot_attributes_diagram(
             t[evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
+        bin_centers_by_set = [
+            t[evaluation.SCALAR_RELIA_BIN_CENTER_KEY].values[k, ...]
+            for t, k in zip(evaluation_tables_xarray, target_indices)
+        ]
         example_counts_by_set = [
             t[evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
-        inverted_mean_obs_by_set = [
-            t[evaluation.SCALAR_INV_RELIABILITY_X_KEY].values[k, ...]
+        inverted_bin_centers_by_set = [
+            t[evaluation.SCALAR_INV_RELIA_BIN_CENTER_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
         inverted_example_counts_by_set = [
@@ -254,12 +329,16 @@ def _plot_attributes_diagram(
             t[evaluation.AUX_RELIABILITY_Y_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
+        bin_centers_by_set = [
+            t[evaluation.AUX_RELIA_BIN_CENTER_KEY].values[k, ...]
+            for t, k in zip(evaluation_tables_xarray, target_indices)
+        ]
         example_counts_by_set = [
             t[evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
-        inverted_mean_obs_by_set = [
-            t[evaluation.AUX_INV_RELIABILITY_X_KEY].values[k, ...]
+        inverted_bin_centers_by_set = [
+            t[evaluation.AUX_INV_RELIA_BIN_CENTER_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
         inverted_example_counts_by_set = [
@@ -312,13 +391,18 @@ def _plot_attributes_diagram(
             for t, j, k in
             zip(evaluation_tables_xarray, height_indices, target_indices)
         ]
+        bin_centers_by_set = [
+            t[evaluation.VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, ...]
+            for t, j, k in
+            zip(evaluation_tables_xarray, height_indices, target_indices)
+        ]
         example_counts_by_set = [
             t[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, ...]
             for t, j, k in
             zip(evaluation_tables_xarray, height_indices, target_indices)
         ]
-        inverted_mean_obs_by_set = [
-            t[evaluation.VECTOR_INV_RELIABILITY_X_KEY].values[j, k, ...]
+        inverted_bin_centers_by_set = [
+            t[evaluation.VECTOR_INV_RELIA_BIN_CENTER_KEY].values[j, k, ...]
             for t, j, k in
             zip(evaluation_tables_xarray, height_indices, target_indices)
         ]
@@ -341,7 +425,8 @@ def _plot_attributes_diagram(
         ][0, j, k]
 
     concat_values = numpy.concatenate([
-        a for a in mean_predictions_by_set + mean_observations_by_set
+        numpy.nanmean(a, axis=-1)
+        for a in mean_predictions_by_set + mean_observations_by_set
         if a is not None
     ])
     max_value_to_plot = numpy.nanpercentile(concat_values, 99.9)
@@ -360,14 +445,13 @@ def _plot_attributes_diagram(
 
         this_handle = evaluation_plotting.plot_attributes_diagram(
             figure_object=figure_object, axes_object=axes_object,
-            mean_predictions=mean_predictions_by_set[main_index],
-            mean_observations=mean_observations_by_set[main_index],
-            example_counts=example_counts_by_set[main_index],
+            mean_predictions=
+            numpy.nanmean(mean_predictions_by_set[main_index], axis=-1),
+            mean_observations=
+            numpy.nanmean(mean_observations_by_set[main_index], axis=-1),
             mean_value_in_training=climo_value,
             min_value_to_plot=min_value_to_plot,
             max_value_to_plot=max_value_to_plot,
-            inv_mean_observations=inverted_mean_obs_by_set[main_index],
-            inv_example_counts=inverted_example_counts_by_set[main_index],
             line_colour=line_colours[main_index],
             line_style=line_styles[main_index], line_width=4
         )
@@ -375,6 +459,39 @@ def _plot_attributes_diagram(
         if this_handle is not None:
             legend_handles.append(this_handle)
             legend_strings.append(set_descriptions_verbose[main_index])
+
+        num_bootstrap_reps = mean_predictions_by_set[main_index].shape[1]
+
+        if num_bootstrap_reps > 1 and confidence_level is not None:
+            polygon_coord_matrix = _confidence_interval_to_polygon(
+                x_value_matrix=mean_predictions_by_set[main_index],
+                y_value_matrix=mean_observations_by_set[main_index],
+                confidence_level=confidence_level
+            )
+
+            polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
+
+            polygon_colour = matplotlib.colors.to_rgba(
+                line_colours[main_index], POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            axes_object.add_patch(patch_object)
+
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=bin_centers_by_set[main_index],
+            bin_counts=example_counts_by_set[main_index],
+            has_predictions=True, bar_colour=line_colours[main_index]
+        )
+
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=inverted_bin_centers_by_set[main_index],
+            bin_counts=inverted_example_counts_by_set[main_index],
+            has_predictions=False, bar_colour=line_colours[main_index]
+        )
 
         axes_object.set_xlabel('Prediction ({0:s})'.format(
             TARGET_NAME_TO_UNITS[target_name]
@@ -399,8 +516,10 @@ def _plot_attributes_diagram(
 
             this_handle = evaluation_plotting._plot_reliability_curve(
                 axes_object=axes_object,
-                mean_predictions=mean_predictions_by_set[i],
-                mean_observations=mean_observations_by_set[i],
+                mean_predictions=
+                numpy.nanmean(mean_predictions_by_set[i], axis=-1),
+                mean_observations=
+                numpy.nanmean(mean_observations_by_set[i], axis=-1),
                 min_value_to_plot=min_value_to_plot,
                 max_value_to_plot=max_value_to_plot,
                 line_colour=line_colours[i], line_style=line_styles[i],
@@ -410,6 +529,26 @@ def _plot_attributes_diagram(
             if this_handle is not None:
                 legend_handles.append(this_handle)
                 legend_strings.append(set_descriptions_verbose[i])
+
+            num_bootstrap_reps = mean_predictions_by_set[i].shape[1]
+
+            if num_bootstrap_reps > 1 and confidence_level is not None:
+                polygon_coord_matrix = _confidence_interval_to_polygon(
+                    x_value_matrix=mean_predictions_by_set[i],
+                    y_value_matrix=mean_observations_by_set[i],
+                    confidence_level=confidence_level
+                )
+
+                polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
+
+                polygon_colour = matplotlib.colors.to_rgba(
+                    line_colours[i], POLYGON_OPACITY
+                )
+                patch_object = matplotlib.patches.Polygon(
+                    polygon_coord_matrix, lw=0, ec=polygon_colour,
+                    fc=polygon_colour
+                )
+                axes_object.add_patch(patch_object)
 
         if len(legend_handles) > 1:
             axes_object.legend(
@@ -441,14 +580,15 @@ def _plot_attributes_diagram(
 
 def _plot_score_profile(
         evaluation_tables_xarray, line_styles, line_colours,
-        set_descriptions_verbose, target_name, score_name, use_log_scale,
-        output_dir_name):
+        set_descriptions_verbose, confidence_level, target_name, score_name,
+        use_log_scale, output_dir_name):
     """Plots vertical profile of one score.
 
     :param evaluation_tables_xarray: See doc for `_plot_attributes_diagram`.
     :param line_styles: Same.
     :param line_colours: Same.
     :param set_descriptions_verbose: Same.
+    :param confidence_level: Same.
     :param target_name: Name of target variable for which score is being plotted.
     :param score_name: Name of score being plotted.
     :param use_log_scale: Boolean flag.  If True, will plot heights (y-axis) in
@@ -475,11 +615,14 @@ def _plot_score_profile(
 
     for i in range(num_evaluation_sets):
         k = target_indices[i]
+        t = evaluation_tables_xarray[i]
+
+        this_score_matrix = t[score_key].values[:, k, :]
+        heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
 
         this_handle = evaluation_plotting.plot_score_profile(
-            heights_m_agl=
-            evaluation_tables_xarray[i].coords[evaluation.HEIGHT_DIM].values,
-            score_values=evaluation_tables_xarray[i][score_key].values[:, k],
+            heights_m_agl=heights_m_agl,
+            score_values=numpy.nanmean(this_score_matrix, axis=1),
             score_name=score_name, line_colour=line_colours[i],
             line_width=4, line_style=line_styles[i],
             use_log_scale=use_log_scale, axes_object=axes_object,
@@ -488,6 +631,25 @@ def _plot_score_profile(
 
         legend_handles.append(this_handle)
         legend_strings.append(set_descriptions_verbose[i])
+
+        num_bootstrap_reps = this_score_matrix.shape[1]
+
+        if num_bootstrap_reps > 1 and confidence_level is not None:
+            polygon_coord_matrix = _confidence_interval_to_polygon(
+                x_value_matrix=numpy.expand_dims(heights_m_agl, axis=-1),
+                y_value_matrix=this_score_matrix,
+                confidence_level=confidence_level
+            )
+
+            polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
+
+            polygon_colour = matplotlib.colors.to_rgba(
+                line_colours[i], POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            axes_object.add_patch(patch_object)
 
     if len(legend_handles) > 1:
         axes_object.legend(
@@ -500,15 +662,6 @@ def _plot_score_profile(
         SCORE_NAME_TO_VERBOSE[score_name],
         TARGET_NAME_TO_VERBOSE[target_name]
     )
-
-    # if num_evaluation_sets == 1:
-    #     k = target_indices[0]
-    #     prmse = (
-    #         evaluation_tables_xarray[0][evaluation.VECTOR_PRMSE_KEY].values[k]
-    #     )
-    #     title_string += ' (PRMSE = {0:.2f} {1:s})'.format(
-    #         prmse, TARGET_NAME_TO_UNITS[target_name]
-    #     )
 
     x_label_string = '{0:s}'.format(SCORE_NAME_TO_VERBOSE[score_name])
 
@@ -755,6 +908,12 @@ def _plot_reliability_by_height(
             mean_target_matrix = numpy.take(
                 t[evaluation.VECTOR_RELIABILITY_Y_KEY].values, axis=1, indices=k
             )
+
+            mean_prediction_matrix = numpy.nanmean(
+                mean_prediction_matrix, axis=-1
+            )
+            mean_target_matrix = numpy.nanmean(mean_target_matrix, axis=-1)
+
             concat_matrix = numpy.concatenate(
                 (mean_prediction_matrix, mean_target_matrix), axis=0
             )
@@ -802,8 +961,8 @@ def _plot_reliability_by_height(
 
 
 def _run(evaluation_file_names, line_styles, line_colour_strings,
-         set_descriptions_verbose, use_log_scale, plot_by_height,
-         output_dir_name):
+         set_descriptions_verbose, confidence_level, use_log_scale,
+         plot_by_height, output_dir_name):
     """Plots model evaluation.
 
     This is effectively the main method.
@@ -812,6 +971,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     :param line_styles: Same.
     :param line_colour_strings: Same.
     :param set_descriptions_verbose: Same.
+    :param confidence_level: Same.
     :param use_log_scale: Same.
     :param plot_by_height: Same.
     :param output_dir_name: Same.
@@ -821,6 +981,13 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
+
+    if confidence_level < 0:
+        confidence_level = None
+
+    if confidence_level is not None:
+        error_checking.assert_is_geq(confidence_level, 0.9)
+        error_checking.assert_is_less_than(confidence_level, 1.)
 
     num_evaluation_sets = len(evaluation_file_names)
     expected_dim = numpy.array([num_evaluation_sets], dtype=int)
@@ -963,6 +1130,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 evaluation_tables_xarray=evaluation_tables_xarray,
                 line_styles=line_styles, line_colours=line_colours,
                 set_descriptions_verbose=set_descriptions_verbose,
+                confidence_level=confidence_level,
                 target_name=vector_target_names[k], score_name=this_score_name,
                 use_log_scale=use_log_scale, output_dir_name=output_dir_name
             )
@@ -976,6 +1144,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             line_colours=line_colours,
             set_descriptions_abbrev=set_descriptions_abbrev,
             set_descriptions_verbose=set_descriptions_verbose,
+            confidence_level=confidence_level,
             mean_training_example_dict=mean_training_example_dict,
             target_name=scalar_target_names[k],
             output_dir_name=output_dir_name
@@ -988,6 +1157,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             line_colours=line_colours,
             set_descriptions_abbrev=set_descriptions_abbrev,
             set_descriptions_verbose=set_descriptions_verbose,
+            confidence_level=confidence_level,
             mean_training_example_dict=mean_training_example_dict,
             target_name=aux_target_names[k],
             output_dir_name=output_dir_name
@@ -1006,6 +1176,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 line_colours=line_colours,
                 set_descriptions_abbrev=set_descriptions_abbrev,
                 set_descriptions_verbose=set_descriptions_verbose,
+                confidence_level=confidence_level,
                 mean_training_example_dict=mean_training_example_dict,
                 height_m_agl=heights_m_agl[j],
                 target_name=vector_target_names[k],
@@ -1026,6 +1197,7 @@ if __name__ == '__main__':
         set_descriptions_verbose=getattr(
             INPUT_ARG_OBJECT, SET_DESCRIPTIONS_ARG_NAME
         ),
+        confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
