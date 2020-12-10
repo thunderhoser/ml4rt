@@ -509,11 +509,6 @@ def _get_scores_one_replicate(
         )
 
     for k in range(num_vector_targets):
-        print(k)
-        print(t[VECTOR_PRMSE_KEY].values.shape)
-        print(vector_target_matrix.shape)
-        print(vector_prediction_matrix.shape)
-
         t[VECTOR_PRMSE_KEY].values[k, i] = _get_prmse_one_variable(
             target_matrix=vector_target_matrix[..., k],
             prediction_matrix=vector_prediction_matrix[..., k]
@@ -1035,13 +1030,20 @@ def get_scores_all_variables(
         VECTOR_BIAS_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
-        VECTOR_PRMSE_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-        ),
         VECTOR_CORRELATION_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_KGE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
+    these_dimensions = (num_vector_targets, num_bootstrap_reps)
+    these_dim_keys = (VECTOR_FIELD_DIM, BOOTSTRAP_REP_DIM)
+
+    new_dict = {
+        VECTOR_PRMSE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         )
     }
