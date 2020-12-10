@@ -60,21 +60,21 @@ AUX_KGE_KEY = 'aux_kge'
 VECTOR_PRMSE_KEY = 'vector_prmse'
 SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x'
 SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y'
+SCALAR_RELIA_BIN_CENTER_KEY = 'scalar_reliability_bin_center'
 SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count'
-SCALAR_INV_RELIABILITY_X_KEY = 'scalar_inv_reliability_x'
-SCALAR_INV_RELIABILITY_Y_KEY = 'scalar_inv_reliability_y'
+SCALAR_INV_RELIA_BIN_CENTER_KEY = 'scalar_inv_reliability_bin_center'
 SCALAR_INV_RELIABILITY_COUNT_KEY = 'scalar_inv_reliability_count'
 VECTOR_RELIABILITY_X_KEY = 'vector_reliability_x'
 VECTOR_RELIABILITY_Y_KEY = 'vector_reliability_y'
+VECTOR_RELIA_BIN_CENTER_KEY = 'vector_reliability_bin_center'
 VECTOR_RELIABILITY_COUNT_KEY = 'vector_reliability_count'
-VECTOR_INV_RELIABILITY_X_KEY = 'vector_inv_reliability_x'
-VECTOR_INV_RELIABILITY_Y_KEY = 'vector_inv_reliability_y'
+VECTOR_INV_RELIA_BIN_CENTER_KEY = 'vector_inv_reliability_bin_center'
 VECTOR_INV_RELIABILITY_COUNT_KEY = 'vector_inv_reliability_count'
 AUX_RELIABILITY_X_KEY = 'aux_reliability_x'
 AUX_RELIABILITY_Y_KEY = 'aux_reliability_y'
+AUX_RELIA_BIN_CENTER_KEY = 'aux_reliability_bin_center'
 AUX_RELIABILITY_COUNT_KEY = 'aux_reliability_count'
-AUX_INV_RELIABILITY_X_KEY = 'aux_inv_reliability_x'
-AUX_INV_RELIABILITY_Y_KEY = 'aux_inv_reliability_y'
+AUX_INV_RELIA_BIN_CENTER_KEY = 'aux_inv_reliability_bin_center'
 AUX_INV_RELIABILITY_COUNT_KEY = 'aux_inv_reliability_count'
 
 MODEL_FILE_KEY = 'model_file_name'
@@ -480,14 +480,24 @@ def _get_scores_one_replicate(
 
         (
             t[SCALAR_RELIABILITY_X_KEY].values[k, :, i],
-            t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i],
-            t[SCALAR_RELIABILITY_COUNT_KEY].values[k, :, i]
+            t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i]
         ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
             num_bins=num_reliability_bins,
             min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
-        )
+        )[:2]
+
+        if i == 0:
+            (
+                t[SCALAR_RELIA_BIN_CENTER_KEY].values[k, :], _,
+                t[SCALAR_RELIABILITY_COUNT_KEY].values[k, :]
+            ) = _get_rel_curve_one_scalar(
+                target_values=full_scalar_target_matrix[:, k],
+                predicted_values=full_scalar_prediction_matrix[:, k],
+                num_bins=num_reliability_bins,
+                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+            )
 
         if num_examples == 0:
             max_bin_edge = 1.
@@ -496,16 +506,16 @@ def _get_scores_one_replicate(
                 full_scalar_target_matrix[:, k], max_bin_edge_percentile
             )
 
-        (
-            t[SCALAR_INV_RELIABILITY_X_KEY].values[k, :, i],
-            t[SCALAR_INV_RELIABILITY_Y_KEY].values[k, :, i],
-            t[SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, :, i]
-        ) = _get_rel_curve_one_scalar(
-            target_values=scalar_target_matrix[:, k],
-            predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins,
-            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
-        )
+        if i == 0:
+            (
+                t[SCALAR_INV_RELIA_BIN_CENTER_KEY].values[k, :], _,
+                t[SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, :]
+            ) = _get_rel_curve_one_scalar(
+                target_values=full_scalar_target_matrix[:, k],
+                predicted_values=full_scalar_prediction_matrix[:, k],
+                num_bins=num_reliability_bins,
+                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
+            )
 
     for k in range(num_vector_targets):
         t[VECTOR_PRMSE_KEY].values[k, i] = _get_prmse_one_variable(
@@ -567,14 +577,24 @@ def _get_scores_one_replicate(
 
             (
                 t[VECTOR_RELIABILITY_X_KEY].values[j, k, :, i],
-                t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i],
-                t[VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :, i]
+                t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i]
             ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
                 num_bins=num_reliability_bins,
                 min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
-            )
+            )[:2]
+
+            if i == 0:
+                (
+                    t[VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, :], _,
+                    t[VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :]
+                ) = _get_rel_curve_one_scalar(
+                    target_values=full_vector_target_matrix[:, j, k],
+                    predicted_values=full_vector_prediction_matrix[:, j, k],
+                    num_bins=num_reliability_bins,
+                    min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+                )
 
             if num_examples == 0:
                 max_bin_edge = 1.
@@ -583,16 +603,16 @@ def _get_scores_one_replicate(
                     full_vector_target_matrix[:, j, k], max_bin_edge_percentile
                 )
 
-            (
-                t[VECTOR_INV_RELIABILITY_X_KEY].values[j, k, :, i],
-                t[VECTOR_INV_RELIABILITY_Y_KEY].values[j, k, :, i],
-                t[VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, :, i]
-            ) = _get_rel_curve_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins,
-                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
-            )
+            if i == 0:
+                (
+                    t[VECTOR_INV_RELIA_BIN_CENTER_KEY].values[j, k, :], _,
+                    t[VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, :]
+                ) = _get_rel_curve_one_scalar(
+                    target_values=full_vector_target_matrix[:, j, k],
+                    predicted_values=full_vector_prediction_matrix[:, j, k],
+                    num_bins=num_reliability_bins,
+                    min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
+                )
 
     for k in range(num_aux_targets):
         t[AUX_TARGET_STDEV_KEY].values[k, i] = numpy.std(
@@ -651,14 +671,24 @@ def _get_scores_one_replicate(
 
         (
             t[AUX_RELIABILITY_X_KEY].values[k, :, i],
-            t[AUX_RELIABILITY_Y_KEY].values[k, :, i],
-            t[AUX_RELIABILITY_COUNT_KEY].values[k, :, i]
+            t[AUX_RELIABILITY_Y_KEY].values[k, :, i]
         ) = _get_rel_curve_one_scalar(
             target_values=aux_target_matrix[:, k],
             predicted_values=aux_prediction_matrix[:, k],
             num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
             max_bin_edge=max_bin_edge, invert=False
-        )
+        )[:2]
+
+        if i == 0:
+            (
+                t[AUX_RELIA_BIN_CENTER_KEY].values[k, :], _,
+                t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :]
+            ) = _get_rel_curve_one_scalar(
+                target_values=full_aux_target_matrix[:, k],
+                predicted_values=full_aux_prediction_matrix[:, k],
+                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
+                max_bin_edge=max_bin_edge, invert=False
+            )
 
         if num_examples == 0:
             min_bin_edge = 0.
@@ -671,16 +701,16 @@ def _get_scores_one_replicate(
                 full_aux_target_matrix[:, k], max_bin_edge_percentile
             )
 
-        (
-            t[AUX_INV_RELIABILITY_X_KEY].values[k, :, i],
-            t[AUX_INV_RELIABILITY_Y_KEY].values[k, :, i],
-            t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :, i]
-        ) = _get_rel_curve_one_scalar(
-            target_values=aux_target_matrix[:, k],
-            predicted_values=aux_prediction_matrix[:, k],
-            num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
-            max_bin_edge=max_bin_edge, invert=True
-        )
+        if i == 0:
+            (
+                t[AUX_INV_RELIA_BIN_CENTER_KEY].values[k, :], _,
+                t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :]
+            ) = _get_rel_curve_one_scalar(
+                target_values=full_aux_target_matrix[:, k],
+                predicted_values=full_aux_prediction_matrix[:, k],
+                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
+                max_bin_edge=max_bin_edge, invert=True
+            )
 
     return t
 
@@ -1000,14 +1030,21 @@ def get_scores_all_variables(
         ),
         SCALAR_RELIABILITY_Y_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
+    these_dimensions = (num_scalar_targets, num_reliability_bins)
+    these_dim_keys = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
+
+    new_dict = {
+        SCALAR_RELIA_BIN_CENTER_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         SCALAR_RELIABILITY_COUNT_KEY: (
             these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
         ),
-        SCALAR_INV_RELIABILITY_X_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-        ),
-        SCALAR_INV_RELIABILITY_Y_KEY: (
+        SCALAR_INV_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         SCALAR_INV_RELIABILITY_COUNT_KEY: (
@@ -1075,14 +1112,21 @@ def get_scores_all_variables(
         ),
         VECTOR_RELIABILITY_Y_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
+    these_dimensions = (num_heights, num_vector_targets, num_reliability_bins)
+    these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
+
+    new_dict = {
+        VECTOR_RELIA_BIN_CENTER_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_RELIABILITY_COUNT_KEY: (
             these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
         ),
-        VECTOR_INV_RELIABILITY_X_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-        ),
-        VECTOR_INV_RELIABILITY_Y_KEY: (
+        VECTOR_INV_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_INV_RELIABILITY_COUNT_KEY: (
@@ -1139,14 +1183,21 @@ def get_scores_all_variables(
             ),
             AUX_RELIABILITY_Y_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            )
+        }
+        main_data_dict.update(new_dict)
+
+        these_dimensions = (num_aux_targets, num_reliability_bins)
+        these_dim_keys = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
+
+        new_dict = {
+            AUX_RELIA_BIN_CENTER_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_RELIABILITY_COUNT_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
             ),
-            AUX_INV_RELIABILITY_X_KEY: (
-                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-            ),
-            AUX_INV_RELIABILITY_Y_KEY: (
+            AUX_INV_RELIA_BIN_CENTER_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_INV_RELIABILITY_COUNT_KEY: (
