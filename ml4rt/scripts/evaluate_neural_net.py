@@ -97,7 +97,8 @@ def _run(prediction_file_name, num_bootstrap_reps, output_dir_name):
 
     for k in range(len(vector_target_names)):
         print('Variable = "{0:s}" ... PRMSE = {1:f}'.format(
-            vector_target_names[k], t[evaluation.VECTOR_PRMSE_KEY].values[k]
+            vector_target_names[k],
+            numpy.nanmean(t[evaluation.VECTOR_PRMSE_KEY].values[k, :])
         ))
 
     print(SEPARATOR_STRING)

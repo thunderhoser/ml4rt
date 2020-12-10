@@ -434,6 +434,12 @@ def _get_scores_one_replicate(
             example_utils.SCALAR_TARGET_VALS_KEY
         ][0, k]
 
+        t[SCALAR_TARGET_STDEV_KEY].values[k, i] = numpy.std(
+            scalar_target_matrix[:, k], ddof=1
+        )
+        t[SCALAR_PREDICTION_STDEV_KEY].values[k, i] = numpy.std(
+            scalar_prediction_matrix[:, k], ddof=1
+        )
         t[SCALAR_MAE_KEY].values[k, i] = _get_mae_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k]
@@ -512,6 +518,12 @@ def _get_scores_one_replicate(
                 example_utils.VECTOR_TARGET_VALS_KEY
             ][0, j, k]
 
+            t[VECTOR_TARGET_STDEV_KEY].values[j, k, i] = numpy.std(
+                vector_target_matrix[:, j, k], ddof=1
+            )
+            t[VECTOR_PREDICTION_STDEV_KEY].values[j, k, i] = numpy.std(
+                vector_prediction_matrix[:, j, k], ddof=1
+            )
             t[VECTOR_MAE_KEY].values[j, k, i] = _get_mae_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k]
@@ -583,6 +595,12 @@ def _get_scores_one_replicate(
             )
 
     for k in range(num_aux_targets):
+        t[AUX_TARGET_STDEV_KEY].values[k, i] = numpy.std(
+            aux_target_matrix[:, k], ddof=1
+        )
+        t[AUX_PREDICTION_STDEV_KEY].values[k, i] = numpy.std(
+            aux_prediction_matrix[:, k], ddof=1
+        )
         t[AUX_MAE_KEY].values[k, i] = _get_mae_one_scalar(
             target_values=aux_target_matrix[:, k],
             predicted_values=aux_prediction_matrix[:, k]
@@ -1023,13 +1041,20 @@ def get_scores_all_variables(
         VECTOR_BIAS_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
-        VECTOR_PRMSE_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-        ),
         VECTOR_CORRELATION_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_KGE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
+    these_dimensions = (num_vector_targets, num_bootstrap_reps)
+    these_dim_keys = (VECTOR_FIELD_DIM, BOOTSTRAP_REP_DIM)
+
+    new_dict = {
+        VECTOR_PRMSE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         )
     }
