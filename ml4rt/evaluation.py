@@ -509,6 +509,11 @@ def _get_scores_one_replicate(
         )
 
     for k in range(num_vector_targets):
+        print(k)
+        print(t[VECTOR_PRMSE_KEY].values.shape)
+        print(vector_target_matrix.shape)
+        print(vector_prediction_matrix.shape)
+
         t[VECTOR_PRMSE_KEY].values[k, i] = _get_prmse_one_variable(
             target_matrix=vector_target_matrix[..., k],
             prediction_matrix=vector_prediction_matrix[..., k]
