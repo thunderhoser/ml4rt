@@ -620,17 +620,17 @@ def _plot_score_profile(
         this_score_matrix = t[score_key].values[:, k, :]
         heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
 
-        this_handle = evaluation_plotting.plot_score_profile(
-            heights_m_agl=heights_m_agl,
-            score_values=numpy.nanmean(this_score_matrix, axis=1),
-            score_name=score_name, line_colour=line_colours[i],
-            line_width=1, line_style=line_styles[i],
-            use_log_scale=use_log_scale, axes_object=axes_object,
-            are_axes_new=i == 0
-        )
-
-        legend_handles.append(this_handle)
-        legend_strings.append(set_descriptions_verbose[i])
+        # this_handle = evaluation_plotting.plot_score_profile(
+        #     heights_m_agl=heights_m_agl,
+        #     score_values=numpy.nanmean(this_score_matrix, axis=1),
+        #     score_name=score_name, line_colour=line_colours[i],
+        #     line_width=1, line_style=line_styles[i],
+        #     use_log_scale=use_log_scale, axes_object=axes_object,
+        #     are_axes_new=i == 0
+        # )
+        #
+        # legend_handles.append(this_handle)
+        # legend_strings.append(set_descriptions_verbose[i])
 
         num_bootstrap_reps = this_score_matrix.shape[1]
 
