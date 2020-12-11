@@ -22,9 +22,6 @@ import example_utils
 import evaluation
 import plot_evaluation
 
-# TODO(thunderhoser): Make confidence level input arg to script (once evaluation
-# files deal with bootstrapping).
-
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 MONTH_STRING = 'month'
@@ -89,6 +86,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_ALBEDO_BINS_ARG_NAME = 'num_albedo_bins'
+CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -98,6 +96,10 @@ INPUT_DIR_HELP_STRING = (
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
 NUM_ALBEDO_BINS_HELP_STRING = 'Number of bins for albedo.'
+CONFIDENCE_LEVEL_HELP_STRING = (
+    'Confidence level (from 0...1).  If you do not want to plot confidence '
+    'intervals, leave this alone.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -114,6 +116,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_ALBEDO_BINS_ARG_NAME, type=int, required=False, default=20,
     help=NUM_ALBEDO_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=-1,
+    help=CONFIDENCE_LEVEL_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -212,56 +218,9 @@ def _read_files_one_split(evaluation_file_names):
     return evaluation_tables_xarray
 
 
-def _confidence_interval_to_polygon(x_values, y_value_matrix, confidence_level):
-    """Turns confidence interval into polygon.
-
-    P = number of points
-    B = number of bootstrap replicates
-    V = number of vertices in resulting polygon = 2 * P + 1
-
-    :param x_values: length-P numpy array of x-values.
-    :param y_value_matrix: P-by-B numpy array of y-values.
-    :param confidence_level: Confidence level (in range 0...1).
-    :return: polygon_coord_matrix: V-by-2 numpy array of coordinates
-        (x-coordinates in first column, y-coords in second).
-    """
-
-    min_percentile = 50 * (1. - confidence_level)
-    max_percentile = 50 * (1. + confidence_level)
-
-    y_values_bottom = numpy.nanpercentile(
-        y_value_matrix, min_percentile, axis=1, interpolation='linear'
-    )
-    y_values_top = numpy.nanpercentile(
-        y_value_matrix, max_percentile, axis=1, interpolation='linear'
-    )
-
-    real_indices = numpy.where(
-        numpy.invert(numpy.isnan(y_values_bottom))
-    )[0]
-
-    if len(real_indices) == 0:
-        return None
-
-    real_x_values = x_values[real_indices]
-    real_y_values_bottom = y_values_bottom[real_indices]
-    real_y_values_top = y_values_top[real_indices]
-
-    x_vertices = numpy.concatenate((
-        real_x_values, real_x_values[::-1], real_x_values[[0]]
-    ))
-    y_vertices = numpy.concatenate((
-        real_y_values_top, real_y_values_bottom[::-1], real_y_values_top[[0]]
-    ))
-
-    return numpy.transpose(numpy.vstack((
-        x_vertices, y_vertices
-    )))
-
-
 def _plot_scores_with_units(
         mae_matrix, rmse_matrix, bias_matrix, target_matrices, plot_legend,
-        confidence_level=None):
+        confidence_level):
     """Plots scores with physical units, for one time split and one field.
 
     B = number of bootstrap replicates
@@ -274,8 +233,7 @@ def _plot_scores_with_units(
     :param target_matrices: length-T list of numpy arrays.  The [i]th array has
         length E_i, where E_i = number of examples for [i]th time chunk.
     :param plot_legend: Boolean flag.  If True, will plot legend above figure.
-    :param confidence_level: [used only if B > 1]
-        Level for confidence intervals (in range 0...1).
+    :param confidence_level: See documentation at top of file.
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -335,10 +293,11 @@ def _plot_scores_with_units(
     legend_strings.append('MAE')
 
     # Plot confidence interval for MAE.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=mae_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=mae_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(MAE_COLOUR, POLYGON_OPACITY)
@@ -359,10 +318,11 @@ def _plot_scores_with_units(
     legend_strings.append('RMSE')
 
     # Plot confidence interval for RMSE.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=rmse_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=rmse_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(RMSE_COLOUR, POLYGON_OPACITY)
@@ -383,10 +343,11 @@ def _plot_scores_with_units(
     legend_strings.append('Bias')
 
     # Plot confidence interval for bias.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=bias_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=bias_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(BIAS_COLOUR, POLYGON_OPACITY)
@@ -412,7 +373,7 @@ def _plot_scores_with_units(
 
 def _plot_unitless_scores(
         mae_skill_score_matrix, mse_skill_score_matrix, correlation_matrix,
-        kge_matrix, num_examples_array, plot_legend, confidence_level=None):
+        kge_matrix, num_examples_array, plot_legend, confidence_level):
     """Plots scores without physical units, for one time split and one field.
 
     B = number of bootstrap replicates
@@ -460,10 +421,11 @@ def _plot_unitless_scores(
     legend_strings = ['MAE skill score']
 
     # Plot confidence interval for MAE skill score.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=mae_skill_score_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=mae_skill_score_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(
@@ -486,10 +448,11 @@ def _plot_unitless_scores(
     legend_strings.append('MSE skill score')
 
     # Plot confidence interval for MSE skill score.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=mse_skill_score_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=mse_skill_score_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(
@@ -512,10 +475,11 @@ def _plot_unitless_scores(
     legend_strings.append('Correlation')
 
     # Plot confidence interval for correlation.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=correlation_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=correlation_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(
@@ -538,10 +502,11 @@ def _plot_unitless_scores(
     legend_strings.append('KGE')
 
     # Plot confidence interval for KGE.
-    if num_bootstrap_reps > 1:
-        polygon_coord_matrix = _confidence_interval_to_polygon(
-            x_values=x_values, y_value_matrix=kge_matrix,
-            confidence_level=confidence_level
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(x_values, axis=-1),
+            y_value_matrix=kge_matrix,
+            confidence_level=confidence_level, same_order=True
         )
 
         polygon_colour = matplotlib.colors.to_rgba(KGE_COLOUR, POLYGON_OPACITY)
@@ -608,10 +573,12 @@ def _check_split_type(split_type_string):
 
 
 def _plot_all_scores_one_split(
-        evaluation_dir_name, output_dir_name, split_type_string, num_bins=None):
+        evaluation_dir_name, confidence_level, output_dir_name,
+        split_type_string, num_bins=None):
     """Plots all scores for one time split.
 
     :param evaluation_dir_name: See documentation at top of file.
+    :param confidence_level: Same.
     :param output_dir_name: Same.
     :param split_type_string: Method used to split evaluation files (must be
         accepted by `_check_split_type`).
@@ -690,31 +657,31 @@ def _plot_all_scores_one_split(
 
     scalar_field_names = numpy.array(
         evaluation_tables_xarray[0].coords[evaluation.SCALAR_FIELD_DIM].values
-    ).tolist()
-    scalar_mae_matrix = numpy.vstack([
+    )
+    scalar_mae_matrix = numpy.stack([
         t[evaluation.SCALAR_MAE_KEY].values for t in evaluation_tables_xarray
-    ])
-    scalar_rmse_matrix = numpy.sqrt(numpy.vstack([
+    ], axis=0)
+    scalar_rmse_matrix = numpy.sqrt(numpy.stack([
         t[evaluation.SCALAR_MSE_KEY].values for t in evaluation_tables_xarray
-    ]))
-    scalar_bias_matrix = numpy.vstack([
+    ], axis=0))
+    scalar_bias_matrix = numpy.stack([
         t[evaluation.SCALAR_BIAS_KEY].values for t in evaluation_tables_xarray
-    ])
-    scalar_mae_skill_matrix = numpy.vstack([
+    ], axis=0)
+    scalar_mae_skill_matrix = numpy.stack([
         t[evaluation.SCALAR_MAE_SKILL_KEY].values
         for t in evaluation_tables_xarray
-    ])
-    scalar_mse_skill_matrix = numpy.vstack([
+    ], axis=0)
+    scalar_mse_skill_matrix = numpy.stack([
         t[evaluation.SCALAR_MSE_SKILL_KEY].values
         for t in evaluation_tables_xarray
-    ])
-    scalar_correlation_matrix = numpy.vstack([
+    ], axis=0)
+    scalar_correlation_matrix = numpy.stack([
         t[evaluation.SCALAR_CORRELATION_KEY].values
         for t in evaluation_tables_xarray
-    ])
-    scalar_kge_matrix = numpy.vstack([
+    ], axis=0)
+    scalar_kge_matrix = numpy.stack([
         t[evaluation.SCALAR_KGE_KEY].values for t in evaluation_tables_xarray
-    ])
+    ], axis=0)
     scalar_target_matrices = [
         t[SCALAR_TARGET_KEY].values for t in evaluation_tables_xarray
     ]
@@ -724,11 +691,11 @@ def _plot_all_scores_one_split(
 
     for k in range(len(scalar_field_names)):
         figure_object, axes_object = _plot_scores_with_units(
-            mae_matrix=scalar_mae_matrix[:, [k]],
-            rmse_matrix=scalar_rmse_matrix[:, [k]],
-            bias_matrix=scalar_bias_matrix[:, [k]],
+            mae_matrix=scalar_mae_matrix[:, k, :],
+            rmse_matrix=scalar_rmse_matrix[:, k, :],
+            bias_matrix=scalar_bias_matrix[:, k, :],
             target_matrices=[a[..., k] for a in scalar_target_matrices],
-            plot_legend=True
+            plot_legend=True, confidence_level=confidence_level
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
             TARGET_NAME_TO_VERBOSE[scalar_field_names[k]],
@@ -749,11 +716,12 @@ def _plot_all_scores_one_split(
         pyplot.close(figure_object)
 
         figure_object, axes_object = _plot_unitless_scores(
-            mae_skill_score_matrix=scalar_mae_skill_matrix[:, [k]],
-            mse_skill_score_matrix=scalar_mse_skill_matrix[:, [k]],
-            correlation_matrix=scalar_correlation_matrix[:, [k]],
-            kge_matrix=scalar_kge_matrix[:, [k]],
-            num_examples_array=num_examples_array, plot_legend=True
+            mae_skill_score_matrix=scalar_mae_skill_matrix[:, k, :],
+            mse_skill_score_matrix=scalar_mse_skill_matrix[:, k, :],
+            correlation_matrix=scalar_correlation_matrix[:, k, :],
+            kge_matrix=scalar_kge_matrix[:, k, :],
+            num_examples_array=num_examples_array, plot_legend=True,
+            confidence_level=confidence_level
         )
         axes_object.set_title('Scores for {0:s}'.format(
             TARGET_NAME_TO_VERBOSE[scalar_field_names[k]]
@@ -780,30 +748,30 @@ def _plot_all_scores_one_split(
                 evaluation.AUX_TARGET_FIELD_DIM
             ].values
         ).tolist()
-        aux_mae_matrix = numpy.vstack([
+        aux_mae_matrix = numpy.stack([
             t[evaluation.AUX_MAE_KEY].values for t in evaluation_tables_xarray
-        ])
-        aux_rmse_matrix = numpy.sqrt(numpy.vstack([
+        ], axis=0)
+        aux_rmse_matrix = numpy.sqrt(numpy.stack([
             t[evaluation.AUX_MSE_KEY].values for t in evaluation_tables_xarray
-        ]))
-        aux_bias_matrix = numpy.vstack([
+        ], axis=0))
+        aux_bias_matrix = numpy.stack([
             t[evaluation.AUX_BIAS_KEY].values for t in evaluation_tables_xarray
-        ])
-        aux_mae_skill_matrix = numpy.vstack([
+        ], axis=0)
+        aux_mae_skill_matrix = numpy.stack([
             t[evaluation.AUX_MAE_SKILL_KEY].values
             for t in evaluation_tables_xarray
-        ])
-        aux_mse_skill_matrix = numpy.vstack([
+        ], axis=0)
+        aux_mse_skill_matrix = numpy.stack([
             t[evaluation.AUX_MSE_SKILL_KEY].values
             for t in evaluation_tables_xarray
-        ])
-        aux_correlation_matrix = numpy.vstack([
+        ], axis=0)
+        aux_correlation_matrix = numpy.stack([
             t[evaluation.AUX_CORRELATION_KEY].values
             for t in evaluation_tables_xarray
-        ])
-        aux_kge_matrix = numpy.vstack([
+        ], axis=0)
+        aux_kge_matrix = numpy.stack([
             t[evaluation.AUX_KGE_KEY].values for t in evaluation_tables_xarray
-        ])
+        ], axis=0)
         aux_target_matrices = [
             t[AUX_TARGET_KEY].values for t in evaluation_tables_xarray
         ]
@@ -812,11 +780,11 @@ def _plot_all_scores_one_split(
 
     for k in range(len(aux_field_names)):
         figure_object, axes_object = _plot_scores_with_units(
-            mae_matrix=aux_mae_matrix[:, [k]],
-            rmse_matrix=aux_rmse_matrix[:, [k]],
-            bias_matrix=aux_bias_matrix[:, [k]],
+            mae_matrix=aux_mae_matrix[:, k, :],
+            rmse_matrix=aux_rmse_matrix[:, k, :],
+            bias_matrix=aux_bias_matrix[:, k, :],
             target_matrices=[a[..., k] for a in aux_target_matrices],
-            plot_legend=True
+            plot_legend=True, confidence_level=confidence_level
         )
         axes_object.set_title('Scores for {0:s} ({1:s})'.format(
             TARGET_NAME_TO_VERBOSE[aux_field_names[k]],
@@ -837,11 +805,12 @@ def _plot_all_scores_one_split(
         pyplot.close(figure_object)
 
         figure_object, axes_object = _plot_unitless_scores(
-            mae_skill_score_matrix=aux_mae_skill_matrix[:, [k]],
-            mse_skill_score_matrix=aux_mse_skill_matrix[:, [k]],
-            correlation_matrix=aux_correlation_matrix[:, [k]],
-            kge_matrix=aux_kge_matrix[:, [k]],
-            num_examples_array=num_examples_array, plot_legend=True
+            mae_skill_score_matrix=aux_mae_skill_matrix[:, k, :],
+            mse_skill_score_matrix=aux_mse_skill_matrix[:, k, :],
+            correlation_matrix=aux_correlation_matrix[:, k, :],
+            kge_matrix=aux_kge_matrix[:, k, :],
+            num_examples_array=num_examples_array, plot_legend=True,
+            confidence_level=confidence_level
         )
         axes_object.set_title('Scores for {0:s}'.format(
             TARGET_NAME_TO_VERBOSE[aux_field_names[k]]
@@ -864,7 +833,7 @@ def _plot_all_scores_one_split(
 
     vector_field_names = numpy.array(
         evaluation_tables_xarray[0].coords[evaluation.VECTOR_FIELD_DIM].values
-    ).tolist()
+    )
     heights_m_agl = numpy.round(
         evaluation_tables_xarray[0].coords[evaluation.HEIGHT_DIM].values
     ).astype(int)
@@ -900,11 +869,11 @@ def _plot_all_scores_one_split(
     for j in range(len(heights_m_agl)):
         for k in range(len(vector_field_names)):
             figure_object, axes_object = _plot_scores_with_units(
-                mae_matrix=vector_mae_matrix[:, j, [k]],
-                rmse_matrix=vector_rmse_matrix[:, j, [k]],
-                bias_matrix=vector_bias_matrix[:, j, [k]],
+                mae_matrix=vector_mae_matrix[:, j, k, :],
+                rmse_matrix=vector_rmse_matrix[:, j, k, :],
+                bias_matrix=vector_bias_matrix[:, j, k, :],
                 target_matrices=[a[..., j, k] for a in vector_target_matrices],
-                plot_legend=True
+                plot_legend=True, confidence_level=confidence_level
             )
 
             title_string = 'Scores for {0:s} ({1:s}) at {2:d} m AGL'.format(
@@ -932,11 +901,12 @@ def _plot_all_scores_one_split(
             pyplot.close(figure_object)
 
             figure_object, axes_object = _plot_unitless_scores(
-                mae_skill_score_matrix=vector_mae_skill_matrix[:, j, [k]],
-                mse_skill_score_matrix=vector_mse_skill_matrix[:, j, [k]],
-                correlation_matrix=vector_correlation_matrix[:, j, [k]],
-                kge_matrix=vector_kge_matrix[:, j, [k]],
-                num_examples_array=num_examples_array, plot_legend=True
+                mae_skill_score_matrix=vector_mae_skill_matrix[:, j, k, :],
+                mse_skill_score_matrix=vector_mse_skill_matrix[:, j, k, :],
+                correlation_matrix=vector_correlation_matrix[:, j, k, :],
+                kge_matrix=vector_kge_matrix[:, j, k, :],
+                num_examples_array=num_examples_array, plot_legend=True,
+                confidence_level=confidence_level
             )
             axes_object.set_title('Scores for {0:s} at {1:d} m AGL'.format(
                 TARGET_NAME_TO_VERBOSE[vector_field_names[k]], heights_m_agl[j]
@@ -960,7 +930,7 @@ def _plot_all_scores_one_split(
 
 
 def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
-         top_output_dir_name):
+         confidence_level, top_output_dir_name):
     """Plots evaluation scores by time of day and year.
 
     This is effectively the main method.
@@ -968,6 +938,7 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
     :param evaluation_dir_name: See documentation at top of file.
     :param num_zenith_angle_bins: Same.
     :param num_albedo_bins: Same.
+    :param confidence_level: Same.
     :param top_output_dir_name: Same.
     """
 
@@ -976,20 +947,22 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
         output_dir_name='{0:s}/by_month'.format(top_output_dir_name),
-        split_type_string=MONTH_STRING
+        split_type_string=MONTH_STRING, confidence_level=confidence_level
     )
     print(SEPARATOR_STRING)
 
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
         output_dir_name='{0:s}/by_zenith_angle'.format(top_output_dir_name),
-        split_type_string=ZENITH_ANGLE_STRING, num_bins=num_zenith_angle_bins
+        split_type_string=ZENITH_ANGLE_STRING, num_bins=num_zenith_angle_bins,
+        confidence_level=confidence_level
     )
 
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
         output_dir_name='{0:s}/by_albedo'.format(top_output_dir_name),
-        split_type_string=ALBEDO_STRING, num_bins=num_albedo_bins
+        split_type_string=ALBEDO_STRING, num_bins=num_albedo_bins,
+        confidence_level=confidence_level
     )
 
 
@@ -1002,5 +975,6 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
         num_albedo_bins=getattr(INPUT_ARG_OBJECT, NUM_ALBEDO_BINS_ARG_NAME),
+        confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         top_output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
