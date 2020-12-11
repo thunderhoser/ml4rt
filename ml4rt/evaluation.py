@@ -496,6 +496,7 @@ def _get_scores_one_replicate(
         )[:2]
 
         if i == 0:
+            print('\n\n\n\nGETTING PREDICTION HISTOGRAM FOR SCALAR TARGET\n\n\n\n')
             (
                 t[SCALAR_RELIA_BIN_CENTER_KEY].values[k, :], _,
                 t[SCALAR_RELIABILITY_COUNT_KEY].values[k, :]
@@ -514,6 +515,7 @@ def _get_scores_one_replicate(
             )
 
         if i == 0:
+            print('\n\n\n\nGETTING OBS HISTOGRAM FOR SCALAR TARGET\n\n\n\n')
             (
                 t[SCALAR_INV_RELIA_BIN_CENTER_KEY].values[k, :], _,
                 t[SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, :]
@@ -593,6 +595,8 @@ def _get_scores_one_replicate(
             )[:2]
 
             if i == 0:
+                print('\n\n\n\nGETTING PREDICTION HISTOGRAM FOR VECTOR TARGET\n\n\n\n')
+
                 (
                     t[VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, :], _,
                     t[VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :]
@@ -611,6 +615,8 @@ def _get_scores_one_replicate(
                 )
 
             if i == 0:
+                print('\n\n\n\nGETTING OBS HISTOGRAM FOR VECTOR TARGET\n\n\n\n')
+
                 (
                     t[VECTOR_INV_RELIA_BIN_CENTER_KEY].values[j, k, :], _,
                     t[VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, :]
@@ -687,6 +693,8 @@ def _get_scores_one_replicate(
         )[:2]
 
         if i == 0:
+            print('\n\n\n\nGETTING PREDICTION HISTOGRAM FOR AUX TARGET\n\n\n\n')
+
             (
                 t[AUX_RELIA_BIN_CENTER_KEY].values[k, :], _,
                 t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :]
@@ -709,6 +717,8 @@ def _get_scores_one_replicate(
             )
 
         if i == 0:
+            print('\n\n\n\nGETTING OBS HISTOGRAM FOR AUX TARGET\n\n\n\n')
+
             (
                 t[AUX_INV_RELIA_BIN_CENTER_KEY].values[k, :], _,
                 t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :]
