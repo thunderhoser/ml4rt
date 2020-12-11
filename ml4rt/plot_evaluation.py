@@ -396,6 +396,7 @@ def _plot_attributes_diagram(
             for t, j, k in
             zip(evaluation_tables_xarray, height_indices, target_indices)
         ]
+        print(evaluation_tables_xarray[0][evaluation.VECTOR_RELIABILITY_COUNT_KEY].values)
         example_counts_by_set = [
             t[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, ...]
             for t, j, k in
