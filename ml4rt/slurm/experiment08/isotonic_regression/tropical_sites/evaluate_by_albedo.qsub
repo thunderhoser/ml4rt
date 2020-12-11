@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="evaluate_by_site"
+#SBATCH --job-name="evaluate_by_albedo"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -9,12 +9,12 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=24G
 #SBATCH --time=30:00:00
-#SBATCH --array=1
+#SBATCH --array=1-20
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=evaluate_by_site_%A_%a.out
+#SBATCH --output=evaluate_by_time_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -23,13 +23,15 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08"
 
-set DENSE_LAYER_COUNTS=(3)
-set DENSE_LAYER_DROPOUT_RATES=(0.000)
-set L2_WEIGHTS=(0.0000031623)
+set DENSE_LAYER_COUNTS=(3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3)
+set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000)
+set L2_WEIGHTS=(0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623)
+set ALBEDO_BIN_STRINGS=("000" "001" "002" "003" "004" "005" "006" "007" "008" "009" "010" "011" "012" "013" "014" "015" "016" "017" "018" "019")
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+set albedo_bin_string=${ALBEDO_BIN_STRINGS[$SLURM_ARRAY_TASK_ID]}
 
 set dense_layer_count_string=`printf "%d" $dense_layer_count`
 set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
@@ -41,17 +43,9 @@ set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
-set testing_dir_name="${model_dir_name}/isotonic_regression/testing_tropical_sites"
-set prediction_file_names=("${testing_dir_name}/by_site/hilo_hi/predictions.nc" "${testing_dir_name}/by_site/honolulu_hi/predictions.nc" "${testing_dir_name}/by_site/guantanamo_bay/predictions.nc" "${testing_dir_name}/by_site/san_juan_pr/predictions.nc" "${testing_dir_name}/by_site/rohlsen_us_virgin_islands/predictions.nc" "${testing_dir_name}/by_site/bishop_grenada/predictions.nc" "${testing_dir_name}/by_site/perdido_oil_rig/predictions.nc")
-set prediction_dir_names=("${testing_dir_name}/by_site/hilo_hi" "${testing_dir_name}/by_site/honolulu_hi" "${testing_dir_name}/by_site/guantanamo_bay" "${testing_dir_name}/by_site/san_juan_pr" "${testing_dir_name}/by_site/rohlsen_us_virgin_islands" "${testing_dir_name}/by_site/bishop_grenada" "${testing_dir_name}/by_site/perdido_oil_rig")
+set prediction_dir_name="${model_dir_name}/isotonic_regression/testing_tropical_sites/by_time"
 
-set i=1
-
-while ($i <= ${#prediction_file_names})
-    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
-    --input_prediction_file_name="${prediction_file_names[$i]}" \
-    --num_bootstrap_reps=1000 \
-    --output_dir_name="${prediction_dir_names[$i]}"
-
-    @ i = $i + 1
-end
+python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+--input_prediction_file_name="${prediction_dir_name}/predictions_albedo-bin=${albedo_bin_string}.nc" \
+--num_bootstrap_reps=1000 \
+--output_dir_name="${prediction_dir_name}"
