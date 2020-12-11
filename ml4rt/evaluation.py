@@ -740,9 +740,14 @@ def confidence_interval_to_polygon(
     """
 
     error_checking.assert_is_numpy_array(x_value_matrix, num_dimensions=2)
+    error_checking.assert_is_numpy_array(y_value_matrix, num_dimensions=2)
+
+    expected_dim = numpy.array([
+        x_value_matrix.shape[0], y_value_matrix.shape[1]
+    ], dtype=int)
+
     error_checking.assert_is_numpy_array(
-        y_value_matrix,
-        exact_dimensions=numpy.array(x_value_matrix.shape, dtype=int)
+        y_value_matrix, exact_dimensions=expected_dim
     )
 
     error_checking.assert_is_geq(confidence_level, 0.9)
