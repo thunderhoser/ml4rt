@@ -43,14 +43,14 @@ set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set testing_dir_name="${model_dir_name}/testing_assorted2_sites"
 
-set evaluation_file_names=("${testing_dir_name}/by_site/hilo_hi/evaluation.nc" "${testing_dir_name}/by_site/honolulu_hi/evaluation.nc" "${testing_dir_name}/by_site/guantanamo_bay/evaluation.nc" "${testing_dir_name}/by_site/san_juan_pr/evaluation.nc" "${testing_dir_name}/by_site/rohlsen_us_virgin_islands/evaluation.nc" "${testing_dir_name}/by_site/bishop_grenada/evaluation.nc" "${testing_dir_name}/by_site/perdido_oil_rig/evaluation.nc")
+set evaluation_file_names=("${testing_dir_name}/by_site/yopp_arctic_ocean_site2/evaluation.nc" "${testing_dir_name}/by_site/tiksi_russia_ocean/evaluation.nc" "${testing_dir_name}/by_site/azores_arm_site/evaluation.nc" "${testing_dir_name}/by_site/lamont_ok/evaluation.nc" "${testing_dir_name}/by_site/perdido_oil_rig/evaluation.nc" "${testing_dir_name}/by_site/bishop_grenada/evaluation.nc")
 set evaluation_dir_name="${testing_dir_name}/by_site"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" "${evaluation_file_names[4]}" "${evaluation_file_names[5]}" "${evaluation_file_names[6]}" "${evaluation_file_names[7]}" \
---line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
---line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---set_descriptions "Hilo_HI" "Honolulu_HI" "Guantanamo_Bay" "San_Juan_PR" "Rohlsen_USVI" "Bishop,_Grenada" "Perdido_oil_rig" \
+--input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" "${evaluation_file_names[4]}" "${evaluation_file_names[5]}" "${evaluation_file_names[6]}" \
+--line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" \
+--set_descriptions "North_pole" "Tiksi,_Russia" "Azores" "Lamont_OK" "Perdido_oil_rig" "Bishop,_Grenada" \
 --confidence_level=0.99 \
 --use_log_scale=1 \
 --plot_by_height=1 \
