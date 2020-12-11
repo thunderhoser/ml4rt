@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
 #SBATCH --time=24:00:00
-#SBATCH --array=1-3
+#SBATCH --array=1-69
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -23,13 +23,15 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08"
 
-set DENSE_LAYER_COUNTS=(2 3 3)
-set DENSE_LAYER_DROPOUT_RATES=(0.100 0.000 0.000)
-set L2_WEIGHTS=(0.0000001000 0.0000031623 0.0000003162)
+set DENSE_LAYER_COUNTS=(2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3 2 3 3)
+set DENSE_LAYER_DROPOUT_RATES=(0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000 0.100 0.000 0.000)
+set L2_WEIGHTS=(0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162 0.0000001000 0.0000031623 0.0000003162)
+set SITE_NAMES=("juelich_germany" "juelich_germany" "juelich_germany" "santa_barbara_ca" "santa_barbara_ca" "santa_barbara_ca" "bodega_bay_ca" "bodega_bay_ca" "bodega_bay_ca" "forks_wa" "forks_wa" "forks_wa" "owego_ny" "owego_ny" "owego_ny" "tupper_lake_ny" "tupper_lake_ny" "tupper_lake_ny" "belle_mina_al" "belle_mina_al" "belle_mina_al" "ny_alesund_norway_land" "ny_alesund_norway_land" "ny_alesund_norway_land" "eureka_nu_ocean" "eureka_nu_ocean" "eureka_nu_ocean" "barrow_ak_ocean" "barrow_ak_ocean" "barrow_ak_ocean" "lamont_ok" "lamont_ok" "lamont_ok" "azores_arm_site" "azores_arm_site" "azores_arm_site" "villum_greenland_land" "villum_greenland_land" "villum_greenland_land" "alert_nu_land" "alert_nu_land" "alert_nu_land" "pallas_sodankyla_russia_land" "pallas_sodankyla_russia_land" "pallas_sodankyla_russia_land" "lindenberg_germany" "lindenberg_germany" "lindenberg_germany" "yopp_arctic_ocean_site1" "yopp_arctic_ocean_site1" "yopp_arctic_ocean_site1" "yopp_arctic_ocean_site2" "yopp_arctic_ocean_site2" "yopp_arctic_ocean_site2" "yopp_arctic_ocean_site3" "yopp_arctic_ocean_site3" "yopp_arctic_ocean_site3" "sheba" "sheba" "sheba" "cherskii_russia_ocean" "cherskii_russia_ocean" "cherskii_russia_ocean" "tiksi_russia_ocean" "tiksi_russia_ocean" "tiksi_russia_ocean" "fino3_tower_north_sea" "fino3_tower_north_sea" "fino3_tower_north_sea")
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+set site_name=${SITE_NAMES[$SLURM_ARRAY_TASK_ID]}
 
 set dense_layer_count_string=`printf "%d" $dense_layer_count`
 set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
@@ -42,16 +44,10 @@ set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set validation_dir_name="${model_dir_name}/validation"
-set prediction_file_names=("${validation_dir_name}/by_site/juelich_germany/predictions.nc" "${validation_dir_name}/by_site/santa_barbara_ca/predictions.nc" "${validation_dir_name}/by_site/bodega_bay_ca/predictions.nc" "${validation_dir_name}/by_site/forks_wa/predictions.nc" "${validation_dir_name}/by_site/owego_ny/predictions.nc" "${validation_dir_name}/by_site/tupper_lake_ny/predictions.nc" "${validation_dir_name}/by_site/belle_mina_al/predictions.nc" "${validation_dir_name}/by_site/ny_alesund_norway_land/predictions.nc" "${validation_dir_name}/by_site/eureka_nu_ocean/predictions.nc" "${validation_dir_name}/by_site/barrow_ak_ocean/predictions.nc" "${validation_dir_name}/by_site/lamont_ok/predictions.nc" "${validation_dir_name}/by_site/azores_arm_site/predictions.nc" "${validation_dir_name}/by_site/villum_greenland_land/predictions.nc" "${validation_dir_name}/by_site/alert_nu_land/predictions.nc" "${validation_dir_name}/by_site/pallas_sodankyla_russia_land/predictions.nc" "${validation_dir_name}/by_site/lindenberg_germany/predictions.nc" "${validation_dir_name}/by_site/yopp_arctic_ocean_site1/predictions.nc" "${validation_dir_name}/by_site/yopp_arctic_ocean_site2/predictions.nc" "${validation_dir_name}/by_site/yopp_arctic_ocean_site3/predictions.nc" "${validation_dir_name}/by_site/sheba/predictions.nc" "${validation_dir_name}/by_site/cherskii_russia_ocean/predictions.nc" "${validation_dir_name}/by_site/tiksi_russia_ocean/predictions.nc" "${validation_dir_name}/by_site/fino3_tower_north_sea/predictions.nc")
-set prediction_dir_names=("${validation_dir_name}/by_site/juelich_germany" "${validation_dir_name}/by_site/santa_barbara_ca" "${validation_dir_name}/by_site/bodega_bay_ca" "${validation_dir_name}/by_site/forks_wa" "${validation_dir_name}/by_site/owego_ny" "${validation_dir_name}/by_site/tupper_lake_ny" "${validation_dir_name}/by_site/belle_mina_al" "${validation_dir_name}/by_site/ny_alesund_norway_land" "${validation_dir_name}/by_site/eureka_nu_ocean" "${validation_dir_name}/by_site/barrow_ak_ocean" "${validation_dir_name}/by_site/lamont_ok" "${validation_dir_name}/by_site/azores_arm_site" "${validation_dir_name}/by_site/villum_greenland_land" "${validation_dir_name}/by_site/alert_nu_land" "${validation_dir_name}/by_site/pallas_sodankyla_russia_land" "${validation_dir_name}/by_site/lindenberg_germany" "${validation_dir_name}/by_site/yopp_arctic_ocean_site1" "${validation_dir_name}/by_site/yopp_arctic_ocean_site2" "${validation_dir_name}/by_site/yopp_arctic_ocean_site3" "${validation_dir_name}/by_site/sheba" "${validation_dir_name}/by_site/cherskii_russia_ocean" "${validation_dir_name}/by_site/tiksi_russia_ocean" "${validation_dir_name}/by_site/fino3_tower_north_sea")
+set prediction_file_name="${validation_dir_name}/by_site/${site_name}/predictions.nc"
+set evaluation_dir_name="${validation_dir_name}/by_site/${site_name}"
 
-set i=1
-
-while ($i <= ${#prediction_file_names})
-    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
-    --input_prediction_file_name="${prediction_file_names[$i]}" \
-    --num_bootstrap_reps=100 \
-    --output_dir_name="${prediction_dir_names[$i]}"
-
-    @ i = $i + 1
-end
+python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+--input_prediction_file_name="${prediction_file_name}" \
+--num_bootstrap_reps=100 \
+--output_dir_name="${evaluation_dir_name}"

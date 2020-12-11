@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
 #SBATCH --time=24:00:00
-#SBATCH --array=1-3
+#SBATCH --array=1-9
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -23,13 +23,17 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08"
 
-set DENSE_LAYER_COUNTS=(3 2 3)
-set DENSE_LAYER_DROPOUT_RATES=(0.100 0.100 0.000)
-set L2_WEIGHTS=(0.0000003162 0.0000010000 0.0000003162)
+set DENSE_LAYER_COUNTS=(3 2 3 3 2 3 3 2 3)
+set DENSE_LAYER_DROPOUT_RATES=(0.100 0.100 0.000 0.100 0.100 0.000 0.100 0.100 0.000)
+set L2_WEIGHTS=(0.0000003162 0.0000010000 0.0000003162 0.0000003162 0.0000010000 0.0000003162 0.0000003162 0.0000010000 0.0000003162)
+set REGIME_STRINGS_DASHED=("no-cloud" "no-cloud" "no-cloud" "single-layer-cloud" "single-layer-cloud" "single-layer-cloud" "multi-layer-cloud" "multi-layer-cloud" "multi-layer-cloud")
+set REGIME_STRINGS_UNDERSCORED=("no_cloud" "no_cloud" "no_cloud" "single_layer_cloud" "single_layer_cloud" "single_layer_cloud" "multi_layer_cloud" "multi_layer_cloud" "multi_layer_cloud")
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+set regime_string_dashed=${REGIME_STRINGS_DASHED[$SLURM_ARRAY_TASK_ID]}
+set regime_string_underscored=${REGIME_STRINGS_UNDERSCORED[$SLURM_ARRAY_TASK_ID]}
 
 set dense_layer_count_string=`printf "%d" $dense_layer_count`
 set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
@@ -42,16 +46,10 @@ set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set validation_dir_name="${model_dir_name}/isotonic_regression/validation"
-set prediction_file_names=("${validation_dir_name}/by_cloud_regime/predictions_no-cloud.nc" "${validation_dir_name}/by_cloud_regime/predictions_single-layer-cloud.nc" "${validation_dir_name}/by_cloud_regime/predictions_multi-layer-cloud.nc")
-set prediction_dir_names=("${validation_dir_name}/by_cloud_regime/no_cloud" "${validation_dir_name}/by_cloud_regime/single_layer_cloud" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud")
+set prediction_file_name="${validation_dir_name}/by_cloud_regime/predictions_${regime_string_dashed}.nc"
+set evaluation_dir_name="${validation_dir_name}/by_cloud_regime/${regime_string_underscored}"
 
-set i=1
-
-while ($i <= ${#prediction_file_names})
-    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
-    --input_prediction_file_name="${prediction_file_names[$i]}" \
-    --num_bootstrap_reps=100 \
-    --output_dir_name="${prediction_dir_names[$i]}"
-
-    @ i = $i + 1
-end
+python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+--input_prediction_file_name="${prediction_file_name}" \
+--num_bootstrap_reps=100 \
+--output_dir_name="${evaluation_dir_name}"
