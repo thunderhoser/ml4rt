@@ -30,6 +30,7 @@ import evaluation_plotting
 # evaluation_plotting.py.
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+METRES_TO_KM = 0.001
 
 SCORE_NAME_TO_VERBOSE = {
     evaluation_plotting.MSE_NAME: 'Mean squared error',
@@ -620,17 +621,17 @@ def _plot_score_profile(
         this_score_matrix = t[score_key].values[:, k, :]
         heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
 
-        # this_handle = evaluation_plotting.plot_score_profile(
-        #     heights_m_agl=heights_m_agl,
-        #     score_values=numpy.nanmean(this_score_matrix, axis=1),
-        #     score_name=score_name, line_colour=line_colours[i],
-        #     line_width=1, line_style=line_styles[i],
-        #     use_log_scale=use_log_scale, axes_object=axes_object,
-        #     are_axes_new=i == 0
-        # )
-        #
-        # legend_handles.append(this_handle)
-        # legend_strings.append(set_descriptions_verbose[i])
+        this_handle = evaluation_plotting.plot_score_profile(
+            heights_m_agl=heights_m_agl,
+            score_values=numpy.nanmean(this_score_matrix, axis=1),
+            score_name=score_name, line_colour=line_colours[i],
+            line_width=4, line_style=line_styles[i],
+            use_log_scale=use_log_scale, axes_object=axes_object,
+            are_axes_new=i == 0
+        )
+
+        legend_handles.append(this_handle)
+        legend_strings.append(set_descriptions_verbose[i])
 
         num_bootstrap_reps = this_score_matrix.shape[1]
 
@@ -642,16 +643,15 @@ def _plot_score_profile(
             )
 
             polygon_coord_matrix = numpy.fliplr(polygon_coord_matrix)
-            polygon_coord_matrix[:, 1] = polygon_coord_matrix[:, 1] / 1000
-            print('\n\n\n\n')
-            print(polygon_coord_matrix)
-            print('\n\n\n\n')
+            polygon_coord_matrix[:, 1] = (
+                polygon_coord_matrix[:, 1] * METRES_TO_KM
+            )
 
             polygon_colour = matplotlib.colors.to_rgba(
                 line_colours[i], POLYGON_OPACITY
             )
             patch_object = matplotlib.patches.Polygon(
-                polygon_coord_matrix, lw=0, ec='b', fc='b'
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
             )
             axes_object.add_patch(patch_object)
 
