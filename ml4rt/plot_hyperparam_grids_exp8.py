@@ -348,8 +348,9 @@ def _run(experiment_dir_name, isotonic_flag):
     y_axis_label = 'Dense-layer dropout rate'
     x_axis_label = 'L2 weight'
 
-    score_file_name = '{0:s}/scores_on_hyperparam_grid.p'.format(
-        experiment_dir_name
+    score_file_name = '{0:s}/{1:s}scores_on_hyperparam_grid.p'.format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
     )
 
     if os.path.isfile(score_file_name):
