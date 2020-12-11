@@ -1,0 +1,62 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_eval_by_dense_count"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=02:00:00
+#SBATCH --array=1-54
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_eval_by_dense_count_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
+
+set DENSE_LAYER_DROPOUT_RATES=(0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500 0.000 0.100 0.200 0.300 0.400 0.500)
+set L2_WEIGHTS=(0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000003162 0.0000003162 0.0000003162 0.0000003162 0.0000003162 0.0000003162 0.0000010000 0.0000010000 0.0000010000 0.0000010000 0.0000010000 0.0000010000 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000100000 0.0000100000 0.0000100000 0.0000100000 0.0000100000 0.0000100000 0.0000316228 0.0000316228 0.0000316228 0.0000316228 0.0000316228 0.0000316228 0.0001000000 0.0001000000 0.0001000000 0.0001000000 0.0001000000 0.0001000000 0.0003162278 0.0003162278 0.0003162278 0.0003162278 0.0003162278 0.0003162278 0.0010000000 0.0010000000 0.0010000000 0.0010000000 0.0010000000 0.0010000000)
+
+set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+
+set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
+set l2_weight_string=`printf "%.10f" $l2_weight`
+
+set dense_layer_count_strings=("2" "3" "4" "5")
+set line_styles_string="solid solid solid solid"
+set line_colours_string="27_158_119 217_95_2 117_112_179 0_0_0"
+set line_legends_string="2_dense_layers 3_dense_layers 4_dense_layers 5_dense_layers"
+
+set evaluation_file_names_string=""
+set i=1
+
+while ($i <= ${#dense_layer_count_strings})
+    set this_directory_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_strings[$i]}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}"
+    set these_model_file_names={${this_directory_name}/model*.h5}
+    set this_model_file_name=${these_model_file_names[$#these_model_file_names]}
+    set this_model_dir_name=`echo $this_model_file_name | rev | cut -c 4- | rev`
+    set evaluation_file_names_string="${evaluation_file_names_string} ${this_model_dir_name}/validation/evaluation.nc"
+    
+    @ i = $i + 1
+end
+
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names ${evaluation_file_names_string} \
+--line_styles ${line_styles_string} \
+--line_colours ${line_colours_string} \
+--set_descriptions ${line_legends_string} \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${evaluation_dir_name}"

@@ -50,6 +50,7 @@ set i=1
 while ($i <= ${#prediction_file_names})
     python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
     --input_prediction_file_name="${prediction_file_names[$i]}" \
+    --num_bootstrap_reps=100 \
     --output_dir_name="${prediction_dir_names[$i]}"
 
     @ i = $i + 1
