@@ -184,61 +184,6 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _confidence_interval_to_polygon(x_value_matrix, y_value_matrix,
-                                    confidence_level):
-    """Turns confidence interval into polygon.
-
-    P = number of points
-    B = number of bootstrap replicates
-    V = number of vertices in resulting polygon = 2 * P + 1
-
-    :param x_value_matrix: P-by-B numpy array of x-values.
-    :param y_value_matrix: P-by-B numpy array of y-values.
-    :param confidence_level: Confidence level (in range 0...1).
-    :return: polygon_coord_matrix: V-by-2 numpy array of coordinates
-        (x-coordinates in first column, y-coords in second).
-    """
-
-    min_percentile = 50 * (1. - confidence_level)
-    max_percentile = 50 * (1. + confidence_level)
-
-    x_values_bottom = numpy.nanpercentile(
-        x_value_matrix, min_percentile, axis=1, interpolation='linear'
-    )
-    x_values_top = numpy.nanpercentile(
-        x_value_matrix, max_percentile, axis=1, interpolation='linear'
-    )
-    y_values_bottom = numpy.nanpercentile(
-        y_value_matrix, min_percentile, axis=1, interpolation='linear'
-    )
-    y_values_top = numpy.nanpercentile(
-        y_value_matrix, max_percentile, axis=1, interpolation='linear'
-    )
-
-    real_indices = numpy.where(numpy.invert(numpy.logical_or(
-        numpy.isnan(x_values_bottom), numpy.isnan(y_values_bottom)
-    )))[0]
-
-    if len(real_indices) == 0:
-        return None
-
-    x_values_bottom = x_values_bottom[real_indices]
-    x_values_top = x_values_top[real_indices]
-    y_values_bottom = y_values_bottom[real_indices]
-    y_values_top = y_values_top[real_indices]
-
-    x_vertices = numpy.concatenate((
-        x_values_top, x_values_bottom[::-1], x_values_top[[0]]
-    ))
-    y_vertices = numpy.concatenate((
-        y_values_top, y_values_bottom[::-1], y_values_top[[0]]
-    ))
-
-    return numpy.transpose(numpy.vstack((
-        x_vertices, y_vertices
-    )))
-
-
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
@@ -464,13 +409,11 @@ def _plot_attributes_diagram(
         num_bootstrap_reps = mean_predictions_by_set[main_index].shape[1]
 
         if num_bootstrap_reps > 1 and confidence_level is not None:
-            polygon_coord_matrix = _confidence_interval_to_polygon(
+            polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
                 x_value_matrix=mean_predictions_by_set[main_index],
                 y_value_matrix=mean_observations_by_set[main_index],
-                confidence_level=confidence_level
+                confidence_level=confidence_level, same_order=False
             )
-
-            polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
 
             polygon_colour = matplotlib.colors.to_rgba(
                 line_colours[main_index], POLYGON_OPACITY
@@ -534,13 +477,13 @@ def _plot_attributes_diagram(
             num_bootstrap_reps = mean_predictions_by_set[i].shape[1]
 
             if num_bootstrap_reps > 1 and confidence_level is not None:
-                polygon_coord_matrix = _confidence_interval_to_polygon(
-                    x_value_matrix=mean_predictions_by_set[i],
-                    y_value_matrix=mean_observations_by_set[i],
-                    confidence_level=confidence_level
+                polygon_coord_matrix = (
+                    evaluation.confidence_interval_to_polygon(
+                        x_value_matrix=mean_predictions_by_set[i],
+                        y_value_matrix=mean_observations_by_set[i],
+                        confidence_level=confidence_level, same_order=False
+                    )
                 )
-
-                polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
 
                 polygon_colour = matplotlib.colors.to_rgba(
                     line_colours[i], POLYGON_OPACITY
@@ -636,10 +579,10 @@ def _plot_score_profile(
         num_bootstrap_reps = this_score_matrix.shape[1]
 
         if num_bootstrap_reps > 1 and confidence_level is not None:
-            polygon_coord_matrix = _confidence_interval_to_polygon(
+            polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
                 x_value_matrix=numpy.expand_dims(heights_m_agl, axis=-1),
                 y_value_matrix=this_score_matrix,
-                confidence_level=confidence_level
+                confidence_level=confidence_level, same_order=True
             )
 
             polygon_coord_matrix = numpy.fliplr(polygon_coord_matrix)
