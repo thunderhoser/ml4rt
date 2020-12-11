@@ -46,7 +46,7 @@ set evaluation_dir_name="${model_dir_name}/validation/by_site/evaluation_high_ar
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}/eval_by_site"
 
 python3 -u "${CODE_DIR_NAME}/make_by_site_eval_figure.py" \
---input_evaluation_dir_name="${EVALUATION_DIR_NAME}" \
+--input_evaluation_dir_name="${evaluation_dir_name}" \
 --site_names_for_reliability "villum-gl" "yopp1" "yopp3" \
 --site_name_for_histogram="villum-gl" \
---output_dir_name="${OUTPUT_DIR_NAME}"
+--output_dir_name="${output_dir_name}"
