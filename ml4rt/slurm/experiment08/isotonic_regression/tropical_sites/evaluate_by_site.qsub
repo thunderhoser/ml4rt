@@ -24,8 +24,8 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08"
 
 set DENSE_LAYER_COUNTS=(3 3 3 3 3 3 3)
-set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.000 0.000 0.000 0.000)
-set L2_WEIGHTS=(0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623 0.0000031623)
+set DENSE_LAYER_DROPOUT_RATES=(0.100 0.100 0.100 0.100 0.100 0.100 0.100)
+set L2_WEIGHTS=(0.1000003162 0.1000003162 0.1000003162 0.1000003162 0.1000003162 0.1000003162 0.1000003162)
 set SITE_NAMES=("hilo_hi" "honolulu_hi" "guantanamo_bay" "san_juan_pr" "rohlsen_us_virgin_islands" "bishop_grenada" "perdido_oil_rig")
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
