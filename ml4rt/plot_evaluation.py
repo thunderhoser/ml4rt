@@ -642,6 +642,9 @@ def _plot_score_profile(
             )
 
             polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
+            print('\n\n\n\n')
+            print(polygon_coord_matrix)
+            print('\n\n\n\n')
 
             polygon_colour = matplotlib.colors.to_rgba(
                 line_colours[i], POLYGON_OPACITY
