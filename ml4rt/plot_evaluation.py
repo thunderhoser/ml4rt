@@ -642,6 +642,7 @@ def _plot_score_profile(
             )
 
             polygon_coord_matrix = numpy.fliplr(polygon_coord_matrix)
+            polygon_coord_matrix[:, 1] = polygon_coord_matrix[:, 1] / 1000
             print('\n\n\n\n')
             print(polygon_coord_matrix)
             print('\n\n\n\n')
@@ -650,7 +651,7 @@ def _plot_score_profile(
                 line_colours[i], POLYGON_OPACITY
             )
             patch_object = matplotlib.patches.Polygon(
-                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+                polygon_coord_matrix, lw=0, ec='b', fc='b'
             )
             axes_object.add_patch(patch_object)
 
