@@ -175,26 +175,26 @@ def _read_scores_one_model(model_dir_name, isotonic_flag):
         evaluation.AUX_TARGET_FIELD_DIM
     ].values.tolist()
 
-    prmse_k_day01 = (
-        evaluation_table_xarray[evaluation.VECTOR_PRMSE_KEY].values[0]
+    prmse_k_day01 = numpy.nanmean(
+        evaluation_table_xarray[evaluation.VECTOR_PRMSE_KEY].values[0, :]
     )
 
     j = scalar_target_names.index(
         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    down_flux_rmse_w_m02 = numpy.sqrt(
-        evaluation_table_xarray[evaluation.SCALAR_MSE_KEY].values[j]
-    )
+    down_flux_rmse_w_m02 = numpy.nanmean(numpy.sqrt(
+        evaluation_table_xarray[evaluation.SCALAR_MSE_KEY].values[j, :]
+    ))
 
     j = scalar_target_names.index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
-    up_flux_rmse_w_m02 = numpy.sqrt(
-        evaluation_table_xarray[evaluation.SCALAR_MSE_KEY].values[j]
-    )
+    up_flux_rmse_w_m02 = numpy.nanmean(numpy.sqrt(
+        evaluation_table_xarray[evaluation.SCALAR_MSE_KEY].values[j, :]
+    ))
 
     j = aux_target_names.index(evaluation.NET_FLUX_NAME)
-    net_flux_rmse_w_m02 = numpy.sqrt(
-        evaluation_table_xarray[evaluation.AUX_MSE_KEY].values[j]
-    )
+    net_flux_rmse_w_m02 = numpy.nanmean(numpy.sqrt(
+        evaluation_table_xarray[evaluation.AUX_MSE_KEY].values[j, :]
+    ))
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
