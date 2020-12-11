@@ -46,7 +46,7 @@ set validation_dir_name="${model_dir_name}/validation"
 set conus_eval_file_names=("${validation_dir_name}/by_site/santa_barbara_ca/evaluation.nc" "${validation_dir_name}/by_site/bodega_bay_ca/evaluation.nc" "${validation_dir_name}/by_site/forks_wa/evaluation.nc" "${validation_dir_name}/by_site/owego_ny/evaluation.nc" "${validation_dir_name}/by_site/tupper_lake_ny/evaluation.nc" "${validation_dir_name}/by_site/belle_mina_al/evaluation.nc" "${validation_dir_name}/by_site/lamont_ok/evaluation.nc")
 set ocean_eval_file_names=("${validation_dir_name}/by_site/barrow_ak_ocean/evaluation.nc" "${validation_dir_name}/by_site/cherskii_russia_ocean/evaluation.nc" "${validation_dir_name}/by_site/tiksi_russia_ocean/evaluation.nc" "${validation_dir_name}/by_site/fino3_tower_north_sea/evaluation.nc" "${validation_dir_name}/by_site/azores_arm_site/evaluation.nc")
 set high_arctic_eval_file_names=("${validation_dir_name}/by_site/villum_greenland_land/evaluation.nc" "${validation_dir_name}/by_site/eureka_nu_ocean/evaluation.nc" "${validation_dir_name}/by_site/alert_nu_land/evaluation.nc" "${validation_dir_name}/by_site/yopp_arctic_ocean_site1/evaluation.nc" "${validation_dir_name}/by_site/yopp_arctic_ocean_site2/evaluation.nc" "${validation_dir_name}/by_site/yopp_arctic_ocean_site3/evaluation.nc" "${validation_dir_name}/by_site/sheba/evaluation.nc")
-set misc_eval_file_names=("${validation_dir_name}/by_site/juelich_germany/evaluation.nc" "${validation_dir_name}/by_site/lindenberg_germany/evaluation.nc" "${validation_dir_name}/by_site/ny_alesund_norway_land/evaluation.nc" "${validation_dir_name}/by_site/pallas_sodankyla_russia_land/evaluation.nc")
+set misc_eval_file_names=("${validation_dir_name}/by_site/juelich_germany/evaluation.nc" "${validation_dir_name}/by_site/ny_alesund_norway_land/evaluation.nc" "${validation_dir_name}/by_site/pallas_sodankyla_russia_land/evaluation.nc")
 
 set conus_eval_dir_name="${validation_dir_name}/by_site/evaluation_conus"
 set ocean_eval_dir_name="${validation_dir_name}/by_site/evaluation_ocean"
@@ -84,10 +84,10 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --output_dir_name="${high_arctic_eval_dir_name}"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${misc_eval_file_names[1]}" "${misc_eval_file_names[2]}" "${misc_eval_file_names[3]}" "${misc_eval_file_names[4]}" \
---line_styles "solid" "solid" "solid" "solid" \
---line_colours "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---set_descriptions "Juelich_DE" "Lindenberg_DE" "Ny_Alesund_NO" "Pallas_Sodankyla_FI" \
+--input_eval_file_names "${misc_eval_file_names[1]}" "${misc_eval_file_names[3]}" "${misc_eval_file_names[4]}" \
+--line_styles "solid" "solid" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" \
+--set_descriptions "Juelich_DE" "Ny_Alesund_NO" "Pallas_Sodankyla_FI" \
 --confidence_level=0.99 \
 --use_log_scale=1 \
 --plot_by_height=1 \
