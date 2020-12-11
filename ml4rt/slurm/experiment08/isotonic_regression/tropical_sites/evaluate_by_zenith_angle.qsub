@@ -38,7 +38,7 @@ set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
 set l2_weight_string=`printf "%.10f" $l2_weight`
 
 set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}"
-top_model_dir_name
+echo ${top_model_dir_name}
 
 set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
