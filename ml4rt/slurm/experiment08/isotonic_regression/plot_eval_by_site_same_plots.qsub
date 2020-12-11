@@ -81,7 +81,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --output_dir_name="${high_arctic_eval_dir_name}"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${misc_eval_file_names[1]}" "${misc_eval_file_names[3]}" "${misc_eval_file_names[4]}" \
+--input_eval_file_names "${misc_eval_file_names[1]}" "${misc_eval_file_names[2]}" "${misc_eval_file_names[3]}" \
 --line_styles "solid" "solid" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" \
 --set_descriptions "Juelich_DE" "Ny_Alesund_NO" "Pallas_Sodankyla_FI" \
