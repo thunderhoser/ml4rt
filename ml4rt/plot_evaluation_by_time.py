@@ -300,11 +300,14 @@ def _plot_scores_with_units(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(MAE_COLOUR, POLYGON_OPACITY)
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                MAE_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            axes_object.add_patch(patch_object)
 
     # Plot mean RMSE.
     this_handle = axes_object.plot(
@@ -325,11 +328,14 @@ def _plot_scores_with_units(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(RMSE_COLOUR, POLYGON_OPACITY)
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                RMSE_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            axes_object.add_patch(patch_object)
 
     # Plot mean bias.
     this_handle = axes_object.plot(
@@ -350,11 +356,14 @@ def _plot_scores_with_units(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(BIAS_COLOUR, POLYGON_OPACITY)
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                BIAS_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            axes_object.add_patch(patch_object)
 
     axes_object.set_xticks(x_values)
     axes_object.set_xlim(
@@ -428,13 +437,14 @@ def _plot_unitless_scores(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(
-            MAE_SKILL_COLOUR, POLYGON_OPACITY
-        )
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        main_axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                MAE_SKILL_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            main_axes_object.add_patch(patch_object)
 
     # Plot mean MSE skill score.
     this_handle = main_axes_object.plot(
@@ -455,13 +465,14 @@ def _plot_unitless_scores(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(
-            MSE_SKILL_COLOUR, POLYGON_OPACITY
-        )
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        main_axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                MSE_SKILL_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            main_axes_object.add_patch(patch_object)
 
     # Plot mean correlation.
     this_handle = main_axes_object.plot(
@@ -482,13 +493,14 @@ def _plot_unitless_scores(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(
-            CORRELATION_COLOUR, POLYGON_OPACITY
-        )
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        main_axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                CORRELATION_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            main_axes_object.add_patch(patch_object)
 
     # Plot mean KGE.
     this_handle = main_axes_object.plot(
@@ -509,11 +521,14 @@ def _plot_unitless_scores(
             confidence_level=confidence_level, same_order=True
         )
 
-        polygon_colour = matplotlib.colors.to_rgba(KGE_COLOUR, POLYGON_OPACITY)
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        main_axes_object.add_patch(patch_object)
+        if polygon_coord_matrix is not None:
+            polygon_colour = matplotlib.colors.to_rgba(
+                KGE_COLOUR, POLYGON_OPACITY
+            )
+            patch_object = matplotlib.patches.Polygon(
+                polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+            )
+            main_axes_object.add_patch(patch_object)
 
     y_min, y_max = main_axes_object.get_ylim()
     y_min = numpy.maximum(y_min, -1.)
