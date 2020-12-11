@@ -19,7 +19,11 @@ from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import evaluation_plotting
 
+# TODO(thunderhoser): Incorporate confidence intervals into
+# evaluation_plotting.py.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+METRES_TO_KM = 0.001
 
 SCORE_NAME_TO_VERBOSE = {
     evaluation_plotting.MSE_NAME: 'Mean squared error',
@@ -631,7 +635,10 @@ def _plot_score_profile(
                 confidence_level=confidence_level
             )
 
-            polygon_coord_matrix = numpy.flipud(polygon_coord_matrix)
+            polygon_coord_matrix = numpy.fliplr(polygon_coord_matrix)
+            polygon_coord_matrix[:, 1] = (
+                    polygon_coord_matrix[:, 1] * METRES_TO_KM
+            )
 
             polygon_colour = matplotlib.colors.to_rgba(
                 line_colours[i], POLYGON_OPACITY

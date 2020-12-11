@@ -11,7 +11,8 @@ from gewittergefahr.plotting import plotting_utils
 from ml4rt.outside_code import taylor_diagram
 from ml4rt.plotting import profile_plotting
 
-# TODO(thunderhoser): Allow for confidence intervals.
+# TODO(thunderhoser): Incorporate confidence intervals into this module, instead
+# of scripts.
 
 METRES_TO_KM = 0.001
 

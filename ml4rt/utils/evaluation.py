@@ -682,7 +682,7 @@ def _get_scores_one_replicate(
         if i == 0:
             (
                 t[AUX_RELIA_BIN_CENTER_KEY].values[k, :], _,
-                t[AUX_INV_RELIABILITY_COUNT_KEY].values[k, :]
+                t[AUX_RELIABILITY_COUNT_KEY].values[k, :]
             ) = _get_rel_curve_one_scalar(
                 target_values=full_aux_target_matrix[:, k],
                 predicted_values=full_aux_prediction_matrix[:, k],
