@@ -89,6 +89,49 @@ X_COORDS_ONE_EMPTY_BIN = numpy.array([numpy.nan, 3, 4.5, 6, 10.75])
 Y_COORDS_ONE_EMPTY_BIN = numpy.array([numpy.nan, 4, 3.375, 4.333333333, 7.75])
 COUNTS_ONE_EMPTY_BIN = numpy.array([0, 3, 8, 3, 4], dtype=int)
 
+# The following constants are used to test confidence_interval_to_polygon.
+FIRST_X_VALUE_MATRIX = numpy.array([
+    [0, 1, 0, 1, numpy.nan],
+    [1, 2, 3, 2, 1],
+    [1, 2, 3, 4, 5],
+    [5, 4, 3, 2, numpy.nan]
+])
+
+FIRST_Y_VALUE_MATRIX = numpy.array([
+    [numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan],
+    [4, 4, 4, 4, 3],
+    [5, 10, 5, numpy.nan, 5],
+    [2, 2, 1, 2, 5]
+])
+
+FIRST_CONFIDENCE_LEVEL = 1.
+FIRST_SAME_ORDER_FLAG = True
+
+FIRST_POLYGON_COORD_MATRIX = numpy.array([
+    [3, 4],
+    [5, 10],
+    [5, 5],
+    [2, 1],
+    [1, 5],
+    [1, 3],
+    [3, 4]
+], dtype=float)
+
+SECOND_X_VALUE_MATRIX = FIRST_X_VALUE_MATRIX + 0.
+SECOND_Y_VALUE_MATRIX = FIRST_Y_VALUE_MATRIX + 0.
+SECOND_CONFIDENCE_LEVEL = 1.
+SECOND_SAME_ORDER_FLAG = False
+
+SECOND_POLYGON_COORD_MATRIX = numpy.array([
+    [3, 3],
+    [5, 5],
+    [5, 1],
+    [2, 5],
+    [1, 10],
+    [1, 4],
+    [3, 3]
+], dtype=float)
+
 
 class EvaluationTests(unittest.TestCase):
     """Each method is a unit test for evaluation.py."""
@@ -226,6 +269,40 @@ class EvaluationTests(unittest.TestCase):
             equal_nan=True
         ))
         self.assertTrue(numpy.array_equal(these_counts, COUNTS_ONE_EMPTY_BIN))
+
+    def test_confidence_interval_to_polygon_first(self):
+        """Ensures correct output from confidence_interval_to_polygon.
+
+        In this case, using first set of inputs.
+        """
+
+        this_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=FIRST_X_VALUE_MATRIX,
+            y_value_matrix=FIRST_Y_VALUE_MATRIX,
+            confidence_level=FIRST_CONFIDENCE_LEVEL,
+            same_order=FIRST_SAME_ORDER_FLAG
+        )
+
+        self.assertTrue(numpy.allclose(
+            this_coord_matrix, FIRST_POLYGON_COORD_MATRIX, atol=TOLERANCE
+        ))
+
+    def test_confidence_interval_to_polygon_second(self):
+        """Ensures correct output from confidence_interval_to_polygon.
+
+        In this case, using second set of inputs.
+        """
+
+        this_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=SECOND_X_VALUE_MATRIX,
+            y_value_matrix=SECOND_Y_VALUE_MATRIX,
+            confidence_level=SECOND_CONFIDENCE_LEVEL,
+            same_order=SECOND_SAME_ORDER_FLAG
+        )
+
+        self.assertTrue(numpy.allclose(
+            this_coord_matrix, SECOND_POLYGON_COORD_MATRIX, atol=TOLERANCE
+        ))
 
 
 if __name__ == '__main__':

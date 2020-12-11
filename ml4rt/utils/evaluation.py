@@ -715,6 +715,79 @@ def _get_scores_one_replicate(
     return t
 
 
+def confidence_interval_to_polygon(
+        x_value_matrix, y_value_matrix, confidence_level, same_order):
+    """Turns confidence interval into polygon.
+
+    P = number of points
+    B = number of bootstrap replicates
+    V = number of vertices in resulting polygon = 2 * P + 1
+
+    :param x_value_matrix: P-by-B numpy array of x-values.
+    :param y_value_matrix: P-by-B numpy array of y-values.
+    :param confidence_level: Confidence level (in range 0...1).
+    :param same_order: Boolean flag.  If True (False), minimum x-values will be
+        matched with minimum (maximum) y-values.
+    :return: polygon_coord_matrix: V-by-2 numpy array of coordinates
+        (x-coordinates in first column, y-coords in second).
+    """
+
+    error_checking.assert_is_numpy_array(x_value_matrix, num_dimensions=2)
+    error_checking.assert_is_numpy_array(
+        y_value_matrix,
+        exact_dimensions=numpy.array(x_value_matrix.shape, dtype=int)
+    )
+
+    error_checking.assert_is_geq(confidence_level, 0.9)
+    error_checking.assert_is_leq(confidence_level, 1.)
+    error_checking.assert_is_boolean(same_order)
+
+    min_percentile = 50 * (1. - confidence_level)
+    max_percentile = 50 * (1. + confidence_level)
+
+    x_values_bottom = numpy.nanpercentile(
+        x_value_matrix, min_percentile, axis=1, interpolation='linear'
+    )
+    x_values_top = numpy.nanpercentile(
+        x_value_matrix, max_percentile, axis=1, interpolation='linear'
+    )
+    y_values_bottom = numpy.nanpercentile(
+        y_value_matrix, min_percentile, axis=1, interpolation='linear'
+    )
+    y_values_top = numpy.nanpercentile(
+        y_value_matrix, max_percentile, axis=1, interpolation='linear'
+    )
+
+    real_indices = numpy.where(numpy.invert(numpy.logical_or(
+        numpy.isnan(x_values_bottom), numpy.isnan(y_values_bottom)
+    )))[0]
+
+    if len(real_indices) == 0:
+        return None
+
+    x_values_bottom = x_values_bottom[real_indices]
+    x_values_top = x_values_top[real_indices]
+    y_values_bottom = y_values_bottom[real_indices]
+    y_values_top = y_values_top[real_indices]
+
+    x_vertices = numpy.concatenate((
+        x_values_top, x_values_bottom[::-1], x_values_top[[0]]
+    ))
+
+    if same_order:
+        y_vertices = numpy.concatenate((
+            y_values_top, y_values_bottom[::-1], y_values_top[[0]]
+        ))
+    else:
+        y_vertices = numpy.concatenate((
+            y_values_bottom, y_values_top[::-1], y_values_bottom[[0]]
+        ))
+
+    return numpy.transpose(numpy.vstack((
+        x_vertices, y_vertices
+    )))
+
+
 def get_aux_fields(prediction_dict, example_dict):
     """Returns auxiliary fields.
 
