@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=24G
 #SBATCH --time=01:00:00
-#SBATCH --array=1-4
+#SBATCH --array=1
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -24,9 +24,9 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
 set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/experiment2"
 
-set DENSE_LAYER_COUNTS=(4 4 4 3)
-set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.100)
-set L2_WEIGHTS=(0.0000001000 0.0000010000 0.0000100000 0.0001000000)
+set DENSE_LAYER_COUNTS=(4)
+set DENSE_LAYER_DROPOUT_RATES=(0.000)
+set L2_WEIGHTS=(0.0000001000)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
@@ -42,7 +42,7 @@ set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
-set evaluation_dir_name="${model_dir_name}/testing_assorted2_sites/by_site/evaluation_high_arctic"
+set evaluation_dir_name="${model_dir_name}/testing_assorted2_sites/by_site"
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}/eval_by_site"
 
 python3 -u "${CODE_DIR_NAME}/make_by_site_eval_figure.py" \
