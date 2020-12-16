@@ -352,6 +352,7 @@ def _run(experiment_dir_name, isotonic_flag):
         experiment_dir_name,
         'isotonic_regression/' if isotonic_flag else ''
     )
+    file_system_utils.mkdir_recursive_if_necessary(file_name=score_file_name)
 
     if os.path.isfile(score_file_name):
         print('Reading scores from: "{0:s}"...'.format(score_file_name))
