@@ -1,20 +1,20 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_eval_by_site_same_plots"
+#SBATCH --job-name="make_by_site_eval_figure"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
-#SBATCH --time=02:00:00
-#SBATCH --array=1
+#SBATCH --mem=24G
+#SBATCH --time=01:00:00
+#SBATCH --array=1-4
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_eval_by_site_same_plots_%A_%a.out
+#SBATCH --output=make_by_site_eval_figure_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -22,10 +22,11 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/experiment2"
 
-set DENSE_LAYER_COUNTS=(4)
-set DENSE_LAYER_DROPOUT_RATES=(0.000)
-set L2_WEIGHTS=(0.0000001000)
+set DENSE_LAYER_COUNTS=(4 4 4 3)
+set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.100)
+set L2_WEIGHTS=(0.0000001000 0.0000010000 0.0000100000 0.0001000000)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
@@ -41,17 +42,11 @@ set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
-set testing_dir_name="${model_dir_name}/testing_assorted2_sites"
+set evaluation_dir_name="${model_dir_name}/testing_assorted2_sites/by_site/evaluation_high_arctic"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}/eval_by_site"
 
-set evaluation_file_names=("${testing_dir_name}/by_site/yopp_arctic_ocean_site2/evaluation.nc" "${testing_dir_name}/by_site/tiksi_russia_ocean/evaluation.nc" "${testing_dir_name}/by_site/lamont_ok/evaluation.nc" "${testing_dir_name}/by_site/perdido_oil_rig/evaluation.nc" "${testing_dir_name}/by_site/bishop_grenada/evaluation.nc")
-set evaluation_dir_name="${testing_dir_name}/by_site"
-
-python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" "${evaluation_file_names[4]}" "${evaluation_file_names[5]}" \
---line_styles "solid" "solid" "solid" "dashed" "dashed" \
---line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" \
---set_descriptions "North_pole" "Tiksi,_Russia" "Lamont_OK" "Perdido_oil_rig" "Bishop,_Grenada" \
---confidence_level=0.99 \
---use_log_scale=1 \
---plot_by_height=1 \
---output_dir_name="${evaluation_dir_name}"
+python3 -u "${CODE_DIR_NAME}/make_by_site_eval_figure.py" \
+--input_evaluation_dir_name="${evaluation_dir_name}" \
+--site_names_for_reliability "villum-gl" "yopp1" "yopp3" \
+--site_name_for_histogram="villum-gl" \
+--output_dir_name="${output_dir_name}"
