@@ -1,4 +1,4 @@
-"""Plots scores on hyperparameter grid for Experiment 8."""
+"""Plots scores on hyperparameter grid for Experiment 9."""
 
 import os
 import sys
@@ -35,7 +35,7 @@ MARKER_COLOUR = numpy.full(3, 1.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.2
-SELECTED_MARKER_INDICES = numpy.array([1, 0, 3], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([2, 0, 0], dtype=int)
 
 FONT_SIZE = 30
 pyplot.rc('font', size=FONT_SIZE)
@@ -323,7 +323,7 @@ def _print_ranking_all_scores(
 
 
 def _run(experiment_dir_name, isotonic_flag):
-    """Plots scores on hyperparameter grid for Experiment 8.
+    """Plots scores on hyperparameter grid for Experiment 9.
 
     This is effectively the main method.
 
