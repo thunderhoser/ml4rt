@@ -13,7 +13,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=24:00:00
-#SBATCH --array=1-4
+#SBATCH --array=1
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -26,21 +26,22 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment06"
-set EXAMPLE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/non_tropical_sites/learning_examples_2020.nc"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
+set EXAMPLE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/assorted2_sites/learning_examples_20170101-20171224.nc"
 
-set DENSE_LAYER_COUNTS=(3 3 4 2)
-set DENSE_LAYER_DROPOUT_RATES=(0 0.1 0 0.1)
-set SCALAR_LOSS_FUNCTION_WEIGHTS=(50 2.5 25 50)
+set DENSE_LAYER_COUNTS=(4)
+set DENSE_LAYER_DROPOUT_RATES=(0.000)
+set L2_WEIGHTS=(0.0000001000)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
-set scalar_loss_function_weight=${SCALAR_LOSS_FUNCTION_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 
 set dense_layer_count_string=`printf "%d" $dense_layer_count`
 set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
-set scalar_loss_function_weight_string=`printf "%05.1f" $scalar_loss_function_weight`
-set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_scalar-lf-weight=${scalar_loss_function_weight_string}"
+set l2_weight_string=`printf "%.10f" $l2_weight`
+
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}"
 
 set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
@@ -56,4 +57,4 @@ python3 -u "${CODE_DIR_NAME}/run_permutation.py" \
 --do_backwards_test=1 \
 --shuffle_profiles_together=1 \
 --num_bootstrap_reps=1000 \
---output_file_name="${model_dir_name}/validation/backwards_perm_test_hr-only.nc"
+--output_file_name="${model_dir_name}/testing_assorted2_sites/backwards_perm_test_hr-only.nc"
