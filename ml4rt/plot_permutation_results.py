@@ -2,7 +2,6 @@
 
 import os
 import sys
-import copy
 import argparse
 import numpy
 import matplotlib
@@ -18,9 +17,29 @@ import file_system_utils
 import gg_permutation
 import plotting_utils
 import permutation_plotting
+import example_utils
 import permutation as ml4rt_permutation
 
 FIGURE_RESOLUTION_DPI = 300
+
+PREDICTOR_NAME_TO_VERBOSE = {
+    example_utils.ZENITH_ANGLE_NAME: 'Solar zenith angle',
+    example_utils.ALBEDO_NAME: 'Surface albedo',
+    example_utils.PRESSURE_NAME: 'Pressure',
+    example_utils.TEMPERATURE_NAME: 'Temperature',
+    example_utils.SPECIFIC_HUMIDITY_NAME: 'Specific humidity',
+    example_utils.RELATIVE_HUMIDITY_NAME: 'Relative humidity',
+    example_utils.LIQUID_WATER_CONTENT_NAME: 'Liquid-water content (LWC)',
+    example_utils.ICE_WATER_CONTENT_NAME: 'Ice-water content (IWC)',
+    example_utils.LIQUID_WATER_PATH_NAME: 'Downward liquid-water path (LWP)',
+    example_utils.ICE_WATER_PATH_NAME: 'Downward ice-water path (IWP)',
+    example_utils.WATER_VAPOUR_PATH_NAME: 'Downward water-vapour path (WVP)',
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME:
+        'Upward liquid-water path (LWP)',
+    example_utils.UPWARD_ICE_WATER_PATH_NAME: 'Upward ice-water path (IWP)',
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME:
+        'Upward water-vapour path (WVP)'
+}
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
 NUM_PREDICTORS_ARG_NAME = 'num_predictors_to_plot'
@@ -77,9 +96,10 @@ def _results_to_gg_format(permutation_dict):
         permutation_dict[ml4rt_permutation.BACKWARDS_FLAG_KEY]
     )
 
-    best_predictor_names = copy.deepcopy(
+    best_predictor_names = [
+        PREDICTOR_NAME_TO_VERBOSE[s] for s in
         permutation_dict[ml4rt_permutation.BEST_PREDICTORS_KEY]
-    )
+    ]
     best_heights_m_agl = permutation_dict[ml4rt_permutation.BEST_HEIGHTS_KEY]
 
     if best_heights_m_agl is not None:
@@ -91,9 +111,10 @@ def _results_to_gg_format(permutation_dict):
                 int(numpy.round(best_heights_m_agl[k]))
             )
 
-    step1_predictor_names = copy.deepcopy(
+    step1_predictor_names = [
+        PREDICTOR_NAME_TO_VERBOSE[s] for s in
         permutation_dict[ml4rt_permutation.STEP1_PREDICTORS_KEY]
-    )
+    ]
     step1_heights_m_agl = permutation_dict[ml4rt_permutation.STEP1_HEIGHTS_KEY]
 
     if step1_heights_m_agl is not None:
