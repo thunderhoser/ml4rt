@@ -27,7 +27,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08"
-set EXAMPLE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/tropical_sites/learning_examples_20170101-20171224.nc"
+set EXAMPLE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/tropical_sites/testing/learning_examples_2017.nc"
 
 set DENSE_LAYER_COUNTS=(3)
 set DENSE_LAYER_DROPOUT_RATES=(0.000)
