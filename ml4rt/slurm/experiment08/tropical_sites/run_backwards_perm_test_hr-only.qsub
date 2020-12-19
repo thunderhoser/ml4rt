@@ -30,8 +30,8 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 set EXAMPLE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/tropical_sites/testing/learning_examples_2017.nc"
 
 set DENSE_LAYER_COUNTS=(3)
-set DENSE_LAYER_DROPOUT_RATES=(0.000)
-set L2_WEIGHTS=(0.0000031623)
+set DENSE_LAYER_DROPOUT_RATES=(0.100)
+set L2_WEIGHTS=(0.0000003162)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
