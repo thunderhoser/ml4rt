@@ -168,7 +168,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
 
     figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
         num_rows=2, num_columns=2, shared_x_axis=False, shared_y_axis=True,
-        keep_aspect_ratio=False, horizontal_spacing=0.15, vertical_spacing=0.15
+        keep_aspect_ratio=False, horizontal_spacing=0.25, vertical_spacing=0.25
     )
     permutation_plotting.plot_multipass_test(
         permutation_dict=exp1_heating_permutation_dict,
