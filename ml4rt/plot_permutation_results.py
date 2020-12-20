@@ -20,6 +20,7 @@ import permutation_plotting
 import example_utils
 import permutation as ml4rt_permutation
 
+BAR_FACE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 FIGURE_RESOLUTION_DPI = 300
 
 PREDICTOR_NAME_TO_VERBOSE = {
@@ -164,7 +165,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_single_pass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 0],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=False, confidence_level=confidence_level
+        plot_percent_increase=False, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 0].set_title('Single-pass test')
     axes_object_matrix[0, 0].set_xlabel('Mean squared error')
@@ -172,7 +174,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_multipass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 1],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=False, confidence_level=confidence_level
+        plot_percent_increase=False, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 1].set_title('Multi-pass test')
     axes_object_matrix[0, 1].set_xlabel('Mean squared error')
@@ -196,7 +199,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_single_pass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 0],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=True, confidence_level=confidence_level
+        plot_percent_increase=True, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 0].set_title('Single-pass test')
     axes_object_matrix[0, 0].set_xlabel('MSE (fraction of original)')
@@ -204,7 +208,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_multipass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 1],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=True, confidence_level=confidence_level
+        plot_percent_increase=True, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 1].set_title('Multi-pass test')
     axes_object_matrix[0, 1].set_xlabel('MSE (fraction of original)')
