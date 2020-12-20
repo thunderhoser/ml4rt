@@ -41,6 +41,15 @@ PREDICTOR_NAME_TO_VERBOSE = {
         'Upward water-vapour path (WVP)'
 }
 
+FONT_SIZE = 25
+pyplot.rc('font', size=FONT_SIZE)
+pyplot.rc('axes', titlesize=FONT_SIZE)
+pyplot.rc('axes', labelsize=FONT_SIZE)
+pyplot.rc('xtick', labelsize=FONT_SIZE)
+pyplot.rc('ytick', labelsize=FONT_SIZE)
+pyplot.rc('legend', fontsize=FONT_SIZE)
+pyplot.rc('figure', titlesize=FONT_SIZE)
+
 FIGURE_RESOLUTION_DPI = 300
 
 NUM_PANEL_ROWS = 2
@@ -176,7 +185,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
     )
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[0, 0], label_string='(a)'
+        axes_object=axes_object_matrix[0, 0], label_string='(a)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[0, 0].set_title('Exp 1, heating rates only')
     axes_object_matrix[0, 0].set_xlabel('Dual-weighted MSE')
@@ -195,7 +205,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
     )
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[0, 1], label_string='(b)'
+        axes_object=axes_object_matrix[0, 1], label_string='(b)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[0, 1].set_title('Exp 1, fluxes only')
     axes_object_matrix[0, 1].set_xlabel('MSE')
@@ -215,7 +226,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
     )
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[1, 0], label_string='(c)'
+        axes_object=axes_object_matrix[1, 0], label_string='(c)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[1, 0].set_title('Exp 2, heating rates only')
     axes_object_matrix[1, 0].set_xlabel('Dual-weighted MSE')
@@ -234,7 +246,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
     )
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[1, 1], label_string='(d)'
+        axes_object=axes_object_matrix[1, 1], label_string='(d)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[1, 1].set_title('Exp 2, fluxes only')
     axes_object_matrix[1, 1].set_xlabel('MSE')
