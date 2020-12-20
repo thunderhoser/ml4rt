@@ -189,7 +189,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[0, 0].set_title('Exp 1, heating rates only')
-    axes_object_matrix[0, 0].set_xlabel('Dual-weighted MSE')
+    axes_object_matrix[0, 0].set_xlabel(r'Dual-weighted MSE (K$^3$ day$^{-3}$)')
     axes_object_matrix[0, 0].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp1_flux_file_name))
@@ -209,7 +209,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[0, 1].set_title('Exp 1, fluxes only')
-    axes_object_matrix[0, 1].set_xlabel('MSE')
+    axes_object_matrix[0, 1].set_xlabel(r'MSE (K day$^{-1}$)')
     axes_object_matrix[0, 1].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp2_heating_rate_file_name))
@@ -230,7 +230,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[1, 0].set_title('Exp 2, heating rates only')
-    axes_object_matrix[1, 0].set_xlabel('Dual-weighted MSE')
+    axes_object_matrix[1, 0].set_xlabel(r'Dual-weighted MSE (K$^3$ day$^{-3}$)')
     axes_object_matrix[1, 0].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp2_flux_file_name))
@@ -250,7 +250,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
     axes_object_matrix[1, 1].set_title('Exp 2, fluxes only')
-    axes_object_matrix[1, 1].set_xlabel('MSE')
+    axes_object_matrix[1, 1].set_xlabel(r'MSE (K day$^{-1}$)')
     axes_object_matrix[1, 1].set_ylabel('')
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
