@@ -207,14 +207,14 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
         directory_name=tropical_example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec,
-        raise_error_if_all_missing=True, raise_error_if_any_missing=False
+        raise_error_if_all_missing=True, raise_error_if_any_missing=True
     )
 
     example_file_names += example_io.find_many_files(
         directory_name=non_tropical_example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec,
-        raise_error_if_all_missing=True, raise_error_if_any_missing=False
+        raise_error_if_all_missing=True, raise_error_if_any_missing=True
     )
 
     example_dicts = []

@@ -1,6 +1,5 @@
 """Plots results of permutation-based importance test."""
 
-import copy
 import argparse
 import numpy
 import matplotlib
@@ -10,9 +9,30 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.deep_learning import permutation_utils as gg_permutation
 from gewittergefahr.plotting import plotting_utils
 from gewittergefahr.plotting import permutation_plotting
+from ml4rt.utils import example_utils
 from ml4rt.machine_learning import permutation as ml4rt_permutation
 
+BAR_FACE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 FIGURE_RESOLUTION_DPI = 300
+
+PREDICTOR_NAME_TO_VERBOSE = {
+    example_utils.ZENITH_ANGLE_NAME: 'Solar zenith angle',
+    example_utils.ALBEDO_NAME: 'Surface albedo',
+    example_utils.PRESSURE_NAME: 'Pressure',
+    example_utils.TEMPERATURE_NAME: 'Temperature',
+    example_utils.SPECIFIC_HUMIDITY_NAME: 'Specific humidity',
+    example_utils.RELATIVE_HUMIDITY_NAME: 'Relative humidity',
+    example_utils.LIQUID_WATER_CONTENT_NAME: 'Liquid-water content (LWC)',
+    example_utils.ICE_WATER_CONTENT_NAME: 'Ice-water content (IWC)',
+    example_utils.LIQUID_WATER_PATH_NAME: 'Downward liquid-water path (LWP)',
+    example_utils.ICE_WATER_PATH_NAME: 'Downward ice-water path (IWP)',
+    example_utils.WATER_VAPOUR_PATH_NAME: 'Downward water-vapour path (WVP)',
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME:
+        'Upward liquid-water path (LWP)',
+    example_utils.UPWARD_ICE_WATER_PATH_NAME: 'Upward ice-water path (IWP)',
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME:
+        'Upward water-vapour path (WVP)'
+}
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
 NUM_PREDICTORS_ARG_NAME = 'num_predictors_to_plot'
@@ -69,9 +89,10 @@ def _results_to_gg_format(permutation_dict):
         permutation_dict[ml4rt_permutation.BACKWARDS_FLAG_KEY]
     )
 
-    best_predictor_names = copy.deepcopy(
+    best_predictor_names = [
+        PREDICTOR_NAME_TO_VERBOSE[s] for s in
         permutation_dict[ml4rt_permutation.BEST_PREDICTORS_KEY]
-    )
+    ]
     best_heights_m_agl = permutation_dict[ml4rt_permutation.BEST_HEIGHTS_KEY]
 
     if best_heights_m_agl is not None:
@@ -83,9 +104,10 @@ def _results_to_gg_format(permutation_dict):
                 int(numpy.round(best_heights_m_agl[k]))
             )
 
-    step1_predictor_names = copy.deepcopy(
+    step1_predictor_names = [
+        PREDICTOR_NAME_TO_VERBOSE[s] for s in
         permutation_dict[ml4rt_permutation.STEP1_PREDICTORS_KEY]
-    )
+    ]
     step1_heights_m_agl = permutation_dict[ml4rt_permutation.STEP1_HEIGHTS_KEY]
 
     if step1_heights_m_agl is not None:
@@ -135,7 +157,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_single_pass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 0],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=False, confidence_level=confidence_level
+        plot_percent_increase=False, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 0].set_title('Single-pass test')
     axes_object_matrix[0, 0].set_xlabel('Mean squared error')
@@ -143,7 +166,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_multipass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 1],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=False, confidence_level=confidence_level
+        plot_percent_increase=False, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 1].set_title('Multi-pass test')
     axes_object_matrix[0, 1].set_xlabel('Mean squared error')
@@ -167,7 +191,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_single_pass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 0],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=True, confidence_level=confidence_level
+        plot_percent_increase=True, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 0].set_title('Single-pass test')
     axes_object_matrix[0, 0].set_xlabel('MSE (fraction of original)')
@@ -175,7 +200,8 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_plotting.plot_multipass_test(
         permutation_dict=permutation_dict, axes_object=axes_object_matrix[0, 1],
         num_predictors_to_plot=num_predictors_to_plot,
-        plot_percent_increase=True, confidence_level=confidence_level
+        plot_percent_increase=True, confidence_level=confidence_level,
+        bar_face_colour=BAR_FACE_COLOUR
     )
     axes_object_matrix[0, 1].set_title('Multi-pass test')
     axes_object_matrix[0, 1].set_xlabel('MSE (fraction of original)')

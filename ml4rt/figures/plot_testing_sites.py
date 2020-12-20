@@ -3,7 +3,6 @@
 import argparse
 import numpy
 import matplotlib
-
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
@@ -56,7 +55,7 @@ TROPICAL_SITE_TO_ALIGNMENT = {
 
 ASSORTED2_SITE_TO_LATLNG = {
     'Lamont, Oklahoma': numpy.array([36.5693, 262.5687]),
-    'Azores': numpy.array([39.0827, 360. - 28.0923]),
+    # 'Azores': numpy.array([39.0827, 360. - 28.0923]),
     'Tiksi, Russia': numpy.array([71.6260, 129.7669]),
     'North pole': numpy.array([89.9983, 164.0000]),
     'Bishop, Grenada': numpy.array([12.049037, 298.225193]),
