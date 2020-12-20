@@ -168,7 +168,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
 
     figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
         num_rows=2, num_columns=2, shared_x_axis=False, shared_y_axis=True,
-        keep_aspect_ratio=False, horizontal_spacing=0.1, vertical_spacing=0.05
+        keep_aspect_ratio=False, horizontal_spacing=0.15, vertical_spacing=0.15
     )
     permutation_plotting.plot_multipass_test(
         permutation_dict=exp1_heating_permutation_dict,
@@ -178,8 +178,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
     plotting_utils.label_axes(
         axes_object=axes_object_matrix[0, 0], label_string='(a)'
     )
-    axes_object_matrix[0, 0].set_title('Experiment 1, heating rates only')
-    axes_object_matrix[0, 0].set_xlabel('Mean squared error')
+    axes_object_matrix[0, 0].set_title('Exp 1, heating rates only')
+    axes_object_matrix[0, 0].set_xlabel('Dual-weighted MSE')
     axes_object_matrix[0, 0].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp1_flux_file_name))
@@ -197,8 +197,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
     plotting_utils.label_axes(
         axes_object=axes_object_matrix[0, 1], label_string='(b)'
     )
-    axes_object_matrix[0, 1].set_title('Experiment 1, fluxes only')
-    axes_object_matrix[0, 1].set_xlabel('Mean squared error')
+    axes_object_matrix[0, 1].set_title('Exp 1, fluxes only')
+    axes_object_matrix[0, 1].set_xlabel('MSE')
     axes_object_matrix[0, 1].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp2_heating_rate_file_name))
@@ -217,8 +217,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
     plotting_utils.label_axes(
         axes_object=axes_object_matrix[1, 0], label_string='(c)'
     )
-    axes_object_matrix[1, 0].set_title('Experiment 2, heating rates only')
-    axes_object_matrix[1, 0].set_xlabel('Mean squared error')
+    axes_object_matrix[1, 0].set_title('Exp 2, heating rates only')
+    axes_object_matrix[1, 0].set_xlabel('Dual-weighted MSE')
     axes_object_matrix[1, 0].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp2_flux_file_name))
@@ -236,8 +236,8 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
     plotting_utils.label_axes(
         axes_object=axes_object_matrix[1, 1], label_string='(d)'
     )
-    axes_object_matrix[1, 1].set_title('Experiment 2, fluxes only')
-    axes_object_matrix[1, 1].set_xlabel('Mean squared error')
+    axes_object_matrix[1, 1].set_title('Exp 2, fluxes only')
+    axes_object_matrix[1, 1].set_xlabel('MSE')
     axes_object_matrix[1, 1].set_ylabel('')
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
