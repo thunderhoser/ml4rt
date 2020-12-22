@@ -1,0 +1,37 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="make_permutation_figure_fmp"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=make_permutation_figure_fmp_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set EXP1_PERMUTATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08/num-dense-layers=3_dense-dropout=0.100_l2-weight=0.0000003162/model/testing_tropical_sites"
+set EXP2_PERMUTATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09/num-dense-layers=4_dense-dropout=0.000_l2-weight=0.0000001000/model/testing_assorted2_sites"
+set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/permutation_test_fmp.jpg"
+
+python3 -u "${CODE_DIR_NAME}/make_permutation_figure.py" \
+--input_exp1_permutation_dir_name="${EXP1_PERMUTATION_DIR_NAME}" \
+--input_exp2_permutation_dir_name="${EXP2_PERMUTATION_DIR_NAME}" \
+--use_forward_test=1 \
+--use_multipass_test=1 \
+--output_file_name="${OUTPUT_FILE_NAME}"
