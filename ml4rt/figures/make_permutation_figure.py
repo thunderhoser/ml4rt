@@ -14,18 +14,6 @@ from ml4rt.machine_learning import permutation as ml4rt_permutation
 
 CONFIDENCE_LEVEL = 0.99
 
-PATHLESS_INPUT_FILE_NAMES = [
-    'shortwave-surface-down-flux-w-m02_attributes_multi-layer-cloud.jpg',
-    'shortwave-toa-up-flux-w-m02_attributes_multi-layer-cloud.jpg',
-    'net-shortwave-flux-w-m02_attributes_multi-layer-cloud.jpg',
-    'shortwave-heating-rate-k-day01_bias_profile.jpg',
-    'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
-    'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
-    'shortwave-heating-rate-k-day01_reliability_no-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_single-layer-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_multi-layer-cloud.jpg'
-]
-
 PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.ZENITH_ANGLE_NAME: 'Solar zenith angle',
     example_utils.ALBEDO_NAME: 'Surface albedo',
@@ -45,6 +33,15 @@ PREDICTOR_NAME_TO_VERBOSE = {
         'Upward water-vapour path (WVP)'
 }
 
+FONT_SIZE = 25
+pyplot.rc('font', size=FONT_SIZE)
+pyplot.rc('axes', titlesize=FONT_SIZE)
+pyplot.rc('axes', labelsize=FONT_SIZE)
+pyplot.rc('xtick', labelsize=FONT_SIZE)
+pyplot.rc('ytick', labelsize=FONT_SIZE)
+pyplot.rc('legend', fontsize=FONT_SIZE)
+pyplot.rc('figure', titlesize=FONT_SIZE)
+
 FIGURE_RESOLUTION_DPI = 300
 
 NUM_PANEL_ROWS = 2
@@ -54,6 +51,8 @@ CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 EXPERIMENT1_DIR_ARG_NAME = 'input_exp1_permutation_dir_name'
 EXPERIMENT2_DIR_ARG_NAME = 'input_exp2_permutation_dir_name'
+USE_FORWARD_TEST_ARG_NAME = 'use_forward_test'
+USE_MULTIPASS_TEST_ARG_NAME = 'use_multipass_test'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 EXPERIMENT1_DIR_HELP_STRING = (
@@ -62,6 +61,13 @@ EXPERIMENT1_DIR_HELP_STRING = (
 )
 EXPERIMENT2_DIR_HELP_STRING = 'Same as `{0:s}` but for Experiment 2.'.format(
     EXPERIMENT1_DIR_ARG_NAME
+)
+USE_FORWARD_TEST_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot forward (backwards) version of test.'
+)
+USE_MULTIPASS_TEST_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot multi-pass (single-pass) version of '
+    'test.'
 )
 OUTPUT_FILE_HELP_STRING = 'Path to output file.  Figure will be saved here.'
 
@@ -73,6 +79,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + EXPERIMENT2_DIR_ARG_NAME, type=str, required=True,
     help=EXPERIMENT2_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_FORWARD_TEST_ARG_NAME, type=int, required=True,
+    help=USE_FORWARD_TEST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_MULTIPASS_TEST_ARG_NAME, type=int, required=True,
+    help=USE_MULTIPASS_TEST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -134,14 +148,16 @@ def _results_to_gg_format(permutation_dict):
     return permutation_dict
 
 
-def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
-         output_file_name):
+def _run(exp1_permutation_dir_name, exp2_permutation_dir_name, use_forward_test,
+         use_multipass_test, output_file_name):
     """Creates figure showing permutation-test results for both models.
 
     This is effectively the main method.
 
     :param exp1_permutation_dir_name: See documentation at top of file.
     :param exp2_permutation_dir_name: Same.
+    :param use_forward_test: Same.
+    :param use_multipass_test: Same.
     :param output_file_name: Same.
     """
 
@@ -149,17 +165,21 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         file_name=output_file_name
     )
 
-    exp1_flux_file_name = '{0:s}/backwards_perm_test_fluxes-only.nc'.format(
-        exp1_permutation_dir_name
+    exp1_flux_file_name = '{0:s}/{1:s}_perm_test_fluxes-only.nc'.format(
+        exp1_permutation_dir_name,
+        'forward' if use_forward_test else 'backwards'
     )
-    exp1_heating_rate_file_name = '{0:s}/backwards_perm_test_hr-only.nc'.format(
-        exp1_permutation_dir_name
+    exp1_heating_rate_file_name = '{0:s}/{1:s}_perm_test_hr-only.nc'.format(
+        exp1_permutation_dir_name,
+        'forward' if use_forward_test else 'backwards'
     )
-    exp2_flux_file_name = '{0:s}/backwards_perm_test_fluxes-only.nc'.format(
-        exp2_permutation_dir_name
+    exp2_flux_file_name = '{0:s}/{1:s}_perm_test_fluxes-only.nc'.format(
+        exp2_permutation_dir_name,
+        'forward' if use_forward_test else 'backwards'
     )
-    exp2_heating_rate_file_name = '{0:s}/backwards_perm_test_hr-only.nc'.format(
-        exp2_permutation_dir_name
+    exp2_heating_rate_file_name = '{0:s}/{1:s}_perm_test_hr-only.nc'.format(
+        exp2_permutation_dir_name,
+        'forward' if use_forward_test else 'backwards'
     )
 
     print('Reading data from: "{0:s}"...'.format(exp1_heating_rate_file_name))
@@ -172,18 +192,28 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
 
     figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
         num_rows=2, num_columns=2, shared_x_axis=False, shared_y_axis=True,
-        keep_aspect_ratio=False, horizontal_spacing=0.1, vertical_spacing=0.05
+        keep_aspect_ratio=False, horizontal_spacing=0.25, vertical_spacing=0.25
     )
-    permutation_plotting.plot_multipass_test(
-        permutation_dict=exp1_heating_permutation_dict,
-        axes_object=axes_object_matrix[0, 0],
-        plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
-    )
+
+    if use_multipass_test:
+        permutation_plotting.plot_multipass_test(
+            permutation_dict=exp1_heating_permutation_dict,
+            axes_object=axes_object_matrix[0, 0],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+    else:
+        permutation_plotting.plot_single_pass_test(
+            permutation_dict=exp1_heating_permutation_dict,
+            axes_object=axes_object_matrix[0, 0],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[0, 0], label_string='(a)'
+        axes_object=axes_object_matrix[0, 0], label_string='(a)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
-    axes_object_matrix[0, 0].set_title('Experiment 1, heating rates only')
-    axes_object_matrix[0, 0].set_xlabel('Mean squared error')
+    axes_object_matrix[0, 0].set_title('Exp 1, heating rates only')
+    axes_object_matrix[0, 0].set_xlabel(r'Dual-weighted MSE (K$^3$ day$^{-3}$)')
     axes_object_matrix[0, 0].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp1_flux_file_name))
@@ -193,16 +223,26 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
     exp1_flux_permutation_dict = _results_to_gg_format(
         exp1_flux_permutation_dict
     )
-    permutation_plotting.plot_multipass_test(
-        permutation_dict=exp1_flux_permutation_dict,
-        axes_object=axes_object_matrix[0, 1],
-        plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
-    )
+
+    if use_multipass_test:
+        permutation_plotting.plot_multipass_test(
+            permutation_dict=exp1_flux_permutation_dict,
+            axes_object=axes_object_matrix[0, 1],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+    else:
+        permutation_plotting.plot_single_pass_test(
+            permutation_dict=exp1_flux_permutation_dict,
+            axes_object=axes_object_matrix[0, 1],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[0, 1], label_string='(b)'
+        axes_object=axes_object_matrix[0, 1], label_string='(b)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
-    axes_object_matrix[0, 1].set_title('Experiment 1, fluxes only')
-    axes_object_matrix[0, 1].set_xlabel('Mean squared error')
+    axes_object_matrix[0, 1].set_title('Exp 1, fluxes only')
+    axes_object_matrix[0, 1].set_xlabel(r'MSE (K day$^{-1}$)')
     axes_object_matrix[0, 1].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp2_heating_rate_file_name))
@@ -213,16 +253,25 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
         exp2_heating_permutation_dict
     )
 
-    permutation_plotting.plot_multipass_test(
-        permutation_dict=exp2_heating_permutation_dict,
-        axes_object=axes_object_matrix[1, 0],
-        plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
-    )
+    if use_multipass_test:
+        permutation_plotting.plot_multipass_test(
+            permutation_dict=exp2_heating_permutation_dict,
+            axes_object=axes_object_matrix[1, 0],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+    else:
+        permutation_plotting.plot_single_pass_test(
+            permutation_dict=exp2_heating_permutation_dict,
+            axes_object=axes_object_matrix[1, 0],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[1, 0], label_string='(c)'
+        axes_object=axes_object_matrix[1, 0], label_string='(c)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
-    axes_object_matrix[1, 0].set_title('Experiment 2, heating rates only')
-    axes_object_matrix[1, 0].set_xlabel('Mean squared error')
+    axes_object_matrix[1, 0].set_title('Exp 2, heating rates only')
+    axes_object_matrix[1, 0].set_xlabel(r'Dual-weighted MSE (K$^3$ day$^{-3}$)')
     axes_object_matrix[1, 0].set_ylabel('')
 
     print('Reading data from: "{0:s}"...'.format(exp2_flux_file_name))
@@ -232,16 +281,26 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name,
     exp2_flux_permutation_dict = _results_to_gg_format(
         exp2_flux_permutation_dict
     )
-    permutation_plotting.plot_multipass_test(
-        permutation_dict=exp2_flux_permutation_dict,
-        axes_object=axes_object_matrix[1, 1],
-        plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
-    )
+
+    if use_multipass_test:
+        permutation_plotting.plot_multipass_test(
+            permutation_dict=exp2_flux_permutation_dict,
+            axes_object=axes_object_matrix[1, 1],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+    else:
+        permutation_plotting.plot_single_pass_test(
+            permutation_dict=exp2_flux_permutation_dict,
+            axes_object=axes_object_matrix[1, 1],
+            plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
+        )
+
     plotting_utils.label_axes(
-        axes_object=axes_object_matrix[1, 1], label_string='(d)'
+        axes_object=axes_object_matrix[1, 1], label_string='(d)',
+        font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
-    axes_object_matrix[1, 1].set_title('Experiment 2, fluxes only')
-    axes_object_matrix[1, 1].set_xlabel('Mean squared error')
+    axes_object_matrix[1, 1].set_title('Exp 2, fluxes only')
+    axes_object_matrix[1, 1].set_xlabel(r'MSE (K day$^{-1}$)')
     axes_object_matrix[1, 1].set_ylabel('')
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
@@ -262,5 +321,11 @@ if __name__ == '__main__':
         exp2_permutation_dir_name=getattr(
             INPUT_ARG_OBJECT, EXPERIMENT2_DIR_ARG_NAME
         ),
+        use_forward_test=bool(getattr(
+            INPUT_ARG_OBJECT, USE_FORWARD_TEST_ARG_NAME
+        )),
+        use_multipass_test=bool(getattr(
+            INPUT_ARG_OBJECT, USE_MULTIPASS_TEST_ARG_NAME
+        )),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
