@@ -49,5 +49,5 @@ set evaluation_dir_name="${testing_dir_name}/by_site/${site_name}"
 
 python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
 --input_prediction_file_name="${prediction_file_name}" \
---num_bootstrap_reps=1000 \
+--num_bootstrap_reps=1 \
 --output_dir_name="${evaluation_dir_name}"
