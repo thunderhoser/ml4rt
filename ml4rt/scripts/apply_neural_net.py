@@ -1,6 +1,7 @@
 """Applies trained neural net in inference mode."""
 
 import copy
+import time
 import os.path
 import argparse
 import numpy
@@ -284,12 +285,18 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
     print(SEPARATOR_STRING)
 
+    exec_start_time_unix_sec = time.time()
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
         net_type_string=net_type_string,
         is_loss_constrained_mse=is_loss_constrained_mse, verbose=True
     )
+
+    print(SEPARATOR_STRING)
+    print('Time to apply neural net = {0:.4f} seconds'.format(
+        time.time() - exec_start_time_unix_sec
+    ))
 
     scalar_target_matrix = None
     scalar_prediction_matrix = None
