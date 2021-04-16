@@ -506,12 +506,12 @@ def _get_scores_one_replicate(
                 min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
             )
 
-        if num_examples == 0:
-            max_bin_edge = 1.
-        else:
-            max_bin_edge = numpy.percentile(
-                full_scalar_target_matrix[:, k], max_bin_edge_percentile
-            )
+        # if num_examples == 0:
+        #     max_bin_edge = 1.
+        # else:
+        #     max_bin_edge = numpy.percentile(
+        #         full_scalar_target_matrix[:, k], max_bin_edge_percentile
+        #     )
 
         if i == 0:
             (
@@ -603,12 +603,12 @@ def _get_scores_one_replicate(
                     min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
                 )
 
-            if num_examples == 0:
-                max_bin_edge = 1.
-            else:
-                max_bin_edge = numpy.percentile(
-                    full_vector_target_matrix[:, j, k], max_bin_edge_percentile
-                )
+            # if num_examples == 0:
+            #     max_bin_edge = 1.
+            # else:
+            #     max_bin_edge = numpy.percentile(
+            #         full_vector_target_matrix[:, j, k], max_bin_edge_percentile
+            #     )
 
             if i == 0:
                 (
@@ -697,16 +697,16 @@ def _get_scores_one_replicate(
                 max_bin_edge=max_bin_edge, invert=False
             )
 
-        if num_examples == 0:
-            min_bin_edge = 0.
-            max_bin_edge = 1.
-        else:
-            min_bin_edge = numpy.percentile(
-                full_aux_target_matrix[:, k], 100. - max_bin_edge_percentile
-            )
-            max_bin_edge = numpy.percentile(
-                full_aux_target_matrix[:, k], max_bin_edge_percentile
-            )
+        # if num_examples == 0:
+        #     min_bin_edge = 0.
+        #     max_bin_edge = 1.
+        # else:
+        #     min_bin_edge = numpy.percentile(
+        #         full_aux_target_matrix[:, k], 100. - max_bin_edge_percentile
+        #     )
+        #     max_bin_edge = numpy.percentile(
+        #         full_aux_target_matrix[:, k], max_bin_edge_percentile
+        #     )
 
         if i == 0:
             (
