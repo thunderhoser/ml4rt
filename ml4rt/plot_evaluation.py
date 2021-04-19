@@ -430,9 +430,16 @@ def _plot_attributes_diagram(
             has_predictions=True, bar_colour=line_colours[main_index]
         )
 
+        # evaluation_plotting.plot_inset_histogram(
+        #     figure_object=figure_object,
+        #     bin_centers=inverted_bin_centers_by_set[main_index],
+        #     bin_counts=inverted_example_counts_by_set[main_index],
+        #     has_predictions=False, bar_colour=line_colours[main_index]
+        # )
+
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
-            bin_centers=inverted_bin_centers_by_set[main_index],
+            bin_centers=bin_centers_by_set[main_index],
             bin_counts=inverted_example_counts_by_set[main_index],
             has_predictions=False, bar_colour=line_colours[main_index]
         )
