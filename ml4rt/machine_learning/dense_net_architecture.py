@@ -8,8 +8,10 @@ from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
 
 NUM_INPUTS_KEY = 'num_inputs'
-DENSE_LAYER_NEURON_NUMS_KEY = 'dense_layer_neuron_nums'
-DENSE_LAYER_DROPOUT_RATES_KEY = 'dense_layer_dropout_rates'
+NUM_HEIGHTS_KEY = 'num_heights'
+NUM_FLUX_COMPONENTS_KEY = 'num_flux_components'
+HIDDEN_LAYER_NEURON_NUMS_KEY = 'hidden_layer_neuron_nums'
+HIDDEN_LAYER_DROPOUT_RATES_KEY = 'hidden_layer_dropout_rates'
 INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
 INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
 OUTPUT_ACTIV_FUNCTION_KEY = 'output_activ_function_name'
@@ -17,21 +19,19 @@ OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
-ZERO_OUT_TOP_HR_KEY = 'zero_out_top_heating_rate'
-TOP_HEATING_RATE_INDEX_KEY = 'top_heating_rate_index'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
-    DENSE_LAYER_NEURON_NUMS_KEY: numpy.array([1000, 605, 366, 221], dtype=int),
-    DENSE_LAYER_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, numpy.nan]),
+    NUM_HEIGHTS_KEY: 73,
+    NUM_FLUX_COMPONENTS_KEY: 2,
+    HIDDEN_LAYER_NEURON_NUMS_KEY: numpy.array([1000, 605, 366], dtype=int),
+    HIDDEN_LAYER_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     OUTPUT_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True,
-    ZERO_OUT_TOP_HR_KEY: False,
-    TOP_HEATING_RATE_INDEX_KEY: None
+    USE_BATCH_NORM_KEY: True
 }
 
 
@@ -46,45 +46,47 @@ def _check_architecture_args(option_dict):
     option_dict = DEFAULT_ARCHITECTURE_OPTION_DICT.copy()
     option_dict.update(orig_option_dict)
 
+    error_checking.assert_is_integer(option_dict[NUM_HEIGHTS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_HEIGHTS_KEY], 0)
+
+    error_checking.assert_is_integer(option_dict[NUM_FLUX_COMPONENTS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_FLUX_COMPONENTS_KEY], 0)
+    error_checking.assert_is_leq(option_dict[NUM_FLUX_COMPONENTS_KEY], 2)
+    error_checking.assert_is_greater(
+        option_dict[NUM_HEIGHTS_KEY] + option_dict[NUM_FLUX_COMPONENTS_KEY], 0
+    )
+
     error_checking.assert_is_integer(option_dict[NUM_INPUTS_KEY])
     error_checking.assert_is_geq(option_dict[NUM_INPUTS_KEY], 10)
 
-    dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
-    error_checking.assert_is_integer_numpy_array(dense_layer_neuron_nums)
+    hidden_layer_neuron_nums = option_dict[HIDDEN_LAYER_NEURON_NUMS_KEY]
+    error_checking.assert_is_integer_numpy_array(hidden_layer_neuron_nums)
     error_checking.assert_is_numpy_array(
-        dense_layer_neuron_nums, num_dimensions=1
+        hidden_layer_neuron_nums, num_dimensions=1
     )
-    error_checking.assert_is_geq_numpy_array(dense_layer_neuron_nums, 1)
+    error_checking.assert_is_geq_numpy_array(hidden_layer_neuron_nums, 1)
 
-    num_layers = len(dense_layer_neuron_nums)
-    these_dimensions = numpy.array([num_layers], dtype=int)
+    num_hidden_layers = len(hidden_layer_neuron_nums)
+    these_dimensions = numpy.array([num_hidden_layers], dtype=int)
 
-    dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
+    hidden_layer_dropout_rates = option_dict[HIDDEN_LAYER_DROPOUT_RATES_KEY]
     error_checking.assert_is_numpy_array(
-        dense_layer_dropout_rates, exact_dimensions=these_dimensions
+        hidden_layer_dropout_rates, exact_dimensions=these_dimensions
     )
     error_checking.assert_is_leq_numpy_array(
-        dense_layer_dropout_rates, 1., allow_nan=True
+        hidden_layer_dropout_rates, 1., allow_nan=True
     )
 
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
-    error_checking.assert_is_boolean(option_dict[ZERO_OUT_TOP_HR_KEY])
-
-    if option_dict[ZERO_OUT_TOP_HR_KEY]:
-        error_checking.assert_is_integer(
-            option_dict[TOP_HEATING_RATE_INDEX_KEY]
-        )
-        error_checking.assert_is_geq(option_dict[TOP_HEATING_RATE_INDEX_KEY], 0)
 
     return option_dict
 
 
-def _zero_top_heating_rate_function(top_heating_rate_index):
+def _zero_top_heating_rate_function():
     """Returns function that zeroes predicted heating rate at top of profile.
 
-    :param top_heating_rate_index: Array index for top heating rate.
     :return: zeroing_function: Function handle (see below).
     """
 
@@ -96,45 +98,39 @@ def _zero_top_heating_rate_function(top_heating_rate_index):
             zeroed out.
         """
 
-        num_outputs = orig_prediction_tensor.get_shape().as_list()[-1]
-
-        zero_tensor = K.greater_equal(
-            orig_prediction_tensor[..., top_heating_rate_index], 1e12
-        )
+        zero_tensor = K.greater_equal(orig_prediction_tensor[..., -1], 1e12)
         zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
 
         new_prediction_tensor = K.concatenate((
-            orig_prediction_tensor[..., :top_heating_rate_index],
+            orig_prediction_tensor[..., :-1],
             K.expand_dims(zero_tensor, axis=-1)
         ), axis=-1)
 
-        if top_heating_rate_index == num_outputs - 1:
-            return new_prediction_tensor
-
-        return K.concatenate((
-            new_prediction_tensor,
-            orig_prediction_tensor[..., (top_heating_rate_index + 1):]
-        ), axis=-1)
+        return new_prediction_tensor
 
     return zeroing_function
 
 
-def create_model(option_dict, loss_function):
+def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
     """Creates dense net.
 
     This method sets up the architecture, loss function, and optimizer -- and
     compiles the model -- but does not train it.
 
-    D = number of dense layers
+    H = number of hidden layers
 
     :param option_dict: Dictionary with the following keys.
     option_dict['num_inputs']: Number of input variables (predictors).
-    option_dict['dense_layer_neuron_nums']: length-D numpy array with number of
-        neurons (features) produced by each dense layer.  The last value in the
-        array, dense_layer_neuron_nums[-1], is the number of output scalars (to
+    option_dict['num_heights']: Number of heights at which to predict heating
+        rate.
+    option_dict['num_flux_components']: Number of scalar flux components to
+        predict.
+    option_dict['hidden_layer_neuron_nums']: length-H numpy array with number of
+        neurons (features) produced by each hidden layer.  The last value in the
+        array, hidden_layer_neuron_nums[-1], is the number of output scalars (to
         be predicted).
-    option_dict['dense_layer_dropout_rates']: length-D numpy array with dropout
-        rate for each dense layer.  Use NaN if you do not want dropout for a
+    option_dict['hidden_layer_dropout_rates']: length-H numpy array with dropout
+        rate for each hidden layer.  Use NaN if you do not want dropout for a
         particular layer.
     option_dict['inner_activ_function_name']: Name of activation function for
         all inner (non-output) layers.  Must be accepted by
@@ -151,20 +147,19 @@ def create_model(option_dict, loss_function):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
-    option_dict['zero_out_top_heating_rate']: Boolean flag.  If True, will
-        always predict 0 K day^-1 for top heating rate.
-    option_dict['top_heating_rate_index']: Array index for top heating rate.
-        Used only if `zero_out_top_heating_rate = True`.
 
-    :param loss_function: Function handle.
+    :param heating_rate_loss_function: Function handle.
+    :param flux_loss_function: Function handle.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
     option_dict = _check_architecture_args(option_dict)
 
     num_inputs = option_dict[NUM_INPUTS_KEY]
-    dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
-    dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
+    num_heights = option_dict[NUM_HEIGHTS_KEY]
+    num_flux_components = option_dict[NUM_FLUX_COMPONENTS_KEY]
+    hidden_layer_neuron_nums = option_dict[HIDDEN_LAYER_NEURON_NUMS_KEY]
+    hidden_layer_dropout_rates = option_dict[HIDDEN_LAYER_DROPOUT_RATES_KEY]
     inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
     inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
     output_activ_function_name = option_dict[OUTPUT_ACTIV_FUNCTION_KEY]
@@ -172,63 +167,106 @@ def create_model(option_dict, loss_function):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-    zero_out_top_heating_rate = option_dict[ZERO_OUT_TOP_HR_KEY]
-    top_heating_rate_index = option_dict[TOP_HEATING_RATE_INDEX_KEY]
 
     input_layer_object = keras.layers.Input(shape=(num_inputs,))
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight
     )
 
-    num_layers = len(dense_layer_neuron_nums)
+    num_hidden_layers = len(hidden_layer_neuron_nums)
     layer_object = None
 
-    for i in range(num_layers):
+    for i in range(num_hidden_layers):
         if layer_object is None:
             this_input_layer_object = input_layer_object
         else:
             this_input_layer_object = layer_object
 
         layer_object = architecture_utils.get_dense_layer(
-            num_output_units=dense_layer_neuron_nums[i],
+            num_output_units=hidden_layer_neuron_nums[i],
             weight_regularizer=regularizer_object
         )(this_input_layer_object)
 
-        if i == num_layers - 1:
-            layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=output_activ_function_name,
-                alpha_for_relu=output_activ_function_alpha,
-                alpha_for_elu=output_activ_function_alpha
-            )(layer_object)
-        else:
-            layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=inner_activ_function_name,
-                alpha_for_relu=inner_activ_function_alpha,
-                alpha_for_elu=inner_activ_function_alpha
-            )(layer_object)
+        layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(layer_object)
 
-        if dense_layer_dropout_rates[i] > 0:
+        if hidden_layer_dropout_rates[i] > 0:
             layer_object = architecture_utils.get_dropout_layer(
-                dropout_fraction=dense_layer_dropout_rates[i]
+                dropout_fraction=hidden_layer_dropout_rates[i]
             )(layer_object)
 
-        if use_batch_normalization and i != num_layers - 1:
+        if use_batch_normalization:
             layer_object = architecture_utils.get_batch_norm_layer()(
                 layer_object
             )
 
-    if zero_out_top_heating_rate:
-        this_function = _zero_top_heating_rate_function(top_heating_rate_index)
-        layer_object = keras.layers.Lambda(this_function)(layer_object)
+    heating_rate_layer_object = None
+    flux_layer_object = None
 
-    model_object = keras.models.Model(
-        inputs=input_layer_object, outputs=layer_object
-    )
+    if num_heights > 0:
+        heating_rate_layer_object = architecture_utils.get_dense_layer(
+            num_output_units=num_heights,
+            weight_regularizer=regularizer_object
+        )(layer_object)
 
-    model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
-    )
+        heating_rate_layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=output_activ_function_name,
+            alpha_for_relu=output_activ_function_alpha,
+            alpha_for_elu=output_activ_function_alpha
+        )(heating_rate_layer_object)
+
+        this_function = _zero_top_heating_rate_function()
+        heating_rate_layer_object = keras.layers.Lambda(
+            this_function, name='heating_rate_output'
+        )(heating_rate_layer_object)
+
+    if num_flux_components > 0:
+        flux_layer_object = architecture_utils.get_dense_layer(
+            num_output_units=num_flux_components,
+            weight_regularizer=regularizer_object
+        )(layer_object)
+
+        flux_layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=output_activ_function_name,
+            alpha_for_relu=output_activ_function_alpha,
+            alpha_for_elu=output_activ_function_alpha,
+            layer_name='flux_output'
+        )(flux_layer_object)
+
+    if num_heights > 0 and num_flux_components > 0:
+        model_object = keras.models.Model(
+            inputs=input_layer_object,
+            outputs=[heating_rate_layer_object, flux_layer_object]
+        )
+
+        loss_dict = {
+            'heating_rate_output': heating_rate_loss_function,
+            'flux_output': flux_loss_function
+        }
+
+        model_object.compile(
+            loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
+    elif num_heights > 0:
+        model_object = keras.models.Model(
+            inputs=input_layer_object, outputs=heating_rate_layer_object
+        )
+        model_object.compile(
+            loss=heating_rate_loss_function, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
+    else:
+        model_object = keras.models.Model(
+            inputs=input_layer_object, outputs=flux_layer_object
+        )
+        model_object.compile(
+            loss=flux_loss_function, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
 
     model_object.summary()
     return model_object
