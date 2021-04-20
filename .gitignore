@@ -15,6 +15,7 @@ dist/
 # Code that I don't intend to commit.
 ml4rt/scratch_space/
 ml4rt/dead_scratch_code/
+fuckery.py
 
 # Slurm output.
 *.out
