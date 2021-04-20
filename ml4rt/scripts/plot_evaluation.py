@@ -32,7 +32,11 @@ SCORE_NAME_TO_VERBOSE = {
     evaluation_plotting.MAE_SKILL_SCORE_NAME: 'MAE skill score',
     evaluation_plotting.BIAS_NAME: 'Bias',
     evaluation_plotting.CORRELATION_NAME: 'Correlation',
-    evaluation_plotting.KGE_NAME: 'Kling-Gupta efficiency'
+    evaluation_plotting.KGE_NAME: 'Kling-Gupta efficiency',
+    evaluation_plotting.MSE_BIAS_NAME: 'Bias part of MSE',
+    evaluation_plotting.MSE_VARIANCE_NAME: 'Variance part of MSE',
+    evaluation_plotting.KS_STATISTIC_NAME: 'Kolmogorov-Smirnov statistic',
+    evaluation_plotting.KS_P_VALUE_NAME: r'Kolmogorov-Smirnov $p$-value'
 }
 
 SCORE_NAME_TO_PROFILE_KEY = {
@@ -42,13 +46,24 @@ SCORE_NAME_TO_PROFILE_KEY = {
     evaluation_plotting.MAE_SKILL_SCORE_NAME: evaluation.VECTOR_MAE_SKILL_KEY,
     evaluation_plotting.BIAS_NAME: evaluation.VECTOR_BIAS_KEY,
     evaluation_plotting.CORRELATION_NAME: evaluation.VECTOR_CORRELATION_KEY,
-    evaluation_plotting.KGE_NAME: evaluation.VECTOR_KGE_KEY
+    evaluation_plotting.KGE_NAME: evaluation.VECTOR_KGE_KEY,
+    evaluation_plotting.MSE_BIAS_NAME: evaluation.VECTOR_MSE_BIAS_KEY,
+    evaluation_plotting.MSE_VARIANCE_NAME: evaluation.VECTOR_MSE_VARIANCE_KEY,
+    evaluation_plotting.KS_STATISTIC_NAME: evaluation.VECTOR_KS_STATISTIC_KEY,
+    evaluation_plotting.KS_P_VALUE_NAME: evaluation.VECTOR_KS_P_VALUE_KEY
 }
 
+OPTIONAL_SCORE_NAMES = [
+    evaluation_plotting.MSE_BIAS_NAME, evaluation_plotting.MSE_VARIANCE_NAME,
+    evaluation_plotting.KS_STATISTIC_NAME, evaluation_plotting.KS_P_VALUE_NAME
+]
 ORIG_UNIT_SCORE_NAMES = [
     evaluation_plotting.MAE_NAME, evaluation_plotting.BIAS_NAME
 ]
-SQUARED_UNIT_SCORE_NAMES = [evaluation_plotting.MSE_NAME]
+SQUARED_UNIT_SCORE_NAMES = [
+    evaluation_plotting.MSE_NAME, evaluation_plotting.MSE_BIAS_NAME,
+    evaluation_plotting.MSE_VARIANCE_NAME
+]
 
 TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
@@ -1073,6 +1088,11 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
 
     for k in range(num_vector_targets):
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
+
+            this_score_key = SCORE_NAME_TO_PROFILE_KEY[this_score_name]
+            if this_score_key not in evaluation_tables_xarray[0]:
+                continue
+
             _plot_score_profile(
                 evaluation_tables_xarray=evaluation_tables_xarray,
                 line_styles=line_styles, line_colours=line_colours,

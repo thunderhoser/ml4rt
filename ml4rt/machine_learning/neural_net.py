@@ -1920,13 +1920,13 @@ def read_model(hdf5_file_name):
 
     if isinstance(loss_function_or_dict, dict):
         for this_key in loss_function_or_dict:
-            custom_object_dict[this_key + '_loss'] = (
+            custom_object_dict[this_key + '_loss'] = eval(
                 loss_function_or_dict[this_key]
             )
 
-        custom_object_dict['loss'] = loss_function_or_dict['conv_output']
+        custom_object_dict['loss'] = eval(loss_function_or_dict['conv_output'])
     else:
-        custom_object_dict['loss'] = loss_function_or_dict
+        custom_object_dict['loss'] = eval(loss_function_or_dict)
 
     return tf_keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict

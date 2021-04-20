@@ -3,6 +3,7 @@
 import os.path
 import numpy
 import xarray
+from scipy.stats import ks_2samp
 from gewittergefahr.gg_utils import histograms
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -36,12 +37,27 @@ VECTOR_TARGET_STDEV_KEY = 'vector_target_stdev'
 VECTOR_PREDICTION_STDEV_KEY = 'vector_prediction_stdev'
 AUX_TARGET_STDEV_KEY = 'aux_target_stdev'
 AUX_PREDICTION_STDEV_KEY = 'aux_prediction_stdev'
+
 SCALAR_MSE_KEY = 'scalar_mse'
+SCALAR_MSE_BIAS_KEY = 'scalar_mse_bias'
+SCALAR_MSE_VARIANCE_KEY = 'scalar_mse_variance'
 SCALAR_MSE_SKILL_KEY = 'scalar_mse_skill_score'
 VECTOR_MSE_KEY = 'vector_mse'
+VECTOR_MSE_BIAS_KEY = 'vector_mse_bias'
+VECTOR_MSE_VARIANCE_KEY = 'vector_mse_variance'
 VECTOR_MSE_SKILL_KEY = 'vector_mse_skill_score'
 AUX_MSE_KEY = 'aux_mse'
+AUX_MSE_BIAS_KEY = 'aux_mse_bias'
+AUX_MSE_VARIANCE_KEY = 'aux_mse_variance'
 AUX_MSE_SKILL_KEY = 'aux_mse_skill_score'
+
+SCALAR_KS_STATISTIC_KEY = 'scalar_ks_statistic'
+SCALAR_KS_P_VALUE_KEY = 'scalar_ks_p_value'
+VECTOR_KS_STATISTIC_KEY = 'vector_ks_statistic'
+VECTOR_KS_P_VALUE_KEY = 'vector_ks_p_value'
+AUX_KS_STATISTIC_KEY = 'aux_ks_statistic'
+AUX_KS_P_VALUE_KEY = 'aux_ks_p_value'
+
 SCALAR_MAE_KEY = 'scalar_mae'
 SCALAR_MAE_SKILL_KEY = 'scalar_mae_skill_score'
 VECTOR_MAE_KEY = 'vector_mae'
@@ -156,10 +172,16 @@ def _get_mse_one_scalar(target_values, predicted_values):
 
     :param target_values: length-E numpy array of target (actual) values.
     :param predicted_values: length-E numpy array of predicted values.
-    :return: mean_squared_error: Self-explanatory.
+    :return: mse_total: Total MSE.
+    :return: mse_bias: Bias component.
+    :return: mse_variance: Variance component.
     """
 
-    return numpy.mean((target_values - predicted_values) ** 2)
+    mse_total = numpy.mean((target_values - predicted_values) ** 2)
+    mse_bias = numpy.mean(target_values - predicted_values) ** 2
+    mse_variance = mse_total - mse_bias
+
+    return mse_total, mse_bias, mse_variance
 
 
 def _get_mse_ss_one_scalar(target_values, predicted_values,
@@ -175,10 +197,10 @@ def _get_mse_ss_one_scalar(target_values, predicted_values,
 
     mse_actual = _get_mse_one_scalar(
         target_values=target_values, predicted_values=predicted_values
-    )
+    )[0]
     mse_climo = _get_mse_one_scalar(
         target_values=target_values, predicted_values=mean_training_target_value
-    )
+    )[0]
 
     return (mse_climo - mse_actual) / mse_climo
 
@@ -449,7 +471,11 @@ def _get_scores_one_replicate(
             predicted_values=scalar_prediction_matrix[:, k],
             mean_training_target_value=this_climo_value
         )
-        t[SCALAR_MSE_KEY].values[k, i] = _get_mse_one_scalar(
+        (
+            t[SCALAR_MSE_KEY].values[k, i],
+            t[SCALAR_MSE_BIAS_KEY].values[k, i],
+            t[SCALAR_MSE_VARIANCE_KEY].values[k, i]
+        ) = _get_mse_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k]
         )
@@ -499,6 +525,15 @@ def _get_scores_one_replicate(
                 min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
             )
 
+            (
+                t[SCALAR_KS_STATISTIC_KEY].values[k],
+                t[SCALAR_KS_P_VALUE_KEY].values[k]
+            ) = ks_2samp(
+                full_scalar_target_matrix[:, k],
+                full_scalar_prediction_matrix[:, k],
+                alternative='two-sided', mode='auto'
+            )
+
         # if num_examples == 0:
         #     max_bin_edge = 1.
         # else:
@@ -543,7 +578,11 @@ def _get_scores_one_replicate(
                 predicted_values=vector_prediction_matrix[:, j, k],
                 mean_training_target_value=this_climo_value
             )
-            t[VECTOR_MSE_KEY].values[j, k, i] = _get_mse_one_scalar(
+            (
+                t[VECTOR_MSE_KEY].values[j, k, i],
+                t[VECTOR_MSE_BIAS_KEY].values[j, k, i],
+                t[VECTOR_MSE_VARIANCE_KEY].values[j, k, i]
+            ) = _get_mse_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k]
             )
@@ -596,6 +635,15 @@ def _get_scores_one_replicate(
                     min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
                 )
 
+                (
+                    t[VECTOR_KS_STATISTIC_KEY].values[j, k],
+                    t[VECTOR_KS_P_VALUE_KEY].values[j, k]
+                ) = ks_2samp(
+                    full_vector_target_matrix[:, j, k],
+                    full_vector_prediction_matrix[:, j, k],
+                    alternative='two-sided', mode='auto'
+                )
+
             # if num_examples == 0:
             #     max_bin_edge = 1.
             # else:
@@ -625,7 +673,11 @@ def _get_scores_one_replicate(
             target_values=aux_target_matrix[:, k],
             predicted_values=aux_prediction_matrix[:, k]
         )
-        t[AUX_MSE_KEY].values[k, i] = _get_mse_one_scalar(
+        (
+            t[AUX_MSE_KEY].values[k, i],
+            t[AUX_MSE_BIAS_KEY].values[k, i],
+            t[AUX_MSE_VARIANCE_KEY].values[k, i]
+        ) = _get_mse_one_scalar(
             target_values=aux_target_matrix[:, k],
             predicted_values=aux_prediction_matrix[:, k]
         )
@@ -688,6 +740,15 @@ def _get_scores_one_replicate(
                 predicted_values=full_aux_prediction_matrix[:, k],
                 num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
                 max_bin_edge=max_bin_edge, invert=False
+            )
+
+            (
+                t[AUX_KS_STATISTIC_KEY].values[k],
+                t[AUX_KS_P_VALUE_KEY].values[k]
+            ) = ks_2samp(
+                full_aux_target_matrix[:, k],
+                full_aux_prediction_matrix[:, k],
+                alternative='two-sided', mode='auto'
             )
 
         # if num_examples == 0:
@@ -1064,7 +1125,6 @@ def get_scores_all_variables(
 
     these_dimensions = (num_scalar_targets, num_bootstrap_reps)
     these_dim_keys = (SCALAR_FIELD_DIM, BOOTSTRAP_REP_DIM)
-
     main_data_dict = {
         SCALAR_TARGET_STDEV_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1079,6 +1139,12 @@ def get_scores_all_variables(
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         SCALAR_MSE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_MSE_BIAS_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_MSE_VARIANCE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         SCALAR_MSE_SKILL_KEY: (
@@ -1101,7 +1167,6 @@ def get_scores_all_variables(
     these_dim_keys = (
         SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM, BOOTSTRAP_REP_DIM
     )
-
     new_dict = {
         SCALAR_RELIABILITY_X_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1114,7 +1179,6 @@ def get_scores_all_variables(
 
     these_dimensions = (num_scalar_targets, num_reliability_bins)
     these_dim_keys = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
-
     new_dict = {
         SCALAR_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1131,9 +1195,20 @@ def get_scores_all_variables(
     }
     main_data_dict.update(new_dict)
 
+    these_dimensions = (num_scalar_targets,)
+    these_dim_keys = (SCALAR_FIELD_DIM,)
+    new_dict = {
+        SCALAR_KS_STATISTIC_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_KS_P_VALUE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
     these_dimensions = (num_heights, num_vector_targets, num_bootstrap_reps)
     these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM, BOOTSTRAP_REP_DIM)
-
     new_dict = {
         VECTOR_TARGET_STDEV_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1148,6 +1223,12 @@ def get_scores_all_variables(
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_MSE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_MSE_BIAS_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_MSE_VARIANCE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_MSE_SKILL_KEY: (
@@ -1167,7 +1248,6 @@ def get_scores_all_variables(
 
     these_dimensions = (num_vector_targets, num_bootstrap_reps)
     these_dim_keys = (VECTOR_FIELD_DIM, BOOTSTRAP_REP_DIM)
-
     new_dict = {
         VECTOR_PRMSE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1183,7 +1263,6 @@ def get_scores_all_variables(
         HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM,
         BOOTSTRAP_REP_DIM
     )
-
     new_dict = {
         VECTOR_RELIABILITY_X_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1196,7 +1275,6 @@ def get_scores_all_variables(
 
     these_dimensions = (num_heights, num_vector_targets, num_reliability_bins)
     these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
-
     new_dict = {
         VECTOR_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1213,10 +1291,21 @@ def get_scores_all_variables(
     }
     main_data_dict.update(new_dict)
 
+    these_dimensions = (num_heights, num_vector_targets)
+    these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM)
+    new_dict = {
+        VECTOR_KS_STATISTIC_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_KS_P_VALUE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
     if num_aux_targets > 0:
         these_dimensions = (num_aux_targets, num_bootstrap_reps)
         these_dim_keys = (AUX_TARGET_FIELD_DIM, BOOTSTRAP_REP_DIM)
-
         new_dict = {
             AUX_TARGET_STDEV_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1231,6 +1320,12 @@ def get_scores_all_variables(
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_MSE_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_MSE_BIAS_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_MSE_VARIANCE_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_MSE_SKILL_KEY: (
@@ -1254,7 +1349,6 @@ def get_scores_all_variables(
         these_dim_keys = (
             AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM, BOOTSTRAP_REP_DIM
         )
-
         new_dict = {
             AUX_RELIABILITY_X_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1267,7 +1361,6 @@ def get_scores_all_variables(
 
         these_dimensions = (num_aux_targets, num_reliability_bins)
         these_dim_keys = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
-
         new_dict = {
             AUX_RELIA_BIN_CENTER_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1280,6 +1373,18 @@ def get_scores_all_variables(
             ),
             AUX_INV_RELIABILITY_COUNT_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            )
+        }
+        main_data_dict.update(new_dict)
+
+        these_dimensions = (num_aux_targets,)
+        these_dim_keys = (AUX_TARGET_FIELD_DIM,)
+        new_dict = {
+            AUX_KS_STATISTIC_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_KS_P_VALUE_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             )
         }
         main_data_dict.update(new_dict)
