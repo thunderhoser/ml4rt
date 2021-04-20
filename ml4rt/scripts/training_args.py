@@ -25,7 +25,7 @@ DEFAULT_PREDICTOR_NAMES = example_utils.ALL_VECTOR_PREDICTOR_NAMES + [
 ]
 
 NET_TYPE_TO_DEFAULT_HEIGHTS_M_AGL = {
-    neural_net.U_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL[:64],
+    neural_net.U_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL,
     neural_net.DENSE_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL,
     neural_net.CNN_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL
 }

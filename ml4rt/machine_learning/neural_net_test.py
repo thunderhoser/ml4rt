@@ -147,14 +147,23 @@ DENSE_NET_HEIGHT_MATRIX_M_AGL = numpy.array(
     [100, 500, 100, 500, numpy.nan, numpy.nan]
 )
 
-DENSE_NET_TARGET_MATRIX = numpy.array([
-    [300, 200, 150, 150, 200],
-    [500, 300, 200, 150, 200],
-    [450, 450, 300, 350, 200],
-    [200, 100, 400, 100, 200]
+THIS_VECTOR_TARGET_MATRIX = numpy.array([
+    [300, 200, 150, 150],
+    [500, 300, 200, 150],
+    [450, 450, 300, 350],
+    [200, 100, 400, 100]
 ], dtype=float)
 
-DENSE_NET_TARGET_MATRICES = [DENSE_NET_TARGET_MATRIX]
+THIS_SCALAR_TARGET_MATRIX = numpy.array([
+    [200],
+    [200],
+    [200],
+    [200]
+], dtype=float)
+
+DENSE_NET_TARGET_MATRICES = [
+    THIS_VECTOR_TARGET_MATRIX, THIS_SCALAR_TARGET_MATRIX
+]
 
 # The following constants are used to test neuron_indices_to_target_var and
 # target_var_to_neuron_indices.
@@ -179,7 +188,7 @@ DENSE_NET_NEURON_INDICES_LIST = [
     numpy.array([1], dtype=int),
     numpy.array([2], dtype=int),
     numpy.array([3], dtype=int),
-    numpy.array([4], dtype=int)
+    numpy.array([0], dtype=int)
 ]
 DENSE_NET_HEIGHTS_M_AGL = [100, 500, 100, 500, None]
 DENSE_NET_TARGET_NAMES = [
@@ -342,16 +351,15 @@ class NeuralNetTests(unittest.TestCase):
             SCALAR_PREDICTOR_MATRIX, atol=TOLERANCE
         ))
 
-    def test_targets_dict_to_numpy_cnn_default_loss(self):
+    def test_targets_dict_to_numpy_cnn(self):
         """Ensures correct output from targets_dict_to_numpy.
 
-        In this case, neural-net type is CNN with default loss function.
+        In this case, neural-net type is CNN.
         """
 
         these_matrices = neural_net.targets_dict_to_numpy(
             example_dict=EXAMPLE_DICT,
-            net_type_string=neural_net.CNN_TYPE_STRING,
-            is_loss_constrained_mse=False
+            net_type_string=neural_net.CNN_TYPE_STRING
         )
 
         self.assertTrue(
@@ -361,28 +369,6 @@ class NeuralNetTests(unittest.TestCase):
         for i in range(len(these_matrices)):
             self.assertTrue(numpy.allclose(
                 these_matrices[i], CNN_TARGET_MATRICES_DEFAULT_LOSS[i],
-                atol=TOLERANCE
-            ))
-
-    def test_targets_dict_to_numpy_cnn_custom_loss(self):
-        """Ensures correct output from targets_dict_to_numpy.
-
-        In this case, neural-net type is CNN with custom loss function.
-        """
-
-        these_matrices = neural_net.targets_dict_to_numpy(
-            example_dict=EXAMPLE_DICT,
-            net_type_string=neural_net.CNN_TYPE_STRING,
-            is_loss_constrained_mse=True
-        )
-
-        self.assertTrue(
-            len(these_matrices) == len(CNN_TARGET_MATRICES_CUSTOM_LOSS)
-        )
-
-        for i in range(len(these_matrices)):
-            self.assertTrue(numpy.allclose(
-                these_matrices[i], CNN_TARGET_MATRICES_CUSTOM_LOSS[i],
                 atol=TOLERANCE
             ))
 
@@ -406,8 +392,7 @@ class NeuralNetTests(unittest.TestCase):
 
         these_matrices = neural_net.targets_dict_to_numpy(
             example_dict=this_example_dict,
-            net_type_string=neural_net.CNN_TYPE_STRING,
-            is_loss_constrained_mse=False
+            net_type_string=neural_net.CNN_TYPE_STRING
         )
 
         self.assertTrue(
@@ -568,7 +553,8 @@ class NeuralNetTests(unittest.TestCase):
                 neural_net.neuron_indices_to_target_var(
                     neuron_indices=DENSE_NET_NEURON_INDICES_LIST[i],
                     example_dict=copy.deepcopy(EXAMPLE_DICT),
-                    net_type_string=neural_net.DENSE_NET_TYPE_STRING
+                    net_type_string=neural_net.DENSE_NET_TYPE_STRING,
+                    for_scalar_output=DENSE_NET_HEIGHTS_M_AGL[i] is None
                 )
             )
 

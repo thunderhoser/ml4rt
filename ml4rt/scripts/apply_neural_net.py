@@ -188,23 +188,20 @@ def _targets_numpy_to_dict(
     )
     add_heating_rate = generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
 
-    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
-        target_matrices = [scalar_target_matrix]
-    else:
-        if (
-                add_heating_rate and
-                vector_target_matrix.shape[-1] == len(vector_target_names) - 1
-        ):
-            heating_rate_index = vector_target_names.index(
-                example_utils.SHORTWAVE_HEATING_RATE_NAME
-            )
-            vector_target_matrix = numpy.insert(
-                vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
-            )
+    if (
+            add_heating_rate and
+            vector_target_matrix.shape[-1] == len(vector_target_names) - 1
+    ):
+        heating_rate_index = vector_target_names.index(
+            example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+        vector_target_matrix = numpy.insert(
+            vector_target_matrix, obj=heating_rate_index, values=0., axis=-1
+        )
 
-        target_matrices = [vector_target_matrix]
-        if scalar_target_matrix is not None:
-            target_matrices.append(scalar_target_matrix)
+    target_matrices = [vector_target_matrix]
+    if scalar_target_matrix is not None:
+        target_matrices.append(scalar_target_matrix)
 
     example_dict = {
         example_utils.VECTOR_TARGET_NAMES_KEY:
@@ -257,10 +254,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
 
-    is_loss_constrained_mse = neural_net.determine_if_loss_constrained_mse(
-        metadata_dict[neural_net.LOSS_FUNCTION_OR_DICT_KEY]
-    )
-
     generator_option_dict = copy.deepcopy(
         metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
@@ -280,7 +273,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict, for_inference=True,
-        net_type_string=net_type_string, is_loss_constrained_mse=False,
+        net_type_string=net_type_string,
         exclude_summit_greenland=exclude_summit_greenland
     )
     print(SEPARATOR_STRING)
@@ -289,8 +282,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-        net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse, verbose=True
+        net_type_string=net_type_string, verbose=True
     )
 
     print(SEPARATOR_STRING)
@@ -298,21 +290,15 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         time.time() - exec_start_time_unix_sec
     ))
 
-    scalar_target_matrix = None
-    scalar_prediction_matrix = None
-    vector_target_matrix = None
-    vector_prediction_matrix = None
+    vector_target_matrix = target_array[0]
+    vector_prediction_matrix = prediction_array[0]
 
-    if net_type_string == neural_net.DENSE_NET_TYPE_STRING:
-        scalar_target_matrix = target_array
-        scalar_prediction_matrix = prediction_array[0]
+    if len(target_array) == 2:
+        scalar_target_matrix = target_array[1]
+        scalar_prediction_matrix = prediction_array[1]
     else:
-        vector_target_matrix = target_array[0]
-        vector_prediction_matrix = prediction_array[0]
-
-        if len(target_array) == 2:
-            scalar_target_matrix = target_array[1]
-            scalar_prediction_matrix = prediction_array[1]
+        scalar_target_matrix = None
+        scalar_prediction_matrix = None
 
     target_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_target_matrix,

@@ -161,8 +161,7 @@ def get_examples_for_inference(
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict, for_inference=True,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        is_loss_constrained_mse=False
+        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
     )
 
     num_examples_total = len(example_id_strings)

@@ -170,8 +170,7 @@ def _zero_top_heating_rate_function(heating_rate_channel_index):
     return zeroing_function
 
 
-def create_model(option_dict, loss_function, up_flux_channel_index=None,
-                 down_flux_channel_index=None):
+def create_model(option_dict, loss_function):
     """Creates CNN (convolutional neural net).
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -223,12 +222,6 @@ def create_model(option_dict, loss_function, up_flux_channel_index=None,
         Used only if `zero_out_top_heating_rate = True`.
 
     :param loss_function: Function handle.
-    :param up_flux_channel_index:
-        [used only if loss function is constrained MSE]
-        Channel index for upwelling flux.
-    :param down_flux_channel_index:
-        [used only if loss function is constrained MSE]
-        Channel index for downwelling flux.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
@@ -252,25 +245,6 @@ def create_model(option_dict, loss_function, up_flux_channel_index=None,
     heating_rate_channel_index = option_dict[HEATING_RATE_INDEX_KEY]
 
     any_dense_layers = dense_layer_neuron_nums is not None
-    is_loss_constrained_mse = (
-        neural_net.determine_if_loss_constrained_mse(loss_function)
-    )
-
-    if not any_dense_layers:
-        assert not is_loss_constrained_mse
-
-    if is_loss_constrained_mse:
-        error_checking.assert_is_integer(up_flux_channel_index)
-        error_checking.assert_is_geq(up_flux_channel_index, 0)
-        error_checking.assert_is_less_than(
-            up_flux_channel_index, conv_layer_channel_nums[-1]
-        )
-
-        error_checking.assert_is_integer(down_flux_channel_index)
-        error_checking.assert_is_geq(down_flux_channel_index, 0)
-        error_checking.assert_is_less_than(
-            down_flux_channel_index, conv_layer_channel_nums[-1]
-        )
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -342,8 +316,7 @@ def create_model(option_dict, loss_function, up_flux_channel_index=None,
                         activation_function_string=output_activ_function_name,
                         alpha_for_relu=output_activ_function_alpha,
                         alpha_for_elu=output_activ_function_alpha,
-                        layer_name=
-                        None if is_loss_constrained_mse else 'dense_output'
+                        layer_name='dense_output'
                     )(dense_output_layer_object)
                 )
             else:
@@ -371,28 +344,6 @@ def create_model(option_dict, loss_function, up_flux_channel_index=None,
     else:
         dense_output_layer_object = None
 
-    if is_loss_constrained_mse:
-        k = up_flux_channel_index + 0
-
-        highest_up_flux_layer_object = keras.layers.Lambda(
-            lambda x: x[:, -1, k:(k + 1)]
-        )(conv_output_layer_object)
-
-        k = down_flux_channel_index + 0
-
-        lowest_down_flux_layer_object = keras.layers.Lambda(
-            lambda x: x[:, -0, k:(k + 1)]
-        )(conv_output_layer_object)
-
-        this_list = [
-            highest_up_flux_layer_object, lowest_down_flux_layer_object,
-            dense_output_layer_object
-        ]
-
-        dense_output_layer_object = keras.layers.Concatenate(
-            axis=-1, name='dense_output'
-        )(this_list)
-
     if zero_out_top_heating_rate:
         this_function = _zero_top_heating_rate_function(heating_rate_channel_index)
         conv_output_layer_object = keras.layers.Lambda(this_function)(
@@ -409,21 +360,10 @@ def create_model(option_dict, loss_function, up_flux_channel_index=None,
             inputs=input_layer_object, outputs=conv_output_layer_object
         )
 
-    if is_loss_constrained_mse:
-        loss_dict = {
-            'conv_output': keras.losses.mse,
-            'dense_output': loss_function
-        }
-
-        model_object.compile(
-            loss=loss_dict, optimizer=keras.optimizers.Adam(),
-            metrics=neural_net.METRIC_FUNCTION_LIST
-        )
-    else:
-        model_object.compile(
-            loss=loss_function, optimizer=keras.optimizers.Adam(),
-            metrics=neural_net.METRIC_FUNCTION_LIST
-        )
+    model_object.compile(
+        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        metrics=neural_net.METRIC_FUNCTION_LIST
+    )
 
     model_object.summary()
     return model_object
