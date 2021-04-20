@@ -248,15 +248,10 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
                 vector_target_names[k], int(numpy.round(heights_m_agl[j]))
             ))
 
-            this_layer_name = (
-                scalar_output_layer_name
-                if net_type_string == neural_net.DENSE_NET_TYPE_STRING
-                else vector_output_layer_name
-            )
-
             this_saliency_matrix = saliency.get_saliency_one_neuron(
                 model_object=model_object, predictor_matrix=predictor_matrix,
-                layer_name=this_layer_name, neuron_indices=these_neuron_indices,
+                layer_name=vector_output_layer_name,
+                neuron_indices=these_neuron_indices,
                 ideal_activation=ideal_activation
             )
 

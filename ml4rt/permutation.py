@@ -310,7 +310,7 @@ def _make_prediction_function(model_object, model_metadata_dict):
         return neural_net.apply_model(
             model_object=model_object, predictor_matrix=this_predictor_matrix,
             num_examples_per_batch=1000, net_type_string=net_type_string,
-            is_loss_constrained_mse=False, verbose=False
+            verbose=False
         )
 
     return prediction_function

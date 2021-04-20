@@ -163,11 +163,18 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
                 generator_option_dict[neural_net.HEIGHTS_KEY]
         }
 
+        this_flag = (
+            layer_name == 'dense_output' and
+            metadata_dict[neural_net.NET_TYPE_KEY] ==
+            neural_net.DENSE_NET_TYPE_STRING
+        )
+
         target_field_name, target_height_m_agl = (
             neural_net.neuron_indices_to_target_var(
                 neuron_indices=neuron_indices,
                 example_dict=copy.deepcopy(dummy_example_dict),
-                net_type_string=metadata_dict[neural_net.NET_TYPE_KEY]
+                net_type_string=metadata_dict[neural_net.NET_TYPE_KEY],
+                for_scalar_output=this_flag
             )
         )
     else:

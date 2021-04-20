@@ -1,10 +1,9 @@
 """Trains neural net."""
 
+import os
 import sys
-import os.path
 import argparse
 import numpy
-import keras.losses
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -14,31 +13,10 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import time_conversion
 import example_utils
 import neural_net
-import u_net_architecture
-import architecture_utils
-import custom_losses
 import training_args
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
-
 NONE_STRINGS = ['', 'none', 'None']
-
-DEFAULT_ARCHITECTURE_OPTION_DICT = {
-    u_net_architecture.NUM_HEIGHTS_KEY: 64,
-    u_net_architecture.NUM_HEIGHTS_FOR_LOSS_KEY: 64,
-    u_net_architecture.DENSE_LAYER_NEURON_NUMS_KEY:
-        numpy.array([1024, 128, 16, 2], dtype=int),
-    u_net_architecture.DENSE_LAYER_DROPOUT_RATES_KEY:
-        numpy.array([0.5, 0.5, 0.5, numpy.nan]),
-    u_net_architecture.NUM_INPUT_CHANNELS_KEY: 16,
-    u_net_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
-        architecture_utils.RELU_FUNCTION_STRING,
-    u_net_architecture.ZERO_OUT_TOP_HR_KEY: True,
-    u_net_architecture.HEATING_RATE_INDEX_KEY: 0
-}
-
-DEFAULT_VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
-DEFAULT_SCALAR_LOSS_FUNCTION = keras.losses.mse
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
@@ -173,34 +151,21 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         neural_net.LAST_TIME_KEY: last_validn_time_unix_sec
     }
 
-    if input_model_file_name in NONE_STRINGS:
-        model_object = u_net_architecture.create_model(
-            option_dict=DEFAULT_ARCHITECTURE_OPTION_DICT,
-            vector_loss_function=DEFAULT_VECTOR_LOSS_FUNCTION,
-            scalar_loss_function=DEFAULT_SCALAR_LOSS_FUNCTION,
-            num_output_channels=1
-        )
+    print('Reading untrained model from: "{0:s}"...'.format(
+        input_model_file_name
+    ))
+    model_object = neural_net.read_model(input_model_file_name)
 
-        loss_function_or_dict = {
-            'conv_output': DEFAULT_VECTOR_LOSS_FUNCTION,
-            'dense_output': DEFAULT_SCALAR_LOSS_FUNCTION
-        }
-    else:
-        print('Reading untrained model from: "{0:s}"...'.format(
-            input_model_file_name
-        ))
-        model_object = neural_net.read_model(input_model_file_name)
+    input_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(input_model_file_name)[0]
+    )
 
-        input_metafile_name = neural_net.find_metafile(
-            model_dir_name=os.path.split(input_model_file_name)[0]
-        )
-
-        print('Reading loss function(s) from: "{0:s}"...'.format(
-            input_metafile_name
-        ))
-        loss_function_or_dict = neural_net.read_metafile(input_metafile_name)[
-            neural_net.LOSS_FUNCTION_OR_DICT_KEY
-        ]
+    print('Reading loss function(s) from: "{0:s}"...'.format(
+        input_metafile_name
+    ))
+    loss_function_or_dict = neural_net.read_metafile(input_metafile_name)[
+        neural_net.LOSS_FUNCTION_OR_DICT_KEY
+    ]
 
     print(SEPARATOR_STRING)
 

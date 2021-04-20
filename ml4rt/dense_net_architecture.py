@@ -55,14 +55,11 @@ def _check_architecture_args(option_dict):
     option_dict.update(orig_option_dict)
 
     error_checking.assert_is_integer(option_dict[NUM_HEIGHTS_KEY])
-    error_checking.assert_is_geq(option_dict[NUM_HEIGHTS_KEY], 0)
+    error_checking.assert_is_greater(option_dict[NUM_HEIGHTS_KEY], 0)
 
     error_checking.assert_is_integer(option_dict[NUM_FLUX_COMPONENTS_KEY])
     error_checking.assert_is_geq(option_dict[NUM_FLUX_COMPONENTS_KEY], 0)
     error_checking.assert_is_leq(option_dict[NUM_FLUX_COMPONENTS_KEY], 2)
-    error_checking.assert_is_greater(
-        option_dict[NUM_HEIGHTS_KEY] + option_dict[NUM_FLUX_COMPONENTS_KEY], 0
-    )
 
     error_checking.assert_is_integer(option_dict[NUM_INPUTS_KEY])
     error_checking.assert_is_geq(option_dict[NUM_INPUTS_KEY], 10)
@@ -211,25 +208,21 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
                 layer_object
             )
 
-    heating_rate_layer_object = None
-    flux_layer_object = None
+    heating_rate_layer_object = architecture_utils.get_dense_layer(
+        num_output_units=num_heights,
+        weight_regularizer=regularizer_object
+    )(layer_object)
 
-    if num_heights > 0:
-        heating_rate_layer_object = architecture_utils.get_dense_layer(
-            num_output_units=num_heights,
-            weight_regularizer=regularizer_object
-        )(layer_object)
+    heating_rate_layer_object = architecture_utils.get_activation_layer(
+        activation_function_string=output_activ_function_name,
+        alpha_for_relu=output_activ_function_alpha,
+        alpha_for_elu=output_activ_function_alpha
+    )(heating_rate_layer_object)
 
-        heating_rate_layer_object = architecture_utils.get_activation_layer(
-            activation_function_string=output_activ_function_name,
-            alpha_for_relu=output_activ_function_alpha,
-            alpha_for_elu=output_activ_function_alpha
-        )(heating_rate_layer_object)
-
-        this_function = _zero_top_heating_rate_function()
-        heating_rate_layer_object = keras.layers.Lambda(
-            this_function, name='conv_output'
-        )(heating_rate_layer_object)
+    this_function = _zero_top_heating_rate_function()
+    heating_rate_layer_object = keras.layers.Lambda(
+        this_function, name='conv_output'
+    )(heating_rate_layer_object)
 
     if num_flux_components > 0:
         flux_layer_object = architecture_utils.get_dense_layer(
@@ -244,7 +237,6 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
             layer_name='dense_output'
         )(flux_layer_object)
 
-    if num_heights > 0 and num_flux_components > 0:
         model_object = keras.models.Model(
             inputs=input_layer_object,
             outputs=[heating_rate_layer_object, flux_layer_object]
@@ -259,20 +251,12 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
             loss=loss_dict, optimizer=keras.optimizers.Adam(),
             metrics=neural_net.METRIC_FUNCTION_LIST
         )
-    elif num_heights > 0:
+    else:
         model_object = keras.models.Model(
             inputs=input_layer_object, outputs=heating_rate_layer_object
         )
         model_object.compile(
             loss=heating_rate_loss_function, optimizer=keras.optimizers.Adam(),
-            metrics=neural_net.METRIC_FUNCTION_LIST
-        )
-    else:
-        model_object = keras.models.Model(
-            inputs=input_layer_object, outputs=flux_layer_object
-        )
-        model_object.compile(
-            loss=flux_loss_function, optimizer=keras.optimizers.Adam(),
             metrics=neural_net.METRIC_FUNCTION_LIST
         )
 

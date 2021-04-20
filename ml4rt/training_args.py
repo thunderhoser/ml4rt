@@ -1,7 +1,7 @@
 """Contains list of input arguments for training a neural net."""
 
+import os
 import sys
-import os.path
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -14,12 +14,7 @@ import neural_net
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
-# if 'hfe' in socket.gethostname():
-#     HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-# else:
-#     HOME_DIR_NAME = os.path.expanduser('~')
-
-HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
+HOME_DIR_NAME = os.path.expanduser('~')
 DEFAULT_TRAINING_DIR_NAME = (
     '{0:s}/ml4rt_project/examples/with_new_data/for_base_model'
 ).format(HOME_DIR_NAME)
@@ -37,7 +32,7 @@ DEFAULT_PREDICTOR_NAMES = example_utils.ALL_VECTOR_PREDICTOR_NAMES + [
 ]
 
 NET_TYPE_TO_DEFAULT_HEIGHTS_M_AGL = {
-    neural_net.U_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL[:64],
+    neural_net.U_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL,
     neural_net.DENSE_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL,
     neural_net.CNN_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL
 }

@@ -44,7 +44,6 @@ VALID_NET_TYPE_STRINGS = [
 USE_MSE_SKILL_KEY = 'use_mse_skill_score'
 USE_WEIGHTED_MSE_KEY = 'use_weighted_mse'
 USE_DUAL_WEIGHTED_MSE_KEY = 'use_dual_weighted_mse'
-CONSTRAINED_MSE_OPTIONS_KEY = 'constrained_mse_dict'
 
 TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
 TOA_UP_FLUX_WEIGHT_KEY = 'toa_up_flux_weight'
@@ -502,22 +501,6 @@ def check_net_type(net_type_string):
     raise ValueError(error_string)
 
 
-def determine_if_loss_constrained_mse(loss_function_or_dict):
-    """Determines whether or not loss function is constrained MSE.
-
-    :param loss_function_or_dict: See doc for `train_model_with_generator`.
-    :return: is_loss_constrained_mse: Boolean flag.
-    """
-
-    if isinstance(loss_function_or_dict, dict):
-        loss_function_string = pickle.dumps(loss_function_or_dict['conv_output'])
-    else:
-        loss_function_string = pickle.dumps(loss_function_or_dict)
-
-    loss_function_string = ''.join(map(chr, loss_function_string))
-    return 'toa_up_flux_index' in loss_function_string
-
-
 def predictors_dict_to_numpy(example_dict, net_type_string):
     """Converts predictors from dictionary to numpy array.
 
@@ -702,47 +685,21 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     }
 
 
-def targets_dict_to_numpy(example_dict, net_type_string,
-                          is_loss_constrained_mse=None):
+def targets_dict_to_numpy(example_dict, net_type_string):
     """Converts targets from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param net_type_string: Type of neural net (must be accepted by
         `check_net_type`).
-    :param is_loss_constrained_mse: See doc for `data_generator`.
     :return: target_matrices: If net type is CNN, same as output from
         `data_generator`.  Otherwise, same as output from `data_generator` but
         in a one-element list.
     """
 
     check_net_type(net_type_string)
-    if net_type_string != CNN_TYPE_STRING:
-        is_loss_constrained_mse = False
 
     if net_type_string == DENSE_NET_TYPE_STRING:
-        vector_target_matrix = (
-            example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
-        )
-        num_examples = vector_target_matrix.shape[0]
-        num_heights = vector_target_matrix.shape[1]
-        num_fields = vector_target_matrix.shape[2]
-
-        vector_target_matrix = numpy.reshape(
-            vector_target_matrix, (num_examples, num_heights * num_fields),
-            order='F'
-        )
-
-        target_matrix = numpy.concatenate((
-            vector_target_matrix,
-            example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
-        ), axis=-1)
-
-        return [target_matrix]
-
-    error_checking.assert_is_boolean(is_loss_constrained_mse)
-
-    if not is_loss_constrained_mse:
         vector_target_matrix = (
             example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
         )
@@ -750,33 +707,28 @@ def targets_dict_to_numpy(example_dict, net_type_string,
             example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
         )
 
+        num_examples = vector_target_matrix.shape[0]
+        num_heights = vector_target_matrix.shape[1]
+        num_fields = vector_target_matrix.shape[2]
+        vector_target_matrix = numpy.reshape(
+            vector_target_matrix, (num_examples, num_heights * num_fields),
+            order='F'
+        )
+
         if scalar_target_matrix.size == 0:
             return [vector_target_matrix]
 
         return [vector_target_matrix, scalar_target_matrix]
 
-    up_flux_channel_index = (
-        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
-            example_utils.SHORTWAVE_UP_FLUX_NAME
-        )
+    vector_target_matrix = (
+        example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
     )
-    down_flux_channel_index = (
-        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
-            example_utils.SHORTWAVE_DOWN_FLUX_NAME
-        )
+    scalar_target_matrix = (
+        example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
     )
 
-    vector_target_matrix = example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
-    scalar_target_matrix = example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
-
-    this_vector_target_matrix = numpy.stack((
-        vector_target_matrix[:, -1, up_flux_channel_index],
-        vector_target_matrix[:, 0, down_flux_channel_index],
-    ), axis=-1)
-
-    scalar_target_matrix = numpy.concatenate((
-        this_vector_target_matrix, scalar_target_matrix
-    ), axis=-1)
+    if scalar_target_matrix.size == 0:
+        return [vector_target_matrix]
 
     return [vector_target_matrix, scalar_target_matrix]
 
@@ -804,62 +756,11 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
 
     check_net_type(net_type_string)
 
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        target_matrix = target_matrices[0]
-
-        error_checking.assert_is_numpy_array_without_nan(target_matrix)
-        error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
-
-        num_scalar_targets = len(
-            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
-        )
-
-        if num_scalar_targets == 0:
-            scalar_target_matrix = target_matrix[:, :0]
-            vector_target_matrix = target_matrix + 0.
-        else:
-            scalar_target_matrix = target_matrix[:, -num_scalar_targets:]
-            vector_target_matrix = target_matrix[:, :-num_scalar_targets]
-
-        num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
-        num_vector_targets = len(
-            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
-        )
-        num_examples = vector_target_matrix.shape[0]
-
-        try:
-            vector_target_matrix = numpy.reshape(
-                vector_target_matrix,
-                (num_examples, num_heights, num_vector_targets),
-                order='F'
-            )
-        except ValueError:
-
-            # TODO(thunderhoser): This is kind of a HACK.
-            vector_target_matrix = numpy.reshape(
-                vector_target_matrix,
-                (num_examples, num_heights, num_vector_targets - 1),
-                order='F'
-            )
-            heating_rate_index = (
-                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
-                    example_utils.SHORTWAVE_HEATING_RATE_NAME
-                )
-            )
-            vector_target_matrix = numpy.insert(
-                vector_target_matrix, obj=heating_rate_index,
-                values=0., axis=-1
-            )
-
-        return {
-            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
-        }
-
     vector_target_matrix = target_matrices[0]
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
     error_checking.assert_is_numpy_array(
-        vector_target_matrix, num_dimensions=3
+        vector_target_matrix,
+        num_dimensions=3 - int(net_type_string == DENSE_NET_TYPE_STRING)
     )
 
     if len(target_matrices) == 1:
@@ -874,13 +775,50 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
         scalar_target_matrix, num_dimensions=2
     )
 
+    if net_type_string != DENSE_NET_TYPE_STRING:
+        return {
+            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+        }
+
+    num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
+    num_vector_targets = len(
+        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    )
+    num_examples = vector_target_matrix.shape[0]
+
+    try:
+        vector_target_matrix = numpy.reshape(
+            vector_target_matrix,
+            (num_examples, num_heights, num_vector_targets),
+            order='F'
+        )
+    except ValueError:
+
+        # TODO(thunderhoser): This is kind of a HACK.
+        vector_target_matrix = numpy.reshape(
+            vector_target_matrix,
+            (num_examples, num_heights, num_vector_targets - 1),
+            order='F'
+        )
+        heating_rate_index = (
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_HEATING_RATE_NAME
+            )
+        )
+        vector_target_matrix = numpy.insert(
+            vector_target_matrix, obj=heating_rate_index,
+            values=0., axis=-1
+        )
+
     return {
         example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
         example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
     }
 
 
-def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
+def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string,
+                                 for_scalar_output=False):
     """Converts indices of output neuron to metadata for target variable.
 
     :param neuron_indices: 1-D numpy array with indices of output neuron.  Must
@@ -888,6 +826,7 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
         target variable).
     :param example_dict: See doc for `targets_numpy_to_dict`.
     :param net_type_string: Same.
+    :param for_scalar_output: Boolean flag, used only for dense nets.
     :return: target_name: Name of target variable.
     :return: height_m_agl: Height (metres above ground level) of target
         variable.  If target variable is scalar, this will be None.
@@ -900,9 +839,11 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
     if net_type_string == DENSE_NET_TYPE_STRING:
         min_num_indices = 1
         max_num_indices = 1
+        error_checking.assert_is_boolean(for_scalar_output)
     else:
         min_num_indices = 1
         max_num_indices = 2
+        for_scalar_output = False
 
     num_indices = len(neuron_indices)
     error_checking.assert_is_geq(num_indices, min_num_indices)
@@ -923,29 +864,38 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string):
     num_heights = len(heights_m_agl)
 
     if net_type_string == DENSE_NET_TYPE_STRING:
-        num_output_neurons = (
-            num_scalar_targets + num_vector_targets * num_heights
+        vector_target_matrix_keras = numpy.full(
+            (1, num_vector_targets * num_heights), 0.
         )
-        target_matrix_keras = numpy.full((1, num_output_neurons), 0.)
-        target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
+
+        if for_scalar_output:
+            scalar_target_matrix_keras = numpy.full((1, num_scalar_targets), 0.)
+            scalar_target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
+            target_matrices_keras = [
+                vector_target_matrix_keras, scalar_target_matrix_keras
+            ]
+        else:
+            vector_target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
+            target_matrices_keras = [vector_target_matrix_keras]
 
         example_dict = targets_numpy_to_dict(
-            target_matrices=[target_matrix_keras],
+            target_matrices=target_matrices_keras,
             example_dict=example_dict, net_type_string=net_type_string
         )
-        scalar_target_matrix_orig = (
-            example_dict[example_utils.SCALAR_TARGET_VALS_KEY][0, ...]
-        )
+
+        if for_scalar_output:
+            scalar_target_matrix_orig = (
+                example_dict[example_utils.SCALAR_TARGET_VALS_KEY][0, ...]
+            )
+            this_index = numpy.where(
+                scalar_target_matrix_orig < SENTINEL_VALUE + 1
+            )[0][0]
+
+            return scalar_target_names[this_index], None
+
         vector_target_matrix_orig = (
             example_dict[example_utils.VECTOR_TARGET_VALS_KEY][0, ...]
         )
-
-        these_indices = numpy.where(
-            scalar_target_matrix_orig < SENTINEL_VALUE + 1
-        )[0]
-        if len(these_indices) > 0:
-            return scalar_target_names[these_indices[0]], None
-
         these_height_indices, these_field_indices = numpy.where(
             vector_target_matrix_orig < SENTINEL_VALUE + 1
         )
@@ -1015,8 +965,7 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
         }
 
         scalar_target_matrix_keras = targets_dict_to_numpy(
-            example_dict=new_example_dict, net_type_string=net_type_string,
-            is_loss_constrained_mse=False
+            example_dict=new_example_dict, net_type_string=net_type_string
         )[-1][0, ...]
 
         neuron_index = numpy.where(
@@ -1037,20 +986,17 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
     }
 
     target_matrices_keras = targets_dict_to_numpy(
-        example_dict=new_example_dict, net_type_string=net_type_string,
-        is_loss_constrained_mse=False
+        example_dict=new_example_dict, net_type_string=net_type_string
     )
+    vector_target_matrix_keras = target_matrices_keras[0][0, ...]
 
     if net_type_string == DENSE_NET_TYPE_STRING:
-        scalar_target_matrix_keras = target_matrices_keras[0][0, ...]
-
         neuron_index = numpy.where(
-            scalar_target_matrix_keras < SENTINEL_VALUE + 1
+            vector_target_matrix_keras < SENTINEL_VALUE + 1
         )[0][0]
 
         return numpy.array([neuron_index], dtype=int)
 
-    vector_target_matrix_keras = target_matrices_keras[0][0, ...]
     height_indices, field_indices = numpy.where(
         vector_target_matrix_keras < SENTINEL_VALUE + 1
     )
@@ -1058,8 +1004,7 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
     return numpy.array([height_indices[0], field_indices[0]], dtype=int)
 
 
-def data_generator(option_dict, for_inference, net_type_string,
-                   is_loss_constrained_mse=None):
+def data_generator(option_dict, for_inference, net_type_string):
     """Generates training data for any kind of neural net.
 
     E = number of examples per batch (batch size)
@@ -1114,9 +1059,6 @@ def data_generator(option_dict, for_inference, net_type_string,
         validation).
     :param net_type_string: Type of neural net (must be accepted by
         `check_net_type`).
-    :param is_loss_constrained_mse: [used only if net type is CNN]
-        Boolean flag.  If True, loss function is constrained MSE (mean squared
-        error).
 
     :return: predictor_matrix: numpy array of predictor values.  If net type is
         dense, the array will be E x P.  Otherwise, will be E x H x P.
@@ -1136,11 +1078,6 @@ def data_generator(option_dict, for_inference, net_type_string,
     option_dict = _check_generator_args(option_dict)
     error_checking.assert_is_boolean(for_inference)
     check_net_type(net_type_string)
-
-    if net_type_string != CNN_TYPE_STRING:
-        is_loss_constrained_mse = False
-
-    error_checking.assert_is_boolean(is_loss_constrained_mse)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -1227,7 +1164,6 @@ def data_generator(option_dict, for_inference, net_type_string,
 
         num_examples_in_memory = 0
         predictor_matrix = None
-        target_matrix = None
         vector_target_matrix = None
         scalar_target_matrix = None
         example_id_strings = []
@@ -1269,28 +1205,18 @@ def data_generator(option_dict, for_inference, net_type_string,
                 example_dict=this_example_dict, net_type_string=net_type_string
             )[0]
             this_target_list = targets_dict_to_numpy(
-                example_dict=this_example_dict, net_type_string=net_type_string,
-                is_loss_constrained_mse=is_loss_constrained_mse
+                example_dict=this_example_dict, net_type_string=net_type_string
             )
 
-            if net_type_string == DENSE_NET_TYPE_STRING:
-                this_vector_target_matrix = None
+            this_vector_target_matrix = this_target_list[0]
+            if len(this_target_list) == 1:
                 this_scalar_target_matrix = None
-                this_target_matrix = this_target_list[0]
             else:
-                this_vector_target_matrix = this_target_list[0]
-                this_target_matrix = None
-
-                if len(this_target_list) == 1:
-                    this_scalar_target_matrix = None
-                else:
-                    this_scalar_target_matrix = this_target_list[1]
+                this_scalar_target_matrix = this_target_list[1]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
 
-                if this_target_matrix is not None:
-                    target_matrix = this_target_matrix + 0.
                 if this_vector_target_matrix is not None:
                     vector_target_matrix = this_vector_target_matrix + 0.
                 if this_scalar_target_matrix is not None:
@@ -1300,10 +1226,6 @@ def data_generator(option_dict, for_inference, net_type_string,
                     (predictor_matrix, this_predictor_matrix), axis=0
                 )
 
-                if this_target_matrix is not None:
-                    target_matrix = numpy.concatenate(
-                        (target_matrix, this_target_matrix), axis=0
-                    )
                 if this_vector_target_matrix is not None:
                     vector_target_matrix = numpy.concatenate(
                         (vector_target_matrix, this_vector_target_matrix),
@@ -1318,14 +1240,9 @@ def data_generator(option_dict, for_inference, net_type_string,
             num_examples_in_memory = predictor_matrix.shape[0]
 
         predictor_matrix = predictor_matrix.astype('float32')
-
-        if net_type_string == DENSE_NET_TYPE_STRING:
-            target_array = target_matrix.astype('float32')
-        else:
-            target_array = [vector_target_matrix.astype('float32')]
-
-            if scalar_target_matrix is not None:
-                target_array.append(scalar_target_matrix.astype('float32'))
+        target_array = [vector_target_matrix.astype('float32')]
+        if scalar_target_matrix is not None:
+            target_array.append(scalar_target_matrix.astype('float32'))
 
         if for_inference:
             yield predictor_matrix, target_array, example_id_strings
@@ -1334,7 +1251,7 @@ def data_generator(option_dict, for_inference, net_type_string,
 
 
 def create_data(option_dict, for_inference, net_type_string,
-                is_loss_constrained_mse=None, exclude_summit_greenland=False):
+                exclude_summit_greenland=False):
     """Creates data for any kind of neural net.
 
     This method is the same as `data_generator`, except that it returns all the
@@ -1343,7 +1260,6 @@ def create_data(option_dict, for_inference, net_type_string,
     :param option_dict: See doc for `data_generator`.
     :param for_inference: Same.
     :param net_type_string: Same.
-    :param is_loss_constrained_mse: Same.
     :param exclude_summit_greenland: Boolean flag.  If True, will exclude
         examples from Summit.
     :return: predictor_matrix: Same.
@@ -1353,11 +1269,6 @@ def create_data(option_dict, for_inference, net_type_string,
 
     option_dict = _check_generator_args(option_dict)
     check_net_type(net_type_string)
-
-    if net_type_string != CNN_TYPE_STRING:
-        is_loss_constrained_mse = False
-
-    error_checking.assert_is_boolean(is_loss_constrained_mse)
     error_checking.assert_is_boolean(exclude_summit_greenland)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
@@ -1453,19 +1364,15 @@ def create_data(option_dict, for_inference, net_type_string,
     predictor_matrix = predictor_matrix.astype('float32')
 
     prelim_target_list = targets_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse
+        example_dict=example_dict, net_type_string=net_type_string
     )
 
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        target_array = prelim_target_list[0].astype('float32')
-    else:
-        vector_target_matrix = prelim_target_list[0]
-        target_array = [vector_target_matrix.astype('float32')]
+    vector_target_matrix = prelim_target_list[0]
+    target_array = [vector_target_matrix.astype('float32')]
 
-        if len(prelim_target_list) > 1:
-            scalar_target_matrix = prelim_target_list[1]
-            target_array.append(scalar_target_matrix.astype('float32'))
+    if len(prelim_target_list) > 1:
+        scalar_target_matrix = prelim_target_list[1]
+        target_array.append(scalar_target_matrix.astype('float32'))
 
     return (
         predictor_matrix,
@@ -1545,7 +1452,6 @@ def data_generator_specific_examples(option_dict, net_type_string,
 
         num_examples_in_memory = 0
         predictor_matrix = None
-        target_matrix = None
         vector_target_matrix = None
         scalar_target_matrix = None
 
@@ -1583,28 +1489,18 @@ def data_generator_specific_examples(option_dict, net_type_string,
                 example_dict=this_example_dict, net_type_string=net_type_string
             )[0]
             this_target_list = targets_dict_to_numpy(
-                example_dict=this_example_dict, net_type_string=net_type_string,
-                is_loss_constrained_mse=False
+                example_dict=this_example_dict, net_type_string=net_type_string
             )
 
-            if net_type_string == DENSE_NET_TYPE_STRING:
-                this_vector_target_matrix = None
+            this_vector_target_matrix = this_target_list[0]
+            if len(this_target_list) == 1:
                 this_scalar_target_matrix = None
-                this_target_matrix = this_target_list[0]
             else:
-                this_vector_target_matrix = this_target_list[0]
-                this_target_matrix = None
-
-                if len(this_target_list) == 1:
-                    this_scalar_target_matrix = None
-                else:
-                    this_scalar_target_matrix = this_target_list[1]
+                this_scalar_target_matrix = this_target_list[1]
 
             if predictor_matrix is None:
                 predictor_matrix = this_predictor_matrix + 0.
 
-                if this_target_matrix is not None:
-                    target_matrix = this_target_matrix + 0.
                 if this_vector_target_matrix is not None:
                     vector_target_matrix = this_vector_target_matrix + 0.
                 if this_scalar_target_matrix is not None:
@@ -1614,10 +1510,6 @@ def data_generator_specific_examples(option_dict, net_type_string,
                     (predictor_matrix, this_predictor_matrix), axis=0
                 )
 
-                if this_target_matrix is not None:
-                    target_matrix = numpy.concatenate(
-                        (target_matrix, this_target_matrix), axis=0
-                    )
                 if this_vector_target_matrix is not None:
                     vector_target_matrix = numpy.concatenate(
                         (vector_target_matrix, this_vector_target_matrix),
@@ -1632,14 +1524,9 @@ def data_generator_specific_examples(option_dict, net_type_string,
             num_examples_in_memory = predictor_matrix.shape[0]
 
         predictor_matrix = predictor_matrix.astype('float32')
-
-        if net_type_string == DENSE_NET_TYPE_STRING:
-            target_array = target_matrix.astype('float32')
-        else:
-            target_array = [vector_target_matrix.astype('float32')]
-
-            if scalar_target_matrix is not None:
-                target_array.append(scalar_target_matrix.astype('float32'))
+        target_array = [vector_target_matrix.astype('float32')]
+        if scalar_target_matrix is not None:
+            target_array.append(scalar_target_matrix.astype('float32'))
 
         yield predictor_matrix, target_array
 
@@ -1728,19 +1615,15 @@ def create_data_specific_examples(
     predictor_matrix = predictor_matrix.astype('float32')
 
     prelim_target_list = targets_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string,
-        is_loss_constrained_mse=False
+        example_dict=example_dict, net_type_string=net_type_string
     )
 
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        target_array = prelim_target_list[0].astype('float32')
-    else:
-        vector_target_matrix = prelim_target_list[0]
-        target_array = [vector_target_matrix.astype('float32')]
+    vector_target_matrix = prelim_target_list[0]
+    target_array = [vector_target_matrix.astype('float32')]
 
-        if len(prelim_target_list) > 1:
-            scalar_target_matrix = prelim_target_list[1]
-            target_array.append(scalar_target_matrix.astype('float32'))
+    if len(prelim_target_list) > 1:
+        scalar_target_matrix = prelim_target_list[1]
+        target_array.append(scalar_target_matrix.astype('float32'))
 
     return predictor_matrix, target_array
 
@@ -1871,21 +1754,15 @@ def train_model_with_generator(
         plateau_lr_multiplier=plateau_lr_multiplier
     )
 
-    is_loss_constrained_mse = determine_if_loss_constrained_mse(
-        loss_function_or_dict
-    )
-
     training_generator = data_generator(
         option_dict=training_option_dict, for_inference=False,
-        net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse
+        net_type_string=net_type_string
     )
 
     if use_generator_for_validn:
         validation_generator = data_generator(
             option_dict=validation_option_dict, for_inference=False,
-            net_type_string=net_type_string,
-            is_loss_constrained_mse=is_loss_constrained_mse
+            net_type_string=net_type_string
         )
 
         validation_data_arg = validation_generator
@@ -1893,8 +1770,7 @@ def train_model_with_generator(
     else:
         validation_predictor_matrix, validation_target_array = create_data(
             option_dict=validation_option_dict, for_inference=False,
-            net_type_string=net_type_string,
-            is_loss_constrained_mse=is_loss_constrained_mse
+            net_type_string=net_type_string
         )[:2]
 
         validation_data_arg = (
@@ -2001,20 +1877,14 @@ def train_model_sans_generator(
         plateau_lr_multiplier=plateau_lr_multiplier
     )
 
-    is_loss_constrained_mse = determine_if_loss_constrained_mse(
-        loss_function_or_dict
-    )
-
     training_predictor_matrix, training_target_array = create_data(
         option_dict=training_option_dict, for_inference=False,
-        net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse
+        net_type_string=net_type_string
     )[:2]
 
     validation_predictor_matrix, validation_target_array = create_data(
         option_dict=validation_option_dict, for_inference=False,
-        net_type_string=net_type_string,
-        is_loss_constrained_mse=is_loss_constrained_mse
+        net_type_string=net_type_string
     )[:2]
 
     model_object.fit(
@@ -2056,13 +1926,13 @@ def read_model(hdf5_file_name):
 
     if isinstance(loss_function_or_dict, dict):
         for this_key in loss_function_or_dict:
-            custom_object_dict[this_key + '_loss'] = eval(
+            custom_object_dict[this_key + '_loss'] = (
                 loss_function_or_dict[this_key]
             )
 
-        custom_object_dict['loss'] = eval(loss_function_or_dict['conv_output'])
+        custom_object_dict['loss'] = loss_function_or_dict['conv_output']
     else:
-        custom_object_dict['loss'] = eval(loss_function_or_dict)
+        custom_object_dict['loss'] = loss_function_or_dict
 
     return tf_keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
@@ -2178,7 +2048,7 @@ def read_metafile(dill_file_name):
 
 def apply_model(
         model_object, predictor_matrix, num_examples_per_batch, net_type_string,
-        is_loss_constrained_mse=None, verbose=False):
+        verbose=False):
     """Applies trained neural net (of any kind) to new data.
 
     E = number of examples
@@ -2193,17 +2063,9 @@ def apply_model(
     :param num_examples_per_batch: Batch size.
     :param net_type_string: Type of neural net (must be accepted by
         `check_net_type`).
-    :param is_loss_constrained_mse: See doc for `data_generator`.
     :param verbose: Boolean flag.  If True, will print progress messages.
 
-    :return: prediction_list: If net type is dense, this list has the following
-        items.
-
-    prediction_list[0] = prediction_matrix: E-by-T numpy array of predicted
-        values.
-
-    Otherwise, has the following items.
-
+    :return: prediction_list: See below.
     prediction_list[0] = vector_prediction_matrix: numpy array (E x H x T_v) of
         predicted values.
     prediction_list[1] = scalar_prediction_matrix: numpy array (E x T_s) of
@@ -2211,10 +2073,6 @@ def apply_model(
     """
 
     check_net_type(net_type_string)
-    if net_type_string != CNN_TYPE_STRING:
-        is_loss_constrained_mse = False
-
-    error_checking.assert_is_boolean(is_loss_constrained_mse)
 
     num_examples_per_batch = _check_inference_args(
         predictor_matrix=predictor_matrix,
@@ -2223,7 +2081,6 @@ def apply_model(
 
     vector_prediction_matrix = None
     scalar_prediction_matrix = None
-    prediction_matrix = None
     num_examples = predictor_matrix.shape[0]
 
     for i in range(0, num_examples, num_examples_per_batch):
@@ -2231,7 +2088,6 @@ def apply_model(
         this_last_index = min(
             [i + num_examples_per_batch - 1, num_examples - 1]
         )
-
         these_indices = numpy.linspace(
             this_first_index, this_last_index,
             num=this_last_index - this_first_index + 1, dtype=int
@@ -2249,42 +2105,28 @@ def apply_model(
             predictor_matrix[these_indices, ...], batch_size=len(these_indices)
         )
 
-        if net_type_string == DENSE_NET_TYPE_STRING:
-            if prediction_matrix is None:
-                prediction_matrix = this_output + 0.
-            else:
-                prediction_matrix = numpy.concatenate(
-                    (prediction_matrix, this_output), axis=0
-                )
+        if not isinstance(this_output, list):
+            this_output = [this_output]
+
+        if vector_prediction_matrix is None:
+            vector_prediction_matrix = this_output[0] + 0.
+
+            if len(this_output) == 2:
+                scalar_prediction_matrix = this_output[1] + 0.
         else:
-            if not isinstance(this_output, list):
-                this_output = [this_output]
+            vector_prediction_matrix = numpy.concatenate(
+                (vector_prediction_matrix, this_output[0]), axis=0
+            )
 
-            if vector_prediction_matrix is None:
-                vector_prediction_matrix = this_output[0] + 0.
-
-                if len(this_output) == 2:
-                    scalar_prediction_matrix = this_output[1] + 0.
-            else:
-                vector_prediction_matrix = numpy.concatenate(
-                    (vector_prediction_matrix, this_output[0]), axis=0
+            if len(this_output) == 2:
+                scalar_prediction_matrix = numpy.concatenate(
+                    (scalar_prediction_matrix, this_output[1]), axis=0
                 )
-
-                if len(this_output) == 2:
-                    scalar_prediction_matrix = numpy.concatenate(
-                        (scalar_prediction_matrix, this_output[1]), axis=0
-                    )
 
     if verbose:
         print('Have applied {0:s} to all {1:d} examples!'.format(
             net_type_string.upper(), num_examples
         ))
-
-    if is_loss_constrained_mse:
-        scalar_prediction_matrix = scalar_prediction_matrix[:, 2:]
-
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        return [prediction_matrix]
 
     if scalar_prediction_matrix is None:
         scalar_prediction_matrix = numpy.full(
