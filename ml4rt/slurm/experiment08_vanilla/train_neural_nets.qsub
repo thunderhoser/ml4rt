@@ -42,7 +42,7 @@ set dense_layer_count_string=`printf "%d" $dense_layer_count`
 set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
 set l2_weight_string=`printf "%.10f" $l2_weight`
 
-set template_file_name="${TEMPLATE_DIR_NAME}/model_num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}.h5"
+set template_file_name="${TEMPLATE_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}/model.h5"
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}"
 echo $output_dir_name
 
