@@ -84,7 +84,6 @@ def _run():
             these_dropout_rates = numpy.full(
                 DENSE_LAYER_COUNTS[i], DENSE_LAYER_DROPOUT_RATES[j]
             )
-            these_dropout_rates[-1] = numpy.nan
 
             for k in range(num_l2_weights):
                 this_option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
