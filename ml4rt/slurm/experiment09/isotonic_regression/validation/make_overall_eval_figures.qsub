@@ -24,9 +24,9 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
 set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/experiment1/isotonic_regression/validation_eval_with_bootstrap"
 
-set DENSE_LAYER_COUNTS=(3)
-set DENSE_LAYER_DROPOUT_RATES=(0.100)
-set L2_WEIGHTS=(0.0000003162)
+set DENSE_LAYER_COUNTS=(4)
+set DENSE_LAYER_DROPOUT_RATES=(0.000)
+set L2_WEIGHTS=(0.0000001000)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}

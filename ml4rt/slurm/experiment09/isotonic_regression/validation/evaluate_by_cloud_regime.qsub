@@ -23,9 +23,9 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
 
-set DENSE_LAYER_COUNTS=(3 3 3)
-set DENSE_LAYER_DROPOUT_RATES=(0.100 0.100 0.100)
-set L2_WEIGHTS=(0.0000003162 0.0000003162 0.0000003162)
+set DENSE_LAYER_COUNTS=(4 4 4)
+set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000)
+set L2_WEIGHTS=(0.0000001000 0.0000001000 0.0000001000)
 set REGIME_STRINGS_DASHED=("no-cloud" "single-layer-cloud" "multi-layer-cloud")
 set REGIME_STRINGS_UNDERSCORED=("no_cloud" "single_layer_cloud" "multi_layer_cloud")
 
