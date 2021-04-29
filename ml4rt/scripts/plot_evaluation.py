@@ -576,7 +576,15 @@ def _plot_score_profile(
         k = target_indices[i]
         t = evaluation_tables_xarray[i]
 
-        this_score_matrix = t[score_key].values[:, k, :]
+        if score_key in [
+            evaluation.VECTOR_KS_STATISTIC_KEY, evaluation.VECTOR_KS_P_VALUE_KEY
+        ]:
+            this_score_matrix = numpy.expand_dims(
+                t[score_key].values[:, k], axis=-1
+            )
+        else:
+            this_score_matrix = t[score_key].values[:, k, :]
+
         heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
 
         this_handle = evaluation_plotting.plot_score_profile(

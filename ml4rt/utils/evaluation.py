@@ -525,14 +525,15 @@ def _get_scores_one_replicate(
                 min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
             )
 
-            (
-                t[SCALAR_KS_STATISTIC_KEY].values[k],
-                t[SCALAR_KS_P_VALUE_KEY].values[k]
-            ) = ks_2samp(
-                full_scalar_target_matrix[:, k],
-                full_scalar_prediction_matrix[:, k],
-                alternative='two-sided', mode='auto'
-            )
+            if full_scalar_target_matrix.size > 0:
+                (
+                    t[SCALAR_KS_STATISTIC_KEY].values[k],
+                    t[SCALAR_KS_P_VALUE_KEY].values[k]
+                ) = ks_2samp(
+                    full_scalar_target_matrix[:, k],
+                    full_scalar_prediction_matrix[:, k],
+                    alternative='two-sided', mode='auto'
+                )
 
         # if num_examples == 0:
         #     max_bin_edge = 1.
@@ -635,14 +636,15 @@ def _get_scores_one_replicate(
                     min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
                 )
 
-                (
-                    t[VECTOR_KS_STATISTIC_KEY].values[j, k],
-                    t[VECTOR_KS_P_VALUE_KEY].values[j, k]
-                ) = ks_2samp(
-                    full_vector_target_matrix[:, j, k],
-                    full_vector_prediction_matrix[:, j, k],
-                    alternative='two-sided', mode='auto'
-                )
+                if full_vector_target_matrix.size > 0:
+                    (
+                        t[VECTOR_KS_STATISTIC_KEY].values[j, k],
+                        t[VECTOR_KS_P_VALUE_KEY].values[j, k]
+                    ) = ks_2samp(
+                        full_vector_target_matrix[:, j, k],
+                        full_vector_prediction_matrix[:, j, k],
+                        alternative='two-sided', mode='auto'
+                    )
 
             # if num_examples == 0:
             #     max_bin_edge = 1.
@@ -742,14 +744,15 @@ def _get_scores_one_replicate(
                 max_bin_edge=max_bin_edge, invert=False
             )
 
-            (
-                t[AUX_KS_STATISTIC_KEY].values[k],
-                t[AUX_KS_P_VALUE_KEY].values[k]
-            ) = ks_2samp(
-                full_aux_target_matrix[:, k],
-                full_aux_prediction_matrix[:, k],
-                alternative='two-sided', mode='auto'
-            )
+            if full_aux_target_matrix.size > 0:
+                (
+                    t[AUX_KS_STATISTIC_KEY].values[k],
+                    t[AUX_KS_P_VALUE_KEY].values[k]
+                ) = ks_2samp(
+                    full_aux_target_matrix[:, k],
+                    full_aux_prediction_matrix[:, k],
+                    alternative='two-sided', mode='auto'
+                )
 
         # if num_examples == 0:
         #     min_bin_edge = 0.
