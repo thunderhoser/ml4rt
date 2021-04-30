@@ -602,11 +602,15 @@ def _make_msess_boxplot(
     axes_object.set_xticklabels(x_label_strings, rotation=90.)
     axes_object.set_ylabel('MSE skill score')
 
+    y_limits = axes_object.get_ylim()
+
     for this_cutoff_value in x_cutoff_values:
         axes_object.plot(
-            numpy.full(2, this_cutoff_value), axes_object.get_ylim(),
+            numpy.full(2, this_cutoff_value), y_limits,
             color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2
         )
+
+    axes_object.set_ylim(y_limits)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
