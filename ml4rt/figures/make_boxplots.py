@@ -198,12 +198,14 @@ def _make_bias_boxplot(
 
     heating_rate_axes_object.yaxis.set_ticks_position('left')
     heating_rate_axes_object.yaxis.set_label_position('left')
-    heating_rate_axes_object.spines['left'].set_color(HEATING_RATE_COLOUR)
+    heating_rate_axes_object.yaxis.label.set_color(HEATING_RATE_COLOUR)
+    heating_rate_axes_object.tick_params(axis='y', colors=HEATING_RATE_COLOUR)
 
     net_flux_axes_object = heating_rate_axes_object.twinx()
     net_flux_axes_object.yaxis.set_ticks_position('right')
     net_flux_axes_object.yaxis.set_label_position('right')
-    net_flux_axes_object.spines['right'].set_color(NET_FLUX_COLOUR)
+    net_flux_axes_object.yaxis.label.set_color(NET_FLUX_COLOUR)
+    net_flux_axes_object.tick_params(axis='y', colors=NET_FLUX_COLOUR)
 
     # heating_rate_axes_object.set_zorder(net_flux_axes_object.get_zorder() + 1)
     # heating_rate_axes_object.patch.set_visible(False)
