@@ -7,6 +7,7 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
+from scipy.stats import percentileofscore
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -239,12 +240,29 @@ def _make_bias_boxplot(
         )
 
         net_flux_axes_object.boxplot(
-            overall_net_flux_bias_matrix_w_m02[i, :],
+            numpy.absolute(overall_net_flux_bias_matrix_w_m02[i, :]),
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
             positions=x_values[[box_index]]
         )
+
+        for k in range(i, num_models):
+            these_diffs = (
+                numpy.absolute(overall_net_flux_bias_matrix_w_m02[i, :]) -
+                numpy.absolute(overall_net_flux_bias_matrix_w_m02[k, :])
+            )
+            this_percentile = percentileofscore(
+                a=these_diffs, score=0., kind='mean'
+            )
+
+            print((
+                'F_net bias of model "{0:s}" better than F_net bias of model '
+                '"{1:s}" with p-value = {2:.4f}'
+            ).format(
+                model_description_strings[k], model_description_strings[i],
+                this_percentile / 100
+            ))
 
     for i in range(num_models):
         box_index += 1
@@ -253,12 +271,29 @@ def _make_bias_boxplot(
         )
 
         net_flux_axes_object.boxplot(
-            multicloud_net_flux_bias_matrix_w_m02[i, :],
+            numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[i, :]),
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
             positions=x_values[[box_index]]
         )
+
+        for k in range(i, num_models):
+            these_diffs = (
+                numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[i, :]) -
+                numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[k, :])
+            )
+            this_percentile = percentileofscore(
+                a=these_diffs, score=0., kind='mean'
+            )
+
+            print((
+                'MLC F_net bias of model "{0:s}" better than MLC F_net bias of '
+                'model "{1:s}" with p-value = {2:.4f}'
+            ).format(
+                model_description_strings[k], model_description_strings[i],
+                this_percentile / 100
+            ))
 
     boxplot_style_dict = {
         'color': HEATING_RATE_COLOUR,
@@ -268,40 +303,105 @@ def _make_bias_boxplot(
     for j in range(num_overall_heights):
         for i in range(num_models):
             box_index += 1
-
+            this_height_string = int(numpy.round(
+                overall_heights_m_agl[j] * METRES_TO_KM
+            ))
             x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
-                model_description_strings[i],
-                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
+                model_description_strings[i], this_height_string
             )
 
             heating_rate_axes_object.boxplot(
-                overall_heating_rate_bias_matrix_k_day01[i, j, :],
+                numpy.absolute(
+                    overall_heating_rate_bias_matrix_k_day01[i, j, :]
+                ),
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
                 positions=x_values[[box_index]]
             )
+
+            for k in range(i, num_models):
+                these_diffs = (
+                    numpy.absolute(
+                        overall_heating_rate_bias_matrix_k_day01[i, j, :]
+                    )
+                    -
+                    numpy.absolute(
+                        overall_heating_rate_bias_matrix_k_day01[k, j, :]
+                    )
+                )
+                this_percentile = percentileofscore(
+                    a=these_diffs, score=0., kind='mean'
+                )
+
+                print((
+                    '{0:s}-km-HR bias of model "{1:s}" better than {0:s}-km-HR '
+                    'bias of model "{2:s}" with p-value = {3:.4f}'
+                ).format(
+                    this_height_string,
+                    model_description_strings[k], model_description_strings[i],
+                    this_percentile / 100
+                ))
 
     for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
-
+            this_height_string = int(numpy.round(
+                multicloud_heights_m_agl[j] * METRES_TO_KM
+            ))
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
-                model_description_strings[i],
-                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
+                model_description_strings[i], this_height_string
             )
 
             heating_rate_axes_object.boxplot(
-                multicloud_heating_rate_bias_matrix_k_day01[i, j, :],
+                numpy.absolute(
+                    multicloud_heating_rate_bias_matrix_k_day01[i, j, :]
+                ),
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
                 positions=x_values[[box_index]]
             )
 
+            for k in range(i, num_models):
+                these_diffs = (
+                    numpy.absolute(
+                        multicloud_heating_rate_bias_matrix_k_day01[i, j, :]
+                    )
+                    -
+                    numpy.absolute(
+                        multicloud_heating_rate_bias_matrix_k_day01[k, j, :]
+                    )
+                )
+                this_percentile = percentileofscore(
+                    a=these_diffs, score=0., kind='mean'
+                )
+
+                print((
+                    'MLC {0:s}-km-HR bias of model "{1:s}" better than MLC '
+                    '{0:s}-km-HR bias of model "{2:s}" with p-value = {3:.4f}'
+                ).format(
+                    this_height_string,
+                    model_description_strings[k], model_description_strings[i],
+                    this_percentile / 100
+                ))
+
     net_flux_axes_object.set_xticklabels(x_label_strings, rotation=90.)
-    heating_rate_axes_object.set_ylabel(r'Bias for heating rate (K day$^{-1}$)')
-    net_flux_axes_object.set_ylabel(r'Bias for net flux (W m$^{-2}$)')
+    heating_rate_axes_object.set_ylabel(
+        r'Absolute bias for heating rate (K day$^{-1}$)'
+    )
+    net_flux_axes_object.set_ylabel(r'Absolute bias for net flux (W m$^{-2}$)')
+
+    x_coords = net_flux_axes_object.get_xlim()
+    y_coords = numpy.full(2, 0.)
+    net_flux_axes_object.plot(
+        x_coords, y_coords,
+        color=NET_FLUX_COLOUR, linestyle='dashed', linewidth=2
+    )
+    heating_rate_axes_object.plot(
+        x_coords, y_coords,
+        color=HEATING_RATE_COLOUR, linestyle='dashed', linewidth=2
+    )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -374,6 +474,23 @@ def _make_msess_boxplot(
             positions=x_values[[box_index]]
         )
 
+        for k in range(i, num_models):
+            these_diffs = (
+                overall_net_flux_msess_matrix[i, :] -
+                overall_net_flux_msess_matrix[k, :]
+            )
+            this_percentile = percentileofscore(
+                a=these_diffs, score=0., kind='mean'
+            )
+
+            print((
+                'F_net MSESS of model "{0:s}" better than F_net MSESS of model '
+                '"{1:s}" with p-value = {2:.4f}'
+            ).format(
+                model_description_strings[i], model_description_strings[k],
+                this_percentile / 100
+            ))
+
     for i in range(num_models):
         box_index += 1
         x_label_strings[box_index] = (
@@ -388,6 +505,23 @@ def _make_msess_boxplot(
             positions=x_values[[box_index]]
         )
 
+        for k in range(i, num_models):
+            these_diffs = (
+                multicloud_net_flux_msess_matrix[i, :] -
+                multicloud_net_flux_msess_matrix[k, :]
+            )
+            this_percentile = percentileofscore(
+                a=these_diffs, score=0., kind='mean'
+            )
+
+            print((
+                'MLC F_net MSESS of model "{0:s}" better than MLC F_net MSESS '
+                'of model "{1:s}" with p-value = {2:.4f}'
+            ).format(
+                model_description_strings[i], model_description_strings[k],
+                this_percentile / 100
+            ))
+
     boxplot_style_dict = {
         'color': HEATING_RATE_COLOUR,
         'linewidth': 2
@@ -396,10 +530,11 @@ def _make_msess_boxplot(
     for j in range(num_overall_heights):
         for i in range(num_models):
             box_index += 1
-
+            this_height_string = int(numpy.round(
+                overall_heights_m_agl[j] * METRES_TO_KM
+            ))
             x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
-                model_description_strings[i],
-                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
+                model_description_strings[i], this_height_string
             )
 
             axes_object.boxplot(
@@ -410,13 +545,32 @@ def _make_msess_boxplot(
                 positions=x_values[[box_index]]
             )
 
+            for k in range(i, num_models):
+                these_diffs = (
+                    overall_heating_rate_msess_matrix[i, j, :] -
+                    overall_heating_rate_msess_matrix[k, j, :]
+                )
+                this_percentile = percentileofscore(
+                    a=these_diffs, score=0., kind='mean'
+                )
+
+                print((
+                    '{0:s}-km-HR MSESS of model "{1:s}" better than {0:s}-km-HR'
+                    'MSESS of model "{2:s}" with p-value = {3:.4f}'
+                ).format(
+                    this_height_string,
+                    model_description_strings[i], model_description_strings[k],
+                    this_percentile / 100
+                ))
+
     for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
-
+            this_height_string = int(numpy.round(
+                multicloud_heights_m_agl[j] * METRES_TO_KM
+            ))
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
-                model_description_strings[i],
-                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
+                model_description_strings[i], this_height_string
             )
 
             axes_object.boxplot(
@@ -426,6 +580,24 @@ def _make_msess_boxplot(
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
                 positions=x_values[[box_index]]
             )
+
+            for k in range(i, num_models):
+                these_diffs = (
+                    multicloud_heating_rate_msess_matrix[i, j, :] -
+                    multicloud_heating_rate_msess_matrix[k, j, :]
+                )
+                this_percentile = percentileofscore(
+                    a=these_diffs, score=0., kind='mean'
+                )
+
+                print((
+                    'MLC {0:s}-km-HR MSESS of model "{1:s}" better than MLC '
+                    '{0:s}-km-HR MSESS of model "{2:s}" with p-value = {3:.4f}'
+                ).format(
+                    this_height_string,
+                    model_description_strings[i], model_description_strings[k],
+                    this_percentile / 100
+                ))
 
     axes_object.set_xticklabels(x_label_strings, rotation=90.)
     axes_object.set_ylabel('MSE skill score')
