@@ -26,6 +26,9 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
+HEATING_RATE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+NET_FLUX_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+
 FONT_SIZE = 30
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
@@ -166,6 +169,154 @@ def _read_one_file(evaluation_file_name, heights_m_agl):
     )
 
 
+def _make_bias_boxplot(
+        overall_net_flux_bias_matrix_w_m02,
+        multicloud_net_flux_bias_matrix_w_m02,
+        overall_heating_rate_bias_matrix_k_day01,
+        multicloud_heating_rate_bias_matrix_k_day01,
+        model_description_strings, overall_heights_m_agl,
+        multicloud_heights_m_agl, output_file_name):
+    """Makes boxplot for bias.
+
+    M = number of models
+    H_o = number of heights for overall scores
+    H_m = number of heights for multi-cloud-layer scores
+    B = number of bootstrap replicates
+
+    :param overall_net_flux_bias_matrix_w_m02: M-by-B numpy array of biases
+        (W m^-2) for net flux.
+    :param multicloud_net_flux_bias_matrix_w_m02: M-by-B numpy array of biases
+        (W m^-2) for net flux.
+    :param overall_heating_rate_bias_matrix_k_day01: numpy array (M x H_o x B)
+        of biases (K day^-1) for heating rate.
+    :param multicloud_heating_rate_bias_matrix_k_day01: numpy array
+        (M x H_m x B) of biases (K day^-1) for heating rate.
+    :param model_description_strings: length-M list of strings.
+    :param overall_heights_m_agl: numpy array (length H_o) of heights (metres
+        above ground level).
+    :param multicloud_heights_m_agl: numpy array (length H_m) of heights (metres
+        above ground level).
+    :param output_file_name: Path to output file.  Figure will be saved here.
+    """
+
+    # Housekeeping.
+    figure_object, heating_rate_axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    heating_rate_axes_object.yaxis.set_ticks_position('left')
+    heating_rate_axes_object.yaxis.set_label_position('left')
+    heating_rate_axes_object.spines['left'].set_color(HEATING_RATE_COLOUR)
+
+    net_flux_axes_object = heating_rate_axes_object.twinx()
+    net_flux_axes_object.yaxis.set_ticks_position('right')
+    net_flux_axes_object.yaxis.set_label_position('right')
+    net_flux_axes_object.spines['right'].set_color(NET_FLUX_COLOUR)
+
+    # heating_rate_axes_object.set_zorder(net_flux_axes_object.get_zorder() + 1)
+    # heating_rate_axes_object.patch.set_visible(False)
+
+    num_models = len(model_description_strings)
+    num_overall_heights = len(overall_heights_m_agl)
+    num_multicloud_heights = len(multicloud_heights_m_agl)
+    num_boxes = num_models * (num_overall_heights + num_multicloud_heights + 2)
+
+    x_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+
+    # Plot boxplots.
+    boxplot_style_dict = {
+        'color': NET_FLUX_COLOUR,
+        'linewidth': 2
+    }
+
+    box_index = -1
+    x_label_strings = [''] * num_boxes
+
+    for i in range(num_models):
+        box_index += 1
+        x_label_strings[box_index] = (
+            model_description_strings[i] + r': $F_{net}$'
+        )
+
+        net_flux_axes_object.boxplot(
+            overall_net_flux_bias_matrix_w_m02[i, :],
+            widths=1., notch=False, sym='', whis=(0.5, 99.5),
+            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+            positions=x_values[[box_index]]
+        )
+
+    for i in range(num_models):
+        box_index += 1
+        x_label_strings[box_index] = (
+            model_description_strings[i] + r': MLC $F_{net}$'
+        )
+
+        net_flux_axes_object.boxplot(
+            multicloud_net_flux_bias_matrix_w_m02[i, :],
+            widths=1., notch=False, sym='', whis=(0.5, 99.5),
+            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+            positions=x_values[[box_index]]
+        )
+
+    boxplot_style_dict = {
+        'color': HEATING_RATE_COLOUR,
+        'linewidth': 2
+    }
+
+    for j in range(num_overall_heights):
+        for i in range(num_models):
+            box_index += 1
+
+            this_height_string = '{0:d}'.format(
+                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
+            )
+            x_label_strings[box_index] = (
+                model_description_strings[i] +
+                r': $Q_{' + this_height_string + r'}$'
+            )
+
+            heating_rate_axes_object.boxplot(
+                overall_heating_rate_bias_matrix_k_day01[i, j, :],
+                widths=1., notch=False, sym='', whis=(0.5, 99.5),
+                medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+                whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+                positions=x_values[[box_index]]
+            )
+
+    for j in range(num_multicloud_heights):
+        for i in range(num_models):
+            box_index += 1
+
+            this_height_string = '{0:d}'.format(
+                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
+            )
+            x_label_strings[box_index] = (
+                model_description_strings[i] +
+                r': MLC $Q_{' + this_height_string + r'}$'
+            )
+
+            heating_rate_axes_object.boxplot(
+                multicloud_heating_rate_bias_matrix_k_day01[i, j, :],
+                widths=1., notch=False, sym='', whis=(0.5, 99.5),
+                medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+                whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+                positions=x_values[[box_index]]
+            )
+
+    heating_rate_axes_object.set_xticklabels(x_label_strings, rotation=90.)
+    heating_rate_axes_object.set_ylabel(r'Heating-rate bias (K day$^{-1}$)')
+    net_flux_axes_object.set_ylabel(r'Net-flux bias (W m$^{-2}$)')
+
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+
 def _make_msess_boxplot(
         overall_net_flux_msess_matrix, multicloud_net_flux_msess_matrix,
         overall_heating_rate_msess_matrix, multicloud_heating_rate_msess_matrix,
@@ -223,7 +374,7 @@ def _make_msess_boxplot(
 
         axes_object.boxplot(
             overall_net_flux_msess_matrix[i, :],
-            widths=1., notch=False, sym='', whis=(5, 95),
+            widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
             positions=x_values[[box_index]]
@@ -237,7 +388,7 @@ def _make_msess_boxplot(
 
         axes_object.boxplot(
             multicloud_net_flux_msess_matrix[i, :],
-            widths=1., notch=False, sym='', whis=(5, 95),
+            widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
             positions=x_values[[box_index]]
@@ -257,7 +408,7 @@ def _make_msess_boxplot(
 
             axes_object.boxplot(
                 overall_heating_rate_msess_matrix[i, j, :],
-                widths=1., notch=False, sym='', whis=(5, 95),
+                widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
                 positions=x_values[[box_index]]
@@ -277,7 +428,7 @@ def _make_msess_boxplot(
 
             axes_object.boxplot(
                 multicloud_heating_rate_msess_matrix[i, j, :],
-                widths=1., notch=False, sym='', whis=(5, 95),
+                widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
                 positions=x_values[[box_index]]
@@ -403,6 +554,20 @@ def _run(overall_eval_file_names, multicloud_eval_file_names,
         overall_heights_m_agl=overall_heights_m_agl,
         multicloud_heights_m_agl=multicloud_heights_m_agl,
         output_file_name='{0:s}/mse_skill_score.jpg'.format(output_dir_name)
+    )
+
+    _make_bias_boxplot(
+        overall_net_flux_bias_matrix_w_m02=overall_net_flux_bias_matrix_w_m02,
+        multicloud_net_flux_bias_matrix_w_m02=
+        multicloud_net_flux_bias_matrix_w_m02,
+        overall_heating_rate_bias_matrix_k_day01=
+        overall_heating_rate_bias_matrix_k_day01,
+        multicloud_heating_rate_bias_matrix_k_day01=
+        multicloud_heating_rate_bias_matrix_k_day01,
+        model_description_strings=description_strings,
+        overall_heights_m_agl=overall_heights_m_agl,
+        multicloud_heights_m_agl=multicloud_heights_m_agl,
+        output_file_name='{0:s}/bias.jpg'.format(output_dir_name)
     )
 
 
