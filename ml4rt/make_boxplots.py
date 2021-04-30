@@ -235,7 +235,7 @@ def _make_msess_boxplot(
             box_index += 1
 
             this_height_string = '{0:.1g}'.format(
-                int(numpy.round(overall_heights_m_agl * METRES_TO_KM))
+                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
             )
             x_label_strings[box_index] = r'$Q_{' + this_height_string + r'}$'
 
@@ -247,12 +247,12 @@ def _make_msess_boxplot(
                 positions=x_values[[box_index]]
             )
 
-    for j in range(num_overall_heights):
+    for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
 
             this_height_string = '{0:.1g}'.format(
-                int(numpy.round(overall_heights_m_agl * METRES_TO_KM))
+                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
             )
             x_label_strings[box_index] = (
                 r'MLC $Q_{' + this_height_string + r'}$'
