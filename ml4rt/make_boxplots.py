@@ -247,7 +247,7 @@ def _make_bias_boxplot(
             positions=x_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 numpy.absolute(overall_net_flux_bias_matrix_w_m02[i, :]) -
                 numpy.absolute(overall_net_flux_bias_matrix_w_m02[k, :])
@@ -278,7 +278,7 @@ def _make_bias_boxplot(
             positions=x_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[i, :]) -
                 numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[k, :])
@@ -320,7 +320,7 @@ def _make_bias_boxplot(
                 positions=x_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     numpy.absolute(
                         overall_heating_rate_bias_matrix_k_day01[i, j, :]
@@ -363,7 +363,7 @@ def _make_bias_boxplot(
                 positions=x_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     numpy.absolute(
                         multicloud_heating_rate_bias_matrix_k_day01[i, j, :]
@@ -474,7 +474,7 @@ def _make_msess_boxplot(
             positions=x_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 overall_net_flux_msess_matrix[i, :] -
                 overall_net_flux_msess_matrix[k, :]
@@ -505,7 +505,7 @@ def _make_msess_boxplot(
             positions=x_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 multicloud_net_flux_msess_matrix[i, :] -
                 multicloud_net_flux_msess_matrix[k, :]
@@ -545,7 +545,7 @@ def _make_msess_boxplot(
                 positions=x_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     overall_heating_rate_msess_matrix[i, j, :] -
                     overall_heating_rate_msess_matrix[k, j, :]
@@ -581,7 +581,7 @@ def _make_msess_boxplot(
                 positions=x_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     multicloud_heating_rate_msess_matrix[i, j, :] -
                     multicloud_heating_rate_msess_matrix[k, j, :]
