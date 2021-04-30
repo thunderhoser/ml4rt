@@ -29,6 +29,7 @@ FIGURE_RESOLUTION_DPI = 300
 
 HEATING_RATE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 NET_FLUX_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
 
 FONT_SIZE = 30
 pyplot.rc('font', size=FONT_SIZE)
@@ -222,7 +223,9 @@ def _make_bias_boxplot(
     num_multicloud_heights = len(multicloud_heights_m_agl)
     num_boxes = num_models * (num_overall_heights + num_multicloud_heights + 2)
 
-    x_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_tick_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_cutoff_values = x_tick_values[::num_models] - 0.5
+    x_cutoff_values = x_cutoff_values[1:]
 
     # Plot boxplots.
     boxplot_style_dict = {
@@ -244,7 +247,7 @@ def _make_bias_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
         for k in range(i + 1, num_models):
@@ -275,7 +278,7 @@ def _make_bias_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
         for k in range(i + 1, num_models):
@@ -317,7 +320,7 @@ def _make_bias_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
             for k in range(i + 1, num_models):
@@ -360,7 +363,7 @@ def _make_bias_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
             for k in range(i + 1, num_models):
@@ -392,16 +395,11 @@ def _make_bias_boxplot(
     )
     net_flux_axes_object.set_ylabel(r'Absolute bias for net flux (W m$^{-2}$)')
 
-    x_coords = net_flux_axes_object.get_xlim()
-    y_coords = numpy.full(2, 0.)
-    net_flux_axes_object.plot(
-        x_coords, y_coords,
-        color=NET_FLUX_COLOUR, linestyle='dashed', linewidth=2
-    )
-    heating_rate_axes_object.plot(
-        x_coords, y_coords,
-        color=HEATING_RATE_COLOUR, linestyle='dashed', linewidth=2
-    )
+    for this_cutoff_value in x_cutoff_values:
+        net_flux_axes_object.plot(
+            numpy.full(2, this_cutoff_value), net_flux_axes_object.get_ylim(),
+            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2
+        )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -449,7 +447,9 @@ def _make_msess_boxplot(
     num_multicloud_heights = len(multicloud_heights_m_agl)
     num_boxes = num_models * (num_overall_heights + num_multicloud_heights + 2)
 
-    x_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_tick_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_cutoff_values = x_tick_values[::num_models] - 0.5
+    x_cutoff_values = x_cutoff_values[1:]
 
     # Plot boxplots.
     boxplot_style_dict = {
@@ -471,7 +471,7 @@ def _make_msess_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
         for k in range(i + 1, num_models):
@@ -502,7 +502,7 @@ def _make_msess_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
         for k in range(i + 1, num_models):
@@ -542,7 +542,7 @@ def _make_msess_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
             for k in range(i + 1, num_models):
@@ -578,7 +578,7 @@ def _make_msess_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
             for k in range(i + 1, num_models):
@@ -601,6 +601,12 @@ def _make_msess_boxplot(
 
     axes_object.set_xticklabels(x_label_strings, rotation=90.)
     axes_object.set_ylabel('MSE skill score')
+
+    for this_cutoff_value in x_cutoff_values:
+        axes_object.plot(
+            numpy.full(2, this_cutoff_value), axes_object.get_ylim(),
+            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2
+        )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
