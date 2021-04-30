@@ -200,20 +200,18 @@ def _make_bias_boxplot(
     """
 
     # Housekeeping.
-    figure_object, heating_rate_axes_object = pyplot.subplots(
+    figure_object, net_flux_axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
 
+    net_flux_axes_object.yaxis.label.set_color(NET_FLUX_COLOUR)
+    net_flux_axes_object.tick_params(axis='y', colors=NET_FLUX_COLOUR)
+
+    heating_rate_axes_object = net_flux_axes_object.twinx()
     heating_rate_axes_object.yaxis.set_ticks_position('right')
     heating_rate_axes_object.yaxis.set_label_position('right')
     heating_rate_axes_object.yaxis.label.set_color(HEATING_RATE_COLOUR)
     heating_rate_axes_object.tick_params(axis='y', colors=HEATING_RATE_COLOUR)
-
-    net_flux_axes_object = heating_rate_axes_object.twinx()
-    net_flux_axes_object.yaxis.set_ticks_position('left')
-    net_flux_axes_object.yaxis.set_label_position('left')
-    net_flux_axes_object.yaxis.label.set_color(NET_FLUX_COLOUR)
-    net_flux_axes_object.tick_params(axis='y', colors=NET_FLUX_COLOUR)
 
     # heating_rate_axes_object.set_zorder(net_flux_axes_object.get_zorder() + 1)
     # heating_rate_axes_object.patch.set_visible(False)
@@ -251,7 +249,7 @@ def _make_bias_boxplot(
     for i in range(num_models):
         box_index += 1
         x_label_strings[box_index] = (
-            model_description_strings[i] + r': MLC $F_{net}$'
+            model_description_strings[i] + r', MLC: $F_{net}$'
         )
 
         net_flux_axes_object.boxplot(
@@ -271,12 +269,9 @@ def _make_bias_boxplot(
         for i in range(num_models):
             box_index += 1
 
-            this_height_string = '{0:d}'.format(
+            x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
+                model_description_strings[i],
                 int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
-            )
-            x_label_strings[box_index] = (
-                model_description_strings[i] +
-                r': $Q_{' + this_height_string + r'}$'
             )
 
             heating_rate_axes_object.boxplot(
@@ -291,12 +286,9 @@ def _make_bias_boxplot(
         for i in range(num_models):
             box_index += 1
 
-            this_height_string = '{0:d}'.format(
-                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
-            )
-            x_label_strings[box_index] = (
-                model_description_strings[i] +
-                r': MLC $Q_{' + this_height_string + r'}$'
+            x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
+                model_description_strings[i],
+                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
             )
 
             heating_rate_axes_object.boxplot(
@@ -348,20 +340,9 @@ def _make_msess_boxplot(
     """
 
     # Housekeeping.
-    figure_object, heating_rate_axes_object = pyplot.subplots(
+    figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
-
-    heating_rate_axes_object.yaxis.set_ticks_position('right')
-    heating_rate_axes_object.yaxis.set_label_position('right')
-    heating_rate_axes_object.yaxis.label.set_color(HEATING_RATE_COLOUR)
-    heating_rate_axes_object.tick_params(axis='y', colors=HEATING_RATE_COLOUR)
-
-    net_flux_axes_object = heating_rate_axes_object.twinx()
-    net_flux_axes_object.yaxis.set_ticks_position('left')
-    net_flux_axes_object.yaxis.set_label_position('left')
-    net_flux_axes_object.yaxis.label.set_color(NET_FLUX_COLOUR)
-    net_flux_axes_object.tick_params(axis='y', colors=NET_FLUX_COLOUR)
 
     num_models = len(model_description_strings)
     num_overall_heights = len(overall_heights_m_agl)
@@ -385,7 +366,7 @@ def _make_msess_boxplot(
             model_description_strings[i] + r': $F_{net}$'
         )
 
-        net_flux_axes_object.boxplot(
+        axes_object.boxplot(
             overall_net_flux_msess_matrix[i, :],
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
@@ -396,10 +377,10 @@ def _make_msess_boxplot(
     for i in range(num_models):
         box_index += 1
         x_label_strings[box_index] = (
-            model_description_strings[i] + r': MLC $F_{net}$'
+            model_description_strings[i] + r', MLC: $F_{net}$'
         )
 
-        net_flux_axes_object.boxplot(
+        axes_object.boxplot(
             multicloud_net_flux_msess_matrix[i, :],
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
@@ -416,15 +397,12 @@ def _make_msess_boxplot(
         for i in range(num_models):
             box_index += 1
 
-            this_height_string = '{0:d}'.format(
+            x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
+                model_description_strings[i],
                 int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
             )
-            x_label_strings[box_index] = (
-                model_description_strings[i] +
-                r': $Q_{' + this_height_string + r'}$'
-            )
 
-            heating_rate_axes_object.boxplot(
+            axes_object.boxplot(
                 overall_heating_rate_msess_matrix[i, j, :],
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
@@ -436,15 +414,12 @@ def _make_msess_boxplot(
         for i in range(num_models):
             box_index += 1
 
-            this_height_string = '{0:d}'.format(
-                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
-            )
-            x_label_strings[box_index] = (
-                model_description_strings[i] +
-                r': MLC $Q_{' + this_height_string + r'}$'
+            x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
+                model_description_strings[i],
+                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
             )
 
-            heating_rate_axes_object.boxplot(
+            axes_object.boxplot(
                 multicloud_heating_rate_msess_matrix[i, j, :],
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
@@ -452,13 +427,8 @@ def _make_msess_boxplot(
                 positions=x_values[[box_index]]
             )
 
-    heating_rate_axes_object.set_xticklabels(x_label_strings, rotation=90.)
-    heating_rate_axes_object.set_ylabel(
-        r'MSE skill score for heating rate (K day$^{-1}$)'
-    )
-    net_flux_axes_object.set_ylabel(
-        r'MSE skill score for net flux (W m$^{-2}$)'
-    )
+    axes_object.set_xticklabels(x_label_strings, rotation=90.)
+    axes_object.set_ylabel('MSE skill score')
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
