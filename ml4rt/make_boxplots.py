@@ -395,11 +395,18 @@ def _make_bias_boxplot(
     )
     net_flux_axes_object.set_ylabel(r'Absolute bias for net flux (W m$^{-2}$)')
 
+    y_limits = net_flux_axes_object.get_ylim()
+    heating_rate_y_limits = heating_rate_axes_object.get_ylim()
+
     for this_cutoff_value in x_cutoff_values:
         net_flux_axes_object.plot(
-            numpy.full(2, this_cutoff_value), net_flux_axes_object.get_ylim(),
-            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2
+            numpy.full(2, this_cutoff_value), y_limits,
+            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2,
+            zorder=-1e10
         )
+
+    net_flux_axes_object.set_ylim(y_limits)
+    heating_rate_axes_object.set_ylim(heating_rate_y_limits)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -607,7 +614,8 @@ def _make_msess_boxplot(
     for this_cutoff_value in x_cutoff_values:
         axes_object.plot(
             numpy.full(2, this_cutoff_value), y_limits,
-            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2
+            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2,
+            zorder=-1e10
         )
 
     axes_object.set_ylim(y_limits)
