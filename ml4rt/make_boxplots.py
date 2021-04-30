@@ -303,11 +303,11 @@ def _make_bias_boxplot(
     for j in range(num_overall_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 overall_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             heating_rate_axes_object.boxplot(
@@ -335,10 +335,10 @@ def _make_bias_boxplot(
                 )
 
                 print((
-                    '{0:s}-km-HR bias of model "{1:s}" better than {0:s}-km-HR '
+                    '{0:d}-km-HR bias of model "{1:s}" better than {0:d}-km-HR '
                     'bias of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[k], model_description_strings[i],
                     this_percentile / 100
                 ))
@@ -346,11 +346,11 @@ def _make_bias_boxplot(
     for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 multicloud_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             heating_rate_axes_object.boxplot(
@@ -378,10 +378,10 @@ def _make_bias_boxplot(
                 )
 
                 print((
-                    'MLC {0:s}-km-HR bias of model "{1:s}" better than MLC '
-                    '{0:s}-km-HR bias of model "{2:s}" with p-value = {3:.4f}'
+                    'MLC {0:d}-km-HR bias of model "{1:s}" better than MLC '
+                    '{0:d}-km-HR bias of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[k], model_description_strings[i],
                     this_percentile / 100
                 ))
@@ -530,11 +530,11 @@ def _make_msess_boxplot(
     for j in range(num_overall_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 overall_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             axes_object.boxplot(
@@ -555,10 +555,10 @@ def _make_msess_boxplot(
                 )
 
                 print((
-                    '{0:s}-km-HR MSESS of model "{1:s}" better than {0:s}-km-HR'
-                    'MSESS of model "{2:s}" with p-value = {3:.4f}'
+                    '{0:d}-km-HR MSESS of model "{1:s}" better than {0:d}-km-HR'
+                    ' MSESS of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[i], model_description_strings[k],
                     this_percentile / 100
                 ))
@@ -566,11 +566,11 @@ def _make_msess_boxplot(
     for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 multicloud_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             axes_object.boxplot(
@@ -591,10 +591,10 @@ def _make_msess_boxplot(
                 )
 
                 print((
-                    'MLC {0:s}-km-HR MSESS of model "{1:s}" better than MLC '
-                    '{0:s}-km-HR MSESS of model "{2:s}" with p-value = {3:.4f}'
+                    'MLC {0:d}-km-HR MSESS of model "{1:s}" better than MLC '
+                    '{0:d}-km-HR MSESS of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[i], model_description_strings[k],
                     this_percentile / 100
                 ))
