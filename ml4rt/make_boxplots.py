@@ -26,6 +26,15 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
+FONT_SIZE = 30
+pyplot.rc('font', size=FONT_SIZE)
+pyplot.rc('axes', titlesize=FONT_SIZE)
+pyplot.rc('axes', labelsize=FONT_SIZE)
+pyplot.rc('xtick', labelsize=FONT_SIZE)
+pyplot.rc('ytick', labelsize=FONT_SIZE)
+pyplot.rc('legend', fontsize=FONT_SIZE)
+pyplot.rc('figure', titlesize=FONT_SIZE)
+
 OVERALL_EVAL_FILES_ARG_NAME = 'input_overall_eval_file_names'
 MULTICLOUD_EVAL_FILES_ARG_NAME = 'input_multicloud_eval_file_names'
 DESCRIPTIONS_ARG_NAME = 'description_strings'
@@ -208,7 +217,9 @@ def _make_msess_boxplot(
 
     for i in range(num_models):
         box_index += 1
-        x_label_strings[box_index] = r'$F_{net}$'
+        x_label_strings[box_index] = (
+            model_description_strings[i] + r': $F_{net}$'
+        )
 
         axes_object.boxplot(
             overall_net_flux_msess_matrix[i, :],
@@ -220,7 +231,9 @@ def _make_msess_boxplot(
 
     for i in range(num_models):
         box_index += 1
-        x_label_strings[box_index] = r'MLC $F_{net}$'
+        x_label_strings[box_index] = (
+            model_description_strings[i] + r': MLC $F_{net}$'
+        )
 
         axes_object.boxplot(
             multicloud_net_flux_msess_matrix[i, :],
@@ -234,10 +247,13 @@ def _make_msess_boxplot(
         for i in range(num_models):
             box_index += 1
 
-            this_height_string = '{0:.1g}'.format(
+            this_height_string = '{0:d}'.format(
                 int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
             )
-            x_label_strings[box_index] = r'$Q_{' + this_height_string + r'}$'
+            x_label_strings[box_index] = (
+                model_description_strings[i] +
+                r': $Q_{' + this_height_string + r'}$'
+            )
 
             axes_object.boxplot(
                 overall_heating_rate_msess_matrix[i, j, :],
@@ -251,11 +267,12 @@ def _make_msess_boxplot(
         for i in range(num_models):
             box_index += 1
 
-            this_height_string = '{0:.1g}'.format(
+            this_height_string = '{0:d}'.format(
                 int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
             )
             x_label_strings[box_index] = (
-                r'MLC $Q_{' + this_height_string + r'}$'
+                model_description_strings[i] +
+                r': MLC $Q_{' + this_height_string + r'}$'
             )
 
             axes_object.boxplot(
