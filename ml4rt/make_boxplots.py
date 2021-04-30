@@ -288,7 +288,7 @@ def _make_bias_boxplot(
 
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
                 model_description_strings[i],
-                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
+                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
             )
 
             heating_rate_axes_object.boxplot(
@@ -416,7 +416,7 @@ def _make_msess_boxplot(
 
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
                 model_description_strings[i],
-                int(numpy.round(overall_heights_m_agl[j] * METRES_TO_KM))
+                int(numpy.round(multicloud_heights_m_agl[j] * METRES_TO_KM))
             )
 
             axes_object.boxplot(
