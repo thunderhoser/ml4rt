@@ -299,7 +299,7 @@ def _make_bias_boxplot(
                 positions=x_values[[box_index]]
             )
 
-    heating_rate_axes_object.set_xticklabels(x_label_strings, rotation=90.)
+    net_flux_axes_object.set_xticklabels(x_label_strings, rotation=90.)
     heating_rate_axes_object.set_ylabel(r'Bias for heating rate (K day$^{-1}$)')
     net_flux_axes_object.set_ylabel(r'Bias for net flux (W m$^{-2}$)')
 
