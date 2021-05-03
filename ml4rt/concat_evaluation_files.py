@@ -62,7 +62,7 @@ def _run(input_file_names, output_file_name):
             num_bootstrap_reps_read + num_bootstrap_reps_new - 1,
             num=num_bootstrap_reps_new, dtype=int
         )
-        this_result_table_xarray.assign_coords({
+        this_result_table_xarray = this_result_table_xarray.assign_coords({
             evaluation.BOOTSTRAP_REP_DIM: these_indices
         })
 
@@ -72,7 +72,8 @@ def _run(input_file_names, output_file_name):
     print(SEPARATOR_STRING)
 
     result_table_xarray = xarray.concat(
-        objs=result_tables_xarray, dim=evaluation.BOOTSTRAP_REP_DIM
+        objs=result_tables_xarray, dim=evaluation.BOOTSTRAP_REP_DIM,
+        data_vars='minimal'
     )
     print(result_table_xarray)
 
