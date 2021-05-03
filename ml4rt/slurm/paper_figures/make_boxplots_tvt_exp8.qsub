@@ -27,12 +27,9 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/boxplots_tvt_experiment1"
 
-# set TRAINING_EVAL_DIR_NAME="${BASE_EVAL_DIR_NAME}/training_eval_with_bootstrap"
-# set VALIDN_EVAL_DIR_NAME="${BASE_EVAL_DIR_NAME}/validation_eval_with_bootstrap"
-
 set BASE_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08/num-dense-layers=3_dense-dropout=0.100_l2-weight=0.0000003162/model/isotonic_regression"
-set OVERALL_EVAL_FILE_NAMES_STRING="${BASE_EVAL_DIR_NAME}/testing_tropical_sites/evaluation.nc ${BASE_EVAL_DIR_NAME}/testing_tropical_sites/evaluation.nc ${BASE_EVAL_DIR_NAME}/testing_tropical_sites/evaluation.nc"
-set MULTICLOUD_EVAL_FILE_NAMES_STRING="${BASE_EVAL_DIR_NAME}/testing_tropical_sites/by_cloud_regime/multi_layer_cloud/evaluation.nc ${BASE_EVAL_DIR_NAME}/testing_tropical_sites/by_cloud_regime/multi_layer_cloud/evaluation.nc ${BASE_EVAL_DIR_NAME}/testing_tropical_sites/by_cloud_regime/multi_layer_cloud/evaluation.nc"
+set OVERALL_EVAL_FILE_NAMES_STRING="${BASE_EVAL_DIR_NAME}/training_eval_with_bootstrap/evaluation.nc ${BASE_EVAL_DIR_NAME}/validation_eval_with_bootstrap/evaluation.nc ${BASE_EVAL_DIR_NAME}/testing_tropical_sites/evaluation.nc"
+set MULTICLOUD_EVAL_FILE_NAMES_STRING="${BASE_EVAL_DIR_NAME}/training_eval_with_bootstrap/by_cloud_regime/multi_layer_cloud/evaluation.nc ${BASE_EVAL_DIR_NAME}/validation_eval_with_bootstrap/by_cloud_regime/multi_layer_cloud/evaluation.nc ${BASE_EVAL_DIR_NAME}/testing_tropical_sites/by_cloud_regime/multi_layer_cloud/evaluation.nc"
 set DESCRIPTION_STRINGS_STRING="Training Validation Testing"
 
 python3 -u "${CODE_DIR_NAME}/make_boxplots.py" \

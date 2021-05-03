@@ -27,9 +27,6 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/boxplots_architectures"
 
-# set TRAINING_EVAL_DIR_NAME="${BASE_EVAL_DIR_NAME}/training_eval_with_bootstrap"
-# set VALIDN_EVAL_DIR_NAME="${BASE_EVAL_DIR_NAME}/validation_eval_with_bootstrap"
-
 set PLUSPLUS_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08/num-dense-layers=3_dense-dropout=0.100_l2-weight=0.0000003162/model/isotonic_regression/testing_tropical_sites"
 set VANILLA_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08_vanilla/num-dense-layers=2_dense-dropout=0.100_l2-weight=0.0000001000/model/isotonic_regression/testing_tropical_sites"
 set DENSE_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08_dense/num-dense-layers=5_dense-dropout=0.000_l2-weight=0.0000010000/model/isotonic_regression/testing_tropical_sites"

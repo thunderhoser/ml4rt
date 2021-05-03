@@ -62,8 +62,6 @@ def _run(input_file_names, output_file_name):
             num_bootstrap_reps_read + num_bootstrap_reps_new - 1,
             num=num_bootstrap_reps_new, dtype=int
         )
-
-        print(these_indices)
         this_result_table_xarray.assign_coords({
             evaluation.BOOTSTRAP_REP_DIM: these_indices
         })
