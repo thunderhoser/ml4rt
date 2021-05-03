@@ -46,7 +46,7 @@ set overall_eval_dir_name="${model_dir_name}/isotonic_regression/testing_assorte
 set by_cloud_eval_dir_name="${model_dir_name}/isotonic_regression/testing_tropical_sites/by_cloud_regime/evaluation"
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}/ks_bv"
 
-python3 -u "${CODE_DIR_NAME}/make_ks_bv_figures.py" \
+python3 -u "${CODE_DIR_NAME}/make_ks_bv_figure.py" \
 --input_overall_eval_dir_name="${overall_eval_dir_name}" \
 --input_by_cloud_eval_dir_name="${by_cloud_eval_dir_name}" \
 --output_dir_name="${output_dir_name}"
