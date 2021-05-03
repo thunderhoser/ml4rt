@@ -43,15 +43,53 @@ set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set testing_dir_name="${model_dir_name}/isotonic_regression/testing_non_tropical_sites"
 
-set evaluation_file_names=("${testing_dir_name}/by_site/hilo_hi/evaluation.nc" "${testing_dir_name}/by_site/honolulu_hi/evaluation.nc" "${testing_dir_name}/by_site/guantanamo_bay/evaluation.nc" "${testing_dir_name}/by_site/san_juan_pr/evaluation.nc" "${testing_dir_name}/by_site/rohlsen_us_virgin_islands/evaluation.nc" "${testing_dir_name}/by_site/bishop_grenada/evaluation.nc" "${testing_dir_name}/by_site/perdido_oil_rig/evaluation.nc")
-set evaluation_dir_name="${testing_dir_name}/by_site"
+set conus_eval_file_names=("${testing_dir_name}/by_site/santa_barbara_ca/evaluation.nc" "${testing_dir_name}/by_site/bodega_bay_ca/evaluation.nc" "${testing_dir_name}/by_site/forks_wa/evaluation.nc" "${testing_dir_name}/by_site/owego_ny/evaluation.nc" "${testing_dir_name}/by_site/tupper_lake_ny/evaluation.nc" "${testing_dir_name}/by_site/belle_mina_al/evaluation.nc" "${testing_dir_name}/by_site/lamont_ok/evaluation.nc")
+set ocean_eval_file_names=("${testing_dir_name}/by_site/barrow_ak_ocean/evaluation.nc" "${testing_dir_name}/by_site/cherskii_russia_ocean/evaluation.nc" "${testing_dir_name}/by_site/tiksi_russia_ocean/evaluation.nc" "${testing_dir_name}/by_site/fino3_tower_north_sea/evaluation.nc" "${testing_dir_name}/by_site/azores_arm_site/evaluation.nc")
+set high_arctic_eval_file_names=("${testing_dir_name}/by_site/villum_greenland_land/evaluation.nc" "${testing_dir_name}/by_site/eureka_nu_ocean/evaluation.nc" "${testing_dir_name}/by_site/alert_nu_land/evaluation.nc" "${testing_dir_name}/by_site/yopp_arctic_ocean_site1/evaluation.nc" "${testing_dir_name}/by_site/yopp_arctic_ocean_site2/evaluation.nc" "${testing_dir_name}/by_site/yopp_arctic_ocean_site3/evaluation.nc" "${testing_dir_name}/by_site/sheba/evaluation.nc")
+set misc_eval_file_names=("${testing_dir_name}/by_site/juelich_germany/evaluation.nc" "${testing_dir_name}/by_site/ny_alesund_norway_land/evaluation.nc" "${testing_dir_name}/by_site/pallas_sodankyla_russia_land/evaluation.nc")
+
+set conus_eval_dir_name="${testing_dir_name}/by_site/evaluation_conus"
+set ocean_eval_dir_name="${testing_dir_name}/by_site/evaluation_ocean"
+set high_arctic_eval_dir_name="${testing_dir_name}/by_site/evaluation_high_arctic"
+set misc_eval_dir_name="${testing_dir_name}/by_site/evaluation_misc"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" "${evaluation_file_names[4]}" "${evaluation_file_names[5]}" "${evaluation_file_names[6]}" "${evaluation_file_names[7]}" \
+--input_eval_file_names "${conus_eval_file_names[1]}" "${conus_eval_file_names[2]}" "${conus_eval_file_names[3]}" "${conus_eval_file_names[4]}" "${conus_eval_file_names[5]}" "${conus_eval_file_names[6]}" "${conus_eval_file_names[7]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---set_descriptions "Hilo_HI" "Honolulu_HI" "Guantanamo_Bay" "San_Juan_PR" "Rohlsen_USVI" "Bishop,_Grenada" "Perdido_oil_rig" \
+--set_descriptions "Santa_Barbara_CA" "Bodega_Bay_CA" "Forks_WA" "Owego_NY" "Tupper_Lake_NY" "Bella_Mina_AL" "Lamont_OK" \
 --confidence_level=0.99 \
 --use_log_scale=1 \
 --plot_by_height=1 \
---output_dir_name="${evaluation_dir_name}"
+--output_dir_name="${conus_eval_dir_name}"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${ocean_eval_file_names[1]}" "${ocean_eval_file_names[2]}" "${ocean_eval_file_names[3]}" "${ocean_eval_file_names[4]}" "${ocean_eval_file_names[5]}" \
+--line_styles "solid" "solid" "solid" "dashed" "dashed" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" \
+--set_descriptions "Barrow_AK" "Cherskii_RU" "
+" "FINO3" "Azores" \
+--confidence_level=0.99 \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${ocean_eval_dir_name}"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${high_arctic_eval_file_names[1]}" "${high_arctic_eval_file_names[2]}" "${high_arctic_eval_file_names[3]}" "${high_arctic_eval_file_names[4]}" "${high_arctic_eval_file_names[5]}" "${high_arctic_eval_file_names[6]}" "${high_arctic_eval_file_names[7]}" \
+--line_styles "solid" "solid" "solid" "dashed" "dashed" "dashed" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
+--set_descriptions "Villum_GL" "Eureka_NU" "Alert_NU" "YOPP1" "North_pole" "YOPP3" "SHEBA" \
+--confidence_level=0.99 \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${high_arctic_eval_dir_name}"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${misc_eval_file_names[1]}" "${misc_eval_file_names[2]}" "${misc_eval_file_names[3]}" \
+--line_styles "solid" "solid" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" \
+--set_descriptions "Juelich_DE" "Ny_Alesund_NO" "Pallas_Sodankyla_FI" \
+--confidence_level=0.99 \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${misc_eval_dir_name}"

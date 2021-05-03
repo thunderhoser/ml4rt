@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=24G
 #SBATCH --time=24:00:00
-#SBATCH --array=1-5
+#SBATCH --array=1-22
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -23,10 +23,10 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
 
-set DENSE_LAYER_COUNTS=(4 4 4 4 4)
-set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.000 0.000)
-set L2_WEIGHTS=(0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000)
-set SITE_NAMES=("yopp_arctic_ocean_site2" "tiksi_russia_ocean" "lamont_ok" "bishop_grenada" "perdido_oil_rig")
+set DENSE_LAYER_COUNTS=(4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4)
+set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000)
+set L2_WEIGHTS=(0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000 0.0000001000)
+set SITE_NAMES=("juelich_germany" "santa_barbara_ca" "bodega_bay_ca" "forks_wa" "owego_ny" "tupper_lake_ny" "belle_mina_al" "ny_alesund_norway_land" "eureka_nu_ocean" "barrow_ak_ocean" "lamont_ok" "azores_arm_site" "villum_greenland_land" "alert_nu_land" "pallas_sodankyla_russia_land" "yopp_arctic_ocean_site1" "yopp_arctic_ocean_site2" "yopp_arctic_ocean_site3" "sheba" "cherskii_russia_ocean" "tiksi_russia_ocean" "fino3_tower_north_sea")
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
