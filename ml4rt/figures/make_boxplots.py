@@ -21,6 +21,7 @@ FIGURE_RESOLUTION_DPI = 300
 
 HEATING_RATE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 NET_FLUX_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
 
 FONT_SIZE = 30
 pyplot.rc('font', size=FONT_SIZE)
@@ -214,7 +215,9 @@ def _make_bias_boxplot(
     num_multicloud_heights = len(multicloud_heights_m_agl)
     num_boxes = num_models * (num_overall_heights + num_multicloud_heights + 2)
 
-    x_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_tick_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_cutoff_values = x_tick_values[::num_models] - 0.5
+    x_cutoff_values = x_cutoff_values[1:]
 
     # Plot boxplots.
     boxplot_style_dict = {
@@ -236,10 +239,10 @@ def _make_bias_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 numpy.absolute(overall_net_flux_bias_matrix_w_m02[i, :]) -
                 numpy.absolute(overall_net_flux_bias_matrix_w_m02[k, :])
@@ -267,10 +270,10 @@ def _make_bias_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[i, :]) -
                 numpy.absolute(multicloud_net_flux_bias_matrix_w_m02[k, :])
@@ -295,11 +298,11 @@ def _make_bias_boxplot(
     for j in range(num_overall_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 overall_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             heating_rate_axes_object.boxplot(
@@ -309,10 +312,10 @@ def _make_bias_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     numpy.absolute(
                         overall_heating_rate_bias_matrix_k_day01[i, j, :]
@@ -327,10 +330,10 @@ def _make_bias_boxplot(
                 )
 
                 print((
-                    '{0:s}-km-HR bias of model "{1:s}" better than {0:s}-km-HR '
+                    '{0:d}-km-HR bias of model "{1:s}" better than {0:d}-km-HR '
                     'bias of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[k], model_description_strings[i],
                     this_percentile / 100
                 ))
@@ -338,11 +341,11 @@ def _make_bias_boxplot(
     for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 multicloud_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             heating_rate_axes_object.boxplot(
@@ -352,10 +355,10 @@ def _make_bias_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     numpy.absolute(
                         multicloud_heating_rate_bias_matrix_k_day01[i, j, :]
@@ -370,10 +373,10 @@ def _make_bias_boxplot(
                 )
 
                 print((
-                    'MLC {0:s}-km-HR bias of model "{1:s}" better than MLC '
-                    '{0:s}-km-HR bias of model "{2:s}" with p-value = {3:.4f}'
+                    'MLC {0:d}-km-HR bias of model "{1:s}" better than MLC '
+                    '{0:d}-km-HR bias of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[k], model_description_strings[i],
                     this_percentile / 100
                 ))
@@ -384,16 +387,18 @@ def _make_bias_boxplot(
     )
     net_flux_axes_object.set_ylabel(r'Absolute bias for net flux (W m$^{-2}$)')
 
-    x_coords = net_flux_axes_object.get_xlim()
-    y_coords = numpy.full(2, 0.)
-    net_flux_axes_object.plot(
-        x_coords, y_coords,
-        color=NET_FLUX_COLOUR, linestyle='dashed', linewidth=2
-    )
-    heating_rate_axes_object.plot(
-        x_coords, y_coords,
-        color=HEATING_RATE_COLOUR, linestyle='dashed', linewidth=2
-    )
+    y_limits = net_flux_axes_object.get_ylim()
+    heating_rate_y_limits = heating_rate_axes_object.get_ylim()
+
+    for this_cutoff_value in x_cutoff_values:
+        net_flux_axes_object.plot(
+            numpy.full(2, this_cutoff_value), y_limits,
+            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2,
+            zorder=-1e10
+        )
+
+    net_flux_axes_object.set_ylim(y_limits)
+    heating_rate_axes_object.set_ylim(heating_rate_y_limits)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -441,7 +446,9 @@ def _make_msess_boxplot(
     num_multicloud_heights = len(multicloud_heights_m_agl)
     num_boxes = num_models * (num_overall_heights + num_multicloud_heights + 2)
 
-    x_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_tick_values = numpy.linspace(0, num_boxes - 1, num=num_boxes, dtype=float)
+    x_cutoff_values = x_tick_values[::num_models] - 0.5
+    x_cutoff_values = x_cutoff_values[1:]
 
     # Plot boxplots.
     boxplot_style_dict = {
@@ -463,10 +470,10 @@ def _make_msess_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 overall_net_flux_msess_matrix[i, :] -
                 overall_net_flux_msess_matrix[k, :]
@@ -494,10 +501,10 @@ def _make_msess_boxplot(
             widths=1., notch=False, sym='', whis=(0.5, 99.5),
             medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
             whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-            positions=x_values[[box_index]]
+            positions=x_tick_values[[box_index]]
         )
 
-        for k in range(i, num_models):
+        for k in range(i + 1, num_models):
             these_diffs = (
                 multicloud_net_flux_msess_matrix[i, :] -
                 multicloud_net_flux_msess_matrix[k, :]
@@ -522,11 +529,11 @@ def _make_msess_boxplot(
     for j in range(num_overall_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 overall_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             axes_object.boxplot(
@@ -534,10 +541,10 @@ def _make_msess_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     overall_heating_rate_msess_matrix[i, j, :] -
                     overall_heating_rate_msess_matrix[k, j, :]
@@ -547,10 +554,10 @@ def _make_msess_boxplot(
                 )
 
                 print((
-                    '{0:s}-km-HR MSESS of model "{1:s}" better than {0:s}-km-HR'
-                    'MSESS of model "{2:s}" with p-value = {3:.4f}'
+                    '{0:d}-km-HR MSESS of model "{1:s}" better than {0:d}-km-HR'
+                    ' MSESS of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[i], model_description_strings[k],
                     this_percentile / 100
                 ))
@@ -558,11 +565,11 @@ def _make_msess_boxplot(
     for j in range(num_multicloud_heights):
         for i in range(num_models):
             box_index += 1
-            this_height_string = int(numpy.round(
+            this_height_km = int(numpy.round(
                 multicloud_heights_m_agl[j] * METRES_TO_KM
             ))
             x_label_strings[box_index] = '{0:s}, MLC: {1:d}-km HR'.format(
-                model_description_strings[i], this_height_string
+                model_description_strings[i], this_height_km
             )
 
             axes_object.boxplot(
@@ -570,10 +577,10 @@ def _make_msess_boxplot(
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
-                positions=x_values[[box_index]]
+                positions=x_tick_values[[box_index]]
             )
 
-            for k in range(i, num_models):
+            for k in range(i + 1, num_models):
                 these_diffs = (
                     multicloud_heating_rate_msess_matrix[i, j, :] -
                     multicloud_heating_rate_msess_matrix[k, j, :]
@@ -583,16 +590,27 @@ def _make_msess_boxplot(
                 )
 
                 print((
-                    'MLC {0:s}-km-HR MSESS of model "{1:s}" better than MLC '
-                    '{0:s}-km-HR MSESS of model "{2:s}" with p-value = {3:.4f}'
+                    'MLC {0:d}-km-HR MSESS of model "{1:s}" better than MLC '
+                    '{0:d}-km-HR MSESS of model "{2:s}" with p-value = {3:.4f}'
                 ).format(
-                    this_height_string,
+                    this_height_km,
                     model_description_strings[i], model_description_strings[k],
                     this_percentile / 100
                 ))
 
     axes_object.set_xticklabels(x_label_strings, rotation=90.)
     axes_object.set_ylabel('MSE skill score')
+
+    y_limits = axes_object.get_ylim()
+
+    for this_cutoff_value in x_cutoff_values:
+        axes_object.plot(
+            numpy.full(2, this_cutoff_value), y_limits,
+            color=REFERENCE_LINE_COLOUR, linestyle='dashed', linewidth=2,
+            zorder=-1e10
+        )
+
+    axes_object.set_ylim(y_limits)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
