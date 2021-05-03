@@ -592,6 +592,9 @@ def _plot_score_profile(
         else:
             this_score_matrix = t[score_key].values[:, k, :]
 
+        print('\n\n\n\n\nSHAPE\n\n\n\n\n')
+        print(this_score_matrix.shape)
+
         heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
 
         this_handle = evaluation_plotting.plot_score_profile(
