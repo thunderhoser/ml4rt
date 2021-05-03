@@ -5,6 +5,8 @@ import numpy
 import xarray
 from ml4rt.utils import evaluation
 
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
 INPUT_FILES_ARG_NAME = 'input_file_names'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
@@ -59,9 +61,12 @@ def _run(input_file_names, output_file_name):
         result_tables_xarray.append(this_result_table_xarray)
         num_bootstrap_reps_read += num_bootstrap_reps_new
 
+    print(SEPARATOR_STRING)
+
     result_table_xarray = xarray.concat(
         objs=result_tables_xarray, dim=evaluation.BOOTSTRAP_REP_DIM
     )
+    print(result_table_xarray)
 
     print('Writing data to: "{0:s}"...'.format(output_file_name))
     evaluation.write_file(
