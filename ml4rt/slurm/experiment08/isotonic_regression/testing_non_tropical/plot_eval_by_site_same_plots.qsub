@@ -67,8 +67,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${ocean_eval_file_names[1]}" "${ocean_eval_file_names[2]}" "${ocean_eval_file_names[3]}" "${ocean_eval_file_names[4]}" "${ocean_eval_file_names[5]}" \
 --line_styles "solid" "solid" "solid" "dashed" "dashed" \
 --line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" \
---set_descriptions "Barrow_AK" "Cherskii_RU" "
-" "FINO3" "Azores" \
+--set_descriptions "Barrow_AK" "Cherskii_RU" "Tiksi_RU" "FINO3" "Azores" \
 --confidence_level=0.99 \
 --use_log_scale=1 \
 --plot_by_height=1 \
