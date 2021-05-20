@@ -38,6 +38,6 @@ python3 -u "${CODE_DIR_NAME}/make_boxplots.py" \
 --input_overall_eval_file_names ${OVERALL_EVAL_FILE_NAMES_STRING} \
 --input_multicloud_eval_file_names ${MULTICLOUD_EVAL_FILE_NAMES_STRING} \
 --description_strings ${DESCRIPTION_STRINGS_STRING} \
---overall_heights_m_agl 1000 10000 46000 \
---multicloud_heights_m_agl 1000 5000 10000 46000 \
+--overall_heights_m_agl 1000 8000 46000 \
+--multicloud_heights_m_agl 1000 4000 8000 46000 \
 --output_dir_name="${OUTPUT_DIR_NAME}"
