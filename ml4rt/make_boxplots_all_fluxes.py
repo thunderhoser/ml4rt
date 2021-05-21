@@ -133,6 +133,7 @@ def _read_one_file(evaluation_file_name, heights_m_agl):
     )[0][0]
 
     print(result_table_xarray.coords[evaluation.SCALAR_FIELD_DIM].values)
+    print(FLUX_NAMES[1:])
 
     other_flux_indices = numpy.array([
         numpy.where(
