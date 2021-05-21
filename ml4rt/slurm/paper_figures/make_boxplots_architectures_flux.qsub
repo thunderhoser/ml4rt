@@ -1,0 +1,44 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="make_boxplots_architectures_flux"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=32G
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=make_boxplots_architectures_flux_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/boxplots_architectures_flux"
+
+set PLUSPLUS_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08/num-dense-layers=3_dense-dropout=0.100_l2-weight=0.0000003162/model/isotonic_regression/testing_tropical_sites"
+set VANILLA_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08_vanilla/num-dense-layers=2_dense-dropout=0.100_l2-weight=0.0000001000/model/isotonic_regression/testing_tropical_sites"
+set DENSE_EVAL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08_dense/num-dense-layers=5_dense-dropout=0.000_l2-weight=0.0000010000/model/isotonic_regression/testing_tropical_sites"
+
+set OVERALL_EVAL_FILE_NAMES_STRING="${PLUSPLUS_EVAL_DIR_NAME}/evaluation.nc ${VANILLA_EVAL_DIR_NAME}/evaluation.nc ${DENSE_EVAL_DIR_NAME}/evaluation.nc"
+set MULTICLOUD_EVAL_FILE_NAMES_STRING="${PLUSPLUS_EVAL_DIR_NAME}/by_cloud_regime/multi_layer_cloud/evaluation.nc ${VANILLA_EVAL_DIR_NAME}/by_cloud_regime/multi_layer_cloud/evaluation.nc ${DENSE_EVAL_DIR_NAME}/by_cloud_regime/multi_layer_cloud/evaluation.nc"
+set DESCRIPTION_STRINGS_STRING="U-net++ U-net FCNN"
+
+python3 -u "${CODE_DIR_NAME}/make_boxplots_all_fluxes.py" \
+--input_overall_eval_file_names ${OVERALL_EVAL_FILE_NAMES_STRING} \
+--input_multicloud_eval_file_names ${MULTICLOUD_EVAL_FILE_NAMES_STRING} \
+--description_strings ${DESCRIPTION_STRINGS_STRING} \
+--overall_heights_m_agl 8000 \
+--multicloud_heights_m_agl 8000 \
+--output_dir_name="${OUTPUT_DIR_NAME}"
