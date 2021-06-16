@@ -518,8 +518,8 @@ def _plot_attributes_diagram(
 
         if len(legend_handles) > 1:
             axes_object.legend(
-                legend_handles, legend_strings, loc='center left',
-                bbox_to_anchor=(0, 0.35), fancybox=True, shadow=False,
+                legend_handles, legend_strings, loc='center right',
+                bbox_to_anchor=(1, 0.7), fancybox=True, shadow=False,
                 facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
             )
 
