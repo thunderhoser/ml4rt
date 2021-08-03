@@ -121,11 +121,19 @@ def _conserve_mass_one_variable(
 
     if test_mode:
         num_axes = len(orig_conc_matrix_kg_m03.shape)
-        for k in range(num_axes - 1):
-            orig_heights_metres = numpy.expand_dims(orig_heights_metres, axis=0)
+        orig_height_matrix_metres = orig_heights_metres + 0.
+
+        for k in reversed(range(num_axes - 1)):
+            orig_height_matrix_metres = numpy.expand_dims(
+                orig_height_matrix_metres, axis=0
+            )
+            orig_height_matrix_metres = numpy.repeat(
+                orig_height_matrix_metres, axis=0,
+                repeats=orig_conc_matrix_kg_m03.shape[k]
+            )
 
         orig_mass_matrix_kg_m02 = numpy.sum(
-            orig_conc_matrix_kg_m03 * orig_heights_metres, axis=-1
+            orig_conc_matrix_kg_m03 * orig_height_matrix_metres, axis=-1
         )
     else:
         orig_mass_matrix_kg_m02 = simps(
@@ -139,11 +147,19 @@ def _conserve_mass_one_variable(
 
     if test_mode:
         num_axes = len(new_conc_matrix_kg_m03.shape)
-        for k in range(num_axes - 1):
-            new_heights_metres = numpy.expand_dims(new_heights_metres, axis=0)
+        new_height_matrix_metres = new_heights_metres + 0.
+
+        for k in reversed(range(num_axes - 1)):
+            new_height_matrix_metres = numpy.expand_dims(
+                new_height_matrix_metres, axis=0
+            )
+            new_height_matrix_metres = numpy.repeat(
+                new_height_matrix_metres, axis=0,
+                repeats=new_conc_matrix_kg_m03.shape[k]
+            )
 
         new_mass_matrix_kg_m02 = numpy.sum(
-            new_conc_matrix_kg_m03 * new_heights_metres, axis=-1
+            new_conc_matrix_kg_m03 * new_height_matrix_metres, axis=-1
         )
     else:
         new_mass_matrix_kg_m02 = simps(
@@ -154,10 +170,11 @@ def _conserve_mass_one_variable(
     mass_ratio_matrix = orig_mass_matrix_kg_m02 / new_mass_matrix_kg_m02
     mass_ratio_matrix[numpy.isnan(mass_ratio_matrix)] = 0.
 
-    for k in range(len(new_heights_metres)):
-        new_conc_matrix_kg_m03[..., k] = (
-            new_conc_matrix_kg_m03[..., k] * mass_ratio_matrix
-        )
+    mass_ratio_matrix = numpy.expand_dims(mass_ratio_matrix, axis=-1)
+    mass_ratio_matrix = numpy.repeat(
+        mass_ratio_matrix, axis=-1, repeats=new_conc_matrix_kg_m03.shape[-1]
+    )
+    new_conc_matrix_kg_m03 = new_conc_matrix_kg_m03 * mass_ratio_matrix
 
     return new_conc_matrix_kg_m03 / new_air_dens_matrix_kg_m03
 
