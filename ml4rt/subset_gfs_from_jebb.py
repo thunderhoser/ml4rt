@@ -149,18 +149,14 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
 
     # Do actual stuff.
     print('\nCreating new metadata dictionary...')
-    orig_metadata_dict = orig_table_xarray.to_dict()['coords']
-    print('FOOOOOOOOOOOOOOOO')
     new_metadata_dict = dict()
 
-    for this_key in orig_metadata_dict:
+    for this_key in orig_table_xarray['coords']:
         print(this_key)
         if this_key in ROWCOL_DIMENSIONS:
             continue
 
-        new_metadata_dict[this_key] = (
-            orig_metadata_dict[this_key]['data']
-        )
+        new_metadata_dict[this_key] = orig_table_xarray['coords'].values
 
     new_metadata_dict[SITE_DIMENSION] = numpy.linspace(
         0, num_sites - 1, num=num_sites, dtype=int
