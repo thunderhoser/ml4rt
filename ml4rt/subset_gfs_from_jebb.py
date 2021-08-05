@@ -150,6 +150,7 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     # Do actual stuff.
     print('\nCreating new metadata dictionary...')
     orig_metadata_dict = orig_table_xarray.to_dict()['coords']
+    print('FOOOOOOOOOOOOOOOO')
     new_metadata_dict = dict()
 
     for this_key in orig_metadata_dict:
