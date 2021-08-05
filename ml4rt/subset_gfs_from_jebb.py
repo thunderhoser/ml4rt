@@ -163,10 +163,6 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     )
 
     for this_key in orig_table_xarray.variables:
-        print(this_key)
-        print(orig_table_xarray[this_key].dims)
-
-    for this_key in orig_table_xarray.variables:
         if this_key in ROWCOL_DIMENSIONS:
             continue
 
@@ -195,16 +191,15 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
 
     print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
 
-    surface_data_dict = surface_table_xarray.to_dict()['data_vars']
     these_dimensions = [
-        d for d in surface_data_dict[SURFACE_ALBEDO_KEY]['dims']
+        d for d in surface_table_xarray[SURFACE_ALBEDO_KEY].dims
         if d not in ROWCOL_DIMENSIONS
     ]
     these_dimensions = tuple(these_dimensions + [SITE_DIMENSION])
 
     new_data_dict[SURFACE_ALBEDO_KEY] = (
         these_dimensions,
-        surface_data_dict[SURFACE_ALBEDO_KEY]['data'][
+        surface_table_xarray[SURFACE_ALBEDO_KEY].values[
             ..., site_rows, site_columns
         ]
     )
