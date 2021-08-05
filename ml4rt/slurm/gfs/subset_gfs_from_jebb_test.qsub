@@ -7,7 +7,6 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=80G
 ##SBATCH --nodes=1
 ##SBATCH --ntasks=1
 ##SBATCH --cpus-per-task=1
@@ -25,11 +24,13 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set INPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf006.nc"
+set ATMOSPHERE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf006.nc"
+set SURFACE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf006.nc"
 set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/gfs_init=2019-12-01-00_forecast-hour=006.nc"
 
 python3 -u "${CODE_DIR_NAME}/subset_gfs_from_jebb.py" \
---input_file_name="${INPUT_FILE_NAME}" \
+--input_atmosphere_file_name="${ATMOSPHERE_FILE_NAME}" \
+--input_surface_file_name="${SURFACE_FILE_NAME}" \
 --site_rows 0 1 2 3 4 5 10 50 100 1000 \
 --site_columns 1000 1000 1000 1000 1000 1000 1000 1000 1000 1000 \
 --output_file_name="${OUTPUT_FILE_NAME}"
