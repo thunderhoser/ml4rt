@@ -163,6 +163,10 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     )
 
     for this_key in orig_table_xarray.variables:
+        print(this_key)
+        print(orig_table_xarray[this_key].dims)
+
+    for this_key in orig_table_xarray.variables:
         print('Adding {0:s} to new data dictionary...'.format(this_key))
 
         these_dimensions = [
