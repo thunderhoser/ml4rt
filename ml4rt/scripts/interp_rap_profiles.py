@@ -30,10 +30,13 @@ SPECIAL_KEYS = [HEIGHT_KEY, NN_PRESSURE_KEY, BILINTERP_PRESSURE_KEY]
 
 NN_ICE_WATER_PATH_KEY = 'iwp0'
 BILINTERP_ICE_WATER_PATH_KEY = 'iwp1'
+NN_ICE_WATER_CONTENT_KEY = 'iwc0'
+BILINTERP_ICE_WATER_CONTENT_KEY = 'iwc1'
 NN_MIXING_LENGTH_KEY = 'mxlen0'
 BILINTERP_MIXING_LENGTH_KEY = 'mxlen1'
 NAN_ALLOWED_KEYS = [
     NN_ICE_WATER_PATH_KEY, BILINTERP_ICE_WATER_PATH_KEY,
+    NN_ICE_WATER_CONTENT_KEY, BILINTERP_ICE_WATER_CONTENT_KEY,
     NN_MIXING_LENGTH_KEY, BILINTERP_MIXING_LENGTH_KEY
 ]
 
@@ -322,17 +325,29 @@ def _conserve_masses(orig_data_dict, new_data_dict):
     return new_data_dict
 
 
-def _compute_dependent_vars(orig_data_dict, new_data_dict):
+def _compute_dependent_vars(orig_data_dict, new_data_dict, verbose):
     """Computes dependent variables.
 
     :param orig_data_dict: Dictionary with data on original grid.
     :param new_data_dict: Dictionary with data on new grid.
+    :param verbose: Boolean flag.  If True, will print progress messages.
     :return: new_data_dict: Same but including dependent variables.
     """
 
-    print('Converting {0:s} to {1:s}...'.format(
-        NN_MIXING_RATIO_KEY, NN_SPECIFIC_HUMIDITY_KEY
-    ))
+    if verbose:
+        print('Converting {0:s} to {1:s}...'.format(
+            NN_MIXING_RATIO_KEY, NN_SPECIFIC_HUMIDITY_KEY
+        ))
+
+    new_data_dict[NN_MIXING_RATIO_KEY] = (
+        orig_data_dict[NN_MIXING_RATIO_KEY]['dims'],
+        numpy.maximum(new_data_dict[NN_MIXING_RATIO_KEY][1], 0.)
+    )
+    new_data_dict[BILINTERP_MIXING_RATIO_KEY] = (
+        orig_data_dict[BILINTERP_MIXING_RATIO_KEY]['dims'],
+        numpy.maximum(new_data_dict[BILINTERP_MIXING_RATIO_KEY][1], 0.)
+    )
+
     new_nn_spec_humid_matrix_kg_kg01 = (
         moisture_conversions.mixing_ratio_to_specific_humidity(
             new_data_dict[NN_MIXING_RATIO_KEY][1] * GRAMS_TO_KG
@@ -343,9 +358,11 @@ def _compute_dependent_vars(orig_data_dict, new_data_dict):
         KG_TO_GRAMS * new_nn_spec_humid_matrix_kg_kg01
     )
 
-    print('Converting {0:s} to {1:s}...'.format(
-        BILINTERP_MIXING_RATIO_KEY, BILINTERP_SPECIFIC_HUMIDITY_KEY
-    ))
+    if verbose:
+        print('Converting {0:s} to {1:s}...'.format(
+            BILINTERP_MIXING_RATIO_KEY, BILINTERP_SPECIFIC_HUMIDITY_KEY
+        ))
+
     new_bilinterp_spec_humid_matrix_kg_kg01 = (
         moisture_conversions.mixing_ratio_to_specific_humidity(
             new_data_dict[BILINTERP_MIXING_RATIO_KEY][1] * GRAMS_TO_KG
@@ -356,9 +373,11 @@ def _compute_dependent_vars(orig_data_dict, new_data_dict):
         KG_TO_GRAMS * new_bilinterp_spec_humid_matrix_kg_kg01
     )
 
-    print('Converting {0:s} and {1:s} to {2:s}...'.format(
-        NN_U_WIND_KEY, NN_V_WIND_KEY, NN_WIND_SPEED_KEY
-    ))
+    if verbose:
+        print('Converting {0:s} and {1:s} to {2:s}...'.format(
+            NN_U_WIND_KEY, NN_V_WIND_KEY, NN_WIND_SPEED_KEY
+        ))
+
     new_nn_wind_speed_matrix_m_s01 = numpy.sqrt(
         new_data_dict[NN_U_WIND_KEY][1] ** 2 +
         new_data_dict[NN_V_WIND_KEY][1] ** 2
@@ -368,9 +387,11 @@ def _compute_dependent_vars(orig_data_dict, new_data_dict):
         new_nn_wind_speed_matrix_m_s01
     )
 
-    print('Converting {0:s} and {1:s} to {2:s}...'.format(
-        BILINTERP_U_WIND_KEY, BILINTERP_V_WIND_KEY, BILINTERP_WIND_SPEED_KEY
-    ))
+    if verbose:
+        print('Converting {0:s} and {1:s} to {2:s}...'.format(
+            BILINTERP_U_WIND_KEY, BILINTERP_V_WIND_KEY, BILINTERP_WIND_SPEED_KEY
+        ))
+
     new_bilinterp_wind_speed_matrix_m_s01 = numpy.sqrt(
         new_data_dict[BILINTERP_U_WIND_KEY][1] ** 2 +
         new_data_dict[BILINTERP_V_WIND_KEY][1] ** 2
@@ -380,10 +401,12 @@ def _compute_dependent_vars(orig_data_dict, new_data_dict):
         new_bilinterp_wind_speed_matrix_m_s01
     )
 
-    print('Converting {0:s}, {1:s}, and {2:s} to {3:s}...'.format(
-        NN_TEMPERATURE_KEY, NN_MIXING_RATIO_KEY, NN_PRESSURE_KEY,
-        NN_VIRTUAL_TEMP_KEY
-    ))
+    if verbose:
+        print('Converting {0:s}, {1:s}, and {2:s} to {3:s}...'.format(
+            NN_TEMPERATURE_KEY, NN_MIXING_RATIO_KEY, NN_PRESSURE_KEY,
+            NN_VIRTUAL_TEMP_KEY
+        ))
+
     new_nn_vapour_pressure_matrix_pa = (
         moisture_conversions.mixing_ratio_to_vapour_pressure(
             mixing_ratios_kg_kg01=
@@ -407,11 +430,13 @@ def _compute_dependent_vars(orig_data_dict, new_data_dict):
         new_nn_virtual_temp_matrix_kelvins
     )
 
-    print('Converting {0:s}, {1:s}, and {2:s} to {3:s}...'.format(
-        BILINTERP_TEMPERATURE_KEY, BILINTERP_MIXING_RATIO_KEY,
-        BILINTERP_PRESSURE_KEY,
-        BILINTERP_VIRTUAL_TEMP_KEY
-    ))
+    if verbose:
+        print('Converting {0:s}, {1:s}, and {2:s} to {3:s}...'.format(
+            BILINTERP_TEMPERATURE_KEY, BILINTERP_MIXING_RATIO_KEY,
+            BILINTERP_PRESSURE_KEY,
+            BILINTERP_VIRTUAL_TEMP_KEY
+        ))
+
     new_bilinterp_vapour_pressure_matrix_pa = (
         moisture_conversions.mixing_ratio_to_vapour_pressure(
             mixing_ratios_kg_kg01=
@@ -636,11 +661,16 @@ def _interp_rap_profiles_one_day(
             new_data_matrix
         )
 
+    new_data_dict = _compute_dependent_vars(
+        orig_data_dict=orig_data_dict, new_data_dict=new_data_dict,
+        verbose=False
+    )
     new_data_dict = _conserve_masses(
         orig_data_dict=orig_data_dict, new_data_dict=new_data_dict
     )
     new_data_dict = _compute_dependent_vars(
-        orig_data_dict=orig_data_dict, new_data_dict=new_data_dict
+        orig_data_dict=orig_data_dict, new_data_dict=new_data_dict,
+        verbose=True
     )
     new_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict,
