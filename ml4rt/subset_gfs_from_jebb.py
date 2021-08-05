@@ -163,20 +163,10 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     )
 
     for this_key in orig_table_xarray.variables:
-        if this_key in ROWCOL_DIMENSIONS:
+        if this_key in orig_table_xarray.coords:
             continue
 
         print('Adding {0:s} to new data dictionary...'.format(this_key))
-
-        if not all(
-                d in orig_table_xarray[this_key].dims for d in ROWCOL_DIMENSIONS
-        ):
-            new_data_dict[this_key] = (
-                orig_table_xarray[this_key].dims,
-                orig_table_xarray[this_key].values
-            )
-
-            continue
 
         these_dimensions = [
             d for d in orig_table_xarray[this_key].dims
