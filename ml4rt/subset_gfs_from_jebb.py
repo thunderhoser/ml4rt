@@ -153,6 +153,7 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     new_metadata_dict = dict()
 
     for this_key in orig_metadata_dict:
+        print(this_key)
         if this_key in ROWCOL_DIMENSIONS:
             continue
 
