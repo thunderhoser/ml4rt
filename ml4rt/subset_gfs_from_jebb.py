@@ -14,11 +14,15 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import error_checking
 
+TOLERANCE = 1e-6
+
+TIME_DIMENSION = 'time'
+SITE_DIMENSION = 'site_index'
 GRID_ROW_DIMENSION = 'grid_yt'
 GRID_COLUMN_DIMENSION = 'grid_xt'
 ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
-SITE_DIMENSION = 'site_index'
+SURFACE_ALBEDO_KEY = 'albdo_ave'
 
 ATMOSPHERE_FILE_ARG_NAME = 'input_atmos_file_name'
 SURFACE_FILE_ARG_NAME = 'input_surface_file_name'
@@ -96,6 +100,7 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     :param output_file_name: Same.
     """
 
+    # Check input args.
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
     error_checking.assert_is_geq_numpy_array(site_rows, 0)
@@ -125,15 +130,25 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     print('Reading data from: "{0:s}"...'.format(surface_file_name))
     surface_table_xarray = xarray.open_dataset(surface_file_name)
 
-    assert len(orig_table_xarray.coords['time'].values) == 1
-    assert len(surface_table_xarray.coords['time'].values) == 1
-    print(orig_table_xarray.coords['time'].values[0])
-
+    assert len(orig_table_xarray.coords[TIME_DIMENSION].values) == 1
+    assert len(surface_table_xarray.coords[TIME_DIMENSION].values) == 1
     assert (
-        orig_table_xarray.coords['time'].values[0] ==
-        surface_table_xarray.coords['time'].values[0]
+        orig_table_xarray.coords[TIME_DIMENSION].values[0] ==
+        surface_table_xarray.coords[TIME_DIMENSION].values[0]
+    )
+    assert numpy.allclose(
+        orig_table_xarray.coords[GRID_ROW_DIMENSION].values,
+        surface_table_xarray.coords[GRID_ROW_DIMENSION].values,
+        atol=TOLERANCE
+    )
+    assert numpy.allclose(
+        orig_table_xarray.coords[GRID_COLUMN_DIMENSION].values,
+        surface_table_xarray.coords[GRID_COLUMN_DIMENSION].values,
+        atol=TOLERANCE
     )
 
+    # Do actual stuff.
+    print('\nCreating new metadata dictionary...')
     orig_metadata_dict = orig_table_xarray.to_dict()['coords']
     new_metadata_dict = dict()
 
@@ -153,6 +168,8 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     new_data_dict = dict()
 
     for this_key in orig_table_xarray.variables:
+        print('Adding {0:s} to new data dictionary...'.format(this_key))
+
         these_dimensions = [
             d for d in orig_data_dict[this_key]['dims']
             if d not in ROWCOL_DIMENSIONS
@@ -164,12 +181,28 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
             orig_data_dict[this_key]['data'][..., site_rows, site_columns]
         )
 
+    print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
+
+    surface_data_dict = surface_table_xarray.to_dict()['data_vars']
+    these_dimensions = [
+        d for d in surface_data_dict[SURFACE_ALBEDO_KEY]['dims']
+        if d not in ROWCOL_DIMENSIONS
+    ]
+    these_dimensions = tuple(these_dimensions + [SITE_DIMENSION])
+
+    new_data_dict[SURFACE_ALBEDO_KEY] = (
+        these_dimensions,
+        surface_data_dict[SURFACE_ALBEDO_KEY]['data'][
+            ..., site_rows, site_columns
+        ]
+    )
+
     new_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict,
         attrs=orig_table_xarray.attrs
     )
 
-    print('Writing data to: "{0:s}"...'.format(output_file_name))
+    print('\nWriting data to: "{0:s}"...'.format(output_file_name))
     new_table_xarray.to_netcdf(
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
     )
