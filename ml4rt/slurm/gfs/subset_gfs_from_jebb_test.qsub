@@ -29,7 +29,7 @@ set SURFACE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_f
 set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/gfs_init=2019-12-01-00_forecast-hour=006.nc"
 
 python3 -u "${CODE_DIR_NAME}/subset_gfs_from_jebb.py" \
---input_atmosphere_file_name="${ATMOSPHERE_FILE_NAME}" \
+--input_atmos_file_name="${ATMOSPHERE_FILE_NAME}" \
 --input_surface_file_name="${SURFACE_FILE_NAME}" \
 --site_rows 0 1 2 3 4 5 10 50 100 1000 \
 --site_columns 1000 1000 1000 1000 1000 1000 1000 1000 1000 1000 \
