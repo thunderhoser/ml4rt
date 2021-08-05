@@ -150,9 +150,9 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     # Do actual stuff.
     print('\nCreating new metadata dictionary...')
     new_metadata_dict = dict()
+    new_data_dict = dict()
 
     for this_key in orig_table_xarray.coords:
-        print(this_key)
         if this_key in ROWCOL_DIMENSIONS:
             continue
 
@@ -162,21 +162,18 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
         0, num_sites - 1, num=num_sites, dtype=int
     )
 
-    orig_data_dict = orig_table_xarray.to_dict()['data_vars']
-    new_data_dict = dict()
-
     for this_key in orig_table_xarray.variables:
         print('Adding {0:s} to new data dictionary...'.format(this_key))
 
         these_dimensions = [
-            d for d in orig_data_dict[this_key]['dims']
+            d for d in orig_table_xarray[this_key].dims
             if d not in ROWCOL_DIMENSIONS
         ]
         these_dimensions = tuple(these_dimensions + [SITE_DIMENSION])
 
         new_data_dict[this_key] = (
             these_dimensions,
-            orig_data_dict[this_key]['data'][..., site_rows, site_columns]
+            orig_table_xarray[this_key].values[..., site_rows, site_columns]
         )
 
     print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
