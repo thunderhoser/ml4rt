@@ -1,4 +1,4 @@
-"""Subsets GFS file from Jebb by site."""
+"""Subsets GFS data from Jebb by site."""
 
 import os
 import sys
@@ -20,14 +20,19 @@ ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
 SITE_DIMENSION = 'site_index'
 
-INPUT_FILE_ARG_NAME = 'input_file_name'
+ATMOSPHERE_FILE_ARG_NAME = 'input_atmos_file_name'
+SURFACE_FILE_ARG_NAME = 'input_surface_file_name'
 SITE_ROWS_ARG_NAME = 'site_rows'
 SITE_COLUMNS_ARG_NAME = 'site_columns'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
-INPUT_FILE_HELP_STRING = (
-    'Path to input file, containing GFS data for the whole grid at one init '
-    'time and one forecast time.'
+ATMOSPHERE_FILE_HELP_STRING = (
+    'Path to atmosphere file, containing GFS data for the whole 3-D atmosphere '
+    'at one init time and one forecast time.'
+)
+SURFACE_FILE_HELP_STRING = (
+    'Path to surface file, containing GFS data for only the surface at the same'
+    ' init time and forecast time.'
 )
 SITE_ROWS_HELP_STRING = (
     'List of row indices (one per desired site).  Only data at these sites will'
@@ -43,8 +48,12 @@ OUTPUT_FILE_HELP_STRING = (
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + INPUT_FILE_ARG_NAME, type=str, required=True,
-    help=INPUT_FILE_HELP_STRING
+    '--' + ATMOSPHERE_FILE_ARG_NAME, type=str, required=True,
+    help=ATMOSPHERE_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SURFACE_FILE_ARG_NAME, type=str, required=True,
+    help=SURFACE_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + SITE_ROWS_ARG_NAME, type=int, nargs='+', required=True,
@@ -60,12 +69,28 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, site_rows, site_columns, output_file_name):
-    """Subsets GFS file from Jebb by site.
+def _file_name_to_forecast_hour(jebb_gfs_file_name):
+    """Parses forecast hour from name of Jebb GFS file.
+
+    :param jebb_gfs_file_name: Path to Jebb GFS file.
+    :return: forecast_hour: Forecast hour (integer).
+    """
+
+    extensionless_file_name = os.path.splitext(jebb_gfs_file_name)[0]
+    last_part = extensionless_file_name.split('.')[-1]
+    assert last_part[-4] == 'f'
+
+    return int(last_part[-3:])
+
+
+def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
+         output_file_name):
+    """Subsets GFS data from Jebb by site.
 
     This is effectively the main method.
 
-    :param input_file_name: See documentation at top of file.
+    :param atmosphere_file_name: See documentation at top of file.
+    :param surface_file_name: Same.
     :param site_rows: Same.
     :param site_columns: Same.
     :param output_file_name: Same.
@@ -82,14 +107,31 @@ def _run(input_file_name, site_rows, site_columns, output_file_name):
         exact_dimensions=numpy.array([num_sites], dtype=int)
     )
 
-    print('Reading data from: "{0:s}"...'.format(input_file_name))
-    orig_table_xarray = xarray.open_dataset(input_file_name)
+    assert (
+        _file_name_to_forecast_hour(atmosphere_file_name) ==
+        _file_name_to_forecast_hour(surface_file_name)
+    )
+
+    print('Reading data from: "{0:s}"...'.format(atmosphere_file_name))
+    orig_table_xarray = xarray.open_dataset(atmosphere_file_name)
 
     num_grid_rows = len(orig_table_xarray.coords[GRID_COLUMN_DIMENSION].values)
     num_grid_columns = len(orig_table_xarray.coords[GRID_ROW_DIMENSION].values)
     error_checking.assert_is_less_than_numpy_array(site_rows, num_grid_rows)
     error_checking.assert_is_less_than_numpy_array(
         site_columns, num_grid_columns
+    )
+
+    print('Reading data from: "{0:s}"...'.format(surface_file_name))
+    surface_table_xarray = xarray.open_dataset(surface_file_name)
+
+    assert len(orig_table_xarray.coords['time'].values) == 1
+    assert len(surface_table_xarray.coords['time'].values) == 1
+    print(orig_table_xarray.coords['time'].values[0])
+
+    assert (
+        orig_table_xarray.coords['time'].values[0] ==
+        surface_table_xarray.coords['time'].values[0]
     )
 
     orig_metadata_dict = orig_table_xarray.to_dict()['coords']
@@ -137,7 +179,10 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        atmosphere_file_name=getattr(
+            INPUT_ARG_OBJECT, ATMOSPHERE_FILE_ARG_NAME
+        ),
+        surface_file_name=getattr(INPUT_ARG_OBJECT, SURFACE_FILE_ARG_NAME),
         site_rows=numpy.array(
             getattr(INPUT_ARG_OBJECT, SITE_ROWS_ARG_NAME), dtype=int
         ),
