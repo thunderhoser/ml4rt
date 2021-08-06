@@ -534,7 +534,8 @@ def _interp_and_conserve_jumps(orig_data_matrix, orig_heights_metres,
 
     interp_object = interp1d(
         x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
-        axis=-1, kind='linear', bounds_error=True, assume_sorted=True
+        axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
+        fill_value='extrapolate'
     )
     new_data_matrix = (
         numpy.exp(interp_object(new_heights_metres)) - log_offset
@@ -542,7 +543,8 @@ def _interp_and_conserve_jumps(orig_data_matrix, orig_heights_metres,
 
     interp_object = interp1d(
         x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
-        axis=-1, kind='nearest', bounds_error=True, assume_sorted=True
+        axis=-1, kind='nearest', bounds_error=False, assume_sorted=True,
+        fill_value='extrapolate'
     )
     new_data_matrix_nn = (
         numpy.exp(interp_object(new_heights_metres)) - log_offset
