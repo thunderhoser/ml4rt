@@ -24,13 +24,13 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set ATMOSPHERE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf006.nc"
-set SURFACE_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf006.nc"
-set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/gfs_init=2019-12-01-00_forecast-hour=006.nc"
+set ATMOSPHERE_FILE_NAMES_STRING="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf006.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf012.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf018.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf024.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf030.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.atmf036.nc"
+set SURFACE_FILE_NAMES_STRING="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf006.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf012.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf018.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf024.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf030.nc /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3/20191201/gfs.20191201/00/gfs.t00z.sfcf036.nc"
+set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/gfs_init=2019-12-01-00.nc"
 
 python3 -u "${CODE_DIR_NAME}/subset_gfs_from_jebb.py" \
---input_atmos_file_name="${ATMOSPHERE_FILE_NAME}" \
---input_surface_file_name="${SURFACE_FILE_NAME}" \
+--input_atmos_file_names ${ATMOSPHERE_FILE_NAMES_STRING} \
+--input_surface_file_names ${SURFACE_FILE_NAMES_STRING} \
 --site_rows 0 1 2 3 4 5 10 50 100 1000 \
 --site_columns 1000 1000 1000 1000 1000 1000 1000 1000 1000 1000 \
 --output_file_name="${OUTPUT_FILE_NAME}"

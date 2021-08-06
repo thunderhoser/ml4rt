@@ -20,27 +20,26 @@ TIME_DIMENSION = 'time'
 SITE_DIMENSION = 'site_index'
 GRID_ROW_DIMENSION = 'grid_yt'
 GRID_COLUMN_DIMENSION = 'grid_xt'
-ROW_COL_TIME_DIMENSIONS = [
-    GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION, TIME_DIMENSION
-]
+FORECAST_HOUR_DIMENSION = 'forecast_hour'
+ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
 SURFACE_ALBEDO_KEY = 'albdo_ave'
-FORECAST_HOUR_KEY = 'forecast_hour'
 
-ATMOSPHERE_FILE_ARG_NAME = 'input_atmos_file_name'
-SURFACE_FILE_ARG_NAME = 'input_surface_file_name'
+ATMOSPHERE_FILES_ARG_NAME = 'input_atmos_file_names'
+SURFACE_FILES_ARG_NAME = 'input_surface_file_names'
 SITE_ROWS_ARG_NAME = 'site_rows'
 SITE_COLUMNS_ARG_NAME = 'site_columns'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
-ATMOSPHERE_FILE_HELP_STRING = (
-    'Path to atmosphere file, containing GFS data for the whole 3-D atmosphere '
-    'at one init time and one forecast time.'
+ATMOSPHERE_FILES_HELP_STRING = (
+    'List of paths to atmosphere files, each containing GFS data for the whole '
+    '3-D atmosphere at one init time and one forecast time.'
 )
-SURFACE_FILE_HELP_STRING = (
-    'Path to surface file, containing GFS data for only the surface at the same'
-    ' init time and forecast time.'
-)
+SURFACE_FILES_HELP_STRING = (
+    'List of paths to surface files, each containing GFS data for only the '
+    'surface at one init time and one forecast time.  Must have same length as '
+    '`{0:s}`.'
+).format(ATMOSPHERE_FILES_ARG_NAME)
 SITE_ROWS_HELP_STRING = (
     'List of row indices (one per desired site).  Only data at these sites will'
     ' be written to the output file.'
@@ -55,12 +54,12 @@ OUTPUT_FILE_HELP_STRING = (
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + ATMOSPHERE_FILE_ARG_NAME, type=str, required=True,
-    help=ATMOSPHERE_FILE_HELP_STRING
+    '--' + ATMOSPHERE_FILES_ARG_NAME, type=str, nargs='+', required=True,
+    help=ATMOSPHERE_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + SURFACE_FILE_ARG_NAME, type=str, required=True,
-    help=SURFACE_FILE_HELP_STRING
+    '--' + SURFACE_FILES_ARG_NAME, type=str, nargs='+', required=True,
+    help=SURFACE_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + SITE_ROWS_ARG_NAME, type=int, nargs='+', required=True,
@@ -90,34 +89,18 @@ def _file_name_to_forecast_hour(jebb_gfs_file_name):
     return int(last_part[-3:])
 
 
-def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
-         output_file_name):
-    """Subsets GFS data from Jebb by site.
-
-    This is effectively the main method.
+def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
+                                  site_rows, site_columns):
+    """Subsets GFS data for one forecast hour.
 
     :param atmosphere_file_name: See documentation at top of file.
     :param surface_file_name: Same.
     :param site_rows: Same.
     :param site_columns: Same.
-    :param output_file_name: Same.
+    :return: subset_gfs_table_xarray: xarray table with subset GFS data.
     """
 
-    # Check input args.
-    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
-
-    error_checking.assert_is_geq_numpy_array(site_rows, 0)
-    error_checking.assert_is_geq_numpy_array(site_columns, 0)
-
-    num_sites = len(site_rows)
-    error_checking.assert_is_numpy_array(
-        site_columns,
-        exact_dimensions=numpy.array([num_sites], dtype=int)
-    )
-
-    forecast_hour = _file_name_to_forecast_hour(atmosphere_file_name)
-    assert forecast_hour == _file_name_to_forecast_hour(surface_file_name)
-
+    # Read files and check input args.
     print('Reading data from: "{0:s}"...'.format(atmosphere_file_name))
     orig_table_xarray = xarray.open_dataset(atmosphere_file_name)
 
@@ -154,11 +137,16 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     new_data_dict = dict()
 
     for this_key in orig_table_xarray.coords:
-        if this_key in ROW_COL_TIME_DIMENSIONS:
+        if this_key in ROWCOL_DIMENSIONS + [TIME_DIMENSION]:
             continue
 
         new_metadata_dict[this_key] = orig_table_xarray.coords[this_key].values
 
+    new_metadata_dict[FORECAST_HOUR_DIMENSION] = numpy.array([
+        _file_name_to_forecast_hour(atmosphere_file_name)
+    ], dtype=int)
+
+    num_sites = len(site_rows)
     new_metadata_dict[SITE_DIMENSION] = numpy.linspace(
         0, num_sites - 1, num=num_sites, dtype=int
     )
@@ -171,45 +159,107 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
 
         orig_dimensions = orig_table_xarray[this_key].dims
         new_dimensions = [
-            d for d in orig_dimensions if d not in ROW_COL_TIME_DIMENSIONS
+            d for d in orig_dimensions if d not in ROWCOL_DIMENSIONS
+        ]
+        new_dimensions = [
+            FORECAST_HOUR_DIMENSION if d == TIME_DIMENSION else d
+            for d in new_dimensions
         ]
         new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
 
-        if TIME_DIMENSION in orig_dimensions:
-            new_data_matrix = orig_table_xarray[this_key].values[0, ...][
-                ..., site_rows, site_columns
-            ]
-        else:
-            new_data_matrix = orig_table_xarray[this_key].values[
-                ..., site_rows, site_columns
-            ]
-
-        print(new_data_matrix.shape)
+        new_data_matrix = orig_table_xarray[this_key].values[
+            ..., site_rows, site_columns
+        ]
         new_data_dict[this_key] = (new_dimensions, new_data_matrix)
 
     print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
 
     orig_dimensions = surface_table_xarray[SURFACE_ALBEDO_KEY].dims
     new_dimensions = [
-        d for d in orig_dimensions if d not in ROW_COL_TIME_DIMENSIONS
+        d for d in orig_dimensions if d not in ROWCOL_DIMENSIONS
+    ]
+    new_dimensions = [
+        FORECAST_HOUR_DIMENSION if d == TIME_DIMENSION else d
+        for d in new_dimensions
     ]
     new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
 
     new_data_dict[SURFACE_ALBEDO_KEY] = (
         new_dimensions,
         surface_table_xarray[SURFACE_ALBEDO_KEY].values[
-            0, ..., site_rows, site_columns
+            ..., site_rows, site_columns
         ]
     )
 
-    orig_table_xarray.attrs[FORECAST_HOUR_KEY] = forecast_hour
-    new_table_xarray = xarray.Dataset(
+    return xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict,
         attrs=orig_table_xarray.attrs
     )
 
-    print('\nWriting data to: "{0:s}"...'.format(output_file_name))
-    new_table_xarray.to_netcdf(
+
+def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
+         output_file_name):
+    """Subsets GFS data from Jebb by site.
+
+    This is effectively the main method.
+
+    :param atmosphere_file_names: See documentation at top of file.
+    :param surface_file_names: Same.
+    :param site_rows: Same.
+    :param site_columns: Same.
+    :param output_file_name: Same.
+    """
+
+    # Check input args.
+    error_checking.assert_is_geq_numpy_array(site_rows, 0)
+    error_checking.assert_is_geq_numpy_array(site_columns, 0)
+
+    num_sites = len(site_rows)
+    error_checking.assert_is_numpy_array(
+        site_columns,
+        exact_dimensions=numpy.array([num_sites], dtype=int)
+    )
+
+    num_forecast_hours = len(atmosphere_file_names)
+    error_checking.assert_is_numpy_array(
+        numpy.array(surface_file_names),
+        exact_dimensions=numpy.array([num_forecast_hours], dtype=int)
+    )
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
+
+    forecast_hours = numpy.array(
+        [_file_name_to_forecast_hour(f) for f in atmosphere_file_names],
+        dtype=int
+    )
+    surface_forecast_hours = numpy.array(
+        [_file_name_to_forecast_hour(f) for f in surface_file_names],
+        dtype=int
+    )
+    assert numpy.array_equal(forecast_hours, surface_forecast_hours)
+    del surface_forecast_hours
+
+    sort_indices = numpy.argsort(forecast_hours)
+    del forecast_hours
+    atmosphere_file_names = [atmosphere_file_names[k] for k in sort_indices]
+    surface_file_names = [surface_file_names[k] for k in sort_indices]
+
+    all_tables_xarray = [None] * num_forecast_hours
+
+    for i in range(num_forecast_hours):
+        all_tables_xarray[i] = _subset_gfs_one_forecast_hour(
+            atmosphere_file_name=atmosphere_file_names[i],
+            surface_file_name=surface_file_names[i],
+            site_rows=site_rows, site_columns=site_columns
+        )
+        print('\n')
+
+    subset_gfs_table_xarray = xarray.concat(
+        objs=all_tables_xarray, dim=FORECAST_HOUR_DIMENSION, data_vars='minimal'
+    )
+
+    print('Writing data to: "{0:s}"...'.format(output_file_name))
+    subset_gfs_table_xarray.to_netcdf(
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
     )
 
@@ -218,10 +268,10 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        atmosphere_file_name=getattr(
-            INPUT_ARG_OBJECT, ATMOSPHERE_FILE_ARG_NAME
+        atmosphere_file_names=getattr(
+            INPUT_ARG_OBJECT, ATMOSPHERE_FILES_ARG_NAME
         ),
-        surface_file_name=getattr(INPUT_ARG_OBJECT, SURFACE_FILE_ARG_NAME),
+        surface_file_names=getattr(INPUT_ARG_OBJECT, SURFACE_FILES_ARG_NAME),
         site_rows=numpy.array(
             getattr(INPUT_ARG_OBJECT, SITE_ROWS_ARG_NAME), dtype=int
         ),
