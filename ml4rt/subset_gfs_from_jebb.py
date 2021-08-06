@@ -20,9 +20,12 @@ TIME_DIMENSION = 'time'
 SITE_DIMENSION = 'site_index'
 GRID_ROW_DIMENSION = 'grid_yt'
 GRID_COLUMN_DIMENSION = 'grid_xt'
-ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
+ROW_COL_TIME_DIMENSIONS = [
+    GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION, TIME_DIMENSION
+]
 
 SURFACE_ALBEDO_KEY = 'albdo_ave'
+FORECAST_HOUR_KEY = 'forecast_hour'
 
 ATMOSPHERE_FILE_ARG_NAME = 'input_atmos_file_name'
 SURFACE_FILE_ARG_NAME = 'input_surface_file_name'
@@ -112,10 +115,8 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
         exact_dimensions=numpy.array([num_sites], dtype=int)
     )
 
-    assert (
-        _file_name_to_forecast_hour(atmosphere_file_name) ==
-        _file_name_to_forecast_hour(surface_file_name)
-    )
+    forecast_hour = _file_name_to_forecast_hour(atmosphere_file_name)
+    assert forecast_hour == _file_name_to_forecast_hour(surface_file_name)
 
     print('Reading data from: "{0:s}"...'.format(atmosphere_file_name))
     orig_table_xarray = xarray.open_dataset(atmosphere_file_name)
@@ -153,7 +154,7 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
     new_data_dict = dict()
 
     for this_key in orig_table_xarray.coords:
-        if this_key in ROWCOL_DIMENSIONS:
+        if this_key in ROW_COL_TIME_DIMENSIONS:
             continue
 
         new_metadata_dict[this_key] = orig_table_xarray.coords[this_key].values
@@ -168,32 +169,39 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
 
         print('Adding {0:s} to new data dictionary...'.format(this_key))
 
-        these_dimensions = [
-            d for d in orig_table_xarray[this_key].dims
-            if d not in ROWCOL_DIMENSIONS
+        orig_dimensions = orig_table_xarray[this_key].dims
+        new_dimensions = [
+            d for d in orig_dimensions if d not in ROW_COL_TIME_DIMENSIONS
         ]
-        these_dimensions = tuple(these_dimensions + [SITE_DIMENSION])
+        new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
 
-        new_data_dict[this_key] = (
-            these_dimensions,
-            orig_table_xarray[this_key].values[..., site_rows, site_columns]
-        )
+        if TIME_DIMENSION in orig_dimensions:
+            new_data_matrix = orig_table_xarray[this_key].values[
+                0, ..., site_rows, site_columns
+            ]
+        else:
+            new_data_matrix = orig_table_xarray[this_key].values[
+                ..., site_rows, site_columns
+            ]
+
+        new_data_dict[this_key] = (new_dimensions, new_data_matrix)
 
     print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
 
-    these_dimensions = [
-        d for d in surface_table_xarray[SURFACE_ALBEDO_KEY].dims
-        if d not in ROWCOL_DIMENSIONS
+    orig_dimensions = surface_table_xarray[SURFACE_ALBEDO_KEY].dims
+    new_dimensions = [
+        d for d in orig_dimensions if d not in ROW_COL_TIME_DIMENSIONS
     ]
-    these_dimensions = tuple(these_dimensions + [SITE_DIMENSION])
+    new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
 
     new_data_dict[SURFACE_ALBEDO_KEY] = (
-        these_dimensions,
+        new_dimensions,
         surface_table_xarray[SURFACE_ALBEDO_KEY].values[
-            ..., site_rows, site_columns
+            0, ..., site_rows, site_columns
         ]
     )
 
+    orig_table_xarray.attrs[FORECAST_HOUR_KEY] = forecast_hour
     new_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict,
         attrs=orig_table_xarray.attrs
