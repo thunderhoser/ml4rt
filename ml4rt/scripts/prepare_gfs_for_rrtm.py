@@ -235,7 +235,7 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
             ))
 
             interp_object = interp1d(
-                x=orig_heights_m_agl, y=orig_pressures_pa,
+                x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
                 kind='linear', bounds_error=False, assume_sorted=True,
                 fill_value='extrapolate'
             )
@@ -400,6 +400,14 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     new_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
     )
+
+    for this_key in new_table_xarray.variables:
+        if this_key == SITE_NAME_KEY:
+            continue
+
+        error_checking.assert_is_numpy_array_without_nan(
+            new_table_xarray[this_key].values
+        )
 
     print('Writing data to: "{0:s}"...'.format(output_file_name))
     new_table_xarray.to_netcdf(
