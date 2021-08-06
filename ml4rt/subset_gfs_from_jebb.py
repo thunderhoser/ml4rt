@@ -176,8 +176,8 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
         new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
 
         if TIME_DIMENSION in orig_dimensions:
-            new_data_matrix = orig_table_xarray[this_key].values[
-                0, ..., site_rows, site_columns
+            new_data_matrix = orig_table_xarray[this_key].values[0, ...][
+                ..., site_rows, site_columns
             ]
         else:
             new_data_matrix = orig_table_xarray[this_key].values[
