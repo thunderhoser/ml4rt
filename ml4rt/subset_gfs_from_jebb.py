@@ -184,6 +184,7 @@ def _run(atmosphere_file_name, surface_file_name, site_rows, site_columns,
                 ..., site_rows, site_columns
             ]
 
+        print(new_data_matrix.shape)
         new_data_dict[this_key] = (new_dimensions, new_data_matrix)
 
     print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
