@@ -1,60 +1,97 @@
 """Unit tests for example_io.py."""
 
 import unittest
-from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 
-# The following constants are used to test find_file and file_name_to_year.
-EXAMPLE_DIR_NAME = 'foo'
-YEAR = 2018
-EXAMPLE_FILE_NAME = 'foo/learning_examples_2018.nc'
+FIRST_EXAMPLE_DIR_NAME = 'foo'
+FIRST_YEAR = 2018
+FIRST_YEAR_PART_NUMBER = None
+FIRST_EXAMPLE_FILE_NAME = 'foo/learning_examples_2018.nc'
 
-# The following constants are used to test find_many_files.
-FIRST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
-    '1999-12-31-235959', '%Y-%m-%d-%H%M%S'
-)
-LAST_FILE_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
-    '2005-01-01-000000', '%Y-%m-%d-%H%M%S'
-)
-EXAMPLE_FILE_NAMES = [
-    'foo/learning_examples_1999.nc', 'foo/learning_examples_2000.nc',
-    'foo/learning_examples_2001.nc', 'foo/learning_examples_2002.nc',
-    'foo/learning_examples_2003.nc', 'foo/learning_examples_2004.nc',
-    'foo/learning_examples_2005.nc'
-]
+SECOND_EXAMPLE_DIR_NAME = 'bar'
+SECOND_YEAR = 2019
+SECOND_YEAR_PART_NUMBER = 3
+SECOND_EXAMPLE_FILE_NAME = 'bar/learning_examples_2019_part03.nc'
 
 
 class ExampleIoTests(unittest.TestCase):
     """Each method is a unit test for example_io.py."""
 
-    def test_find_file(self):
-        """Ensures correct output from find_file."""
+    def test_find_file_first(self):
+        """Ensures correct output from find_file.
+
+        In this case, using first set of input args.
+        """
 
         this_file_name = example_io.find_file(
-            directory_name=EXAMPLE_DIR_NAME, year=YEAR,
+            directory_name=FIRST_EXAMPLE_DIR_NAME, year=FIRST_YEAR,
+            year_part_number=FIRST_YEAR_PART_NUMBER,
             raise_error_if_missing=False
         )
 
-        self.assertTrue(this_file_name == EXAMPLE_FILE_NAME)
+        self.assertTrue(this_file_name == FIRST_EXAMPLE_FILE_NAME)
 
-    def test_file_name_to_year(self):
-        """Ensures correct output from file_name_to_year."""
+    def test_file_name_to_year_first(self):
+        """Ensures correct output from file_name_to_year.
 
-        this_year = example_io.file_name_to_year(EXAMPLE_FILE_NAME)
-        self.assertTrue(this_year == YEAR)
+        In this case, using first set of input args.
+        """
 
-    def test_find_many_files(self):
-        """Ensures correct output from find_many_files."""
+        this_year = example_io.file_name_to_year(FIRST_EXAMPLE_FILE_NAME)
+        self.assertTrue(this_year == FIRST_YEAR)
 
-        these_file_names = example_io.find_many_files(
-            directory_name=EXAMPLE_DIR_NAME,
-            first_time_unix_sec=FIRST_FILE_TIME_UNIX_SEC,
-            last_time_unix_sec=LAST_FILE_TIME_UNIX_SEC,
-            raise_error_if_any_missing=False,
-            raise_error_if_all_missing=False, test_mode=True
+    def test_file_name_to_year_part_first(self):
+        """Ensures correct output from file_name_to_year_part.
+
+        In this case, using first set of input args.
+        """
+
+        this_part_number = example_io.file_name_to_year_part(
+            FIRST_EXAMPLE_FILE_NAME
         )
 
-        self.assertTrue(these_file_names == EXAMPLE_FILE_NAMES)
+        if FIRST_YEAR_PART_NUMBER is None:
+            self.assertTrue(this_part_number is None)
+        else:
+            self.assertTrue(this_part_number == FIRST_YEAR_PART_NUMBER)
+
+    def test_find_file_second(self):
+        """Ensures correct output from find_file.
+
+        In this case, using second set of input args.
+        """
+
+        this_file_name = example_io.find_file(
+            directory_name=SECOND_EXAMPLE_DIR_NAME, year=SECOND_YEAR,
+            year_part_number=SECOND_YEAR_PART_NUMBER,
+            raise_error_if_missing=False
+        )
+
+        self.assertTrue(this_file_name == SECOND_EXAMPLE_FILE_NAME)
+
+    def test_file_name_to_year_second(self):
+        """Ensures correct output from file_name_to_year.
+
+        In this case, using second set of input args.
+        """
+
+        this_year = example_io.file_name_to_year(SECOND_EXAMPLE_FILE_NAME)
+        self.assertTrue(this_year == SECOND_YEAR)
+
+    def test_file_name_to_year_part_second(self):
+        """Ensures correct output from file_name_to_year_part.
+
+        In this case, using second set of input args.
+        """
+
+        this_part_number = example_io.file_name_to_year_part(
+            SECOND_EXAMPLE_FILE_NAME
+        )
+
+        if SECOND_YEAR_PART_NUMBER is None:
+            self.assertTrue(this_part_number is None)
+        else:
+            self.assertTrue(this_part_number == SECOND_YEAR_PART_NUMBER)
 
 
 if __name__ == '__main__':

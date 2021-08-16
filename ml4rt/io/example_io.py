@@ -1,6 +1,7 @@
 """Helper methods for learning examples."""
 
-import os.path
+import os
+import glob
 import warnings
 import numpy
 import netCDF4
@@ -23,11 +24,14 @@ EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 FIELD_NAME_CHAR_DIM_KEY = 'field_name_char'
 
 
-def find_file(directory_name, year, raise_error_if_missing=True):
+def find_file(directory_name, year, year_part_number=None,
+              raise_error_if_missing=True):
     """Finds NetCDF file with learning examples.
 
     :param directory_name: Name of directory where file is expected.
     :param year: Year (integer).
+    :param year_part_number: Part of year.  If you are looking for a file
+        containing the whole year, make this None.
     :param raise_error_if_missing: Boolean flag.  If file is missing and
         `raise_error_if_missing == True`, will throw error.  If file is missing
         and `raise_error_if_missing == False`, will return *expected* file path.
@@ -40,8 +44,14 @@ def find_file(directory_name, year, raise_error_if_missing=True):
     error_checking.assert_is_integer(year)
     error_checking.assert_is_boolean(raise_error_if_missing)
 
-    example_file_name = '{0:s}/learning_examples_{1:04d}.nc'.format(
-        directory_name, year
+    if year_part_number is not None:
+        error_checking.assert_is_integer(year_part_number)
+        error_checking.assert_is_greater(year_part_number, 0)
+
+    example_file_name = '{0:s}/learning_examples_{1:04d}{2:s}.nc'.format(
+        directory_name, year,
+        '' if year_part_number is None
+        else '_part{0:02d}'.format(year_part_number)
     )
 
     if raise_error_if_missing and not os.path.isfile(example_file_name):
@@ -51,6 +61,57 @@ def find_file(directory_name, year, raise_error_if_missing=True):
         raise ValueError(error_string)
 
     return example_file_name
+
+
+def find_files_one_year(directory_name, year, raise_error_if_missing=True):
+    """Finds NetCDF files with learning examples for one year.
+
+    :param directory_name: Name of directory where file is expected.
+    :param year: Year (integer).
+    :param raise_error_if_missing: Boolean flag.  If any file is missing and
+        `raise_error_if_missing == True`, will throw error.  If any file is
+        missing and `raise_error_if_missing == False`, will return empty list.
+    :return: example_file_names: List of file paths.
+    :raises: ValueError: if any file is missing
+        and `raise_error_if_missing == True`.
+    """
+
+    example_file_name = find_file(
+        directory_name=directory_name, year=year, year_part_number=None,
+        raise_error_if_missing=False
+    )
+
+    if os.path.isfile(example_file_name):
+        return [example_file_name]
+
+    example_file_pattern = (
+        '{0:s}/learning_examples_{1:04d}_part[0-9][0-9].nc'
+    ).format(directory_name, year)
+
+    example_file_names = glob.glob(example_file_pattern)
+
+    if len(example_file_names) == 0:
+        if raise_error_if_missing:
+            error_string = (
+                'Cannot find any file with the following pattern: "{0:s}"'
+            ).format(example_file_pattern)
+
+            raise ValueError(error_string)
+
+        return []
+
+    year_part_numbers = numpy.array(
+        [file_name_to_year_part(f) for f in example_file_names], dtype=int
+    )
+
+    sort_indices = numpy.argsort(year_part_numbers)
+    year_part_numbers = year_part_numbers[sort_indices]
+    example_file_names = [example_file_names[k] for k in sort_indices]
+
+    if raise_error_if_missing:
+        assert numpy.all(numpy.diff(year_part_numbers) == 1)
+
+    return example_file_names
 
 
 def file_name_to_year(example_file_name):
@@ -63,14 +124,35 @@ def file_name_to_year(example_file_name):
     error_checking.assert_is_string(example_file_name)
     pathless_file_name = os.path.split(example_file_name)[-1]
     extensionless_file_name = os.path.splitext(pathless_file_name)[0]
+    words = extensionless_file_name.split('_')
 
-    return int(extensionless_file_name.split('_')[-1])
+    if words[-1].startswith('part'):
+        return int(words[-2])
+
+    return int(words[-1])
+
+
+def file_name_to_year_part(example_file_name):
+    """Parses year part from file name.
+
+    :param example_file_name: Path to example file (readable by `read_file`).
+    :return: year_part_number: Year part (integer).
+    """
+
+    error_checking.assert_is_string(example_file_name)
+    pathless_file_name = os.path.split(example_file_name)[-1]
+    extensionless_file_name = os.path.splitext(pathless_file_name)[0]
+    words = extensionless_file_name.split('_')
+
+    if not words[-1].startswith('part'):
+        return None
+
+    return int(words[-1].replace('part', ''))
 
 
 def find_many_files(
         directory_name, first_time_unix_sec, last_time_unix_sec,
-        raise_error_if_any_missing=True, raise_error_if_all_missing=True,
-        test_mode=False):
+        raise_error_if_any_missing=True, raise_error_if_all_missing=True):
     """Finds many NetCDF files with learning examples.
 
     :param directory_name: Name of directory where files are expected.
@@ -80,14 +162,12 @@ def find_many_files(
         `raise_error_if_any_missing == True`, will throw error.
     :param raise_error_if_all_missing: Boolean flag.  If all files are missing
         and `raise_error_if_all_missing == True`, will throw error.
-    :param test_mode: Leave this alone.
     :return: example_file_names: 1-D list of paths to example files.  This list
         does *not* contain expected paths to non-existent files.
     """
 
     error_checking.assert_is_boolean(raise_error_if_any_missing)
     error_checking.assert_is_boolean(raise_error_if_all_missing)
-    error_checking.assert_is_boolean(test_mode)
 
     start_year = int(
         time_conversion.unix_sec_to_string(first_time_unix_sec, '%Y')
@@ -102,13 +182,10 @@ def find_many_files(
     example_file_names = []
 
     for this_year in years:
-        this_file_name = find_file(
+        example_file_names += find_files_one_year(
             directory_name=directory_name, year=this_year,
             raise_error_if_missing=raise_error_if_any_missing
         )
-
-        if test_mode or os.path.isfile(this_file_name):
-            example_file_names.append(this_file_name)
 
     if raise_error_if_all_missing and len(example_file_names) == 0:
         error_string = (

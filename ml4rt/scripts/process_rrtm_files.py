@@ -228,7 +228,7 @@ def _run(rrtm_directory_name, input_example_dir_name,
         this_example_dict = _remove_duplicate_examples(this_example_dict)
         this_output_file_name = example_io.find_file(
             directory_name=output_example_dir_name, year=this_year,
-            raise_error_if_missing=False
+            year_part_number=None, raise_error_if_missing=False
         )
 
         print('Writing {0:d} examples to file: "{1:s}"...'.format(

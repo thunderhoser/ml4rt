@@ -142,7 +142,7 @@ class EvaluationTests(unittest.TestCase):
         this_mse = evaluation._get_mse_one_scalar(
             target_values=SIMPLE_TARGET_VALUES,
             predicted_values=SIMPLE_PREDICTED_VALUES
-        )
+        )[0]
 
         self.assertTrue(numpy.isclose(this_mse, SIMPLE_MSE, atol=TOLERANCE))
 
