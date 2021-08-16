@@ -14,10 +14,10 @@ import example_io
 import example_utils
 
 FIRST_TRAINING_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
-    '20190101', '%Y%m%d'
+    '20180101', '%Y%m%d'
 )
 LAST_TRAINING_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
-    '2019-12-31-235959', '%Y-%m-%d-%H%M%S'
+    '2018-12-31-235959', '%Y-%m-%d-%H%M%S'
 )
 
 EXAMPLE_DIR_NAME = (
@@ -25,7 +25,7 @@ EXAMPLE_DIR_NAME = (
     '192heights/non_tropical_sites'
 )
 OUTPUT_FILE_NAME = (
-    '{0:s}/learning_examples_2019_for-norm.nc'
+    '{0:s}/learning_examples_2018_for-norm.nc'
 ).format(EXAMPLE_DIR_NAME)
 
 example_file_names = example_io.find_many_files(
