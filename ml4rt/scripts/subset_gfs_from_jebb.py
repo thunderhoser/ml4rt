@@ -97,8 +97,10 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
     print('Reading data from: "{0:s}"...'.format(atmosphere_file_name))
     orig_table_xarray = xarray.open_dataset(atmosphere_file_name)
 
-    num_grid_rows = len(orig_table_xarray.coords[GRID_COLUMN_DIMENSION].values)
-    num_grid_columns = len(orig_table_xarray.coords[GRID_ROW_DIMENSION].values)
+    num_grid_rows = len(orig_table_xarray.coords[GRID_ROW_DIMENSION].values)
+    num_grid_columns = len(
+        orig_table_xarray.coords[GRID_COLUMN_DIMENSION].values
+    )
     error_checking.assert_is_less_than_numpy_array(site_rows, num_grid_rows)
     error_checking.assert_is_less_than_numpy_array(
         site_columns, num_grid_columns
