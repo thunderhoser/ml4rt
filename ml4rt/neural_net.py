@@ -370,14 +370,18 @@ def _read_specific_examples(
         these_example_id_strings = [
             example_id_strings[k] for k in these_indices
         ]
-        this_file_index = numpy.where(file_years == this_year)[0][0]
+        these_file_indices = numpy.where(file_years == this_year)[0]
 
-        print('\nReading data from: "{0:s}"...'.format(
-            example_file_names[this_file_index]
-        ))
-        this_example_dict = example_io.read_file(
-            example_file_names[this_file_index]
-        )
+        print('\n')
+        these_example_dicts = []
+
+        for k in these_file_indices:
+            print('Reading data from: "{0:s}"...'.format(example_file_names[k]))
+            these_example_dicts.append(
+                example_io.read_file(example_file_names[k])
+            )
+
+        this_example_dict = example_utils.concat_examples(these_example_dicts)
 
         these_indices = example_utils.find_examples(
             all_id_strings=this_example_dict[example_utils.EXAMPLE_IDS_KEY],

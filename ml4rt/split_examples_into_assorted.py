@@ -88,29 +88,31 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name, year,
     :param assorted2_example_dir_name: Same.
     """
 
-    tropical_example_file_name = example_io.find_file(
+    tropical_example_file_names = example_io.find_files_one_year(
         directory_name=tropical_example_dir_name, year=year,
         raise_error_if_missing=True
     )
-    non_tropical_example_file_name = example_io.find_file(
+    non_tropical_example_file_names = example_io.find_files_one_year(
         directory_name=non_tropical_example_dir_name, year=year,
         raise_error_if_missing=True
     )
 
-    print('Reading data from: "{0:s}"...'.format(tropical_example_file_name))
-    tropical_example_dict = example_io.read_file(tropical_example_file_name)
+    example_dicts = []
 
-    print('Reading data from: "{0:s}"...'.format(
-        non_tropical_example_file_name
-    ))
-    non_tropical_example_dict = example_io.read_file(
-        non_tropical_example_file_name
-    )
+    for this_file_name in tropical_example_file_names:
+        print('Reading data from: "{0:s}"...'.format(this_file_name))
+        example_dicts.append(
+            example_io.read_file(this_file_name)
+        )
 
-    example_dict = example_utils.concat_examples([
-        tropical_example_dict, non_tropical_example_dict
-    ])
-    del tropical_example_dict, non_tropical_example_dict
+    for this_file_name in non_tropical_example_file_names:
+        print('Reading data from: "{0:s}"...'.format(this_file_name))
+        example_dicts.append(
+            example_io.read_file(this_file_name)
+        )
+
+    example_dict = example_utils.concat_examples(example_dicts)
+    del example_dicts
 
     example_metadata_dict = example_utils.parse_example_ids(
         example_dict[example_utils.EXAMPLE_IDS_KEY]
@@ -137,7 +139,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name, year,
     )
     assorted2_example_file_name = example_io.find_file(
         directory_name=assorted2_example_dir_name, year=year,
-        raise_error_if_missing=False
+        year_part_number=None, raise_error_if_missing=False
     )
 
     print('Writing {0:d} examples in set Assorted2 to: "{1:s}"...'.format(
@@ -155,7 +157,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name, year,
     )
     assorted1_example_file_name = example_io.find_file(
         directory_name=assorted1_example_dir_name, year=year,
-        raise_error_if_missing=False
+        year_part_number=None, raise_error_if_missing=False
     )
 
     print('Writing {0:d} examples in set Assorted1 to: "{1:s}"...'.format(
