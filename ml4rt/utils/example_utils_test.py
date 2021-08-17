@@ -3,11 +3,12 @@
 import copy
 import unittest
 import numpy
+from gewittergefahr.gg_utils import time_conversion
 from ml4rt.utils import example_utils
+from ml4rt.utils import trace_gases
 
 TOLERANCE = 1e-6
 
-# The following constants are used to test _find_nonzero_runs.
 FIRST_VALUES = numpy.full(10, 0.)
 FIRST_START_INDICES = numpy.array([], dtype=int)
 FIRST_END_INDICES = numpy.array([], dtype=int)
@@ -28,6 +29,48 @@ FOURTH_VALUES = numpy.concatenate((THIRD_VALUES, THIRD_VALUES, THIRD_VALUES))
 FOURTH_START_INDICES = numpy.array([3, 21, 39], dtype=int)
 FOURTH_END_INDICES = numpy.array([14, 32, 50], dtype=int)
 
+# The following constants are used to test _example_ids_to_standard_atmos.
+THESE_LATITUDES_DEG_N = numpy.linspace(-90, 90, num=19, dtype=float)
+
+THESE_TIME_STRINGS = [
+    '2021-01-01', '2021-02-01', '2021-03-01', '2021-04-01', '2021-05-01',
+    '2021-06-01', '2021-07-01', '2021-08-01', '2021-09-01', '2021-10-01',
+    '2021-11-01', '2021-12-01', '2022-01-01', '2022-02-01', '2022-03-01',
+    '2022-04-01', '2022-05-01', '2022-06-01', '2022-07-01'
+]
+THESE_TIMES_UNIX_SEC = numpy.array([
+    time_conversion.string_to_unix_sec(t, '%Y-%m-%d')
+    for t in THESE_TIME_STRINGS
+], dtype=int)
+
+STDATMO_EXAMPLE_ID_STRINGS = [
+    'lat={0:09.6f}_long=255.000000_zenith-angle-rad=0.500000_time={1:010d}_' \
+    'atmo=1_albedo=0.250000_temp-10m-kelvins=240.000000'.format(l, t)
+    for l, t in zip(THESE_LATITUDES_DEG_N, THESE_TIMES_UNIX_SEC)
+]
+
+STDATMO_ACTUAL_ENUMS = numpy.array([
+    example_utils.SUBARCTIC_SUMMER_ENUM,
+    example_utils.SUBARCTIC_SUMMER_ENUM,
+    example_utils.SUBARCTIC_SUMMER_ENUM,
+    example_utils.MIDLATITUDE_SUMMER_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.TROPICS_ENUM,
+    example_utils.TROPICS_ENUM,
+    example_utils.TROPICS_ENUM,
+    example_utils.TROPICS_ENUM,
+    example_utils.TROPICS_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.MIDLATITUDE_WINTER_ENUM,
+    example_utils.SUBARCTIC_SUMMER_ENUM,
+    example_utils.SUBARCTIC_SUMMER_ENUM,
+    example_utils.SUBARCTIC_SUMMER_ENUM
+], dtype=int)
+
 # The following constants are used to test get_grid_cell_edges and
 # get_grid_cell_widths.
 CENTER_HEIGHTS_M_AGL = numpy.array([
@@ -42,6 +85,157 @@ EDGE_HEIGHTS_M_AGL = numpy.array([
 GRID_CELL_WIDTHS_METRES = numpy.array([
     10, 15, 20, 20, 20, 14960, 16450, 3000, 3000, 3000, 3500, 4000, 4000
 ], dtype=float)
+
+# The following constants are used to test add_trace_gases.
+THIS_TRACE_GAS_DICT = trace_gases.read_profiles()
+THESE_HEIGHTS_M_AGL = THIS_TRACE_GAS_DICT[trace_gases.HEIGHTS_KEY][:6]
+
+THIS_TEMP_MATRIX_KELVINS = numpy.array([
+    [300, 290, 280, 270, 260, 250],
+    [273, 273, 273, 273, 273, 273],
+    [273, 250, 230, 200, 100, 10]
+], dtype=float)
+
+THESE_EXAMPLE_ID_STRINGS = [
+    STDATMO_EXAMPLE_ID_STRINGS[k] for k in [0, 3, 4]
+]
+
+EXAMPLE_DICT_NO_TRACE_GASES = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+        [example_utils.TEMPERATURE_NAME],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY:
+        numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THESE_PREDICTOR_NAMES = [
+    example_utils.TEMPERATURE_NAME, example_utils.O2_MIXING_RATIO_NAME,
+    example_utils.CO2_MIXING_RATIO_NAME, example_utils.CH4_MIXING_RATIO_NAME,
+    example_utils.N2O_MIXING_RATIO_NAME
+]
+
+THESE_INDICES = numpy.array([3, 1, 2], dtype=int)
+THIS_PREDICTOR_MATRIX = numpy.stack((
+    THIS_TEMP_MATRIX_KELVINS,
+    THIS_TRACE_GAS_DICT[trace_gases.O2_MIXING_RATIOS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.CO2_MIXING_RATIOS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.CH4_MIXING_RATIOS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.N2O_MIXING_RATIOS_KEY][THESE_INDICES, :6],
+), axis=-1)
+
+EXAMPLE_DICT_WITH_TRACE_GASES = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+# The following constants are used to test add_effective_radii.
+THESE_HEIGHTS_M_AGL = numpy.array(
+    [0, 1000, 2000, 3000, 4000, 5000], dtype=float
+)
+THIS_TEMP_MATRIX_KELVINS = numpy.array([
+    [300, 290, 280, 270, 260, 250],
+    [273, 273, 273, 273, 273, 273],
+    [273, 250, 230, 200, 100, 10]
+], dtype=float)
+
+THIS_SUFFIX = (
+    '_zenith-angle-rad=0.500000_time=0000000000_atmo=1_albedo=0.250000_'
+    'temp-10m-kelvins=230.000000'
+)
+THESE_EXAMPLE_ID_STRINGS = [
+    'lat=40.000000_long=255.000000',
+    'lat=60.000000_long=255.000000',
+    'lat=80.000000_long=255.000000'
+]
+THESE_EXAMPLE_ID_STRINGS = [
+    '{0:s}{1:s}'.format(s, THIS_SUFFIX) for s in THESE_EXAMPLE_ID_STRINGS
+]
+
+EXAMPLE_DICT_NO_RADII = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+        [example_utils.TEMPERATURE_NAME],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY:
+        numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THIS_LIQUID_RAD_MATRIX_METRES = numpy.full(
+    THIS_TEMP_MATRIX_KELVINS.shape,
+    example_utils.LIQUID_EFF_RADIUS_LAND_MEAN_METRES
+)
+THIS_LIQUID_RAD_MATRIX_METRES[2, :] = (
+    example_utils.LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES
+)
+THIS_ICE_RAD_MATRIX_METRES = (
+    example_utils.ICE_EFF_RADIUS_INTERCEPT_METRES +
+    example_utils.ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01 *
+    (THIS_TEMP_MATRIX_KELVINS - 273.15)
+)
+THIS_ICE_RAD_MATRIX_METRES = numpy.maximum(
+    THIS_ICE_RAD_MATRIX_METRES, example_utils.MIN_EFFECTIVE_RADIUS_METRES
+)
+
+THESE_PREDICTOR_NAMES = [
+    example_utils.TEMPERATURE_NAME, example_utils.LIQUID_EFF_RADIUS_NAME,
+    example_utils.ICE_EFF_RADIUS_NAME
+]
+THIS_PREDICTOR_MATRIX = numpy.stack((
+    THIS_TEMP_MATRIX_KELVINS, THIS_LIQUID_RAD_MATRIX_METRES,
+    THIS_ICE_RAD_MATRIX_METRES
+), axis=-1)
+
+EXAMPLE_DICT_WITH_RADII = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+# The following constants are used to test add_aerosols.
+THESE_HEIGHTS_M_AGL = numpy.array(
+    [0, 1000, 2000, 3000, 4000, 5000], dtype=float
+)
+THIS_TEMP_MATRIX_KELVINS = numpy.array([
+    [300, 290, 280, 270, 260, 250],
+    [273, 273, 273, 273, 273, 273],
+    [273, 250, 230, 200, 100, 10]
+], dtype=float)
+
+THESE_EXAMPLE_ID_STRINGS = ['foo', 'bar', 'moo']
+
+EXAMPLE_DICT_NO_AEROSOLS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+        [example_utils.TEMPERATURE_NAME],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY:
+        numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THESE_PREDICTOR_NAMES = [
+    example_utils.TEMPERATURE_NAME, example_utils.AEROSOL_OPTICAL_DEPTH_NAME,
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+]
+THIS_PREDICTOR_MATRIX = numpy.stack((
+    THIS_TEMP_MATRIX_KELVINS, THIS_TEMP_MATRIX_KELVINS,
+    THIS_TEMP_MATRIX_KELVINS, THIS_TEMP_MATRIX_KELVINS
+), axis=-1)
+
+THIS_PREDICTOR_MATRIX[..., 1] = 0.
+THIS_PREDICTOR_MATRIX[..., 2] = 1.
+THIS_PREDICTOR_MATRIX[..., 3] = 2.
+
+EXAMPLE_DICT_WITH_AEROSOLS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
 
 # The following constants are used to test fluxes_to_heating_rate,
 # fluxes_actual_to_increments, and fluxes_increments_to_actual.
@@ -800,6 +994,14 @@ class ExampleUtilsTests(unittest.TestCase):
             these_end_indices, FOURTH_END_INDICES
         ))
 
+    def test_example_ids_to_standard_atmos(self):
+        """Ensures correct output from _example_ids_to_standard_atmos."""
+
+        these_enums = example_utils._example_ids_to_standard_atmos(
+            STDATMO_EXAMPLE_ID_STRINGS
+        )
+        self.assertTrue(numpy.array_equal(these_enums, STDATMO_ACTUAL_ENUMS))
+
     def test_get_grid_cell_edges(self):
         """Ensures correct output from get_grid_cell_edges."""
 
@@ -818,6 +1020,41 @@ class ExampleUtilsTests(unittest.TestCase):
         )
         self.assertTrue(numpy.allclose(
             these_widths_metres, GRID_CELL_WIDTHS_METRES, atol=TOLERANCE
+        ))
+
+    def test_add_trace_gases(self):
+        """Ensures correct output from add_trace_gases."""
+
+        this_example_dict = example_utils.add_trace_gases(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_NO_TRACE_GASES),
+            noise_stdev_fractional=0.
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_TRACE_GASES
+        ))
+
+    def test_add_effective_radii(self):
+        """Ensures correct output from add_effective_radii."""
+
+        this_example_dict = example_utils.add_effective_radii(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_NO_RADII),
+            ice_noise_stdev_fractional=0., test_mode=True
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_RADII
+        ))
+
+    def test_add_aerosols(self):
+        """Ensures correct output from add_aerosols."""
+
+        this_example_dict = example_utils.add_aerosols(
+            copy.deepcopy(EXAMPLE_DICT_NO_AEROSOLS)
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_AEROSOLS
         ))
 
     def test_fluxes_to_heating_rate(self):

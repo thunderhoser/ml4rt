@@ -78,12 +78,12 @@ def read_profiles(netcdf_file_name=None):
     num_standard_atmospheres = n2o_mixing_ratio_matrix_kg_kg01.shape[1]
 
     return {
-        HEIGHTS_KEY: heights_m_asl,
+        HEIGHTS_KEY: heights_m_asl.filled(0.),
         STANDARD_ATMOSPHERES_KEY: numpy.linspace(
             1, num_standard_atmospheres, num=num_standard_atmospheres, dtype=int
         ),
-        O2_MIXING_RATIOS_KEY: o2_mixing_ratio_matrix_kg_kg01,
-        CO2_MIXING_RATIOS_KEY: co2_mixing_ratio_matrix_kg_kg01,
-        CH4_MIXING_RATIOS_KEY: ch4_mixing_ratio_matrix_kg_kg01,
-        N2O_MIXING_RATIOS_KEY: n2o_mixing_ratio_matrix_kg_kg01
+        O2_MIXING_RATIOS_KEY: o2_mixing_ratio_matrix_kg_kg01.filled(0.),
+        CO2_MIXING_RATIOS_KEY: co2_mixing_ratio_matrix_kg_kg01.filled(0.),
+        CH4_MIXING_RATIOS_KEY: ch4_mixing_ratio_matrix_kg_kg01.filled(0.),
+        N2O_MIXING_RATIOS_KEY: n2o_mixing_ratio_matrix_kg_kg01.filled(0.)
     }

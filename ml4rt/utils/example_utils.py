@@ -112,6 +112,9 @@ O2_MIXING_RATIO_NAME = 'o2_mixing_ratio_kg_kg01'
 CO2_MIXING_RATIO_NAME = 'co2_mixing_ratio_kg_kg01'
 CH4_MIXING_RATIO_NAME = 'ch4_mixing_ratio_kg_kg01'
 N2O_MIXING_RATIO_NAME = 'n2o_mixing_ratio_kg_kg01'
+AEROSOL_OPTICAL_DEPTH_NAME = 'aerosol_optical_depth_metres'
+AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
+AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
@@ -129,7 +132,8 @@ BASIC_VECTOR_PREDICTOR_NAMES = [
 ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
     LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME,
     O2_MIXING_RATIO_NAME, CO2_MIXING_RATIO_NAME, CH4_MIXING_RATIO_NAME,
-    N2O_MIXING_RATIO_NAME
+    N2O_MIXING_RATIO_NAME, AEROSOL_OPTICAL_DEPTH_NAME, AEROSOL_ALBEDO_NAME,
+    AEROSOL_ASYMMETRY_PARAM_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -828,7 +832,8 @@ def add_trace_gases(example_dict, noise_stdev_fractional):
     return example_dict
 
 
-def add_effective_radii(example_dict, ice_noise_stdev_fractional):
+def add_effective_radii(example_dict, ice_noise_stdev_fractional,
+                        test_mode=False):
     """Adds effective-radius profiles (for both ice and liquid) to dict.
 
     For effective radius of liquid water, using approximation of:
@@ -842,8 +847,13 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional):
     :param ice_noise_stdev_fractional: Standard deviation of Gaussian noise for
         effective radius of ice water.  If you do not want to add Gaussian noise
         to profiles, make this non-positive.
+    :param test_mode: Leave this alone.
     :return: example_dict: Same but with effective-radius profiles.
     """
+
+    error_checking.assert_is_boolean(test_mode)
+    if test_mode:
+        ice_noise_stdev_fractional = -1.
 
     error_checking.assert_is_less_than(ice_noise_stdev_fractional, 1.)
     if ice_noise_stdev_fractional <= 0:
@@ -893,14 +903,14 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional):
     if len(land_indices) > 0:
         liquid_eff_radius_matrix_metres[land_indices, :] = numpy.random.normal(
             loc=LIQUID_EFF_RADIUS_LAND_MEAN_METRES,
-            scale=LIQUID_EFF_RADIUS_LAND_STDEV_METRES,
+            scale=0. if test_mode else LIQUID_EFF_RADIUS_LAND_STDEV_METRES,
             size=liquid_eff_radius_matrix_metres[land_indices, :].shape
         )
 
     if len(ocean_indices) > 0:
         liquid_eff_radius_matrix_metres[ocean_indices, :] = numpy.random.normal(
             loc=LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES,
-            scale=LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES,
+            scale=0. if test_mode else LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES,
             size=liquid_eff_radius_matrix_metres[ocean_indices, :].shape
         )
 
@@ -943,6 +953,79 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional):
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
             obj=ice_eff_radius_index, values=ice_eff_radius_matrix_metres,
             axis=-1
+        )
+
+    return example_dict
+
+
+def add_aerosols(example_dict):
+    """Adds aerosol profiles to dictionary.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: example_dict: Same but with aerosol profiles.
+    """
+
+    num_examples = len(example_dict[EXAMPLE_IDS_KEY])
+    num_heights = len(example_dict[HEIGHTS_KEY])
+
+    these_dim = (num_examples, num_heights)
+    optical_depth_matrix_metres = numpy.full(these_dim, 0.)
+    albedo_matrix = numpy.full(these_dim, 1.)
+    asymmetry_param_matrix = numpy.full(these_dim, 2.)
+
+    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    found_optical_depth = AEROSOL_OPTICAL_DEPTH_NAME in vector_predictor_names
+    found_albedo = AEROSOL_ALBEDO_NAME in vector_predictor_names
+    found_asymmetry_param = (
+        AEROSOL_ASYMMETRY_PARAM_NAME in vector_predictor_names
+    )
+
+    if not found_optical_depth:
+        vector_predictor_names.append(AEROSOL_OPTICAL_DEPTH_NAME)
+    if not found_albedo:
+        vector_predictor_names.append(AEROSOL_ALBEDO_NAME)
+    if not found_asymmetry_param:
+        vector_predictor_names.append(AEROSOL_ASYMMETRY_PARAM_NAME)
+
+    optical_depth_index = vector_predictor_names.index(
+        AEROSOL_OPTICAL_DEPTH_NAME
+    )
+    albedo_index = vector_predictor_names.index(AEROSOL_ALBEDO_NAME)
+    asymmetry_param_index = vector_predictor_names.index(
+        AEROSOL_ASYMMETRY_PARAM_NAME
+    )
+    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+
+    if found_optical_depth:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][
+            ..., optical_depth_index
+        ] = optical_depth_matrix_metres
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=optical_depth_index, values=optical_depth_matrix_metres,
+            axis=-1
+        )
+
+    if found_albedo:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][
+            ..., albedo_index
+        ] = albedo_matrix
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=albedo_index, values=albedo_matrix, axis=-1
+        )
+
+    if found_asymmetry_param:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][
+            ..., asymmetry_param_index
+        ] = asymmetry_param_matrix
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=asymmetry_param_index, values=asymmetry_param_matrix, axis=-1
         )
 
     return example_dict
@@ -1205,8 +1288,8 @@ def create_example_ids(example_dict):
     standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
 
     temperatures_10m_kelvins = get_field_from_dict(
-        example_dict=example_dict, field_name=TEMPERATURE_NAME, height_m_agl=8
-    )
+        example_dict=example_dict, field_name=TEMPERATURE_NAME
+    )[:, 0]
 
     return [
         'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_' \
