@@ -1,1 +1,2 @@
 include ml4rt/utils/trace_gases.nc
+include ml4rt/utils/globe_combined_mask_compressed.npz
