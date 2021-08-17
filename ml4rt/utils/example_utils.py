@@ -2,8 +2,14 @@
 
 import copy
 import numpy
+from scipy.interpolate import interp1d
+from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
+from gewittergefahr.gg_utils import temperature_conversions as temp_conversions
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.utils import trace_gases
+from ml4rt.utils import land_ocean_mask
 
 TOLERANCE = 1e-6
 
@@ -12,6 +18,14 @@ GRAVITY_CONSTANT_M_S02 = 9.8066
 DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 1004.
 # GRAVITY_CONSTANT_M_S02 = 9.80665
 # DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
+
+LIQUID_EFF_RADIUS_LAND_MEAN_METRES = 6e-6
+LIQUID_EFF_RADIUS_LAND_STDEV_METRES = 1e-6
+LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES = 9.5e-6
+LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES = 1.2e-6
+ICE_EFF_RADIUS_INTERCEPT_METRES = 86.73e-6
+ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01 = 1.07e-6
+MIN_EFFECTIVE_RADIUS_METRES = 1e-6
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
@@ -92,17 +106,30 @@ UPWARD_LIQUID_WATER_PATH_NAME = 'upward_liquid_water_path_kg_m02'
 UPWARD_ICE_WATER_PATH_NAME = 'upward_ice_water_path_kg_m02'
 UPWARD_WATER_VAPOUR_PATH_NAME = 'upward_vapour_path_kg_m02'
 
+LIQUID_EFF_RADIUS_NAME = 'liquid_effective_radius_metres'
+ICE_EFF_RADIUS_NAME = 'ice_effective_radius_metres'
+O2_MIXING_RATIO_NAME = 'o2_mixing_ratio_kg_kg01'
+CO2_MIXING_RATIO_NAME = 'co2_mixing_ratio_kg_kg01'
+CH4_MIXING_RATIO_NAME = 'ch4_mixing_ratio_kg_kg01'
+N2O_MIXING_RATIO_NAME = 'n2o_mixing_ratio_kg_kg01'
+
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
     COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME
 ]
 
-ALL_VECTOR_PREDICTOR_NAMES = [
+BASIC_VECTOR_PREDICTOR_NAMES = [
     PRESSURE_NAME, TEMPERATURE_NAME, SPECIFIC_HUMIDITY_NAME,
     LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME,
     RELATIVE_HUMIDITY_NAME, LIQUID_WATER_PATH_NAME, ICE_WATER_PATH_NAME,
     WATER_VAPOUR_PATH_NAME, UPWARD_LIQUID_WATER_PATH_NAME,
     UPWARD_ICE_WATER_PATH_NAME, UPWARD_WATER_VAPOUR_PATH_NAME
+]
+
+ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
+    LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME,
+    O2_MIXING_RATIO_NAME, CO2_MIXING_RATIO_NAME, CH4_MIXING_RATIO_NAME,
+    N2O_MIXING_RATIO_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -234,6 +261,116 @@ def _add_height_padding(example_dict, desired_heights_m_agl):
     )
 
     return example_dict
+
+
+def _interp_mixing_ratios(orig_mixing_ratios_kg_kg01, orig_heights_m_asl,
+                          new_heights_m_agl):
+    """Interpolates mixing ratios to new heights.
+
+    h = number of heights in original grid
+    H = number of heights in new grid
+
+    Note that this method does *not* try to match heights above ground and above
+    sea level.  It assumes that ground level = sea level everywhere.
+
+    :param orig_mixing_ratios_kg_kg01: length-h numpy array of mixing ratios.
+    :param orig_heights_m_asl: length-h numpy array of heights (metres above sea
+        level).
+    :param new_heights_m_agl: length-H numpy array of heights (metres above
+        ground level).
+    :return: new_mixing_ratios_kg_kg01: length-H numpy array of mixing ratios.
+    """
+
+    log_offset = 1. + -1 * numpy.min(orig_mixing_ratios_kg_kg01)
+    assert not numpy.isnan(log_offset)
+
+    interp_object = interp1d(
+        x=orig_heights_m_asl,
+        y=numpy.log(log_offset + orig_mixing_ratios_kg_kg01),
+        kind='linear', bounds_error=True, assume_sorted=True
+    )
+
+    return numpy.exp(interp_object(new_heights_m_agl)) - log_offset
+
+
+def _example_ids_to_standard_atmos(example_id_strings):
+    """Converts each example ID to standard atmosphere.
+
+    E = number of examples
+
+    :param example_id_strings: length-E list of example IDs, in format required
+        by `parse_example_ids`.
+    :return: standard_atmo_enums: length-E numpy array of standard atmospheres,
+        in format required by `check_standard_atmo_type`.
+    """
+
+    metadata_dict = parse_example_ids(example_id_strings)
+    latitudes_deg_n = metadata_dict[LATITUDES_KEY]
+
+    months = numpy.array([
+        int(time_conversion.unix_sec_to_string(t, '%m'))
+        for t in metadata_dict[VALID_TIMES_KEY]
+    ], dtype=int)
+
+    num_examples = len(example_id_strings)
+    standard_atmo_enums = numpy.full(num_examples, -1, dtype=int)
+
+    nh_midlatitude_indices = numpy.where(
+        numpy.logical_and(latitudes_deg_n > 20, latitudes_deg_n < 65)
+    )[0]
+    nh_midlatitude_summer_flags = numpy.logical_and(
+        months[nh_midlatitude_indices] >= 5,
+        months[nh_midlatitude_indices] <= 10
+    )
+    standard_atmo_enums[
+        nh_midlatitude_indices[nh_midlatitude_summer_flags]
+    ] = MIDLATITUDE_SUMMER_ENUM
+    standard_atmo_enums[
+        nh_midlatitude_indices[nh_midlatitude_summer_flags == False]
+    ] = MIDLATITUDE_WINTER_ENUM
+
+    sh_midlatitude_indices = numpy.where(
+        numpy.logical_and(latitudes_deg_n > -65, latitudes_deg_n < -20)
+    )[0]
+    sh_midlatitude_summer_flags = numpy.invert(numpy.logical_and(
+        months[sh_midlatitude_indices] >= 5,
+        months[sh_midlatitude_indices] <= 10
+    ))
+    standard_atmo_enums[
+        sh_midlatitude_indices[sh_midlatitude_summer_flags]
+    ] = MIDLATITUDE_SUMMER_ENUM
+    standard_atmo_enums[
+        sh_midlatitude_indices[sh_midlatitude_summer_flags == False]
+    ] = MIDLATITUDE_WINTER_ENUM
+
+    nh_arctic_indices = numpy.where(latitudes_deg_n >= 65)[0]
+    nh_arctic_summer_flags = numpy.logical_and(
+        months[nh_arctic_indices] >= 5, months[nh_arctic_indices] <= 10
+    )
+    standard_atmo_enums[
+        nh_arctic_indices[nh_arctic_summer_flags]
+    ] = SUBARCTIC_SUMMER_ENUM
+    standard_atmo_enums[
+        nh_arctic_indices[nh_arctic_summer_flags == False]
+    ] = SUBARCTIC_WINTER_ENUM
+
+    sh_arctic_indices = numpy.where(latitudes_deg_n <= -65)[0]
+    sh_arctic_summer_flags = numpy.invert(numpy.logical_and(
+        months[sh_arctic_indices] >= 5, months[sh_arctic_indices] <= 10
+    ))
+    standard_atmo_enums[
+        sh_arctic_indices[sh_arctic_summer_flags]
+    ] = SUBARCTIC_SUMMER_ENUM
+    standard_atmo_enums[
+        sh_arctic_indices[sh_arctic_summer_flags == False]
+    ] = SUBARCTIC_WINTER_ENUM
+
+    unfilled_indices = numpy.where(standard_atmo_enums == -1)[0]
+    tropical_indices = numpy.where(numpy.absolute(latitudes_deg_n) <= 20)[0]
+    assert numpy.array_equal(unfilled_indices, tropical_indices)
+
+    standard_atmo_enums[tropical_indices] = TROPICS_ENUM
+    return standard_atmo_enums
 
 
 def get_grid_cell_edges(heights_m_agl):
@@ -516,6 +653,301 @@ def fluxes_increments_to_actual(example_dict):
     return example_dict
 
 
+def add_trace_gases(example_dict, noise_stdev_fractional):
+    """Adds trace-gas profiles to dictionary.
+
+    This method handles four trace gases: O2, CO2, N2O, CH4.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).  Must contain temperature profiles.
+    :param noise_stdev_fractional: Standard deviation of Gaussian noise.  If you
+        do not want to add Gaussian noise to profiles, make this non-positive.
+    :return: example_dict: Same but with trace-gas profiles.
+    """
+
+    error_checking.assert_is_less_than(noise_stdev_fractional, 1.)
+    if noise_stdev_fractional <= 0:
+        noise_stdev_fractional = None
+
+    mixing_ratio_dict = trace_gases.read_profiles()
+    standard_atmo_enum_by_example = _example_ids_to_standard_atmos(
+        example_dict[EXAMPLE_IDS_KEY]
+    )
+
+    num_examples = len(example_dict[EXAMPLE_IDS_KEY])
+    num_heights = len(example_dict[HEIGHTS_KEY])
+    these_dim = (num_examples, num_heights)
+
+    o2_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
+    co2_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
+    ch4_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
+    n2o_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
+
+    for i in STANDARD_ATMO_ENUMS:
+        example_indices = numpy.where(standard_atmo_enum_by_example == i)[0]
+        if len(example_indices) == 0:
+            continue
+
+        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
+            orig_mixing_ratios_kg_kg01=
+            mixing_ratio_dict[trace_gases.O2_MIXING_RATIOS_KEY][i - 1, :],
+            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+            new_heights_m_agl=example_dict[HEIGHTS_KEY]
+        )
+        for k in example_indices:
+            o2_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+
+        if noise_stdev_fractional is not None:
+            noise_matrix = numpy.random.normal(
+                loc=0., scale=noise_stdev_fractional,
+                size=o2_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+            )
+            o2_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
+                o2_mixing_ratio_matrix_kg_kg01[example_indices, :] *
+                noise_matrix
+            )
+
+        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
+            orig_mixing_ratios_kg_kg01=
+            mixing_ratio_dict[trace_gases.CO2_MIXING_RATIOS_KEY][i - 1, :],
+            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+            new_heights_m_agl=example_dict[HEIGHTS_KEY]
+        )
+        for k in example_indices:
+            co2_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+
+        if noise_stdev_fractional is not None:
+            noise_matrix = numpy.random.normal(
+                loc=0., scale=noise_stdev_fractional,
+                size=co2_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+            )
+            co2_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
+                co2_mixing_ratio_matrix_kg_kg01[example_indices, :] *
+                noise_matrix
+            )
+
+        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
+            orig_mixing_ratios_kg_kg01=
+            mixing_ratio_dict[trace_gases.CH4_MIXING_RATIOS_KEY][i - 1, :],
+            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+            new_heights_m_agl=example_dict[HEIGHTS_KEY]
+        )
+        for k in example_indices:
+            ch4_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+
+        if noise_stdev_fractional is not None:
+            noise_matrix = numpy.random.normal(
+                loc=0., scale=noise_stdev_fractional,
+                size=ch4_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+            )
+            ch4_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
+                ch4_mixing_ratio_matrix_kg_kg01[example_indices, :] *
+                noise_matrix
+            )
+
+        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
+            orig_mixing_ratios_kg_kg01=
+            mixing_ratio_dict[trace_gases.N2O_MIXING_RATIOS_KEY][i - 1, :],
+            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+            new_heights_m_agl=example_dict[HEIGHTS_KEY]
+        )
+        for k in example_indices:
+            n2o_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+
+        if noise_stdev_fractional is not None:
+            noise_matrix = numpy.random.normal(
+                loc=0., scale=noise_stdev_fractional,
+                size=n2o_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+            )
+            n2o_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
+                n2o_mixing_ratio_matrix_kg_kg01[example_indices, :] *
+                noise_matrix
+            )
+
+    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    found_o2 = O2_MIXING_RATIO_NAME in vector_predictor_names
+    found_co2 = CO2_MIXING_RATIO_NAME in vector_predictor_names
+    found_ch4 = CH4_MIXING_RATIO_NAME in vector_predictor_names
+    found_n2o = N2O_MIXING_RATIO_NAME in vector_predictor_names
+
+    if not found_o2:
+        vector_predictor_names.append(O2_MIXING_RATIO_NAME)
+    if not found_co2:
+        vector_predictor_names.append(CO2_MIXING_RATIO_NAME)
+    if not found_ch4:
+        vector_predictor_names.append(CH4_MIXING_RATIO_NAME)
+    if not found_n2o:
+        vector_predictor_names.append(N2O_MIXING_RATIO_NAME)
+
+    o2_index = vector_predictor_names.index(O2_MIXING_RATIO_NAME)
+    co2_index = vector_predictor_names.index(CO2_MIXING_RATIO_NAME)
+    ch4_index = vector_predictor_names.index(CH4_MIXING_RATIO_NAME)
+    n2o_index = vector_predictor_names.index(N2O_MIXING_RATIO_NAME)
+    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+
+    if found_o2:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., o2_index] = (
+            o2_mixing_ratio_matrix_kg_kg01
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=o2_index, values=o2_mixing_ratio_matrix_kg_kg01, axis=-1
+        )
+
+    if found_co2:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., co2_index] = (
+            co2_mixing_ratio_matrix_kg_kg01
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=co2_index, values=co2_mixing_ratio_matrix_kg_kg01, axis=-1
+        )
+
+    if found_ch4:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., ch4_index] = (
+            ch4_mixing_ratio_matrix_kg_kg01
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=ch4_index, values=ch4_mixing_ratio_matrix_kg_kg01, axis=-1
+        )
+
+    if found_n2o:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., n2o_index] = (
+            n2o_mixing_ratio_matrix_kg_kg01
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=n2o_index, values=n2o_mixing_ratio_matrix_kg_kg01, axis=-1
+        )
+
+    return example_dict
+
+
+def add_effective_radii(example_dict, ice_noise_stdev_fractional):
+    """Adds effective-radius profiles (for both ice and liquid) to dict.
+
+    For effective radius of liquid water, using approximation of:
+    https://doi.org/10.1175/1520-0469(2000)057%3C0295:CDSDIL%3E2.0.CO;2
+
+    For effective radius of ice water, using:
+    https://doi.org/10.1002/2013JD020602
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).  Must contain temperature profiles.
+    :param ice_noise_stdev_fractional: Standard deviation of Gaussian noise for
+        effective radius of ice water.  If you do not want to add Gaussian noise
+        to profiles, make this non-positive.
+    :return: example_dict: Same but with effective-radius profiles.
+    """
+
+    error_checking.assert_is_less_than(ice_noise_stdev_fractional, 1.)
+    if ice_noise_stdev_fractional <= 0:
+        ice_noise_stdev_fractional = None
+
+    temperature_matrix_kelvins = get_field_from_dict(
+        example_dict=example_dict, field_name=TEMPERATURE_NAME
+    )
+    temperature_matrix_celsius = temp_conversions.kelvins_to_celsius(
+        temperature_matrix_kelvins
+    )
+    ice_eff_radius_matrix_metres = (
+        ICE_EFF_RADIUS_INTERCEPT_METRES +
+        ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01 * temperature_matrix_celsius
+    )
+
+    if ice_noise_stdev_fractional is not None:
+        noise_matrix = numpy.random.normal(
+            loc=0., scale=ice_noise_stdev_fractional,
+            size=ice_eff_radius_matrix_metres.shape
+        )
+        ice_eff_radius_matrix_metres += (
+            ice_eff_radius_matrix_metres * noise_matrix
+        )
+
+    ice_eff_radius_matrix_metres = numpy.maximum(
+        ice_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
+    )
+
+    metadata_dict = parse_example_ids(example_dict[EXAMPLE_IDS_KEY])
+    latitudes_deg_n = metadata_dict[LATITUDES_KEY]
+    longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        metadata_dict[LONGITUDES_KEY]
+    )
+
+    land_flags = numpy.array([
+        land_ocean_mask.is_land(lat=y, lon=x)
+        for y, x in zip(latitudes_deg_n, longitudes_deg_e)
+    ], dtype=bool)
+
+    land_indices = numpy.where(land_flags)[0]
+    ocean_indices = numpy.where(numpy.invert(land_flags))[0]
+    liquid_eff_radius_matrix_metres = numpy.full(
+        temperature_matrix_kelvins.shape, numpy.nan
+    )
+
+    if len(land_indices) > 0:
+        liquid_eff_radius_matrix_metres[land_indices, :] = numpy.random.normal(
+            loc=LIQUID_EFF_RADIUS_LAND_MEAN_METRES,
+            scale=LIQUID_EFF_RADIUS_LAND_STDEV_METRES,
+            size=liquid_eff_radius_matrix_metres[land_indices, :].shape
+        )
+
+    if len(ocean_indices) > 0:
+        liquid_eff_radius_matrix_metres[ocean_indices, :] = numpy.random.normal(
+            loc=LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES,
+            scale=LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES,
+            size=liquid_eff_radius_matrix_metres[ocean_indices, :].shape
+        )
+
+    liquid_eff_radius_matrix_metres = numpy.maximum(
+        liquid_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
+    )
+
+    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    found_liquid_eff_radius = LIQUID_EFF_RADIUS_NAME in vector_predictor_names
+    found_ice_eff_radius = ICE_EFF_RADIUS_NAME in vector_predictor_names
+
+    if not found_liquid_eff_radius:
+        vector_predictor_names.append(LIQUID_EFF_RADIUS_NAME)
+    if not found_ice_eff_radius:
+        vector_predictor_names.append(ICE_EFF_RADIUS_NAME)
+
+    liquid_eff_radius_index = vector_predictor_names.index(
+        LIQUID_EFF_RADIUS_NAME
+    )
+    ice_eff_radius_index = vector_predictor_names.index(ICE_EFF_RADIUS_NAME)
+    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+
+    if found_liquid_eff_radius:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][
+            ..., liquid_eff_radius_index
+        ] = liquid_eff_radius_matrix_metres
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=liquid_eff_radius_index, values=liquid_eff_radius_matrix_metres,
+            axis=-1
+        )
+
+    if found_ice_eff_radius:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., ice_eff_radius_index] = (
+            ice_eff_radius_matrix_metres
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=ice_eff_radius_index, values=ice_eff_radius_matrix_metres,
+            axis=-1
+        )
+
+    return example_dict
+
+
 def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False):
     """Finds liquid- or ice-cloud layers in each profile.
 
@@ -773,7 +1205,7 @@ def create_example_ids(example_dict):
     standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
 
     temperatures_10m_kelvins = get_field_from_dict(
-        example_dict=example_dict, field_name=TEMPERATURE_NAME, height_m_agl=10
+        example_dict=example_dict, field_name=TEMPERATURE_NAME, height_m_agl=8
     )
 
     return [
