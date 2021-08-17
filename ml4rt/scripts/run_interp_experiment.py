@@ -270,14 +270,16 @@ def _run_experiment_one_example(
         )
         high_res_heating_rates_k_day01 = interp_object(high_res_pressures_pa)
 
-        noise_values_k_day01 = numpy.random.uniform(
-            low=-max_noise_k_day01, high=max_noise_k_day01,
-            size=high_res_heating_rates_k_day01.shape
-        )
-        noise_values_k_day01 *= (
-            max_noise_k_day01 / numpy.max(numpy.absolute(noise_values_k_day01))
-        )
-        high_res_heating_rates_k_day01 += noise_values_k_day01
+        if max_noise_k_day01 > TOLERANCE:
+            noise_values_k_day01 = numpy.random.uniform(
+                low=-max_noise_k_day01, high=max_noise_k_day01,
+                size=high_res_heating_rates_k_day01.shape
+            )
+            noise_values_k_day01 *= (
+                max_noise_k_day01 /
+                numpy.max(numpy.absolute(noise_values_k_day01))
+            )
+            high_res_heating_rates_k_day01 += noise_values_k_day01
 
         interp_object = interp1d(
             x=high_res_pressures_pa[::-1],

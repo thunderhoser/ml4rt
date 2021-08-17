@@ -15,8 +15,8 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TOLERANCE = 1e-6
 
 FLUX_NAMES = [
-    evaluation.NET_FLUX_NAME, evaluation.LOWEST_DOWN_FLUX_NAME,
-    evaluation.HIGHEST_UP_FLUX_NAME
+    evaluation.NET_FLUX_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
 ]
 
 FLUX_NAMES_VERBOSE = [
@@ -259,7 +259,7 @@ def _make_bias_boxplot(
             )
 
             flux_axes_object.boxplot(
-                numpy.absolute(overall_flux_bias_matrix_w_m02[i, :]),
+                numpy.absolute(overall_flux_bias_matrix_w_m02[i, j, :]),
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
@@ -268,8 +268,8 @@ def _make_bias_boxplot(
 
             for k in range(i + 1, num_models):
                 these_diffs = (
-                    numpy.absolute(overall_flux_bias_matrix_w_m02[i, :]) -
-                    numpy.absolute(overall_flux_bias_matrix_w_m02[k, :])
+                    numpy.absolute(overall_flux_bias_matrix_w_m02[i, j, :]) -
+                    numpy.absolute(overall_flux_bias_matrix_w_m02[k, j, :])
                 )
                 this_percentile = percentileofscore(
                     a=these_diffs, score=0., kind='mean'
@@ -291,7 +291,7 @@ def _make_bias_boxplot(
             )
 
             flux_axes_object.boxplot(
-                numpy.absolute(multicloud_flux_bias_matrix_w_m02[i, :]),
+                numpy.absolute(multicloud_flux_bias_matrix_w_m02[i, j, :]),
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
@@ -300,8 +300,8 @@ def _make_bias_boxplot(
 
             for k in range(i + 1, num_models):
                 these_diffs = (
-                    numpy.absolute(multicloud_flux_bias_matrix_w_m02[i, :]) -
-                    numpy.absolute(multicloud_flux_bias_matrix_w_m02[k, :])
+                    numpy.absolute(multicloud_flux_bias_matrix_w_m02[i, j, :]) -
+                    numpy.absolute(multicloud_flux_bias_matrix_w_m02[k, j, :])
                 )
                 this_percentile = percentileofscore(
                     a=these_diffs, score=0., kind='mean'
@@ -496,7 +496,7 @@ def _make_msess_boxplot(
             )
 
             axes_object.boxplot(
-                overall_flux_msess_matrix[i, :],
+                overall_flux_msess_matrix[i, j, :],
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
@@ -505,8 +505,8 @@ def _make_msess_boxplot(
 
             for k in range(i + 1, num_models):
                 these_diffs = (
-                    overall_flux_msess_matrix[i, :] -
-                    overall_flux_msess_matrix[k, :]
+                    overall_flux_msess_matrix[i, j, :] -
+                    overall_flux_msess_matrix[k, j, :]
                 )
                 this_percentile = percentileofscore(
                     a=these_diffs, score=0., kind='mean'
@@ -529,7 +529,7 @@ def _make_msess_boxplot(
             )
 
             axes_object.boxplot(
-                multicloud_flux_msess_matrix[i, :],
+                multicloud_flux_msess_matrix[i, j, :],
                 widths=1., notch=False, sym='', whis=(0.5, 99.5),
                 medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
                 whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
@@ -538,8 +538,8 @@ def _make_msess_boxplot(
 
             for k in range(i + 1, num_models):
                 these_diffs = (
-                    multicloud_flux_msess_matrix[i, :] -
-                    multicloud_flux_msess_matrix[k, :]
+                    multicloud_flux_msess_matrix[i, j, :] -
+                    multicloud_flux_msess_matrix[k, j, :]
                 )
                 this_percentile = percentileofscore(
                     a=these_diffs, score=0., kind='mean'
