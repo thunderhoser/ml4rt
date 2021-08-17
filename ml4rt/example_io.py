@@ -206,7 +206,8 @@ def find_many_files(
 
 
 def read_file(netcdf_file_name, exclude_summit_greenland=False,
-              id_strings_to_read=None, allow_missing_ids=False):
+              max_heating_rate_k_day=41.5, id_strings_to_read=None,
+              allow_missing_ids=False):
     """Reads learning examples from NetCDF file.
 
     E = number of examples
@@ -219,6 +220,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     :param netcdf_file_name: Path to input file.
     :param exclude_summit_greenland: Boolean flag.  If True, will not read data
         from Summit, Greenland.
+    :param max_heating_rate_k_day: Max heating rate.  Will not read any examples
+        with greater heating rate anywhere in profile.
     :param id_strings_to_read: 1-D list of IDs for examples to read.  If None,
         will read all examples.
     :param allow_missing_ids: [used only if `id_strings_to_read is not None`]
@@ -250,6 +253,9 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
         the list `STANDARD_ATMO_ENUMS`).
     example_dict['example_id_strings']: length-E list of example IDs.
     """
+
+    error_checking.assert_is_boolean(exclude_summit_greenland)
+    error_checking.assert_is_not_nan(max_heating_rate_k_day)
 
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
@@ -350,7 +356,22 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     )
 
     dataset_object.close()
-    return example_dict
+
+    if max_heating_rate_k_day <= 0:
+        return example_dict
+
+    heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
+    good_example_flags = numpy.all(
+        heating_rate_matrix_k_day01 <= max_heating_rate_k_day, axis=1
+    )
+    good_example_indices = numpy.where(good_example_flags)[0]
+
+    return example_utils.subset_by_index(
+        example_dict=example_dict, desired_indices=good_example_indices
+    )
 
 
 def write_file(example_dict, netcdf_file_name):
