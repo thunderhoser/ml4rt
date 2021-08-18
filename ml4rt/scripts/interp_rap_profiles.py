@@ -506,7 +506,7 @@ def _find_jumps(orig_data_matrix, orig_heights_metres, new_heights_metres):
 
 
 def _interp_and_conserve_jumps(orig_data_matrix, orig_heights_metres,
-                               new_heights_metres):
+                               new_heights_metres, extrapolate=True):
     """Applies jump-conserving interpolation to one variable.
 
     A "jump" is any two adjacent heights with a zero value and non-zero value.
@@ -514,6 +514,8 @@ def _interp_and_conserve_jumps(orig_data_matrix, orig_heights_metres,
     :param orig_data_matrix: See doc for `_find_jumps`.
     :param orig_heights_metres: Same.
     :param new_heights_metres: Same.
+    :param extrapolate: Boolean flag.  If True, will extrapolate beyond original
+        heights.
     """
 
     jump_flag_matrix = _find_jumps(
@@ -525,20 +527,40 @@ def _interp_and_conserve_jumps(orig_data_matrix, orig_heights_metres,
     log_offset = 1. + -1 * numpy.min(orig_data_matrix)
     assert not numpy.isnan(log_offset)
 
-    interp_object = interp1d(
-        x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
-        axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
-        fill_value='extrapolate'
-    )
-    new_data_matrix = (
-        numpy.exp(interp_object(new_heights_metres)) - log_offset
-    )
+    if extrapolate:
+        interp_object = interp1d(
+            x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
+            axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
+            fill_value='extrapolate'
+        )
+    else:
+        bottom_value_matrix = numpy.log(log_offset + orig_data_matrix[..., 0])
+        top_value_matrix = numpy.log(log_offset + orig_data_matrix[..., -1])
 
-    interp_object = interp1d(
-        x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
-        axis=-1, kind='nearest', bounds_error=False, assume_sorted=True,
-        fill_value='extrapolate'
-    )
+        interp_object = interp1d(
+            x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
+            axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
+            fill_value=(bottom_value_matrix, top_value_matrix)
+        )
+
+    new_data_matrix = numpy.exp(interp_object(new_heights_metres)) - log_offset
+
+    if extrapolate:
+        interp_object = interp1d(
+            x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
+            axis=-1, kind='nearest', bounds_error=False, assume_sorted=True,
+            fill_value='extrapolate'
+        )
+    else:
+        bottom_value_matrix = numpy.log(log_offset + orig_data_matrix[..., 0])
+        top_value_matrix = numpy.log(log_offset + orig_data_matrix[..., -1])
+
+        interp_object = interp1d(
+            x=orig_heights_metres, y=numpy.log(log_offset + orig_data_matrix),
+            axis=-1, kind='nearest', bounds_error=False, assume_sorted=True,
+            fill_value=(bottom_value_matrix, top_value_matrix)
+        )
+
     new_data_matrix_nn = (
         numpy.exp(interp_object(new_heights_metres)) - log_offset
     )

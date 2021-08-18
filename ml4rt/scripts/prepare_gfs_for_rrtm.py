@@ -182,7 +182,8 @@ def _interp_data_one_profile(
 
     interp_object = interp1d(
         x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
-        kind='linear', bounds_error=True, assume_sorted=True,
+        kind='linear', bounds_error=False, assume_sorted=True,
+        fill_value='extrapolate'
     )
     interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = numpy.exp(
         interp_object(new_heights_m_agl)
@@ -203,7 +204,8 @@ def _interp_data_one_profile(
                 interp_rap_profiles._interp_and_conserve_jumps(
                     orig_data_matrix=orig_data_matrix,
                     orig_heights_metres=orig_heights_m_agl,
-                    new_heights_metres=new_heights_m_agl
+                    new_heights_metres=new_heights_m_agl,
+                    extrapolate=False
                 )
             )
 
@@ -217,7 +219,8 @@ def _interp_data_one_profile(
 
         interp_object = interp1d(
             x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
-            kind='linear', bounds_error=True, assume_sorted=True
+            kind='linear', bounds_error=False, assume_sorted=True,
+            fill_value=(orig_values[0], orig_values[-1])
         )
         interp_data_dict[this_key][i, j, :] = (
             numpy.exp(interp_object(new_heights_m_agl)) - log_offset
