@@ -187,6 +187,7 @@ def _interp_data_one_profile(
     orig_heights_m_agl = numpy.cumsum(numpy.flip(
         -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     ))
+    print(orig_heights_m_agl)
 
     interp_object = interp1d(
         x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
