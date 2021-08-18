@@ -116,6 +116,16 @@ AEROSOL_OPTICAL_DEPTH_NAME = 'aerosol_optical_depth_metres'
 AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 
+TRACE_GAS_NAMES = [
+    O2_MIXING_RATIO_NAME, CO2_MIXING_RATIO_NAME,
+    CH4_MIXING_RATIO_NAME, N2O_MIXING_RATIO_NAME
+]
+EFFECTIVE_RADIUS_NAMES = [LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME]
+AEROSOL_NAMES = [
+    AEROSOL_OPTICAL_DEPTH_NAME, AEROSOL_ALBEDO_NAME,
+    AEROSOL_ASYMMETRY_PARAM_NAME
+]
+
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
     COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME
@@ -285,16 +295,12 @@ def _interp_mixing_ratios(orig_mixing_ratios_kg_kg01, orig_heights_m_asl,
     :return: new_mixing_ratios_kg_kg01: length-H numpy array of mixing ratios.
     """
 
-    log_offset = 1. + -1 * numpy.min(orig_mixing_ratios_kg_kg01)
-    assert not numpy.isnan(log_offset)
-
     interp_object = interp1d(
-        x=orig_heights_m_asl,
-        y=numpy.log(log_offset + orig_mixing_ratios_kg_kg01),
+        x=orig_heights_m_asl, y=orig_mixing_ratios_kg_kg01,
         kind='linear', bounds_error=True, assume_sorted=True
     )
 
-    return numpy.exp(interp_object(new_heights_m_agl)) - log_offset
+    return interp_object(new_heights_m_agl)
 
 
 def _example_ids_to_standard_atmos(example_id_strings):
