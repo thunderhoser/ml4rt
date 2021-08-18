@@ -620,6 +620,11 @@ def _interp_rap_profiles_one_day(
             continue
 
         orig_data_matrix = numpy.array(orig_data_dict[this_key]['data'])
+
+        # TODO(thunderhoser): HACK!
+        if this_key in NAN_ALLOWED_KEYS:
+            orig_data_matrix[:] = SENTINEL_VALUE
+
         all_nan_flag = numpy.all(orig_data_matrix < (SENTINEL_VALUE + 1))
         all_valid_flag = numpy.all(orig_data_matrix >= (SENTINEL_VALUE + 1))
 
