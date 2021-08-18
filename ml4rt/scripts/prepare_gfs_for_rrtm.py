@@ -15,6 +15,9 @@ from ml4rt.scripts import interp_rap_profiles
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+NOISE_STDEV_FRACTIONAL = 0.05
+
+SECONDS_TO_HOURS = 1. / 3600
 PASCALS_TO_MB = 0.01
 KG_TO_GRAMS = 1e3
 UNITLESS_TO_PERCENT = 100.
@@ -23,11 +26,11 @@ DUMMY_DOWN_SURFACE_FLUX_W_M02 = 1000.
 DRY_AIR_GAS_CONSTANT_J_KG01_K01 = 287.04
 
 SITE_DIMENSION_ORIG = 'site_index'
-FORECAST_HOUR_DIMENSION_ORIG = 'forecast_hour'
+TIME_DIMENSION_ORIG = 'valid_time_unix_sec'
 HEIGHT_DIMENSION_ORIG = 'pfull'
 
 SITE_DIMENSION = 'sites'
-FORECAST_HOUR_DIMENSION = 'forecast_hour'
+TIME_DIMENSION = 'valid_time_unix_sec'
 HEIGHT_DIMENSION = 'height_bin'
 HEIGHT_AT_EDGE_DIMENSION = 'height_bin_edge'
 
@@ -50,6 +53,16 @@ SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01 = 'spfh'
 ALBEDO_KEY_ORIG_PERCENT = 'albdo_ave'
 PRESSURE_KEY_ORIG_PASCALS = 'pressure_pa'
 PRESSURE_AT_EDGE_KEY_ORIG_PASCALS = 'pressure_at_edge_pa'
+
+O2_MIXR_KEY_ORIG_KG_KG01 = 'o2_mixing_ratio_kg_kg01'
+CO2_MIXR_KEY_ORIG_KG_KG01 = 'co2_mixing_ratio_kg_kg01'
+CH4_MIXR_KEY_ORIG_KG_KG01 = 'ch4_mixing_ratio_kg_kg01'
+N2O_MIXR_KEY_ORIG_KG_KG01 = 'n2o_mixing_ratio_kg_kg01'
+LIQUID_EFF_RADIUS_KEY_ORIG_METRES = 'liquid_eff_radius_metres'
+ICE_EFF_RADIUS_KEY_ORIG_METRES = 'ice_eff_radius_metres'
+AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES = 'aerosol_optical_depth_metres'
+AEROSOL_ALBEDO_KEY_ORIG = 'aerosol_albedo'
+AEROSOL_ASYMMETRY_PARAM_KEY_ORIG = 'aerosol_asymmetry_param'
 
 MAIN_KEYS_ORIG = [
     CLOUD_FRACTION_KEY_ORIG, CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01,
@@ -88,7 +101,17 @@ ORIG_TO_NEW_KEY_DICT = {
     TEMPERATURE_KEY_ORIG_KELVINS: TEMPERATURE_KEY_CELSIUS,
     VAPOUR_MIXR_KEY_ORIG_KG_KG01: VAPOUR_MIXR_KEY_G_KG01,
     PRESSURE_KEY_ORIG_PASCALS: 'p0',
-    PRESSURE_AT_EDGE_KEY_ORIG_PASCALS: 'p0_edge'
+    PRESSURE_AT_EDGE_KEY_ORIG_PASCALS: 'p0_edge',
+    O2_MIXR_KEY_ORIG_KG_KG01: O2_MIXR_KEY_ORIG_KG_KG01,
+    CO2_MIXR_KEY_ORIG_KG_KG01: CO2_MIXR_KEY_ORIG_KG_KG01,
+    CH4_MIXR_KEY_ORIG_KG_KG01: CH4_MIXR_KEY_ORIG_KG_KG01,
+    N2O_MIXR_KEY_ORIG_KG_KG01: N2O_MIXR_KEY_ORIG_KG_KG01,
+    LIQUID_EFF_RADIUS_KEY_ORIG_METRES: LIQUID_EFF_RADIUS_KEY_ORIG_METRES,
+    ICE_EFF_RADIUS_KEY_ORIG_METRES: ICE_EFF_RADIUS_KEY_ORIG_METRES,
+    AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES:
+        AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES,
+    AEROSOL_ALBEDO_KEY_ORIG: AEROSOL_ALBEDO_KEY_ORIG,
+    AEROSOL_ASYMMETRY_PARAM_KEY_ORIG: AEROSOL_ASYMMETRY_PARAM_KEY_ORIG
 }
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
@@ -97,7 +120,7 @@ OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file (created by subset_gfs_from_jebb.py), containing GFS '
-    'data for one init time and one forecast hour.'
+    'data for one init time.'
 )
 NEW_HEIGHTS_HELP_STRING = 'Heights (metres above ground level) in new grid.'
 OUTPUT_FILE_HELP_STRING = (
@@ -120,6 +143,256 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _interp_data_one_profile(
+        orig_gfs_table_xarray, time_index, site_index, new_heights_m_agl,
+        new_heights_at_edges_m_agl, interp_data_dict):
+    """Interpolates data from one profile to new heights.
+
+    H = number of heights in new grid
+
+    :param orig_gfs_table_xarray: xarray table with GFS data in original (Jebb)
+        format.
+    :param time_index: Will interpolate data for the [i]th time in the table,
+        where i is this index.
+    :param site_index: Will interpolate data for the [j]th site in the table,
+        where j is this index.
+    :param new_heights_m_agl: length-H numpy array of heights (metres above
+        ground level).
+    :param new_heights_at_edges_m_agl: length-(H + 1) numpy array of heights
+        (metres above ground level).
+    :param interp_data_dict: Dictionary, where each key is a variable name and
+        the corresponding value is a 3-D numpy array (time x site x new_height).
+    :return: interp_data_dict: Same as input but with new values for the given
+        time and site.
+    """
+
+    i = time_index
+    j = site_index
+
+    orig_pressure_diffs_pa = numpy.cumsum(numpy.flip(
+        orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
+    ))
+    orig_pressures_pa = (
+        orig_gfs_table_xarray[SURFACE_PRESSURE_KEY_ORIG_PASCALS].values[i, j]
+        - orig_pressure_diffs_pa
+    )
+    orig_heights_m_agl = numpy.cumsum(numpy.flip(
+        -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
+    ))
+
+    interp_object = interp1d(
+        x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
+        kind='linear', bounds_error=True, assume_sorted=True,
+    )
+    interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = numpy.exp(
+        interp_object(new_heights_m_agl)
+    )
+
+    interp_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
+        numpy.exp(interp_object(new_heights_at_edges_m_agl))
+    )
+
+    for this_key in MAIN_KEYS_ORIG:
+        if this_key in CONSERVE_JUMP_KEYS_ORIG:
+            orig_values = numpy.flip(
+                orig_gfs_table_xarray[this_key].values[i, :, j]
+            )
+            orig_data_matrix = numpy.expand_dims(orig_values, axis=0)
+
+            interp_data_dict[this_key][i, j, :] = (
+                interp_rap_profiles._interp_and_conserve_jumps(
+                    orig_data_matrix=orig_data_matrix,
+                    orig_heights_metres=orig_heights_m_agl,
+                    new_heights_metres=new_heights_m_agl
+                )
+            )
+
+            continue
+
+        orig_values = numpy.flip(
+            orig_gfs_table_xarray[this_key].values[i, :, j]
+        )
+        log_offset = 1. + -1 * numpy.min(orig_values)
+        assert not numpy.isnan(log_offset)
+
+        interp_object = interp1d(
+            x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
+            kind='linear', bounds_error=True, assume_sorted=True
+        )
+        interp_data_dict[this_key][i, j, :] = (
+            numpy.exp(interp_object(new_heights_m_agl)) - log_offset
+        )
+
+    return interp_data_dict
+
+
+def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
+                     interp_data_dict, test_mode=False):
+    """Adds profiles of trace-gas mixing ratios.
+
+    :param orig_gfs_table_xarray: xarray table with GFS data in original (Jebb)
+        format.
+    :param new_heights_m_agl: 1-D numpy array of heights (metres above ground
+        level) in new grid.
+    :param interp_data_dict: Dictionary, where each key is a variable name and
+        the corresponding value is a 3-D numpy array
+        (time x site x new_height).
+    :param test_mode: Leave this alone.
+    :return: interp_data_dict: Same as input but with additional keys for trace
+        gases.
+    :return: dummy_example_dict: Dictionary with fake learning examples, in
+        format specified by `example_io.read_file`.
+    """
+
+    valid_times_unix_sec = (
+        orig_gfs_table_xarray.coords[TIME_DIMENSION_ORIG].values
+    )
+    num_times = len(valid_times_unix_sec)
+    num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_heights_new = len(new_heights_m_agl)
+
+    latitudes_deg_n = orig_gfs_table_xarray[LATITUDE_KEY_ORIG_DEG_N].values
+    longitudes_deg_e = orig_gfs_table_xarray[LONGITUDE_KEY_ORIG_DEG_E].values
+    longitudes_deg_e = longitude_conv.convert_lng_positive_in_west(
+        longitudes_deg_e, allow_nan=False
+    )
+
+    dummy_id_string_matrix = numpy.full(
+        (num_times, num_sites), '', dtype=object
+    )
+
+    for i in range(num_times):
+        for j in range(num_sites):
+            dummy_id_string_matrix[i, j] = (
+                'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad=01.000000_'
+                'time={2:010d}_atmo=1_albedo=0.123456_'
+                'temp-10m-kelvins=273.150000'
+            ).format(
+                latitudes_deg_n[j], longitudes_deg_e[j], valid_times_unix_sec[i]
+            )
+
+    dummy_id_strings = numpy.ravel(dummy_id_string_matrix).tolist()
+    dummy_predictor_matrix = numpy.reshape(
+        interp_data_dict[TEMPERATURE_KEY_ORIG_KELVINS],
+        (num_times * num_sites, num_heights_new)
+    )
+    dummy_predictor_matrix = numpy.expand_dims(dummy_predictor_matrix, axis=-1)
+
+    dummy_example_dict = {
+        example_utils.EXAMPLE_IDS_KEY: dummy_id_strings,
+        example_utils.HEIGHTS_KEY: new_heights_m_agl,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+            [example_utils.TEMPERATURE_NAME],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: dummy_predictor_matrix
+    }
+    dummy_example_dict = example_utils.add_trace_gases(
+        example_dict=dummy_example_dict,
+        noise_stdev_fractional=0. if test_mode else NOISE_STDEV_FRACTIONAL
+    )
+
+    o2_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.O2_MIXING_RATIO_NAME
+    )
+    interp_data_dict[O2_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+        o2_mixing_ratio_matrix_kg_kg01,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    co2_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.CO2_MIXING_RATIO_NAME
+    )
+    interp_data_dict[CO2_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+        co2_mixing_ratio_matrix_kg_kg01,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    ch4_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.CH4_MIXING_RATIO_NAME
+    )
+    interp_data_dict[CH4_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+        ch4_mixing_ratio_matrix_kg_kg01,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    n2o_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.N2O_MIXING_RATIO_NAME
+    )
+    interp_data_dict[N2O_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+        n2o_mixing_ratio_matrix_kg_kg01,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    return interp_data_dict, dummy_example_dict
+
+
+def _convert_ice_mixr_to_path(orig_gfs_table_xarray, new_heights_m_agl,
+                              interp_data_dict):
+    """Converts ice-water mixing ratios to ice-water paths.
+
+    :param orig_gfs_table_xarray: xarray table with GFS data in original (Jebb)
+        format.
+    :param new_heights_m_agl: 1-D numpy array of heights (metres above ground
+        level) in new grid.
+    :param interp_data_dict: Dictionary, where each key is a variable name and
+        the corresponding value is a 3-D numpy array
+        (time x site x new_height).
+    :return: interp_data_dict: Same as input but with ice-water paths instead of
+        mixing ratios.
+    """
+
+    num_times = len(orig_gfs_table_xarray.coords[TIME_DIMENSION_ORIG].values)
+    num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_heights_new = len(new_heights_m_agl)
+
+    vapour_pressure_matrix_pa = moisture_conv.mixing_ratio_to_vapour_pressure(
+        mixing_ratios_kg_kg01=interp_data_dict[VAPOUR_MIXR_KEY_ORIG_KG_KG01],
+        total_pressures_pascals=interp_data_dict[PRESSURE_KEY_ORIG_PASCALS]
+    )
+    virtual_temp_matrix_kelvins = (
+        moisture_conv.temperature_to_virtual_temperature(
+            temperatures_kelvins=interp_data_dict[TEMPERATURE_KEY_ORIG_KELVINS],
+            total_pressures_pascals=interp_data_dict[PRESSURE_KEY_ORIG_PASCALS],
+            vapour_pressures_pascals=vapour_pressure_matrix_pa
+        )
+    )
+    air_density_matrix_kg_m03 = (
+        interp_data_dict[PRESSURE_KEY_ORIG_PASCALS] /
+        virtual_temp_matrix_kelvins
+    )
+    air_density_matrix_kg_m03 = (
+        air_density_matrix_kg_m03 / DRY_AIR_GAS_CONSTANT_J_KG01_K01
+    )
+    ice_mixing_ratio_matrix_kg_m03 = (
+        interp_data_dict[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01] *
+        air_density_matrix_kg_m03
+    )
+
+    ice_mixing_ratio_matrix_kg_m03 = numpy.reshape(
+        ice_mixing_ratio_matrix_kg_m03,
+        (num_times * num_sites, num_heights_new)
+    )
+    ice_water_path_matrix_kg_m02 = rrtm_io._water_content_to_layerwise_path(
+        water_content_matrix_kg_m03=ice_mixing_ratio_matrix_kg_m03,
+        heights_m_agl=new_heights_m_agl
+    )
+    ice_water_path_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+        numpy.fliplr(ice_water_path_matrix_kg_m02), axis=1
+    ))
+    ice_water_path_matrix_kg_m02 = numpy.reshape(
+        ice_water_path_matrix_kg_m02,
+        (num_times, num_sites, num_heights_new)
+    )
+    interp_data_dict[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01] = (
+        ice_water_path_matrix_kg_m02
+    )
+
+    return interp_data_dict
+
+
 def _run(input_file_name, new_heights_m_agl, output_file_name):
     """Prepares GFS data for input to the RRTM.
 
@@ -139,28 +412,28 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     # Read input file and convert specific humidity to vapour mixing ratio.
     print('Reading data from: "{0:s}"...'.format(input_file_name))
-    orig_table_xarray = xarray.open_dataset(input_file_name)
+    orig_gfs_table_xarray = xarray.open_dataset(input_file_name)
 
     this_matrix = moisture_conv.specific_humidity_to_mixing_ratio(
-        orig_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values
+        orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values
     )
-    orig_table_xarray = orig_table_xarray.assign({
+    orig_gfs_table_xarray = orig_gfs_table_xarray.assign({
         VAPOUR_MIXR_KEY_ORIG_KG_KG01: (
-            orig_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].dims,
+            orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].dims,
             this_matrix
         )
     })
 
     # Create metadata dict for output file.
-    forecast_hours = (
-        orig_table_xarray.coords[FORECAST_HOUR_DIMENSION_ORIG].values
+    valid_times_unix_sec = (
+        orig_gfs_table_xarray.coords[TIME_DIMENSION_ORIG].values
     )
-    num_forecast_hours = len(forecast_hours)
-    num_sites = len(orig_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_times = len(valid_times_unix_sec)
+    num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
     num_heights_new = len(new_heights_m_agl)
 
     new_metadata_dict = {
-        FORECAST_HOUR_DIMENSION: forecast_hours,
+        TIME_DIMENSION: valid_times_unix_sec,
         HEIGHT_DIMENSION: numpy.linspace(
             0, num_heights_new - 1, num=num_heights_new, dtype=int
         ),
@@ -172,9 +445,13 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         )
     }
 
+    dummy_forecast_hours = 6 + numpy.round(
+        SECONDS_TO_HOURS * (valid_times_unix_sec - valid_times_unix_sec[0])
+    ).astype(int)
+
     # Start main data dict for output file.
-    latitudes_deg_n = orig_table_xarray[LATITUDE_KEY_ORIG_DEG_N].values
-    longitudes_deg_e = orig_table_xarray[LONGITUDE_KEY_ORIG_DEG_E].values
+    latitudes_deg_n = orig_gfs_table_xarray[LATITUDE_KEY_ORIG_DEG_N].values
+    longitudes_deg_e = orig_gfs_table_xarray[LONGITUDE_KEY_ORIG_DEG_E].values
     longitudes_deg_e = longitude_conv.convert_lng_positive_in_west(
         longitudes_deg_e, allow_nan=False
     )
@@ -187,166 +464,116 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         SITE_NAME_KEY: ((SITE_DIMENSION,), site_names),
         LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n),
         LONGITUDE_KEY_DEG_E: ((SITE_DIMENSION,), longitudes_deg_e),
-        FORECAST_HOUR_KEY: ((FORECAST_HOUR_DIMENSION,), forecast_hours),
+        FORECAST_HOUR_KEY: ((TIME_DIMENSION,), dummy_forecast_hours),
         HEIGHT_KEY_M_AGL: ((HEIGHT_DIMENSION,), new_heights_m_agl)
     }
 
-    # Interpolate data to new heights.
+    # Interpolate main variables to new heights.
     interp_data_dict = dict()
     for this_key in MAIN_KEYS_ORIG + [PRESSURE_KEY_ORIG_PASCALS]:
         interp_data_dict[this_key] = numpy.full(
-            (num_forecast_hours, num_sites, num_heights_new), numpy.nan
+            (num_times, num_sites, num_heights_new), numpy.nan
         )
 
     interp_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS] = numpy.full(
-        (num_forecast_hours, num_sites, num_heights_new + 1), numpy.nan
+        (num_times, num_sites, num_heights_new + 1), numpy.nan
     )
     new_heights_at_edges_m_agl = example_utils.get_grid_cell_edges(
         new_heights_m_agl
     )
 
-    for i in range(num_forecast_hours):
+    for i in range(num_times):
         for j in range(num_sites):
-            verbose = numpy.mod(j, 10) == 0
-
-            if verbose:
+            if numpy.mod(j, 10) == 0:
                 print((
-                    'Interpolating {0:s} to new heights for forecast hour '
-                    '{1:d}, site {2:d} of {3:d}...'
+                    'Interpolating data to new heights for forecast hour {0:d},'
+                    ' site {1:d} of {2:d}...'
                 ).format(
-                    PRESSURE_KEY_ORIG_PASCALS, forecast_hours[i],
-                    j + 1, num_sites
+                    dummy_forecast_hours[i], j + 1, num_sites
                 ))
 
-            orig_pressure_diffs_pa = numpy.cumsum(numpy.flip(
-                orig_table_xarray[
-                    DELTA_PRESSURE_KEY_ORIG_PASCALS
-                ].values[i, :, j]
-            ))
-            orig_pressures_pa = (
-                orig_table_xarray[
-                    SURFACE_PRESSURE_KEY_ORIG_PASCALS
-                ].values[i, j]
-                - orig_pressure_diffs_pa
+            interp_data_dict = _interp_data_one_profile(
+                orig_gfs_table_xarray=orig_gfs_table_xarray,
+                time_index=i, site_index=j,
+                new_heights_m_agl=new_heights_m_agl,
+                new_heights_at_edges_m_agl=new_heights_at_edges_m_agl,
+                interp_data_dict=interp_data_dict
             )
-            orig_heights_m_agl = numpy.cumsum(numpy.flip(
-                orig_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
-                * -1
-            ))
-
-            interp_object = interp1d(
-                x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
-                kind='linear', bounds_error=False, assume_sorted=True,
-                fill_value='extrapolate'
-            )
-            interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = numpy.exp(
-                interp_object(new_heights_m_agl)
-            )
-
-            if verbose:
-                print((
-                    'Interpolating {0:s} to new heights for forecast hour '
-                    '{1:d}, site {2:d} of {3:d}...'
-                ).format(
-                    PRESSURE_AT_EDGE_KEY_ORIG_PASCALS, forecast_hours[i],
-                    j + 1, num_sites
-                ))
-
-            interp_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
-                numpy.exp(interp_object(new_heights_at_edges_m_agl))
-            )
-
-            for this_key in MAIN_KEYS_ORIG:
-                if verbose:
-                    print((
-                        'Interpolating {0:s} to new heights for forecast hour '
-                        '{1:d}, site {2:d} of {3:d}...'
-                    ).format(
-                        this_key, forecast_hours[i], j + 1, num_sites
-                    ))
-
-                if this_key in CONSERVE_JUMP_KEYS_ORIG:
-                    orig_values = numpy.flip(
-                        orig_table_xarray[this_key].values[i, :, j]
-                    )
-                    orig_data_matrix = numpy.expand_dims(orig_values, axis=0)
-
-                    interp_data_dict[this_key][i, j, :] = (
-                        interp_rap_profiles._interp_and_conserve_jumps(
-                            orig_data_matrix=orig_data_matrix,
-                            orig_heights_metres=orig_heights_m_agl,
-                            new_heights_metres=new_heights_m_agl
-                        )
-                    )
-
-                    continue
-
-                orig_values = numpy.flip(
-                    orig_table_xarray[this_key].values[i, :, j]
-                )
-                log_offset = 1. + -1 * numpy.min(orig_values)
-                assert not numpy.isnan(log_offset)
-
-                interp_object = interp1d(
-                    x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
-                    kind='linear', bounds_error=False, assume_sorted=True,
-                    fill_value='extrapolate'
-                )
-                interp_data_dict[this_key][i, j, :] = (
-                    numpy.exp(interp_object(new_heights_m_agl)) - log_offset
-                )
 
         print((
             'Have interpolated data to new heights for all {0:d} sites at '
             'forecast hour {1:d}!'
         ).format(
-            num_sites, forecast_hours[i]
+            num_sites, dummy_forecast_hours[i]
         ))
         print(SEPARATOR_STRING)
 
+    # Add other variables.
+    print('Adding trace gases...')
+    interp_data_dict, dummy_example_dict = _add_trace_gases(
+        orig_gfs_table_xarray=orig_gfs_table_xarray,
+        new_heights_m_agl=new_heights_m_agl,
+        interp_data_dict=interp_data_dict
+    )
+
+    print('Adding effective radii of liquid and ice particles...')
+    dummy_example_dict = example_utils.add_effective_radii(
+        example_dict=dummy_example_dict,
+        ice_noise_stdev_fractional=NOISE_STDEV_FRACTIONAL
+    )
+    liquid_eff_radius_matrix_metres = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.LIQUID_EFF_RADIUS_NAME
+    )
+    interp_data_dict[LIQUID_EFF_RADIUS_KEY_ORIG_METRES] = numpy.reshape(
+        liquid_eff_radius_matrix_metres,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    ice_eff_radius_matrix_metres = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.ICE_EFF_RADIUS_NAME
+    )
+    interp_data_dict[ICE_EFF_RADIUS_KEY_ORIG_METRES] = numpy.reshape(
+        ice_eff_radius_matrix_metres,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    print('Adding aerosols...')
+    dummy_example_dict = example_utils.add_aerosols(dummy_example_dict)
+    aerosol_optical_depth_matrix_metres = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.AEROSOL_OPTICAL_DEPTH_NAME
+    )
+    interp_data_dict[AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES] = numpy.reshape(
+        aerosol_optical_depth_matrix_metres,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    aerosol_albedo_matrix = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.AEROSOL_ALBEDO_NAME
+    )
+    interp_data_dict[AEROSOL_ALBEDO_KEY_ORIG] = numpy.reshape(
+        aerosol_albedo_matrix,
+        (num_times, num_sites, num_heights_new)
+    )
+
+    aerosol_asymmetry_param_matrix = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+    )
+    interp_data_dict[AEROSOL_ASYMMETRY_PARAM_KEY_ORIG] = numpy.reshape(
+        aerosol_asymmetry_param_matrix,
+        (num_times, num_sites, num_heights_new)
+    )
+
     # TODO(thunderhoser): Will likely need to convert other vars in same way.
     print('Converting ice-water mixing ratios (kg/kg) to paths (kg/m^2)...')
-    vapour_pressure_matrix_pa = moisture_conv.mixing_ratio_to_vapour_pressure(
-        mixing_ratios_kg_kg01=interp_data_dict[VAPOUR_MIXR_KEY_ORIG_KG_KG01],
-        total_pressures_pascals=interp_data_dict[PRESSURE_KEY_ORIG_PASCALS]
-    )
-    virtual_temp_matrix_kelvins = (
-        moisture_conv.temperature_to_virtual_temperature(
-            temperatures_kelvins=interp_data_dict[TEMPERATURE_KEY_ORIG_KELVINS],
-            total_pressures_pascals=interp_data_dict[PRESSURE_KEY_ORIG_PASCALS],
-            vapour_pressures_pascals=vapour_pressure_matrix_pa
-        )
-    )
-    air_density_matrix_kg_m03 = (
-        interp_data_dict[PRESSURE_KEY_ORIG_PASCALS] /
-        virtual_temp_matrix_kelvins
-    )
-    air_density_matrix_kg_m03 = (
-        air_density_matrix_kg_m03 / DRY_AIR_GAS_CONSTANT_J_KG01_K01
-    )
-
-    ice_mixing_ratio_matrix_kg_m03 = (
-        interp_data_dict[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01] *
-        air_density_matrix_kg_m03
-    )
-
-    ice_mixing_ratio_matrix_kg_m03 = numpy.reshape(
-        ice_mixing_ratio_matrix_kg_m03,
-        (num_forecast_hours * num_sites, num_heights_new)
-    )
-    ice_water_path_matrix_kg_m02 = rrtm_io._water_content_to_layerwise_path(
-        water_content_matrix_kg_m03=ice_mixing_ratio_matrix_kg_m03,
-        heights_m_agl=new_heights_m_agl
-    )
-    ice_water_path_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
-        numpy.fliplr(ice_water_path_matrix_kg_m02), axis=1
-    ))
-    ice_water_path_matrix_kg_m02 = numpy.reshape(
-        ice_water_path_matrix_kg_m02,
-        (num_forecast_hours, num_sites, num_heights_new)
-    )
-    interp_data_dict[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01] = (
-        ice_water_path_matrix_kg_m02
+    interp_data_dict = _convert_ice_mixr_to_path(
+        orig_gfs_table_xarray=orig_gfs_table_xarray,
+        new_heights_m_agl=new_heights_m_agl,
+        interp_data_dict=interp_data_dict
     )
 
     print('Converting pressures from Pa to mb...')
@@ -370,47 +597,46 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         'Converting surface albedo to dummy upwelling and downwelling fluxes...'
     )
     albedo_matrix = (
-        PERCENT_TO_UNITLESS * orig_table_xarray[ALBEDO_KEY_ORIG_PERCENT].values
+        PERCENT_TO_UNITLESS *
+        orig_gfs_table_xarray[ALBEDO_KEY_ORIG_PERCENT].values
     )
     up_flux_matrix_w_m02 = albedo_matrix * DUMMY_DOWN_SURFACE_FLUX_W_M02
     down_flux_matrix_w_m02 = numpy.full(
         up_flux_matrix_w_m02.shape, DUMMY_DOWN_SURFACE_FLUX_W_M02
     )
 
+    # Create xarray table with interpolated data.
     for this_key_orig in interp_data_dict:
         if this_key_orig == PRESSURE_AT_EDGE_KEY_ORIG_PASCALS:
             these_dim = (
-                FORECAST_HOUR_DIMENSION, SITE_DIMENSION,
-                HEIGHT_AT_EDGE_DIMENSION
+                TIME_DIMENSION, SITE_DIMENSION, HEIGHT_AT_EDGE_DIMENSION
             )
         else:
-            these_dim = (
-                FORECAST_HOUR_DIMENSION, SITE_DIMENSION, HEIGHT_DIMENSION
-            )
+            these_dim = (TIME_DIMENSION, SITE_DIMENSION, HEIGHT_DIMENSION)
 
         this_key = ORIG_TO_NEW_KEY_DICT[this_key_orig]
         new_data_dict[this_key] = (these_dim, interp_data_dict[this_key_orig])
 
-    these_dim = (FORECAST_HOUR_DIMENSION, SITE_DIMENSION)
+    these_dim = (TIME_DIMENSION, SITE_DIMENSION)
     new_data_dict.update({
         UP_SURFACE_FLUX_KEY_W_M02: (these_dim, up_flux_matrix_w_m02),
         DOWN_SURFACE_FLUX_KEY_W_M02: (these_dim, down_flux_matrix_w_m02)
     })
 
-    new_table_xarray = xarray.Dataset(
+    new_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
     )
 
-    for this_key in new_table_xarray.variables:
+    for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:
             continue
 
         error_checking.assert_is_numpy_array_without_nan(
-            new_table_xarray[this_key].values
+            new_gfs_table_xarray[this_key].values
         )
 
     print('Writing data to: "{0:s}"...'.format(output_file_name))
-    new_table_xarray.to_netcdf(
+    new_gfs_table_xarray.to_netcdf(
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
     )
 

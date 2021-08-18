@@ -57,19 +57,19 @@ def read_profiles(netcdf_file_name=None):
     ))
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
-    o2_mixing_ratio_matrix_kg_kg01 = numpy.transpose(
+    o2_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
         dataset_object.variables['o2'][:] *
         MOLAR_MASS_O2_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    co2_mixing_ratio_matrix_kg_kg01 = numpy.transpose(
+    co2_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
         dataset_object.variables['co2'][:] *
         MOLAR_MASS_CO2_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    ch4_mixing_ratio_matrix_kg_kg01 = numpy.transpose(
+    ch4_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
         dataset_object.variables['ch4'][:] *
         MOLAR_MASS_CH4_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    n2o_mixing_ratio_matrix_kg_kg01 = numpy.transpose(
+    n2o_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
         dataset_object.variables['n2o'][:] *
         MOLAR_MASS_N2O_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
