@@ -11,16 +11,19 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import file_system_utils
 import error_checking
 
 TOLERANCE = 1e-6
 
-TIME_DIMENSION = 'time'
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+TIME_DIMENSION_ORIG = 'time'
 SITE_DIMENSION = 'site_index'
 GRID_ROW_DIMENSION = 'grid_yt'
 GRID_COLUMN_DIMENSION = 'grid_xt'
-FORECAST_HOUR_DIMENSION = 'forecast_hour'
+TIME_DIMENSION = 'valid_time_unix_sec'
 ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
 SURFACE_ALBEDO_KEY = 'albdo_ave'
@@ -116,11 +119,11 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
     print('Reading data from: "{0:s}"...'.format(surface_file_name))
     surface_table_xarray = xarray.open_dataset(surface_file_name)
 
-    assert len(orig_table_xarray.coords[TIME_DIMENSION].values) == 1
-    assert len(surface_table_xarray.coords[TIME_DIMENSION].values) == 1
+    assert len(orig_table_xarray.coords[TIME_DIMENSION_ORIG].values) == 1
+    assert len(surface_table_xarray.coords[TIME_DIMENSION_ORIG].values) == 1
     assert (
-        orig_table_xarray.coords[TIME_DIMENSION].values[0] ==
-        surface_table_xarray.coords[TIME_DIMENSION].values[0]
+        orig_table_xarray.coords[TIME_DIMENSION_ORIG].values[0] ==
+        surface_table_xarray.coords[TIME_DIMENSION_ORIG].values[0]
     )
     assert numpy.allclose(
         orig_table_xarray.coords[GRID_ROW_DIMENSION].values,
@@ -139,14 +142,18 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
     new_data_dict = dict()
 
     for this_key in orig_table_xarray.coords:
-        if this_key in ROWCOL_DIMENSIONS + [TIME_DIMENSION]:
+        if this_key in ROWCOL_DIMENSIONS + [TIME_DIMENSION_ORIG]:
             continue
 
         new_metadata_dict[this_key] = orig_table_xarray.coords[this_key].values
 
-    new_metadata_dict[FORECAST_HOUR_DIMENSION] = numpy.array([
-        _file_name_to_forecast_hour(atmosphere_file_name)
-    ], dtype=int)
+    valid_time_unix_sec = time_conversion.string_to_unix_sec(
+        str(orig_table_xarray.coords[TIME_DIMENSION_ORIG].values[0]),
+        TIME_FORMAT
+    )
+    new_metadata_dict[TIME_DIMENSION] = numpy.array(
+        [valid_time_unix_sec], dtype=int
+    )
 
     num_sites = len(site_rows)
     new_metadata_dict[SITE_DIMENSION] = numpy.linspace(
@@ -164,7 +171,7 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
             d for d in orig_dimensions if d not in ROWCOL_DIMENSIONS
         ]
         new_dimensions = [
-            FORECAST_HOUR_DIMENSION if d == TIME_DIMENSION else d
+            TIME_DIMENSION if d == TIME_DIMENSION_ORIG else d
             for d in new_dimensions
         ]
         new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
@@ -181,7 +188,7 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
         d for d in orig_dimensions if d not in ROWCOL_DIMENSIONS
     ]
     new_dimensions = [
-        FORECAST_HOUR_DIMENSION if d == TIME_DIMENSION else d
+        TIME_DIMENSION if d == TIME_DIMENSION_ORIG else d
         for d in new_dimensions
     ]
     new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
@@ -257,7 +264,7 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
         print('\n')
 
     subset_gfs_table_xarray = xarray.concat(
-        objs=all_tables_xarray, dim=FORECAST_HOUR_DIMENSION, data_vars='minimal'
+        objs=all_tables_xarray, dim=TIME_DIMENSION, data_vars='minimal'
     )
 
     print('Writing data to: "{0:s}"...'.format(output_file_name))
