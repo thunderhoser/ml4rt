@@ -180,13 +180,16 @@ def _interp_data_one_profile(
         -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     ))
 
+    log_offset = 1. + -1 * numpy.min(orig_pressures_pa)
+    assert not numpy.isnan(log_offset)
+
     interp_object = interp1d(
         x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
         kind='linear', bounds_error=False, assume_sorted=True,
         fill_value='extrapolate'
     )
-    interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = numpy.exp(
-        interp_object(new_heights_m_agl)
+    interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = (
+        numpy.exp(interp_object(new_heights_m_agl)) - log_offset
     )
 
     interp_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
