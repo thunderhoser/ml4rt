@@ -189,7 +189,9 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
-                this_prediction_dict[prediction_io.MODEL_FILE_KEY]
+                this_prediction_dict[prediction_io.MODEL_FILE_KEY],
+                normalization_file_name=
+                this_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
             )
 
     print(SEPARATOR_STRING)

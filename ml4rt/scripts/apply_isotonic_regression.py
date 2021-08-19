@@ -101,7 +101,9 @@ def _run(input_prediction_file_name, model_file_name,
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
-        isotonic_model_file_name=model_file_name
+        isotonic_model_file_name=model_file_name,
+        normalization_file_name=
+        prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
 

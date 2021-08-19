@@ -123,7 +123,9 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         heights_m_agl=high_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         high_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=high_bias_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=high_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        high_bias_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     low_bias_prediction_dict = prediction_io.subset_by_index(
@@ -150,7 +152,9 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         heights_m_agl=low_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         low_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=low_bias_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=low_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        low_bias_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     low_abs_error_prediction_dict = prediction_io.subset_by_index(
@@ -178,7 +182,9 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         example_id_strings=
         low_abs_error_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
-        low_abs_error_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        low_abs_error_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        low_abs_error_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     sort_indices = numpy.argsort(-1 * targets_w_m02)
@@ -209,7 +215,9 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         example_id_strings=
         large_net_flux_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
-        large_net_flux_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        large_net_flux_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        large_net_flux_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     sort_indices = numpy.argsort(targets_w_m02)
@@ -240,7 +248,9 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         example_id_strings=
         small_net_flux_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
-        small_net_flux_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        small_net_flux_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        small_net_flux_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
 

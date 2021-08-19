@@ -116,7 +116,9 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY]
+            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],
+            normalization_file_name=
+            this_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
         )
 
     print('\n')
@@ -153,7 +155,9 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY]
+            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],
+            normalization_file_name=
+            this_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
         )
 
     print('\n')
@@ -186,7 +190,9 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY]
+            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],
+            normalization_file_name=
+            this_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
         )
 
 

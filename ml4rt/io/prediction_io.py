@@ -22,6 +22,7 @@ EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
+NORMALIZATION_FILE_KEY = 'normalization_file_name'
 SCALAR_TARGETS_KEY = 'scalar_target_matrix'
 SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGETS_KEY = 'vector_target_matrix'
@@ -183,7 +184,8 @@ def file_name_to_metadata(prediction_file_name):
 def write_file(
         netcdf_file_name, scalar_target_matrix, vector_target_matrix,
         scalar_prediction_matrix, vector_prediction_matrix, heights_m_agl,
-        example_id_strings, model_file_name, isotonic_model_file_name=None):
+        example_id_strings, model_file_name, isotonic_model_file_name=None,
+        normalization_file_name=None):
     """Writes predictions to NetCDF file.
 
     E = number of examples
@@ -209,6 +211,10 @@ def write_file(
     :param isotonic_model_file_name: Path to file with trained isotonic-
         regression models (readable by `isotonic_regression.read_file`) used to
         make predictions.  If isotonic regression was not used, leave this as
+        None.
+    :param normalization_file_name: Path to file with normalization params
+        (readable by `example_io.read_file`).  If predictions were created with
+        the same normalization params as used for model-training, leave this as
         None.
     """
 
@@ -253,9 +259,14 @@ def write_file(
     example_utils.parse_example_ids(example_id_strings)
 
     error_checking.assert_is_string(model_file_name)
+
     if isotonic_model_file_name is None:
         isotonic_model_file_name = ''
+    if normalization_file_name is None:
+        normalization_file_name = ''
+
     error_checking.assert_is_string(isotonic_model_file_name)
+    error_checking.assert_is_string(normalization_file_name)
 
     # Write to NetCDF file.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
@@ -265,6 +276,7 @@ def write_file(
 
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
     dataset_object.setncattr(ISOTONIC_MODEL_FILE_KEY, isotonic_model_file_name)
+    dataset_object.setncattr(NORMALIZATION_FILE_KEY, normalization_file_name)
 
     num_examples = vector_target_matrix.shape[0]
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
@@ -355,6 +367,7 @@ def read_file(netcdf_file_name):
     prediction_dict['example_id_strings']: Same.
     prediction_dict['model_file_name']: Same.
     prediction_dict['isotonic_model_file_name']: Same.
+    prediction_dict['normalization_file_name']: Same.
     """
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
@@ -379,6 +392,16 @@ def read_file(netcdf_file_name):
 
     if prediction_dict[ISOTONIC_MODEL_FILE_KEY] == '':
         prediction_dict[ISOTONIC_MODEL_FILE_KEY] = None
+
+    if NORMALIZATION_FILE_KEY in prediction_dict:
+        prediction_dict[NORMALIZATION_FILE_KEY] = str(
+            getattr(dataset_object, NORMALIZATION_FILE_KEY)
+        )
+    else:
+        prediction_dict[NORMALIZATION_FILE_KEY] = ''
+
+    if prediction_dict[NORMALIZATION_FILE_KEY] == '':
+        prediction_dict[NORMALIZATION_FILE_KEY] = None
 
     if HEIGHTS_KEY in dataset_object.variables:
         prediction_dict[HEIGHTS_KEY] = dataset_object.variables[HEIGHTS_KEY][:]
@@ -547,6 +570,10 @@ def average_predictions(
         isotonic-regression models (readable by `isotonic_regression.read_file`)
         used to make predictions.  If isotonic regression was not used, this is
         None.
+    mean_prediction_dict['normalization_file_name']: Path to file with
+        normalization params (readable by `example_io.read_file`).  If
+        predictions were created with the same normalization params as used for
+        model-training, leave this as None.
     """
 
     error_checking.assert_is_boolean(use_pmm)
@@ -602,7 +629,8 @@ def average_predictions(
         VECTOR_PREDICTIONS_KEY: mean_vector_prediction_matrix,
         HEIGHTS_KEY: prediction_dict[HEIGHTS_KEY],
         MODEL_FILE_KEY: prediction_dict[MODEL_FILE_KEY],
-        ISOTONIC_MODEL_FILE_KEY: prediction_dict[ISOTONIC_MODEL_FILE_KEY]
+        ISOTONIC_MODEL_FILE_KEY: prediction_dict[ISOTONIC_MODEL_FILE_KEY],
+        NORMALIZATION_FILE_KEY: prediction_dict[NORMALIZATION_FILE_KEY]
     }
 
 
@@ -773,7 +801,10 @@ def concat_predictions(prediction_dicts):
     """
 
     prediction_dict = copy.deepcopy(prediction_dicts[0])
-    keys_to_match = [MODEL_FILE_KEY, ISOTONIC_MODEL_FILE_KEY, HEIGHTS_KEY]
+    keys_to_match = [
+        MODEL_FILE_KEY, ISOTONIC_MODEL_FILE_KEY, NORMALIZATION_FILE_KEY,
+        HEIGHTS_KEY
+    ]
 
     for i in range(1, len(prediction_dicts)):
         if not numpy.allclose(

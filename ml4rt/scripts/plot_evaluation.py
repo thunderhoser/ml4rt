@@ -1024,6 +1024,15 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
+    generator_option_dict[neural_net.HEIGHTS_KEY] = (
+        prediction_dicts[0][prediction_io.HEIGHTS_KEY]
+    )
+    if prediction_dicts[0][prediction_io.NORMALIZATION_FILE_KEY] is not None:
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY] = (
+            prediction_dicts[0][prediction_io.NORMALIZATION_FILE_KEY]
+        )
+    model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = generator_option_dict
+
     scalar_target_names = (
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     )

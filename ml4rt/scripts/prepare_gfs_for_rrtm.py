@@ -38,7 +38,6 @@ LATITUDE_KEY_ORIG_DEG_N = 'lat'
 LONGITUDE_KEY_ORIG_DEG_E = 'lon'
 DELTA_HEIGHT_KEY_ORIG_METRES = 'delz'
 DELTA_PRESSURE_KEY_ORIG_PASCALS = 'dpres'
-SURFACE_PRESSURE_KEY_ORIG_PASCALS = 'pressfc'
 
 CLOUD_FRACTION_KEY_ORIG = 'cld_amt'
 CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01 = 'clwmr'
@@ -169,13 +168,9 @@ def _interp_data_one_profile(
     i = time_index
     j = site_index
 
-    orig_pressure_diffs_pa = numpy.cumsum(numpy.flip(
+    orig_pressures_pa = numpy.flip(numpy.cumsum(
         orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
     ))
-    orig_pressures_pa = (
-        orig_gfs_table_xarray[SURFACE_PRESSURE_KEY_ORIG_PASCALS].values[i, j]
-        - orig_pressure_diffs_pa
-    )
     orig_heights_m_agl = numpy.cumsum(numpy.flip(
         -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     ))
@@ -220,10 +215,13 @@ def _interp_data_one_profile(
         log_offset = 1. + -1 * numpy.min(orig_values)
         assert not numpy.isnan(log_offset)
 
+        bottom_value = numpy.log(log_offset + orig_values[0])
+        top_value = numpy.log(log_offset + orig_values[1])
+
         interp_object = interp1d(
             x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
             kind='linear', bounds_error=False, assume_sorted=True,
-            fill_value=(orig_values[0], orig_values[-1])
+            fill_value=(bottom_value, top_value)
         )
         interp_data_dict[this_key][i, j, :] = (
             numpy.exp(interp_object(new_heights_m_agl)) - log_offset

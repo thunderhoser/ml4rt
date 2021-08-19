@@ -147,7 +147,9 @@ def _run(input_file_name, example_dir_name, for_ice, min_path_kg_m02,
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY]
+            model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],
+            normalization_file_name=
+            this_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
         )
 
 

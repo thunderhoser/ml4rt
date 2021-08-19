@@ -113,6 +113,11 @@ def _get_predictions_and_targets(
     :return: example_id_strings: 1-D list of example IDs.
     """
 
+    print('Reading normalization params from: "{0:s}"...'.format(
+        new_grid_norm_file_name
+    ))
+    new_grid_norm_example_dict = example_io.read_file(new_grid_norm_file_name)
+
     net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
     d = copy.deepcopy(model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY])
 
@@ -129,6 +134,11 @@ def _get_predictions_and_targets(
     print(SEPARATOR_STRING)
 
     d[neural_net.EXAMPLE_DIRECTORY_KEY] = new_grid_example_dir_name
+    d[neural_net.HEIGHTS_KEY] = (
+        new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
+    )
+    d[neural_net.NORMALIZATION_FILE_KEY] = new_grid_norm_file_name
+
     _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
         option_dict=d, for_inference=True,
         net_type_string=net_type_string, exclude_summit_greenland=True
@@ -165,11 +175,6 @@ def _get_predictions_and_targets(
     else:
         scalar_target_matrix = None
         scalar_prediction_matrix = None
-
-    print('Reading normalization params from: "{0:s}"...'.format(
-        new_grid_norm_file_name
-    ))
-    new_grid_norm_example_dict = example_io.read_file(new_grid_norm_file_name)
 
     new_grid_metadata_dict = copy.deepcopy(model_metadata_dict)
     d = new_grid_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
@@ -404,7 +409,7 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
         heights_m_agl=new_grid_target_example_dict[example_utils.HEIGHTS_KEY],
         example_id_strings=example_id_strings,
         model_file_name=model_file_name,
-        # normalization_file_name=new_grid_norm_file_name
+        normalization_file_name=new_grid_norm_file_name
     )
 
 
