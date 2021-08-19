@@ -176,6 +176,11 @@ def _get_predictions_and_targets(
     new_grid_vector_target_matrix = new_grid_target_array[0]
     orig_grid_vector_prediction_matrix = orig_prediction_array[0]
 
+    print(new_grid_vector_target_matrix)
+    print('\n\n')
+    print(orig_grid_vector_prediction_matrix)
+    print('\n\n\n\n\n\n')
+
     if len(new_grid_target_array) == 2:
         scalar_target_matrix = new_grid_target_array[1]
         scalar_prediction_matrix = orig_prediction_array[1]
