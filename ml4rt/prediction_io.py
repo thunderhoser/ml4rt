@@ -390,21 +390,21 @@ def read_file(netcdf_file_name):
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
 
-    if ISOTONIC_MODEL_FILE_KEY in prediction_dict:
+    try:
         prediction_dict[ISOTONIC_MODEL_FILE_KEY] = str(
             getattr(dataset_object, ISOTONIC_MODEL_FILE_KEY)
         )
-    else:
+    except:
         prediction_dict[ISOTONIC_MODEL_FILE_KEY] = ''
 
     if prediction_dict[ISOTONIC_MODEL_FILE_KEY] == '':
         prediction_dict[ISOTONIC_MODEL_FILE_KEY] = None
 
-    if NORMALIZATION_FILE_KEY in prediction_dict:
+    try:
         prediction_dict[NORMALIZATION_FILE_KEY] = str(
             getattr(dataset_object, NORMALIZATION_FILE_KEY)
         )
-    else:
+    except:
         prediction_dict[NORMALIZATION_FILE_KEY] = ''
 
     if prediction_dict[NORMALIZATION_FILE_KEY] == '':
