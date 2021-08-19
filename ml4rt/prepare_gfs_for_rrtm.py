@@ -479,8 +479,8 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     new_data_dict = {
         SITE_NAME_KEY: ((SITE_DIMENSION,), site_names[:10]),
-        LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n),
-        LONGITUDE_KEY_DEG_E: ((SITE_DIMENSION,), longitudes_deg_e),
+        LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n[:10]),
+        LONGITUDE_KEY_DEG_E: ((SITE_DIMENSION,), longitudes_deg_e[:10]),
         FORECAST_HOUR_KEY: ((TIME_DIMENSION,), dummy_forecast_hours),
         HEIGHT_KEY_M_AGL: ((HEIGHT_DIMENSION,), new_heights_m_agl)
     }
