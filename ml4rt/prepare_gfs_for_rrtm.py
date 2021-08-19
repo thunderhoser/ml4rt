@@ -636,8 +636,8 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     these_dim = (TIME_DIMENSION, SITE_DIMENSION)
     new_data_dict.update({
-        UP_SURFACE_FLUX_KEY_W_M02: (these_dim, up_flux_matrix_w_m02),
-        DOWN_SURFACE_FLUX_KEY_W_M02: (these_dim, down_flux_matrix_w_m02)
+        UP_SURFACE_FLUX_KEY_W_M02: (these_dim, up_flux_matrix_w_m02[:, :10]),
+        DOWN_SURFACE_FLUX_KEY_W_M02: (these_dim, down_flux_matrix_w_m02[:, :10])
     })
 
     new_gfs_table_xarray = xarray.Dataset(
