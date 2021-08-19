@@ -225,7 +225,8 @@ def _interp_data_one_profile(
 
         if this_key == TEMPERATURE_KEY_ORIG_KELVINS:
             print(orig_values)
-            print((orig_values[0], orig_values[-1]))
+            print(orig_heights_m_agl)
+            print(new_heights_m_agl)
 
         interp_object = interp1d(
             x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
