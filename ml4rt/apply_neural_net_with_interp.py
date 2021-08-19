@@ -144,6 +144,8 @@ def _get_predictions_and_targets(
     d[neural_net.HEIGHTS_KEY] = (
         new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
     )
+    d[neural_net.NORMALIZATION_FILE_KEY] = new_grid_norm_file_name
+
     _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
         option_dict=d, for_inference=True,
         net_type_string=net_type_string, exclude_summit_greenland=True
