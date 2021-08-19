@@ -223,24 +223,17 @@ def _interp_data_one_profile(
         log_offset = 1. + -1 * numpy.min(orig_values)
         assert not numpy.isnan(log_offset)
 
-        if this_key == TEMPERATURE_KEY_ORIG_KELVINS:
-            print(orig_values)
-            print(orig_heights_m_agl)
-            print(new_heights_m_agl)
+        bottom_value = numpy.log(log_offset + orig_values[0])
+        top_value = numpy.log(log_offset + orig_values[1])
 
         interp_object = interp1d(
             x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
             kind='linear', bounds_error=False, assume_sorted=True,
-            fill_value=(orig_values[0], orig_values[-1])
+            fill_value=(bottom_value, top_value)
         )
         interp_data_dict[this_key][i, j, :] = (
             numpy.exp(interp_object(new_heights_m_agl)) - log_offset
         )
-
-        if this_key == TEMPERATURE_KEY_ORIG_KELVINS:
-            print('\n')
-            print(interp_data_dict[this_key][i, j, :])
-            print('\n\n\n-------------\n\n\n')
 
     return interp_data_dict
 
@@ -649,12 +642,12 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         data_vars=new_data_dict, coords=new_metadata_dict
     )
 
-    for this_key in new_gfs_table_xarray.variables:
-        if this_key == SITE_NAME_KEY:
-            continue
-
-        print(this_key)
-        print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
+    # for this_key in new_gfs_table_xarray.variables:
+    #     if this_key == SITE_NAME_KEY:
+    #         continue
+    #
+    #     print(this_key)
+    #     print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
 
     for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:
