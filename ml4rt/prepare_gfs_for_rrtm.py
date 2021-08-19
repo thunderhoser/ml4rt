@@ -188,13 +188,16 @@ def _interp_data_one_profile(
         -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     ))
 
+    log_offset = 1. + -1 * numpy.min(orig_pressures_pa)
+    assert not numpy.isnan(log_offset)
+
     interp_object = interp1d(
         x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
         kind='linear', bounds_error=False, assume_sorted=True,
         fill_value='extrapolate'
     )
-    interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = numpy.exp(
-        interp_object(new_heights_m_agl)
+    interp_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = (
+        numpy.exp(interp_object(new_heights_m_agl)) - log_offset
     )
 
     interp_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
@@ -260,6 +263,7 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
     )
     num_times = len(valid_times_unix_sec)
     num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_sites = min([num_sites, 10])
     num_heights_new = len(new_heights_m_agl)
 
     latitudes_deg_n = orig_gfs_table_xarray[LATITUDE_KEY_ORIG_DEG_N].values
@@ -357,6 +361,7 @@ def _convert_ice_mixr_to_path(orig_gfs_table_xarray, new_heights_m_agl,
 
     num_times = len(orig_gfs_table_xarray.coords[TIME_DIMENSION_ORIG].values)
     num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_sites = min([num_sites, 10])
     num_heights_new = len(new_heights_m_agl)
 
     vapour_pressure_matrix_pa = moisture_conv.mixing_ratio_to_vapour_pressure(
@@ -441,6 +446,7 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     )
     num_times = len(valid_times_unix_sec)
     num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_sites = min([num_sites, 10])
     num_heights_new = len(new_heights_m_agl)
 
     new_metadata_dict = {
@@ -472,7 +478,7 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     ]
 
     new_data_dict = {
-        SITE_NAME_KEY: ((SITE_DIMENSION,), site_names),
+        SITE_NAME_KEY: ((SITE_DIMENSION,), site_names[:10]),
         LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n),
         LONGITUDE_KEY_DEG_E: ((SITE_DIMENSION,), longitudes_deg_e),
         FORECAST_HOUR_KEY: ((TIME_DIMENSION,), dummy_forecast_hours),
@@ -637,6 +643,13 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     new_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
     )
+
+    for this_key in new_gfs_table_xarray.variables:
+        if this_key == SITE_NAME_KEY:
+            continue
+
+        print(this_key)
+        print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
 
     for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:
