@@ -416,7 +416,7 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
         heights_m_agl=new_grid_target_example_dict[example_utils.HEIGHTS_KEY],
         example_id_strings=example_id_strings,
         model_file_name=model_file_name,
-        # normalization_file_name=new_grid_norm_file_name
+        normalization_file_name=new_grid_norm_file_name
     )
 
 

@@ -1074,8 +1074,13 @@ def get_scores_all_variables(
     }
 
     normalization_file_name = (
-        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+        prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
+    if normalization_file_name is None:
+        normalization_file_name = (
+            generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+        )
+
     print((
         'Reading training examples (for climatology) from: "{0:s}"...'
     ).format(

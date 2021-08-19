@@ -518,8 +518,8 @@ def _plot_attributes_diagram(
 
         if len(legend_handles) > 1:
             axes_object.legend(
-                legend_handles, legend_strings, loc='center right',
-                bbox_to_anchor=(1, 0.7), fancybox=True, shadow=False,
+                legend_handles, legend_strings, loc='center left',
+                bbox_to_anchor=(0, 0.35), fancybox=True, shadow=False,
                 facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
             )
 
@@ -591,11 +591,6 @@ def _plot_score_profile(
             )
         else:
             this_score_matrix = t[score_key].values[:, k, :]
-
-        print('\n\n\n\n\nSHAPE\n\n\n\n\n')
-        print(score_key)
-        print(t[score_key].values.shape)
-        print(this_score_matrix.shape)
 
         heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
 
@@ -1035,6 +1030,15 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    generator_option_dict[neural_net.HEIGHTS_KEY] = (
+        prediction_dicts[0][prediction_io.HEIGHTS_KEY]
+    )
+    if prediction_dicts[0][prediction_io.NORMALIZATION_FILE_KEY] is not None:
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY] = (
+            prediction_dicts[0][prediction_io.NORMALIZATION_FILE_KEY]
+        )
+    model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = generator_option_dict
 
     scalar_target_names = (
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]

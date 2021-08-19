@@ -124,9 +124,14 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         )
 
     if scale_by_climo:
-        normalization_file_name = (
-            generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
-        )
+        if prediction_dict[prediction_io.NORMALIZATION_FILE_KEY] is None:
+            normalization_file_name = (
+                generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+            )
+        else:
+            normalization_file_name = (
+                prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
+            )
 
         print((
             'Reading training examples (for climatology) from: "{0:s}"...'
@@ -139,9 +144,14 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
             example_dict=training_example_dict,
             field_names=[example_utils.SHORTWAVE_HEATING_RATE_NAME]
         )
+
+        if prediction_dict[prediction_io.NORMALIZATION_FILE_KEY] is None:
+            heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+        else:
+            heights_m_agl = training_example_dict[example_utils.HEIGHTS_KEY]
+
         training_example_dict = example_utils.subset_by_height(
-            example_dict=training_example_dict,
-            heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
+            example_dict=training_example_dict, heights_m_agl=heights_m_agl
         )
 
         dummy_example_dict = {
@@ -150,8 +160,7 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
             example_utils.SCALAR_TARGET_NAMES_KEY: [],
             example_utils.VECTOR_TARGET_NAMES_KEY:
                 [example_utils.SHORTWAVE_HEATING_RATE_NAME],
-            example_utils.HEIGHTS_KEY:
-                generator_option_dict[neural_net.HEIGHTS_KEY]
+            example_utils.HEIGHTS_KEY: heights_m_agl
         }
 
         mean_training_example_dict = normalization.create_mean_example(
@@ -199,7 +208,9 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         heights_m_agl=high_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         high_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=high_bias_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=high_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        high_bias_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     low_bias_prediction_dict = prediction_io.subset_by_index(
@@ -226,7 +237,9 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         heights_m_agl=low_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         low_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=low_bias_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=low_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        low_bias_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     low_abs_error_prediction_dict = prediction_io.subset_by_index(
@@ -254,7 +267,9 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         example_id_strings=
         low_abs_error_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
-        low_abs_error_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        low_abs_error_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        low_abs_error_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     if scale_by_climo:
@@ -292,7 +307,9 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         heights_m_agl=large_hr_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         large_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=large_hr_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=large_hr_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        large_hr_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
     if not average_over_height:
@@ -326,7 +343,9 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         heights_m_agl=small_hr_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         small_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-        model_file_name=small_hr_prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name=small_hr_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        normalization_file_name=
+        small_hr_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
 
 
