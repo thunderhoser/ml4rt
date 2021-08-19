@@ -223,6 +223,9 @@ def _interp_data_one_profile(
         log_offset = 1. + -1 * numpy.min(orig_values)
         assert not numpy.isnan(log_offset)
 
+        if this_key == TEMPERATURE_KEY_ORIG_KELVINS:
+            print(orig_values)
+
         interp_object = interp1d(
             x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
             kind='linear', bounds_error=False, assume_sorted=True,
