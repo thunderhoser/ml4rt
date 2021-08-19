@@ -235,6 +235,11 @@ def _interp_data_one_profile(
             numpy.exp(interp_object(new_heights_m_agl)) - log_offset
         )
 
+        if this_key == TEMPERATURE_KEY_ORIG_KELVINS:
+            print('\n')
+            print(interp_data_dict[this_key][i, j, :])
+            print('\n\n\n-------------\n\n\n')
+
     return interp_data_dict
 
 
