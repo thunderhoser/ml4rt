@@ -637,6 +637,13 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         if this_key == SITE_NAME_KEY:
             continue
 
+        print(this_key)
+        print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
+
+    for this_key in new_gfs_table_xarray.variables:
+        if this_key == SITE_NAME_KEY:
+            continue
+
         error_checking.assert_is_numpy_array_without_nan(
             new_gfs_table_xarray[this_key].values
         )
