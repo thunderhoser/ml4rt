@@ -46,7 +46,6 @@ LATITUDE_KEY_ORIG_DEG_N = 'lat'
 LONGITUDE_KEY_ORIG_DEG_E = 'lon'
 DELTA_HEIGHT_KEY_ORIG_METRES = 'delz'
 DELTA_PRESSURE_KEY_ORIG_PASCALS = 'dpres'
-SURFACE_PRESSURE_KEY_ORIG_PASCALS = 'pressfc'
 
 CLOUD_FRACTION_KEY_ORIG = 'cld_amt'
 CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01 = 'clwmr'
@@ -177,13 +176,9 @@ def _interp_data_one_profile(
     i = time_index
     j = site_index
 
-    orig_pressure_diffs_pa = numpy.cumsum(numpy.flip(
+    orig_pressures_pa = numpy.flip(numpy.cumsum(
         orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
     ))
-    orig_pressures_pa = (
-        orig_gfs_table_xarray[SURFACE_PRESSURE_KEY_ORIG_PASCALS].values[i, j]
-        - orig_pressure_diffs_pa
-    )
     orig_heights_m_agl = numpy.cumsum(numpy.flip(
         -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     ))
@@ -263,6 +258,7 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
     )
     num_times = len(valid_times_unix_sec)
     num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_sites = min([num_sites, 10])
     num_heights_new = len(new_heights_m_agl)
 
     latitudes_deg_n = orig_gfs_table_xarray[LATITUDE_KEY_ORIG_DEG_N].values
@@ -360,6 +356,7 @@ def _convert_ice_mixr_to_path(orig_gfs_table_xarray, new_heights_m_agl,
 
     num_times = len(orig_gfs_table_xarray.coords[TIME_DIMENSION_ORIG].values)
     num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_sites = min([num_sites, 10])
     num_heights_new = len(new_heights_m_agl)
 
     vapour_pressure_matrix_pa = moisture_conv.mixing_ratio_to_vapour_pressure(
@@ -444,6 +441,7 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     )
     num_times = len(valid_times_unix_sec)
     num_sites = len(orig_gfs_table_xarray.coords[SITE_DIMENSION_ORIG].values)
+    num_sites = min([num_sites, 10])
     num_heights_new = len(new_heights_m_agl)
 
     new_metadata_dict = {
@@ -475,9 +473,9 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     ]
 
     new_data_dict = {
-        SITE_NAME_KEY: ((SITE_DIMENSION,), site_names),
-        LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n),
-        LONGITUDE_KEY_DEG_E: ((SITE_DIMENSION,), longitudes_deg_e),
+        SITE_NAME_KEY: ((SITE_DIMENSION,), site_names[:10]),
+        LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n[:10]),
+        LONGITUDE_KEY_DEG_E: ((SITE_DIMENSION,), longitudes_deg_e[:10]),
         FORECAST_HOUR_KEY: ((TIME_DIMENSION,), dummy_forecast_hours),
         HEIGHT_KEY_M_AGL: ((HEIGHT_DIMENSION,), new_heights_m_agl)
     }
@@ -633,8 +631,8 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     these_dim = (TIME_DIMENSION, SITE_DIMENSION)
     new_data_dict.update({
-        UP_SURFACE_FLUX_KEY_W_M02: (these_dim, up_flux_matrix_w_m02),
-        DOWN_SURFACE_FLUX_KEY_W_M02: (these_dim, down_flux_matrix_w_m02)
+        UP_SURFACE_FLUX_KEY_W_M02: (these_dim, up_flux_matrix_w_m02[:, :10]),
+        DOWN_SURFACE_FLUX_KEY_W_M02: (these_dim, down_flux_matrix_w_m02[:, :10])
     })
 
     new_gfs_table_xarray = xarray.Dataset(
