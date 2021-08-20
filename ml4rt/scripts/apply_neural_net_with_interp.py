@@ -17,6 +17,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 5000
+EXAMPLE_MATCHING_TIME_SEC = 180
 
 # TODO(thunderhoser): Get rid of these HACKS.
 ZERO_HEATING_HEIGHT_M_AGL = 49999.
@@ -145,11 +146,14 @@ def _get_predictions_and_targets(
     )
     print(SEPARATOR_STRING)
 
-    desired_indices = example_utils.find_examples(
+    desired_indices = example_utils.find_examples_with_time_tolerance(
         all_id_strings=example_id_strings,
-        desired_id_strings=new_grid_id_strings, allow_missing=True
+        desired_id_strings=new_grid_id_strings,
+        time_tolerance_sec=EXAMPLE_MATCHING_TIME_SEC,
+        allow_missing=True, verbose=True
     )
     del new_grid_id_strings
+    print(SEPARATOR_STRING)
 
     these_indices = numpy.where(desired_indices >= 0)[0]
     desired_indices = desired_indices[these_indices]

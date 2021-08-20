@@ -1648,6 +1648,166 @@ def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
     return example_dict, good_indices
 
 
+def find_examples_with_time_tolerance(
+        all_id_strings, desired_id_strings, time_tolerance_sec,
+        allow_missing=False, verbose=True):
+    """Finds examples with desired IDs, but allowing for slight diffs in time.
+
+    E = number of desired examples
+
+    :param all_id_strings: See doc for `find_examples`.
+    :param desired_id_strings: Same.
+    :param time_tolerance_sec: Tolerance (seconds).
+    :param allow_missing: See doc for `find_examples`.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :return: desired_indices: See doc for `find_examples`.
+    :raises: ValueError: if either list of IDs has non-unique entries.
+    :raises: ValueError: if `allow_missing == False` and any desired ID is
+        missing.
+   """
+
+    # Check input args.
+    error_checking.assert_is_string_list(all_id_strings)
+    error_checking.assert_is_string_list(desired_id_strings)
+    error_checking.assert_is_integer(time_tolerance_sec)
+    error_checking.assert_is_greater(time_tolerance_sec, 0)
+    error_checking.assert_is_boolean(allow_missing)
+    error_checking.assert_is_boolean(verbose)
+
+    all_id_strings_numpy = numpy.array(all_id_strings)
+    desired_id_strings_numpy = numpy.array(desired_id_strings)
+
+    these_unique_strings, these_counts = numpy.unique(
+        all_id_strings_numpy, return_counts=True
+    )
+    if numpy.any(these_counts > 1):
+        these_indices = numpy.where(these_counts > 1)[0]
+
+        error_string = (
+            '\nall_id_strings contains {0:d} repeated entries, listed below:'
+            '\n{1:s}'
+        ).format(
+            len(these_indices), str(these_unique_strings[these_indices])
+        )
+        raise ValueError(error_string)
+
+    these_unique_strings, these_counts = numpy.unique(
+        desired_id_strings_numpy, return_counts=True
+    )
+    if numpy.any(these_counts > 1):
+        these_indices = numpy.where(these_counts > 1)[0]
+
+        error_string = (
+            '\ndesired_id_strings contains {0:d} repeated entries, listed '
+            'below:\n{1:s}'
+        ).format(
+            len(these_indices), str(these_unique_strings[these_indices])
+        )
+        raise ValueError(error_string)
+
+    # Do actual stuff.
+    all_metadata_dict = parse_example_ids(all_id_strings)
+    all_times_unix_sec = all_metadata_dict[VALID_TIMES_KEY]
+    all_id_strings_no_time = [
+        'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad=1.000000_' \
+        'time=0000000000_atmo={2:1d}_albedo={3:.6f}_' \
+        'temp-10m-kelvins={4:010.6f}'.format(
+            lat, long, f, alpha, t10
+        )
+        for lat, long, f, alpha, t10 in
+        zip(
+            all_metadata_dict[LATITUDES_KEY],
+            all_metadata_dict[LONGITUDES_KEY],
+            all_metadata_dict[STANDARD_ATMO_FLAGS_KEY],
+            all_metadata_dict[ALBEDOS_KEY],
+            all_metadata_dict[TEMPERATURES_10M_KEY]
+        )
+    ]
+    all_id_strings_no_time_numpy = numpy.array(all_id_strings_no_time)
+
+    desired_metadata_dict = parse_example_ids(desired_id_strings)
+    desired_times_unix_sec = desired_metadata_dict[VALID_TIMES_KEY]
+    desired_id_strings_no_time = [
+        'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad=1.000000_' \
+        'time=0000000000_atmo={2:1d}_albedo={3:.6f}_' \
+        'temp-10m-kelvins={4:010.6f}'.format(
+            lat, long, f, alpha, t10
+        )
+        for lat, long, f, alpha, t10 in
+        zip(
+            desired_metadata_dict[LATITUDES_KEY],
+            desired_metadata_dict[LONGITUDES_KEY],
+            desired_metadata_dict[STANDARD_ATMO_FLAGS_KEY],
+            desired_metadata_dict[ALBEDOS_KEY],
+            desired_metadata_dict[TEMPERATURES_10M_KEY]
+        )
+    ]
+    desired_id_strings_no_time_numpy = numpy.array(desired_id_strings_no_time)
+
+    num_desired_examples = len(desired_id_strings)
+    desired_indices = numpy.full(num_desired_examples, -1, dtype=int)
+
+    for i in range(num_desired_examples):
+        if verbose and numpy.mod(i, 100) == 0:
+            print((
+                'Have looked for {0:d} of {1:d} examples with time tolerance '
+                '= {2:d} s...'
+            ).format(
+                i, num_desired_examples, time_tolerance_sec
+            ))
+
+        these_time_diffs_sec = numpy.absolute(
+            all_times_unix_sec - desired_times_unix_sec[i]
+        )
+        these_indices = numpy.where(
+            these_time_diffs_sec <= time_tolerance_sec
+        )[0]
+
+        if len(these_indices) == 0:
+            continue
+
+        these_subindices = numpy.where(
+            all_id_strings_no_time_numpy[these_indices] ==
+            desired_id_strings_no_time[i]
+        )[0]
+
+        if len(these_subindices) == 0:
+            continue
+
+        assert len(these_subindices) == 1
+        desired_indices[i] = these_indices[these_subindices[0]]
+
+    if verbose:
+        print((
+            'Have looked for all {0:d} examples with time tolerance = {1:d} s!'
+        ).format(
+            num_desired_examples, time_tolerance_sec
+        ))
+
+    if allow_missing:
+        return desired_indices
+
+    if numpy.array_equal(
+            all_id_strings_no_time_numpy[desired_indices],
+            desired_id_strings_no_time_numpy
+    ):
+        return desired_indices
+
+    missing_flags = (
+        all_id_strings_no_time_numpy[desired_indices] !=
+        desired_id_strings_no_time_numpy
+    )
+
+    error_string = (
+        '{0:d} of {1:d} desired IDs (listed below) are missing:\n{2:s}'
+    ).format(
+        numpy.sum(missing_flags), len(desired_id_strings),
+        str(desired_id_strings_numpy[missing_flags])
+    )
+
+    raise ValueError(error_string)
+
+
 def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
     """Finds examples with desired IDs.
 
@@ -1705,9 +1865,9 @@ def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
         side='left'
     ).astype(int)
 
-    desired_indices = sort_indices[desired_indices]
     desired_indices = numpy.maximum(desired_indices, 0)
     desired_indices = numpy.minimum(desired_indices, len(all_id_strings) - 1)
+    desired_indices = sort_indices[desired_indices]
 
     if allow_missing:
         bad_indices = numpy.where(

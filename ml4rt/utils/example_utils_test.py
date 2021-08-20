@@ -627,12 +627,70 @@ FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
 }
 
 # The following constants are used to test find_examples.
-ALL_ID_STRINGS = ['south_boulder', 'bear', 'green', 'flagstaff', 'sanitas']
-DESIRED_ID_STRINGS_0MISSING = ['green', 'bear']
+THESE_LATITUDES_DEG_N = numpy.array([40, 50, 60, 70, 80, 85, 90], dtype=float)
+THESE_LONGITUDES_DEG_E = numpy.array(
+    [200, 210, 220, 230, 240, 250, 260], dtype=float
+)
+THESE_ZENITH_ANGLES_RAD = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+THESE_TIMES_UNIX_SEC = numpy.array(
+    [0, 1000, 2000, 3000, 4000, 5000, 6000], dtype=int
+)
+THESE_STANDARD_ATMO_FLAGS = numpy.array([1, 1, 2, 2, 3, 3, 4], dtype=int)
+THESE_ALBEDOS = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+THESE_TEMPS_KELVINS = numpy.array(
+    [270, 260, 250, 240, 230, 220, 210], dtype=float
+)
+
+THESE_ID_STRINGS = [
+    'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_' \
+    'time={3:010d}_atmo={4:1d}_albedo={5:.6f}_' \
+    'temp-10m-kelvins={6:010.6f}'.format(
+        lat, long, theta, t, f, alpha, t10
+    )
+    for lat, long, theta, t, f, alpha, t10 in
+    zip(
+        THESE_LATITUDES_DEG_N, THESE_LONGITUDES_DEG_E, THESE_ZENITH_ANGLES_RAD,
+        THESE_TIMES_UNIX_SEC, THESE_STANDARD_ATMO_FLAGS, THESE_ALBEDOS,
+        THESE_TEMPS_KELVINS
+    )
+]
+
+ALL_ID_STRINGS = THESE_ID_STRINGS[:5]
+DESIRED_ID_STRINGS_0MISSING = [THESE_ID_STRINGS[2], THESE_ID_STRINGS[1]]
 RELEVANT_INDICES_0MISSING = numpy.array([2, 1], dtype=int)
 
-DESIRED_ID_STRINGS_2MISSING = ['green', 'paiute', 'bear', 'audubon']
+DESIRED_ID_STRINGS_2MISSING = [
+    THESE_ID_STRINGS[2], THESE_ID_STRINGS[5], THESE_ID_STRINGS[1],
+    THESE_ID_STRINGS[6]
+]
 RELEVANT_INDICES_2MISSING = numpy.array([2, -1, 1, -1], dtype=int)
+
+NEW_TIMES_UNIX_SEC = numpy.array(
+    [50, 1200, 2100, 3333, 3999, 5250, 5911], dtype=int
+)
+NEW_ID_STRINGS = [
+    'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad={2:08.6f}_' \
+    'time={3:010d}_atmo={4:1d}_albedo={5:.6f}_' \
+    'temp-10m-kelvins={6:010.6f}'.format(
+        lat, long, theta, t, f, alpha, t10
+    )
+    for lat, long, theta, t, f, alpha, t10 in
+    zip(
+        THESE_LATITUDES_DEG_N, THESE_LONGITUDES_DEG_E, THESE_ZENITH_ANGLES_RAD,
+        NEW_TIMES_UNIX_SEC, THESE_STANDARD_ATMO_FLAGS, THESE_ALBEDOS,
+        THESE_TEMPS_KELVINS
+    )
+]
+
+TIME_TOLERANCE_SEC = 180
+DESIRED_ID_STRINGS_TIME_TOL_0MISSING = [NEW_ID_STRINGS[4], NEW_ID_STRINGS[2]]
+RELEVANT_INDICES_TIME_TOL_0MISSING = numpy.array([4, 2], dtype=int)
+
+DESIRED_ID_STRINGS_TIME_TOL_3MISSING = [
+    NEW_ID_STRINGS[6], NEW_ID_STRINGS[4], NEW_ID_STRINGS[1], NEW_ID_STRINGS[0],
+    NEW_ID_STRINGS[3]
+]
+RELEVANT_INDICES_TIME_TOL_3MISSING = numpy.array([-1, 4, -1, 0, -1], dtype=int)
 
 # The following constants are used to test subset_by_index.
 FIRST_EXAMPLE_DICT_SELECT_INDICES = {
@@ -1344,6 +1402,49 @@ class ExampleUtilsTests(unittest.TestCase):
                 all_id_strings=ALL_ID_STRINGS,
                 desired_id_strings=DESIRED_ID_STRINGS_2MISSING,
                 allow_missing=False
+            )
+
+    def test_find_examples_with_time_tolerance_0missing(self):
+        """Ensures correct output from find_examples_with_time_tolerance.
+
+        In this case, no desired examples are missing.
+        """
+
+        these_indices = example_utils.find_examples_with_time_tolerance(
+            all_id_strings=ALL_ID_STRINGS,
+            desired_id_strings=DESIRED_ID_STRINGS_TIME_TOL_0MISSING,
+            time_tolerance_sec=TIME_TOLERANCE_SEC, allow_missing=False
+        )
+        self.assertTrue(numpy.array_equal(
+            these_indices, RELEVANT_INDICES_TIME_TOL_0MISSING
+        ))
+
+    def test_find_examples_with_time_tolerance_3missing_allowed(self):
+        """Ensures correct output from find_examples_with_time_tolerance.
+
+        In this case, 3 desired examples are missing but this is allowed.
+        """
+
+        these_indices = example_utils.find_examples_with_time_tolerance(
+            all_id_strings=ALL_ID_STRINGS,
+            desired_id_strings=DESIRED_ID_STRINGS_TIME_TOL_3MISSING,
+            time_tolerance_sec=TIME_TOLERANCE_SEC, allow_missing=True
+        )
+        self.assertTrue(numpy.array_equal(
+            these_indices, RELEVANT_INDICES_TIME_TOL_3MISSING
+        ))
+
+    def test_find_examples_with_time_tolerance_3missing_disallowed(self):
+        """Ensures correct output from find_examples_with_time_tolerance.
+
+        In this case, 3 desired examples are missing and this is *not* allowed.
+        """
+
+        with self.assertRaises(ValueError):
+            example_utils.find_examples_with_time_tolerance(
+                all_id_strings=ALL_ID_STRINGS,
+                desired_id_strings=DESIRED_ID_STRINGS_TIME_TOL_3MISSING,
+                time_tolerance_sec=TIME_TOLERANCE_SEC, allow_missing=False
             )
 
     def test_subset_by_index(self):
