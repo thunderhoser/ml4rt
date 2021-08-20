@@ -12,6 +12,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
+import longitude_conversion as lng_conversion
 import example_io
 import prediction_io
 import example_utils
@@ -24,6 +25,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 5000
+EXAMPLE_MATCHING_TIME_SEC = 180
 
 # TODO(thunderhoser): Get rid of these HACKS.
 ZERO_HEATING_HEIGHT_M_AGL = 49999.
@@ -152,11 +154,66 @@ def _get_predictions_and_targets(
     )
     print(SEPARATOR_STRING)
 
-    desired_indices = example_utils.find_examples(
-        all_id_strings=example_id_strings,
-        desired_id_strings=new_grid_id_strings, allow_missing=True
+    new_grid_metadata_dict = example_utils.parse_example_ids(
+        new_grid_id_strings
+    )
+    new_grid_metadata_dict[example_utils.LONGITUDES_KEY] = (
+        lng_conversion.convert_lng_positive_in_west(
+            new_grid_metadata_dict[example_utils.LONGITUDES_KEY]
+        )
+    )
+    new_grid_id_strings = [
+        'lat={0:07.4f}_long={1:08.4f}_zenith-angle-rad={2:.4f}_' \
+        'time={3:010d}_atmo={4:1d}_albedo={5:.4f}_' \
+        'temp-10m-kelvins={6:08.4f}'.format(
+            lat, long, theta, t, f, alpha, t10
+        )
+        for lat, long, theta, t, f, alpha, t10 in
+        zip(
+            new_grid_metadata_dict[example_utils.LATITUDES_KEY],
+            new_grid_metadata_dict[example_utils.LONGITUDES_KEY],
+            new_grid_metadata_dict[example_utils.ZENITH_ANGLES_KEY],
+            new_grid_metadata_dict[example_utils.VALID_TIMES_KEY],
+            new_grid_metadata_dict[example_utils.STANDARD_ATMO_FLAGS_KEY],
+            new_grid_metadata_dict[example_utils.ALBEDOS_KEY],
+            new_grid_metadata_dict[example_utils.TEMPERATURES_10M_KEY]
+        )
+    ]
+
+    orig_grid_metadata_dict = example_utils.parse_example_ids(
+        example_id_strings
+    )
+    orig_grid_metadata_dict[example_utils.LONGITUDES_KEY] = (
+        lng_conversion.convert_lng_positive_in_west(
+            orig_grid_metadata_dict[example_utils.LONGITUDES_KEY]
+        )
+    )
+    orig_grid_id_strings = [
+        'lat={0:07.4f}_long={1:08.4f}_zenith-angle-rad={2:.4f}_' \
+        'time={3:010d}_atmo={4:1d}_albedo={5:.4f}_' \
+        'temp-10m-kelvins={6:08.4f}'.format(
+            lat, long, theta, t, f, alpha, t10
+        )
+        for lat, long, theta, t, f, alpha, t10 in
+        zip(
+            orig_grid_metadata_dict[example_utils.LATITUDES_KEY],
+            orig_grid_metadata_dict[example_utils.LONGITUDES_KEY],
+            orig_grid_metadata_dict[example_utils.ZENITH_ANGLES_KEY],
+            orig_grid_metadata_dict[example_utils.VALID_TIMES_KEY],
+            orig_grid_metadata_dict[example_utils.STANDARD_ATMO_FLAGS_KEY],
+            orig_grid_metadata_dict[example_utils.ALBEDOS_KEY],
+            orig_grid_metadata_dict[example_utils.TEMPERATURES_10M_KEY]
+        )
+    ]
+
+    desired_indices = example_utils.find_examples_with_time_tolerance(
+        all_id_strings=orig_grid_id_strings,
+        desired_id_strings=new_grid_id_strings,
+        time_tolerance_sec=EXAMPLE_MATCHING_TIME_SEC,
+        allow_missing=True, verbose=True
     )
     del new_grid_id_strings
+    print(SEPARATOR_STRING)
 
     these_indices = numpy.where(desired_indices >= 0)[0]
     desired_indices = desired_indices[these_indices]
@@ -175,11 +232,6 @@ def _get_predictions_and_targets(
 
     new_grid_vector_target_matrix = new_grid_target_array[0]
     orig_grid_vector_prediction_matrix = orig_prediction_array[0]
-
-    print(new_grid_vector_target_matrix)
-    print('\n\n')
-    print(orig_grid_vector_prediction_matrix)
-    print('\n\n\n\n\n\n')
 
     if len(new_grid_target_array) == 2:
         scalar_target_matrix = new_grid_target_array[1]
