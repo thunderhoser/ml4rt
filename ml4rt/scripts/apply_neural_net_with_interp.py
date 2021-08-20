@@ -156,9 +156,9 @@ def _get_predictions_and_targets(
         )
     )
     new_grid_id_strings = [
-        'lat={0:07.4f}_long={1:08.4f}_zenith-angle-rad={2:.4f}_' \
-        'time={3:010d}_atmo={4:1d}_albedo={5:.4f}_' \
-        'temp-10m-kelvins={6:08.4f}'.format(
+        'lat={0:07.4f}_long={1:08.4f}_zenith-angle-rad={2:.6f}_' \
+        'time={3:010d}_atmo={4:1d}_albedo={5:.6f}_' \
+        'temp-10m-kelvins={6:010.6f}'.format(
             lat, long, theta, t, f, alpha, t10
         )
         for lat, long, theta, t, f, alpha, t10 in
@@ -182,9 +182,9 @@ def _get_predictions_and_targets(
         )
     )
     orig_grid_id_strings = [
-        'lat={0:07.4f}_long={1:08.4f}_zenith-angle-rad={2:.4f}_' \
-        'time={3:010d}_atmo={4:1d}_albedo={5:.4f}_' \
-        'temp-10m-kelvins={6:08.4f}'.format(
+        'lat={0:07.4f}_long={1:08.4f}_zenith-angle-rad={2:.6f}_' \
+        'time={3:010d}_atmo={4:1d}_albedo={5:.6f}_' \
+        'temp-10m-kelvins={6:010.6f}'.format(
             lat, long, theta, t, f, alpha, t10
         )
         for lat, long, theta, t, f, alpha, t10 in
