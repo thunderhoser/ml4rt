@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=32G
 #SBATCH --time=02:00:00
-#SBATCH --array=1-3
+#SBATCH --array=1-4
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -24,9 +24,9 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/192heights/experiment01"
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/non_tropical_sites"
 
-# set DENSE_LAYER_COUNTS=(2 3 3)
-# set DENSE_LAYER_DROPOUT_RATES=(0.100 0.000 0.000)
-# set L2_WEIGHTS=(0.0000001000 0.0000031623 0.0000003162)
+set DENSE_LAYER_COUNTS=(4 2 3 2)
+set DENSE_LAYER_DROPOUT_RATES=(0.0 0.2 0.1 0.2)
+set L2_WEIGHTS=(0.0000010000 0.0000010000 0.0000100000 0.0001000000)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
