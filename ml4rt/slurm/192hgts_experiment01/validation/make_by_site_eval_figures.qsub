@@ -47,6 +47,6 @@ set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${dense_layer_count
 
 python3 -u "${CODE_DIR_NAME}/make_by_site_eval_figure.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
---site_names_for_reliability "villum-gl" "yopp1" "yopp3" \
---site_name_for_histogram="villum-gl" \
+--site_names_for_reliability "azores" "yopp1" "yopp3" \
+--site_name_for_histogram="yopp1" \
 --output_dir_name="${output_dir_name}"
