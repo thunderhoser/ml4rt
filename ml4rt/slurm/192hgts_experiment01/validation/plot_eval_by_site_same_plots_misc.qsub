@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_eval_by_site_same_plots"
+#SBATCH --job-name="plot_eval_by_site_same_plots_misc"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -14,7 +14,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_eval_by_site_same_plots_%A_%a.out
+#SBATCH --output=plot_eval_by_site_same_plots_misc_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -59,13 +59,3 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --use_log_scale=1 \
 --plot_by_height=1 \
 --output_dir_name="${misc_eval_dir_name}"
-
-python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${high_arctic_eval_file_names[1]}" "${high_arctic_eval_file_names[2]}" "${high_arctic_eval_file_names[3]}" "${high_arctic_eval_file_names[4]}" "${high_arctic_eval_file_names[5]}" \
---line_styles "solid" "solid" "solid" "dashed" "dashed" \
---line_colours "27_158_119" "217_95_2" "117_112_179" "27_158_119" "217_95_2" \
---set_descriptions "YOPP1" "YOPP2" "YOPP3" "Alert_NU" "SHEBA" \
---confidence_level=0.99 \
---use_log_scale=1 \
---plot_by_height=1 \
---output_dir_name="${high_arctic_eval_dir_name}"
