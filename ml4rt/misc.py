@@ -177,9 +177,15 @@ def get_raw_examples(
 
         example_dict = example_utils.concat_examples(example_dicts)
 
+        # good_indices = example_utils.find_examples(
+        #     all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
+        #     desired_id_strings=example_id_strings, allow_missing=False
+        # )
+
         good_indices = example_utils.find_examples(
             all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
-            desired_id_strings=example_id_strings, allow_missing=False
+            desired_id_strings=list(set(example_id_strings)),
+            allow_missing=False
         )
 
         example_dict = example_utils.subset_by_index(
