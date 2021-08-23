@@ -133,7 +133,7 @@ def get_examples_for_inference(
 
 def get_raw_examples(
         example_file_name, num_examples, example_dir_name,
-        example_id_file_name):
+        example_id_file_name, flexible=False):
     """Returns raw examples.
 
     The difference between `get_raw_examples` and `get_examples_for_inference`
@@ -144,10 +144,12 @@ def get_raw_examples(
     :param num_examples: Same.
     :param example_dir_name: Same.
     :param example_id_file_name: Same.
+    :param flexible: Leave this alone.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
     error_checking.assert_is_string(example_file_name)
+    error_checking.assert_is_boolean(flexible)
     use_specific_ids = example_file_name == ''
 
     if use_specific_ids:
@@ -177,15 +179,12 @@ def get_raw_examples(
 
         example_dict = example_utils.concat_examples(example_dicts)
 
-        # good_indices = example_utils.find_examples(
-        #     all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
-        #     desired_id_strings=example_id_strings, allow_missing=False
-        # )
+        if flexible:
+            example_id_strings = list(set(example_id_strings))
 
         good_indices = example_utils.find_examples(
             all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
-            desired_id_strings=list(set(example_id_strings)),
-            allow_missing=False
+            desired_id_strings=example_id_strings, allow_missing=False
         )
 
         example_dict = example_utils.subset_by_index(
