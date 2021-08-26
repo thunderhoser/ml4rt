@@ -20,9 +20,8 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/192heights/experiment01"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment08"
 
 python3 -u "${CODE_DIR_NAME}/plot_hyperparam_grids_exp8.py" \
 --experiment_dir_name="${TOP_MODEL_DIR_NAME}" \
---super_resolution_flag=1 \
---isotonic_flag=0
+--isotonic_flag=1
