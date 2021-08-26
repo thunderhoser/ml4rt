@@ -221,26 +221,26 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
 
     # Match example IDs between the two grids.
     print(SEPARATOR_STRING)
-    desired_indices_orig = example_utils.find_examples_with_time_tolerance(
-        all_id_strings=orig_grid_id_strings,
-        desired_id_strings=new_grid_id_strings,
+    desired_indices_new = example_utils.find_examples_with_time_tolerance(
+        all_id_strings=new_grid_id_strings,
+        desired_id_strings=orig_grid_id_strings,
         time_tolerance_sec=EXAMPLE_MATCHING_TIME_SEC,
         allow_missing=True, verbose=True
     )
     del new_grid_id_strings
     print(SEPARATOR_STRING)
 
-    desired_indices_new = numpy.where(desired_indices_orig >= 0)[0]
-    desired_indices_orig = desired_indices_orig[desired_indices_new]
+    desired_indices_orig = numpy.where(desired_indices_new >= 0)[0]
+    desired_indices_new = desired_indices_new[desired_indices_orig]
     prediction_dict = prediction_io.subset_by_index(
-        prediction_dict=prediction_dict, desired_indices=desired_indices_new
+        prediction_dict=prediction_dict, desired_indices=desired_indices_orig
     )
 
     prediction_dict[prediction_io.SCALAR_TARGETS_KEY] = (
-        scalar_target_matrix[desired_indices_orig, ...]
+        scalar_target_matrix[desired_indices_new, ...]
     )
     prediction_dict[prediction_io.VECTOR_TARGETS_KEY] = (
-        vector_target_matrix[desired_indices_orig, ...]
+        vector_target_matrix[desired_indices_new, ...]
     )
     prediction_dict[prediction_io.HEIGHTS_KEY] = new_heights_m_agl
 
@@ -266,6 +266,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
         input_prediction_file_name
     ))
     prediction_dict = prediction_io.read_file(input_prediction_file_name)
+    prediction_dict = prediction_io.subset_by_index(prediction_dict=prediction_dict, desired_indices=numpy.linspace(0, 999, num=1000, dtype=int))
 
     if prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY] is not None:
         raise ValueError(
