@@ -83,7 +83,10 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
 
     # Read metadata for base model (neural net).
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
-    model_metafile_name = neural_net.find_metafile(model_file_name)
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
