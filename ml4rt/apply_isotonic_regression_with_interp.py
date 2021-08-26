@@ -310,7 +310,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
         new_grid_example_dir_name=new_grid_example_dir_name
     )
 
-    prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0] = (
+    prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = (
         heating_rate_interp.interpolate(
             orig_heating_rate_matrix_k_day01=
             prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0],
@@ -318,6 +318,9 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
             new_heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
             half_window_size_for_filter_px=half_window_size_for_interp_px
         )
+    )
+    prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
     )
 
     print('Writing new predictions to: "{0:s}"...'.format(
