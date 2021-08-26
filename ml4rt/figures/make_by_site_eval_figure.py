@@ -128,6 +128,11 @@ def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
         '{0:s}/{1:s}'.format(input_dir_name, p)
         for p in pathless_input_file_names
     ]
+    panel_file_names = [
+        f if os.path.isfile(f)
+        else f.replace('/evaluation_high_arctic', '/evaluation_misc')
+        for f in panel_file_names
+    ]
     resized_panel_file_names = [
         '{0:s}/{1:s}'.format(output_dir_name, p)
         for p in pathless_input_file_names
