@@ -164,7 +164,7 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
         )
         these_dim = (
             len(new_grid_id_strings), len(new_heights_m_agl),
-            len(scalar_target_names)
+            len(vector_target_names)
         )
         this_vector_target_matrix = numpy.full(these_dim, numpy.nan)
 
