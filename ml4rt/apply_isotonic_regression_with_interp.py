@@ -267,7 +267,6 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
         input_prediction_file_name
     ))
     prediction_dict = prediction_io.read_file(input_prediction_file_name)
-    prediction_dict = prediction_io.subset_by_index(prediction_dict=prediction_dict, desired_indices=numpy.linspace(0, 999, num=1000, dtype=int))
 
     if prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY] is not None:
         raise ValueError(
