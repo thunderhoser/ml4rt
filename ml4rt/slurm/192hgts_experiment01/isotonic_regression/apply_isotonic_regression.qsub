@@ -26,6 +26,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/192heights/experiment01"
+set NEW_GRID_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/non_tropical_sites"
 
 set DENSE_LAYER_COUNTS=(2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 4 4 4 4 4 4 4 4 4 5 5 5 5 5 5 5 5 5)
 set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.100 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.200 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.300 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.400 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500 0.500)
@@ -51,7 +52,9 @@ set isotonic_model_file_name="${isotonic_model_dir_name}/isotonic_regression.dil
 set orig_prediction_file_name="${model_dir_name}/validation/192heights/predictions.nc"
 set new_prediction_file_name="${isotonic_model_dir_name}/validation/predictions.nc"
 
-python3 -u "${CODE_DIR_NAME}/apply_isotonic_regression.py" \
+python3 -u "${CODE_DIR_NAME}/apply_isotonic_regression_with_interp.py" \
 --input_prediction_file_name="${orig_prediction_file_name}" \
 --input_model_file_name="${isotonic_model_file_name}" \
+--input_new_grid_example_dir_name="${NEW_GRID_EXAMPLE_DIR_NAME}" \
+--half_window_size_for_interp_px=3 \
 --output_prediction_file_name="${new_prediction_file_name}"
