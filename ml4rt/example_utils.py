@@ -1793,12 +1793,12 @@ def find_examples_with_time_tolerance(
         if len(these_subindices) == 1:
             desired_indices[i] = these_indices[0]
         else:
-            these_id_strings = [
-                all_id_strings[k] for k in these_indices[these_subindices]
-            ]
             error_string = (
                 'Found multiple matches for desired ID "{0:s}":\n{1:s}'
-            ).format(desired_id_strings[i], str(these_id_strings))
+            ).format(
+                desired_id_strings[i],
+                str([all_id_strings[k] for k in these_indices])
+            )
 
             if allow_non_unique_matches:
                 warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
