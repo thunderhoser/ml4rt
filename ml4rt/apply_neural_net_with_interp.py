@@ -210,7 +210,7 @@ def _get_predictions_and_targets(
         all_id_strings=orig_grid_id_strings,
         desired_id_strings=new_grid_id_strings,
         time_tolerance_sec=EXAMPLE_MATCHING_TIME_SEC,
-        allow_missing=True, verbose=True
+        allow_missing=True, verbose=True, allow_non_unique_matches=True
     )
     del new_grid_id_strings
     print(SEPARATOR_STRING)
