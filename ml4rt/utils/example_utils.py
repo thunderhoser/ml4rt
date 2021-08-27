@@ -1,6 +1,7 @@
 """Helper methods for learning examples."""
 
 import copy
+import warnings
 import numpy
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import time_conversion
@@ -1650,7 +1651,7 @@ def subset_by_column_lwp(example_dict, min_lwp_kg_m02, max_lwp_kg_m02):
 
 def find_examples_with_time_tolerance(
         all_id_strings, desired_id_strings, time_tolerance_sec,
-        allow_missing=False, verbose=True):
+        allow_missing=False, verbose=True, allow_non_unique_matches=False):
     """Finds examples with desired IDs, but allowing for slight diffs in time.
 
     E = number of desired examples
@@ -1660,10 +1661,14 @@ def find_examples_with_time_tolerance(
     :param time_tolerance_sec: Tolerance (seconds).
     :param allow_missing: See doc for `find_examples`.
     :param verbose: Boolean flag.  If True, will print progress messages.
+    :param allow_non_unique_matches: Boolean flag.  If True, will allow
+        non-unique matches.
     :return: desired_indices: See doc for `find_examples`.
     :raises: ValueError: if either list of IDs has non-unique entries.
     :raises: ValueError: if `allow_missing == False` and any desired ID is
         missing.
+    :raises: ValueError: if `allow_non_unique_matches == False` and there is a
+        non-unique match.
    """
 
     # Check input args.
@@ -1673,6 +1678,7 @@ def find_examples_with_time_tolerance(
     error_checking.assert_is_greater(time_tolerance_sec, 0)
     error_checking.assert_is_boolean(allow_missing)
     error_checking.assert_is_boolean(verbose)
+    error_checking.assert_is_boolean(allow_non_unique_matches)
 
     all_id_strings_numpy = numpy.array(all_id_strings)
     desired_id_strings_numpy = numpy.array(desired_id_strings)
@@ -1774,8 +1780,26 @@ def find_examples_with_time_tolerance(
         if len(these_subindices) == 0:
             continue
 
-        assert len(these_subindices) == 1
-        desired_indices[i] = these_indices[these_subindices[0]]
+        these_indices = these_indices[these_subindices]
+
+        if len(these_subindices) == 1:
+            desired_indices[i] = these_indices[0]
+        else:
+            these_id_strings = [
+                all_id_strings[k] for k in these_indices[these_subindices]
+            ]
+            error_string = (
+                'Found multiple matches for desired ID "{0:s}":\n{1:s}'
+            ).format(desired_id_strings[i], str(these_id_strings))
+
+            if allow_non_unique_matches:
+                warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
+                warnings.warn(warning_string)
+            else:
+                raise ValueError(error_string)
+
+            sort_indices = numpy.argsort(these_time_diffs_sec[these_indices])
+            desired_indices[i] = these_indices[sort_indices[0]]
 
     if verbose:
         print((

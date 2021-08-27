@@ -626,19 +626,22 @@ FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
     example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
 }
 
-# The following constants are used to test find_examples.
-THESE_LATITUDES_DEG_N = numpy.array([40, 50, 60, 70, 80, 85, 90], dtype=float)
+# The following constants are used to test find_examples and
+# find_examples_with_time_tolerance.
+THESE_LATITUDES_DEG_N = numpy.array(
+    [40, 50, 60, 70, 80, 85, 90, 60], dtype=float
+)
 THESE_LONGITUDES_DEG_E = numpy.array(
-    [200, 210, 220, 230, 240, 250, 260], dtype=float
+    [200, 210, 220, 230, 240, 250, 260, 220], dtype=float
 )
-THESE_ZENITH_ANGLES_RAD = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+THESE_ZENITH_ANGLES_RAD = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
 THESE_TIMES_UNIX_SEC = numpy.array(
-    [0, 1000, 2000, 3000, 4000, 5000, 6000], dtype=int
+    [0, 1000, 2000, 3000, 4000, 5000, 6000, 2001], dtype=int
 )
-THESE_STANDARD_ATMO_FLAGS = numpy.array([1, 1, 2, 2, 3, 3, 4], dtype=int)
-THESE_ALBEDOS = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+THESE_STANDARD_ATMO_FLAGS = numpy.array([1, 1, 2, 2, 3, 3, 4, 2], dtype=int)
+THESE_ALBEDOS = numpy.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.2])
 THESE_TEMPS_KELVINS = numpy.array(
-    [270, 260, 250, 240, 230, 220, 210], dtype=float
+    [270, 260, 250, 240, 230, 220, 210, 250], dtype=float
 )
 
 THESE_ID_STRINGS = [
@@ -656,6 +659,7 @@ THESE_ID_STRINGS = [
 ]
 
 ALL_ID_STRINGS = THESE_ID_STRINGS[:5]
+ALL_ID_STRINGS_NONUNIQUE = THESE_ID_STRINGS[:5] + [THESE_ID_STRINGS[-1]]
 DESIRED_ID_STRINGS_0MISSING = [THESE_ID_STRINGS[2], THESE_ID_STRINGS[1]]
 RELEVANT_INDICES_0MISSING = numpy.array([2, 1], dtype=int)
 
@@ -685,6 +689,9 @@ NEW_ID_STRINGS = [
 TIME_TOLERANCE_SEC = 180
 DESIRED_ID_STRINGS_TIME_TOL_0MISSING = [NEW_ID_STRINGS[4], NEW_ID_STRINGS[2]]
 RELEVANT_INDICES_TIME_TOL_0MISSING = numpy.array([4, 2], dtype=int)
+RELEVANT_INDICES_TIME_TOL_0MISSING_ALLOW_NONUNIQUE = numpy.array(
+    [4, 5], dtype=int
+)
 
 DESIRED_ID_STRINGS_TIME_TOL_3MISSING = [
     NEW_ID_STRINGS[6], NEW_ID_STRINGS[4], NEW_ID_STRINGS[1], NEW_ID_STRINGS[0],
@@ -1418,6 +1425,38 @@ class ExampleUtilsTests(unittest.TestCase):
         self.assertTrue(numpy.array_equal(
             these_indices, RELEVANT_INDICES_TIME_TOL_0MISSING
         ))
+
+    def test_find_examples_with_time_tolerance_0missing_nonunique_allowed(self):
+        """Ensures correct output from find_examples_with_time_tolerance.
+
+        In this case, no desired examples are missing; there are non-unique
+        matches; and non-unique matches are allowed.
+        """
+
+        these_indices = example_utils.find_examples_with_time_tolerance(
+            all_id_strings=ALL_ID_STRINGS_NONUNIQUE,
+            desired_id_strings=DESIRED_ID_STRINGS_TIME_TOL_0MISSING,
+            time_tolerance_sec=TIME_TOLERANCE_SEC, allow_missing=False,
+            allow_non_unique_matches=True
+        )
+        self.assertTrue(numpy.array_equal(
+            these_indices, RELEVANT_INDICES_TIME_TOL_0MISSING_ALLOW_NONUNIQUE
+        ))
+
+    def test_find_examples_with_time_tolerance_0missing_nonunique_banned(self):
+        """Ensures correct output from find_examples_with_time_tolerance.
+
+        In this case, no desired examples are missing; there are non-unique
+        matches; and non-unique matches are banned.
+        """
+
+        with self.assertRaises(ValueError):
+            example_utils.find_examples_with_time_tolerance(
+                all_id_strings=ALL_ID_STRINGS_NONUNIQUE,
+                desired_id_strings=DESIRED_ID_STRINGS_TIME_TOL_0MISSING,
+                time_tolerance_sec=TIME_TOLERANCE_SEC, allow_missing=False,
+                allow_non_unique_matches=False
+            )
 
     def test_find_examples_with_time_tolerance_3missing_allowed(self):
         """Ensures correct output from find_examples_with_time_tolerance.

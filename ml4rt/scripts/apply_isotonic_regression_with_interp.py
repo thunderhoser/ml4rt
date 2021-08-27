@@ -1,5 +1,6 @@
 """Applies trained iso-reg model and interpolates heating rates to new grid."""
 
+import os
 import argparse
 import numpy
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
@@ -13,6 +14,7 @@ from ml4rt.machine_learning import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 EXAMPLE_MATCHING_TIME_SEC = 180
+ZERO_HEATING_HEIGHT_M_AGL = 49999.
 
 INPUT_PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
@@ -75,7 +77,10 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
 
     # Read metadata for base model (neural net).
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
-    model_metafile_name = neural_net.find_metafile(model_file_name)
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
@@ -152,7 +157,7 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
         )
         these_dim = (
             len(new_grid_id_strings), len(new_heights_m_agl),
-            len(scalar_target_names)
+            len(vector_target_names)
         )
         this_vector_target_matrix = numpy.full(these_dim, numpy.nan)
 
@@ -210,26 +215,26 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
 
     # Match example IDs between the two grids.
     print(SEPARATOR_STRING)
-    desired_indices_orig = example_utils.find_examples_with_time_tolerance(
-        all_id_strings=orig_grid_id_strings,
-        desired_id_strings=new_grid_id_strings,
+    desired_indices_new = example_utils.find_examples_with_time_tolerance(
+        all_id_strings=new_grid_id_strings,
+        desired_id_strings=orig_grid_id_strings,
         time_tolerance_sec=EXAMPLE_MATCHING_TIME_SEC,
-        allow_missing=True, verbose=True
+        allow_missing=True, verbose=True, allow_non_unique_matches=True
     )
     del new_grid_id_strings
     print(SEPARATOR_STRING)
 
-    desired_indices_new = numpy.where(desired_indices_orig >= 0)[0]
-    desired_indices_orig = desired_indices_orig[desired_indices_new]
+    desired_indices_orig = numpy.where(desired_indices_new >= 0)[0]
+    desired_indices_new = desired_indices_new[desired_indices_orig]
     prediction_dict = prediction_io.subset_by_index(
-        prediction_dict=prediction_dict, desired_indices=desired_indices_new
+        prediction_dict=prediction_dict, desired_indices=desired_indices_orig
     )
 
     prediction_dict[prediction_io.SCALAR_TARGETS_KEY] = (
-        scalar_target_matrix[desired_indices_orig, ...]
+        scalar_target_matrix[desired_indices_new, ...]
     )
     prediction_dict[prediction_io.VECTOR_TARGETS_KEY] = (
-        vector_target_matrix[desired_indices_orig, ...]
+        vector_target_matrix[desired_indices_new, ...]
     )
     prediction_dict[prediction_io.HEIGHTS_KEY] = new_heights_m_agl
 
@@ -298,7 +303,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
         new_grid_example_dir_name=new_grid_example_dir_name
     )
 
-    prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0] = (
+    prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = (
         heating_rate_interp.interpolate(
             orig_heating_rate_matrix_k_day01=
             prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0],
@@ -307,6 +312,16 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
             half_window_size_for_filter_px=half_window_size_for_interp_px
         )
     )
+    prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
+    )
+
+    these_indices = numpy.where(
+        prediction_dict[prediction_io.HEIGHTS_KEY] >= ZERO_HEATING_HEIGHT_M_AGL
+    )[0]
+    prediction_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., 0][
+        ..., these_indices
+    ] = 0.
 
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name
