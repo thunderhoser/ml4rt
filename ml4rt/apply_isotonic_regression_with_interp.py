@@ -26,6 +26,7 @@ ZERO_HEATING_HEIGHT_M_AGL = 49999.
 INPUT_PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 NEW_GRID_EXAMPLE_DIR_ARG_NAME = 'input_new_grid_example_dir_name'
+NEW_GRID_NORM_FILE_ARG_NAME = 'input_new_grid_norm_file_name'
 HALF_WINDOW_SIZE_ARG_NAME = 'half_window_size_for_interp_px'
 OUTPUT_PREDICTION_FILE_ARG_NAME = 'output_prediction_file_name'
 
@@ -40,6 +41,10 @@ MODEL_FILE_HELP_STRING = (
 NEW_GRID_EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with data examples on new grid.  Files therein will'
     ' be found by `example_io.find_file` and read by `example_io.read_file`.'
+)
+NEW_GRID_NORM_FILE_HELP_STRING = (
+    'Path to normalization file for new grid.  Will be read by '
+    '`example_io.read_file`.'
 )
 HALF_WINDOW_SIZE_HELP_STRING = (
     'Half-window size (pixels) for maximum filter used during interpolation.'
@@ -61,6 +66,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NEW_GRID_EXAMPLE_DIR_ARG_NAME, type=str, required=True,
     help=NEW_GRID_EXAMPLE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NEW_GRID_NORM_FILE_ARG_NAME, type=str, required=True,
+    help=NEW_GRID_NORM_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + HALF_WINDOW_SIZE_ARG_NAME, type=int, required=True,
@@ -249,7 +258,8 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
 
 
 def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
-         half_window_size_for_interp_px, output_prediction_file_name):
+         new_grid_norm_file_name, half_window_size_for_interp_px,
+         output_prediction_file_name):
     """Applies trained iso-reg model and interpolates heating rates to new grid.
 
     This is effectively the main method.
@@ -257,6 +267,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
     :param input_prediction_file_name: See documentation at top of file.
     :param model_file_name: Same.
     :param new_grid_example_dir_name: Same.
+    :param new_grid_norm_file_name: Same.
     :param half_window_size_for_interp_px: Same.
     :param output_prediction_file_name: Same.
     :raises: ValueError: if predictions in `input_prediction_file_name` were
@@ -345,8 +356,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
         isotonic_model_file_name=model_file_name,
-        normalization_file_name=
-        prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
+        normalization_file_name=new_grid_norm_file_name
     )
 
 
@@ -360,6 +370,9 @@ if __name__ == '__main__':
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         new_grid_example_dir_name=getattr(
             INPUT_ARG_OBJECT, NEW_GRID_EXAMPLE_DIR_ARG_NAME
+        ),
+        new_grid_norm_file_name=getattr(
+            INPUT_ARG_OBJECT, NEW_GRID_NORM_FILE_ARG_NAME
         ),
         half_window_size_for_interp_px=getattr(
             INPUT_ARG_OBJECT, HALF_WINDOW_SIZE_ARG_NAME
