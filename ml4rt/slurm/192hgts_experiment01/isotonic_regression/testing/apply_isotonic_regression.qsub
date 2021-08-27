@@ -1,4 +1,4 @@
-# #!/bin/tcsh
+#!/bin/tcsh
 
 #SBATCH --job-name="apply_isotonic_regression"
 #SBATCH --partition="fge"
