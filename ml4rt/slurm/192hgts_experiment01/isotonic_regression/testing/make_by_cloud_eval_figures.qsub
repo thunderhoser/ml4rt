@@ -21,7 +21,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/192heights/experiment01"
-set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/journal_paper/192heights/experiment1/isotonic_regression/testing_tropical_sites"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/192heights/experiment1/isotonic_regression/testing_tropical_sites"
 
 # set DENSE_LAYER_COUNTS=(3)
 # set DENSE_LAYER_DROPOUT_RATES=(0.100)

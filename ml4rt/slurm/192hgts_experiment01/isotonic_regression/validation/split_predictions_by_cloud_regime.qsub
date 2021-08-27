@@ -23,9 +23,9 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/192heights/experiment01"
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/192heights/non_tropical_sites"
 
-# set DENSE_LAYER_COUNTS=(4 2 3 2)
-# set DENSE_LAYER_DROPOUT_RATES=(0.0 0.2 0.1 0.2)
-# set L2_WEIGHTS=(0.0000010000 0.0000010000 0.0000100000 0.0001000000)
+set DENSE_LAYER_COUNTS=(2 3 4 5)
+set DENSE_LAYER_DROPOUT_RATES=(0.1 0.1 0.1 0.1)
+set L2_WEIGHTS=(0.0000031623 0.0000031623 0.0000100000 0.0003162278)
 
 set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
