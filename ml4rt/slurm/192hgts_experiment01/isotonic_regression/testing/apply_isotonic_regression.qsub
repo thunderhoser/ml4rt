@@ -27,7 +27,7 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/192heights/experiment01"
 set NEW_GRID_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/tropical_sites"
-set NEW_GRID_NORM_FILE_NAME="${NEW_GRID_EXAMPLE_DIR_NAME}/learning_examples_2018_for-norm.nc"
+set NEW_GRID_NORM_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/examples/non_tropical_sites/learning_examples_2018_for-norm.nc"
 
 set DENSE_LAYER_COUNTS=(2)
 set DENSE_LAYER_DROPOUT_RATES=(0.100)
