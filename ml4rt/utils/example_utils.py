@@ -3,12 +3,14 @@
 import copy
 import warnings
 import numpy
+from scipy.integrate import simps
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import temperature_conversions as temp_conversions
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.utils import aerosols
 from ml4rt.utils import trace_gases
 from ml4rt.utils import land_ocean_mask
 
@@ -113,7 +115,7 @@ O2_MIXING_RATIO_NAME = 'o2_mixing_ratio_kg_kg01'
 CO2_MIXING_RATIO_NAME = 'co2_mixing_ratio_kg_kg01'
 CH4_MIXING_RATIO_NAME = 'ch4_mixing_ratio_kg_kg01'
 N2O_MIXING_RATIO_NAME = 'n2o_mixing_ratio_kg_kg01'
-AEROSOL_OPTICAL_DEPTH_NAME = 'aerosol_optical_depth_metres'
+AEROSOL_EXTINCTION_NAME = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 
@@ -123,7 +125,7 @@ TRACE_GAS_NAMES = [
 ]
 EFFECTIVE_RADIUS_NAMES = [LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME]
 AEROSOL_NAMES = [
-    AEROSOL_OPTICAL_DEPTH_NAME, AEROSOL_ALBEDO_NAME,
+    AEROSOL_EXTINCTION_NAME, AEROSOL_ALBEDO_NAME,
     AEROSOL_ASYMMETRY_PARAM_NAME
 ]
 
@@ -143,7 +145,7 @@ BASIC_VECTOR_PREDICTOR_NAMES = [
 ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
     LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME,
     O2_MIXING_RATIO_NAME, CO2_MIXING_RATIO_NAME, CH4_MIXING_RATIO_NAME,
-    N2O_MIXING_RATIO_NAME, AEROSOL_OPTICAL_DEPTH_NAME, AEROSOL_ALBEDO_NAME,
+    N2O_MIXING_RATIO_NAME, AEROSOL_EXTINCTION_NAME, AEROSOL_ALBEDO_NAME,
     AEROSOL_ASYMMETRY_PARAM_NAME
 ]
 
@@ -382,6 +384,59 @@ def _example_ids_to_standard_atmos(example_id_strings):
 
     standard_atmo_enums[tropical_indices] = TROPICS_ENUM
     return standard_atmo_enums
+
+
+def _get_aerosol_extinction_profiles_one_region(
+        region_name, num_examples, grid_heights_m_agl):
+    """Generates aerosol-extinction profiles for one region.
+
+    E = number of examples
+    H = number of heights
+
+    :param region_name: Name of aerosol region.
+    :param num_examples: Number of examples (E in above discussion).
+    :param grid_heights_m_agl: length-H numpy array of heights (metres above
+        ground level).
+    :return: extinction_matrix_metres01: E-by-H numpy array of extinction
+        values.
+    """
+
+    num_heights = len(grid_heights_m_agl)
+    grid_height_matrix_metres = numpy.repeat(
+        numpy.expand_dims(grid_heights_m_agl, axis=0),
+        axis=0, repeats=num_examples
+    )
+
+    scale_heights_metres = numpy.random.normal(
+        loc=aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[region_name],
+        scale=aerosols.REGION_TO_SCALE_HEIGHT_STDEV_METRES[region_name],
+        size=num_examples
+    )
+    scale_height_matrix_metres = numpy.repeat(
+        numpy.expand_dims(scale_heights_metres, axis=-1),
+        axis=-1, repeats=num_heights
+    )
+    baseline_extinction_matrix_metres01 = numpy.exp(
+        -grid_height_matrix_metres / scale_height_matrix_metres
+    )
+
+    baseline_optical_depths = simps(
+        y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
+        axis=-1, even='avg'
+    )
+    actual_optical_depths = numpy.random.gamma(
+        shape=aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
+        scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
+        size=num_examples
+    )
+
+    scale_factors = actual_optical_depths / baseline_optical_depths
+    scale_factor_matrix = numpy.repeat(
+        numpy.expand_dims(scale_factors, axis=-1),
+        axis=-1, repeats=num_heights
+    )
+
+    return scale_factor_matrix * baseline_extinction_matrix_metres01
 
 
 def get_grid_cell_edges(heights_m_agl):
@@ -973,45 +1028,85 @@ def add_aerosols(example_dict):
     :return: example_dict: Same but with aerosol profiles.
     """
 
+    grid_heights_m_agl = example_dict[HEIGHTS_KEY]
     num_examples = len(example_dict[EXAMPLE_IDS_KEY])
-    num_heights = len(example_dict[HEIGHTS_KEY])
+    num_heights = len(grid_heights_m_agl)
 
     these_dim = (num_examples, num_heights)
-    optical_depth_matrix_metres = numpy.full(these_dim, 0.)
-    albedo_matrix = numpy.full(these_dim, 1.)
-    asymmetry_param_matrix = numpy.full(these_dim, 2.)
+    extinction_matrix_metres01 = numpy.full(these_dim, numpy.nan)
+    albedo_matrix = numpy.full(these_dim, numpy.nan)
+    asymmetry_param_matrix = numpy.full(these_dim, numpy.nan)
+
+    metadata_dict = parse_example_ids(example_dict[EXAMPLE_IDS_KEY])
+    region_name_by_example = aerosols.assign_examples_to_regions(
+        example_latitudes_deg_n=metadata_dict[LATITUDES_KEY],
+        example_longitudes_deg_e=metadata_dict[LONGITUDES_KEY]
+    )
+    unique_region_names, orig_to_unique_indices = numpy.unique(
+        numpy.array(region_name_by_example), return_inverse=True
+    )
+
+    for i in range(len(unique_region_names)):
+        these_example_indices = numpy.where(orig_to_unique_indices == i)[0]
+
+        these_albedos = numpy.random.normal(
+            loc=aerosols.REGION_TO_ALBEDO_MEAN[unique_region_names[i]],
+            scale=aerosols.REGION_TO_ALBEDO_STDEV[unique_region_names[i]],
+            size=len(these_example_indices)
+        )
+        albedo_matrix[these_example_indices, :] = numpy.repeat(
+            numpy.expand_dims(these_albedos, axis=-1),
+            axis=-1, repeats=num_heights
+        )
+
+        these_asymmetry_params = numpy.random.normal(
+            loc=aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[unique_region_names[i]],
+            scale=
+            aerosols.REGION_TO_ASYMMETRY_PARAM_STDEV[unique_region_names[i]],
+            size=len(these_example_indices)
+        )
+        asymmetry_param_matrix[these_example_indices, :] = numpy.repeat(
+            numpy.expand_dims(these_asymmetry_params, axis=-1),
+            axis=-1, repeats=num_heights
+        )
+
+        extinction_matrix_metres01[these_example_indices, :] = (
+            _get_aerosol_extinction_profiles_one_region(
+                region_name=unique_region_names[i],
+                num_examples=len(these_example_indices),
+                grid_heights_m_agl=grid_heights_m_agl
+            )
+        )
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    found_optical_depth = AEROSOL_OPTICAL_DEPTH_NAME in vector_predictor_names
+    found_extinction = AEROSOL_EXTINCTION_NAME in vector_predictor_names
     found_albedo = AEROSOL_ALBEDO_NAME in vector_predictor_names
     found_asymmetry_param = (
         AEROSOL_ASYMMETRY_PARAM_NAME in vector_predictor_names
     )
 
-    if not found_optical_depth:
-        vector_predictor_names.append(AEROSOL_OPTICAL_DEPTH_NAME)
+    if not found_extinction:
+        vector_predictor_names.append(AEROSOL_EXTINCTION_NAME)
     if not found_albedo:
         vector_predictor_names.append(AEROSOL_ALBEDO_NAME)
     if not found_asymmetry_param:
         vector_predictor_names.append(AEROSOL_ASYMMETRY_PARAM_NAME)
 
-    optical_depth_index = vector_predictor_names.index(
-        AEROSOL_OPTICAL_DEPTH_NAME
-    )
+    extinction_index = vector_predictor_names.index(AEROSOL_EXTINCTION_NAME)
     albedo_index = vector_predictor_names.index(AEROSOL_ALBEDO_NAME)
     asymmetry_param_index = vector_predictor_names.index(
         AEROSOL_ASYMMETRY_PARAM_NAME
     )
     example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
 
-    if found_optical_depth:
+    if found_extinction:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][
-            ..., optical_depth_index
-        ] = optical_depth_matrix_metres
+            ..., extinction_index
+        ] = extinction_matrix_metres01
     else:
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=optical_depth_index, values=optical_depth_matrix_metres,
+            obj=extinction_index, values=extinction_matrix_metres01,
             axis=-1
         )
 
