@@ -4,6 +4,7 @@ import copy
 import unittest
 import numpy
 from gewittergefahr.gg_utils import time_conversion
+from ml4rt.utils import aerosols
 from ml4rt.utils import example_utils
 from ml4rt.utils import trace_gases
 
@@ -131,6 +132,152 @@ EXAMPLE_DICT_WITH_TRACE_GASES = {
     example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
 
+# The following constants are used to test add_aerosols.
+THESE_HEIGHTS_M_AGL = numpy.array(
+    [0, 1000, 2000, 3000, 4000, 5000], dtype=float
+)
+THESE_LATITUDES_DEG_N = numpy.array([-90, -50, 0, 20, 50, 59], dtype=float)
+THESE_LONGITUDES_DEG_E = numpy.array([20, 20, 20, 20, 20, 50], dtype=float)
+THESE_EXAMPLE_ID_STRINGS = [
+    'lat={0:09.6f}_long={1:010.6f}_zenith-angle-rad=0.500000_time=0000000000_' \
+    'atmo=1_albedo=0.250000_temp-10m-kelvins=240.000000'.format(y, x)
+    for y, x in zip(THESE_LATITUDES_DEG_N, THESE_LONGITUDES_DEG_E)
+]
+THIS_TEMP_MATRIX_KELVINS = numpy.random.normal(
+    loc=270., scale=10.,
+    size=(len(THESE_EXAMPLE_ID_STRINGS), len(THESE_HEIGHTS_M_AGL))
+)
+
+EXAMPLE_DICT_NO_AEROSOLS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+        [example_utils.TEMPERATURE_NAME],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY:
+        numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THESE_PREDICTOR_NAMES = [
+    example_utils.TEMPERATURE_NAME, example_utils.AEROSOL_EXTINCTION_NAME,
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+]
+
+THIS_SCALE_HEIGHT_MATRIX_METRES = numpy.array([
+    aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[aerosols.POLAR_REGION_NAME],
+    aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[aerosols.OCEAN_REGION_NAME],
+    aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[
+        aerosols.BIOMASS_BURNING_REGION_NAME
+    ],
+    aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[
+        aerosols.FIRST_DESERT_DUST_REGION_NAME
+    ],
+    aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[
+        aerosols.FIRST_URBAN_REGION_NAME
+    ],
+    aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[aerosols.LAND_REGION_NAME]
+])
+THIS_SCALE_HEIGHT_MATRIX_METRES = numpy.repeat(
+    numpy.expand_dims(THIS_SCALE_HEIGHT_MATRIX_METRES, axis=-1),
+    axis=-1, repeats=len(THESE_HEIGHTS_M_AGL)
+)
+
+THIS_GRID_HEIGHT_MATRIX_METRES = numpy.repeat(
+    numpy.expand_dims(THESE_HEIGHTS_M_AGL, axis=0),
+    axis=0, repeats=len(THESE_EXAMPLE_ID_STRINGS)
+)
+THIS_BASELINE_EXTINCTION_MATRIX_METRES01 = 0.001 * numpy.exp(
+    -THIS_GRID_HEIGHT_MATRIX_METRES / THIS_SCALE_HEIGHT_MATRIX_METRES
+)
+THESE_BASELINE_OPTICAL_DEPTHS = numpy.sum(
+    THIS_BASELINE_EXTINCTION_MATRIX_METRES01 * THIS_GRID_HEIGHT_MATRIX_METRES,
+    axis=-1
+)
+
+THESE_SHAPE_PARAMS = numpy.array([
+    aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[aerosols.POLAR_REGION_NAME],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[aerosols.OCEAN_REGION_NAME],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[
+        aerosols.BIOMASS_BURNING_REGION_NAME
+    ],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[
+        aerosols.FIRST_DESERT_DUST_REGION_NAME
+    ],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[
+        aerosols.FIRST_URBAN_REGION_NAME
+    ],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[aerosols.LAND_REGION_NAME]
+])
+
+THESE_SCALE_PARAMS = numpy.array([
+    aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[aerosols.POLAR_REGION_NAME],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[aerosols.OCEAN_REGION_NAME],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[
+        aerosols.BIOMASS_BURNING_REGION_NAME
+    ],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[
+        aerosols.FIRST_DESERT_DUST_REGION_NAME
+    ],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[
+        aerosols.FIRST_URBAN_REGION_NAME
+    ],
+    aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[aerosols.LAND_REGION_NAME]
+])
+THESE_ACTUAL_OPTICAL_DEPTHS = THESE_SHAPE_PARAMS * THESE_SCALE_PARAMS
+
+THESE_SCALE_FACTORS = (
+    THESE_ACTUAL_OPTICAL_DEPTHS / THESE_BASELINE_OPTICAL_DEPTHS
+)
+THIS_SCALE_FACTOR_MATRIX = numpy.repeat(
+    numpy.expand_dims(THESE_SCALE_FACTORS, axis=-1),
+    axis=-1, repeats=len(THESE_HEIGHTS_M_AGL)
+)
+THIS_EXTINCTION_MATRIX_METRES01 = (
+    THIS_SCALE_FACTOR_MATRIX * THIS_BASELINE_EXTINCTION_MATRIX_METRES01
+)
+
+THIS_ALBEDO_MATRIX = numpy.array([
+    aerosols.REGION_TO_ALBEDO_MEAN[aerosols.POLAR_REGION_NAME],
+    aerosols.REGION_TO_ALBEDO_MEAN[aerosols.OCEAN_REGION_NAME],
+    aerosols.REGION_TO_ALBEDO_MEAN[aerosols.BIOMASS_BURNING_REGION_NAME],
+    aerosols.REGION_TO_ALBEDO_MEAN[aerosols.FIRST_DESERT_DUST_REGION_NAME],
+    aerosols.REGION_TO_ALBEDO_MEAN[aerosols.FIRST_URBAN_REGION_NAME],
+    aerosols.REGION_TO_ALBEDO_MEAN[aerosols.LAND_REGION_NAME]
+])
+THIS_ALBEDO_MATRIX = numpy.repeat(
+    numpy.expand_dims(THIS_ALBEDO_MATRIX, axis=-1),
+    axis=-1, repeats=len(THESE_HEIGHTS_M_AGL)
+)
+
+THIS_ASYMMETRY_PARAM_MATRIX = numpy.array([
+    aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[aerosols.POLAR_REGION_NAME],
+    aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[aerosols.OCEAN_REGION_NAME],
+    aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[
+        aerosols.BIOMASS_BURNING_REGION_NAME
+    ],
+    aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[
+        aerosols.FIRST_DESERT_DUST_REGION_NAME
+    ],
+    aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[aerosols.FIRST_URBAN_REGION_NAME],
+    aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[aerosols.LAND_REGION_NAME]
+])
+THIS_ASYMMETRY_PARAM_MATRIX = numpy.repeat(
+    numpy.expand_dims(THIS_ASYMMETRY_PARAM_MATRIX, axis=-1),
+    axis=-1, repeats=len(THESE_HEIGHTS_M_AGL)
+)
+
+THIS_PREDICTOR_MATRIX = numpy.stack((
+    THIS_TEMP_MATRIX_KELVINS, THIS_EXTINCTION_MATRIX_METRES01,
+    THIS_ALBEDO_MATRIX, THIS_ASYMMETRY_PARAM_MATRIX
+), axis=-1)
+
+EXAMPLE_DICT_WITH_AEROSOLS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
 # The following constants are used to test add_effective_radii.
 THESE_HEIGHTS_M_AGL = numpy.array(
     [0, 1000, 2000, 3000, 4000, 5000], dtype=float
@@ -189,48 +336,6 @@ THIS_PREDICTOR_MATRIX = numpy.stack((
 ), axis=-1)
 
 EXAMPLE_DICT_WITH_RADII = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
-    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
-}
-
-# The following constants are used to test add_aerosols.
-THESE_HEIGHTS_M_AGL = numpy.array(
-    [0, 1000, 2000, 3000, 4000, 5000], dtype=float
-)
-THIS_TEMP_MATRIX_KELVINS = numpy.array([
-    [300, 290, 280, 270, 260, 250],
-    [273, 273, 273, 273, 273, 273],
-    [273, 250, 230, 200, 100, 10]
-], dtype=float)
-
-THESE_EXAMPLE_ID_STRINGS = ['foo', 'bar', 'moo']
-
-EXAMPLE_DICT_NO_AEROSOLS = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        [example_utils.TEMPERATURE_NAME],
-    example_utils.VECTOR_PREDICTOR_VALS_KEY:
-        numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
-    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
-}
-
-THESE_PREDICTOR_NAMES = [
-    example_utils.TEMPERATURE_NAME, example_utils.AEROSOL_OPTICAL_DEPTH_NAME,
-    example_utils.AEROSOL_ALBEDO_NAME,
-    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
-]
-THIS_PREDICTOR_MATRIX = numpy.stack((
-    THIS_TEMP_MATRIX_KELVINS, THIS_TEMP_MATRIX_KELVINS,
-    THIS_TEMP_MATRIX_KELVINS, THIS_TEMP_MATRIX_KELVINS
-), axis=-1)
-
-THIS_PREDICTOR_MATRIX[..., 1] = 0.
-THIS_PREDICTOR_MATRIX[..., 2] = 1.
-THIS_PREDICTOR_MATRIX[..., 3] = 2.
-
-EXAMPLE_DICT_WITH_AEROSOLS = {
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
     example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
@@ -1115,9 +1220,9 @@ class ExampleUtilsTests(unittest.TestCase):
         """Ensures correct output from add_aerosols."""
 
         this_example_dict = example_utils.add_aerosols(
-            copy.deepcopy(EXAMPLE_DICT_NO_AEROSOLS)
+            example_dict=copy.deepcopy(EXAMPLE_DICT_NO_AEROSOLS),
+            test_mode=False
         )
-
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_AEROSOLS
         ))

@@ -387,7 +387,7 @@ def _example_ids_to_standard_atmos(example_id_strings):
 
 
 def _get_aerosol_extinction_profiles_one_region(
-        region_name, num_examples, grid_heights_m_agl):
+        region_name, num_examples, grid_heights_m_agl, test_mode=False):
     """Generates aerosol-extinction profiles for one region.
 
     E = number of examples
@@ -397,6 +397,7 @@ def _get_aerosol_extinction_profiles_one_region(
     :param num_examples: Number of examples (E in above discussion).
     :param grid_heights_m_agl: length-H numpy array of heights (metres above
         ground level).
+    :param test_mode: Leave this alone.
     :return: extinction_matrix_metres01: E-by-H numpy array of extinction
         values.
     """
@@ -407,28 +408,44 @@ def _get_aerosol_extinction_profiles_one_region(
         axis=0, repeats=num_examples
     )
 
+    this_stdev = (
+        0. if test_mode
+        else aerosols.REGION_TO_SCALE_HEIGHT_STDEV_METRES[region_name]
+    )
     scale_heights_metres = numpy.random.normal(
         loc=aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[region_name],
-        scale=aerosols.REGION_TO_SCALE_HEIGHT_STDEV_METRES[region_name],
-        size=num_examples
+        scale=this_stdev, size=num_examples
     )
     scale_height_matrix_metres = numpy.repeat(
         numpy.expand_dims(scale_heights_metres, axis=-1),
         axis=-1, repeats=num_heights
     )
-    baseline_extinction_matrix_metres01 = numpy.exp(
+    baseline_extinction_matrix_metres01 = 0.001 * numpy.exp(
         -grid_height_matrix_metres / scale_height_matrix_metres
     )
 
-    baseline_optical_depths = simps(
-        y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
-        axis=-1, even='avg'
-    )
-    actual_optical_depths = numpy.random.gamma(
-        shape=aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
-        scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
-        size=num_examples
-    )
+    if test_mode:
+        baseline_optical_depths = numpy.sum(
+            baseline_extinction_matrix_metres01 * grid_height_matrix_metres,
+            axis=-1
+        )
+        actual_optical_depths = numpy.random.normal(
+            loc=(
+                aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name] *
+                aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name]
+            ),
+            scale=0., size=num_examples
+        )
+    else:
+        baseline_optical_depths = simps(
+            y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
+            axis=-1, even='avg'
+        )
+        actual_optical_depths = numpy.random.gamma(
+            shape=aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
+            scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
+            size=num_examples
+        )
 
     scale_factors = actual_optical_depths / baseline_optical_depths
     scale_factor_matrix = numpy.repeat(
@@ -1020,13 +1037,16 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional,
     return example_dict
 
 
-def add_aerosols(example_dict):
+def add_aerosols(example_dict, test_mode=False):
     """Adds aerosol profiles to dictionary.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
+    :param test_mode: Leave this alone.
     :return: example_dict: Same but with aerosol profiles.
     """
+
+    error_checking.assert_is_boolean(test_mode)
 
     grid_heights_m_agl = example_dict[HEIGHTS_KEY]
     num_examples = len(example_dict[EXAMPLE_IDS_KEY])
@@ -1049,21 +1069,26 @@ def add_aerosols(example_dict):
     for i in range(len(unique_region_names)):
         these_example_indices = numpy.where(orig_to_unique_indices == i)[0]
 
+        this_stdev = (
+            0. if test_mode
+            else aerosols.REGION_TO_ALBEDO_STDEV[unique_region_names[i]]
+        )
         these_albedos = numpy.random.normal(
             loc=aerosols.REGION_TO_ALBEDO_MEAN[unique_region_names[i]],
-            scale=aerosols.REGION_TO_ALBEDO_STDEV[unique_region_names[i]],
-            size=len(these_example_indices)
+            scale=this_stdev, size=len(these_example_indices)
         )
         albedo_matrix[these_example_indices, :] = numpy.repeat(
             numpy.expand_dims(these_albedos, axis=-1),
             axis=-1, repeats=num_heights
         )
 
+        this_stdev = (
+            0. if test_mode
+            else aerosols.REGION_TO_ASYMMETRY_PARAM_STDEV[unique_region_names[i]]
+        )
         these_asymmetry_params = numpy.random.normal(
             loc=aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[unique_region_names[i]],
-            scale=
-            aerosols.REGION_TO_ASYMMETRY_PARAM_STDEV[unique_region_names[i]],
-            size=len(these_example_indices)
+            scale=this_stdev, size=len(these_example_indices)
         )
         asymmetry_param_matrix[these_example_indices, :] = numpy.repeat(
             numpy.expand_dims(these_asymmetry_params, axis=-1),
@@ -1074,7 +1099,7 @@ def add_aerosols(example_dict):
             _get_aerosol_extinction_profiles_one_region(
                 region_name=unique_region_names[i],
                 num_examples=len(these_example_indices),
-                grid_heights_m_agl=grid_heights_m_agl
+                grid_heights_m_agl=grid_heights_m_agl, test_mode=test_mode
             )
         )
 
