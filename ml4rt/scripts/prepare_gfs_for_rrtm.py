@@ -15,7 +15,8 @@ from ml4rt.scripts import interp_rap_profiles
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-NOISE_STDEV_FRACTIONAL = 0.05
+PROFILE_NOISE_STDEV_FRACTIONAL = 0.05
+INDIV_NOISE_STDEV_FRACTIONAL = 0.005
 
 SECONDS_TO_HOURS = 1. / 3600
 PASCALS_TO_MB = 0.01
@@ -59,7 +60,7 @@ CH4_MIXR_KEY_ORIG_KG_KG01 = 'ch4_mixing_ratio_kg_kg01'
 N2O_MIXR_KEY_ORIG_KG_KG01 = 'n2o_mixing_ratio_kg_kg01'
 LIQUID_EFF_RADIUS_KEY_ORIG_METRES = 'liquid_eff_radius_metres'
 ICE_EFF_RADIUS_KEY_ORIG_METRES = 'ice_eff_radius_metres'
-AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES = 'aerosol_optical_depth_metres'
+AEROSOL_EXTINCTION_KEY_ORIG_METRES01 = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_KEY_ORIG = 'aerosol_albedo'
 AEROSOL_ASYMMETRY_PARAM_KEY_ORIG = 'aerosol_asymmetry_param'
 
@@ -75,6 +76,7 @@ CONSERVE_JUMP_KEYS_ORIG = [
     CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01, GRAUPEL_MIXR_KEY_ORIG_KG_KG01,
     SNOW_MIXR_KEY_ORIG_KG_KG01
 ]
+SCALAR_KEYS_ORIG = [AEROSOL_ALBEDO_KEY_ORIG, AEROSOL_ASYMMETRY_PARAM_KEY_ORIG]
 
 SITE_NAME_KEY = 'dsite'
 LATITUDE_KEY_DEG_N = 'mlat'
@@ -83,19 +85,22 @@ FORECAST_HOUR_KEY = 'forecast'
 HEIGHT_KEY_M_AGL = 'height'
 TEMPERATURE_KEY_CELSIUS = 't0'
 VAPOUR_MIXR_KEY_G_KG01 = 'r0'
-LIQUID_WATER_CONTENT_KEY_KG_KG01 = 'lwc0'
-ICE_WATER_PATH_KEY_KG_M02 = 'iwp0'
+LIQUID_WATER_PATH_KEY_KG_M02 = 'layerwise_liquid_water_path_kg_m02'
+RAIN_WATER_PATH_KEY_KG_M02 = 'layerwise_rain_water_path_kg_m02'
+ICE_WATER_PATH_KEY_KG_M02 = 'layerwise_ice_water_path_kg_m02'
+GRAUPEL_PATH_KEY_KG_M02 = 'layerwise_graupel_path_kg_m02'
+SNOW_PATH_KEY_KG_M02 = 'layerwise_snow_path_kg_m02'
 DOWN_SURFACE_FLUX_KEY_W_M02 = 'dswsfc0'
 UP_SURFACE_FLUX_KEY_W_M02 = 'uswsfc0'
 CLOUD_FRACTION_KEY_PERCENT = 'totcc0'
 
 ORIG_TO_NEW_KEY_DICT = {
     CLOUD_FRACTION_KEY_ORIG: CLOUD_FRACTION_KEY_PERCENT,
-    CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01: LIQUID_WATER_CONTENT_KEY_KG_KG01,
-    RAIN_MIXR_KEY_ORIG_KG_KG01: 'rain_mixing_ratio_kg_kg01',
+    CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01: LIQUID_WATER_PATH_KEY_KG_M02,
+    RAIN_MIXR_KEY_ORIG_KG_KG01: RAIN_WATER_PATH_KEY_KG_M02,
     CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01: ICE_WATER_PATH_KEY_KG_M02,
-    GRAUPEL_MIXR_KEY_ORIG_KG_KG01: 'graupel_mixing_ratio_kg_kg01',
-    SNOW_MIXR_KEY_ORIG_KG_KG01: 'snow_mixing_ratio_kg_kg01',
+    GRAUPEL_MIXR_KEY_ORIG_KG_KG01: GRAUPEL_PATH_KEY_KG_M02,
+    SNOW_MIXR_KEY_ORIG_KG_KG01: SNOW_PATH_KEY_KG_M02,
     OZONE_MIXR_KEY_ORIG_KG_KG01: 'ozone_mixing_ratio_kg_kg01',
     TEMPERATURE_KEY_ORIG_KELVINS: TEMPERATURE_KEY_CELSIUS,
     VAPOUR_MIXR_KEY_ORIG_KG_KG01: VAPOUR_MIXR_KEY_G_KG01,
@@ -107,8 +112,7 @@ ORIG_TO_NEW_KEY_DICT = {
     N2O_MIXR_KEY_ORIG_KG_KG01: N2O_MIXR_KEY_ORIG_KG_KG01,
     LIQUID_EFF_RADIUS_KEY_ORIG_METRES: LIQUID_EFF_RADIUS_KEY_ORIG_METRES,
     ICE_EFF_RADIUS_KEY_ORIG_METRES: ICE_EFF_RADIUS_KEY_ORIG_METRES,
-    AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES:
-        AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES,
+    AEROSOL_EXTINCTION_KEY_ORIG_METRES01: AEROSOL_EXTINCTION_KEY_ORIG_METRES01,
     AEROSOL_ALBEDO_KEY_ORIG: AEROSOL_ALBEDO_KEY_ORIG,
     AEROSOL_ASYMMETRY_PARAM_KEY_ORIG: AEROSOL_ASYMMETRY_PARAM_KEY_ORIG
 }
@@ -291,51 +295,54 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
     }
     dummy_example_dict = example_utils.add_trace_gases(
         example_dict=dummy_example_dict,
-        noise_stdev_fractional=0. if test_mode else NOISE_STDEV_FRACTIONAL
+        profile_noise_stdev_fractional=
+        0. if test_mode else PROFILE_NOISE_STDEV_FRACTIONAL,
+        indiv_noise_stdev_fractional=
+        0. if test_mode else INDIV_NOISE_STDEV_FRACTIONAL
     )
 
-    o2_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+    o2_concentration_matrix_ppmv = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
-        field_name=example_utils.O2_MIXING_RATIO_NAME
+        field_name=example_utils.O2_CONCENTRATION_NAME
     )
     interp_data_dict[O2_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
-        o2_mixing_ratio_matrix_kg_kg01,
+        o2_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
 
-    co2_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+    co2_concentration_matrix_ppmv = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
-        field_name=example_utils.CO2_MIXING_RATIO_NAME
+        field_name=example_utils.CO2_CONCENTRATION_NAME
     )
     interp_data_dict[CO2_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
-        co2_mixing_ratio_matrix_kg_kg01,
+        co2_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
 
-    ch4_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+    ch4_concentration_matrix_ppmv = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
-        field_name=example_utils.CH4_MIXING_RATIO_NAME
+        field_name=example_utils.CH4_CONCENTRATION_NAME
     )
     interp_data_dict[CH4_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
-        ch4_mixing_ratio_matrix_kg_kg01,
+        ch4_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
 
-    n2o_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
+    n2o_concentration_matrix_ppmv = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
-        field_name=example_utils.N2O_MIXING_RATIO_NAME
+        field_name=example_utils.N2O_CONCENTRATION_NAME
     )
     interp_data_dict[N2O_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
-        n2o_mixing_ratio_matrix_kg_kg01,
+        n2o_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
 
     return interp_data_dict, dummy_example_dict
 
 
-def _convert_ice_mixr_to_path(orig_gfs_table_xarray, new_heights_m_agl,
-                              interp_data_dict):
-    """Converts ice-water mixing ratios to ice-water paths.
+def _mixing_ratio_to_layerwise_path(orig_gfs_table_xarray, new_heights_m_agl,
+                                    interp_data_dict, variable_name):
+    """Converts mixing ratios (kg kg^-1) to layerwise paths (kg m^-2).
 
     :param orig_gfs_table_xarray: xarray table with GFS data in original (Jebb)
         format.
@@ -344,7 +351,9 @@ def _convert_ice_mixr_to_path(orig_gfs_table_xarray, new_heights_m_agl,
     :param interp_data_dict: Dictionary, where each key is a variable name and
         the corresponding value is a 3-D numpy array
         (time x site x new_height).
-    :return: interp_data_dict: Same as input but with ice-water paths instead of
+    :param variable_name: Name of variable to convert.  This must be a key into
+        the dictionary `interp_data_dict`.
+    :return: interp_data_dict: Same as input but with layerwise paths instead of
         mixing ratios.
     """
 
@@ -370,29 +379,26 @@ def _convert_ice_mixr_to_path(orig_gfs_table_xarray, new_heights_m_agl,
     air_density_matrix_kg_m03 = (
         air_density_matrix_kg_m03 / DRY_AIR_GAS_CONSTANT_J_KG01_K01
     )
-    ice_mixing_ratio_matrix_kg_m03 = (
-        interp_data_dict[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01] *
-        air_density_matrix_kg_m03
-    )
 
-    ice_mixing_ratio_matrix_kg_m03 = numpy.reshape(
-        ice_mixing_ratio_matrix_kg_m03,
+    mixing_ratio_matrix_kg_m03 = (
+        interp_data_dict[variable_name] * air_density_matrix_kg_m03
+    )
+    mixing_ratio_matrix_kg_m03 = numpy.reshape(
+        mixing_ratio_matrix_kg_m03,
         (num_times * num_sites, num_heights_new)
     )
-    ice_water_path_matrix_kg_m02 = rrtm_io._water_content_to_layerwise_path(
-        water_content_matrix_kg_m03=ice_mixing_ratio_matrix_kg_m03,
+    layerwise_path_matrix_kg_m02 = rrtm_io._water_content_to_layerwise_path(
+        water_content_matrix_kg_m03=mixing_ratio_matrix_kg_m03,
         heights_m_agl=new_heights_m_agl
     )
-    ice_water_path_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
-        numpy.fliplr(ice_water_path_matrix_kg_m02), axis=1
-    ))
-    ice_water_path_matrix_kg_m02 = numpy.reshape(
-        ice_water_path_matrix_kg_m02,
+    # path_matrix_kg_m02 = numpy.fliplr(numpy.cumsum(
+    #     numpy.fliplr(layerwise_path_matrix_kg_m02), axis=1
+    # ))
+    layerwise_path_matrix_kg_m02 = numpy.reshape(
+        layerwise_path_matrix_kg_m02,
         (num_times, num_sites, num_heights_new)
     )
-    interp_data_dict[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01] = (
-        ice_water_path_matrix_kg_m02
-    )
+    interp_data_dict[variable_name] = layerwise_path_matrix_kg_m02
 
     return interp_data_dict
 
@@ -523,7 +529,8 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     print('Adding effective radii of liquid and ice particles...')
     dummy_example_dict = example_utils.add_effective_radii(
         example_dict=dummy_example_dict,
-        ice_noise_stdev_fractional=NOISE_STDEV_FRACTIONAL
+        ice_profile_noise_stdev_fractional=PROFILE_NOISE_STDEV_FRACTIONAL,
+        ice_indiv_noise_stdev_fractional=INDIV_NOISE_STDEV_FRACTIONAL
     )
     liquid_eff_radius_matrix_metres = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
@@ -545,12 +552,12 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     print('Adding aerosols...')
     dummy_example_dict = example_utils.add_aerosols(dummy_example_dict)
-    aerosol_optical_depth_matrix_metres = example_utils.get_field_from_dict(
+    aerosol_extinction_matrix_metres01 = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
-        field_name=example_utils.AEROSOL_OPTICAL_DEPTH_NAME
+        field_name=example_utils.AEROSOL_EXTINCTION_NAME
     )
-    interp_data_dict[AEROSOL_OPTICAL_DEPTH_KEY_ORIG_METRES] = numpy.reshape(
-        aerosol_optical_depth_matrix_metres,
+    interp_data_dict[AEROSOL_EXTINCTION_KEY_ORIG_METRES01] = numpy.reshape(
+        aerosol_extinction_matrix_metres01,
         (num_times, num_sites, num_heights_new)
     )
 
@@ -559,8 +566,10 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         field_name=example_utils.AEROSOL_ALBEDO_NAME
     )
     interp_data_dict[AEROSOL_ALBEDO_KEY_ORIG] = numpy.reshape(
-        aerosol_albedo_matrix,
-        (num_times, num_sites, num_heights_new)
+        aerosol_albedo_matrix, (num_times, num_sites, 1)
+    )
+    interp_data_dict[AEROSOL_ALBEDO_KEY_ORIG] = (
+        interp_data_dict[AEROSOL_ALBEDO_KEY_ORIG][..., 0]
     )
 
     aerosol_asymmetry_param_matrix = example_utils.get_field_from_dict(
@@ -568,16 +577,53 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         field_name=example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
     )
     interp_data_dict[AEROSOL_ASYMMETRY_PARAM_KEY_ORIG] = numpy.reshape(
-        aerosol_asymmetry_param_matrix,
-        (num_times, num_sites, num_heights_new)
+        aerosol_asymmetry_param_matrix, (num_times, num_sites, 1)
+    )
+    interp_data_dict[AEROSOL_ASYMMETRY_PARAM_KEY_ORIG] = (
+        interp_data_dict[AEROSOL_ASYMMETRY_PARAM_KEY_ORIG][..., 0]
     )
 
-    # TODO(thunderhoser): Will likely need to convert other vars in same way.
-    print('Converting ice-water mixing ratios (kg/kg) to paths (kg/m^2)...')
-    interp_data_dict = _convert_ice_mixr_to_path(
+    print(
+        'Converting ice-water mixing ratios (kg/kg) to layerwise paths '
+        '(kg/m^2)...'
+    )
+    interp_data_dict = _mixing_ratio_to_layerwise_path(
         orig_gfs_table_xarray=orig_gfs_table_xarray,
         new_heights_m_agl=new_heights_m_agl,
-        interp_data_dict=interp_data_dict
+        interp_data_dict=interp_data_dict,
+        variable_name=CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01
+    )
+
+    print('Converting graupel mixing ratios to layerwise paths...')
+    interp_data_dict = _mixing_ratio_to_layerwise_path(
+        orig_gfs_table_xarray=orig_gfs_table_xarray,
+        new_heights_m_agl=new_heights_m_agl,
+        interp_data_dict=interp_data_dict,
+        variable_name=GRAUPEL_MIXR_KEY_ORIG_KG_KG01
+    )
+
+    print('Converting snow mixing ratios to layerwise paths...')
+    interp_data_dict = _mixing_ratio_to_layerwise_path(
+        orig_gfs_table_xarray=orig_gfs_table_xarray,
+        new_heights_m_agl=new_heights_m_agl,
+        interp_data_dict=interp_data_dict,
+        variable_name=SNOW_MIXR_KEY_ORIG_KG_KG01
+    )
+
+    print('Converting cloud-water mixing ratios to layerwise paths...')
+    interp_data_dict = _mixing_ratio_to_layerwise_path(
+        orig_gfs_table_xarray=orig_gfs_table_xarray,
+        new_heights_m_agl=new_heights_m_agl,
+        interp_data_dict=interp_data_dict,
+        variable_name=CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01
+    )
+
+    print('Converting rain mixing ratios to layerwise paths...')
+    interp_data_dict = _mixing_ratio_to_layerwise_path(
+        orig_gfs_table_xarray=orig_gfs_table_xarray,
+        new_heights_m_agl=new_heights_m_agl,
+        interp_data_dict=interp_data_dict,
+        variable_name=RAIN_MIXR_KEY_ORIG_KG_KG01
     )
 
     print('Converting pressures from Pa to mb...')
@@ -615,6 +661,8 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
             these_dim = (
                 TIME_DIMENSION, SITE_DIMENSION, HEIGHT_AT_EDGE_DIMENSION
             )
+        elif this_key_orig in SCALAR_KEYS_ORIG:
+            these_dim = (TIME_DIMENSION, SITE_DIMENSION)
         else:
             these_dim = (TIME_DIMENSION, SITE_DIMENSION, HEIGHT_DIMENSION)
 
@@ -631,12 +679,12 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         data_vars=new_data_dict, coords=new_metadata_dict
     )
 
-    # for this_key in new_gfs_table_xarray.variables:
-    #     if this_key == SITE_NAME_KEY:
-    #         continue
-    #
-    #     print(this_key)
-    #     print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
+    for this_key in new_gfs_table_xarray.variables:
+        if this_key == SITE_NAME_KEY:
+            continue
+
+        print(this_key)
+        print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
 
     for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:

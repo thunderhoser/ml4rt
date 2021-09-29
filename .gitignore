@@ -18,3 +18,5 @@ slurm/
 # Code that I don't intend to commit.
 ml4rt/*.py
 ml4rt/dead_scratch_code/
+
+ml4rt/*.jpg
