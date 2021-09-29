@@ -156,21 +156,6 @@ def _run(example_dir_name, first_training_time_string,
         num_examples
     ))
 
-    print('Adding trace gases...')
-    example_utils.add_trace_gases(
-        example_dict=example_dict,
-        noise_stdev_fractional=trace_gas_noise_stdev_fractional
-    )
-
-    print('Adding effective radii of liquid and ice particles...')
-    example_utils.add_effective_radii(
-        example_dict=example_dict,
-        ice_noise_stdev_fractional=ice_radius_noise_stdev_fractional
-    )
-
-    print('Adding aerosols...')
-    example_dict = example_utils.add_aerosols(example_dict)
-
     print('Writing normalization params to: "{0:s}"...'.format(
         output_file_name
     ))

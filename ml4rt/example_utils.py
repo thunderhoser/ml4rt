@@ -5,6 +5,7 @@ import sys
 import copy
 import warnings
 import numpy
+from scipy.integrate import simps
 from scipy.interpolate import interp1d
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -17,6 +18,7 @@ import prob_matched_means as pmm
 import temperature_conversions as temp_conversions
 import longitude_conversion as lng_conversion
 import error_checking
+import aerosols
 import trace_gases
 import land_ocean_mask
 
@@ -117,21 +119,25 @@ UPWARD_WATER_VAPOUR_PATH_NAME = 'upward_vapour_path_kg_m02'
 
 LIQUID_EFF_RADIUS_NAME = 'liquid_effective_radius_metres'
 ICE_EFF_RADIUS_NAME = 'ice_effective_radius_metres'
-O2_MIXING_RATIO_NAME = 'o2_mixing_ratio_kg_kg01'
-CO2_MIXING_RATIO_NAME = 'co2_mixing_ratio_kg_kg01'
-CH4_MIXING_RATIO_NAME = 'ch4_mixing_ratio_kg_kg01'
-N2O_MIXING_RATIO_NAME = 'n2o_mixing_ratio_kg_kg01'
-AEROSOL_OPTICAL_DEPTH_NAME = 'aerosol_optical_depth_metres'
+O2_CONCENTRATION_NAME = 'o2_concentration_ppmv'
+CO2_CONCENTRATION_NAME = 'co2_concentration_ppmv'
+CH4_CONCENTRATION_NAME = 'ch4_concentration_ppmv'
+N2O_CONCENTRATION_NAME = 'n2o_concentration_ppmv'
+
+# TODO(thunderhoser): Extinction, absorption, and size (which is asymmetry
+# param).  At each level: extinction, SSA, asymmetry param.  Dave is assuming
+# SSA and asymmetry param constant with altitude.
+AEROSOL_EXTINCTION_NAME = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 
 TRACE_GAS_NAMES = [
-    O2_MIXING_RATIO_NAME, CO2_MIXING_RATIO_NAME,
-    CH4_MIXING_RATIO_NAME, N2O_MIXING_RATIO_NAME
+    O2_CONCENTRATION_NAME, CO2_CONCENTRATION_NAME,
+    CH4_CONCENTRATION_NAME, N2O_CONCENTRATION_NAME
 ]
 EFFECTIVE_RADIUS_NAMES = [LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME]
 AEROSOL_NAMES = [
-    AEROSOL_OPTICAL_DEPTH_NAME, AEROSOL_ALBEDO_NAME,
+    AEROSOL_EXTINCTION_NAME, AEROSOL_ALBEDO_NAME,
     AEROSOL_ASYMMETRY_PARAM_NAME
 ]
 
@@ -150,8 +156,8 @@ BASIC_VECTOR_PREDICTOR_NAMES = [
 
 ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
     LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME,
-    O2_MIXING_RATIO_NAME, CO2_MIXING_RATIO_NAME, CH4_MIXING_RATIO_NAME,
-    N2O_MIXING_RATIO_NAME, AEROSOL_OPTICAL_DEPTH_NAME, AEROSOL_ALBEDO_NAME,
+    O2_CONCENTRATION_NAME, CO2_CONCENTRATION_NAME, CH4_CONCENTRATION_NAME,
+    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME, AEROSOL_ALBEDO_NAME,
     AEROSOL_ASYMMETRY_PARAM_NAME
 ]
 
@@ -286,9 +292,9 @@ def _add_height_padding(example_dict, desired_heights_m_agl):
     return example_dict
 
 
-def _interp_mixing_ratios(orig_mixing_ratios_kg_kg01, orig_heights_m_asl,
-                          new_heights_m_agl):
-    """Interpolates mixing ratios to new heights.
+def _interp_concentrations(orig_concentrations_ppmv, orig_heights_m_asl,
+                           new_heights_m_agl):
+    """Interpolates concentrations to new heights.
 
     h = number of heights in original grid
     H = number of heights in new grid
@@ -296,16 +302,17 @@ def _interp_mixing_ratios(orig_mixing_ratios_kg_kg01, orig_heights_m_asl,
     Note that this method does *not* try to match heights above ground and above
     sea level.  It assumes that ground level = sea level everywhere.
 
-    :param orig_mixing_ratios_kg_kg01: length-h numpy array of mixing ratios.
+    :param orig_concentrations_ppmv: length-h numpy array of concentrations
+        (parts per million by volume).
     :param orig_heights_m_asl: length-h numpy array of heights (metres above sea
         level).
     :param new_heights_m_agl: length-H numpy array of heights (metres above
         ground level).
-    :return: new_mixing_ratios_kg_kg01: length-H numpy array of mixing ratios.
+    :return: new_concentrations_ppmv: length-H numpy array of concentrations.
     """
 
     interp_object = interp1d(
-        x=orig_heights_m_asl, y=orig_mixing_ratios_kg_kg01,
+        x=orig_heights_m_asl, y=orig_concentrations_ppmv,
         kind='linear', bounds_error=True, assume_sorted=True
     )
 
@@ -390,6 +397,119 @@ def _example_ids_to_standard_atmos(example_id_strings):
 
     standard_atmo_enums[tropical_indices] = TROPICS_ENUM
     return standard_atmo_enums
+
+
+def _get_aerosol_extinction_profiles_one_region(
+        region_name, num_examples, grid_heights_m_agl, test_mode=False):
+    """Generates aerosol-extinction profiles for one region.
+
+    E = number of examples
+    H = number of heights
+
+    :param region_name: Name of aerosol region.
+    :param num_examples: Number of examples (E in above discussion).
+    :param grid_heights_m_agl: length-H numpy array of heights (metres above
+        ground level).
+    :param test_mode: Leave this alone.
+    :return: extinction_matrix_metres01: E-by-H numpy array of extinction
+        values.
+    """
+
+    num_heights = len(grid_heights_m_agl)
+    grid_height_matrix_metres = numpy.repeat(
+        numpy.expand_dims(grid_heights_m_agl, axis=0),
+        axis=0, repeats=num_examples
+    )
+
+    this_stdev = (
+        0. if test_mode
+        else aerosols.REGION_TO_SCALE_HEIGHT_STDEV_METRES[region_name]
+    )
+    scale_heights_metres = numpy.random.normal(
+        loc=aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[region_name],
+        scale=this_stdev, size=num_examples
+    )
+    scale_height_matrix_metres = numpy.repeat(
+        numpy.expand_dims(scale_heights_metres, axis=-1),
+        axis=-1, repeats=num_heights
+    )
+    baseline_extinction_matrix_metres01 = 0.001 * numpy.exp(
+        -grid_height_matrix_metres / scale_height_matrix_metres
+    )
+
+    if test_mode:
+        baseline_optical_depths = numpy.sum(
+            baseline_extinction_matrix_metres01 * grid_height_matrix_metres,
+            axis=-1
+        )
+        actual_optical_depths = numpy.random.normal(
+            loc=(
+                aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name] *
+                aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name]
+            ),
+            scale=0., size=num_examples
+        )
+    else:
+        baseline_optical_depths = simps(
+            y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
+            axis=-1, even='avg'
+        )
+        actual_optical_depths = numpy.random.gamma(
+            shape=aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
+            scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
+            size=num_examples
+        )
+
+    scale_factors = actual_optical_depths / baseline_optical_depths
+    scale_factor_matrix = numpy.repeat(
+        numpy.expand_dims(scale_factors, axis=-1),
+        axis=-1, repeats=num_heights
+    )
+
+    return scale_factor_matrix * baseline_extinction_matrix_metres01
+
+
+def _add_noise_to_profiles(
+        data_matrix, profile_noise_stdev_fractional,
+        indiv_noise_stdev_fractional):
+    """Adds noise to profiles of any variable.
+
+    E = number of examples
+    H = number of heights
+
+    :param data_matrix: E-by-H numpy array of data values.
+    :param profile_noise_stdev_fractional: Standard deviation of Gaussian noise
+        for full profiles.  If you do not want this type of noise, make the
+        input arg <= 0.
+    :param indiv_noise_stdev_fractional: Standard deviation of Gaussian noise
+        for height-dependent values.  If you do not want this type of noise,
+        make the input arg <= 0.
+    :return: data_matrix: Same as input but with noise.
+    """
+
+    num_examples = data_matrix.shape[0]
+    num_heights = data_matrix.shape[1]
+
+    if profile_noise_stdev_fractional <= 0:
+        profile_noise_stdev_fractional = None
+    if indiv_noise_stdev_fractional <= 0:
+        indiv_noise_stdev_fractional = None
+
+    if profile_noise_stdev_fractional is not None:
+        noise_matrix = numpy.random.normal(
+            loc=0., scale=profile_noise_stdev_fractional, size=num_examples
+        )
+        noise_matrix = numpy.expand_dims(noise_matrix, axis=1)
+        noise_matrix = numpy.repeat(noise_matrix, axis=1, repeats=num_heights)
+        data_matrix += data_matrix * noise_matrix
+
+    if indiv_noise_stdev_fractional is not None:
+        noise_matrix = numpy.random.normal(
+            loc=0., scale=indiv_noise_stdev_fractional, size=data_matrix.shape
+        )
+        data_matrix += data_matrix * noise_matrix
+
+    return data_matrix
 
 
 def get_grid_cell_edges(heights_m_agl):
@@ -672,23 +792,27 @@ def fluxes_increments_to_actual(example_dict):
     return example_dict
 
 
-def add_trace_gases(example_dict, noise_stdev_fractional):
+def add_trace_gases(example_dict, profile_noise_stdev_fractional,
+                    indiv_noise_stdev_fractional):
     """Adds trace-gas profiles to dictionary.
 
     This method handles four trace gases: O2, CO2, N2O, CH4.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).  Must contain temperature profiles.
-    :param noise_stdev_fractional: Standard deviation of Gaussian noise.  If you
-        do not want to add Gaussian noise to profiles, make this non-positive.
+    :param profile_noise_stdev_fractional: Standard deviation of Gaussian noise
+        for full profiles.  If you do not want this type of noise, make the
+        input arg <= 0.
+    :param indiv_noise_stdev_fractional: Standard deviation of Gaussian noise
+        for height-dependent values.  If you do not want this type of noise,
+        make the input arg <= 0.
     :return: example_dict: Same but with trace-gas profiles.
     """
 
-    error_checking.assert_is_less_than(noise_stdev_fractional, 1.)
-    if noise_stdev_fractional <= 0:
-        noise_stdev_fractional = None
+    error_checking.assert_is_less_than(profile_noise_stdev_fractional, 1.)
+    error_checking.assert_is_less_than(indiv_noise_stdev_fractional, 1.)
 
-    mixing_ratio_dict = trace_gases.read_profiles()
+    concentration_dict = trace_gases.read_profiles()[1]
     standard_atmo_enum_by_example = _example_ids_to_standard_atmos(
         example_dict[EXAMPLE_IDS_KEY]
     )
@@ -697,158 +821,150 @@ def add_trace_gases(example_dict, noise_stdev_fractional):
     num_heights = len(example_dict[HEIGHTS_KEY])
     these_dim = (num_examples, num_heights)
 
-    o2_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
-    co2_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
-    ch4_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
-    n2o_mixing_ratio_matrix_kg_kg01 = numpy.full(these_dim, numpy.nan)
+    o2_concentration_matrix_ppmv = numpy.full(these_dim, numpy.nan)
+    co2_concentration_matrix_ppmv = numpy.full(these_dim, numpy.nan)
+    ch4_concentration_matrix_ppmv = numpy.full(these_dim, numpy.nan)
+    n2o_concentration_matrix_ppmv = numpy.full(these_dim, numpy.nan)
 
     for i in STANDARD_ATMO_ENUMS:
         example_indices = numpy.where(standard_atmo_enum_by_example == i)[0]
         if len(example_indices) == 0:
             continue
 
-        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
-            orig_mixing_ratios_kg_kg01=
-            mixing_ratio_dict[trace_gases.O2_MIXING_RATIOS_KEY][i - 1, :],
-            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+        new_concentrations_ppmv = _interp_concentrations(
+            orig_concentrations_ppmv=
+            concentration_dict[trace_gases.O2_CONCENTRATIONS_KEY][i - 1, :],
+            orig_heights_m_asl=concentration_dict[trace_gases.HEIGHTS_KEY],
             new_heights_m_agl=example_dict[HEIGHTS_KEY]
         )
         for k in example_indices:
-            o2_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+            o2_concentration_matrix_ppmv[k, :] = new_concentrations_ppmv
 
-        if noise_stdev_fractional is not None:
-            noise_matrix = numpy.random.normal(
-                loc=0., scale=noise_stdev_fractional,
-                size=o2_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+        o2_concentration_matrix_ppmv[example_indices, :] = (
+            _add_noise_to_profiles(
+                data_matrix=o2_concentration_matrix_ppmv[example_indices, :],
+                profile_noise_stdev_fractional=profile_noise_stdev_fractional,
+                indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
             )
-            o2_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
-                o2_mixing_ratio_matrix_kg_kg01[example_indices, :] *
-                noise_matrix
-            )
+        )
 
-        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
-            orig_mixing_ratios_kg_kg01=
-            mixing_ratio_dict[trace_gases.CO2_MIXING_RATIOS_KEY][i - 1, :],
-            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+        new_concentrations_ppmv = _interp_concentrations(
+            orig_concentrations_ppmv=
+            concentration_dict[trace_gases.CO2_CONCENTRATIONS_KEY][i - 1, :],
+            orig_heights_m_asl=concentration_dict[trace_gases.HEIGHTS_KEY],
             new_heights_m_agl=example_dict[HEIGHTS_KEY]
         )
         for k in example_indices:
-            co2_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+            co2_concentration_matrix_ppmv[k, :] = new_concentrations_ppmv
 
-        if noise_stdev_fractional is not None:
-            noise_matrix = numpy.random.normal(
-                loc=0., scale=noise_stdev_fractional,
-                size=co2_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+        co2_concentration_matrix_ppmv[example_indices, :] = (
+            _add_noise_to_profiles(
+                data_matrix=co2_concentration_matrix_ppmv[example_indices, :],
+                profile_noise_stdev_fractional=profile_noise_stdev_fractional,
+                indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
             )
-            co2_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
-                co2_mixing_ratio_matrix_kg_kg01[example_indices, :] *
-                noise_matrix
-            )
+        )
 
-        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
-            orig_mixing_ratios_kg_kg01=
-            mixing_ratio_dict[trace_gases.CH4_MIXING_RATIOS_KEY][i - 1, :],
-            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+        new_concentrations_ppmv = _interp_concentrations(
+            orig_concentrations_ppmv=
+            concentration_dict[trace_gases.CH4_CONCENTRATIONS_KEY][i - 1, :],
+            orig_heights_m_asl=concentration_dict[trace_gases.HEIGHTS_KEY],
             new_heights_m_agl=example_dict[HEIGHTS_KEY]
         )
         for k in example_indices:
-            ch4_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+            ch4_concentration_matrix_ppmv[k, :] = new_concentrations_ppmv
 
-        if noise_stdev_fractional is not None:
-            noise_matrix = numpy.random.normal(
-                loc=0., scale=noise_stdev_fractional,
-                size=ch4_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+        ch4_concentration_matrix_ppmv[example_indices, :] = (
+            _add_noise_to_profiles(
+                data_matrix=ch4_concentration_matrix_ppmv[example_indices, :],
+                profile_noise_stdev_fractional=profile_noise_stdev_fractional,
+                indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
             )
-            ch4_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
-                ch4_mixing_ratio_matrix_kg_kg01[example_indices, :] *
-                noise_matrix
-            )
+        )
 
-        new_mixing_ratios_kg_kg01 = _interp_mixing_ratios(
-            orig_mixing_ratios_kg_kg01=
-            mixing_ratio_dict[trace_gases.N2O_MIXING_RATIOS_KEY][i - 1, :],
-            orig_heights_m_asl=mixing_ratio_dict[trace_gases.HEIGHTS_KEY],
+        new_concentrations_ppmv = _interp_concentrations(
+            orig_concentrations_ppmv=
+            concentration_dict[trace_gases.N2O_CONCENTRATIONS_KEY][i - 1, :],
+            orig_heights_m_asl=concentration_dict[trace_gases.HEIGHTS_KEY],
             new_heights_m_agl=example_dict[HEIGHTS_KEY]
         )
         for k in example_indices:
-            n2o_mixing_ratio_matrix_kg_kg01[k, :] = new_mixing_ratios_kg_kg01
+            n2o_concentration_matrix_ppmv[k, :] = new_concentrations_ppmv
 
-        if noise_stdev_fractional is not None:
-            noise_matrix = numpy.random.normal(
-                loc=0., scale=noise_stdev_fractional,
-                size=n2o_mixing_ratio_matrix_kg_kg01[example_indices, :].shape
+        n2o_concentration_matrix_ppmv[example_indices, :] = (
+            _add_noise_to_profiles(
+                data_matrix=n2o_concentration_matrix_ppmv[example_indices, :],
+                profile_noise_stdev_fractional=profile_noise_stdev_fractional,
+                indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
             )
-            n2o_mixing_ratio_matrix_kg_kg01[example_indices, :] += (
-                n2o_mixing_ratio_matrix_kg_kg01[example_indices, :] *
-                noise_matrix
-            )
+        )
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    found_o2 = O2_MIXING_RATIO_NAME in vector_predictor_names
-    found_co2 = CO2_MIXING_RATIO_NAME in vector_predictor_names
-    found_ch4 = CH4_MIXING_RATIO_NAME in vector_predictor_names
-    found_n2o = N2O_MIXING_RATIO_NAME in vector_predictor_names
+    found_o2 = O2_CONCENTRATION_NAME in vector_predictor_names
+    found_co2 = CO2_CONCENTRATION_NAME in vector_predictor_names
+    found_ch4 = CH4_CONCENTRATION_NAME in vector_predictor_names
+    found_n2o = N2O_CONCENTRATION_NAME in vector_predictor_names
 
     if not found_o2:
-        vector_predictor_names.append(O2_MIXING_RATIO_NAME)
+        vector_predictor_names.append(O2_CONCENTRATION_NAME)
     if not found_co2:
-        vector_predictor_names.append(CO2_MIXING_RATIO_NAME)
+        vector_predictor_names.append(CO2_CONCENTRATION_NAME)
     if not found_ch4:
-        vector_predictor_names.append(CH4_MIXING_RATIO_NAME)
+        vector_predictor_names.append(CH4_CONCENTRATION_NAME)
     if not found_n2o:
-        vector_predictor_names.append(N2O_MIXING_RATIO_NAME)
+        vector_predictor_names.append(N2O_CONCENTRATION_NAME)
 
-    o2_index = vector_predictor_names.index(O2_MIXING_RATIO_NAME)
-    co2_index = vector_predictor_names.index(CO2_MIXING_RATIO_NAME)
-    ch4_index = vector_predictor_names.index(CH4_MIXING_RATIO_NAME)
-    n2o_index = vector_predictor_names.index(N2O_MIXING_RATIO_NAME)
+    o2_index = vector_predictor_names.index(O2_CONCENTRATION_NAME)
+    co2_index = vector_predictor_names.index(CO2_CONCENTRATION_NAME)
+    ch4_index = vector_predictor_names.index(CH4_CONCENTRATION_NAME)
+    n2o_index = vector_predictor_names.index(N2O_CONCENTRATION_NAME)
     example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
 
     if found_o2:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][..., o2_index] = (
-            o2_mixing_ratio_matrix_kg_kg01
+            o2_concentration_matrix_ppmv
         )
     else:
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=o2_index, values=o2_mixing_ratio_matrix_kg_kg01, axis=-1
+            obj=o2_index, values=o2_concentration_matrix_ppmv, axis=-1
         )
 
     if found_co2:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][..., co2_index] = (
-            co2_mixing_ratio_matrix_kg_kg01
+            co2_concentration_matrix_ppmv
         )
     else:
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=co2_index, values=co2_mixing_ratio_matrix_kg_kg01, axis=-1
+            obj=co2_index, values=co2_concentration_matrix_ppmv, axis=-1
         )
 
     if found_ch4:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][..., ch4_index] = (
-            ch4_mixing_ratio_matrix_kg_kg01
+            ch4_concentration_matrix_ppmv
         )
     else:
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=ch4_index, values=ch4_mixing_ratio_matrix_kg_kg01, axis=-1
+            obj=ch4_index, values=ch4_concentration_matrix_ppmv, axis=-1
         )
 
     if found_n2o:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][..., n2o_index] = (
-            n2o_mixing_ratio_matrix_kg_kg01
+            n2o_concentration_matrix_ppmv
         )
     else:
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=n2o_index, values=n2o_mixing_ratio_matrix_kg_kg01, axis=-1
+            obj=n2o_index, values=n2o_concentration_matrix_ppmv, axis=-1
         )
 
     return example_dict
 
 
-def add_effective_radii(example_dict, ice_noise_stdev_fractional,
-                        test_mode=False):
+def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
+                        ice_indiv_noise_stdev_fractional, test_mode=False):
     """Adds effective-radius profiles (for both ice and liquid) to dict.
 
     For effective radius of liquid water, using approximation of:
@@ -859,20 +975,14 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional,
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).  Must contain temperature profiles.
-    :param ice_noise_stdev_fractional: Standard deviation of Gaussian noise for
-        effective radius of ice water.  If you do not want to add Gaussian noise
-        to profiles, make this non-positive.
+    :param ice_profile_noise_stdev_fractional: See documentation for
+        `_add_noise_to_profiles`.  Used for ice radii only.
+    :param ice_indiv_noise_stdev_fractional: Same.
     :param test_mode: Leave this alone.
     :return: example_dict: Same but with effective-radius profiles.
     """
 
     error_checking.assert_is_boolean(test_mode)
-    if test_mode:
-        ice_noise_stdev_fractional = -1.
-
-    error_checking.assert_is_less_than(ice_noise_stdev_fractional, 1.)
-    if ice_noise_stdev_fractional <= 0:
-        ice_noise_stdev_fractional = None
 
     temperature_matrix_kelvins = get_field_from_dict(
         example_dict=example_dict, field_name=TEMPERATURE_NAME
@@ -884,16 +994,11 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional,
         ICE_EFF_RADIUS_INTERCEPT_METRES +
         ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01 * temperature_matrix_celsius
     )
-
-    if ice_noise_stdev_fractional is not None:
-        noise_matrix = numpy.random.normal(
-            loc=0., scale=ice_noise_stdev_fractional,
-            size=ice_eff_radius_matrix_metres.shape
-        )
-        ice_eff_radius_matrix_metres += (
-            ice_eff_radius_matrix_metres * noise_matrix
-        )
-
+    ice_eff_radius_matrix_metres = _add_noise_to_profiles(
+        data_matrix=ice_eff_radius_matrix_metres,
+        profile_noise_stdev_fractional=ice_profile_noise_stdev_fractional,
+        indiv_noise_stdev_fractional=ice_indiv_noise_stdev_fractional
+    )
     ice_eff_radius_matrix_metres = numpy.maximum(
         ice_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
     )
@@ -916,18 +1021,38 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional,
     )
 
     if len(land_indices) > 0:
-        liquid_eff_radius_matrix_metres[land_indices, :] = numpy.random.normal(
-            loc=LIQUID_EFF_RADIUS_LAND_MEAN_METRES,
-            scale=0. if test_mode else LIQUID_EFF_RADIUS_LAND_STDEV_METRES,
-            size=liquid_eff_radius_matrix_metres[land_indices, :].shape
+        liquid_eff_radius_matrix_metres[land_indices, :] = (
+            LIQUID_EFF_RADIUS_LAND_MEAN_METRES
         )
 
+        if not test_mode:
+            liquid_eff_radius_matrix_metres[land_indices, :] = (
+                _add_noise_to_profiles(
+                    data_matrix=
+                    liquid_eff_radius_matrix_metres[land_indices, :],
+                    profile_noise_stdev_fractional=
+                    LIQUID_EFF_RADIUS_LAND_STDEV_METRES,
+                    indiv_noise_stdev_fractional=
+                    0.1 * LIQUID_EFF_RADIUS_LAND_STDEV_METRES
+                )
+            )
+
     if len(ocean_indices) > 0:
-        liquid_eff_radius_matrix_metres[ocean_indices, :] = numpy.random.normal(
-            loc=LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES,
-            scale=0. if test_mode else LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES,
-            size=liquid_eff_radius_matrix_metres[ocean_indices, :].shape
+        liquid_eff_radius_matrix_metres[ocean_indices, :] = (
+            LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES
         )
+
+        if not test_mode:
+            liquid_eff_radius_matrix_metres[ocean_indices, :] = (
+                _add_noise_to_profiles(
+                    data_matrix=
+                    liquid_eff_radius_matrix_metres[ocean_indices, :],
+                    profile_noise_stdev_fractional=
+                    LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES,
+                    indiv_noise_stdev_fractional=
+                    0.1 * LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES
+                )
+            )
 
     liquid_eff_radius_matrix_metres = numpy.maximum(
         liquid_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
@@ -973,53 +1098,101 @@ def add_effective_radii(example_dict, ice_noise_stdev_fractional,
     return example_dict
 
 
-def add_aerosols(example_dict):
+def add_aerosols(example_dict, test_mode=False):
     """Adds aerosol profiles to dictionary.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
+    :param test_mode: Leave this alone.
     :return: example_dict: Same but with aerosol profiles.
     """
 
+    error_checking.assert_is_boolean(test_mode)
+
+    grid_heights_m_agl = example_dict[HEIGHTS_KEY]
     num_examples = len(example_dict[EXAMPLE_IDS_KEY])
-    num_heights = len(example_dict[HEIGHTS_KEY])
+    num_heights = len(grid_heights_m_agl)
 
     these_dim = (num_examples, num_heights)
-    optical_depth_matrix_metres = numpy.full(these_dim, 0.)
-    albedo_matrix = numpy.full(these_dim, 1.)
-    asymmetry_param_matrix = numpy.full(these_dim, 2.)
+    extinction_matrix_metres01 = numpy.full(these_dim, numpy.nan)
+    albedo_matrix = numpy.full(these_dim, numpy.nan)
+    asymmetry_param_matrix = numpy.full(these_dim, numpy.nan)
+
+    metadata_dict = parse_example_ids(example_dict[EXAMPLE_IDS_KEY])
+    region_name_by_example = aerosols.assign_examples_to_regions(
+        example_latitudes_deg_n=metadata_dict[LATITUDES_KEY],
+        example_longitudes_deg_e=metadata_dict[LONGITUDES_KEY]
+    )
+    unique_region_names, orig_to_unique_indices = numpy.unique(
+        numpy.array(region_name_by_example), return_inverse=True
+    )
+
+    for i in range(len(unique_region_names)):
+        these_example_indices = numpy.where(orig_to_unique_indices == i)[0]
+
+        this_stdev = (
+            0. if test_mode
+            else aerosols.REGION_TO_ALBEDO_STDEV[unique_region_names[i]]
+        )
+        these_albedos = numpy.random.normal(
+            loc=aerosols.REGION_TO_ALBEDO_MEAN[unique_region_names[i]],
+            scale=this_stdev, size=len(these_example_indices)
+        )
+        albedo_matrix[these_example_indices, :] = numpy.repeat(
+            numpy.expand_dims(these_albedos, axis=-1),
+            axis=-1, repeats=num_heights
+        )
+
+        this_stdev = (
+            0. if test_mode
+            else aerosols.REGION_TO_ASYMMETRY_PARAM_STDEV[unique_region_names[i]]
+        )
+        these_asymmetry_params = numpy.random.normal(
+            loc=aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[unique_region_names[i]],
+            scale=this_stdev, size=len(these_example_indices)
+        )
+        asymmetry_param_matrix[these_example_indices, :] = numpy.repeat(
+            numpy.expand_dims(these_asymmetry_params, axis=-1),
+            axis=-1, repeats=num_heights
+        )
+
+        extinction_matrix_metres01[these_example_indices, :] = (
+            _get_aerosol_extinction_profiles_one_region(
+                region_name=unique_region_names[i],
+                num_examples=len(these_example_indices),
+                grid_heights_m_agl=grid_heights_m_agl, test_mode=test_mode
+            )
+        )
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    found_optical_depth = AEROSOL_OPTICAL_DEPTH_NAME in vector_predictor_names
+    found_extinction = AEROSOL_EXTINCTION_NAME in vector_predictor_names
     found_albedo = AEROSOL_ALBEDO_NAME in vector_predictor_names
     found_asymmetry_param = (
         AEROSOL_ASYMMETRY_PARAM_NAME in vector_predictor_names
     )
 
-    if not found_optical_depth:
-        vector_predictor_names.append(AEROSOL_OPTICAL_DEPTH_NAME)
+    if not found_extinction:
+        vector_predictor_names.append(AEROSOL_EXTINCTION_NAME)
     if not found_albedo:
         vector_predictor_names.append(AEROSOL_ALBEDO_NAME)
     if not found_asymmetry_param:
         vector_predictor_names.append(AEROSOL_ASYMMETRY_PARAM_NAME)
 
-    optical_depth_index = vector_predictor_names.index(
-        AEROSOL_OPTICAL_DEPTH_NAME
-    )
+    extinction_index = vector_predictor_names.index(AEROSOL_EXTINCTION_NAME)
     albedo_index = vector_predictor_names.index(AEROSOL_ALBEDO_NAME)
     asymmetry_param_index = vector_predictor_names.index(
         AEROSOL_ASYMMETRY_PARAM_NAME
     )
     example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
 
-    if found_optical_depth:
+    if found_extinction:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][
-            ..., optical_depth_index
-        ] = optical_depth_matrix_metres
+            ..., extinction_index
+        ] = extinction_matrix_metres01
     else:
         example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=optical_depth_index, values=optical_depth_matrix_metres,
+            obj=extinction_index, values=extinction_matrix_metres01,
             axis=-1
         )
 

@@ -270,19 +270,6 @@ def _read_file_for_generator(
         max_lwp_kg_m02=max_column_lwp_kg_m02
     )[0]
 
-    if any([f in field_names for f in example_utils.TRACE_GAS_NAMES]):
-        example_dict = example_utils.add_trace_gases(
-            example_dict=example_dict, noise_stdev_fractional=0.05
-        )
-
-    if any([f in field_names for f in example_utils.EFFECTIVE_RADIUS_NAMES]):
-        example_dict = example_utils.add_effective_radii(
-            example_dict=example_dict, ice_noise_stdev_fractional=0.05
-        )
-
-    if any([f in field_names for f in example_utils.AEROSOL_NAMES]):
-        example_dict = example_utils.add_aerosols(example_dict)
-
     example_dict = example_utils.subset_by_field(
         example_dict=example_dict, field_names=field_names
     )
@@ -404,21 +391,6 @@ def _read_specific_examples(
         this_example_dict = example_utils.subset_by_index(
             example_dict=this_example_dict, desired_indices=these_indices
         )
-
-        if any([f in field_names for f in example_utils.TRACE_GAS_NAMES]):
-            this_example_dict = example_utils.add_trace_gases(
-                example_dict=this_example_dict, noise_stdev_fractional=0.05
-            )
-
-        if any([
-                f in field_names for f in example_utils.EFFECTIVE_RADIUS_NAMES
-        ]):
-            this_example_dict = example_utils.add_effective_radii(
-                example_dict=this_example_dict, ice_noise_stdev_fractional=0.05
-            )
-
-        if any([f in field_names for f in example_utils.AEROSOL_NAMES]):
-            this_example_dict = example_utils.add_aerosols(this_example_dict)
 
         this_example_dict = example_utils.subset_by_field(
             example_dict=this_example_dict, field_names=field_names
