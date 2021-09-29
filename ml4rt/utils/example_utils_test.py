@@ -88,7 +88,7 @@ GRID_CELL_WIDTHS_METRES = numpy.array([
 ], dtype=float)
 
 # The following constants are used to test add_trace_gases.
-THIS_TRACE_GAS_DICT = trace_gases.read_profiles()
+THIS_TRACE_GAS_DICT = trace_gases.read_profiles()[1]
 THESE_HEIGHTS_M_AGL = THIS_TRACE_GAS_DICT[trace_gases.HEIGHTS_KEY][:6]
 
 THIS_TEMP_MATRIX_KELVINS = numpy.array([
@@ -111,18 +111,18 @@ EXAMPLE_DICT_NO_TRACE_GASES = {
 }
 
 THESE_PREDICTOR_NAMES = [
-    example_utils.TEMPERATURE_NAME, example_utils.O2_MIXING_RATIO_NAME,
-    example_utils.CO2_MIXING_RATIO_NAME, example_utils.CH4_MIXING_RATIO_NAME,
-    example_utils.N2O_MIXING_RATIO_NAME
+    example_utils.TEMPERATURE_NAME, example_utils.O2_CONCENTRATION_NAME,
+    example_utils.CO2_CONCENTRATION_NAME, example_utils.CH4_CONCENTRATION_NAME,
+    example_utils.N2O_CONCENTRATION_NAME
 ]
 
 THESE_INDICES = numpy.array([3, 1, 2], dtype=int)
 THIS_PREDICTOR_MATRIX = numpy.stack((
     THIS_TEMP_MATRIX_KELVINS,
-    THIS_TRACE_GAS_DICT[trace_gases.O2_MIXING_RATIOS_KEY][THESE_INDICES, :6],
-    THIS_TRACE_GAS_DICT[trace_gases.CO2_MIXING_RATIOS_KEY][THESE_INDICES, :6],
-    THIS_TRACE_GAS_DICT[trace_gases.CH4_MIXING_RATIOS_KEY][THESE_INDICES, :6],
-    THIS_TRACE_GAS_DICT[trace_gases.N2O_MIXING_RATIOS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.O2_CONCENTRATIONS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.CO2_CONCENTRATIONS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.CH4_CONCENTRATIONS_KEY][THESE_INDICES, :6],
+    THIS_TRACE_GAS_DICT[trace_gases.N2O_CONCENTRATIONS_KEY][THESE_INDICES, :6]
 ), axis=-1)
 
 EXAMPLE_DICT_WITH_TRACE_GASES = {
@@ -1197,7 +1197,8 @@ class ExampleUtilsTests(unittest.TestCase):
 
         this_example_dict = example_utils.add_trace_gases(
             example_dict=copy.deepcopy(EXAMPLE_DICT_NO_TRACE_GASES),
-            noise_stdev_fractional=0.
+            profile_noise_stdev_fractional=0.,
+            indiv_noise_stdev_fractional=0.
         )
 
         self.assertTrue(_compare_example_dicts(
@@ -1209,7 +1210,8 @@ class ExampleUtilsTests(unittest.TestCase):
 
         this_example_dict = example_utils.add_effective_radii(
             example_dict=copy.deepcopy(EXAMPLE_DICT_NO_RADII),
-            ice_noise_stdev_fractional=0., test_mode=True
+            ice_profile_noise_stdev_fractional=0.,
+            ice_indiv_noise_stdev_fractional=0., test_mode=True
         )
 
         self.assertTrue(_compare_example_dicts(
@@ -1221,7 +1223,7 @@ class ExampleUtilsTests(unittest.TestCase):
 
         this_example_dict = example_utils.add_aerosols(
             example_dict=copy.deepcopy(EXAMPLE_DICT_NO_AEROSOLS),
-            test_mode=False
+            test_mode=True
         )
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_AEROSOLS

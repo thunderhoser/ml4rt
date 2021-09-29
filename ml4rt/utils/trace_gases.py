@@ -17,6 +17,11 @@ CO2_MIXING_RATIOS_KEY = 'co2_mixing_ratio_matrix_kg_kg01'
 CH4_MIXING_RATIOS_KEY = 'ch4_mixing_ratio_matrix_kg_kg01'
 N2O_MIXING_RATIOS_KEY = 'n2o_mixing_ratio_matrix_kg_kg01'
 
+O2_CONCENTRATIONS_KEY = 'o2_concentration_matrix_ppmv'
+CO2_CONCENTRATIONS_KEY = 'co2_concentration_matrix_ppmv'
+CH4_CONCENTRATIONS_KEY = 'ch4_concentration_matrix_ppmv'
+N2O_CONCENTRATIONS_KEY = 'n2o_concentration_matrix_ppmv'
+
 KM_TO_METRES = 1e3
 MOLAR_MASS_DRY_AIR_GRAMS_MOL01 = 28.97
 MOLAR_MASS_O2_GRAMS_MOL01 = 31.9988
@@ -47,6 +52,18 @@ def read_profiles(netcdf_file_name=None):
         with mixing ratios of CH4.
     mixing_ratio_dict['n2o_mixing_ratio_matrix_kg_kg01']: A-by-H numpy array
         with mixing ratios of N2O.
+
+    :return: concentration_dict: Dictionary with the following keys.
+    concentration_dict['heights_m_asl']: See above.
+    concentration_dict['standard_atmo_enums']: See above.
+    concentration_dict['o2_concentration_matrix_ppmv']: A-by-H numpy array with
+        concentrations (parts per million by volume) of O2.
+    concentration_dict['co2_concentration_matrix_ppmv']: A-by-H numpy array
+        with concentrations of CO2.
+    concentration_dict['ch4_concentration_matrix_ppmv']: A-by-H numpy array
+        with concentrations of CH4.
+    concentration_dict['n2o_concentration_matrix_ppmv']: A-by-H numpy array
+        with concentrations of N2O.
     """
 
     if netcdf_file_name is None:
@@ -57,33 +74,60 @@ def read_profiles(netcdf_file_name=None):
     ))
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
-    o2_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
-        dataset_object.variables['o2'][:] *
+    o2_concentration_matrix_ppmv = numpy.transpose(
+        dataset_object.variables['o2'][:]
+    )
+    co2_concentration_matrix_ppmv = numpy.transpose(
+        dataset_object.variables['co2'][:]
+    )
+    ch4_concentration_matrix_ppmv = numpy.transpose(
+        dataset_object.variables['ch4'][:]
+    )
+    n2o_concentration_matrix_ppmv = numpy.transpose(
+        dataset_object.variables['n2o'][:]
+    )
+
+    o2_mixing_ratio_matrix_kg_kg01 = (
+        1e-6 * o2_concentration_matrix_ppmv *
         MOLAR_MASS_O2_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    co2_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
-        dataset_object.variables['co2'][:] *
+    co2_mixing_ratio_matrix_kg_kg01 = (
+        1e-6 * co2_concentration_matrix_ppmv *
         MOLAR_MASS_CO2_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    ch4_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
-        dataset_object.variables['ch4'][:] *
+    ch4_mixing_ratio_matrix_kg_kg01 = (
+        1e-6 * ch4_concentration_matrix_ppmv *
         MOLAR_MASS_CH4_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    n2o_mixing_ratio_matrix_kg_kg01 = 1e-6 * numpy.transpose(
-        dataset_object.variables['n2o'][:] *
+    n2o_mixing_ratio_matrix_kg_kg01 = (
+        1e-6 * n2o_concentration_matrix_ppmv *
         MOLAR_MASS_N2O_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
 
     heights_m_asl = KM_TO_METRES * dataset_object.variables[ORIG_HEIGHT_KEY][:]
-    num_standard_atmospheres = n2o_mixing_ratio_matrix_kg_kg01.shape[1]
+    heights_m_asl = heights_m_asl.filled(0.)
 
-    return {
-        HEIGHTS_KEY: heights_m_asl.filled(0.),
-        STANDARD_ATMOSPHERES_KEY: numpy.linspace(
-            1, num_standard_atmospheres, num=num_standard_atmospheres, dtype=int
-        ),
+    num_standard_atmospheres = n2o_mixing_ratio_matrix_kg_kg01.shape[1]
+    standard_atmosphere_enums = numpy.linspace(
+        1, num_standard_atmospheres, num=num_standard_atmospheres, dtype=int
+    )
+
+    mixing_ratio_dict = {
+        HEIGHTS_KEY: heights_m_asl,
+        STANDARD_ATMOSPHERES_KEY: standard_atmosphere_enums,
         O2_MIXING_RATIOS_KEY: o2_mixing_ratio_matrix_kg_kg01.filled(0.),
         CO2_MIXING_RATIOS_KEY: co2_mixing_ratio_matrix_kg_kg01.filled(0.),
         CH4_MIXING_RATIOS_KEY: ch4_mixing_ratio_matrix_kg_kg01.filled(0.),
         N2O_MIXING_RATIOS_KEY: n2o_mixing_ratio_matrix_kg_kg01.filled(0.)
     }
+
+    concentration_dict = {
+        HEIGHTS_KEY: heights_m_asl,
+        STANDARD_ATMOSPHERES_KEY: standard_atmosphere_enums,
+        O2_CONCENTRATIONS_KEY: o2_concentration_matrix_ppmv.filled(0.),
+        CO2_CONCENTRATIONS_KEY: co2_concentration_matrix_ppmv.filled(0.),
+        CH4_CONCENTRATIONS_KEY: ch4_concentration_matrix_ppmv.filled(0.),
+        N2O_CONCENTRATIONS_KEY: n2o_concentration_matrix_ppmv.filled(0.)
+    }
+
+    return mixing_ratio_dict, concentration_dict
