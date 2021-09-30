@@ -95,7 +95,7 @@ class PrepareGfsForRrtmTests(unittest.TestCase):
         for j in range(FIRST_NUM_SITES):
             this_diff_matrix = numpy.absolute(numpy.diff(
                 this_interp_data_dict[
-                    prepare_gfs.CH4_MIXR_KEY_ORIG_KG_KG01
+                    prepare_gfs.CH4_CONCENTRATION_KEY_ORIG_PPMV
                 ][:, j, :],
                 axis=0
             ))
@@ -106,7 +106,7 @@ class PrepareGfsForRrtmTests(unittest.TestCase):
         for i in range(FIRST_NUM_TIMES):
             this_diff_matrix = numpy.absolute(numpy.diff(
                 this_interp_data_dict[
-                    prepare_gfs.CH4_MIXR_KEY_ORIG_KG_KG01
+                    prepare_gfs.CH4_CONCENTRATION_KEY_ORIG_PPMV
                 ][i, ...],
                 axis=0
             ))
@@ -130,7 +130,7 @@ class PrepareGfsForRrtmTests(unittest.TestCase):
         for j in range(SECOND_NUM_SITES):
             this_diff_matrix = numpy.absolute(numpy.diff(
                 this_interp_data_dict[
-                    prepare_gfs.CH4_MIXR_KEY_ORIG_KG_KG01
+                    prepare_gfs.CH4_CONCENTRATION_KEY_ORIG_PPMV
                 ][:, j, :],
                 axis=0
             ))
@@ -141,7 +141,7 @@ class PrepareGfsForRrtmTests(unittest.TestCase):
         for i in range(SECOND_NUM_TIMES):
             this_diff_matrix = numpy.absolute(numpy.diff(
                 this_interp_data_dict[
-                    prepare_gfs.CH4_MIXR_KEY_ORIG_KG_KG01
+                    prepare_gfs.CH4_CONCENTRATION_KEY_ORIG_PPMV
                 ][i, ...],
                 axis=0
             ))

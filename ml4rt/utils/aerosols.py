@@ -27,9 +27,8 @@ ALL_REGION_NAMES = [
     BIOMASS_BURNING_REGION_NAME, LAND_REGION_NAME, OCEAN_REGION_NAME
 ]
 
-# Shape parameter in gamma dist for aerosol optical depth.  This value is
-# unitless.
-REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM = {
+# Mean aerosol optical depth.  This value is unitless.
+REGION_TO_OPTICAL_DEPTH_MEAN = {
     POLAR_REGION_NAME: 0.03,
     FIRST_URBAN_REGION_NAME: 0.15,
     SECOND_URBAN_REGION_NAME: 0.2,
@@ -40,9 +39,8 @@ REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM = {
     OCEAN_REGION_NAME: 0.07
 }
 
-# Scale parameter in gamma dist for aerosol optical depth.  This value is
-# unitless.
-REGION_TO_OPTICAL_DEPTH_VARIANCE_PARAM = {
+# Standard deviation of aerosol optical depth.  This value is unitless.
+REGION_TO_OPTICAL_DEPTH_STDEV = {
     POLAR_REGION_NAME: 0.2,
     FIRST_URBAN_REGION_NAME: 0.2,
     SECOND_URBAN_REGION_NAME: 0.3,
@@ -53,13 +51,17 @@ REGION_TO_OPTICAL_DEPTH_VARIANCE_PARAM = {
     OCEAN_REGION_NAME: 0.1
 }
 
+REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM = dict()
 REGION_TO_OPTICAL_DEPTH_SCALE_PARAM = dict()
 
-for j in REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM:
-    REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[j] = numpy.power(
-        REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[j] /
-        REGION_TO_OPTICAL_DEPTH_VARIANCE_PARAM[j],
-        -0.5
+for j in REGION_TO_OPTICAL_DEPTH_MEAN:
+    REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[j] = (
+        REGION_TO_OPTICAL_DEPTH_MEAN[j] / REGION_TO_OPTICAL_DEPTH_STDEV[j]
+    ) ** 2
+
+    REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[j] = (
+        (REGION_TO_OPTICAL_DEPTH_STDEV[j] ** 2) /
+        REGION_TO_OPTICAL_DEPTH_MEAN[j]
     )
 
 # Mean single-scattering albedo.  This value is unitless.

@@ -28,7 +28,16 @@ LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES = 9.5e-6
 LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES = 1.2e-6
 ICE_EFF_RADIUS_INTERCEPT_METRES = 86.73e-6
 ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01 = 1.07e-6
-MIN_EFFECTIVE_RADIUS_METRES = 1e-6
+
+MIN_ICE_EFF_RADIUS_METRES = (
+    ICE_EFF_RADIUS_INTERCEPT_METRES -
+    65 * ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01
+)
+MAX_ICE_EFF_RADIUS_METRES = (
+    ICE_EFF_RADIUS_INTERCEPT_METRES -
+    20 * ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01
+)
+MIN_LIQUID_EFF_RADIUS_METRES = 1e-6
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
@@ -411,6 +420,7 @@ def _get_aerosol_extinction_profiles_one_region(
         loc=aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[region_name],
         scale=this_stdev, size=num_examples
     )
+    scale_heights_metres = numpy.maximum(scale_heights_metres, 100.)
     scale_height_matrix_metres = numpy.repeat(
         numpy.expand_dims(scale_heights_metres, axis=-1),
         axis=-1, repeats=num_heights
@@ -442,6 +452,8 @@ def _get_aerosol_extinction_profiles_one_region(
             scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
             size=num_examples
         )
+
+    actual_optical_depths = numpy.maximum(actual_optical_depths, 0.)
 
     scale_factors = actual_optical_depths / baseline_optical_depths
     scale_factor_matrix = numpy.repeat(
@@ -967,7 +979,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
     https://doi.org/10.1175/1520-0469(2000)057%3C0295:CDSDIL%3E2.0.CO;2
 
     For effective radius of ice water, using:
-    https://doi.org/10.1002/2013JD020602
+    Figure 6 of https://doi.org/10.1002/2013JD020602
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).  Must contain temperature profiles.
@@ -995,8 +1007,12 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
         profile_noise_stdev_fractional=ice_profile_noise_stdev_fractional,
         indiv_noise_stdev_fractional=ice_indiv_noise_stdev_fractional
     )
+
     ice_eff_radius_matrix_metres = numpy.maximum(
-        ice_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
+        ice_eff_radius_matrix_metres, MIN_ICE_EFF_RADIUS_METRES
+    )
+    ice_eff_radius_matrix_metres = numpy.minimum(
+        ice_eff_radius_matrix_metres, MAX_ICE_EFF_RADIUS_METRES
     )
 
     metadata_dict = parse_example_ids(example_dict[EXAMPLE_IDS_KEY])
@@ -1051,7 +1067,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
             )
 
     liquid_eff_radius_matrix_metres = numpy.maximum(
-        liquid_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
+        liquid_eff_radius_matrix_metres, MIN_LIQUID_EFF_RADIUS_METRES
     )
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
@@ -1152,6 +1168,11 @@ def add_aerosols(example_dict, test_mode=False):
                 grid_heights_m_agl=grid_heights_m_agl, test_mode=test_mode
             )
         )
+
+    albedo_values = numpy.maximum(albedo_values, 0.)
+    albedo_values = numpy.minimum(albedo_values, 1.)
+    asymmetry_param_values = numpy.maximum(asymmetry_param_values, 0.)
+    asymmetry_param_values = numpy.minimum(asymmetry_param_values, 1.)
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
     scalar_predictor_names = example_dict[SCALAR_PREDICTOR_NAMES_KEY]

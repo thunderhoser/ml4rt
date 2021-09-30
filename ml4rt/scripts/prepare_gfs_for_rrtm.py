@@ -5,7 +5,6 @@ import numpy
 import xarray
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
-from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -19,11 +18,8 @@ PROFILE_NOISE_STDEV_FRACTIONAL = 0.05
 INDIV_NOISE_STDEV_FRACTIONAL = 0.005
 
 SECONDS_TO_HOURS = 1. / 3600
-PASCALS_TO_MB = 0.01
-KG_TO_GRAMS = 1e3
 UNITLESS_TO_PERCENT = 100.
 PERCENT_TO_UNITLESS = 0.01
-DUMMY_DOWN_SURFACE_FLUX_W_M02 = 1000.
 DRY_AIR_GAS_CONSTANT_J_KG01_K01 = 287.04
 
 SITE_DIMENSION_ORIG = 'site_index'
@@ -54,10 +50,10 @@ ALBEDO_KEY_ORIG_PERCENT = 'albdo_ave'
 PRESSURE_KEY_ORIG_PASCALS = 'pressure_pa'
 PRESSURE_AT_EDGE_KEY_ORIG_PASCALS = 'pressure_at_edge_pa'
 
-O2_MIXR_KEY_ORIG_KG_KG01 = 'o2_mixing_ratio_kg_kg01'
-CO2_MIXR_KEY_ORIG_KG_KG01 = 'co2_mixing_ratio_kg_kg01'
-CH4_MIXR_KEY_ORIG_KG_KG01 = 'ch4_mixing_ratio_kg_kg01'
-N2O_MIXR_KEY_ORIG_KG_KG01 = 'n2o_mixing_ratio_kg_kg01'
+O2_CONCENTRATION_KEY_ORIG_PPMV = 'o2_concentration_ppmv'
+CO2_CONCENTRATION_KEY_ORIG_PPMV = 'co2_concentration_ppmv'
+CH4_CONCENTRATION_KEY_ORIG_PPMV = 'ch4_concentration_ppmv'
+N2O_CONCENTRATION_KEY_ORIG_PPMV = 'n2o_concentration_ppmv'
 LIQUID_EFF_RADIUS_KEY_ORIG_METRES = 'liquid_eff_radius_metres'
 ICE_EFF_RADIUS_KEY_ORIG_METRES = 'ice_eff_radius_metres'
 AEROSOL_EXTINCTION_KEY_ORIG_METRES01 = 'aerosol_extinction_metres01'
@@ -78,21 +74,25 @@ CONSERVE_JUMP_KEYS_ORIG = [
 ]
 SCALAR_KEYS_ORIG = [AEROSOL_ALBEDO_KEY_ORIG, AEROSOL_ASYMMETRY_PARAM_KEY_ORIG]
 
-SITE_NAME_KEY = 'dsite'
-LATITUDE_KEY_DEG_N = 'mlat'
-LONGITUDE_KEY_DEG_E = 'mlon'
-FORECAST_HOUR_KEY = 'forecast'
-HEIGHT_KEY_M_AGL = 'height'
-TEMPERATURE_KEY_CELSIUS = 't0'
-VAPOUR_MIXR_KEY_G_KG01 = 'r0'
+SITE_NAME_KEY = 'site_name'
+LATITUDE_KEY_DEG_N = 'site_latitude_deg_n'
+LONGITUDE_KEY_DEG_E = 'site_longitude_deg_e'
+FORECAST_HOUR_KEY = 'forecast_hour'
+HEIGHT_KEY_M_AGL = 'height_m_agl'
+PRESSURE_KEY_PASCALS = 'pressure_pascals'
+PRESSURE_AT_EDGE_KEY_PASCALS = 'pressure_at_edge_pascals'
+TEMPERATURE_KEY_KELVINS = 'temperature_kelvins'
+VAPOUR_MIXR_KEY_KG_KG01 = 'vapour_mixing_ratio_kg_kg01'
+
+# TODO(thunderhoser): Should I be adding paths together?
 LIQUID_WATER_PATH_KEY_KG_M02 = 'layerwise_liquid_water_path_kg_m02'
 RAIN_WATER_PATH_KEY_KG_M02 = 'layerwise_rain_water_path_kg_m02'
 ICE_WATER_PATH_KEY_KG_M02 = 'layerwise_ice_water_path_kg_m02'
 GRAUPEL_PATH_KEY_KG_M02 = 'layerwise_graupel_path_kg_m02'
 SNOW_PATH_KEY_KG_M02 = 'layerwise_snow_path_kg_m02'
-DOWN_SURFACE_FLUX_KEY_W_M02 = 'dswsfc0'
-UP_SURFACE_FLUX_KEY_W_M02 = 'uswsfc0'
-CLOUD_FRACTION_KEY_PERCENT = 'totcc0'
+OZONE_MIXR_KEY_KG_KG01 = 'ozone_mixing_ratio_kg_kg01'
+CLOUD_FRACTION_KEY_PERCENT = 'cloud_fraction_percent'
+ALBEDO_KEY = 'surface_albedo'
 
 ORIG_TO_NEW_KEY_DICT = {
     CLOUD_FRACTION_KEY_ORIG: CLOUD_FRACTION_KEY_PERCENT,
@@ -101,15 +101,15 @@ ORIG_TO_NEW_KEY_DICT = {
     CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01: ICE_WATER_PATH_KEY_KG_M02,
     GRAUPEL_MIXR_KEY_ORIG_KG_KG01: GRAUPEL_PATH_KEY_KG_M02,
     SNOW_MIXR_KEY_ORIG_KG_KG01: SNOW_PATH_KEY_KG_M02,
-    OZONE_MIXR_KEY_ORIG_KG_KG01: 'ozone_mixing_ratio_kg_kg01',
-    TEMPERATURE_KEY_ORIG_KELVINS: TEMPERATURE_KEY_CELSIUS,
-    VAPOUR_MIXR_KEY_ORIG_KG_KG01: VAPOUR_MIXR_KEY_G_KG01,
-    PRESSURE_KEY_ORIG_PASCALS: 'p0',
-    PRESSURE_AT_EDGE_KEY_ORIG_PASCALS: 'p0_edge',
-    O2_MIXR_KEY_ORIG_KG_KG01: O2_MIXR_KEY_ORIG_KG_KG01,
-    CO2_MIXR_KEY_ORIG_KG_KG01: CO2_MIXR_KEY_ORIG_KG_KG01,
-    CH4_MIXR_KEY_ORIG_KG_KG01: CH4_MIXR_KEY_ORIG_KG_KG01,
-    N2O_MIXR_KEY_ORIG_KG_KG01: N2O_MIXR_KEY_ORIG_KG_KG01,
+    OZONE_MIXR_KEY_ORIG_KG_KG01: OZONE_MIXR_KEY_KG_KG01,
+    TEMPERATURE_KEY_ORIG_KELVINS: TEMPERATURE_KEY_KELVINS,
+    VAPOUR_MIXR_KEY_ORIG_KG_KG01: VAPOUR_MIXR_KEY_KG_KG01,
+    PRESSURE_KEY_ORIG_PASCALS: PRESSURE_KEY_PASCALS,
+    PRESSURE_AT_EDGE_KEY_ORIG_PASCALS: PRESSURE_AT_EDGE_KEY_PASCALS,
+    O2_CONCENTRATION_KEY_ORIG_PPMV: O2_CONCENTRATION_KEY_ORIG_PPMV,
+    CO2_CONCENTRATION_KEY_ORIG_PPMV: CO2_CONCENTRATION_KEY_ORIG_PPMV,
+    CH4_CONCENTRATION_KEY_ORIG_PPMV: CH4_CONCENTRATION_KEY_ORIG_PPMV,
+    N2O_CONCENTRATION_KEY_ORIG_PPMV: N2O_CONCENTRATION_KEY_ORIG_PPMV,
     LIQUID_EFF_RADIUS_KEY_ORIG_METRES: LIQUID_EFF_RADIUS_KEY_ORIG_METRES,
     ICE_EFF_RADIUS_KEY_ORIG_METRES: ICE_EFF_RADIUS_KEY_ORIG_METRES,
     AEROSOL_EXTINCTION_KEY_ORIG_METRES01: AEROSOL_EXTINCTION_KEY_ORIG_METRES01,
@@ -236,7 +236,7 @@ def _interp_data_one_profile(
 
 def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
                      interp_data_dict, test_mode=False):
-    """Adds profiles of trace-gas mixing ratios.
+    """Adds profiles of trace-gas concentrations.
 
     :param orig_gfs_table_xarray: xarray table with GFS data in original (Jebb)
         format.
@@ -280,18 +280,24 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
             )
 
     dummy_id_strings = numpy.ravel(dummy_id_string_matrix).tolist()
-    dummy_predictor_matrix = numpy.reshape(
+    dummy_vector_predictor_matrix = numpy.reshape(
         interp_data_dict[TEMPERATURE_KEY_ORIG_KELVINS],
         (num_times * num_sites, num_heights_new)
     )
-    dummy_predictor_matrix = numpy.expand_dims(dummy_predictor_matrix, axis=-1)
+    dummy_vector_predictor_matrix = numpy.expand_dims(
+        dummy_vector_predictor_matrix, axis=-1
+    )
 
     dummy_example_dict = {
         example_utils.EXAMPLE_IDS_KEY: dummy_id_strings,
         example_utils.HEIGHTS_KEY: new_heights_m_agl,
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             [example_utils.TEMPERATURE_NAME],
-        example_utils.VECTOR_PREDICTOR_VALS_KEY: dummy_predictor_matrix
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: dummy_vector_predictor_matrix,
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
+            [example_utils.ZENITH_ANGLE_NAME],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
+            dummy_vector_predictor_matrix[:, 0, :]
     }
     dummy_example_dict = example_utils.add_trace_gases(
         example_dict=dummy_example_dict,
@@ -305,7 +311,7 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
         example_dict=dummy_example_dict,
         field_name=example_utils.O2_CONCENTRATION_NAME
     )
-    interp_data_dict[O2_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+    interp_data_dict[O2_CONCENTRATION_KEY_ORIG_PPMV] = numpy.reshape(
         o2_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
@@ -314,7 +320,7 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
         example_dict=dummy_example_dict,
         field_name=example_utils.CO2_CONCENTRATION_NAME
     )
-    interp_data_dict[CO2_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+    interp_data_dict[CO2_CONCENTRATION_KEY_ORIG_PPMV] = numpy.reshape(
         co2_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
@@ -323,7 +329,7 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
         example_dict=dummy_example_dict,
         field_name=example_utils.CH4_CONCENTRATION_NAME
     )
-    interp_data_dict[CH4_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+    interp_data_dict[CH4_CONCENTRATION_KEY_ORIG_PPMV] = numpy.reshape(
         ch4_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
@@ -332,7 +338,7 @@ def _add_trace_gases(orig_gfs_table_xarray, new_heights_m_agl,
         example_dict=dummy_example_dict,
         field_name=example_utils.N2O_CONCENTRATION_NAME
     )
-    interp_data_dict[N2O_MIXR_KEY_ORIG_KG_KG01] = numpy.reshape(
+    interp_data_dict[N2O_CONCENTRATION_KEY_ORIG_PPMV] = numpy.reshape(
         n2o_concentration_matrix_ppmv,
         (num_times, num_sites, num_heights_new)
     )
@@ -423,6 +429,12 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     # Read input file and convert specific humidity to vapour mixing ratio.
     print('Reading data from: "{0:s}"...'.format(input_file_name))
     orig_gfs_table_xarray = xarray.open_dataset(input_file_name)
+    orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
+        indexers={
+            SITE_DIMENSION_ORIG: numpy.linspace(0, 4800, num=49, dtype=int)
+        },
+        drop=False
+    )
 
     this_matrix = moisture_conv.specific_humidity_to_mixing_ratio(
         orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values
@@ -626,33 +638,13 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
         variable_name=RAIN_MIXR_KEY_ORIG_KG_KG01
     )
 
-    print('Converting pressures from Pa to mb...')
-    interp_data_dict[PRESSURE_KEY_ORIG_PASCALS] *= PASCALS_TO_MB
-    interp_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS] *= PASCALS_TO_MB
-
-    print('Converting temperatures from Kelvins to deg C...')
-    interp_data_dict[TEMPERATURE_KEY_ORIG_KELVINS] = (
-        temperature_conv.kelvins_to_celsius(
-            interp_data_dict[TEMPERATURE_KEY_ORIG_KELVINS]
-        )
-    )
-
-    print('Converting vapour mixing ratios from kg/kg to g/kg...')
-    interp_data_dict[VAPOUR_MIXR_KEY_ORIG_KG_KG01] *= KG_TO_GRAMS
-
     print('Converting cloud fractions from unitless to percent...')
     interp_data_dict[CLOUD_FRACTION_KEY_ORIG] *= UNITLESS_TO_PERCENT
 
-    print(
-        'Converting surface albedo to dummy upwelling and downwelling fluxes...'
-    )
+    print('Converting surface albedos from percent to unitless...')
     albedo_matrix = (
         PERCENT_TO_UNITLESS *
         orig_gfs_table_xarray[ALBEDO_KEY_ORIG_PERCENT].values
-    )
-    up_flux_matrix_w_m02 = albedo_matrix * DUMMY_DOWN_SURFACE_FLUX_W_M02
-    down_flux_matrix_w_m02 = numpy.full(
-        up_flux_matrix_w_m02.shape, DUMMY_DOWN_SURFACE_FLUX_W_M02
     )
 
     # Create xarray table with interpolated data.
@@ -671,20 +663,22 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     these_dim = (TIME_DIMENSION, SITE_DIMENSION)
     new_data_dict.update({
-        UP_SURFACE_FLUX_KEY_W_M02: (these_dim, up_flux_matrix_w_m02),
-        DOWN_SURFACE_FLUX_KEY_W_M02: (these_dim, down_flux_matrix_w_m02)
+        ALBEDO_KEY: (these_dim, albedo_matrix),
     })
 
     new_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
     )
 
-    for this_key in new_gfs_table_xarray.variables:
-        if this_key == SITE_NAME_KEY:
-            continue
-
-        print(this_key)
-        print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
+    # for this_key in new_gfs_table_xarray.variables:
+    #     if this_key == SITE_NAME_KEY:
+    #         continue
+    #
+    #     if not numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)):
+    #         continue
+    #
+    #     print(this_key)
+    #     print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
 
     for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:
