@@ -1,2 +1,3 @@
+include ml4rt/aerosol_regions.p
 include ml4rt/trace_gases.nc
 include ml4rt/globe_combined_mask_compressed.npz

@@ -33,19 +33,16 @@ DEFAULT_SCALAR_PREDICTOR_NAMES = [
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
     example_utils.COLUMN_ICE_WATER_PATH_NAME
 ]
-
 DEFAULT_VECTOR_PREDICTOR_NAMES = [
     example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
     example_utils.SPECIFIC_HUMIDITY_NAME,
     example_utils.LIQUID_WATER_CONTENT_NAME,
     example_utils.ICE_WATER_CONTENT_NAME
 ]
-
 DEFAULT_SCALAR_TARGET_NAMES = [
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
 ]
-
 DEFAULT_VECTOR_TARGET_NAMES = [
     example_utils.SHORTWAVE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_UP_FLUX_NAME,
@@ -65,7 +62,6 @@ PREDICTOR_NAME_TO_ORIG = {
     example_utils.LIQUID_WATER_CONTENT_NAME: 'lwc',
     example_utils.ICE_WATER_CONTENT_NAME: 'iwc'
 }
-
 PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_utils.ZENITH_ANGLE_NAME: DEG_TO_RADIANS,
     example_utils.LATITUDE_NAME: 1.,
@@ -79,13 +75,84 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_utils.LIQUID_WATER_CONTENT_NAME: 0.001,
     example_utils.ICE_WATER_CONTENT_NAME: 0.001
 }
-
 TARGET_NAME_TO_ORIG = {
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfcflux',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'toaflux',
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'fluxd',
     example_utils.SHORTWAVE_UP_FLUX_NAME: 'fluxu',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: 'hr'
+}
+
+VALID_TIMES_KEY_GFS = 'valid_time_unix_sec'
+HEIGHTS_KEY_GFS = 'height_m_agl'
+STANDARD_ATMO_FLAGS_KEY_GFS = 'standard_atmosphere_enum'
+
+DEFAULT_SCALAR_PREDICTOR_NAMES_GFS = DEFAULT_SCALAR_PREDICTOR_NAMES + [
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+]
+DEFAULT_VECTOR_PREDICTOR_NAMES_GFS = DEFAULT_VECTOR_PREDICTOR_NAMES + [
+    example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
+    example_utils.CH4_CONCENTRATION_NAME, example_utils.N2O_CONCENTRATION_NAME,
+    example_utils.AEROSOL_EXTINCTION_NAME,
+    example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
+]
+DEFAULT_SCALAR_TARGET_NAMES_GFS = DEFAULT_SCALAR_TARGET_NAMES
+DEFAULT_VECTOR_TARGET_NAMES_GFS = DEFAULT_VECTOR_TARGET_NAMES
+
+PREDICTOR_NAME_TO_ORIG_GFS = {
+    example_utils.ZENITH_ANGLE_NAME: 'solar_zenith_angle_deg',
+    example_utils.LATITUDE_NAME: 'site_latitude_deg_n',
+    example_utils.LONGITUDE_NAME: 'site_longitude_deg_e',
+    example_utils.ALBEDO_NAME: 'surface_albedo',
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
+        'total_liquid_water_path_kg_m02',
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: 'total_ice_water_path_kg_m02',
+    example_utils.AEROSOL_ALBEDO_NAME: 'aerosol_albedo',
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME: 'aerosol_asymmetry_param',
+    example_utils.PRESSURE_NAME: 'pressure_pascals',
+    example_utils.TEMPERATURE_NAME: 'temperature_kelvins',
+    example_utils.SPECIFIC_HUMIDITY_NAME: 'vapour_mixing_ratio_kg_kg01',
+    example_utils.LIQUID_WATER_CONTENT_NAME:
+        'layerwise_liquid_water_path_kg_m02',
+    example_utils.ICE_WATER_CONTENT_NAME: 'layerwise_ice_water_path_kg_m02',
+    example_utils.O3_MIXING_RATIO_NAME: 'ozone_mixing_ratio_kg_kg01',
+    example_utils.CO2_CONCENTRATION_NAME: 'co2_concentration_ppmv',
+    example_utils.CH4_CONCENTRATION_NAME: 'ch4_concentration_ppmv',
+    example_utils.N2O_CONCENTRATION_NAME: 'n2o_concentration_ppmv',
+    example_utils.AEROSOL_EXTINCTION_NAME: 'aerosol_extinction_metres01',
+    example_utils.LIQUID_EFF_RADIUS_NAME: 'liquid_eff_radius_metres',
+    example_utils.ICE_EFF_RADIUS_NAME: 'ice_eff_radius_metres'
+}
+PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
+    example_utils.ZENITH_ANGLE_NAME: DEG_TO_RADIANS,
+    example_utils.LATITUDE_NAME: 1.,
+    example_utils.LONGITUDE_NAME: 1.,
+    example_utils.ALBEDO_NAME: 1.,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 1.,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: 1.,
+    example_utils.AEROSOL_ALBEDO_NAME: 1.,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME: 1.,
+    example_utils.PRESSURE_NAME: 1.,
+    example_utils.TEMPERATURE_NAME: 1.,
+    example_utils.SPECIFIC_HUMIDITY_NAME: 1.,
+    example_utils.LIQUID_WATER_CONTENT_NAME: 1.,
+    example_utils.ICE_WATER_CONTENT_NAME: 1.,
+    example_utils.O3_MIXING_RATIO_NAME: 1.,
+    example_utils.CO2_CONCENTRATION_NAME: 1.,
+    example_utils.CH4_CONCENTRATION_NAME: 1.,
+    example_utils.N2O_CONCENTRATION_NAME: 1.,
+    example_utils.AEROSOL_EXTINCTION_NAME: 1.,
+    example_utils.LIQUID_EFF_RADIUS_NAME: 1.,
+    example_utils.ICE_EFF_RADIUS_NAME: 1.
+}
+TARGET_NAME_TO_ORIG_GFS = {
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
+        'surface_downwelling_flux_w_m02',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'toa_upwelling_flux_w_m02',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling_flux_w_m02',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'upwelling_flux_w_m02',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating_rate_k_day01'
 }
 
 
@@ -416,6 +483,176 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     return example_dict
 
 
+def _read_file_gfs(netcdf_file_name, allow_bad_values=False):
+    """Reads RRTM data, created with GFS inputs, from NetCDF file.
+
+    :param netcdf_file_name: See doc for `read_file`.
+    :param allow_bad_values: Same.
+    :return: example_dict: Same.
+    """
+
+    dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    scalar_predictor_names = copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES_GFS)
+    vector_predictor_names = copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES_GFS)
+    scalar_target_names = copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES_GFS)
+    vector_target_names = copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES_GFS)
+
+    example_dict = {
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
+        example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
+        example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
+        example_utils.VALID_TIMES_KEY: numpy.array(
+            dataset_object.variables[VALID_TIMES_KEY_GFS][:], dtype=int
+        ),
+        example_utils.HEIGHTS_KEY: numpy.array(
+            dataset_object.variables[HEIGHTS_KEY_GFS][:], dtype=float
+        ),
+        example_utils.STANDARD_ATMO_FLAGS_KEY: numpy.array(
+            numpy.round(
+                dataset_object.variables[STANDARD_ATMO_FLAGS_KEY_GFS][:]
+            ),
+            dtype=int
+        )
+    }
+
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+    num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
+    num_scalar_predictors = len(scalar_predictor_names)
+    num_vector_predictors = len(vector_predictor_names)
+    num_scalar_targets = len(scalar_target_names)
+    num_vector_targets = len(vector_target_names)
+
+    scalar_predictor_matrix = numpy.full(
+        (num_examples, num_scalar_predictors), numpy.nan
+    )
+    vector_predictor_matrix = numpy.full(
+        (num_examples, num_heights, num_vector_predictors), numpy.nan
+    )
+    scalar_target_matrix = numpy.full(
+        (num_examples, num_scalar_targets), numpy.nan
+    )
+    vector_target_matrix = numpy.full(
+        (num_examples, num_heights, num_vector_targets), numpy.nan
+    )
+
+    for k in range(num_scalar_predictors):
+        this_predictor_name_orig = (
+            PREDICTOR_NAME_TO_ORIG_GFS[scalar_predictor_names[k]]
+        )
+        this_conversion_factor = (
+            PREDICTOR_NAME_TO_CONV_FACTOR_GFS[scalar_predictor_names[k]]
+        )
+        scalar_predictor_matrix[:, k] = this_conversion_factor * numpy.array(
+            dataset_object.variables[this_predictor_name_orig][:], dtype=float
+        )
+
+    for k in range(num_vector_predictors):
+        this_predictor_name_orig = (
+            PREDICTOR_NAME_TO_ORIG_GFS[vector_predictor_names[k]]
+        )
+        this_conversion_factor = (
+            PREDICTOR_NAME_TO_CONV_FACTOR_GFS[vector_predictor_names[k]]
+        )
+        vector_predictor_matrix[..., k] = this_conversion_factor * numpy.array(
+            dataset_object.variables[this_predictor_name_orig][:], dtype=float
+        )
+
+        if vector_predictor_names[k] in [
+                example_utils.LIQUID_WATER_CONTENT_NAME,
+                example_utils.ICE_WATER_CONTENT_NAME
+        ]:
+            vector_predictor_matrix[..., k] = _layerwise_water_path_to_content(
+                layerwise_path_matrix_kg_m02=vector_predictor_matrix[..., k],
+                heights_m_agl=example_dict[example_utils.HEIGHTS_KEY]
+            )
+
+        if vector_predictor_names[k] == example_utils.SPECIFIC_HUMIDITY_NAME:
+            vector_predictor_matrix[..., k] = (
+                moisture_conv.mixing_ratio_to_specific_humidity(
+                    vector_predictor_matrix[..., k]
+                )
+            )
+
+    for k in range(num_scalar_targets):
+        this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[scalar_target_names[k]]
+        scalar_target_matrix[:, k] = numpy.array(
+            dataset_object.variables[this_target_name_orig][:], dtype=float
+        )
+
+    for k in range(num_vector_targets):
+        this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[vector_target_names[k]]
+        vector_target_matrix[..., k] = numpy.array(
+            dataset_object.variables[this_target_name_orig][:], dtype=float
+        )
+
+    example_dict.update({
+        example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix,
+        example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+        example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
+    })
+
+    dataset_object.close()
+
+    example_dict[example_utils.EXAMPLE_IDS_KEY] = (
+        example_utils.create_example_ids(example_dict)
+    )
+
+    if allow_bad_values:
+        bad_predictor_flags = numpy.logical_or(
+            numpy.any(scalar_predictor_matrix >= MIN_BAD_VALUE, axis=1),
+            numpy.any(vector_predictor_matrix >= MIN_BAD_VALUE, axis=(1, 2))
+        )
+
+        bad_target_flags = numpy.logical_or(
+            numpy.any(scalar_target_matrix >= MIN_BAD_VALUE, axis=1),
+            numpy.any(vector_target_matrix >= MIN_BAD_VALUE, axis=(1, 2))
+        )
+
+        good_indices = numpy.where(numpy.invert(
+            numpy.logical_or(bad_predictor_flags, bad_target_flags)
+        ))[0]
+
+        num_examples = scalar_predictor_matrix.shape[0]
+
+        if len(good_indices) != num_examples:
+            warning_string = '{0:d} of {1:d} examples have bad values.'.format(
+                num_examples - len(good_indices), num_examples
+            )
+            warnings.warn(warning_string)
+
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=good_indices
+        )
+
+    longitude_index = (
+        example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
+            example_utils.LONGITUDE_NAME
+        )
+    )
+
+    k = example_utils.SCALAR_PREDICTOR_VALS_KEY
+
+    example_dict[k][:, longitude_index] = (
+        longitude_conv.convert_lng_positive_in_west(
+            longitudes_deg=example_dict[k][:, longitude_index], allow_nan=False
+        )
+    )
+
+    example_dict = _get_water_path_profiles(
+        example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
+        integrate_upward=False
+    )
+    example_dict = _get_water_path_profiles(
+        example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
+        integrate_upward=True
+    )
+
+    return _specific_to_relative_humidity(example_dict)
+
+
 def find_file(directory_name, year, raise_error_if_missing=True):
     """Finds NetCDF file with RRTM data.
 
@@ -561,6 +798,15 @@ def read_file(netcdf_file_name, allow_bad_values=False):
         )
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
+
+    if (
+            TARGET_NAME_TO_ORIG_GFS[example_utils.SHORTWAVE_UP_FLUX_NAME]
+            in dataset_object.variables
+    ):
+        dataset_object.close()
+        return _read_file_gfs(
+            netcdf_file_name=netcdf_file_name, allow_bad_values=allow_bad_values
+        )
 
     example_dict = {
         example_utils.SCALAR_PREDICTOR_NAMES_KEY:
