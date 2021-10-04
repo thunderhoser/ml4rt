@@ -1,19 +1,16 @@
 """Handles profiles of aerosol-related quantities."""
 
 import os
-import sys
 import pickle
 import numpy
+from gewittergefahr.gg_utils import polygons
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
+from gewittergefahr.gg_utils import error_checking
+from ml4rt.utils import land_ocean_mask
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import polygons
-import longitude_conversion as lng_conversion
-import error_checking
-import land_ocean_mask
 
 POLAR_REGION_NAME = 'polar'
 FIRST_URBAN_REGION_NAME = 'urban1'
@@ -30,9 +27,8 @@ ALL_REGION_NAMES = [
     BIOMASS_BURNING_REGION_NAME, LAND_REGION_NAME, OCEAN_REGION_NAME
 ]
 
-# Shape parameter in gamma dist for aerosol optical depth.  This value is
-# unitless.
-REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM = {
+# Mean aerosol optical depth.  This value is unitless.
+REGION_TO_OPTICAL_DEPTH_MEAN = {
     POLAR_REGION_NAME: 0.03,
     FIRST_URBAN_REGION_NAME: 0.15,
     SECOND_URBAN_REGION_NAME: 0.2,
@@ -43,26 +39,29 @@ REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM = {
     OCEAN_REGION_NAME: 0.07
 }
 
-# Scale parameter in gamma dist for aerosol optical depth.  This value is
-# unitless.
-REGION_TO_OPTICAL_DEPTH_VARIANCE_PARAM = {
+# Standard deviation of aerosol optical depth.  This value is unitless.
+REGION_TO_OPTICAL_DEPTH_STDEV = {
     POLAR_REGION_NAME: 0.2,
     FIRST_URBAN_REGION_NAME: 0.2,
     SECOND_URBAN_REGION_NAME: 0.3,
     FIRST_DESERT_DUST_REGION_NAME: 0.3,
     SECOND_DESERT_DUST_REGION_NAME: 0.3,
-    BIOMASS_BURNING_REGION_NAME: 0.4,
+    BIOMASS_BURNING_REGION_NAME: 0.3,
     LAND_REGION_NAME: 0.2,
     OCEAN_REGION_NAME: 0.1
 }
 
+REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM = dict()
 REGION_TO_OPTICAL_DEPTH_SCALE_PARAM = dict()
 
-for j in REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM:
-    REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[j] = numpy.power(
-        REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[j] /
-        REGION_TO_OPTICAL_DEPTH_VARIANCE_PARAM[j],
-        -0.5
+for j in REGION_TO_OPTICAL_DEPTH_MEAN:
+    REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[j] = (
+        REGION_TO_OPTICAL_DEPTH_MEAN[j] / REGION_TO_OPTICAL_DEPTH_STDEV[j]
+    ) ** 2
+
+    REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[j] = (
+        (REGION_TO_OPTICAL_DEPTH_STDEV[j] ** 2) /
+        REGION_TO_OPTICAL_DEPTH_MEAN[j]
     )
 
 # Mean single-scattering albedo.  This value is unitless.

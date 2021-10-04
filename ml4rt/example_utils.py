@@ -1,26 +1,18 @@
 """Helper methods for learning examples."""
 
-import os
-import sys
 import copy
 import warnings
 import numpy
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import time_conversion
-import prob_matched_means as pmm
-import temperature_conversions as temp_conversions
-import longitude_conversion as lng_conversion
-import error_checking
-import aerosols
-import trace_gases
-import land_ocean_mask
+from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import prob_matched_means as pmm
+from gewittergefahr.gg_utils import temperature_conversions as temp_conversions
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
+from gewittergefahr.gg_utils import error_checking
+from ml4rt.utils import aerosols
+from ml4rt.utils import trace_gases
+from ml4rt.utils import land_ocean_mask
 
 TOLERANCE = 1e-6
 
@@ -36,7 +28,16 @@ LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES = 9.5e-6
 LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES = 1.2e-6
 ICE_EFF_RADIUS_INTERCEPT_METRES = 86.73e-6
 ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01 = 1.07e-6
-MIN_EFFECTIVE_RADIUS_METRES = 1e-6
+
+MIN_ICE_EFF_RADIUS_METRES = (
+    ICE_EFF_RADIUS_INTERCEPT_METRES -
+    65 * ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01
+)
+MAX_ICE_EFF_RADIUS_METRES = (
+    ICE_EFF_RADIUS_INTERCEPT_METRES -
+    20 * ICE_EFF_RADIUS_SLOPE_METRES_CELSIUS01
+)
+MIN_LIQUID_EFF_RADIUS_METRES = 1e-6
 
 DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
@@ -131,19 +132,10 @@ AEROSOL_EXTINCTION_NAME = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 
-TRACE_GAS_NAMES = [
-    O2_CONCENTRATION_NAME, CO2_CONCENTRATION_NAME,
-    CH4_CONCENTRATION_NAME, N2O_CONCENTRATION_NAME
-]
-EFFECTIVE_RADIUS_NAMES = [LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME]
-AEROSOL_NAMES = [
-    AEROSOL_EXTINCTION_NAME, AEROSOL_ALBEDO_NAME,
-    AEROSOL_ASYMMETRY_PARAM_NAME
-]
-
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
-    COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME
+    COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME,
+    AEROSOL_ALBEDO_NAME, AEROSOL_ASYMMETRY_PARAM_NAME
 ]
 
 BASIC_VECTOR_PREDICTOR_NAMES = [
@@ -157,8 +149,7 @@ BASIC_VECTOR_PREDICTOR_NAMES = [
 ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
     LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME,
     O2_CONCENTRATION_NAME, CO2_CONCENTRATION_NAME, CH4_CONCENTRATION_NAME,
-    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME, AEROSOL_ALBEDO_NAME,
-    AEROSOL_ASYMMETRY_PARAM_NAME
+    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -429,6 +420,7 @@ def _get_aerosol_extinction_profiles_one_region(
         loc=aerosols.REGION_TO_SCALE_HEIGHT_MEAN_METRES[region_name],
         scale=this_stdev, size=num_examples
     )
+    scale_heights_metres = numpy.maximum(scale_heights_metres, 100.)
     scale_height_matrix_metres = numpy.repeat(
         numpy.expand_dims(scale_heights_metres, axis=-1),
         axis=-1, repeats=num_heights
@@ -454,11 +446,14 @@ def _get_aerosol_extinction_profiles_one_region(
             y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
             axis=-1, even='avg'
         )
-        actual_optical_depths = numpy.random.gamma(
-            shape=aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
+        actual_optical_depths = 0.1 * numpy.random.gamma(
+            shape=
+            30 * aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
             scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
             size=num_examples
         )
+
+    actual_optical_depths = numpy.maximum(actual_optical_depths, 0.)
 
     scale_factors = actual_optical_depths / baseline_optical_depths
     scale_factor_matrix = numpy.repeat(
@@ -899,6 +894,19 @@ def add_trace_gases(example_dict, profile_noise_stdev_fractional,
             )
         )
 
+    o2_concentration_matrix_ppmv = numpy.maximum(
+        o2_concentration_matrix_ppmv, 0.
+    )
+    co2_concentration_matrix_ppmv = numpy.maximum(
+        co2_concentration_matrix_ppmv, 0.
+    )
+    ch4_concentration_matrix_ppmv = numpy.maximum(
+        ch4_concentration_matrix_ppmv, 0.
+    )
+    n2o_concentration_matrix_ppmv = numpy.maximum(
+        n2o_concentration_matrix_ppmv, 0.
+    )
+
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
     found_o2 = O2_CONCENTRATION_NAME in vector_predictor_names
     found_co2 = CO2_CONCENTRATION_NAME in vector_predictor_names
@@ -971,7 +979,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
     https://doi.org/10.1175/1520-0469(2000)057%3C0295:CDSDIL%3E2.0.CO;2
 
     For effective radius of ice water, using:
-    https://doi.org/10.1002/2013JD020602
+    Figure 6 of https://doi.org/10.1002/2013JD020602
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).  Must contain temperature profiles.
@@ -999,8 +1007,12 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
         profile_noise_stdev_fractional=ice_profile_noise_stdev_fractional,
         indiv_noise_stdev_fractional=ice_indiv_noise_stdev_fractional
     )
+
     ice_eff_radius_matrix_metres = numpy.maximum(
-        ice_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
+        ice_eff_radius_matrix_metres, MIN_ICE_EFF_RADIUS_METRES
+    )
+    ice_eff_radius_matrix_metres = numpy.minimum(
+        ice_eff_radius_matrix_metres, MAX_ICE_EFF_RADIUS_METRES
     )
 
     metadata_dict = parse_example_ids(example_dict[EXAMPLE_IDS_KEY])
@@ -1055,7 +1067,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
             )
 
     liquid_eff_radius_matrix_metres = numpy.maximum(
-        liquid_eff_radius_matrix_metres, MIN_EFFECTIVE_RADIUS_METRES
+        liquid_eff_radius_matrix_metres, MIN_LIQUID_EFF_RADIUS_METRES
     )
 
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
@@ -1113,10 +1125,11 @@ def add_aerosols(example_dict, test_mode=False):
     num_examples = len(example_dict[EXAMPLE_IDS_KEY])
     num_heights = len(grid_heights_m_agl)
 
-    these_dim = (num_examples, num_heights)
-    extinction_matrix_metres01 = numpy.full(these_dim, numpy.nan)
-    albedo_matrix = numpy.full(these_dim, numpy.nan)
-    asymmetry_param_matrix = numpy.full(these_dim, numpy.nan)
+    extinction_matrix_metres01 = numpy.full(
+        (num_examples, num_heights), numpy.nan
+    )
+    albedo_values = numpy.full(num_examples, numpy.nan)
+    asymmetry_param_values = numpy.full(num_examples, numpy.nan)
 
     metadata_dict = parse_example_ids(example_dict[EXAMPLE_IDS_KEY])
     region_name_by_example = aerosols.assign_examples_to_regions(
@@ -1134,26 +1147,18 @@ def add_aerosols(example_dict, test_mode=False):
             0. if test_mode
             else aerosols.REGION_TO_ALBEDO_STDEV[unique_region_names[i]]
         )
-        these_albedos = numpy.random.normal(
+        albedo_values[these_example_indices] = numpy.random.normal(
             loc=aerosols.REGION_TO_ALBEDO_MEAN[unique_region_names[i]],
             scale=this_stdev, size=len(these_example_indices)
-        )
-        albedo_matrix[these_example_indices, :] = numpy.repeat(
-            numpy.expand_dims(these_albedos, axis=-1),
-            axis=-1, repeats=num_heights
         )
 
         this_stdev = (
             0. if test_mode
             else aerosols.REGION_TO_ASYMMETRY_PARAM_STDEV[unique_region_names[i]]
         )
-        these_asymmetry_params = numpy.random.normal(
+        asymmetry_param_values[these_example_indices] = numpy.random.normal(
             loc=aerosols.REGION_TO_ASYMMETRY_PARAM_MEAN[unique_region_names[i]],
             scale=this_stdev, size=len(these_example_indices)
-        )
-        asymmetry_param_matrix[these_example_indices, :] = numpy.repeat(
-            numpy.expand_dims(these_asymmetry_params, axis=-1),
-            axis=-1, repeats=num_heights
         )
 
         extinction_matrix_metres01[these_example_indices, :] = (
@@ -1164,26 +1169,34 @@ def add_aerosols(example_dict, test_mode=False):
             )
         )
 
+    albedo_values = numpy.maximum(albedo_values, 0.)
+    albedo_values = numpy.minimum(albedo_values, 1.)
+    asymmetry_param_values = numpy.maximum(asymmetry_param_values, 0.)
+    asymmetry_param_values = numpy.minimum(asymmetry_param_values, 1.)
+
     vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    scalar_predictor_names = example_dict[SCALAR_PREDICTOR_NAMES_KEY]
     found_extinction = AEROSOL_EXTINCTION_NAME in vector_predictor_names
-    found_albedo = AEROSOL_ALBEDO_NAME in vector_predictor_names
+    found_albedo = AEROSOL_ALBEDO_NAME in scalar_predictor_names
     found_asymmetry_param = (
-        AEROSOL_ASYMMETRY_PARAM_NAME in vector_predictor_names
+        AEROSOL_ASYMMETRY_PARAM_NAME in scalar_predictor_names
     )
 
     if not found_extinction:
         vector_predictor_names.append(AEROSOL_EXTINCTION_NAME)
     if not found_albedo:
-        vector_predictor_names.append(AEROSOL_ALBEDO_NAME)
+        scalar_predictor_names.append(AEROSOL_ALBEDO_NAME)
     if not found_asymmetry_param:
-        vector_predictor_names.append(AEROSOL_ASYMMETRY_PARAM_NAME)
+        scalar_predictor_names.append(AEROSOL_ASYMMETRY_PARAM_NAME)
 
     extinction_index = vector_predictor_names.index(AEROSOL_EXTINCTION_NAME)
-    albedo_index = vector_predictor_names.index(AEROSOL_ALBEDO_NAME)
-    asymmetry_param_index = vector_predictor_names.index(
+    albedo_index = scalar_predictor_names.index(AEROSOL_ALBEDO_NAME)
+    asymmetry_param_index = scalar_predictor_names.index(
         AEROSOL_ASYMMETRY_PARAM_NAME
     )
+
     example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+    example_dict[SCALAR_PREDICTOR_NAMES_KEY] = scalar_predictor_names
 
     if found_extinction:
         example_dict[VECTOR_PREDICTOR_VALS_KEY][
@@ -1197,23 +1210,21 @@ def add_aerosols(example_dict, test_mode=False):
         )
 
     if found_albedo:
-        example_dict[VECTOR_PREDICTOR_VALS_KEY][
-            ..., albedo_index
-        ] = albedo_matrix
+        example_dict[SCALAR_PREDICTOR_VALS_KEY][:, albedo_index] = albedo_values
     else:
-        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=albedo_index, values=albedo_matrix, axis=-1
+        example_dict[SCALAR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[SCALAR_PREDICTOR_VALS_KEY],
+            obj=albedo_index, values=albedo_values, axis=-1
         )
 
     if found_asymmetry_param:
-        example_dict[VECTOR_PREDICTOR_VALS_KEY][
-            ..., asymmetry_param_index
-        ] = asymmetry_param_matrix
+        example_dict[SCALAR_PREDICTOR_VALS_KEY][:, asymmetry_param_index] = (
+            asymmetry_param_values
+        )
     else:
-        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=asymmetry_param_index, values=asymmetry_param_matrix, axis=-1
+        example_dict[SCALAR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[SCALAR_PREDICTOR_VALS_KEY],
+            obj=asymmetry_param_index, values=asymmetry_param_values, axis=-1
         )
 
     return example_dict
