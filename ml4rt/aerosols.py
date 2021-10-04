@@ -1,12 +1,19 @@
 """Handles profiles of aerosol-related quantities."""
 
 import os
+import sys
 import pickle
 import numpy
-from gewittergefahr.gg_utils import polygons
-from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.utils import land_ocean_mask
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import polygons
+import longitude_conversion as lng_conversion
+import error_checking
+import land_ocean_mask
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))

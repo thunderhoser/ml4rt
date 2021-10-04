@@ -1,18 +1,26 @@
 """Helper methods for learning examples."""
 
+import os
+import sys
 import copy
 import warnings
 import numpy
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import prob_matched_means as pmm
-from gewittergefahr.gg_utils import temperature_conversions as temp_conversions
-from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.utils import aerosols
-from ml4rt.utils import trace_gases
-from ml4rt.utils import land_ocean_mask
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import time_conversion
+import prob_matched_means as pmm
+import temperature_conversions as temp_conversions
+import longitude_conversion as lng_conversion
+import error_checking
+import aerosols
+import trace_gases
+import land_ocean_mask
 
 TOLERANCE = 1e-6
 
