@@ -6,7 +6,7 @@
 SEPARATOR_STRING="\r\n--------------------------------------------------\r\n"
 
 SINGULARITY_CONTAINER_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/rrtm_docker/rrtm_hyperres_take2.sif"
-TOP_DATA_DIR_NAME_ACTUAL="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/new_heights"
+TOP_DATA_DIR_NAME_ACTUAL="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/new_heights"
 TOP_DATA_DIR_NAME_DOCKER="/home/user/data"
 
 date_string=$1
