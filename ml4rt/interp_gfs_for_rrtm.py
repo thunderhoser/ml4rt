@@ -515,7 +515,7 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     # orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
     #     indexers={
-    #         SITE_DIMENSION_ORIG: numpy.linspace(0, 4800, num=17, dtype=int)
+    #         SITE_DIMENSION: numpy.linspace(0, 4800, num=17, dtype=int)
     #     },
     #     drop=False
     # )
