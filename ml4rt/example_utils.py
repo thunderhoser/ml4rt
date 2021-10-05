@@ -1047,14 +1047,17 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
         )
 
         if not test_mode:
+            this_stdev = (
+                LIQUID_EFF_RADIUS_LAND_STDEV_METRES /
+                LIQUID_EFF_RADIUS_LAND_MEAN_METRES
+            )
+
             liquid_eff_radius_matrix_metres[land_indices, :] = (
                 _add_noise_to_profiles(
                     data_matrix=
                     liquid_eff_radius_matrix_metres[land_indices, :],
-                    profile_noise_stdev_fractional=
-                    LIQUID_EFF_RADIUS_LAND_STDEV_METRES,
-                    indiv_noise_stdev_fractional=
-                    0.1 * LIQUID_EFF_RADIUS_LAND_STDEV_METRES
+                    profile_noise_stdev_fractional=this_stdev,
+                    indiv_noise_stdev_fractional=0.1 * this_stdev
                 )
             )
 
@@ -1064,14 +1067,17 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
         )
 
         if not test_mode:
+            this_stdev = (
+                LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES /
+                LIQUID_EFF_RADIUS_OCEAN_MEAN_METRES
+            )
+
             liquid_eff_radius_matrix_metres[ocean_indices, :] = (
                 _add_noise_to_profiles(
                     data_matrix=
                     liquid_eff_radius_matrix_metres[ocean_indices, :],
-                    profile_noise_stdev_fractional=
-                    LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES,
-                    indiv_noise_stdev_fractional=
-                    0.1 * LIQUID_EFF_RADIUS_OCEAN_STDEV_METRES
+                    profile_noise_stdev_fractional=this_stdev,
+                    indiv_noise_stdev_fractional=0.1 * this_stdev
                 )
             )
 
