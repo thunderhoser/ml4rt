@@ -10,11 +10,11 @@ SEPARATOR_STRING="\r\n--------------------------------------------------\r\n"
 
 GITHUB_CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt/rrtm"
 SINGULARITY_CONTAINER_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/rrtm_docker/rrtm_hyperres_take2.sif"
-TOP_DATA_DIR_NAME_ACTUAL="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/new_heights"
+TOP_DATA_DIR_NAME_ACTUAL="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights"
 TOP_DATA_DIR_NAME_DOCKER="/home/user/data"
 
 cp -v "${GITHUB_CODE_DIR_NAME}/make_rrtm_sw_calc.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
-cp -v "${GITHUB_CODE_DIR_NAME}/runit_ML_dataset_builder_745heights.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
+cp -v "${GITHUB_CODE_DIR_NAME}/runit_ML_dataset_builder_orig-heights.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
 
 actual_gfs_file_name="${TOP_DATA_DIR_NAME_ACTUAL}/profiler_sitesF.ncep_rap.${date_string}.0000.nc"
 echo "GFS file for date ${date_string}: ${actual_gfs_file_name}"
@@ -31,7 +31,7 @@ gdl_script_file_name="${data_dir_name_actual}/run_rrtm_${date_string}.gdl"
 echo "Writing GDL batch script to: '${gdl_script_file_name}'..."
 
 echo ".compile /home/user/data/make_rrtm_sw_calc" > $gdl_script_file_name
-echo ".run /home/user/data/runit_ML_dataset_builder_745heights.pro" >> $gdl_script_file_name
+echo ".run /home/user/data/runit_ML_dataset_builder_orig-heights.pro" >> $gdl_script_file_name
 echo "runit,${year_string}" >> $gdl_script_file_name
 echo "exit" >> $gdl_script_file_name
 
