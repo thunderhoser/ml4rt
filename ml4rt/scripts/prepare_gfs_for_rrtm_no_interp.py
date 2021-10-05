@@ -561,6 +561,9 @@ def _run(input_file_name, output_file_name):
         for y, x in zip(latitudes_deg_n, longitudes_deg_e)
     ]
 
+    longitudes_deg_e = longitude_conv.convert_lng_negative_in_west(
+        longitudes_deg_e, allow_nan=False
+    )
     new_data_dict = {
         SITE_NAME_KEY: ((SITE_DIMENSION,), site_names),
         LATITUDE_KEY_DEG_N: ((SITE_DIMENSION,), latitudes_deg_n),
