@@ -225,7 +225,7 @@ def _concentrations_to_mixing_ratios(orig_gfs_table_xarray):
         1e-6 * orig_gfs_table_xarray[N2O_CONCENTRATION_KEY].values *
         MOLAR_MASS_N2O_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
-    
+
     these_dim = orig_gfs_table_xarray[O2_CONCENTRATION_KEY].dims
     this_dict = {
         O2_MIXING_RATIO_KEY: (these_dim, o2_mixing_ratio_matrix_kg_kg01),
@@ -239,10 +239,9 @@ def _concentrations_to_mixing_ratios(orig_gfs_table_xarray):
 
 def _mixing_ratios_to_concentrations(interp_data_dict):
     """Converts trace-gas mixing ratios (kg kg^-1) to concentrations (ppmv).
-    
+
     :param interp_data_dict: Dictionary, where each key is a variable name and
-        the corresponding value is a 3-D numpy array
-        (time x site x new_height).
+        the corresponding value is a 3-D numpy array (time x site x new_height).
     :return: interp_data_dict: Same as input but with additional keys for
         concentrations.
     """
@@ -264,11 +263,11 @@ def _mixing_ratios_to_concentrations(interp_data_dict):
         MOLAR_MASS_DRY_AIR_GRAMS_MOL01 / MOLAR_MASS_N2O_GRAMS_MOL01
     )
 
-    # interp_data_dict.pop(O2_MIXING_RATIO_KEY)
-    # interp_data_dict.pop(CO2_MIXING_RATIO_KEY)
-    # interp_data_dict.pop(CH4_MIXING_RATIO_KEY)
-    # interp_data_dict.pop(N2O_MIXING_RATIO_KEY)
-    
+    interp_data_dict.pop(O2_MIXING_RATIO_KEY)
+    interp_data_dict.pop(CO2_MIXING_RATIO_KEY)
+    interp_data_dict.pop(CH4_MIXING_RATIO_KEY)
+    interp_data_dict.pop(N2O_MIXING_RATIO_KEY)
+
     return interp_data_dict
 
 
@@ -354,8 +353,7 @@ def _mixing_ratio_to_layerwise_path(
     """Converts mixing ratios (kg kg^-1) to layerwise paths (kg m^-2).
 
     :param interp_data_dict: Dictionary, where each key is a variable name and
-        the corresponding value is a 3-D numpy array
-        (time x site x new_height).
+        the corresponding value is a 3-D numpy array (time x site x new_height).
     :param new_heights_m_agl: 1-D numpy array of heights (metres above ground
         level) in new grid.
     :param orig_variable_name: Variable name for mixing ratio.  This must be a
@@ -405,7 +403,7 @@ def _mixing_ratio_to_layerwise_path(
     )
 
     interp_data_dict[new_variable_name] = layerwise_path_matrix_kg_m02
-    # interp_data_dict.pop(orig_variable_name)
+    interp_data_dict.pop(orig_variable_name)
 
     return interp_data_dict
 
@@ -717,10 +715,6 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
     print('Writing data to: "{0:s}"...'.format(output_file_name))
     new_gfs_table_xarray.to_netcdf(
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
-    )
-
-    orig_gfs_table_xarray.to_netcdf(
-        path=input_file_name, mode='w', format='NETCDF3_64BIT'
     )
 
 
