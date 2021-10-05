@@ -18,8 +18,9 @@ echo "GFS file for date ${date_string}: ${actual_gfs_file_name}"
 data_dir_name_actual="${TOP_DATA_DIR_NAME_ACTUAL}/${date_string}"
 data_dir_name_docker="${TOP_DATA_DIR_NAME_DOCKER}/${date_string}"
 
-rm -rfv $data_dir_name_actual
-mkdir $data_dir_name_actual
+rm -v ${data_dir_name_actual}/*.nc
+rm -v ${data_dir_name_actual}/*.cdf
+mkdir -p $data_dir_name_actual
 cp $actual_gfs_file_name "${data_dir_name_actual}/"
 
 gdl_script_file_name="${data_dir_name_actual}/run_rrtm_${date_string}.gdl"
