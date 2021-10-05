@@ -506,12 +506,12 @@ def _run(input_file_name, output_file_name):
     # Read input file and convert specific humidity to vapour mixing ratio.
     print('Reading data from: "{0:s}"...'.format(input_file_name))
     orig_gfs_table_xarray = xarray.open_dataset(input_file_name)
-    orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
-        indexers={
-            SITE_DIMENSION_ORIG: numpy.linspace(0, 4800, num=17, dtype=int)
-        },
-        drop=False
-    )
+    # orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
+    #     indexers={
+    #         SITE_DIMENSION_ORIG: numpy.linspace(0, 4800, num=17, dtype=int)
+    #     },
+    #     drop=False
+    # )
 
     this_matrix = moisture_conv.specific_humidity_to_mixing_ratio(
         orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values
