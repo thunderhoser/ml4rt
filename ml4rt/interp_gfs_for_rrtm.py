@@ -154,21 +154,21 @@ def _interp_data_one_profile(
     orig_pressures_pa = orig_gfs_table_xarray[PRESSURE_KEY].values[i, j, :]
     orig_heights_m_agl = orig_gfs_table_xarray[HEIGHT_KEY].values[i, j, :]
 
-    log_offset = 1. + -1 * numpy.min(orig_pressures_pa)
-    assert not numpy.isnan(log_offset)
-
     interp_object = interp1d(
-        x=orig_heights_m_agl, y=numpy.log(log_offset + orig_pressures_pa),
+        x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
         kind='linear', bounds_error=False, assume_sorted=True,
         fill_value='extrapolate'
     )
 
     interp_data_dict[PRESSURE_KEY][i, j, :] = (
-        numpy.exp(interp_object(new_heights_m_agl)) - log_offset
+        numpy.exp(interp_object(new_heights_m_agl))
     )
     interp_data_dict[PRESSURE_AT_EDGE_KEY][i, j, :] = (
-        numpy.exp(interp_object(new_heights_at_edges_m_agl)) - log_offset
+        numpy.exp(interp_object(new_heights_at_edges_m_agl))
     )
+
+    assert numpy.all(interp_data_dict[PRESSURE_KEY][i, j, :] > 0)
+    assert numpy.all(interp_data_dict[PRESSURE_AT_EDGE_KEY][i, j, :] > 0)
 
     for this_key in INTERP_KEYS:
         if this_key in [PRESSURE_KEY, PRESSURE_AT_EDGE_KEY]:
