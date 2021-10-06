@@ -189,21 +189,32 @@ def _interp_data_one_profile(
 
             continue
 
-        orig_values = orig_gfs_table_xarray[this_key].values[i, j, :]
-        log_offset = 1. + -1 * numpy.min(orig_values)
-        assert not numpy.isnan(log_offset)
+        # orig_values = orig_gfs_table_xarray[this_key].values[i, j, :]
+        # log_offset = 1. + -1 * numpy.min(orig_values)
+        # assert not numpy.isnan(log_offset)
+        #
+        # bottom_value = numpy.log(log_offset + orig_values[0])
+        # top_value = numpy.log(log_offset + orig_values[1])
+        #
+        # interp_object = interp1d(
+        #     x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
+        #     kind='linear', bounds_error=False, assume_sorted=True,
+        #     fill_value=(bottom_value, top_value)
+        # )
+        # interp_data_dict[this_key][i, j, :] = (
+        #     numpy.exp(interp_object(new_heights_m_agl)) - log_offset
+        # )
 
-        bottom_value = numpy.log(log_offset + orig_values[0])
-        top_value = numpy.log(log_offset + orig_values[1])
+        orig_values = orig_gfs_table_xarray[this_key].values[i, j, :]
+        bottom_value = orig_values[0]
+        top_value = orig_values[1]
 
         interp_object = interp1d(
-            x=orig_heights_m_agl, y=numpy.log(log_offset + orig_values),
+            x=orig_heights_m_agl, y=orig_values,
             kind='linear', bounds_error=False, assume_sorted=True,
             fill_value=(bottom_value, top_value)
         )
-        interp_data_dict[this_key][i, j, :] = (
-            numpy.exp(interp_object(new_heights_m_agl)) - log_offset
-        )
+        interp_data_dict[this_key][i, j, :] = interp_object(new_heights_m_agl)
 
     return interp_data_dict
 
