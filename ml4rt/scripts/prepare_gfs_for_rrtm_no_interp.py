@@ -506,20 +506,12 @@ def _run(input_file_name, output_file_name):
     # Read input file and convert specific humidity to vapour mixing ratio.
     print('Reading data from: "{0:s}"...'.format(input_file_name))
     orig_gfs_table_xarray = xarray.open_dataset(input_file_name)
-    orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
-        indexers={
-            SITE_DIMENSION_ORIG: numpy.linspace(0, 4800, num=17, dtype=int)
-        },
-        drop=False
-    )
-
-    orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values[:] = 0.
-    orig_gfs_table_xarray[CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01].values[:] = 0.
-    orig_gfs_table_xarray[RAIN_MIXR_KEY_ORIG_KG_KG01].values[:] = 0.
-    orig_gfs_table_xarray[CLOUD_ICE_MIXR_KEY_ORIG_KG_KG01].values[:] = 0.
-    orig_gfs_table_xarray[GRAUPEL_MIXR_KEY_ORIG_KG_KG01].values[:] = 0.
-    orig_gfs_table_xarray[SNOW_MIXR_KEY_ORIG_KG_KG01].values[:] = 0.
-    orig_gfs_table_xarray[OZONE_MIXR_KEY_ORIG_KG_KG01].values[:] = 5e-6
+    # orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
+    #     indexers={
+    #         SITE_DIMENSION_ORIG: numpy.linspace(0, 4800, num=17, dtype=int)
+    #     },
+    #     drop=False
+    # )
 
     this_matrix = moisture_conv.specific_humidity_to_mixing_ratio(
         orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values
@@ -622,11 +614,6 @@ def _run(input_file_name, output_file_name):
         processed_data_dict=processed_data_dict
     )
 
-    processed_data_dict[O2_CONCENTRATION_KEY_ORIG_PPMV][:] = 2e5
-    processed_data_dict[CO2_CONCENTRATION_KEY_ORIG_PPMV][:] = 400.
-    processed_data_dict[CH4_CONCENTRATION_KEY_ORIG_PPMV][:] = 1.79
-    processed_data_dict[N2O_CONCENTRATION_KEY_ORIG_PPMV][:] = 0.009
-
     dummy_vector_predictor_matrix = numpy.reshape(
         processed_data_dict[TEMPERATURE_KEY_ORIG_KELVINS],
         (num_times * num_sites, num_heights)
@@ -673,16 +660,11 @@ def _run(input_file_name, output_file_name):
         (num_times, num_sites, num_heights)
     )
 
-    processed_data_dict[LIQUID_EFF_RADIUS_KEY_ORIG_METRES][:] = 0.
-    processed_data_dict[ICE_EFF_RADIUS_KEY_ORIG_METRES][:] = 0.
-
     print('Adding aerosols...')
     processed_data_dict = _add_aerosols(
         orig_gfs_table_xarray=orig_gfs_table_xarray,
         processed_data_dict=processed_data_dict
     )
-
-    processed_data_dict[AEROSOL_EXTINCTION_KEY_ORIG_METRES01][:] = 0.
 
     print(
         'Converting ice-water mixing ratios (kg/kg) to layerwise paths '

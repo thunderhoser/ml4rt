@@ -145,9 +145,6 @@ def _interp_data_one_profile(
 
     orig_pressures_pa = orig_gfs_table_xarray[PRESSURE_KEY].values[i, j, :]
     orig_heights_m_agl = orig_gfs_table_xarray[HEIGHT_KEY].values[i, j, :]
-    these_new_heights_m_agl = new_heights_m_agl + 0.
-    these_new_heights_m_agl[0] = orig_heights_m_agl[0]
-    these_new_heights_m_agl[-1] = orig_heights_m_agl[-1]
 
     interp_object = interp1d(
         x=orig_heights_m_agl, y=numpy.log(orig_pressures_pa),
@@ -155,7 +152,6 @@ def _interp_data_one_profile(
         fill_value='extrapolate'
     )
 
-    interp_data_dict[HEIGHT_KEY][i, j, :] = these_new_heights_m_agl
     interp_data_dict[PRESSURE_KEY][i, j, :] = (
         numpy.exp(interp_object(new_heights_m_agl))
     )
@@ -612,9 +608,6 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
                 (num_times, num_sites, num_heights_new), numpy.nan
             )
 
-    interp_data_dict[HEIGHT_KEY] = numpy.full(
-        (num_times, num_sites, num_heights_new), numpy.nan
-    )
     new_heights_at_edges_m_agl = example_utils.get_grid_cell_edges(
         new_heights_m_agl
     )
@@ -653,12 +646,6 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     print('Converting trace-gas mixing ratios to concentrations...')
     interp_data_dict = _mixing_ratios_to_concentrations(interp_data_dict)
-
-    interp_data_dict[O2_CONCENTRATION_KEY][:] = 2e5
-    interp_data_dict[CO2_CONCENTRATION_KEY][:] = 400.
-    interp_data_dict[CH4_CONCENTRATION_KEY][:] = 1.79
-    interp_data_dict[N2O_CONCENTRATION_KEY][:] = 0.009
-    interp_data_dict[OZONE_MIXING_RATIO_KEY][:] = 5e-6
 
     print(
         'Converting ice-water mixing ratios (kg kg^-1) to layerwise paths '
@@ -716,22 +703,6 @@ def _run(input_file_name, new_heights_m_agl, output_file_name):
 
     new_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
-    )
-    print(new_gfs_table_xarray)
-
-    print(
-        numpy.allclose(
-            new_gfs_table_xarray[HEIGHT_KEY].values[..., 0],
-            orig_gfs_table_xarray[HEIGHT_KEY].values[..., 0],
-            atol=1e-6
-        )
-    )
-    print(
-        numpy.allclose(
-            new_gfs_table_xarray[HEIGHT_KEY].values[..., -1],
-            orig_gfs_table_xarray[HEIGHT_KEY].values[..., -1],
-            atol=1e-6
-        )
     )
 
     # for this_key in new_gfs_table_xarray.variables:
