@@ -25,8 +25,7 @@ echo "GFS file for date ${date_string}: ${actual_gfs_file_name}"
 data_dir_name_actual="${TOP_DATA_DIR_NAME_ACTUAL}/${date_string}"
 data_dir_name_docker="${TOP_DATA_DIR_NAME_DOCKER}/${date_string}"
 
-rm -v ${data_dir_name_actual}/*.nc
-rm -v ${data_dir_name_actual}/*.cdf
+rm -v "${data_dir_name_actual}/output_file.${year_string}.cdf"
 mkdir -p $data_dir_name_actual
 cp $actual_gfs_file_name "${data_dir_name_actual}/"
 
@@ -39,3 +38,7 @@ echo "runit,${year_string}" >> $gdl_script_file_name
 echo "exit" >> $gdl_script_file_name
 
 echo ${sudo_password} | sudo -S -k docker exec ${container_id_string} /bin/sh -c "cd ${data_dir_name_docker}; ls -lrt ${data_dir_name_docker}; gdl -e '@run_rrtm_${date_string}.gdl'"
+
+rm -v ${data_dir_name_actual}/core.*
+rm -v ${data_dir_name_actual}/TAPE*
+rm -v ${data_dir_name_actual}/*RRTM
