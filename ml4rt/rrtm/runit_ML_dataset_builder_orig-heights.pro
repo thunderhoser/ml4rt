@@ -213,9 +213,11 @@ pro runit, year
     systime2julian,dsecs,dyy(0),djulian
 
 	; Now loop over the desired sites, processing each one in turn
-    npts = 0
     rrtm_sw_command = '/home/user/vip/src/rrtm_sw_v2.7.1/rrtm_sw_gfortran_v2.7.2'
+    
     for j=0,n_elements(sites)-1 do begin ; {
+      npts = 0
+    
       foo = where(sites(j) eq site_names, nfoo)
       if(nfoo gt 1) then stop,'Found multiple sites -- this should never happen'
       if(nfoo eq 0) then stop,'Did not find a site -- this should not happen'
@@ -365,44 +367,43 @@ pro runit, year
 	      npts = n_elements(output_zenith_angles_deg)
 	    endif
       endfor ; } loop over k
-    endfor  ; } loop over j
       
-		; Transpose the 2d arrays to get them in the right shape
-    if(n_elements(output_times_unix_sec) gt 0) then begin
-      output_liquid_paths_g_m02 = transpose(output_liquid_paths_g_m02)
-      output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
-      output_temps_kelvins = transpose(output_temps_kelvins)
-      output_pressures_mb = transpose(output_pressures_mb)
-      output_heights_km_agl = transpose(output_heights_km_agl)
-      output_vapour_mixing_ratios_g_kg01 = transpose(output_vapour_mixing_ratios_g_kg01)
-      output_ozone_mixing_ratios_g_kg01 = transpose(output_ozone_mixing_ratios_g_kg01)
-      output_co2_concentrations_ppmv = transpose(output_co2_concentrations_ppmv)
-      output_ch4_concentrations_ppmv = transpose(output_ch4_concentrations_ppmv)
-      output_n2o_concentrations_ppmv = transpose(output_n2o_concentrations_ppmv)
-      output_aerosol_extinctions_km01 = transpose(output_aerosol_extinctions_km01)
-      output_liquid_eff_radii_microns = transpose(output_liquid_eff_radii_microns)
-      output_ice_eff_radii_microns = transpose(output_ice_eff_radii_microns)
-      output_heating_rates_k_day01 = transpose(output_heating_rates_k_day01)
-      output_upwelling_fluxes_w_m02 = transpose(output_upwelling_fluxes_w_m02)
-      output_downwelling_fluxes_w_m02 = transpose(output_downwelling_fluxes_w_m02)
+    	  ; Transpose the 2d arrays to get them in the right shape
+      if(n_elements(output_times_unix_sec) gt 0) then begin
+        output_liquid_paths_g_m02 = transpose(output_liquid_paths_g_m02)
+        output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
+        output_temps_kelvins = transpose(output_temps_kelvins)
+        output_pressures_mb = transpose(output_pressures_mb)
+        output_heights_km_agl = transpose(output_heights_km_agl)
+        output_vapour_mixing_ratios_g_kg01 = transpose(output_vapour_mixing_ratios_g_kg01)
+        output_ozone_mixing_ratios_g_kg01 = transpose(output_ozone_mixing_ratios_g_kg01)
+        output_co2_concentrations_ppmv = transpose(output_co2_concentrations_ppmv)
+        output_ch4_concentrations_ppmv = transpose(output_ch4_concentrations_ppmv)
+        output_n2o_concentrations_ppmv = transpose(output_n2o_concentrations_ppmv)
+        output_aerosol_extinctions_km01 = transpose(output_aerosol_extinctions_km01)
+        output_liquid_eff_radii_microns = transpose(output_liquid_eff_radii_microns)
+        output_ice_eff_radii_microns = transpose(output_ice_eff_radii_microns)
+        output_heating_rates_k_day01 = transpose(output_heating_rates_k_day01)
+        output_upwelling_fluxes_w_m02 = transpose(output_upwelling_fluxes_w_m02)
+        output_downwelling_fluxes_w_m02 = transpose(output_downwelling_fluxes_w_m02)
 
-      		; If the netCDF file has not yet been created, then create it
-      if(do_create_output eq 1) then begin
-	    index = 0
-        do_create_output = create_output_file(outname, n_elements(these_heights_km_agl))
+            ; If the netCDF file has not yet been created, then create it
+        if(do_create_output eq 1) then begin
+	      index = 0
+          do_create_output = create_output_file(outname, n_elements(these_heights_km_agl))
+        endif
+
+		    ; Append output to the file
+        print,'Adding ',n_elements(output_times_unix_sec),' samples to the output file ',outname, ' at ',index, format='(A,I0,A,A,A,I0)'
+        index = append_to_output_file(outname, index, output_times_unix_sec, output_julian_days, $
+          output_zenith_angles_deg, output_standard_atmo_enums, output_latitudes_deg_n, output_longitudes_deg_e, output_surface_albedos, $
+	      output_total_liquid_paths_g_m02, output_total_ice_paths_g_m02, output_liquid_paths_g_m02, output_ice_paths_g_m02, $
+	      output_temps_kelvins, output_pressures_mb, output_heights_km_agl, output_vapour_mixing_ratios_g_kg01, $
+	      output_ozone_mixing_ratios_g_kg01, output_co2_concentrations_ppmv, output_ch4_concentrations_ppmv, output_n2o_concentrations_ppmv, $
+          output_aerosol_extinctions_km01, output_liquid_eff_radii_microns, output_ice_eff_radii_microns, output_aerosol_albedos, output_aerosol_asymmetry_params, $
+	      output_heating_rates_k_day01, output_upwelling_fluxes_w_m02, output_downwelling_fluxes_w_m02, output_toa_upwelling_fluxes_w_m02, output_sfc_downwelling_fluxes_w_m02)
       endif
-
-		; Append output to the file
-      print,'Adding ',n_elements(output_times_unix_sec),' samples to the output file ',outname, ' at ',index, format='(A,I0,A,A,A,I0)'
-      index = append_to_output_file(outname, index, output_times_unix_sec, output_julian_days, $
-        output_zenith_angles_deg, output_standard_atmo_enums, output_latitudes_deg_n, output_longitudes_deg_e, output_surface_albedos, $
-	    output_total_liquid_paths_g_m02, output_total_ice_paths_g_m02, output_liquid_paths_g_m02, output_ice_paths_g_m02, $
-	    output_temps_kelvins, output_pressures_mb, output_heights_km_agl, output_vapour_mixing_ratios_g_kg01, $
-	    output_ozone_mixing_ratios_g_kg01, output_co2_concentrations_ppmv, output_ch4_concentrations_ppmv, output_n2o_concentrations_ppmv, $
-        output_aerosol_extinctions_km01, output_liquid_eff_radii_microns, output_ice_eff_radii_microns, output_aerosol_albedos, output_aerosol_asymmetry_params, $
-	    output_heating_rates_k_day01, output_upwelling_fluxes_w_m02, output_downwelling_fluxes_w_m02, output_toa_upwelling_fluxes_w_m02, output_sfc_downwelling_fluxes_w_m02)
-    endif
-
+    endfor  ; } loop over j
   endfor  ; } loop over i
 
   return

@@ -1,20 +1,23 @@
 #!/usr/bin/bash
 
 # Master script for running the goddamn RRTM.
-# Argument 1 is the date (format "yyyyJJJ", where "JJJ" is the ordinal date from 001...366).
+# Argument 1 is the string ID for the Docker container.
+# Argument 2 is the date (format "yyyyJJJ", where "JJJ" is the ordinal date from 001...366).
+# Argument 3 is the sudo password.
 
-date_string=$1
+container_id_string=$1
+date_string=$2
+sudo_password=$3
 year_string=${date_string:0:4}
 
 SEPARATOR_STRING="\r\n--------------------------------------------------\r\n"
 
-GITHUB_CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt/rrtm"
-SINGULARITY_CONTAINER_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/rrtm_docker/rrtm_hyperres_take2.sif"
-TOP_DATA_DIR_NAME_ACTUAL="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/new_heights"
+GITHUB_CODE_DIR_NAME="/home/ralager/ml4rt/ml4rt/rrtm"
+TOP_DATA_DIR_NAME_ACTUAL="/home/ralager/condo/swatwork/ralager/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/new_heights"
 TOP_DATA_DIR_NAME_DOCKER="/home/user/data"
 
 cp -v "${GITHUB_CODE_DIR_NAME}/make_rrtm_sw_calc.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
-cp -v "${GITHUB_CODE_DIR_NAME}/runit_ML_dataset_builder_745heights.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
+cp -v "${GITHUB_CODE_DIR_NAME}/runit_ML_dataset_builder_orig-heights.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
 
 actual_gfs_file_name="${TOP_DATA_DIR_NAME_ACTUAL}/profiler_sitesF.ncep_rap.${date_string}.0000.nc"
 echo "GFS file for date ${date_string}: ${actual_gfs_file_name}"
@@ -30,11 +33,11 @@ gdl_script_file_name="${data_dir_name_actual}/run_rrtm_${date_string}.gdl"
 echo "Writing GDL batch script to: '${gdl_script_file_name}'..."
 
 echo ".compile /home/user/data/make_rrtm_sw_calc" > $gdl_script_file_name
-echo ".run /home/user/data/runit_ML_dataset_builder_745heights.pro" >> $gdl_script_file_name
+echo ".run /home/user/data/runit_ML_dataset_builder_orig-heights.pro" >> $gdl_script_file_name
 echo "runit,${year_string}" >> $gdl_script_file_name
 echo "exit" >> $gdl_script_file_name
 
-singularity exec -C -B "${TOP_DATA_DIR_NAME_ACTUAL}":"${TOP_DATA_DIR_NAME_DOCKER}" "${SINGULARITY_CONTAINER_NAME}" /bin/sh -c "cd ${data_dir_name_docker}; gdl -e '@run_rrtm_${date_string}.gdl'"
+echo ${sudo_password} | sudo -S -k docker exec ${container_id_string} /bin/sh -c "cd ${data_dir_name_docker}; ls -lrt ${data_dir_name_docker}; gdl -e '@run_rrtm_${date_string}.gdl'"
 
 rm -v ${data_dir_name_actual}/core.*
 rm -v ${data_dir_name_actual}/TAPE*
