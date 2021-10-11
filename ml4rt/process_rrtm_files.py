@@ -18,7 +18,7 @@ import example_utils
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 ORIG_DATE_FORMAT = time_conversion.SPC_DATE_FORMAT
-RRTM_DATE_FORMAT = '%Y%J'
+RRTM_DATE_FORMAT = '%Y%j'
 
 INPUT_DIR_ARG_NAME = 'input_rrtm_dir_name'
 FIRST_DATE_ARG_NAME = 'first_date_string'
