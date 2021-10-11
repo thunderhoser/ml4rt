@@ -593,36 +593,6 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
             dataset_object.variables[this_predictor_name_orig][:], dtype=float
         )
 
-        if vector_predictor_names[k] in [
-                example_utils.LIQUID_WATER_CONTENT_NAME,
-                example_utils.ICE_WATER_CONTENT_NAME
-        ]:
-            if different_height_grids:
-                for i in range(num_examples):
-                    vector_predictor_matrix[i, :, k] = (
-                        _layerwise_water_path_to_content(
-                            layerwise_path_matrix_kg_m02=numpy.expand_dims(
-                                vector_predictor_matrix[i, :, k], axis=0
-                            ),
-                            heights_m_agl=height_matrix_m_agl[i, :]
-                        )[0, :]
-                    )
-            else:
-                vector_predictor_matrix[..., k] = (
-                    _layerwise_water_path_to_content(
-                        layerwise_path_matrix_kg_m02=
-                        vector_predictor_matrix[..., k],
-                        heights_m_agl=example_dict[example_utils.HEIGHTS_KEY]
-                    )
-                )
-
-        if vector_predictor_names[k] == example_utils.SPECIFIC_HUMIDITY_NAME:
-            vector_predictor_matrix[..., k] = (
-                moisture_conv.mixing_ratio_to_specific_humidity(
-                    vector_predictor_matrix[..., k]
-                )
-            )
-
     for k in range(num_scalar_targets):
         this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[scalar_target_names[k]]
         scalar_target_matrix[:, k] = numpy.array(
@@ -674,6 +644,47 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
         example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )
+
+    height_matrix_m_agl = example_utils.get_field_from_dict(
+        example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
+    )
+    num_examples = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
+
+    for k in range(num_vector_predictors):
+        if vector_predictor_names[k] in [
+            example_utils.LIQUID_WATER_CONTENT_NAME,
+            example_utils.ICE_WATER_CONTENT_NAME
+        ]:
+            this_matrix = (
+                example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., k]
+            )
+
+            if different_height_grids:
+                for i in range(num_examples):
+                    this_matrix[i, :] = _layerwise_water_path_to_content(
+                        layerwise_path_matrix_kg_m02=this_matrix[[i], :],
+                        heights_m_agl=height_matrix_m_agl[i, :]
+                    )[0, :]
+            else:
+                this_matrix = _layerwise_water_path_to_content(
+                    layerwise_path_matrix_kg_m02=this_matrix,
+                    heights_m_agl=example_dict[example_utils.HEIGHTS_KEY]
+                )
+
+            example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., k] = (
+                this_matrix
+            )
+
+        if vector_predictor_names[k] == example_utils.SPECIFIC_HUMIDITY_NAME:
+            this_matrix = (
+                example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., k]
+            )
+            this_matrix = moisture_conv.mixing_ratio_to_specific_humidity(
+                this_matrix
+            )
+            example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., k] = (
+                this_matrix
+            )
 
     longitude_index = (
         example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
