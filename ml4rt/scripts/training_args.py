@@ -40,7 +40,6 @@ USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
-OMIT_HEATING_RATE_ARG_NAME = 'omit_heating_rate'
 FIRST_TRAIN_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
 FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
@@ -98,10 +97,6 @@ TARGET_NAMES_HELP_STRING = (
 HEIGHTS_HELP_STRING = (
     'List of heights (metres above ground level) for profile (vector) '
     'variables.'
-)
-OMIT_HEATING_RATE_HELP_STRING = (
-    'Boolean flag.  If 1, heating rate will not be explicitly predicted by the '
-    'model, even if it is in the list of target variables.'
 )
 TRAIN_TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The training period will be '
@@ -212,10 +207,6 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + HEIGHTS_ARG_NAME, type=float, nargs='+', required=False,
         default=[-1], help=HEIGHTS_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + OMIT_HEATING_RATE_ARG_NAME, type=int, required=False, default=0,
-        help=OMIT_HEATING_RATE_HELP_STRING
     )
     parser_object.add_argument(
         '--' + FIRST_TRAIN_TIME_ARG_NAME, type=str, required=False,

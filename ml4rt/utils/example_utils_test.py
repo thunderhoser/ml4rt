@@ -349,8 +349,7 @@ EXAMPLE_DICT_WITH_RADII = {
     example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
 
-# The following constants are used to test fluxes_to_heating_rate,
-# fluxes_actual_to_increments, and fluxes_increments_to_actual.
+# The following constants are used to test fluxes_to_heating_rate.
 THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
     [100, 150, 200, 250, 300, 350],
     [400, 500, 600, 700, 800, 900],
@@ -374,12 +373,6 @@ THIS_PRESSURE_DIFF_MATRIX_PASCALS = 100 * numpy.array([
     [-100, -100, -100, -100, -100, -100],
     [-50, -50, -50, -50, -50, -50]
 ], dtype=float)
-
-# THIS_NET_FLUX_MATRIX_W_M02 = numpy.array([
-#     [-50, -25, 0, 25, 50, 75],
-#     [100, 50, 0, -50, -100, -150],
-#     [1000, 1000, 1000, 1000, 1000, 1000]
-# ], dtype=float)
 
 THIS_NET_FLUX_DIFF_MATRIX_W02 = numpy.array([
     [25, 25, 25, 25, 25, 25],
@@ -441,48 +434,6 @@ THESE_VECTOR_TARGET_NAMES = [
 ]
 
 EXAMPLE_DICT_WITH_HEATING_RATE = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_utils.VECTOR_TARGET_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
-    example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
-}
-
-THIS_UP_FLUX_INC_MATRIX_W_M02 = numpy.array([
-    [100, 50, 50, 50, 50, 50],
-    [400, 100, 100, 100, 100, 100],
-    [0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_DOWN_FLUX_INC_MATRIX_W_M02 = numpy.array([
-    [50, 75, 75, 75, 75, 75],
-    [500, 50, 50, 50, 50, 50],
-    [1000, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_UP_FLUX_INC_MATRIX_W_M03 = (
-    THIS_UP_FLUX_INC_MATRIX_W_M02 / THIS_WIDTH_MATRIX_METRES
-)
-THIS_DOWN_FLUX_INC_MATRIX_W_M03 = (
-    THIS_DOWN_FLUX_INC_MATRIX_W_M02 / THIS_WIDTH_MATRIX_METRES
-)
-
-THIS_VECTOR_TARGET_MATRIX = numpy.stack((
-    THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02,
-    THIS_DOWN_FLUX_INC_MATRIX_W_M03, THIS_UP_FLUX_INC_MATRIX_W_M03
-), axis=-1)
-
-THESE_VECTOR_TARGET_NAMES = [
-    example_utils.SHORTWAVE_UP_FLUX_NAME,
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME,
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME
-]
-
-EXAMPLE_DICT_WITH_INCREMENTS = {
     example_utils.VECTOR_PREDICTOR_NAMES_KEY:
         copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
     example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
@@ -924,17 +875,15 @@ EXAMPLE_ID_STRINGS = [
     )
 ]
 
-# The following constants are used to test create_fake_heights.
+# The following constants are used to test _add_height_padding.
 REAL_HEIGHTS_M_AGL = numpy.array(
     [10, 20, 40, 60, 80, 10000, 50000], dtype=float
 )
-NUM_PADDING_HEIGHTS = 10
 PADDED_HEIGHTS_M_AGL = numpy.array([
     10, 20, 40, 60, 80, 10000, 50000, 1050000, 2050000, 3050000, 4050000,
     5050000, 6050000, 7050000, 8050000, 9050000, 10050000
 ], dtype=float)
 
-# The following constants are used to test _add_height_padding.
 THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
     [1, 2, 3, 4, 5, 6, 7],
     [2, 4, 6, 8, 10, 12, 14],
@@ -1245,28 +1194,6 @@ class ExampleUtilsTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_HEATING_RATE
-        ))
-
-    def test_fluxes_actual_to_increments(self):
-        """Ensures correct output from fluxes_actual_to_increments."""
-
-        this_example_dict = example_utils.fluxes_actual_to_increments(
-            copy.deepcopy(EXAMPLE_DICT_FLUXES_ONLY)
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_WITH_INCREMENTS
-        ))
-
-    def test_fluxes_increments_to_actual(self):
-        """Ensures correct output from fluxes_increments_to_actual."""
-
-        this_example_dict = example_utils.fluxes_increments_to_actual(
-            copy.deepcopy(EXAMPLE_DICT_WITH_INCREMENTS)
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_WITH_INCREMENTS
         ))
 
     def test_find_cloud_layers(self):
@@ -1668,18 +1595,6 @@ class ExampleUtilsTests(unittest.TestCase):
         self.assertTrue(numpy.allclose(
             these_10m_temps_kelvins, TEMPERATURES_FOR_ID_KELVINS,
             atol=TOLERANCE
-        ))
-
-    def test_create_fake_heights(self):
-        """Ensures correct output from create_fake_heights."""
-
-        these_heights_m_agl = example_utils.create_fake_heights(
-            real_heights_m_agl=REAL_HEIGHTS_M_AGL,
-            num_padding_heights=NUM_PADDING_HEIGHTS
-        )
-
-        self.assertTrue(numpy.allclose(
-            these_heights_m_agl, PADDED_HEIGHTS_M_AGL, atol=TOLERANCE
         ))
 
     def test_add_height_padding(self):

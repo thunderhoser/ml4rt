@@ -130,8 +130,8 @@ def _get_predictions_and_targets(
     d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
     predictor_matrix, _, example_id_strings = neural_net.create_data(
-        option_dict=d, for_inference=True,
-        net_type_string=net_type_string, exclude_summit_greenland=True
+        option_dict=d, net_type_string=net_type_string,
+        exclude_summit_greenland=True
     )
     print(SEPARATOR_STRING)
 
@@ -142,8 +142,8 @@ def _get_predictions_and_targets(
     d[neural_net.NORMALIZATION_FILE_KEY] = new_grid_norm_file_name
 
     _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
-        option_dict=d, for_inference=True,
-        net_type_string=net_type_string, exclude_summit_greenland=True
+        option_dict=d, net_type_string=net_type_string,
+        exclude_summit_greenland=True
     )
     print(SEPARATOR_STRING)
 
@@ -381,7 +381,6 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
     model_metadata_dict = neural_net.read_metafile(metafile_name)
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    assert not generator_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
     assert (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] ==
         [example_utils.SHORTWAVE_HEATING_RATE_NAME]

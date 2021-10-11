@@ -242,7 +242,13 @@ def plot_predictors(
         figure_object = handle_dict[FIGURE_HANDLE_KEY]
         axes_objects = handle_dict[AXES_OBJECTS_KEY]
 
-    heights_km_agl = METRES_TO_KM * example_dict[example_utils.HEIGHTS_KEY]
+    try:
+        heights_km_agl = METRES_TO_KM * example_utils.get_field_from_dict(
+            example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
+        )[example_index, :]
+    except:
+        heights_km_agl = METRES_TO_KM * example_dict[example_utils.HEIGHTS_KEY]
+
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(num_predictors):
@@ -359,7 +365,12 @@ def plot_targets(
         down_flux_axes_object = handle_dict[DOWN_FLUX_HANDLE_KEY]
         up_flux_axes_object = handle_dict[UP_FLUX_HANDLE_KEY]
 
-    heights_km_agl = METRES_TO_KM * example_dict[example_utils.HEIGHTS_KEY]
+    try:
+        heights_km_agl = METRES_TO_KM * example_utils.get_field_from_dict(
+            example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
+        )[example_index, :]
+    except:
+        heights_km_agl = METRES_TO_KM * example_dict[example_utils.HEIGHTS_KEY]
 
     heating_rates_kelvins_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,

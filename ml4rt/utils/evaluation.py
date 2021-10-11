@@ -20,9 +20,6 @@ NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
 LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
 HIGHEST_UP_FLUX_NAME = 'highest_shortwave_up_flux_w_m02'
 
-ASSUMED_TOA_HEIGHT_M_AGL = 50000
-ASSUMED_SURFACE_HEIGHT_M_AGL = 10
-
 SCALAR_FIELD_DIM = 'scalar_field'
 HEIGHT_DIM = 'height_m_agl'
 VECTOR_FIELD_DIM = 'vector_field'
@@ -934,16 +931,11 @@ def get_aux_fields(prediction_dict, example_dict):
         toa_up_flux_index = -1
 
     vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
     if toa_up_flux_index >= 0:
         try:
             this_field_index = vector_target_names.index(
                 example_utils.SHORTWAVE_UP_FLUX_NAME
-            )
-            this_height_index = example_utils.match_heights(
-                heights_m_agl=heights_m_agl,
-                desired_height_m_agl=ASSUMED_TOA_HEIGHT_M_AGL
             )
 
             aux_target_field_names.append(
@@ -959,8 +951,7 @@ def get_aux_fields(prediction_dict, example_dict):
             )
 
             this_prediction_matrix = (
-                vector_prediction_matrix[
-                    :, this_height_index, [this_field_index]]
+                vector_prediction_matrix[:, -1, [this_field_index]]
             )
             aux_prediction_matrix = numpy.concatenate(
                 (aux_prediction_matrix, this_prediction_matrix), axis=1
@@ -972,10 +963,6 @@ def get_aux_fields(prediction_dict, example_dict):
         try:
             this_field_index = vector_target_names.index(
                 example_utils.SHORTWAVE_DOWN_FLUX_NAME
-            )
-            this_height_index = example_utils.match_heights(
-                heights_m_agl=heights_m_agl,
-                desired_height_m_agl=ASSUMED_SURFACE_HEIGHT_M_AGL
             )
 
             aux_target_field_names.append(
@@ -991,8 +978,7 @@ def get_aux_fields(prediction_dict, example_dict):
             )
 
             this_prediction_matrix = (
-                vector_prediction_matrix[
-                    :, this_height_index, [this_field_index]]
+                vector_prediction_matrix[:, 0, [this_field_index]]
             )
             aux_prediction_matrix = numpy.concatenate(
                 (aux_prediction_matrix, this_prediction_matrix), axis=1

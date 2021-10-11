@@ -5,8 +5,6 @@ import scipy.stats
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
 
-DUMMY_HEIGHT_M_AGL = 10
-
 MIN_CUMULATIVE_DENSITY = 1e-6
 MAX_CUMULATIVE_DENSITY = 1. - 1e-6
 

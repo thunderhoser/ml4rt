@@ -160,7 +160,7 @@ def get_examples_for_inference(
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
-        option_dict=generator_option_dict, for_inference=True,
+        option_dict=generator_option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
     )
 
