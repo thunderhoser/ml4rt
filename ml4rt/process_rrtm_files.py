@@ -168,6 +168,8 @@ if __name__ == '__main__':
         top_rrtm_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
         first_date_string=getattr(INPUT_ARG_OBJECT, FIRST_DATE_ARG_NAME),
         last_date_string=getattr(INPUT_ARG_OBJECT, LAST_DATE_ARG_NAME),
-        dummy_heights_m_agl=getattr(INPUT_ARG_OBJECT, DUMMY_HEIGHTS_ARG_NAME),
+        dummy_heights_m_agl=numpy.array(
+            getattr(INPUT_ARG_OBJECT, DUMMY_HEIGHTS_ARG_NAME), dtype=int
+        ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
