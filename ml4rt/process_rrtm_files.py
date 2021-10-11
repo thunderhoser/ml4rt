@@ -50,10 +50,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + FIRST_DATE_ARG_NAME, type=int, required=True, help=DATE_HELP_STRING
+    '--' + FIRST_DATE_ARG_NAME, type=str, required=True, help=DATE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + LAST_DATE_ARG_NAME, type=int, required=True, help=DATE_HELP_STRING
+    '--' + LAST_DATE_ARG_NAME, type=str, required=True, help=DATE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + DUMMY_HEIGHTS_ARG_NAME, type=int, nargs='+', required=False,
