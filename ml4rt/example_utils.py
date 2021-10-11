@@ -133,13 +133,10 @@ O2_CONCENTRATION_NAME = 'o2_concentration_ppmv'
 CO2_CONCENTRATION_NAME = 'co2_concentration_ppmv'
 CH4_CONCENTRATION_NAME = 'ch4_concentration_ppmv'
 N2O_CONCENTRATION_NAME = 'n2o_concentration_ppmv'
-
-# TODO(thunderhoser): Extinction, absorption, and size (which is asymmetry
-# param).  At each level: extinction, SSA, asymmetry param.  Dave is assuming
-# SSA and asymmetry param constant with altitude.
 AEROSOL_EXTINCTION_NAME = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
+HEIGHT_NAME = 'height_m_agl'
 
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
@@ -158,7 +155,7 @@ BASIC_VECTOR_PREDICTOR_NAMES = [
 ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
     LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME, O3_MIXING_RATIO_NAME,
     O2_CONCENTRATION_NAME, CO2_CONCENTRATION_NAME, CH4_CONCENTRATION_NAME,
-    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME
+    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME, HEIGHT_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -625,172 +622,6 @@ def fluxes_to_heating_rate(example_dict):
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
-        )
-
-    return example_dict
-
-
-def fluxes_actual_to_increments(example_dict):
-    """For each example, converts flux profiles to flux-increment profiles.
-
-    In a "flux profile," the values at each height are the total upwelling and
-    downwelling fluxes.
-
-    In a "flux-increment profile," the values at the [j]th height are the
-    upwelling- and downwelling-flux increments added by the [j]th layer,
-    divided by the pressure difference over the [j]th layer.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with flux-increment profiles.
-    """
-
-    edge_heights_m_agl = get_grid_cell_edges(example_dict[HEIGHTS_KEY])
-    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
-
-    num_examples = len(example_dict[VALID_TIMES_KEY])
-    num_heights = len(example_dict[HEIGHTS_KEY])
-
-    grid_cell_width_matrix_metres = numpy.reshape(
-        grid_cell_widths_metres, (1, num_heights)
-    )
-    grid_cell_width_matrix_metres = numpy.repeat(
-        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
-    )
-
-    down_flux_matrix_w_m02 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
-    )
-    up_flux_matrix_w_m02 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_NAME
-    )
-
-    down_flux_increment_matrix_w_m03 = numpy.diff(
-        down_flux_matrix_w_m02, axis=1, prepend=0.
-    ) / grid_cell_width_matrix_metres
-
-    up_flux_increment_matrix_w_m03 = numpy.diff(
-        up_flux_matrix_w_m02, axis=1, prepend=0.
-    ) / grid_cell_width_matrix_metres
-
-    # down_flux_increment_matrix_w_m03 = numpy.maximum(
-    #     down_flux_increment_matrix_w_m03, 0.
-    # )
-    # up_flux_increment_matrix_w_m03 = numpy.maximum(
-    #     up_flux_increment_matrix_w_m03, 0.
-    # )
-
-    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    found_down_increment = SHORTWAVE_DOWN_FLUX_INC_NAME in vector_target_names
-    found_up_increment = SHORTWAVE_UP_FLUX_INC_NAME in vector_target_names
-
-    if not found_down_increment:
-        vector_target_names.append(SHORTWAVE_DOWN_FLUX_INC_NAME)
-    if not found_up_increment:
-        vector_target_names.append(SHORTWAVE_UP_FLUX_INC_NAME)
-
-    down_increment_index = vector_target_names.index(
-        SHORTWAVE_DOWN_FLUX_INC_NAME
-    )
-    up_increment_index = vector_target_names.index(SHORTWAVE_UP_FLUX_INC_NAME)
-    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-    if found_down_increment:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_increment_index] = (
-            down_flux_increment_matrix_w_m03
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY], obj=down_increment_index,
-            values=down_flux_increment_matrix_w_m03, axis=-1
-        )
-
-    if found_up_increment:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_increment_index] = (
-            up_flux_increment_matrix_w_m03
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY], obj=up_increment_index,
-            values=up_flux_increment_matrix_w_m03, axis=-1
-        )
-
-    return example_dict
-
-
-def fluxes_increments_to_actual(example_dict):
-    """For each example, converts flux-increment profiles to flux profiles.
-
-    This method is the inverse of `fluxes_actual_to_increments`.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with actual flux profiles.
-    """
-
-    edge_heights_m_agl = get_grid_cell_edges(example_dict[HEIGHTS_KEY])
-    grid_cell_widths_metres = get_grid_cell_widths(edge_heights_m_agl)
-
-    num_examples = len(example_dict[VALID_TIMES_KEY])
-    num_heights = len(example_dict[HEIGHTS_KEY])
-
-    grid_cell_width_matrix_metres = numpy.reshape(
-        grid_cell_widths_metres, (1, num_heights)
-    )
-    grid_cell_width_matrix_metres = numpy.repeat(
-        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
-    )
-
-    down_flux_increment_matrix_w_m03 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_INC_NAME
-    )
-    up_flux_increment_matrix_w_m03 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_INC_NAME
-    )
-
-    down_flux_matrix_w_m02 = numpy.cumsum(
-        down_flux_increment_matrix_w_m03 * grid_cell_width_matrix_metres,
-        axis=1
-    )
-    up_flux_matrix_w_m02 = numpy.cumsum(
-        up_flux_increment_matrix_w_m03 * grid_cell_width_matrix_metres,
-        axis=1
-    )
-
-    down_flux_matrix_w_m02 = numpy.maximum(down_flux_matrix_w_m02, 0.)
-    up_flux_matrix_w_m02 = numpy.maximum(up_flux_matrix_w_m02, 0.)
-
-    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names
-    found_up_flux = SHORTWAVE_UP_FLUX_NAME in vector_target_names
-
-    if not found_down_flux:
-        vector_target_names.append(SHORTWAVE_DOWN_FLUX_NAME)
-    if not found_up_flux:
-        vector_target_names.append(SHORTWAVE_UP_FLUX_NAME)
-
-    down_flux_index = vector_target_names.index(SHORTWAVE_DOWN_FLUX_NAME)
-    up_flux_index = vector_target_names.index(SHORTWAVE_UP_FLUX_NAME)
-    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-    if found_down_flux:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
-            down_flux_matrix_w_m02
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY],
-            obj=down_flux_index, values=down_flux_matrix_w_m02, axis=-1
-        )
-
-    if found_up_flux:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
-            up_flux_matrix_w_m02
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY],
-            obj=up_flux_index, values=up_flux_matrix_w_m02, axis=-1
         )
 
     return example_dict
@@ -1340,38 +1171,6 @@ def match_heights(heights_m_agl, desired_height_m_agl):
     ).format(desired_height_m_agl, heights_m_agl[matching_index])
 
     raise ValueError(error_string)
-
-
-def create_fake_heights(real_heights_m_agl, num_padding_heights):
-    """Creates fake heights for padding at top of profile.
-
-    :param real_heights_m_agl: 1-D numpy array of real heights (metres above
-        ground level).
-    :param num_padding_heights: Number of heights to pad at top.
-    :return: heights_m_agl: 1-D numpy array with all heights (real followed by
-        fake).
-    """
-
-    error_checking.assert_is_numpy_array(real_heights_m_agl, num_dimensions=1)
-    error_checking.assert_is_geq_numpy_array(real_heights_m_agl, 0.)
-    assert numpy.allclose(
-        real_heights_m_agl, numpy.sort(real_heights_m_agl), atol=TOLERANCE
-    )
-
-    error_checking.assert_is_integer(num_padding_heights)
-    error_checking.assert_is_geq(num_padding_heights, 0)
-
-    if num_padding_heights == 0:
-        return real_heights_m_agl
-
-    fake_heights_m_agl = numpy.linspace(
-        1, num_padding_heights, num=num_padding_heights, dtype=float
-    )
-    fake_heights_m_agl = real_heights_m_agl[-1] + 1e6 * fake_heights_m_agl
-
-    return numpy.concatenate(
-        (real_heights_m_agl, fake_heights_m_agl), axis=0
-    )
 
 
 def check_field_name(field_name):

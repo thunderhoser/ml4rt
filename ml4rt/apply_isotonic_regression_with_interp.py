@@ -108,7 +108,6 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
     vector_target_names = (
         training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
-    assert not training_option_dict[neural_net.OMIT_HEATING_RATE_KEY]
     assert vector_target_names == [example_utils.SHORTWAVE_HEATING_RATE_NAME]
 
     # Find example IDs for original (model) grid.

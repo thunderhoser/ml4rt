@@ -122,7 +122,8 @@ PREDICTOR_NAME_TO_ORIG_GFS = {
     example_utils.N2O_CONCENTRATION_NAME: 'n2o_concentration_ppmv',
     example_utils.AEROSOL_EXTINCTION_NAME: 'aerosol_extinction_metres01',
     example_utils.LIQUID_EFF_RADIUS_NAME: 'liquid_eff_radius_metres',
-    example_utils.ICE_EFF_RADIUS_NAME: 'ice_eff_radius_metres'
+    example_utils.ICE_EFF_RADIUS_NAME: 'ice_eff_radius_metres',
+    example_utils.HEIGHT_NAME: 'height_m_agl'
 }
 PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
     example_utils.ZENITH_ANGLE_NAME: DEG_TO_RADIANS,
@@ -144,7 +145,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
     example_utils.N2O_CONCENTRATION_NAME: 1.,
     example_utils.AEROSOL_EXTINCTION_NAME: 1.,
     example_utils.LIQUID_EFF_RADIUS_NAME: 1.,
-    example_utils.ICE_EFF_RADIUS_NAME: 1.
+    example_utils.ICE_EFF_RADIUS_NAME: 1.,
+    example_utils.HEIGHT_NAME: 1.
 }
 TARGET_NAME_TO_ORIG_GFS = {
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
@@ -375,22 +377,38 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     if not (get_lwp or get_iwp or get_wvp):
         return example_dict
 
-    edge_heights_m_agl = example_utils.get_grid_cell_edges(
-        example_dict[example_utils.HEIGHTS_KEY]
-    )
-    grid_cell_widths_metres = example_utils.get_grid_cell_widths(
-        edge_heights_m_agl
-    )
+    height_matrix_m_agl = example_dict[example_utils.HEIGHTS_KEY]
+    different_height_grids = len(height_matrix_m_agl.shape) == 2
 
-    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
-    num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
+    if different_height_grids:
+        num_examples = height_matrix_m_agl.shape[0]
 
-    grid_cell_width_matrix_metres = numpy.reshape(
-        grid_cell_widths_metres, (1, num_heights)
-    )
-    grid_cell_width_matrix_metres = numpy.repeat(
-        grid_cell_width_matrix_metres, repeats=num_examples, axis=0
-    )
+        edge_height_matrix_m_agl = numpy.concatenate([
+            example_utils.get_grid_cell_edges(height_matrix_m_agl[i, :])
+            for i in range(num_examples)
+        ], axis=0)
+
+        grid_cell_width_matrix_metres = numpy.concatenate([
+            example_utils.get_grid_cell_widths(edge_height_matrix_m_agl[i, :])
+            for i in range(num_examples)
+        ], axis=0)
+
+    else:
+        heights_m_agl = height_matrix_m_agl
+        edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
+        grid_cell_widths_metres = example_utils.get_grid_cell_widths(
+            edge_heights_m_agl
+        )
+
+        num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+        num_heights = len(heights_m_agl)
+
+        grid_cell_width_matrix_metres = numpy.reshape(
+            grid_cell_widths_metres, (1, num_heights)
+        )
+        grid_cell_width_matrix_metres = numpy.repeat(
+            grid_cell_width_matrix_metres, repeats=num_examples, axis=0
+        )
 
     if get_lwp:
         lwc_matrix_kg_m03 = example_utils.get_field_from_dict(
@@ -483,11 +501,12 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     return example_dict
 
 
-def _read_file_gfs(netcdf_file_name, allow_bad_values=False):
+def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
     """Reads RRTM data, created with GFS inputs, from NetCDF file.
 
     :param netcdf_file_name: See doc for `read_file`.
     :param allow_bad_values: Same.
+    :param dummy_heights_m_agl: Same.
     :return: example_dict: Same.
     """
 
@@ -498,7 +517,32 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values=False):
     scalar_target_names = copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES_GFS)
     vector_target_names = copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES_GFS)
 
-    example_dict = {
+    height_matrix_m_agl = numpy.array(
+        dataset_object.variables[HEIGHTS_KEY_GFS][:], dtype=float
+    )
+    different_height_grids = len(height_matrix_m_agl.shape) == 2
+
+    if different_height_grids:
+        expected_dim = numpy.array([height_matrix_m_agl.shape[1]], dtype=int)
+        error_checking.assert_is_numpy_array(
+            dummy_heights_m_agl, exact_dimensions=expected_dim
+        )
+
+        dummy_heights_m_agl = numpy.round(dummy_heights_m_agl).astype(int)
+
+        error_checking.assert_is_greater_numpy_array(
+            dummy_heights_m_agl, 0
+        )
+        error_checking.assert_is_greater_numpy_array(
+            numpy.diff(dummy_heights_m_agl), 0
+        )
+
+        vector_predictor_names.append(example_utils.HEIGHT_NAME)
+        example_dict = {example_utils.HEIGHTS_KEY: dummy_heights_m_agl}
+    else:
+        example_dict = {example_utils.HEIGHTS_KEY: height_matrix_m_agl}
+
+    example_dict.update({
         example_utils.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
         example_utils.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
         example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
@@ -506,16 +550,13 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values=False):
         example_utils.VALID_TIMES_KEY: numpy.array(
             dataset_object.variables[VALID_TIMES_KEY_GFS][:], dtype=int
         ),
-        example_utils.HEIGHTS_KEY: numpy.array(
-            dataset_object.variables[HEIGHTS_KEY_GFS][:], dtype=float
-        ),
         example_utils.STANDARD_ATMO_FLAGS_KEY: numpy.array(
             numpy.round(
                 dataset_object.variables[STANDARD_ATMO_FLAGS_KEY_GFS][:]
             ),
             dtype=int
         )
-    }
+    })
 
     num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
     num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
@@ -563,10 +604,24 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values=False):
                 example_utils.LIQUID_WATER_CONTENT_NAME,
                 example_utils.ICE_WATER_CONTENT_NAME
         ]:
-            vector_predictor_matrix[..., k] = _layerwise_water_path_to_content(
-                layerwise_path_matrix_kg_m02=vector_predictor_matrix[..., k],
-                heights_m_agl=example_dict[example_utils.HEIGHTS_KEY]
-            )
+            if different_height_grids:
+                for i in range(num_examples):
+                    vector_predictor_matrix[i, :, k] = (
+                        _layerwise_water_path_to_content(
+                            layerwise_path_matrix_kg_m02=numpy.expand_dims(
+                                vector_predictor_matrix[i, :, k], axis=0
+                            ),
+                            heights_m_agl=height_matrix_m_agl[i, :]
+                        )[0, :]
+                    )
+            else:
+                vector_predictor_matrix[..., k] = (
+                    _layerwise_water_path_to_content(
+                        layerwise_path_matrix_kg_m02=
+                        vector_predictor_matrix[..., k],
+                        heights_m_agl=example_dict[example_utils.HEIGHTS_KEY]
+                    )
+                )
 
         if vector_predictor_names[k] == example_utils.SPECIFIC_HUMIDITY_NAME:
             vector_predictor_matrix[..., k] = (
@@ -749,7 +804,8 @@ def find_many_files(
     return rrtm_file_names
 
 
-def read_file(netcdf_file_name, allow_bad_values=False):
+def read_file(netcdf_file_name, allow_bad_values=False,
+              dummy_heights_m_agl=None):
     """Reads RRTM data from NetCDF file.
 
     E = number of examples
@@ -762,6 +818,9 @@ def read_file(netcdf_file_name, allow_bad_values=False):
     :param netcdf_file_name: Path to NetCDF file with learning examples.
     :param allow_bad_values: Boolean flag.  If True, will allow bad values and
         remove examples that have bad values.
+    :param dummy_heights_m_agl: length-H numpy array of dummy heights (metres
+        above ground level), used only if input file contains a different height
+        grid for each example.
 
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (E x P_s) with values
@@ -805,7 +864,9 @@ def read_file(netcdf_file_name, allow_bad_values=False):
     ):
         dataset_object.close()
         return _read_file_gfs(
-            netcdf_file_name=netcdf_file_name, allow_bad_values=allow_bad_values
+            netcdf_file_name=netcdf_file_name,
+            allow_bad_values=allow_bad_values,
+            dummy_heights_m_agl=dummy_heights_m_agl
         )
 
     example_dict = {
@@ -961,6 +1022,4 @@ def read_file(netcdf_file_name, allow_bad_values=False):
         integrate_upward=True
     )
 
-    example_dict = _specific_to_relative_humidity(example_dict)
-    example_dict = example_utils.fluxes_actual_to_increments(example_dict)
-    return example_utils.fluxes_increments_to_actual(example_dict)
+    return _specific_to_relative_humidity(example_dict)

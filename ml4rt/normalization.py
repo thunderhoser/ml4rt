@@ -1,7 +1,7 @@
 """Methods for normalizing predictor and target variables."""
 
+import os
 import sys
-import os.path
 import numpy
 import scipy.stats
 
@@ -13,22 +13,12 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import error_checking
 import example_utils
 
-DUMMY_HEIGHT_M_AGL = 10
-
 MIN_CUMULATIVE_DENSITY = 1e-6
 MAX_CUMULATIVE_DENSITY = 1. - 1e-6
 
 MINMAX_NORM_STRING = 'minmax'
 Z_SCORE_NORM_STRING = 'z_score'
 VALID_NORM_TYPE_STRINGS = [MINMAX_NORM_STRING, Z_SCORE_NORM_STRING]
-
-TARGET_NAME_TO_LOG_FLAG = {
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME: False,
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: False,
-    example_utils.SHORTWAVE_UP_FLUX_NAME: True,
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: True,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: True
-}
 
 
 def _check_normalization_type(normalization_type_string):

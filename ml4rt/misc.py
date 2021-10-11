@@ -105,7 +105,7 @@ def get_examples_for_inference(
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
-        option_dict=generator_option_dict, for_inference=True,
+        option_dict=generator_option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
     )
 
@@ -133,7 +133,7 @@ def get_examples_for_inference(
 
 def get_raw_examples(
         example_file_name, num_examples, example_dir_name,
-        example_id_file_name, flexible=False):
+        example_id_file_name):
     """Returns raw examples.
 
     The difference between `get_raw_examples` and `get_examples_for_inference`
@@ -144,12 +144,10 @@ def get_raw_examples(
     :param num_examples: Same.
     :param example_dir_name: Same.
     :param example_id_file_name: Same.
-    :param flexible: Leave this alone.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
     error_checking.assert_is_string(example_file_name)
-    error_checking.assert_is_boolean(flexible)
     use_specific_ids = example_file_name == ''
 
     if use_specific_ids:
@@ -178,9 +176,6 @@ def get_raw_examples(
             example_dicts[i] = example_io.read_file(example_file_names[i])
 
         example_dict = example_utils.concat_examples(example_dicts)
-
-        if flexible:
-            example_id_strings = list(set(example_id_strings))
 
         good_indices = example_utils.find_examples(
             all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
