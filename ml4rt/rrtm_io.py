@@ -522,6 +522,9 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
     )
     different_height_grids = len(height_matrix_m_agl.shape) == 2
 
+    print(height_matrix_m_agl.size)
+    print(numpy.sum(height_matrix_m_agl > 1e10))
+
     if different_height_grids:
         expected_dim = numpy.array([height_matrix_m_agl.shape[1]], dtype=int)
         error_checking.assert_is_numpy_array(
