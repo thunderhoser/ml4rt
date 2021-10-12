@@ -382,9 +382,7 @@ def write_file(example_dict, netcdf_file_name):
     """
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
-    dataset_object = netCDF4.Dataset(
-        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
-    )
+    dataset_object = netCDF4.Dataset(netcdf_file_name, 'w', format='NETCDF4')
 
     num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
     num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
