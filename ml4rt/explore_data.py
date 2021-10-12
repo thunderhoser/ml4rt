@@ -373,12 +373,12 @@ def _run(example_file_names, output_dir_name):
         ))
     print(SEPARATOR_STRING)
 
-    # _plot_by_cloud_regime(
-    #     example_dict=example_dict, output_dir_name=output_dir_name
-    # )
-    # _plot_by_latitude(
-    #     example_dict=example_dict, output_dir_name=output_dir_name
-    # )
+    _plot_by_cloud_regime(
+        example_dict=example_dict, output_dir_name=output_dir_name
+    )
+    _plot_by_latitude(
+        example_dict=example_dict, output_dir_name=output_dir_name
+    )
     _plot_by_zenith_angle(
         example_dict=example_dict, output_dir_name=output_dir_name
     )
