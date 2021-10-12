@@ -652,10 +652,19 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
             example_dict=example_dict, desired_indices=good_indices
         )
 
-    height_matrix_m_agl = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
-    )
     num_examples = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
+
+    if different_height_grids:
+        height_matrix_m_agl = example_utils.get_field_from_dict(
+            example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
+        )
+    else:
+        height_matrix_m_agl = numpy.expand_dims(
+            example_dict[example_utils.HEIGHTS_KEY], axis=0
+        )
+        height_matrix_m_agl = numpy.repeat(
+            height_matrix_m_agl, axis=0, repeats=num_examples
+        )
 
     for k in range(num_vector_predictors):
         if vector_predictor_names[k] in [
