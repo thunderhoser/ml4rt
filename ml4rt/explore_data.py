@@ -22,6 +22,8 @@ import profile_plotting
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+RADIANS_TO_DEGREES = 180. / numpy.pi
+
 NUM_LATITUDE_BINS = 36
 NUM_ZENITH_ANGLE_BINS = 17
 NUM_EXTREME_PROFILES = 100
@@ -106,9 +108,10 @@ def _plot_by_zenith_angle(example_dict, output_dir_name):
         here.
     """
 
-    example_zenith_angles_deg = example_utils.get_field_from_dict(
+    example_zenith_angles_rad = example_utils.get_field_from_dict(
         example_dict=example_dict, field_name=example_utils.ZENITH_ANGLE_NAME
     )
+    example_zenith_angles_deg = RADIANS_TO_DEGREES * example_zenith_angles_rad
 
     bin_edges_deg = numpy.linspace(
         0, 85, num=NUM_ZENITH_ANGLE_BINS + 1, dtype=float
