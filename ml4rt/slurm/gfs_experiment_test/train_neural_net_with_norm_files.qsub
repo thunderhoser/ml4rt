@@ -27,6 +27,7 @@ set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs
 
 set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/new_heights/normalized/training"
 set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/new_heights/normalized/validation"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/new_heights/training/learning_examples_for_norm.nc"
 
 set template_file_name="${TEMPLATE_DIR_NAME}/model.h5"
 
@@ -34,7 +35,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --net_type_string="u_net" \
 --input_training_dir_name="${TRAINING_DIR_NAME}" \
 --input_validation_dir_name="${VALIDATION_DIR_NAME}" \
---input_normalization_file_name="" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
 --input_model_file_name="${template_file_name}" \
 --output_model_dir_name="${OUTPUT_DIR_NAME}" \
 --use_generator_for_training=0 \

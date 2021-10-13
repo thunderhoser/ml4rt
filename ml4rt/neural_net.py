@@ -260,6 +260,9 @@ def _read_file_for_generator(
         example_io.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value
     }
 
+    print(normalization_metadata_dict)
+    print(example_dict[example_utils.NORMALIZATION_METADATA_KEY])
+
     if example_io.are_normalization_metadata_same(
             normalization_metadata_dict,
             example_dict[example_utils.NORMALIZATION_METADATA_KEY]
