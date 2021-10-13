@@ -21,8 +21,6 @@ EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TIME_ARG_NAME = 'last_training_time_string'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
-TRACE_GAS_NOISE_ARG_NAME = 'trace_gas_noise_stdev_fractional'
-ICE_RADIUS_NOISE_ARG_NAME = 'ice_radius_noise_stdev_fractional'
 OUTPUT_FILE_ARG_NAME = 'output_norm_file_name'
 
 EXAMPLE_DIR_HELP_STRING = (
@@ -37,14 +35,6 @@ TIME_HELP_STRING = (
 NUM_EXAMPLES_HELP_STRING = (
     'Number of examples to use for computing normalization params.  These '
     'examples will be selected randomly.'
-)
-TRACE_GAS_NOISE_HELP_STRING = (
-    'Standard deviation of Gaussian noise for trace-gas concentrations, as a '
-    'fraction from 0...1.'
-)
-ICE_RADIUS_NOISE_HELP_STRING = (
-    'Standard deviation of Gaussian noise for effective ice radii, as a '
-    'fraction from 0...1.'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file, containing normalization params.  Will be written by '
@@ -69,23 +59,13 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_EXAMPLES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + TRACE_GAS_NOISE_ARG_NAME, type=float, required=True,
-    help=TRACE_GAS_NOISE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + ICE_RADIUS_NOISE_ARG_NAME, type=float, required=True,
-    help=ICE_RADIUS_NOISE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
 
 
 def _run(example_dir_name, first_training_time_string,
-         last_training_time_string, num_examples_to_use,
-         trace_gas_noise_stdev_fractional, ice_radius_noise_stdev_fractional,
-         output_file_name):
+         last_training_time_string, num_examples_to_use, output_file_name):
     """Creates normalization file.
 
     This is effectively the main method.
@@ -94,8 +74,6 @@ def _run(example_dir_name, first_training_time_string,
     :param first_training_time_string: Same.
     :param last_training_time_string: Same.
     :param num_examples_to_use: Same.
-    :param trace_gas_noise_stdev_fractional: Same.
-    :param ice_radius_noise_stdev_fractional: Same.
     :param output_file_name: Same.
     """
 
@@ -174,11 +152,5 @@ if __name__ == '__main__':
         ),
         last_training_time_string=getattr(INPUT_ARG_OBJECT, LAST_TIME_ARG_NAME),
         num_examples_to_use=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
-        trace_gas_noise_stdev_fractional=getattr(
-            INPUT_ARG_OBJECT, TRACE_GAS_NOISE_ARG_NAME
-        ),
-        ice_radius_noise_stdev_fractional=getattr(
-            INPUT_ARG_OBJECT, ICE_RADIUS_NOISE_ARG_NAME
-        ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
