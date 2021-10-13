@@ -58,8 +58,6 @@ VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 HEIGHTS_KEY = 'heights_m_agl'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
-MIN_COLUMN_LWP_KEY = 'min_column_lwp_kg_m02'
-MAX_COLUMN_LWP_KEY = 'max_column_lwp_kg_m02'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
 PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
 PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
@@ -77,8 +75,6 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_TARGET_NAMES_KEY: example_utils.ALL_SCALAR_TARGET_NAMES,
     VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
     HEIGHTS_KEY: example_utils.DEFAULT_HEIGHTS_M_AGL,
-    MIN_COLUMN_LWP_KEY: 0.,
-    MAX_COLUMN_LWP_KEY: LARGE_FLOAT,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -196,8 +192,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 
 def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
-        heights_m_agl, min_column_lwp_kg_m02, max_column_lwp_kg_m02,
-        training_example_dict, predictor_norm_type_string,
+        heights_m_agl, normalization_file_name, predictor_norm_type_string,
         predictor_min_norm_value, predictor_max_norm_value,
         vector_target_norm_type_string, vector_target_min_norm_value,
         vector_target_max_norm_value, scalar_target_norm_type_string,
@@ -212,12 +207,8 @@ def _read_file_for_generator(
     :param field_names: 1-D list of fields to keep.
     :param heights_m_agl: 1-D numpy array of heights to keep (metres above
         ground level).
-    :param min_column_lwp_kg_m02: See doc for `data_generator`.
-    :param max_column_lwp_kg_m02: Same.
-    :param training_example_dict: Dictionary with training examples (in format
-        specified by `example_io.read_file`), which will be used for
-        normalization.
-    :param predictor_norm_type_string: See doc for `data_generator`.
+    :param normalization_file_name: See doc for `data_generator`.
+    :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
     :param vector_target_norm_type_string: Same.
@@ -243,16 +234,40 @@ def _read_file_for_generator(
         last_time_unix_sec=last_time_unix_sec
     )[0]
 
-    example_dict = example_utils.subset_by_column_lwp(
-        example_dict=example_dict, min_lwp_kg_m02=min_column_lwp_kg_m02,
-        max_lwp_kg_m02=max_column_lwp_kg_m02
-    )[0]
-
     example_dict = example_utils.subset_by_field(
         example_dict=example_dict, field_names=field_names
     )
     example_dict = example_utils.subset_by_height(
         example_dict=example_dict, heights_m_agl=heights_m_agl
+    )
+
+    normalization_metadata_dict = {
+        example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
+        example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
+        example_io.PREDICTOR_MIN_VALUE_KEY: predictor_min_norm_value,
+        example_io.PREDICTOR_MAX_VALUE_KEY: predictor_max_norm_value,
+        example_io.VECTOR_TARGET_NORM_TYPE_KEY: vector_target_norm_type_string,
+        example_io.VECTOR_TARGET_MIN_VALUE_KEY: vector_target_min_norm_value,
+        example_io.VECTOR_TARGET_MAX_VALUE_KEY: vector_target_max_norm_value,
+        example_io.SCALAR_TARGET_NORM_TYPE_KEY: scalar_target_norm_type_string,
+        example_io.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
+        example_io.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value
+    }
+
+    if example_io.are_normalization_metadata_same(
+            normalization_metadata_dict,
+            example_dict[example_utils.NORMALIZATION_METADATA_KEY]
+    ):
+        return example_dict
+
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_utils.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
 
     if predictor_norm_type_string is not None:
@@ -302,7 +317,7 @@ def _read_file_for_generator(
 
 def _read_specific_examples(
         example_file_names, example_id_strings, field_names, heights_m_agl,
-        training_example_dict, predictor_norm_type_string,
+        normalization_file_name, predictor_norm_type_string,
         predictor_min_norm_value, predictor_max_norm_value,
         vector_target_norm_type_string, vector_target_min_norm_value,
         vector_target_max_norm_value, scalar_target_norm_type_string,
@@ -314,7 +329,7 @@ def _read_specific_examples(
     :param example_id_strings: Same.
     :param field_names: Same.
     :param heights_m_agl: Same.
-    :param training_example_dict: Same.
+    :param normalization_file_name: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
@@ -380,6 +395,35 @@ def _read_specific_examples(
         example_dicts.append(this_example_dict)
 
     example_dict = example_utils.concat_examples(example_dicts)
+
+    normalization_metadata_dict = {
+        example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
+        example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
+        example_io.PREDICTOR_MIN_VALUE_KEY: predictor_min_norm_value,
+        example_io.PREDICTOR_MAX_VALUE_KEY: predictor_max_norm_value,
+        example_io.VECTOR_TARGET_NORM_TYPE_KEY: vector_target_norm_type_string,
+        example_io.VECTOR_TARGET_MIN_VALUE_KEY: vector_target_min_norm_value,
+        example_io.VECTOR_TARGET_MAX_VALUE_KEY: vector_target_max_norm_value,
+        example_io.SCALAR_TARGET_NORM_TYPE_KEY: scalar_target_norm_type_string,
+        example_io.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
+        example_io.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value
+    }
+
+    if example_io.are_normalization_metadata_same(
+            normalization_metadata_dict,
+            example_dict[example_utils.NORMALIZATION_METADATA_KEY]
+    ):
+        return example_dict
+
+    print((
+        'Reading training examples (for normalization) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_utils.subset_by_height(
+        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    )
 
     if predictor_norm_type_string is not None:
         print('Applying {0:s} normalization to predictors...'.format(
@@ -1008,19 +1052,16 @@ def data_generator(option_dict, for_inference, net_type_string):
         before this time).
     option_dict['last_time_unix_sec']: End time (will not generate examples
         after this time).
-    option_dict['min_column_lwp_kg_m02']: Minimum full-column liquid-water path
-        (LWP; kg m^-2).
-    option_dict['max_column_lwp_kg_m02']: Max full-column LWP (kg m^-2).
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['predictor_norm_type_string']: Normalization type for predictors
-        (must be accepted by `normalization._check_normalization_type`).  If you
+        (must be accepted by `normalization.check_normalization_type`).  If you
         do not want to normalize predictors, make this None.
     option_dict['predictor_min_norm_value']: Minimum normalized value for
         predictors (used only if normalization type is min-max).
     option_dict['predictor_max_norm_value']: Same but max value.
     option_dict['vector_target_norm_type_string']: Normalization type for vector
-        targets (must be accepted by `normalization._check_normalization_type`).
+        targets (must be accepted by `normalization.check_normalization_type`).
         If you do not want to normalize vector targets, make this None.
     option_dict['vector_target_min_norm_value']: Minimum normalized value for
         vector targets (used only if normalization type is min-max).
@@ -1067,8 +1108,6 @@ def data_generator(option_dict, for_inference, net_type_string):
     heights_m_agl = option_dict[HEIGHTS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
-    min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
-    max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
@@ -1086,16 +1125,6 @@ def data_generator(option_dict, for_inference, net_type_string):
     scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
     scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
-    )
-
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
@@ -1111,9 +1140,7 @@ def data_generator(option_dict, for_inference, net_type_string):
             first_time_unix_sec=first_time_unix_sec,
             last_time_unix_sec=last_time_unix_sec,
             field_names=all_field_names, heights_m_agl=heights_m_agl,
-            min_column_lwp_kg_m02=min_column_lwp_kg_m02,
-            max_column_lwp_kg_m02=max_column_lwp_kg_m02,
-            training_example_dict=training_example_dict,
+            normalization_file_name=normalization_file_name,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
             predictor_max_norm_value=predictor_max_norm_value,
@@ -1158,7 +1185,7 @@ def data_generator(option_dict, for_inference, net_type_string):
                 example_id_strings=
                 all_desired_id_strings[example_index:][:this_num_examples],
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
-                training_example_dict=training_example_dict,
+                normalization_file_name=normalization_file_name,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,
@@ -1212,10 +1239,10 @@ def data_generator(option_dict, for_inference, net_type_string):
 
             num_examples_in_memory = predictor_matrix.shape[0]
 
-        predictor_matrix = predictor_matrix.astype('float32')
-        target_array = [vector_target_matrix.astype('float32')]
+        predictor_matrix = predictor_matrix.astype('float16')
+        target_array = [vector_target_matrix.astype('float16')]
         if scalar_target_matrix is not None:
-            target_array.append(scalar_target_matrix.astype('float32'))
+            target_array.append(scalar_target_matrix.astype('float16'))
 
         if for_inference:
             yield predictor_matrix, target_array, example_id_strings
@@ -1250,8 +1277,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     heights_m_agl = option_dict[HEIGHTS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
-    min_column_lwp_kg_m02 = option_dict[MIN_COLUMN_LWP_KEY]
-    max_column_lwp_kg_m02 = option_dict[MAX_COLUMN_LWP_KEY]
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
@@ -1269,16 +1294,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
     scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
-    )
-
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
         first_time_unix_sec=first_time_unix_sec,
@@ -1294,9 +1309,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             first_time_unix_sec=first_time_unix_sec,
             last_time_unix_sec=last_time_unix_sec,
             field_names=all_field_names, heights_m_agl=heights_m_agl,
-            min_column_lwp_kg_m02=min_column_lwp_kg_m02,
-            max_column_lwp_kg_m02=max_column_lwp_kg_m02,
-            training_example_dict=training_example_dict,
+            normalization_file_name=normalization_file_name,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
             predictor_max_norm_value=predictor_max_norm_value,
@@ -1326,18 +1339,18 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
-    predictor_matrix = predictor_matrix.astype('float32')
+    predictor_matrix = predictor_matrix.astype('float16')
 
     prelim_target_list = targets_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )
 
     vector_target_matrix = prelim_target_list[0]
-    target_array = [vector_target_matrix.astype('float32')]
+    target_array = [vector_target_matrix.astype('float16')]
 
     if len(prelim_target_list) > 1:
         scalar_target_matrix = prelim_target_list[1]
-        target_array.append(scalar_target_matrix.astype('float32'))
+        target_array.append(scalar_target_matrix.astype('float16'))
 
     return (
         predictor_matrix,
@@ -1392,16 +1405,6 @@ def data_generator_specific_examples(option_dict, net_type_string,
     scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
     scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
-    )
-
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
         first_time_unix_sec=numpy.min(example_times_unix_sec),
@@ -1434,7 +1437,7 @@ def data_generator_specific_examples(option_dict, net_type_string,
                 example_id_strings=
                 example_id_strings[example_index:][:this_num_examples],
                 field_names=all_field_names, heights_m_agl=heights_m_agl,
-                training_example_dict=training_example_dict,
+                normalization_file_name=normalization_file_name,
                 predictor_norm_type_string=predictor_norm_type_string,
                 predictor_min_norm_value=predictor_min_norm_value,
                 predictor_max_norm_value=predictor_max_norm_value,
@@ -1488,10 +1491,10 @@ def data_generator_specific_examples(option_dict, net_type_string,
 
             num_examples_in_memory = predictor_matrix.shape[0]
 
-        predictor_matrix = predictor_matrix.astype('float32')
-        target_array = [vector_target_matrix.astype('float32')]
+        predictor_matrix = predictor_matrix.astype('float16')
+        target_array = [vector_target_matrix.astype('float16')]
         if scalar_target_matrix is not None:
-            target_array.append(scalar_target_matrix.astype('float32'))
+            target_array.append(scalar_target_matrix.astype('float16'))
 
         yield predictor_matrix, target_array
 
@@ -1541,16 +1544,6 @@ def create_data_specific_examples(
     scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
     scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
 
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
-    )
-
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
         first_time_unix_sec=numpy.min(example_times_unix_sec),
@@ -1562,7 +1555,7 @@ def create_data_specific_examples(
         example_file_names=example_file_names,
         example_id_strings=example_id_strings,
         field_names=all_field_names, heights_m_agl=heights_m_agl,
-        training_example_dict=training_example_dict,
+        normalization_file_name=normalization_file_name,
         predictor_norm_type_string=predictor_norm_type_string,
         predictor_min_norm_value=predictor_min_norm_value,
         predictor_max_norm_value=predictor_max_norm_value,
@@ -1577,18 +1570,18 @@ def create_data_specific_examples(
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
-    predictor_matrix = predictor_matrix.astype('float32')
+    predictor_matrix = predictor_matrix.astype('float16')
 
     prelim_target_list = targets_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )
 
     vector_target_matrix = prelim_target_list[0]
-    target_array = [vector_target_matrix.astype('float32')]
+    target_array = [vector_target_matrix.astype('float16')]
 
     if len(prelim_target_list) > 1:
         scalar_target_matrix = prelim_target_list[1]
-        target_array.append(scalar_target_matrix.astype('float32'))
+        target_array.append(scalar_target_matrix.astype('float16'))
 
     return predictor_matrix, target_array
 
@@ -1755,7 +1748,8 @@ def train_model_with_generator(
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        do_early_stopping=True,
+        do_early_stopping=True, num_training_batches_per_epoch=None,
+        num_validation_batches_per_epoch=None,
         plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER):
     """Trains any kind of neural net without generator.
 
@@ -1767,6 +1761,10 @@ def train_model_sans_generator(
     :param net_type_string: Same.
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
+    :param num_training_batches_per_epoch: Number of training batches per epoch.
+        If None, each training example will be used once per epoch.
+    :param num_validation_batches_per_epoch: Number of validation batches per
+        epoch.  If None, each validation example will be used once per epoch.
     :param plateau_lr_multiplier: Same.
     """
 
@@ -1855,11 +1853,11 @@ def train_model_sans_generator(
     model_object.fit(
         x=training_predictor_matrix, y=training_target_array,
         batch_size=training_option_dict[BATCH_SIZE_KEY],
-        epochs=num_epochs, steps_per_epoch=None, shuffle=True, verbose=1,
-        callbacks=list_of_callback_objects,
+        epochs=num_epochs, steps_per_epoch=num_training_batches_per_epoch,
+        shuffle=True, verbose=1, callbacks=list_of_callback_objects,
         validation_data=(validation_predictor_matrix, validation_target_array),
         # validation_batch_size=validation_option_dict[BATCH_SIZE_KEY],
-        validation_steps=None
+        validation_steps=num_validation_batches_per_epoch
     )
 
 

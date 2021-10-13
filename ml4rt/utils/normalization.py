@@ -13,7 +13,7 @@ Z_SCORE_NORM_STRING = 'z_score'
 VALID_NORM_TYPE_STRINGS = [MINMAX_NORM_STRING, Z_SCORE_NORM_STRING]
 
 
-def _check_normalization_type(normalization_type_string):
+def check_normalization_type(normalization_type_string):
     """Ensures that normalization type is valid.
 
     :param normalization_type_string: Normalization type.
@@ -244,7 +244,7 @@ def normalize_data(
             '`apply_to_scalar_targets` must be True.'
         )
 
-    _check_normalization_type(normalization_type_string)
+    check_normalization_type(normalization_type_string)
 
     if normalization_type_string == MINMAX_NORM_STRING:
         error_checking.assert_is_greater(
@@ -443,7 +443,7 @@ def denormalize_data(
             '`apply_to_scalar_targets` must be True.'
         )
 
-    _check_normalization_type(normalization_type_string)
+    check_normalization_type(normalization_type_string)
 
     if normalization_type_string == MINMAX_NORM_STRING:
         error_checking.assert_is_greater(

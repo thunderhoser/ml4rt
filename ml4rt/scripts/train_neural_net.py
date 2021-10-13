@@ -61,6 +61,8 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
     :param plateau_lr_multiplier: Same.
     """
 
+    if normalization_file_name in NONE_STRINGS:
+        normalization_file_name = None
     if predictor_norm_type_string in NONE_STRINGS:
         predictor_norm_type_string = None
     if vector_target_norm_type_string in NONE_STRINGS:
@@ -129,9 +131,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         neural_net.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
         neural_net.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
-        neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
-        # neural_net.MIN_COLUMN_LWP_KEY: 0.05,
-        # neural_net.MAX_COLUMN_LWP_KEY: 1e12
+        neural_net.LAST_TIME_KEY: last_training_time_unix_sec
     }
 
     validation_option_dict = {
@@ -179,6 +179,8 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
             validation_option_dict=validation_option_dict,
             net_type_string=net_type_string,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
+            num_training_batches_per_epoch=num_training_batches_per_epoch,
+            num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             plateau_lr_multiplier=plateau_lr_multiplier
         )
 
