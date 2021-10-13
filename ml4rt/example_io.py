@@ -163,6 +163,10 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     first_metadata_dict = _check_normalization_metadata(first_metadata_dict)
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
+    print(first_metadata_dict)
+    print('\n\n\n')
+    print(second_metadata_dict)
+
     for this_key in NORM_METADATA_STRING_KEYS:
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
             return False

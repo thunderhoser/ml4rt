@@ -47,7 +47,6 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --last_training_time_string="2020-03-13-235959" \
 --first_validn_time_string="2020-03-16-000000" \
 --last_validn_time_string="2020-04-15-235959" \
---predictor_norm_type_string="" \
 --vector_target_norm_type_string="" \
 --scalar_target_norm_type_string="minmax" \
 --scalar_target_min_norm_value=0 \
