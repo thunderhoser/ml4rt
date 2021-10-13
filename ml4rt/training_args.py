@@ -116,11 +116,12 @@ VALIDN_TIME_HELP_STRING = (
 ).format(FIRST_VALIDN_TIME_ARG_NAME, LAST_VALIDN_TIME_ARG_NAME)
 
 NORMALIZATION_FILE_HELP_STRING = (
-    'Path to normalization file.  Will be read by `example_io.read_file`.'
+    'Path to normalization file.  Will be read by `example_io.read_file`.  If '
+    'you do not want to normalize, make this an empty string ("").'
 )
 PREDICTOR_NORM_TYPE_HELP_STRING = (
     'Normalization type for predictors (must be accepted by '
-    '`normalization._check_normalization_type`).  If you do not want to '
+    '`normalization.check_normalization_type`).  If you do not want to '
     'normalize, make this an empty string ("").'
 )
 PREDICTOR_MIN_VALUE_HELP_STRING = (

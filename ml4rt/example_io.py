@@ -17,6 +17,9 @@ import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
 import example_utils
+import normalization
+
+TOLERANCE = 1e-6
 
 SUMMIT_LATITUDE_DEG_N = 72.5790
 SUMMIT_LONGITUDE_DEG_E = 321.6873
@@ -29,6 +32,149 @@ SCALAR_TARGET_DIM_KEY = 'scalar_target'
 VECTOR_TARGET_DIM_KEY = 'vector_target'
 EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 FIELD_NAME_CHAR_DIM_KEY = 'field_name_char'
+
+NORMALIZATION_FILE_KEY = 'normalization_file_name'
+PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
+PREDICTOR_MIN_VALUE_KEY = 'predictor_min_norm_value'
+PREDICTOR_MAX_VALUE_KEY = 'predictor_max_norm_value'
+VECTOR_TARGET_NORM_TYPE_KEY = 'vector_target_norm_type_string'
+VECTOR_TARGET_MIN_VALUE_KEY = 'vector_target_min_norm_value'
+VECTOR_TARGET_MAX_VALUE_KEY = 'vector_target_max_norm_value'
+SCALAR_TARGET_NORM_TYPE_KEY = 'scalar_target_norm_type_string'
+SCALAR_TARGET_MIN_VALUE_KEY = 'scalar_target_min_norm_value'
+SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
+
+NORM_METADATA_STRING_KEYS = [
+    NORMALIZATION_FILE_KEY, PREDICTOR_NORM_TYPE_KEY,
+    VECTOR_TARGET_NORM_TYPE_KEY, VECTOR_TARGET_NORM_TYPE_KEY
+]
+NORM_METADATA_FLOAT_KEYS = [
+    PREDICTOR_MIN_VALUE_KEY, PREDICTOR_MAX_VALUE_KEY,
+    VECTOR_TARGET_MIN_VALUE_KEY, VECTOR_TARGET_MAX_VALUE_KEY,
+    SCALAR_TARGET_MIN_VALUE_KEY, SCALAR_TARGET_MAX_VALUE_KEY
+]
+
+DEFAULT_NORM_METADATA_DICT = {
+    NORMALIZATION_FILE_KEY: None,
+    PREDICTOR_NORM_TYPE_KEY: None,
+    PREDICTOR_MIN_VALUE_KEY: numpy.nan,
+    PREDICTOR_MAX_VALUE_KEY: numpy.nan,
+    VECTOR_TARGET_NORM_TYPE_KEY: None,
+    VECTOR_TARGET_MIN_VALUE_KEY: numpy.nan,
+    VECTOR_TARGET_MAX_VALUE_KEY: numpy.nan,
+    SCALAR_TARGET_NORM_TYPE_KEY: None,
+    SCALAR_TARGET_MIN_VALUE_KEY: numpy.nan,
+    SCALAR_TARGET_MAX_VALUE_KEY: numpy.nan
+}
+
+
+def _check_normalization_metadata(normalization_metadata_dict):
+    """Error-checks metadata for normalization.
+
+    :param normalization_metadata_dict: Dictionary with the following keys.
+    normalization_metadata_dict['normalization_file_name']: Path to
+        normalization file, containing unnormalized sample values used to create
+        uniform distributions.
+    normalization_metadata_dict['predictor_norm_type_string']: Normalization
+        type for predictors (must be accepted by
+        `normalization.check_normalization_type`).  If no normalization, make
+        this None.
+    normalization_metadata_dict['predictor_min_norm_value']: Minimum value if
+        min-max normalization was used.
+    normalization_metadata_dict['predictor_max_norm_value']: Max value if
+        min-max normalization was used.
+    normalization_metadata_dict['vector_target_norm_type_string']: Same as
+        `predictor_norm_type_string` but for vector target variables.
+    normalization_metadata_dict['vector_target_min_norm_value']: Same as
+        `predictor_min_norm_value` but for vector target variables.
+    normalization_metadata_dict['vector_target_max_norm_value']: Same as
+        `predictor_max_norm_value` but for vector target variables.
+    normalization_metadata_dict['scalar_target_norm_type_string']: Same as
+        `predictor_norm_type_string` but for scalar target variables.
+    normalization_metadata_dict['scalar_target_min_norm_value']: Same as
+        `predictor_min_norm_value` but for scalar target variables.
+    normalization_metadata_dict['scalar_target_max_norm_value']: Same as
+        `predictor_max_norm_value` but for scalar target variables.
+
+    :return: normalization_metadata_dict: Same as input, but some values may
+        have been replaced with defaults.
+    """
+
+    orig_metadata_dict = normalization_metadata_dict.copy()
+    normalization_metadata_dict = DEFAULT_NORM_METADATA_DICT.copy()
+    normalization_metadata_dict.update(orig_metadata_dict)
+
+    if normalization_metadata_dict[NORMALIZATION_FILE_KEY] is None:
+        return DEFAULT_NORM_METADATA_DICT
+
+    predictor_norm_type_string = (
+        normalization_metadata_dict[PREDICTOR_NORM_TYPE_KEY]
+    )
+    if predictor_norm_type_string is not None:
+        normalization.check_normalization_type(predictor_norm_type_string)
+    if predictor_norm_type_string == normalization.MINMAX_NORM_STRING:
+        error_checking.assert_is_greater(
+            normalization_metadata_dict[PREDICTOR_MAX_VALUE_KEY],
+            normalization_metadata_dict[PREDICTOR_MIN_VALUE_KEY]
+        )
+    else:
+        normalization_metadata_dict[PREDICTOR_MIN_VALUE_KEY] = numpy.nan
+        normalization_metadata_dict[PREDICTOR_MAX_VALUE_KEY] = numpy.nan
+
+    vector_target_norm_type_string = (
+        normalization_metadata_dict[VECTOR_TARGET_NORM_TYPE_KEY]
+    )
+    if vector_target_norm_type_string is not None:
+        normalization.check_normalization_type(vector_target_norm_type_string)
+    if vector_target_norm_type_string == normalization.MINMAX_NORM_STRING:
+        error_checking.assert_is_greater(
+            normalization_metadata_dict[VECTOR_TARGET_MAX_VALUE_KEY],
+            normalization_metadata_dict[VECTOR_TARGET_MIN_VALUE_KEY]
+        )
+    else:
+        normalization_metadata_dict[VECTOR_TARGET_MIN_VALUE_KEY] = numpy.nan
+        normalization_metadata_dict[VECTOR_TARGET_MAX_VALUE_KEY] = numpy.nan
+
+    scalar_target_norm_type_string = (
+        normalization_metadata_dict[SCALAR_TARGET_NORM_TYPE_KEY]
+    )
+    if scalar_target_norm_type_string is not None:
+        normalization.check_normalization_type(scalar_target_norm_type_string)
+    if scalar_target_norm_type_string == normalization.MINMAX_NORM_STRING:
+        error_checking.assert_is_greater(
+            normalization_metadata_dict[SCALAR_TARGET_MAX_VALUE_KEY],
+            normalization_metadata_dict[SCALAR_TARGET_MIN_VALUE_KEY]
+        )
+    else:
+        normalization_metadata_dict[SCALAR_TARGET_MIN_VALUE_KEY] = numpy.nan
+        normalization_metadata_dict[SCALAR_TARGET_MAX_VALUE_KEY] = numpy.nan
+
+    return normalization_metadata_dict
+
+
+def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
+    """Determines whether or not two sets of normalization metadata are same.
+
+    :param first_metadata_dict: See doc for `_check_normalization_metadata`.
+    :param second_metadata_dict: Same.
+    :return: are_metadata_same: Boolean flag.
+    """
+
+    first_metadata_dict = _check_normalization_metadata(first_metadata_dict)
+    second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
+
+    for this_key in NORM_METADATA_STRING_KEYS:
+        if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
+            return False
+
+    for this_key in NORM_METADATA_FLOAT_KEYS:
+        if not numpy.isclose(
+                first_metadata_dict[this_key], second_metadata_dict[this_key],
+                atol=TOLERANCE, equal_nan=True
+        ):
+            return False
+
+    return True
 
 
 def find_file(directory_name, year, year_part_number=None,
@@ -252,6 +398,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     example_dict['standard_atmo_flags']: length-E numpy array of flags (each in
         the list `STANDARD_ATMO_ENUMS`).
     example_dict['example_id_strings']: length-E list of example IDs.
+    example_dict['normalization_metadata_dict']: See doc for
+        `_check_normalization_metadata`.
     """
 
     error_checking.assert_is_boolean(exclude_summit_greenland)
@@ -264,6 +412,21 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
         )
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
+    normalization_metadata_dict = dict()
+
+    if hasattr(dataset_object, NORMALIZATION_FILE_KEY):
+        for this_key in NORM_METADATA_STRING_KEYS:
+            normalization_metadata_dict[this_key] = str(
+                getattr(dataset_object, this_key)
+            )
+        for this_key in NORM_METADATA_FLOAT_KEYS:
+            normalization_metadata_dict[this_key] = getattr(
+                dataset_object, this_key
+            )
+    else:
+        normalization_metadata_dict = _check_normalization_metadata(
+            normalization_metadata_dict
+        )
 
     example_id_strings = [
         str(id) for id in netCDF4.chartostring(
@@ -314,7 +477,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
 
     example_dict = {
         example_utils.EXAMPLE_IDS_KEY:
-            [example_id_strings[k] for k in indices_to_read]
+            [example_id_strings[k] for k in indices_to_read],
+        example_utils.NORMALIZATION_METADATA_KEY: normalization_metadata_dict
     }
 
     string_keys = [
@@ -381,8 +545,26 @@ def write_file(example_dict, netcdf_file_name):
     :param netcdf_file_name: Path to output file.
     """
 
+    if example_utils.NORMALIZATION_METADATA_KEY in example_dict:
+        normalization_metadata_dict = _check_normalization_metadata(
+            example_dict[example_utils.NORMALIZATION_METADATA_KEY]
+        )
+    else:
+        normalization_metadata_dict = _check_normalization_metadata(
+            dict()
+        )
+
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
     dataset_object = netCDF4.Dataset(netcdf_file_name, 'w', format='NETCDF4')
+
+    for this_key in NORM_METADATA_STRING_KEYS:
+        dataset_object.setncattr(
+            this_key, str(normalization_metadata_dict[this_key])
+        )
+    for this_key in NORM_METADATA_FLOAT_KEYS:
+        dataset_object.setncattr(
+            this_key, normalization_metadata_dict[this_key]
+        )
 
     num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
     num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
