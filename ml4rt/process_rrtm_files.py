@@ -2,6 +2,7 @@
 
 import os
 import sys
+import copy
 import argparse
 import numpy
 
@@ -135,7 +136,7 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
 
         raise ValueError(error_string)
 
-    example_dicts = []
+    example_dict = None
 
     for this_file_name in rrtm_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
@@ -144,10 +145,14 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
             dummy_heights_m_agl=dummy_heights_m_agl
         )
 
-        example_dicts.append(this_example_dict)
+        if example_dict is None:
+            example_dict = copy.deepcopy(this_example_dict)
+        else:
+            example_dict = example_utils.concat_examples(
+                [example_dict, this_example_dict]
+            )
 
-    example_dict = example_utils.concat_examples(example_dicts)
-    del example_dicts
+    del this_example_dict
 
     print(SEPARATOR_STRING)
     example_dict = _remove_duplicate_examples(example_dict)
