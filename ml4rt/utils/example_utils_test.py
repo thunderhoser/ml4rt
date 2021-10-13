@@ -4,6 +4,7 @@ import copy
 import unittest
 import numpy
 from gewittergefahr.gg_utils import time_conversion
+from ml4rt.io import example_io
 from ml4rt.utils import aerosols
 from ml4rt.utils import example_utils
 from ml4rt.utils import trace_gases
@@ -107,7 +108,9 @@ EXAMPLE_DICT_NO_TRACE_GASES = {
     example_utils.VECTOR_PREDICTOR_VALS_KEY:
         numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 THESE_PREDICTOR_NAMES = [
@@ -129,7 +132,9 @@ EXAMPLE_DICT_WITH_TRACE_GASES = {
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
     example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test add_aerosols.
@@ -159,7 +164,9 @@ EXAMPLE_DICT_NO_AEROSOLS = {
     example_utils.SCALAR_PREDICTOR_VALS_KEY:
         numpy.expand_dims(THESE_SOLAR_ZENITH_ANGLES_RAD, axis=-1),
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 THESE_VECTOR_PREDICTOR_NAMES = [
@@ -279,7 +286,9 @@ EXAMPLE_DICT_WITH_AEROSOLS = {
     example_utils.SCALAR_PREDICTOR_NAMES_KEY: THESE_SCALAR_PREDICTOR_NAMES,
     example_utils.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test add_effective_radii.
@@ -311,7 +320,9 @@ EXAMPLE_DICT_NO_RADII = {
     example_utils.VECTOR_PREDICTOR_VALS_KEY:
         numpy.expand_dims(THIS_TEMP_MATRIX_KELVINS, axis=-1),
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 THIS_LIQUID_RAD_MATRIX_METRES = numpy.full(
@@ -346,7 +357,9 @@ EXAMPLE_DICT_WITH_RADII = {
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_PREDICTOR_NAMES,
     example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_PREDICTOR_MATRIX,
     example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test fluxes_to_heating_rate.
@@ -549,7 +562,9 @@ FIRST_EXAMPLE_DICT = {
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
-    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
+    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 SECOND_EXAMPLE_ID_STRINGS = ['FOO', 'BAR', 'MOO', 'HAL']
@@ -566,7 +581,9 @@ SECOND_EXAMPLE_DICT = {
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC * 6,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS + 1,
-    example_utils.EXAMPLE_IDS_KEY: SECOND_EXAMPLE_ID_STRINGS
+    example_utils.EXAMPLE_IDS_KEY: SECOND_EXAMPLE_ID_STRINGS,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 CONCAT_EXAMPLE_DICT = {
@@ -600,7 +617,9 @@ CONCAT_EXAMPLE_DICT = {
         axis=0
     ),
     example_utils.EXAMPLE_IDS_KEY:
-        FIRST_EXAMPLE_ID_STRINGS + SECOND_EXAMPLE_ID_STRINGS
+        FIRST_EXAMPLE_ID_STRINGS + SECOND_EXAMPLE_ID_STRINGS,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test subset_by_time.
@@ -622,7 +641,9 @@ FIRST_EXAMPLE_DICT_SELECT_TIMES = {
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...],
-    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS[1:3]
+    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS[1:3],
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test subset_by_standard_atmo.
@@ -643,7 +664,9 @@ FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES = {
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2], ...],
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2], ...],
-    example_utils.EXAMPLE_IDS_KEY: [FIRST_EXAMPLE_ID_STRINGS[2]]
+    example_utils.EXAMPLE_IDS_KEY: [FIRST_EXAMPLE_ID_STRINGS[2]],
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test subset_by_field.
@@ -666,7 +689,9 @@ FIRST_EXAMPLE_DICT_SELECT_FIELDS = {
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
-    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
+    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test subset_by_height.
@@ -686,7 +711,9 @@ FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
     example_utils.HEIGHTS_KEY: HEIGHTS_TO_KEEP_M_AGL,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
-    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS
+    example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS,
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test find_examples and
@@ -781,7 +808,9 @@ FIRST_EXAMPLE_DICT_SELECT_INDICES = {
     example_utils.STANDARD_ATMO_FLAGS_KEY:
         FIRST_STANDARD_ATMO_FLAGS[[2, 1], ...],
     example_utils.EXAMPLE_IDS_KEY:
-        [FIRST_EXAMPLE_ID_STRINGS[2], FIRST_EXAMPLE_ID_STRINGS[1]]
+        [FIRST_EXAMPLE_ID_STRINGS[2], FIRST_EXAMPLE_ID_STRINGS[1]],
+    example_utils.NORMALIZATION_METADATA_KEY:
+        example_io._check_normalization_metadata(dict())
 }
 
 # The following constants are used to test average_examples.

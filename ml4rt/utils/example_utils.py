@@ -1220,7 +1220,8 @@ def concat_examples(example_dicts):
 
     keys_to_match = [
         SCALAR_PREDICTOR_NAMES_KEY, VECTOR_PREDICTOR_NAMES_KEY,
-        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY, HEIGHTS_KEY
+        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY, HEIGHTS_KEY,
+        NORMALIZATION_METADATA_KEY
     ]
 
     for i in range(1, len(example_dicts)):
@@ -1239,8 +1240,12 @@ def concat_examples(example_dicts):
 
             raise ValueError(error_string)
 
+        # TODO(thunderhoser): Eventually should match normalization metadata as
+        # as well, but I need to take the relevant method out of example_io.py
+        # and put it in this file.
+
         for this_key in keys_to_match:
-            if this_key == HEIGHTS_KEY:
+            if this_key in [HEIGHTS_KEY, NORMALIZATION_METADATA_KEY]:
                 continue
 
             if example_dict[this_key] == example_dicts[i][this_key]:
