@@ -419,6 +419,9 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
             normalization_metadata_dict[this_key] = str(
                 getattr(dataset_object, this_key)
             )
+            if normalization_metadata_dict[this_key] == 'None':
+                normalization_metadata_dict[this_key] = None
+
         for this_key in NORM_METADATA_FLOAT_KEYS:
             normalization_metadata_dict[this_key] = getattr(
                 dataset_object, this_key
