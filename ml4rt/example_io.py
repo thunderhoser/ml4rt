@@ -342,7 +342,7 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     for this_key in main_data_keys:
         example_dict[this_key] = numpy.array(
             dataset_object.variables[this_key][indices_to_read, ...],
-            dtype=float
+            dtype=numpy.float16
         )
 
     for this_key in integer_keys:
