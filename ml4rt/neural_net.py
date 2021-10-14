@@ -3,7 +3,6 @@
 import os
 import sys
 import copy
-import random
 import pickle
 import numpy
 import keras
@@ -1138,74 +1137,107 @@ def data_generator(option_dict, for_inference, net_type_string):
         raise_error_if_any_missing=False
     )
 
-    all_desired_id_strings = []
+    example_dict = _read_file_for_generator(
+        example_file_name=example_file_names[0],
+        first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec,
+        field_names=all_field_names, heights_m_agl=heights_m_agl,
+        normalization_file_name=normalization_file_name,
+        predictor_norm_type_string=predictor_norm_type_string,
+        predictor_min_norm_value=predictor_min_norm_value,
+        predictor_max_norm_value=predictor_max_norm_value,
+        vector_target_norm_type_string=vector_target_norm_type_string,
+        vector_target_min_norm_value=vector_target_min_norm_value,
+        vector_target_max_norm_value=vector_target_max_norm_value,
+        scalar_target_norm_type_string=scalar_target_norm_type_string,
+        scalar_target_min_norm_value=scalar_target_min_norm_value,
+        scalar_target_max_norm_value=scalar_target_max_norm_value
+    )
 
-    for this_file_name in example_file_names:
-        this_example_dict = _read_file_for_generator(
-            example_file_name=this_file_name,
-            first_time_unix_sec=first_time_unix_sec,
-            last_time_unix_sec=last_time_unix_sec,
-            field_names=all_field_names, heights_m_agl=heights_m_agl,
-            normalization_file_name=normalization_file_name,
-            predictor_norm_type_string=predictor_norm_type_string,
-            predictor_min_norm_value=predictor_min_norm_value,
-            predictor_max_norm_value=predictor_max_norm_value,
-            vector_target_norm_type_string=vector_target_norm_type_string,
-            vector_target_min_norm_value=vector_target_min_norm_value,
-            vector_target_max_norm_value=vector_target_max_norm_value,
-            scalar_target_norm_type_string=scalar_target_norm_type_string,
-            scalar_target_min_norm_value=scalar_target_min_norm_value,
-            scalar_target_max_norm_value=scalar_target_max_norm_value
-        )
-
-        these_id_strings = this_example_dict[example_utils.EXAMPLE_IDS_KEY]
-        random.shuffle(these_id_strings)
-        all_desired_id_strings += these_id_strings
-
-    example_index = 0
+    num_examples_in_dict = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
+    file_index = 0
+    first_example_index = 0
 
     while True:
-        if for_inference and example_index >= len(all_desired_id_strings):
-            raise StopIteration
-
         num_examples_in_memory = 0
         predictor_matrix = None
         vector_target_matrix = None
         scalar_target_matrix = None
         example_id_strings = []
 
+        if (
+                for_inference and
+                file_index >= len(example_file_names) - 1 and
+                first_example_index >= num_examples_in_dict
+        ):
+            raise StopIteration
+
         while num_examples_in_memory < num_examples_per_batch:
-            if example_index == len(all_desired_id_strings):
-                if for_inference:
-                    if predictor_matrix is None:
-                        raise StopIteration
+            if (
+                    for_inference and
+                    file_index >= len(example_file_names) - 1 and
+                    first_example_index >= num_examples_in_dict
+            ):
+                if predictor_matrix is None:
+                    raise StopIteration
 
-                    break
+                break
 
-                example_index = 0
+            if first_example_index >= num_examples_in_dict:
+                first_example_index = 0
+                file_index += 1
+                if file_index == len(example_file_names):
+                    file_index = 0
+
+                example_dict = _read_file_for_generator(
+                    example_file_name=example_file_names[file_index],
+                    first_time_unix_sec=first_time_unix_sec,
+                    last_time_unix_sec=last_time_unix_sec,
+                    field_names=all_field_names, heights_m_agl=heights_m_agl,
+                    normalization_file_name=normalization_file_name,
+                    predictor_norm_type_string=predictor_norm_type_string,
+                    predictor_min_norm_value=predictor_min_norm_value,
+                    predictor_max_norm_value=predictor_max_norm_value,
+                    vector_target_norm_type_string=vector_target_norm_type_string,
+                    vector_target_min_norm_value=vector_target_min_norm_value,
+                    vector_target_max_norm_value=vector_target_max_norm_value,
+                    scalar_target_norm_type_string=scalar_target_norm_type_string,
+                    scalar_target_min_norm_value=scalar_target_min_norm_value,
+                    scalar_target_max_norm_value=scalar_target_max_norm_value
+                )
+                num_examples_in_dict = len(
+                    example_dict[example_utils.EXAMPLE_IDS_KEY]
+                )
 
             this_num_examples = num_examples_per_batch - num_examples_in_memory
+            last_example_index = min([
+                first_example_index + this_num_examples,
+                num_examples_in_dict
+            ])
 
-            this_example_dict = _read_specific_examples(
-                example_file_names=example_file_names,
-                example_id_strings=
-                all_desired_id_strings[example_index:][:this_num_examples],
-                field_names=all_field_names, heights_m_agl=heights_m_agl,
-                normalization_file_name=normalization_file_name,
-                predictor_norm_type_string=predictor_norm_type_string,
-                predictor_min_norm_value=predictor_min_norm_value,
-                predictor_max_norm_value=predictor_max_norm_value,
-                vector_target_norm_type_string=vector_target_norm_type_string,
-                vector_target_min_norm_value=vector_target_min_norm_value,
-                vector_target_max_norm_value=vector_target_max_norm_value,
-                scalar_target_norm_type_string=scalar_target_norm_type_string,
-                scalar_target_min_norm_value=scalar_target_min_norm_value,
-                scalar_target_max_norm_value=scalar_target_max_norm_value
-            )
+            this_example_dict = dict()
 
-            these_id_strings = this_example_dict[example_utils.EXAMPLE_IDS_KEY]
-            example_id_strings += these_id_strings
-            example_index += len(these_id_strings)
+            for k in [
+                    example_utils.VECTOR_PREDICTOR_VALS_KEY,
+                    example_utils.SCALAR_PREDICTOR_VALS_KEY,
+                    example_utils.VECTOR_TARGET_VALS_KEY,
+                    example_utils.SCALAR_TARGET_VALS_KEY
+            ]:
+                this_example_dict[k] = (
+                    example_dict[k][first_example_index:last_example_index, ...]
+                )
+
+            for k in [
+                    example_utils.HEIGHTS_KEY,
+                    example_utils.VECTOR_PREDICTOR_NAMES_KEY,
+                    example_utils.SCALAR_PREDICTOR_NAMES_KEY
+            ]:
+                this_example_dict[k] = example_dict[k]
+
+            example_id_strings += example_dict[example_utils.EXAMPLE_IDS_KEY][
+                first_example_index:last_example_index
+            ]
+            first_example_index = last_example_index + 0
 
             this_predictor_matrix = predictors_dict_to_numpy(
                 example_dict=this_example_dict, net_type_string=net_type_string
@@ -1363,146 +1395,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
         target_array,
         example_dict[example_utils.EXAMPLE_IDS_KEY]
     )
-
-
-def data_generator_specific_examples(option_dict, net_type_string,
-                                     example_id_strings):
-    """Generates training data for specific examples.
-
-    This method is the same as `data_generator`, except that it generates
-    specific examples.  Also, note that this method should be run only in
-    inference mode (not in training mode).
-
-    :param option_dict: See doc for `data_generator`.
-    :param net_type_string: Same.
-    :param example_id_strings: 1-D list of example IDs.
-    :return: Same output variables as `data_generator`, except without
-        `example_id_strings`.
-    """
-
-    option_dict = _check_generator_args(option_dict)
-    check_net_type(net_type_string)
-
-    example_times_unix_sec = example_utils.parse_example_ids(
-        example_id_strings
-    )[example_utils.VALID_TIMES_KEY]
-
-    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
-    num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
-    scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
-    vector_predictor_names = option_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
-    vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = option_dict[HEIGHTS_KEY]
-
-    all_field_names = (
-        scalar_predictor_names + vector_predictor_names +
-        scalar_target_names + vector_target_names
-    )
-
-    normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
-    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
-    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
-    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
-    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
-    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
-    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
-    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
-    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
-
-    example_file_names = example_io.find_many_files(
-        directory_name=example_dir_name,
-        first_time_unix_sec=numpy.min(example_times_unix_sec),
-        last_time_unix_sec=numpy.max(example_times_unix_sec),
-        raise_error_if_any_missing=False
-    )
-
-    example_index = 0
-
-    while True:
-        if example_index >= len(example_id_strings):
-            raise StopIteration
-
-        num_examples_in_memory = 0
-        predictor_matrix = None
-        vector_target_matrix = None
-        scalar_target_matrix = None
-
-        while num_examples_in_memory < num_examples_per_batch:
-            if example_index >= len(example_id_strings):
-                if predictor_matrix is None:
-                    raise StopIteration
-
-                break
-
-            this_num_examples = num_examples_per_batch - num_examples_in_memory
-
-            this_example_dict = _read_specific_examples(
-                example_file_names=example_file_names,
-                example_id_strings=
-                example_id_strings[example_index:][:this_num_examples],
-                field_names=all_field_names, heights_m_agl=heights_m_agl,
-                normalization_file_name=normalization_file_name,
-                predictor_norm_type_string=predictor_norm_type_string,
-                predictor_min_norm_value=predictor_min_norm_value,
-                predictor_max_norm_value=predictor_max_norm_value,
-                vector_target_norm_type_string=vector_target_norm_type_string,
-                vector_target_min_norm_value=vector_target_min_norm_value,
-                vector_target_max_norm_value=vector_target_max_norm_value,
-                scalar_target_norm_type_string=scalar_target_norm_type_string,
-                scalar_target_min_norm_value=scalar_target_min_norm_value,
-                scalar_target_max_norm_value=scalar_target_max_norm_value
-            )
-
-            example_index += len(
-                this_example_dict[example_utils.EXAMPLE_IDS_KEY]
-            )
-
-            this_predictor_matrix = predictors_dict_to_numpy(
-                example_dict=this_example_dict, net_type_string=net_type_string
-            )[0]
-            this_target_list = targets_dict_to_numpy(
-                example_dict=this_example_dict, net_type_string=net_type_string
-            )
-
-            this_vector_target_matrix = this_target_list[0]
-            if len(this_target_list) == 1:
-                this_scalar_target_matrix = None
-            else:
-                this_scalar_target_matrix = this_target_list[1]
-
-            if predictor_matrix is None:
-                predictor_matrix = this_predictor_matrix + 0.
-
-                if this_vector_target_matrix is not None:
-                    vector_target_matrix = this_vector_target_matrix + 0.
-                if this_scalar_target_matrix is not None:
-                    scalar_target_matrix = this_scalar_target_matrix + 0.
-            else:
-                predictor_matrix = numpy.concatenate(
-                    (predictor_matrix, this_predictor_matrix), axis=0
-                )
-
-                if this_vector_target_matrix is not None:
-                    vector_target_matrix = numpy.concatenate(
-                        (vector_target_matrix, this_vector_target_matrix),
-                        axis=0
-                    )
-                if this_scalar_target_matrix is not None:
-                    scalar_target_matrix = numpy.concatenate(
-                        (scalar_target_matrix, this_scalar_target_matrix),
-                        axis=0
-                    )
-
-            num_examples_in_memory = predictor_matrix.shape[0]
-
-        predictor_matrix = predictor_matrix.astype('float16')
-        target_array = [vector_target_matrix.astype('float16')]
-        if scalar_target_matrix is not None:
-            target_array.append(scalar_target_matrix.astype('float16'))
-
-        yield predictor_matrix, target_array
 
 
 def create_data_specific_examples(
