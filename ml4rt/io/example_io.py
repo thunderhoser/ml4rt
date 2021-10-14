@@ -39,7 +39,7 @@ SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
 
 NORM_METADATA_STRING_KEYS = [
     NORMALIZATION_FILE_KEY, PREDICTOR_NORM_TYPE_KEY,
-    VECTOR_TARGET_NORM_TYPE_KEY, VECTOR_TARGET_NORM_TYPE_KEY
+    VECTOR_TARGET_NORM_TYPE_KEY, SCALAR_TARGET_NORM_TYPE_KEY
 ]
 NORM_METADATA_FLOAT_KEYS = [
     PREDICTOR_MIN_VALUE_KEY, PREDICTOR_MAX_VALUE_KEY,
@@ -412,6 +412,9 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
             normalization_metadata_dict[this_key] = str(
                 getattr(dataset_object, this_key)
             )
+            if normalization_metadata_dict[this_key] == 'None':
+                normalization_metadata_dict[this_key] = None
+
         for this_key in NORM_METADATA_FLOAT_KEYS:
             normalization_metadata_dict[this_key] = getattr(
                 dataset_object, this_key
