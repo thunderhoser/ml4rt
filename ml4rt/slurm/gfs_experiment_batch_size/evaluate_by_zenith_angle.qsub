@@ -7,7 +7,6 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
 #SBATCH --time=24:00:00
 #SBATCH --array=1-36
 ##SBATCH --exclude=h31n03,h28n12
@@ -21,23 +20,19 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/experiment09"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_batch_size"
 
-set DENSE_LAYER_COUNTS=(4 4 4 3 4 4 4 3 4 4 4 3 4 4 4 3 4 4 4 3 4 4 4 3 4 4 4 3 4 4 4 3 4 4 4 3)
-set DENSE_LAYER_DROPOUT_RATES=(0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100 0.000 0.000 0.000 0.100)
-set L2_WEIGHTS=(0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000 0.0000001000 0.0000010000 0.0000100000 0.0001000000)
+# set EXAMPLES_PER_BATCH_COUNTS=(64 91 128 181 256 362 512 64 91 128 181 256 362 512 64 91 128 181 256 362 512 64 91 128 181 256 362 512 64 91 128 181 256 362 512)
+# set BATCHES_PER_EPOCH_COUNTS=(100 100 100 100 100 100 100 250 250 250 250 250 250 250 500 500 500 500 500 500 500 750 750 750 750 750 750 750 1000 1000 1000 1000 1000 1000 1000)
 set ANGLE_BIN_STRINGS=("000" "000" "000" "000" "001" "001" "001" "001" "002" "002" "002" "002" "003" "003" "003" "003" "004" "004" "004" "004" "005" "005" "005" "005" "006" "006" "006" "006" "007" "007" "007" "007" "008" "008" "008" "008")
 
-set dense_layer_count=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
-set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
-set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+set num_examples_per_batch=${EXAMPLES_PER_BATCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set angle_bin_string=${ANGLE_BIN_STRINGS[$SLURM_ARRAY_TASK_ID]}
 
-set dense_layer_count_string=`printf "%d" $dense_layer_count`
-set dense_layer_dropout_string=`printf "%.3f" $dense_layer_dropout_rate`
-set l2_weight_string=`printf "%.10f" $l2_weight`
-
-set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${dense_layer_count_string}_dense-dropout=${dense_layer_dropout_string}_l2-weight=${l2_weight_string}"
+set num_examples_per_batch_string=`printf "%03d" $num_examples_per_batch`
+set num_batches_per_epoch_string=`printf "%04d" $num_batches_per_epoch`
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}"
 
 set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
@@ -47,5 +42,5 @@ set prediction_dir_name="${model_dir_name}/validation/by_time"
 
 python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
 --input_prediction_file_name="${prediction_dir_name}/predictions_zenith-angle-bin=${angle_bin_string}.nc" \
---num_bootstrap_reps=100 \
+--num_bootstrap_reps=1 \
 --output_dir_name="${prediction_dir_name}"
