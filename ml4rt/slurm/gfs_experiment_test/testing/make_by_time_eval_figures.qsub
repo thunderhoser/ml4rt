@@ -27,5 +27,5 @@ set output_dir_name="${TOP_OUTPUT_DIR_NAME}/eval_by_time"
 
 python3 -u "${CODE_DIR_NAME}/make_by_time_eval_figure.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
---heights_m_agl 1000 10000 46000 \
+--heights_m_agl 96 1000 10016 14976 45842 \
 --output_dir_name="${output_dir_name}"
