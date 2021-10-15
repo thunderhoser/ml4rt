@@ -161,15 +161,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
 
-    vector_target_norm_type_string = copy.deepcopy(
-        generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY]
-    )
-    scalar_target_norm_type_string = copy.deepcopy(
-        generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY]
-    )
-    generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
-    generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
-
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict,
@@ -241,13 +232,17 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     target_example_dict.update(this_dict)
     prediction_example_dict.update(this_dict)
 
-    if vector_target_norm_type_string is not None:
-        print('Denormalizing predicted vectors...')
+    if (
+            generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY]
+            is not None
+    ):
+        print('Denormalizing predicted and actual vectors...')
 
         prediction_example_dict = normalization.denormalize_data(
             new_example_dict=prediction_example_dict,
             training_example_dict=training_example_dict,
-            normalization_type_string=vector_target_norm_type_string,
+            normalization_type_string=
+            generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
@@ -256,13 +251,43 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_vector_targets=True, apply_to_scalar_targets=False
         )
 
-    if scalar_target_norm_type_string is not None:
-        print('Denormalizing predicted scalars...')
+        target_example_dict = normalization.denormalize_data(
+            new_example_dict=target_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=
+            generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY],
+            min_normalized_value=
+            generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.VECTOR_TARGET_MAX_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=True, apply_to_scalar_targets=False
+        )
+
+    if (
+            generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY]
+            is not None
+    ):
+        print('Denormalizing predicted and actual scalars...')
 
         prediction_example_dict = normalization.denormalize_data(
             new_example_dict=prediction_example_dict,
             training_example_dict=training_example_dict,
-            normalization_type_string=scalar_target_norm_type_string,
+            normalization_type_string=
+            generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY],
+            min_normalized_value=
+            generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
+            max_normalized_value=
+            generator_option_dict[neural_net.SCALAR_TARGET_MAX_VALUE_KEY],
+            separate_heights=True, apply_to_predictors=False,
+            apply_to_vector_targets=False, apply_to_scalar_targets=True
+        )
+
+        target_example_dict = normalization.denormalize_data(
+            new_example_dict=target_example_dict,
+            training_example_dict=training_example_dict,
+            normalization_type_string=
+            generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
