@@ -95,8 +95,7 @@ def _run(input_file_name, example_dir_name, for_ice, min_path_kg_m02,
 
     example_dict = misc_utils.get_raw_examples(
         example_file_name='', num_examples=int(1e12),
-        example_dir_name=example_dir_name, example_id_file_name=input_file_name,
-        flexible=True
+        example_dir_name=example_dir_name, example_id_file_name=input_file_name
     )
     print(SEPARATOR_STRING)
 
