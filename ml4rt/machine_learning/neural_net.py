@@ -6,7 +6,6 @@ import dill
 import numpy
 import keras
 import tensorflow.keras as tf_keras
-from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import cnn
@@ -994,6 +993,11 @@ def data_generator(option_dict, for_inference, net_type_string):
     )
 
     num_examples_in_dict = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
+    example_dict = example_utils.subset_by_index(
+        example_dict=example_dict,
+        desired_indices=numpy.random.permutation(num_examples_in_dict)
+    )
+
     file_index = 0
     first_example_index = 0
 
@@ -1044,8 +1048,13 @@ def data_generator(option_dict, for_inference, net_type_string):
                     scalar_target_min_norm_value=scalar_target_min_norm_value,
                     scalar_target_max_norm_value=scalar_target_max_norm_value
                 )
+
                 num_examples_in_dict = len(
                     example_dict[example_utils.EXAMPLE_IDS_KEY]
+                )
+                example_dict = example_utils.subset_by_index(
+                    example_dict=example_dict,
+                    desired_indices=numpy.random.permutation(num_examples_in_dict)
                 )
 
             this_num_examples = num_examples_per_batch - num_examples_in_memory
@@ -1065,6 +1074,17 @@ def data_generator(option_dict, for_inference, net_type_string):
                 this_example_dict[k] = (
                     example_dict[k][first_example_index:last_example_index, ...]
                 )
+
+            print((
+                'Mean vector-predictor value for examples {0:d}-{1:d} '
+                'of {2:d} = {3:.4f}'
+            ).format(
+                first_example_index + 1, last_example_index + 1,
+                num_examples_in_dict,
+                numpy.mean(
+                    this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
+                )
+            ))
 
             for k in [
                     example_utils.HEIGHTS_KEY,
@@ -1294,15 +1314,15 @@ def create_data_specific_examples(
     predictor_matrix = None
     vector_target_matrix = None
     scalar_target_matrix = None
-    
+
     for this_file_name in example_file_names:
         missing_example_indices = numpy.where(
             numpy.invert(found_example_flags)
         )[0]
-        
+
         if len(missing_example_indices):
             break
-        
+
         this_example_dict = _read_file_for_generator(
             example_file_name=this_file_name,
             first_time_unix_sec=numpy.min(example_times_unix_sec),
@@ -1319,7 +1339,7 @@ def create_data_specific_examples(
             scalar_target_min_norm_value=scalar_target_min_norm_value,
             scalar_target_max_norm_value=scalar_target_max_norm_value
         )
-        
+
         missing_to_dict_indices = example_utils.find_examples(
             all_id_strings=this_example_dict[example_utils.EXAMPLE_IDS_KEY],
             desired_id_strings=[
@@ -1327,7 +1347,7 @@ def create_data_specific_examples(
             ],
             allow_missing=True
         )
-        
+
         if numpy.all(missing_to_dict_indices < 0):
             continue
 
@@ -1373,7 +1393,7 @@ def create_data_specific_examples(
             scalar_target_matrix[missing_example_indices, :] = (
                 prelim_target_list[1]
             )
-    
+
     assert numpy.all(found_example_flags)
 
     predictor_matrix = predictor_matrix.astype('float16')
