@@ -22,7 +22,7 @@ import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
-NUM_EXAMPLES_PER_BATCH = 5000
+NUM_EXAMPLES_PER_BATCH = 500
 
 TARGET_VALUE_KEYS = [
     example_utils.SCALAR_TARGET_VALS_KEY, example_utils.VECTOR_TARGET_VALS_KEY
