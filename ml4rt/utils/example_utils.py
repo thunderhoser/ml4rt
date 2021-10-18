@@ -549,6 +549,76 @@ def get_grid_cell_widths(edge_heights_m_agl):
     return numpy.diff(edge_heights_m_agl)
 
 
+def heating_rate_to_fluxes(example_dict):
+    """For each example at each height, converts heating rate to up/down fluxes.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: example_dict: Same but with upwelling-flux and downwelling-flux
+        profiles.
+    """
+
+    heating_rate_matrix_k_day01 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    ) + 0.
+
+    dummy_pressure_matrix_pascals = (
+        pressure_matrix_pascals[:, [-1]] +
+        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
+    )
+    pressure_matrix_pascals = numpy.concatenate(
+        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
+    )
+
+    coefficient = DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02
+    net_flux_diff_matrix_w_m02 = (
+        -1 * numpy.absolute(numpy.diff(pressure_matrix_pascals, axis=1)) *
+        coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
+    )
+    net_flux_matrix_w_m02 = numpy.flip(
+        numpy.cumsum(numpy.flip(net_flux_diff_matrix_w_m02, axis=1), axis=1),
+        axis=1
+    )
+
+    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+    found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names
+    found_up_flux = SHORTWAVE_UP_FLUX_NAME in vector_target_names
+
+    if not found_down_flux:
+        vector_target_names.append(SHORTWAVE_DOWN_FLUX_NAME)
+    if not found_up_flux:
+        vector_target_names.append(SHORTWAVE_UP_FLUX_NAME)
+
+    down_flux_index = vector_target_names.index(SHORTWAVE_DOWN_FLUX_NAME)
+    up_flux_index = vector_target_names.index(SHORTWAVE_UP_FLUX_NAME)
+    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+    if found_down_flux:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
+            net_flux_matrix_w_m02
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY],
+            obj=down_flux_index, values=net_flux_matrix_w_m02, axis=-1
+        )
+
+    if found_up_flux:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = numpy.full(
+            net_flux_matrix_w_m02.shape, 0.
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY], obj=up_flux_index,
+            values=numpy.full(net_flux_matrix_w_m02.shape, 0.), axis=-1
+        )
+
+    return example_dict
+
+
 def fluxes_to_heating_rate(example_dict):
     """For each example at each height, converts up/down fluxes to heating rate.
 

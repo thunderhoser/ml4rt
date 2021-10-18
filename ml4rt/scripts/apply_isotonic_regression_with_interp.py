@@ -14,7 +14,6 @@ from ml4rt.machine_learning import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 EXAMPLE_MATCHING_TIME_SEC = 180
-ZERO_HEATING_HEIGHT_M_AGL = 49999.
 
 INPUT_PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
@@ -325,13 +324,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
     prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
     )
-
-    these_indices = numpy.where(
-        prediction_dict[prediction_io.HEIGHTS_KEY] >= ZERO_HEATING_HEIGHT_M_AGL
-    )[0]
-    prediction_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., 0][
-        ..., these_indices
-    ] = 0.
+    prediction_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, 0] = 0.
 
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name

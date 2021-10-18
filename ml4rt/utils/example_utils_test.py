@@ -375,6 +375,9 @@ THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
     [1000, 1000, 1000, 1000, 1000, 1000]
 ], dtype=float)
 
+# THIS_UP_FLUX_MATRIX_W_M02 = numpy.flip(THIS_UP_FLUX_MATRIX_W_M02, axis=1)
+# THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.flip(THIS_DOWN_FLUX_MATRIX_W_M02, axis=1)
+
 THIS_PRESSURE_MATRIX_PASCALS = 100 * numpy.array([
     [1000, 950, 900, 850, 800, 750],
     [1000, 900, 800, 700, 600, 500],
@@ -1223,6 +1226,29 @@ class ExampleUtilsTests(unittest.TestCase):
 
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_HEATING_RATE
+        ))
+
+    def test_heating_rate_to_fluxes(self):
+        """Ensures correct output from heating_rate_to_fluxes."""
+
+        this_example_dict = example_utils.heating_rate_to_fluxes(
+            copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE)
+        )
+        this_example_dict = example_utils.fluxes_to_heating_rate(
+            this_example_dict
+        )
+
+        this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=this_example_dict,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+        exp_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=EXAMPLE_DICT_WITH_HEATING_RATE,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+        self.assertTrue(numpy.allclose(
+            this_heating_rate_matrix_k_day01, exp_heating_rate_matrix_k_day01,
+            atol=TOLERANCE
         ))
 
     def test_find_cloud_layers(self):
