@@ -24,12 +24,8 @@ import apply_neural_net as apply_nn
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
-NUM_EXAMPLES_PER_BATCH = 5000
+NUM_EXAMPLES_PER_BATCH = 500
 EXAMPLE_MATCHING_TIME_SEC = 180
-
-# TODO(thunderhoser): Get rid of these HACKS.
-ZERO_HEATING_HEIGHT_M_AGL = 49999.
-MAX_HEIGHT_M_AGL = 50001.
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 ORIG_GRID_EXAMPLE_DIR_ARG_NAME = 'input_orig_grid_example_dir_name'
@@ -133,8 +129,6 @@ def _get_predictions_and_targets(
     d[neural_net.EXAMPLE_DIRECTORY_KEY] = orig_grid_example_dir_name
     d[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     d[neural_net.LAST_TIME_KEY] = last_time_unix_sec
-    d[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
-    d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
     predictor_matrix, _, example_id_strings = neural_net.create_data(
         option_dict=d, net_type_string=net_type_string,
@@ -146,7 +140,8 @@ def _get_predictions_and_targets(
     d[neural_net.HEIGHTS_KEY] = (
         new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
     )
-    d[neural_net.NORMALIZATION_FILE_KEY] = new_grid_norm_file_name
+    d[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
+    d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
     _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
         option_dict=d, net_type_string=net_type_string,
@@ -265,19 +260,15 @@ def _get_predictions_and_targets(
     )
 
 
-def _denorm_predictions(
-        prediction_example_dict, target_example_dict, model_metadata_dict):
+def _denorm_predictions(prediction_example_dict, model_metadata_dict):
     """Denormalizes predictions.
 
     :param prediction_example_dict: Dictionary with predictions, in format
-        specified by `example_io.read_file`.
-    :param target_example_dict: Dictionary with target values, in format
         specified by `example_io.read_file`.
     :param model_metadata_dict: Dictionary with metadata, in format returned by
         `neural_net.read_metafile`.
     :return: prediction_example_dict: Same as input but with dummy predictors
         added *and* denormalized predictions.
-    :return: target_example_dict: Same as input but with dummy predictors added.
     """
 
     d = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
@@ -310,22 +301,6 @@ def _denorm_predictions(
     }
     prediction_example_dict.update(this_dict)
 
-    this_matrix = example_utils.get_field_from_dict(
-        example_dict=target_example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-    num_heights = this_matrix.shape[1]
-
-    this_dict = {
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
-        example_utils.VECTOR_PREDICTOR_VALS_KEY:
-            numpy.full((num_examples, num_heights, 0), 0.),
-        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_utils.SCALAR_PREDICTOR_VALS_KEY:
-            numpy.full((num_examples, 0), 0.)
-    }
-    target_example_dict.update(this_dict)
-
     if vector_target_norm_type_string is not None:
         print('Denormalizing predicted vectors...')
         prediction_example_dict = normalization.denormalize_data(
@@ -350,7 +325,7 @@ def _denorm_predictions(
             apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
 
-    return prediction_example_dict, target_example_dict
+    return prediction_example_dict
 
 
 def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
@@ -409,52 +384,24 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
     )
     print(SEPARATOR_STRING)
 
-    orig_grid_prediction_example_dict, new_grid_target_example_dict = (
-        _denorm_predictions(
-            prediction_example_dict=orig_grid_prediction_example_dict,
-            target_example_dict=new_grid_target_example_dict,
-            model_metadata_dict=model_metadata_dict
-        )
+    orig_grid_prediction_example_dict = _denorm_predictions(
+        prediction_example_dict=orig_grid_prediction_example_dict,
+        model_metadata_dict=model_metadata_dict
     )
-
-    # Zero out predicted heating rates above certain height.
-    orig_heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY] + 0.
-    these_indices = numpy.where(
-        orig_heights_m_agl >= ZERO_HEATING_HEIGHT_M_AGL
-    )[0]
-    orig_grid_prediction_example_dict[
-        example_utils.VECTOR_TARGET_VALS_KEY
-    ][..., 0][..., these_indices] = 0.
-
-    # Remove predictions above certain height.
-    orig_heights_m_agl = (
-        orig_heights_m_agl[orig_heights_m_agl < MAX_HEIGHT_M_AGL]
-    )
-    orig_prediction_example_dict = example_utils.subset_by_height(
-        example_dict=orig_grid_prediction_example_dict,
-        heights_m_agl=orig_heights_m_agl
-    )
-
-    # Remove targets above certain height.
-    new_heights_m_agl = new_grid_target_example_dict[example_utils.HEIGHTS_KEY]
-    new_heights_m_agl = new_heights_m_agl[new_heights_m_agl < MAX_HEIGHT_M_AGL]
-    new_grid_target_example_dict = example_utils.subset_by_height(
-        example_dict=new_grid_target_example_dict,
-        heights_m_agl=new_heights_m_agl
-    )
-
     orig_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=orig_prediction_example_dict,
+        example_dict=orig_grid_prediction_example_dict,
         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
     )
+
     new_heating_rate_matrix_k_day01 = heating_rate_interp.interpolate(
         orig_heating_rate_matrix_k_day01=orig_heating_rate_matrix_k_day01,
         orig_heights_m_agl=
-        orig_prediction_example_dict[example_utils.HEIGHTS_KEY],
+        orig_grid_prediction_example_dict[example_utils.HEIGHTS_KEY],
         new_heights_m_agl=
         new_grid_target_example_dict[example_utils.HEIGHTS_KEY],
         half_window_size_for_filter_px=half_window_size_for_interp_px
     )
+    new_heating_rate_matrix_k_day01[:, -1] = 0.
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
@@ -466,7 +413,7 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
         vector_target_matrix=
         new_grid_target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
         scalar_prediction_matrix=
-        orig_prediction_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
+        orig_grid_prediction_example_dict[example_utils.SCALAR_TARGET_VALS_KEY],
         vector_prediction_matrix=
         numpy.expand_dims(new_heating_rate_matrix_k_day01, axis=-1),
         heights_m_agl=new_grid_target_example_dict[example_utils.HEIGHTS_KEY],
