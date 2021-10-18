@@ -140,6 +140,8 @@ def _get_predictions_and_targets(
     d[neural_net.HEIGHTS_KEY] = (
         new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
     )
+    d[neural_net.NORMALIZATION_FILE_KEY] = None
+    d[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     d[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
     d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
