@@ -465,7 +465,7 @@ def _run(experiment_dir_name, isotonic_flag):
         BEST_MARKER_SIZE_GRID_CELLS / prmse_matrix_k_day01.shape[1]
     )
     axes_object.plot(
-        min_prmse_indices[1], min_prmse_indices[2],
+        min_prmse_indices[0], min_prmse_indices[1],
         linestyle='None', marker=BEST_MARKER_TYPE,
         markersize=marker_size_px, markeredgewidth=0,
         markerfacecolor=MARKER_COLOUR,
@@ -503,7 +503,7 @@ def _run(experiment_dir_name, isotonic_flag):
         BEST_MARKER_SIZE_GRID_CELLS / dwmse_matrix_k3_day03.shape[1]
     )
     axes_object.plot(
-        min_dwmse_indices[1], min_dwmse_indices[2],
+        min_dwmse_indices[0], min_dwmse_indices[1],
         linestyle='None', marker=BEST_MARKER_TYPE,
         markersize=marker_size_px, markeredgewidth=0,
         markerfacecolor=MARKER_COLOUR,
@@ -541,7 +541,7 @@ def _run(experiment_dir_name, isotonic_flag):
         BEST_MARKER_SIZE_GRID_CELLS / down_flux_rmse_matrix_w_m02.shape[1]
     )
     axes_object.plot(
-        min_down_flux_rmse_indices[1], min_down_flux_rmse_indices[2],
+        min_down_flux_rmse_indices[0], min_down_flux_rmse_indices[1],
         linestyle='None', marker=BEST_MARKER_TYPE,
         markersize=marker_size_px, markeredgewidth=0,
         markerfacecolor=MARKER_COLOUR,
@@ -579,7 +579,7 @@ def _run(experiment_dir_name, isotonic_flag):
         BEST_MARKER_SIZE_GRID_CELLS / up_flux_rmse_matrix_w_m02.shape[1]
     )
     axes_object.plot(
-        min_up_flux_rmse_indices[1], min_up_flux_rmse_indices[2],
+        min_up_flux_rmse_indices[0], min_up_flux_rmse_indices[1],
         linestyle='None', marker=BEST_MARKER_TYPE,
         markersize=marker_size_px, markeredgewidth=0,
         markerfacecolor=MARKER_COLOUR,
@@ -617,7 +617,7 @@ def _run(experiment_dir_name, isotonic_flag):
         BEST_MARKER_SIZE_GRID_CELLS / net_flux_rmse_matrix_w_m02.shape[1]
     )
     axes_object.plot(
-        min_net_flux_rmse_indices[1], min_net_flux_rmse_indices[2],
+        min_net_flux_rmse_indices[0], min_net_flux_rmse_indices[1],
         linestyle='None', marker=BEST_MARKER_TYPE,
         markersize=marker_size_px, markeredgewidth=0,
         markerfacecolor=MARKER_COLOUR,
