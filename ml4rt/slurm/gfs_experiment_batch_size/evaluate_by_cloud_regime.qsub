@@ -22,8 +22,8 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_batch_size"
 
-# set EXAMPLES_PER_BATCH_COUNTS=(64 91 128 181 256 362 512 64 91 128 181 256 362 512 64 91 128 181 256 362 512 64 91 128 181 256 362 512 64 91 128 181 256 362 512)
-# set BATCHES_PER_EPOCH_COUNTS=(100 100 100 100 100 100 100 250 250 250 250 250 250 250 500 500 500 500 500 500 500 750 750 750 750 750 750 750 1000 1000 1000 1000 1000 1000 1000)
+set EXAMPLES_PER_BATCH_COUNTS=(128 181 256 181 128 181 256 181 128 181 256 181)
+set BATCHES_PER_EPOCH_COUNTS=(1000 750 750 500 1000 750 750 500 1000 750 750 500)
 set REGIME_STRINGS_DASHED=("no-cloud" "no-cloud" "no-cloud" "no-cloud" "single-layer-cloud" "single-layer-cloud" "single-layer-cloud" "single-layer-cloud" "multi-layer-cloud" "multi-layer-cloud" "multi-layer-cloud" "multi-layer-cloud")
 set REGIME_STRINGS_UNDERSCORED=("no_cloud" "no_cloud" "no_cloud" "no_cloud" "single_layer_cloud" "single_layer_cloud" "single_layer_cloud" "single_layer_cloud" "multi_layer_cloud" "multi_layer_cloud" "multi_layer_cloud" "multi_layer_cloud")
 
