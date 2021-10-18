@@ -140,7 +140,7 @@ def _get_predictions_and_targets(
     d[neural_net.HEIGHTS_KEY] = (
         new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
     )
-    d[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = None
+    d[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
     d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [example_utils.HEIGHT_NAME]
     d[neural_net.NORMALIZATION_FILE_KEY] = None
     d[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
@@ -159,7 +159,7 @@ def _get_predictions_and_targets(
 
         height_matrix_m_agl = height_matrix_m_agl[..., 0]
     except:
-        d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = None
+        d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = []
         _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
             option_dict=d, net_type_string=net_type_string,
             exclude_summit_greenland=True
