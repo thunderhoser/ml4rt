@@ -21,6 +21,6 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_batch_size"
 
-python3 -u "${CODE_DIR_NAME}/plot_hp_grids_gfs_experiment_batch_size.py" \
+python3 -u "${CODE_DIR_NAME}/plot_hp_grids_gfs_exp_batch_size.py" \
 --experiment_dir_name="${TOP_MODEL_DIR_NAME}" \
 --isotonic_flag=0
