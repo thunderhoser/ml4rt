@@ -140,15 +140,31 @@ def _get_predictions_and_targets(
     d[neural_net.HEIGHTS_KEY] = (
         new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
     )
+    d[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = None
+    d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [example_utils.HEIGHT_NAME]
     d[neural_net.NORMALIZATION_FILE_KEY] = None
     d[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     d[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
     d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
-    _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
-        option_dict=d, net_type_string=net_type_string,
-        exclude_summit_greenland=True
-    )
+    height_matrix_m_agl = None
+
+    try:
+        height_matrix_m_agl, new_grid_target_array, new_grid_id_strings = (
+            neural_net.create_data(
+                option_dict=d, net_type_string=net_type_string,
+                exclude_summit_greenland=True
+            )
+        )
+
+        height_matrix_m_agl = height_matrix_m_agl[..., 0]
+    except:
+        d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = None
+        _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
+            option_dict=d, net_type_string=net_type_string,
+            exclude_summit_greenland=True
+        )
+
     print(SEPARATOR_STRING)
 
     new_grid_metadata_dict = example_utils.parse_example_ids(
@@ -249,6 +265,29 @@ def _get_predictions_and_targets(
         vector_target_matrix=new_grid_vector_target_matrix,
         model_metadata_dict=new_grid_metadata_dict
     )
+
+    num_examples = new_grid_vector_target_matrix.shape[0]
+    new_grid_target_example_dict.update({
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, 0), numpy.nan)
+    })
+
+    if height_matrix_m_agl is None:
+        num_heights = len(d[neural_net.HEIGHTS_KEY])
+
+        new_grid_target_example_dict.update({
+            example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
+            example_utils.VECTOR_PREDICTOR_VALS_KEY:
+                numpy.full((num_examples, num_heights, 0), numpy.nan)
+        })
+    else:
+        new_grid_target_example_dict.update({
+            example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+                [example_utils.HEIGHT_NAME],
+            example_utils.VECTOR_PREDICTOR_VALS_KEY:
+                numpy.expand_dims(height_matrix_m_agl, axis=-1)
+        })
 
     orig_grid_prediction_example_dict = apply_nn._targets_numpy_to_dict(
         scalar_target_matrix=scalar_prediction_matrix,
@@ -395,14 +434,44 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
     )
 
-    new_heating_rate_matrix_k_day01 = heating_rate_interp.interpolate(
-        orig_heating_rate_matrix_k_day01=orig_heating_rate_matrix_k_day01,
-        orig_heights_m_agl=
-        orig_grid_prediction_example_dict[example_utils.HEIGHTS_KEY],
-        new_heights_m_agl=
-        new_grid_target_example_dict[example_utils.HEIGHTS_KEY],
-        half_window_size_for_filter_px=half_window_size_for_interp_px
-    )
+    these_names = new_grid_target_example_dict[
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY
+    ]
+
+    if example_utils.HEIGHT_NAME in these_names:
+        height_matrix_m_agl = example_utils.get_field_from_dict(
+            example_dict=new_grid_target_example_dict,
+            field_name=example_utils.HEIGHT_NAME
+        )
+
+        new_heating_rate_matrix_k_day01 = numpy.full(
+            height_matrix_m_agl.shape, numpy.nan
+        )
+        num_examples = new_heating_rate_matrix_k_day01.shape[0]
+
+        for i in range(num_examples):
+            new_heating_rate_matrix_k_day01[i, :] = (
+                heating_rate_interp.interpolate(
+                    orig_heating_rate_matrix_k_day01=
+                    orig_heating_rate_matrix_k_day01[[i], :],
+                    orig_heights_m_agl=orig_grid_prediction_example_dict[
+                        example_utils.HEIGHTS_KEY
+                    ],
+                    new_heights_m_agl=height_matrix_m_agl[i, :],
+                    half_window_size_for_filter_px=
+                    half_window_size_for_interp_px
+                )[0, :]
+            )
+    else:
+        new_heating_rate_matrix_k_day01 = heating_rate_interp.interpolate(
+            orig_heating_rate_matrix_k_day01=orig_heating_rate_matrix_k_day01,
+            orig_heights_m_agl=
+            orig_grid_prediction_example_dict[example_utils.HEIGHTS_KEY],
+            new_heights_m_agl=
+            new_grid_target_example_dict[example_utils.HEIGHTS_KEY],
+            half_window_size_for_filter_px=half_window_size_for_interp_px
+        )
+
     new_heating_rate_matrix_k_day01[:, -1] = 0.
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(

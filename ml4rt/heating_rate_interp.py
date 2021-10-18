@@ -224,18 +224,23 @@ def interpolate(orig_heating_rate_matrix_k_day01, orig_heights_m_agl,
 
     interp_object = interp1d(
         x=orig_heights_m_agl, y=orig_heating_rate_matrix_k_day01,
-        axis=-1, kind='linear', bounds_error=True, assume_sorted=True
+        axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
+        fill_value='extrapolate'
     )
     new_heating_rate_matrix_k_day01 = interp_object(new_heights_m_agl)
 
     interp_object = interp1d(
         x=orig_heights_m_agl, y=max_heating_rate_matrix_k_day01,
-        axis=-1, kind='nearest', bounds_error=True, assume_sorted=True
+        axis=-1, kind='nearest', bounds_error=False, assume_sorted=True,
+        fill_value='extrapolate'
     )
     new_data_matrix_nn = interp_object(new_heights_m_agl)
 
     new_heating_rate_matrix_k_day01[max_flag_matrix] = (
         new_data_matrix_nn[max_flag_matrix]
     )
+
+    top_indices = numpy.where(new_heights_m_agl > orig_heights_m_agl[-1])[0]
+    new_heating_rate_matrix_k_day01[..., top_indices] = 0.
 
     return new_heating_rate_matrix_k_day01
