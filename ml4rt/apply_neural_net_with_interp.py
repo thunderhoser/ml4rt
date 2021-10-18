@@ -157,6 +157,9 @@ def _get_predictions_and_targets(
             )
         )
 
+        print(numpy.any(numpy.isinf(height_matrix_m_agl)))
+        print(numpy.sum(numpy.isinf(height_matrix_m_agl)))
+        print(height_matrix_m_agl.size)
         height_matrix_m_agl = height_matrix_m_agl[..., 0]
     except:
         d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = []
