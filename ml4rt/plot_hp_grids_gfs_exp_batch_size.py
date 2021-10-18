@@ -392,39 +392,39 @@ def _run(experiment_dir_name, isotonic_flag):
     pickle_file_handle.close()
 
     _print_ranking_one_score(
-        score_matrix=prmse_matrix_k_day01, score_name='PRMSE (K day^-1)'
+        score_matrix=prmse_matrix_k_day01 + 0., score_name='PRMSE (K day^-1)'
     )
     print(SEPARATOR_STRING)
 
     _print_ranking_one_score(
-        score_matrix=dwmse_matrix_k3_day03, score_name='DWMSE (K^3 day^-3)'
+        score_matrix=dwmse_matrix_k3_day03 + 0., score_name='DWMSE (K^3 day^-3)'
     )
     print(SEPARATOR_STRING)
 
     _print_ranking_one_score(
-        score_matrix=down_flux_rmse_matrix_w_m02,
+        score_matrix=down_flux_rmse_matrix_w_m02 + 0.,
         score_name='RMSE for down flux (W m^-2)'
     )
     print(SEPARATOR_STRING)
 
     _print_ranking_one_score(
-        score_matrix=up_flux_rmse_matrix_w_m02,
+        score_matrix=up_flux_rmse_matrix_w_m02 + 0.,
         score_name='RMSE for up flux (W m^-2)'
     )
     print(SEPARATOR_STRING)
 
     _print_ranking_one_score(
-        score_matrix=net_flux_rmse_matrix_w_m02,
+        score_matrix=net_flux_rmse_matrix_w_m02 + 0.,
         score_name='RMSE for net flux (W m^-2)'
     )
     print(SEPARATOR_STRING)
 
     _print_ranking_all_scores(
-        prmse_matrix_k_day01=prmse_matrix_k_day01,
-        dwmse_matrix_k3_day03=dwmse_matrix_k3_day03,
-        down_flux_rmse_matrix_w_m02=down_flux_rmse_matrix_w_m02,
-        up_flux_rmse_matrix_w_m02=up_flux_rmse_matrix_w_m02,
-        net_flux_rmse_matrix_w_m02=net_flux_rmse_matrix_w_m02
+        prmse_matrix_k_day01=prmse_matrix_k_day01 + 0.,
+        dwmse_matrix_k3_day03=dwmse_matrix_k3_day03 + 0.,
+        down_flux_rmse_matrix_w_m02=down_flux_rmse_matrix_w_m02 + 0.,
+        up_flux_rmse_matrix_w_m02=up_flux_rmse_matrix_w_m02 + 0.,
+        net_flux_rmse_matrix_w_m02=net_flux_rmse_matrix_w_m02 + 0.
     )
     print(SEPARATOR_STRING)
 
