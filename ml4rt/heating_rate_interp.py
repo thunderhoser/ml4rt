@@ -201,6 +201,7 @@ def interpolate(orig_heating_rate_matrix_k_day01, orig_heights_m_agl,
     error_checking.assert_is_greater_numpy_array(
         numpy.diff(orig_heights_m_agl), 0.
     )
+    print(new_heights_m_agl)
     error_checking.assert_is_geq_numpy_array(new_heights_m_agl, 0.)
     error_checking.assert_is_greater_numpy_array(
         numpy.diff(new_heights_m_agl), 0.
