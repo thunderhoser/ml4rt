@@ -1254,7 +1254,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     if height_index >= 0:
         print(numpy.sum(numpy.isinf(predictor_matrix[..., height_index])))
 
-    predictor_matrix = predictor_matrix.astype('float16')
+    predictor_matrix = predictor_matrix.astype('float32')
 
     if height_index >= 0:
         print(numpy.sum(numpy.isinf(predictor_matrix[..., height_index])))
@@ -1417,7 +1417,7 @@ def create_data_specific_examples(
 
     assert numpy.all(found_example_flags)
 
-    predictor_matrix = predictor_matrix.astype('float16')
+    predictor_matrix = predictor_matrix.astype('float32')
     target_array = [vector_target_matrix.astype('float16')]
     if scalar_target_matrix is not None:
         target_array.append(scalar_target_matrix.astype('float16'))
