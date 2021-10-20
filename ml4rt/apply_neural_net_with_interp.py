@@ -448,6 +448,14 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
         num_examples = new_heating_rate_matrix_k_day01.shape[0]
 
         for i in range(num_examples):
+            print(orig_heating_rate_matrix_k_day01[[i], :].shape)
+            print(
+                orig_grid_prediction_example_dict[
+                    example_utils.HEIGHTS_KEY
+                ].shape
+            )
+            print(height_matrix_m_agl[i, :].shape)
+
             new_heating_rate_matrix_k_day01[i, :] = (
                 heating_rate_interp.interpolate(
                     orig_heating_rate_matrix_k_day01=
