@@ -441,6 +441,7 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
             example_dict=new_grid_target_example_dict,
             field_name=example_utils.HEIGHT_NAME
         )
+        print(height_matrix_m_agl.shape)
 
         new_heating_rate_matrix_k_day01 = numpy.full(
             height_matrix_m_agl.shape, numpy.nan
