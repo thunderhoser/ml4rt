@@ -243,4 +243,6 @@ def interpolate(orig_heating_rate_matrix_k_day01, orig_heights_m_agl,
     top_indices = numpy.where(new_heights_m_agl > orig_heights_m_agl[-1])[0]
     new_heating_rate_matrix_k_day01[..., top_indices] = 0.
 
+    print('TOP INDICES = {0:s}'.format(str(top_indices)))
+
     return new_heating_rate_matrix_k_day01
