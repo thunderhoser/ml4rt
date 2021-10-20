@@ -1236,7 +1236,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
-    predictor_matrix = predictor_matrix.astype('float16')
+    predictor_matrix = predictor_matrix.astype('float32')
 
     prelim_target_list = targets_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
@@ -1396,7 +1396,7 @@ def create_data_specific_examples(
 
     assert numpy.all(found_example_flags)
 
-    predictor_matrix = predictor_matrix.astype('float16')
+    predictor_matrix = predictor_matrix.astype('float32')
     target_array = [vector_target_matrix.astype('float16')]
     if scalar_target_matrix is not None:
         target_array.append(scalar_target_matrix.astype('float16'))
