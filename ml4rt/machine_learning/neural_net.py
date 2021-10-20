@@ -1147,7 +1147,8 @@ def data_generator(option_dict, for_inference, net_type_string):
             yield predictor_matrix, target_array
 
 
-def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
+def create_data(option_dict, net_type_string, exclude_summit_greenland=False,
+                predictors_in_32bit=False):
     """Creates data for any kind of neural net.
 
     This method is the same as `data_generator`, except that it returns all the
@@ -1157,6 +1158,8 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     :param net_type_string: Same.
     :param exclude_summit_greenland: Boolean flag.  If True, will exclude
         examples from Summit.
+    :param predictors_in_32bit: Boolean flag.  If True (False), will return
+        32-bit (16-bit) predictors.
     :return: predictor_matrix: Same.
     :return: target_array: Same.
     :return: example_id_strings: Same.
@@ -1165,6 +1168,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     option_dict = _check_generator_args(option_dict)
     check_net_type(net_type_string)
     error_checking.assert_is_boolean(exclude_summit_greenland)
+    error_checking.assert_is_boolean(predictors_in_32bit)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
@@ -1236,7 +1240,11 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
-    predictor_matrix = predictor_matrix.astype('float32')
+
+    if predictors_in_32bit:
+        predictor_matrix = predictor_matrix.astype('float32')
+    else:
+        predictor_matrix = predictor_matrix.astype('float16')
 
     prelim_target_list = targets_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
@@ -1257,7 +1265,8 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
 
 
 def create_data_specific_examples(
-        option_dict, net_type_string, example_id_strings):
+        option_dict, net_type_string, example_id_strings,
+        predictors_in_32bit=False):
     """Creates data for specific examples.
 
     This method is the same as `create_data`, except that it creates specific
@@ -1267,12 +1276,15 @@ def create_data_specific_examples(
     :param option_dict: See doc for `data_generator`.
     :param net_type_string: Same.
     :param example_id_strings: 1-D list of example IDs.
+    :param predictors_in_32bit: Boolean flag.  If True (False), will return
+        32-bit (16-bit) predictors.
     :return: predictor_matrix: See doc for `data_generator`.
     :return: target_array: Same.
     """
 
     option_dict = _check_generator_args(option_dict)
     check_net_type(net_type_string)
+    error_checking.assert_is_boolean(predictors_in_32bit)
 
     example_times_unix_sec = example_utils.parse_example_ids(
         example_id_strings
@@ -1365,6 +1377,7 @@ def create_data_specific_examples(
         this_predictor_matrix = predictors_dict_to_numpy(
             example_dict=this_example_dict, net_type_string=net_type_string
         )[0]
+
         prelim_target_list = targets_dict_to_numpy(
             example_dict=this_example_dict, net_type_string=net_type_string
         )
@@ -1396,7 +1409,11 @@ def create_data_specific_examples(
 
     assert numpy.all(found_example_flags)
 
-    predictor_matrix = predictor_matrix.astype('float32')
+    if predictors_in_32bit:
+        predictor_matrix = predictor_matrix.astype('float32')
+    else:
+        predictor_matrix = predictor_matrix.astype('float16')
+
     target_array = [vector_target_matrix.astype('float16')]
     if scalar_target_matrix is not None:
         target_array.append(scalar_target_matrix.astype('float16'))

@@ -149,7 +149,7 @@ def _get_predictions_and_targets(
             new_grid_id_strings
         ) = neural_net.create_data(
             option_dict=d, net_type_string=net_type_string,
-            exclude_summit_greenland=True
+            exclude_summit_greenland=True, predictors_in_32bit=True
         )
 
         new_grid_height_matrix_m_agl = new_grid_height_matrix_m_agl[..., 0]

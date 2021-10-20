@@ -505,6 +505,25 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
             dtype=numpy.float32
         )
 
+    if normalization_metadata_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
+        for this_key in [
+                example_utils.SCALAR_PREDICTOR_VALS_KEY,
+                example_utils.VECTOR_PREDICTOR_VALS_KEY
+        ]:
+            example_dict[this_key] = example_dict[this_key].astype(
+                numpy.float16
+            )
+
+    if normalization_metadata_dict[VECTOR_TARGET_NORM_TYPE_KEY] is not None:
+        example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = example_dict[
+            example_utils.VECTOR_TARGET_VALS_KEY
+        ].astype(numpy.float16)
+
+    if normalization_metadata_dict[SCALAR_TARGET_NORM_TYPE_KEY] is not None:
+        example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = example_dict[
+            example_utils.SCALAR_TARGET_VALS_KEY
+        ].astype(numpy.float16)
+
     for this_key in integer_keys:
         example_dict[this_key] = numpy.array(
             numpy.round(dataset_object.variables[this_key][indices_to_read]),
