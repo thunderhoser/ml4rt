@@ -462,6 +462,16 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
                     half_window_size_for_interp_px
                 )[0, :]
             )
+
+            top_indices = numpy.where(
+                height_matrix_m_agl[i, :] >
+                orig_grid_prediction_example_dict[example_utils.HEIGHTS_KEY][-1]
+            )[0]
+
+            new_heating_rate_matrix_k_day01[i, top_indices] = 0.
+            new_grid_target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+                i, top_indices, 0
+            ] = 0.
     else:
         new_heating_rate_matrix_k_day01 = heating_rate_interp.interpolate(
             orig_heating_rate_matrix_k_day01=orig_heating_rate_matrix_k_day01,
@@ -472,7 +482,20 @@ def _run(model_file_name, orig_grid_example_dir_name, new_grid_example_dir_name,
             half_window_size_for_filter_px=half_window_size_for_interp_px
         )
 
+        top_indices = numpy.where(
+            new_grid_target_example_dict[example_utils.HEIGHTS_KEY] >
+            orig_grid_prediction_example_dict[example_utils.HEIGHTS_KEY][-1]
+        )[0]
+
+        new_heating_rate_matrix_k_day01[:, top_indices] = 0.
+        new_grid_target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+            :, top_indices, 0
+        ] = 0.
+
     new_heating_rate_matrix_k_day01[:, -1] = 0.
+    new_grid_target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+        :, -1, 0
+    ] = 0.
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name

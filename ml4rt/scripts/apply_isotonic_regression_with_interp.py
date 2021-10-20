@@ -345,6 +345,15 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
             new_heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
             half_window_size_for_filter_px=half_window_size_for_interp_px
         )
+
+        top_indices = numpy.where(
+            prediction_dict[prediction_io.HEIGHTS_KEY] > orig_heights_m_agl[-1]
+        )[0]
+
+        new_heating_rate_matrix_k_day01[:, top_indices] = 0.
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][
+            :, top_indices, 0
+        ] = 0.
     else:
         orig_heating_rate_matrix_k_day01 = (
             prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]
@@ -353,7 +362,7 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
             new_height_matrix_m_agl.shape, numpy.nan
         )
         num_examples = new_heating_rate_matrix_k_day01.shape[0]
-        
+
         for i in range(num_examples):
             new_heating_rate_matrix_k_day01[i, :] = (
                 heating_rate_interp.interpolate(
@@ -366,11 +375,20 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
                 )[0, :]
             )
 
+            top_indices = numpy.where(
+                new_height_matrix_m_agl[i, :] > orig_heights_m_agl[-1]
+            )[0]
+
+            new_heating_rate_matrix_k_day01[i, top_indices] = 0.
+            prediction_dict[prediction_io.VECTOR_TARGETS_KEY][
+                i, top_indices, 0
+            ] = 0.
+
     new_heating_rate_matrix_k_day01[:, -1] = 0.
     prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
         new_heating_rate_matrix_k_day01, axis=-1
     )
-    prediction_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, 0] = 0.
+    prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, 0] = 0.
 
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name
