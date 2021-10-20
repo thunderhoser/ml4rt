@@ -366,7 +366,7 @@ pro runit, year
       endfor ; } loop over k
       
     	  ; Transpose the 2d arrays to get them in the right shape
-      if(n_elements(output_times_unix_sec) gt 0) then begin
+      if(npts gt 0) then begin
         output_liquid_paths_g_m02 = transpose(output_liquid_paths_g_m02)
         output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
         output_temps_kelvins = transpose(output_temps_kelvins)
