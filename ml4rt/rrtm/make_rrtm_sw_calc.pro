@@ -117,6 +117,7 @@
      	n_elements(z) ne n_elements(o3p) or $
      	n_elements(z) ne n_elements(l_reff) or $
      	n_elements(z) ne n_elements(i_reff)) then begin
+    print,n_elements(z),' ',n_elements(p),' ',n_elements(t),' ',n_elements(q),' ',n_elements(lwc),' ',n_elements(iwc),' ',n_elements(co2),' ',n_elements(n2o),' ',n_elements(ch4),' ',n_elements(o3p),' ',n_elements(l_reff),' ',n_elements(i_reff)
     print,'Error: The input arrays do not have the same dimension size'
     if(keyword_set(dostop)) then stop,'Stopping inside routine for debugging'
     return,fail

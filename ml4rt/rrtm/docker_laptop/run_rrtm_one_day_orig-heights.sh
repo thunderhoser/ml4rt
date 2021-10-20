@@ -40,5 +40,5 @@ echo "exit" >> $gdl_script_file_name
 echo ${sudo_password} | sudo -S -k docker exec ${container_id_string} /bin/sh -c "cd ${data_dir_name_docker}; gdl -e '@run_rrtm_${date_string}.gdl'"
 
 rm -v ${data_dir_name_actual}/core.*
-rm -v ${data_dir_name_actual}/TAPE*
-rm -v ${data_dir_name_actual}/*RRTM
+# rm -v ${data_dir_name_actual}/TAPE*
+# rm -v ${data_dir_name_actual}/*RRTM
