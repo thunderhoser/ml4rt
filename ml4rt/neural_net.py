@@ -1239,14 +1239,17 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
         example_dict=example_dict, desired_indices=desired_indices
     )
 
-    predictor_matrix = predictors_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string
-    )[0]
-
     try:
         height_index = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(example_utils.HEIGHT_NAME)
     except:
         height_index = -1
+
+    if height_index >= 0:
+        print(numpy.sum(numpy.isinf(example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., height_index])))
+
+    predictor_matrix = predictors_dict_to_numpy(
+        example_dict=example_dict, net_type_string=net_type_string
+    )[0]
 
     if height_index >= 0:
         print(numpy.sum(numpy.isinf(predictor_matrix[..., height_index])))
