@@ -133,26 +133,28 @@ def _get_predictions_and_targets(
     d[neural_net.HEIGHTS_KEY] = (
         new_grid_norm_example_dict[example_utils.HEIGHTS_KEY]
     )
-    d[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = None
+    d[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
     d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [example_utils.HEIGHT_NAME]
     d[neural_net.NORMALIZATION_FILE_KEY] = None
     d[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     d[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
     d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
 
-    height_matrix_m_agl = None
+    new_grid_height_matrix_m_agl = None
 
     try:
-        height_matrix_m_agl, new_grid_target_array, new_grid_id_strings = (
-            neural_net.create_data(
-                option_dict=d, net_type_string=net_type_string,
-                exclude_summit_greenland=True
-            )
+        (
+            new_grid_height_matrix_m_agl,
+            new_grid_target_array,
+            new_grid_id_strings
+        ) = neural_net.create_data(
+            option_dict=d, net_type_string=net_type_string,
+            exclude_summit_greenland=True
         )
 
-        height_matrix_m_agl = height_matrix_m_agl[..., 0]
+        new_grid_height_matrix_m_agl = new_grid_height_matrix_m_agl[..., 0]
     except:
-        d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = None
+        d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = []
         _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(
             option_dict=d, net_type_string=net_type_string,
             exclude_summit_greenland=True
@@ -223,9 +225,14 @@ def _get_predictions_and_targets(
 
     these_indices = numpy.where(desired_indices >= 0)[0]
     desired_indices = desired_indices[these_indices]
+
     new_grid_target_array = [
         a[these_indices, ...] for a in new_grid_target_array
     ]
+    if new_grid_height_matrix_m_agl is not None:
+        new_grid_height_matrix_m_agl = (
+            new_grid_height_matrix_m_agl[these_indices, :]
+        )
 
     predictor_matrix = predictor_matrix[desired_indices, ...]
     example_id_strings = [example_id_strings[k] for k in desired_indices]
@@ -266,7 +273,7 @@ def _get_predictions_and_targets(
             numpy.full((num_examples, 0), numpy.nan)
     })
 
-    if height_matrix_m_agl is None:
+    if new_grid_height_matrix_m_agl is None:
         num_heights = len(d[neural_net.HEIGHTS_KEY])
 
         new_grid_target_example_dict.update({
@@ -279,7 +286,7 @@ def _get_predictions_and_targets(
             example_utils.VECTOR_PREDICTOR_NAMES_KEY:
                 [example_utils.HEIGHT_NAME],
             example_utils.VECTOR_PREDICTOR_VALS_KEY:
-                numpy.expand_dims(height_matrix_m_agl, axis=-1)
+                numpy.expand_dims(new_grid_height_matrix_m_agl, axis=-1)
         })
 
     orig_grid_prediction_example_dict = apply_nn._targets_numpy_to_dict(
