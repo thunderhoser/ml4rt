@@ -156,11 +156,6 @@ def _get_predictions_and_targets(
                 exclude_summit_greenland=True
             )
         )
-
-        print(numpy.any(numpy.isinf(height_matrix_m_agl)))
-        print(numpy.sum(numpy.isinf(height_matrix_m_agl)))
-        print(height_matrix_m_agl.size)
-        height_matrix_m_agl = height_matrix_m_agl[..., 0]
     except:
         d[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = []
         _, new_grid_target_array, new_grid_id_strings = neural_net.create_data(

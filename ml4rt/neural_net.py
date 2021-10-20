@@ -1242,7 +1242,12 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
+
+    height_index = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(example_utils.HEIGHT_NAME)
+    print(numpy.sum(numpy.isinf(predictor_matrix[..., height_index])))
+
     predictor_matrix = predictor_matrix.astype('float16')
+    print(numpy.sum(numpy.isinf(predictor_matrix[..., height_index])))
 
     prelim_target_list = targets_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
