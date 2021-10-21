@@ -204,26 +204,26 @@ def _get_data_on_orig_grid(
     )
     print(SEPARATOR_STRING)
 
-    variable_names = [
-        example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
-        example_utils.PRESSURE_NAME
-    ]
-
-    option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
-    option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = variable_names
-    option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
-    option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
-    option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
-    option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
-
-    data_matrix, _, new_example_id_strings = neural_net.create_data(
-        option_dict=option_dict,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True
-    )
-    print(SEPARATOR_STRING)
-
-    assert example_id_strings == new_example_id_strings
+    # variable_names = [
+    #     example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
+    #     example_utils.PRESSURE_NAME
+    # ]
+    #
+    # option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
+    # option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = variable_names
+    # option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
+    # option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+    # option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
+    # option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
+    #
+    # data_matrix, _, new_example_id_strings = neural_net.create_data(
+    #     option_dict=option_dict,
+    #     net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+    #     exclude_summit_greenland=True
+    # )
+    # print(SEPARATOR_STRING)
+    #
+    # assert example_id_strings == new_example_id_strings
 
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
@@ -256,6 +256,30 @@ def _get_data_on_orig_grid(
     else:
         scalar_prediction_matrix = None
 
+    # example_dict = {
+    #     example_utils.HEIGHTS_KEY: option_dict[neural_net.HEIGHTS_KEY],
+    #     example_utils.EXAMPLE_IDS_KEY: example_id_strings,
+    #     example_utils.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int),
+    #     example_utils.STANDARD_ATMO_FLAGS_KEY:
+    #         numpy.full(num_examples, 0, dtype=int),
+    #     example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
+    #     example_utils.SCALAR_PREDICTOR_VALS_KEY:
+    #         numpy.full((num_examples, 0), 0.),
+    #     example_utils.SCALAR_TARGET_NAMES_KEY: [],
+    #     example_utils.SCALAR_TARGET_VALS_KEY:
+    #         numpy.full((num_examples, 0), 0.),
+    #     example_utils.VECTOR_PREDICTOR_NAMES_KEY: variable_names,
+    #     example_utils.VECTOR_PREDICTOR_VALS_KEY: data_matrix,
+    #     example_utils.VECTOR_TARGET_NAMES_KEY:
+    #         [example_utils.SHORTWAVE_HEATING_RATE_NAME],
+    #     example_utils.VECTOR_TARGET_VALS_KEY:
+    #         numpy.expand_dims(predicted_hr_matrix_k_day01, axis=-1)
+    # }
+    #
+    # predicted_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
+    #     example_dict
+    # )
+
     example_dict = {
         example_utils.HEIGHTS_KEY: option_dict[neural_net.HEIGHTS_KEY],
         example_utils.EXAMPLE_IDS_KEY: example_id_strings,
@@ -268,17 +292,14 @@ def _get_data_on_orig_grid(
         example_utils.SCALAR_TARGET_NAMES_KEY: [],
         example_utils.SCALAR_TARGET_VALS_KEY:
             numpy.full((num_examples, 0), 0.),
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY: variable_names,
-        example_utils.VECTOR_PREDICTOR_VALS_KEY: data_matrix,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY: numpy.full((num_examples, len(option_dict[neural_net.HEIGHTS_KEY]), 0), 0.),
         example_utils.VECTOR_TARGET_NAMES_KEY:
             [example_utils.SHORTWAVE_HEATING_RATE_NAME],
         example_utils.VECTOR_TARGET_VALS_KEY:
             numpy.expand_dims(predicted_hr_matrix_k_day01, axis=-1)
     }
 
-    predicted_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
-        example_dict
-    )
 
     return (
         predicted_hr_matrix_k_day01, scalar_prediction_matrix, example_dict
