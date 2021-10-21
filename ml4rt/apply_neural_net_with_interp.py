@@ -642,6 +642,16 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
 
             new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
             new_actual_hr_matrix_w_m02[i, top_indices] = 0.
+
+            if numpy.mod(i, 100) != 0:
+                continue
+
+            print('Number of zeros in original profile = {0:d} ... in new profile = {1:d}'.format(numpy.sum(orig_predicted_hr_matrix_w_m02[i, :] == 0), numpy.sum(new_predicted_hr_matrix_w_m02[i, :] == 0)))
+            print(orig_example_dict[example_utils.HEIGHTS_KEY])
+            print('\n')
+            print(new_height_matrix_m_agl[i, :])
+            print('\n\n\n*********************************\n\n\n')
+
     else:
         new_predicted_hr_matrix_w_m02 = heating_rate_interp.interpolate(
             orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_w_m02,
