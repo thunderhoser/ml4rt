@@ -723,6 +723,13 @@ def get_air_density(example_dict):
         example_dict=example_dict, field_name=PRESSURE_NAME
     )
 
+    print(numpy.sum(numpy.isnan(specific_humidity_matrix_kg_kg01)))
+    print(specific_humidity_matrix_kg_kg01.size)
+    print(numpy.sum(numpy.isnan(temperature_matrix_kelvins)))
+    print(temperature_matrix_kelvins.size)
+    print(numpy.sum(numpy.isnan(pressure_matrix_pascals)))
+    print(pressure_matrix_pascals.size)
+
     mixing_ratio_matrix_kg_kg01 = (
         moisture_conv.specific_humidity_to_mixing_ratio(
             specific_humidity_matrix_kg_kg01
@@ -741,6 +748,13 @@ def get_air_density(example_dict):
             vapour_pressures_pascals=vapour_pressure_matrix_pascals
         )
     )
+
+    print(numpy.sum(numpy.isnan(mixing_ratio_matrix_kg_kg01)))
+    print(mixing_ratio_matrix_kg_kg01.size)
+    print(numpy.sum(numpy.isnan(vapour_pressure_matrix_pascals)))
+    print(vapour_pressure_matrix_pascals.size)
+    print(numpy.sum(numpy.isnan(virtual_temp_matrix_kelvins)))
+    print(virtual_temp_matrix_kelvins.size)
 
     denominator_matrix = (
         moisture_conv.DRY_AIR_GAS_CONSTANT_J_KG01_K01 *
@@ -779,12 +793,6 @@ def heating_rate_to_w_m02(example_dict):
     heating_rate_matrix_k_s01 = (DAYS_TO_SECONDS ** -1) * get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
     )
-    print(numpy.sum(numpy.isnan(heating_rate_matrix_k_s01)))
-    print(heating_rate_matrix_k_s01.size)
-    print(numpy.sum(numpy.isnan(air_density_matrix_kg_m03)))
-    print(air_density_matrix_kg_m03.size)
-    print(numpy.sum(numpy.isnan(grid_cell_width_matrix_metres)))
-    print(grid_cell_width_matrix_metres.size)
     return (
         heating_rate_matrix_k_s01 * air_density_matrix_kg_m03 *
         DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres
