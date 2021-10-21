@@ -779,6 +779,12 @@ def heating_rate_to_w_m02(example_dict):
     heating_rate_matrix_k_s01 = (DAYS_TO_SECONDS ** -1) * get_field_from_dict(
         example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
     )
+    print(numpy.sum(numpy.isnan(heating_rate_matrix_k_s01)))
+    print(heating_rate_matrix_k_s01.size)
+    print(numpy.sum(numpy.isnan(air_density_matrix_kg_m03)))
+    print(air_density_matrix_kg_m03.size)
+    print(numpy.sum(numpy.isnan(grid_cell_width_matrix_metres)))
+    print(grid_cell_width_matrix_metres.size)
     return (
         heating_rate_matrix_k_s01 * air_density_matrix_kg_m03 *
         DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres

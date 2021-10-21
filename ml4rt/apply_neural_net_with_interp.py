@@ -276,15 +276,9 @@ def _get_data_on_orig_grid(
             numpy.expand_dims(predicted_hr_matrix_k_day01, axis=-1)
     }
 
-    print(numpy.sum(numpy.isnan(predicted_hr_matrix_k_day01)))
-    print(predicted_hr_matrix_k_day01.size)
-
     predicted_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
         example_dict
     )
-
-    print(numpy.sum(numpy.isnan(predicted_hr_matrix_w_m02)))
-    print(predicted_hr_matrix_w_m02.size)
 
     return (
         predicted_hr_matrix_w_m02, scalar_prediction_matrix, example_dict
