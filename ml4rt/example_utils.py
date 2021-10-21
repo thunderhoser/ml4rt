@@ -723,13 +723,6 @@ def get_air_density(example_dict):
         example_dict=example_dict, field_name=PRESSURE_NAME
     )
 
-    if numpy.any(numpy.isnan(specific_humidity_matrix_kg_kg01)):
-        print('Found NaN in specific_humidity_matrix_kg_kg01')
-    if numpy.any(numpy.isnan(temperature_matrix_kelvins)):
-        print('Found NaN in temperature_matrix_kelvins')
-    if numpy.any(numpy.isnan(pressure_matrix_pascals)):
-        print('Found NaN in pressure_matrix_pascals')
-
     mixing_ratio_matrix_kg_kg01 = (
         moisture_conv.specific_humidity_to_mixing_ratio(
             specific_humidity_matrix_kg_kg01
@@ -748,25 +741,6 @@ def get_air_density(example_dict):
             vapour_pressures_pascals=vapour_pressure_matrix_pascals
         )
     )
-
-    if numpy.any(numpy.isnan(mixing_ratio_matrix_kg_kg01)):
-        print('Found NaN in mixing_ratio_matrix_kg_kg01')
-    if numpy.any(numpy.isnan(vapour_pressure_matrix_pascals)):
-        print('Found NaN in vapour_pressure_matrix_pascals')
-
-    if numpy.any(numpy.isnan(temperature_matrix_kelvins)):
-        print('Found NaN in temperature_matrix_kelvins, SECOND')
-    if numpy.any(numpy.isnan(pressure_matrix_pascals)):
-        print('Found NaN in pressure_matrix_pascals, SECOND')
-    if numpy.any(numpy.isnan(virtual_temp_matrix_kelvins)):
-        print('Found NaN in virtual_temp_matrix_kelvins')
-
-    print(numpy.min(vapour_pressure_matrix_pascals))
-    print(numpy.max(vapour_pressure_matrix_pascals))
-    print(numpy.nanmin(vapour_pressure_matrix_pascals))
-    print(numpy.nanmax(vapour_pressure_matrix_pascals))
-    print(numpy.nanmin(virtual_temp_matrix_kelvins))
-    print(numpy.nanmax(virtual_temp_matrix_kelvins))
 
     denominator_matrix = (
         moisture_conv.DRY_AIR_GAS_CONSTANT_J_KG01_K01 *

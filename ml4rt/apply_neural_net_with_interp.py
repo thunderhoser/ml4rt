@@ -200,7 +200,7 @@ def _get_data_on_orig_grid(
     predictor_matrix, _, example_id_strings = neural_net.create_data(
         option_dict=option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True, predictors_in_32bit=True
+        exclude_summit_greenland=True
     )
     print(SEPARATOR_STRING)
 
@@ -219,7 +219,7 @@ def _get_data_on_orig_grid(
     data_matrix, _, new_example_id_strings = neural_net.create_data(
         option_dict=option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True, predictors_in_32bit=True
+        exclude_summit_greenland=True
     )
     print(SEPARATOR_STRING)
 
@@ -339,7 +339,7 @@ def _get_data_on_new_grid(
             neural_net.create_data(
                 option_dict=option_dict,
                 net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-                exclude_summit_greenland=True, predictors_in_32bit=True
+                exclude_summit_greenland=True
             )
         )
     except:
@@ -351,7 +351,7 @@ def _get_data_on_new_grid(
             neural_net.create_data(
                 option_dict=option_dict,
                 net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-                exclude_summit_greenland=True, predictors_in_32bit=True
+                exclude_summit_greenland=True
             )
         )
 
@@ -620,7 +620,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
             )[0]
 
             new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
-            new_actual_hr_matrix_w_m02[i, top_indices, 0] = 0.
+            new_actual_hr_matrix_w_m02[i, top_indices] = 0.
     else:
         new_predicted_hr_matrix_w_m02 = heating_rate_interp.interpolate(
             orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_w_m02,
