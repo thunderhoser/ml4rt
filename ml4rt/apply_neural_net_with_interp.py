@@ -281,26 +281,6 @@ def _get_data_on_orig_grid(
         example_dict
     )
 
-    example_dict = {
-        example_utils.HEIGHTS_KEY: option_dict[neural_net.HEIGHTS_KEY],
-        example_utils.EXAMPLE_IDS_KEY: example_id_strings,
-        example_utils.VALID_TIMES_KEY: numpy.full(num_examples, 0, dtype=int),
-        example_utils.STANDARD_ATMO_FLAGS_KEY:
-            numpy.full(num_examples, 0, dtype=int),
-        example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
-        example_utils.SCALAR_PREDICTOR_VALS_KEY:
-            numpy.full((num_examples, 0), 0.),
-        example_utils.SCALAR_TARGET_NAMES_KEY: [],
-        example_utils.SCALAR_TARGET_VALS_KEY:
-            numpy.full((num_examples, 0), 0.),
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY: variable_names,
-        example_utils.VECTOR_PREDICTOR_VALS_KEY: data_matrix,
-        example_utils.VECTOR_TARGET_NAMES_KEY:
-            [example_utils.SHORTWAVE_HEATING_RATE_NAME],
-        example_utils.VECTOR_TARGET_VALS_KEY:
-            numpy.expand_dims(predicted_hr_matrix_k_day01, axis=-1)
-    }
-
     return (
         predicted_hr_matrix_w_m02, scalar_prediction_matrix, example_dict
     )
