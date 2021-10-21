@@ -200,7 +200,7 @@ def _get_data_on_orig_grid(
     predictor_matrix, _, example_id_strings = neural_net.create_data(
         option_dict=option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True
+        exclude_summit_greenland=True, predictors_in_32bit=True
     )
     print(SEPARATOR_STRING)
 
@@ -219,7 +219,7 @@ def _get_data_on_orig_grid(
     data_matrix, _, new_example_id_strings = neural_net.create_data(
         option_dict=option_dict,
         net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True
+        exclude_summit_greenland=True, predictors_in_32bit=True
     )
     print(SEPARATOR_STRING)
 
