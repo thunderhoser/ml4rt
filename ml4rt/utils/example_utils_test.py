@@ -362,7 +362,8 @@ EXAMPLE_DICT_WITH_RADII = {
         example_io._check_normalization_metadata(dict())
 }
 
-# The following constants are used to test fluxes_to_heating_rate.
+# The following constants are used to test fluxes_to_heating_rate and
+# heating_rate_to_fluxes.
 THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
     [100, 150, 200, 250, 300, 350],
     [400, 500, 600, 700, 800, 900],
@@ -390,7 +391,7 @@ THIS_PRESSURE_DIFF_MATRIX_PASCALS = 100 * numpy.array([
     [-50, -50, -50, -50, -50, -50]
 ], dtype=float)
 
-THIS_NET_FLUX_DIFF_MATRIX_W02 = numpy.array([
+THIS_NET_FLUX_DIFF_MATRIX_W_M02 = numpy.array([
     [25, 25, 25, 25, 25, 25],
     [-50, -50, -50, -50, -50, -50],
     [0, 0, 0, 0, 0, 0]
@@ -411,7 +412,7 @@ THIS_COEFF = example_utils.DAYS_TO_SECONDS * (
 )
 
 THIS_HEATING_RATE_MATRIX_K_DAY01 = THIS_COEFF * (
-    THIS_NET_FLUX_DIFF_MATRIX_W02 /
+    THIS_NET_FLUX_DIFF_MATRIX_W_M02 /
     numpy.absolute(THIS_PRESSURE_DIFF_MATRIX_PASCALS)
 )
 
@@ -459,6 +460,58 @@ EXAMPLE_DICT_WITH_HEATING_RATE = {
     example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
     example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
 }
+
+DUMMY_NET_FLUX_MATRIX_W_M02 = numpy.array([
+    [-150, -125, -100, -75, -50, -25],
+    [300, 250, 200, 150, 100, 50],
+    [0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+# The following constants are used to test get_air_density.
+THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
+    [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7],
+    [2, 4, 6, 8, 10, 12, 14, 2, 4, 6, 8, 10, 12, 14],
+    [3, 6, 9, 12, 15, 18, 21, 3, 6, 9, 12, 15, 18, 21]
+], dtype=float)
+
+THIS_TEMP_MATRIX_KELVINS = 273.15 + numpy.array([
+    [10, 11, 12, 13, 14, 15, 16, 10, 11, 12, 13, 14, 15, 16],
+    [20, 21, 22, 23, 24, 25, 26, 20, 21, 22, 23, 24, 25, 26],
+    [30, 31, 32, 33, 34, 35, 36, 30, 31, 32, 33, 34, 35, 36]
+], dtype=float)
+
+THIS_PRESSURE_MATRIX_PASCALS = numpy.full(THIS_TEMP_MATRIX_KELVINS.shape, 1e5)
+
+THESE_HEIGHTS_M_AGL = numpy.array([
+    10, 20, 40, 60, 80, 100, 30000, 33000, 36000, 39000, 42000, 46000, 50000
+], dtype=float)
+
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
+    THIS_HUMIDITY_MATRIX_KG_KG01, THIS_TEMP_MATRIX_KELVINS,
+    THIS_PRESSURE_MATRIX_PASCALS
+), axis=-1)
+
+EXAMPLE_DICT_SANS_DENSITY = {
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
+
+AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
+    [1.22963760, 1.22456634, 1.21953156, 1.21453286, 1.20956987, 1.20464221,
+     1.19974951, 1.22963760, 1.22456634, 1.21953156, 1.21453286, 1.20956987,
+     1.20464221, 1.19974951],
+    [1.18697093, 1.18150120, 1.17607201, 1.17068292, 1.16533351, 1.16002338,
+     1.15475212, 1.18697093, 1.18150120, 1.17607201, 1.17068292, 1.16533351,
+     1.16002338, 1.15475212],
+    [1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816, 1.11832989,
+     1.11270554, 1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816,
+     1.11832989, 1.11270554]
+])
 
 # The following constants are used to test find_cloud_layers.
 THIS_LWP_MATRIX_KG_M02 = 0.001 * numpy.array([
@@ -1234,10 +1287,18 @@ class ExampleUtilsTests(unittest.TestCase):
         this_example_dict = example_utils.heating_rate_to_fluxes(
             copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE)
         )
+        this_net_flux_matrix_w_m02 = example_utils.get_field_from_dict(
+            example_dict=this_example_dict,
+            field_name=example_utils.SHORTWAVE_DOWN_FLUX_NAME
+        )
+        self.assertTrue(numpy.allclose(
+            this_net_flux_matrix_w_m02, DUMMY_NET_FLUX_MATRIX_W_M02,
+            atol=TOLERANCE
+        ))
+
         this_example_dict = example_utils.fluxes_to_heating_rate(
             this_example_dict
         )
-
         this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
             example_dict=this_example_dict,
             field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
@@ -1248,6 +1309,17 @@ class ExampleUtilsTests(unittest.TestCase):
         )
         self.assertTrue(numpy.allclose(
             this_heating_rate_matrix_k_day01, exp_heating_rate_matrix_k_day01,
+            atol=TOLERANCE
+        ))
+
+    def test_get_air_density(self):
+        """Ensures correct output from get_air_density."""
+
+        this_density_matrix_kg_m03 = example_utils.get_air_density(
+            EXAMPLE_DICT_SANS_DENSITY
+        )
+        self.assertTrue(numpy.allclose(
+            this_density_matrix_kg_m03, AIR_DENSITY_MATRIX_KG_M03,
             atol=TOLERANCE
         ))
 

@@ -8,6 +8,7 @@ from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
 from gewittergefahr.gg_utils import temperature_conversions as temp_conversions
+from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import aerosols
@@ -672,6 +673,149 @@ def fluxes_to_heating_rate(example_dict):
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
+    if not found_heating_rate:
+        vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
+
+    heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
+    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+    if found_heating_rate:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+            heating_rate_matrix_k_day01
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY],
+            obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+        )
+
+    return example_dict
+
+
+def get_air_density(example_dict):
+    """Computes profiles of air density.
+
+    E = number of examples
+    H = number of heights
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `read_file`).
+    :return: air_density_matrix_kg_m03: E-by-H numpy array of densities
+        (kg m^-3).
+    """
+
+    specific_humidity_matrix_kg_kg01 = get_field_from_dict(
+        example_dict=example_dict,
+        field_name=SPECIFIC_HUMIDITY_NAME
+    )
+    temperature_matrix_kelvins = get_field_from_dict(
+        example_dict=example_dict, field_name=TEMPERATURE_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+
+    mixing_ratio_matrix_kg_kg01 = (
+        moisture_conv.specific_humidity_to_mixing_ratio(
+            specific_humidity_matrix_kg_kg01
+        )
+    )
+    vapour_pressure_matrix_pascals = (
+        moisture_conv.mixing_ratio_to_vapour_pressure(
+            mixing_ratios_kg_kg01=mixing_ratio_matrix_kg_kg01,
+            total_pressures_pascals=pressure_matrix_pascals
+        )
+    )
+    virtual_temp_matrix_kelvins = (
+        moisture_conv.temperature_to_virtual_temperature(
+            temperatures_kelvins=temperature_matrix_kelvins,
+            total_pressures_pascals=pressure_matrix_pascals,
+            vapour_pressures_pascals=vapour_pressure_matrix_pascals
+        )
+    )
+
+    denominator_matrix = (
+        moisture_conv.DRY_AIR_GAS_CONSTANT_J_KG01_K01 *
+        virtual_temp_matrix_kelvins
+    )
+    return pressure_matrix_pascals / denominator_matrix
+
+
+def heating_rate_to_w_m02(example_dict):
+    """Converts heating rates from K day^-1 to W m^-2.
+
+    E = number of examples
+    H = number of heights
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: heating_rate_matrix_w_m02: E-by-H numpy array of heating rates in
+        W m^-2.
+    """
+
+    # TODO(thunderhoser): Add unit tests.
+
+    air_density_matrix_kg_m03 = get_air_density(example_dict)
+    grid_cell_widths_metres = get_grid_cell_widths(
+        edge_heights_m_agl=get_grid_cell_edges(example_dict[HEIGHTS_KEY])
+    )
+
+    num_examples = air_density_matrix_kg_m03.shape[0]
+    grid_cell_width_matrix_metres = numpy.expand_dims(
+        grid_cell_widths_metres, axis=0
+    )
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, axis=0, repeats=num_examples
+    )
+
+    heating_rate_matrix_k_s01 = (DAYS_TO_SECONDS ** -1) * get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
+    )
+    return (
+        heating_rate_matrix_k_s01 * air_density_matrix_kg_m03 *
+        DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres
+    )
+
+
+def heating_rate_to_k_day01(example_dict, heating_rate_matrix_w_m02):
+    """Converts heating rates from W m^-2 to K day^-1.
+
+    E = number of examples
+    H = number of heights
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :param heating_rate_matrix_w_m02: E-by-H numpy array of heating rates in
+        W m^-2.
+    :return: example_dict: Same as input but with different heating-rate values.
+    """
+
+    # TODO(thunderhoser): Add unit tests.
+
+    air_density_matrix_kg_m03 = get_air_density(example_dict)
+    grid_cell_widths_metres = get_grid_cell_widths(
+        edge_heights_m_agl=get_grid_cell_edges(example_dict[HEIGHTS_KEY])
+    )
+
+    num_examples = air_density_matrix_kg_m03.shape[0]
+    grid_cell_width_matrix_metres = numpy.expand_dims(
+        grid_cell_widths_metres, axis=0
+    )
+    grid_cell_width_matrix_metres = numpy.repeat(
+        grid_cell_width_matrix_metres, axis=0, repeats=num_examples
+    )
+
+    denom_matrix = (
+        air_density_matrix_kg_m03 * DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 *
+        grid_cell_width_matrix_metres
+    )
+    heating_rate_matrix_k_day01 = (
+        DAYS_TO_SECONDS * heating_rate_matrix_w_m02 / denom_matrix
+    )
+
+    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+    found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
+
     if not found_heating_rate:
         vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
 

@@ -11,7 +11,7 @@ from ml4rt.utils import example_utils_test
 
 TOLERANCE = 1e-6
 
-# The following constants are used to test _get_air_density.
+# The following constants are used to test _specific_to_relative_humidity.
 HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
     [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7],
     [2, 4, 6, 8, 10, 12, 14, 2, 4, 6, 8, 10, 12, 14],
@@ -30,33 +30,6 @@ CENTER_HEIGHTS_M_AGL = numpy.array([
     10, 20, 40, 60, 80, 100, 30000, 33000, 36000, 39000, 42000, 46000, 50000
 ], dtype=float)
 
-THESE_VECTOR_PREDICTOR_NAMES = [
-    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
-    example_utils.PRESSURE_NAME
-]
-THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
-    HUMIDITY_MATRIX_KG_KG01, TEMPERATURE_MATRIX_KELVINS, PRESSURE_MATRIX_PASCALS
-), axis=-1)
-
-EXAMPLE_DICT_SANS_DENSITY = {
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
-    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
-}
-
-AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
-    [1.22963760, 1.22456634, 1.21953156, 1.21453286, 1.20956987, 1.20464221,
-     1.19974951, 1.22963760, 1.22456634, 1.21953156, 1.21453286, 1.20956987,
-     1.20464221, 1.19974951],
-    [1.18697093, 1.18150120, 1.17607201, 1.17068292, 1.16533351, 1.16002338,
-     1.15475212, 1.18697093, 1.18150120, 1.17607201, 1.17068292, 1.16533351,
-     1.16002338, 1.15475212],
-    [1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816, 1.11832989,
-     1.11270554, 1.14711999, 1.14127126, 1.13546837, 1.12971083, 1.12399816,
-     1.11832989, 1.11270554]
-])
-
-# The following constants are used to test _specific_to_relative_humidity.
 DEWPOINT_MATRIX_KELVINS = moisture_conv.specific_humidity_to_dewpoint(
     specific_humidities_kg_kg01=HUMIDITY_MATRIX_KG_KG01,
     temperatures_kelvins=TEMPERATURE_MATRIX_KELVINS,
@@ -69,7 +42,19 @@ RELATIVE_HUMIDITY_MATRIX = moisture_conv.dewpoint_to_relative_humidity(
     total_pressures_pascals=PRESSURE_MATRIX_PASCALS
 )
 
-EXAMPLE_DICT_SANS_RH = copy.deepcopy(EXAMPLE_DICT_SANS_DENSITY)
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
+    HUMIDITY_MATRIX_KG_KG01, TEMPERATURE_MATRIX_KELVINS, PRESSURE_MATRIX_PASCALS
+), axis=-1)
+
+EXAMPLE_DICT_SANS_RH = {
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
+    example_utils.HEIGHTS_KEY: CENTER_HEIGHTS_M_AGL
+}
 
 THESE_VECTOR_PREDICTOR_NAMES = [
     example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
@@ -211,17 +196,6 @@ RRTM_FILE_NAMES = [
 
 class RrtmIoTests(unittest.TestCase):
     """Each method is a unit test for rrtm_io.py."""
-
-    def test_get_air_density(self):
-        """Ensures correct output from _get_air_density."""
-
-        this_density_matrix_kg_m03 = rrtm_io._get_air_density(
-            EXAMPLE_DICT_SANS_DENSITY
-        )
-        self.assertTrue(numpy.allclose(
-            this_density_matrix_kg_m03, AIR_DENSITY_MATRIX_KG_M03,
-            atol=TOLERANCE
-        ))
 
     def test_specific_to_relative_humidity(self):
         """Ensures correct output from _specific_to_relative_humidity."""
