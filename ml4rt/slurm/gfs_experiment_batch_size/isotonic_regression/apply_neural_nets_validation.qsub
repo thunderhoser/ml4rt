@@ -50,8 +50,8 @@ set prediction_file_name="${model_dir_name}/isotonic_regression/validation/orig_
 
 python3 -u "${CODE_DIR_NAME}/apply_neural_net_with_interp.py" \
 --input_model_file_name="${model_file_name}" \
---input_orig_example_dir_name="${ORIG_EXAMPLE_DIR_NAME}" \
---input_new_example_dir_name="${NEW_EXAMPLE_DIR_NAME}" \
+--input_orig_unnorm_example_dir_name="${ORIG_EXAMPLE_DIR_NAME}" \
+--input_new_unnorm_example_dir_name="${NEW_EXAMPLE_DIR_NAME}" \
 --input_new_norm_file_name="${NEW_NORM_FILE_NAME}" \
 --half_window_size_for_interp_px=3 \
 --first_time_string="${FIRST_VALIDN_TIME_STRING}" \
