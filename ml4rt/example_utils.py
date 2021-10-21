@@ -723,12 +723,12 @@ def get_air_density(example_dict):
         example_dict=example_dict, field_name=PRESSURE_NAME
     )
 
-    print(numpy.sum(numpy.isnan(specific_humidity_matrix_kg_kg01)))
-    print(specific_humidity_matrix_kg_kg01.size)
-    print(numpy.sum(numpy.isnan(temperature_matrix_kelvins)))
-    print(temperature_matrix_kelvins.size)
-    print(numpy.sum(numpy.isnan(pressure_matrix_pascals)))
-    print(pressure_matrix_pascals.size)
+    if numpy.any(numpy.isnan(specific_humidity_matrix_kg_kg01)):
+        print('Found NaN in specific_humidity_matrix_kg_kg01')
+    if numpy.any(numpy.isnan(temperature_matrix_kelvins)):
+        print('Found NaN in temperature_matrix_kelvins')
+    if numpy.any(numpy.isnan(pressure_matrix_pascals)):
+        print('Found NaN in pressure_matrix_pascals')
 
     mixing_ratio_matrix_kg_kg01 = (
         moisture_conv.specific_humidity_to_mixing_ratio(
@@ -749,12 +749,12 @@ def get_air_density(example_dict):
         )
     )
 
-    print(numpy.sum(numpy.isnan(mixing_ratio_matrix_kg_kg01)))
-    print(mixing_ratio_matrix_kg_kg01.size)
-    print(numpy.sum(numpy.isnan(vapour_pressure_matrix_pascals)))
-    print(vapour_pressure_matrix_pascals.size)
-    print(numpy.sum(numpy.isnan(virtual_temp_matrix_kelvins)))
-    print(virtual_temp_matrix_kelvins.size)
+    if numpy.any(numpy.isnan(mixing_ratio_matrix_kg_kg01)):
+        print('Found NaN in mixing_ratio_matrix_kg_kg01')
+    if numpy.any(numpy.isnan(vapour_pressure_matrix_pascals)):
+        print('Found NaN in vapour_pressure_matrix_pascals')
+    if numpy.any(numpy.isnan(virtual_temp_matrix_kelvins)):
+        print('Found NaN in virtual_temp_matrix_kelvins')
 
     denominator_matrix = (
         moisture_conv.DRY_AIR_GAS_CONSTANT_J_KG01_K01 *
