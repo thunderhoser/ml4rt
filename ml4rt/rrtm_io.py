@@ -223,55 +223,6 @@ def _water_content_to_layerwise_path(
     return water_content_matrix_kg_m03 * grid_cell_width_matrix_metres
 
 
-def _get_air_density(example_dict):
-    """Computes profiles of air density.
-
-    E = number of examples
-    H = number of heights
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `read_file`).
-    :return: air_density_matrix_kg_m03: E-by-H numpy array of densities
-        (kg m^-3).
-    """
-
-    specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.SPECIFIC_HUMIDITY_NAME
-    )
-    temperature_matrix_kelvins = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=example_utils.TEMPERATURE_NAME
-    )
-    pressure_matrix_pascals = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=example_utils.PRESSURE_NAME
-    )
-
-    mixing_ratio_matrix_kg_kg01 = (
-        moisture_conv.specific_humidity_to_mixing_ratio(
-            specific_humidity_matrix_kg_kg01
-        )
-    )
-    vapour_pressure_matrix_pascals = (
-        moisture_conv.mixing_ratio_to_vapour_pressure(
-            mixing_ratios_kg_kg01=mixing_ratio_matrix_kg_kg01,
-            total_pressures_pascals=pressure_matrix_pascals
-        )
-    )
-    virtual_temp_matrix_kelvins = (
-        moisture_conv.temperature_to_virtual_temperature(
-            temperatures_kelvins=temperature_matrix_kelvins,
-            total_pressures_pascals=pressure_matrix_pascals,
-            vapour_pressures_pascals=vapour_pressure_matrix_pascals
-        )
-    )
-
-    denominator_matrix = (
-        moisture_conv.DRY_AIR_GAS_CONSTANT_J_KG01_K01 *
-        virtual_temp_matrix_kelvins
-    )
-    return pressure_matrix_pascals / denominator_matrix
-
-
 def _specific_to_relative_humidity(example_dict):
     """Converts profiles of specific humidity to relative humidity.
 
@@ -465,7 +416,7 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
         )
 
     if get_wvp:
-        air_density_matrix_kg_m03 = _get_air_density(example_dict)
+        air_density_matrix_kg_m03 = example_utils.get_air_density(example_dict)
         specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
             example_dict=example_dict,
             field_name=example_utils.SPECIFIC_HUMIDITY_NAME
@@ -652,8 +603,6 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
             example_dict=example_dict, desired_indices=good_indices
         )
 
-    num_examples = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
-
     if different_height_grids:
         height_matrix_m_agl = example_utils.get_field_from_dict(
             example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
@@ -668,8 +617,8 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
 
     for k in range(num_vector_predictors):
         if vector_predictor_names[k] in [
-            example_utils.LIQUID_WATER_CONTENT_NAME,
-            example_utils.ICE_WATER_CONTENT_NAME
+                example_utils.LIQUID_WATER_CONTENT_NAME,
+                example_utils.ICE_WATER_CONTENT_NAME
         ]:
             this_matrix = (
                 example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][..., k]
