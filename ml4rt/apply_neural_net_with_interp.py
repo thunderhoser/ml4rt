@@ -614,6 +614,12 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
                 )[0, :]
             )
 
+            if numpy.mod(i, 100) == 0:
+                print(new_predicted_hr_matrix_w_m02[i, :])
+                print('\n')
+                print(new_actual_hr_matrix_w_m02[i, :])
+                print('\n\n\n\n*****************************\n\n\n\n')
+
             top_indices = numpy.where(
                 new_height_matrix_m_agl[i, :] >
                 orig_example_dict[example_utils.HEIGHTS_KEY][-1]
