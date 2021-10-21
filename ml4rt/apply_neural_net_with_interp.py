@@ -639,14 +639,22 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     new_predicted_hr_matrix_w_m02[:, -1] = 0.
     new_actual_hr_matrix_w_m02[:, -1] = 0.
 
-    new_predicted_hr_matrix_k_day01 = example_utils.heating_rate_to_k_day01(
+    new_example_dict = example_utils.heating_rate_to_k_day01(
         example_dict=new_example_dict,
         heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02
     )
+    new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=new_example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
 
-    new_actual_hr_matrix_k_day01 = example_utils.heating_rate_to_k_day01(
+    new_example_dict = example_utils.heating_rate_to_k_day01(
         example_dict=new_example_dict,
         heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02
+    )
+    new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=new_example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
     )
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
