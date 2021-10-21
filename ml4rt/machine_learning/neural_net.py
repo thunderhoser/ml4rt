@@ -1227,16 +1227,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False,
 
     example_dict = example_utils.concat_examples(example_dicts)
 
-    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
-    desired_indices = numpy.linspace(
-        0, num_examples - 1, num=num_examples, dtype=int
-    )
-    numpy.random.shuffle(desired_indices)
-
-    example_dict = example_utils.subset_by_index(
-        example_dict=example_dict, desired_indices=desired_indices
-    )
-
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
