@@ -21,8 +21,8 @@ NUM_EXAMPLES_PER_BATCH = 500
 EXAMPLE_MATCHING_TIME_SEC = 180
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
-ORIG_EXAMPLE_DIR_ARG_NAME = 'input_orig_example_dir_name'
-NEW_EXAMPLE_DIR_ARG_NAME = 'input_new_example_dir_name'
+ORIG_EXAMPLE_DIR_ARG_NAME = 'input_orig_unnorm_example_dir_name'
+NEW_EXAMPLE_DIR_ARG_NAME = 'input_new_unnorm_example_dir_name'
 NEW_NORM_FILE_ARG_NAME = 'input_new_norm_file_name'
 HALF_WINDOW_SIZE_ARG_NAME = 'half_window_size_for_interp_px'
 FIRST_TIME_ARG_NAME = 'first_time_string'
@@ -33,12 +33,14 @@ MODEL_FILE_HELP_STRING = (
     'Path to trained model.  Will be read by `neural_net.read_model`.'
 )
 ORIG_EXAMPLE_DIR_HELP_STRING = (
-    'Name of directory with data examples on original grid.  Files therein will'
-    ' be found by `example_io.find_file` and read by `example_io.read_file`.'
+    'Name of directory with unnormalized data examples on original grid.  '
+    'Files therein will be found by `example_io.find_file` and read by '
+    '`example_io.read_file`.'
 )
 NEW_EXAMPLE_DIR_HELP_STRING = (
-    'Name of directory with data examples on new grid.  Files therein will'
-    ' be found by `example_io.find_file` and read by `example_io.read_file`.'
+    'Name of directory with unnormalized data examples on new grid.  Files '
+    'therein will be found by `example_io.find_file` and read by '
+    '`example_io.read_file`.'
 )
 NEW_NORM_FILE_HELP_STRING = (
     'Path to normalization file for new grid.  Will be read by '
@@ -330,7 +332,7 @@ def _get_data_on_new_grid(
             neural_net.create_data(
                 option_dict=option_dict,
                 net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-                exclude_summit_greenland=True, predictors_in_32bit=True
+                exclude_summit_greenland=True
             )
         )
     except:
@@ -342,7 +344,7 @@ def _get_data_on_new_grid(
             neural_net.create_data(
                 option_dict=option_dict,
                 net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-                exclude_summit_greenland=True, predictors_in_32bit=True
+                exclude_summit_greenland=True
             )
         )
 
@@ -611,7 +613,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
             )[0]
 
             new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
-            new_actual_hr_matrix_w_m02[i, top_indices, 0] = 0.
+            new_actual_hr_matrix_w_m02[i, top_indices] = 0.
     else:
         new_predicted_hr_matrix_w_m02 = heating_rate_interp.interpolate(
             orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_w_m02,
