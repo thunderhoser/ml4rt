@@ -585,7 +585,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     )
     if new_scalar_target_matrix is not None:
         new_scalar_target_matrix = (
-            new_scalar_target_matrix[orig_indices_to_keep, :]
+            new_scalar_target_matrix[new_indices_to_keep, :]
         )
 
     if (
