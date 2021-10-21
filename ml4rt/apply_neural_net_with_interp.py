@@ -657,7 +657,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
 
         for i in range(num_examples):
             this_example_dict = example_utils.subset_by_index(
-                example_dict=new_example_dict,
+                example_dict=copy.deepcopy(new_example_dict),
                 desired_indices=numpy.array([i], dtype=int)
             )
             this_example_dict[example_utils.HEIGHTS_KEY] = (
