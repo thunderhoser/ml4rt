@@ -709,70 +709,116 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     new_predicted_hr_matrix_w_m02[:, -1] = 0.
     new_actual_hr_matrix_w_m02[:, -1] = 0.
 
+    air_density_matrix_kg_m03 = example_utils.get_air_density(new_example_dict)
+    print('Min/mean/max air density on new grid = {0:.4f}, {1:.4f}, {2:.4f} kg m^-3'.format(
+        numpy.min(air_density_matrix_kg_m03),
+        numpy.mean(air_density_matrix_kg_m03),
+        numpy.max(air_density_matrix_kg_m03)
+    ))
+
+    num_examples = air_density_matrix_kg_m03.shape[0]
+
     if (
             example_utils.HEIGHT_NAME in
             new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
     ):
-        new_height_matrix_m_agl = example_utils.get_field_from_dict(
+        height_matrix_m_agl = example_utils.get_field_from_dict(
             example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
         )
 
-        new_predicted_hr_matrix_k_day01 = numpy.full(
-            new_predicted_hr_matrix_w_m02.shape, numpy.nan
-        )
-        new_actual_hr_matrix_k_day01 = numpy.full(
-            new_actual_hr_matrix_w_m02.shape, numpy.nan
-        )
-        num_examples = new_predicted_hr_matrix_w_m02.shape[0]
-
-        for i in range(num_examples):
-            this_example_dict = example_utils.subset_by_index(
-                example_dict=copy.deepcopy(new_example_dict),
-                desired_indices=numpy.array([i], dtype=int)
-            )
-            this_example_dict[example_utils.HEIGHTS_KEY] = (
-                new_height_matrix_m_agl[i, :]
-            )
-
-            this_example_dict = example_utils.heating_rate_to_k_day01(
-                example_dict=this_example_dict,
-                heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02[[i], :]
-            )
-            new_predicted_hr_matrix_k_day01[i, :] = (
-                example_utils.get_field_from_dict(
-                    example_dict=this_example_dict,
-                    field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-                )[0, :]
-            )
-
-            this_example_dict = example_utils.heating_rate_to_k_day01(
-                example_dict=this_example_dict,
-                heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02[[i], :]
-            )
-            new_actual_hr_matrix_k_day01[i, :] = (
-                example_utils.get_field_from_dict(
-                    example_dict=this_example_dict,
-                    field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-                )[0, :]
-            )
+        these_arrays = [
+            example_utils.get_grid_cell_widths(
+                example_utils.get_grid_cell_edges(height_matrix_m_agl[i, :])
+            ) for i in range(num_examples)
+        ]
+        grid_cell_width_matrix_metres = numpy.stack(these_arrays, axis=0)
     else:
-        new_example_dict = example_utils.heating_rate_to_k_day01(
-            example_dict=new_example_dict,
-            heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02
+        grid_cell_widths_metres = example_utils.get_grid_cell_widths(
+            example_utils.get_grid_cell_edges(
+                new_example_dict[example_utils.HEIGHTS_KEY]
+            )
         )
-        new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-            example_dict=new_example_dict,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        grid_cell_width_matrix_metres = numpy.expand_dims(
+            grid_cell_widths_metres, axis=0
+        )
+        grid_cell_width_matrix_metres = numpy.repeat(
+            grid_cell_width_matrix_metres, axis=0, repeats=num_examples
         )
 
-        new_example_dict = example_utils.heating_rate_to_k_day01(
-            example_dict=new_example_dict,
-            heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02
-        )
-        new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-            example_dict=new_example_dict,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
+    print('Min/mean/max grid-cell widths on new grid = {0:.4f}, {1:.4f}, {2:.4f} m'.format(
+        numpy.min(grid_cell_width_matrix_metres),
+        numpy.mean(grid_cell_width_matrix_metres),
+        numpy.max(grid_cell_width_matrix_metres)
+    ))
+
+    ratio_matrix = air_density_matrix_kg_m03 * grid_cell_width_matrix_metres * (1004. / 86400)
+    new_predicted_hr_matrix_k_day01 = new_predicted_hr_matrix_w_m02 / ratio_matrix
+    new_actual_hr_matrix_k_day01 = new_actual_hr_matrix_w_m02 / ratio_matrix
+
+    # if (
+    #         example_utils.HEIGHT_NAME in
+    #         new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    # ):
+    #     new_height_matrix_m_agl = example_utils.get_field_from_dict(
+    #         example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
+    #     )
+    #
+    #     new_predicted_hr_matrix_k_day01 = numpy.full(
+    #         new_predicted_hr_matrix_w_m02.shape, numpy.nan
+    #     )
+    #     new_actual_hr_matrix_k_day01 = numpy.full(
+    #         new_actual_hr_matrix_w_m02.shape, numpy.nan
+    #     )
+    #     num_examples = new_predicted_hr_matrix_w_m02.shape[0]
+    #
+    #     for i in range(num_examples):
+    #         this_example_dict = example_utils.subset_by_index(
+    #             example_dict=copy.deepcopy(new_example_dict),
+    #             desired_indices=numpy.array([i], dtype=int)
+    #         )
+    #         this_example_dict[example_utils.HEIGHTS_KEY] = (
+    #             new_height_matrix_m_agl[i, :]
+    #         )
+    #
+    #         this_example_dict = example_utils.heating_rate_to_k_day01(
+    #             example_dict=this_example_dict,
+    #             heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02[[i], :]
+    #         )
+    #         new_predicted_hr_matrix_k_day01[i, :] = (
+    #             example_utils.get_field_from_dict(
+    #                 example_dict=this_example_dict,
+    #                 field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    #             )[0, :]
+    #         )
+    #
+    #         this_example_dict = example_utils.heating_rate_to_k_day01(
+    #             example_dict=this_example_dict,
+    #             heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02[[i], :]
+    #         )
+    #         new_actual_hr_matrix_k_day01[i, :] = (
+    #             example_utils.get_field_from_dict(
+    #                 example_dict=this_example_dict,
+    #                 field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    #             )[0, :]
+    #         )
+    # else:
+    #     new_example_dict = example_utils.heating_rate_to_k_day01(
+    #         example_dict=new_example_dict,
+    #         heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02
+    #     )
+    #     new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+    #         example_dict=new_example_dict,
+    #         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    #     )
+    #
+    #     new_example_dict = example_utils.heating_rate_to_k_day01(
+    #         example_dict=new_example_dict,
+    #         heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02
+    #     )
+    #     new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+    #         example_dict=new_example_dict,
+    #         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    #     )
 
     print(numpy.mean(new_predicted_hr_matrix_w_m02, axis=0))
     print('\n')
