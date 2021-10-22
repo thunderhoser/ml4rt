@@ -407,12 +407,12 @@ def _get_data_on_new_grid(
                 example_utils.VECTOR_TARGET_NAMES_KEY:
                     [example_utils.SHORTWAVE_HEATING_RATE_NAME],
                 example_utils.VECTOR_TARGET_VALS_KEY:
-                    numpy.expand_dims(actual_hr_matrix_k_day01[[0], :], axis=-1)
+                    numpy.expand_dims(actual_hr_matrix_k_day01[[i], :], axis=-1)
             }
 
             actual_hr_matrix_w_m02[i, :] = example_utils.heating_rate_to_w_m02(
                 this_example_dict
-            )[[0], :]
+            )[0, :]
     else:
         actual_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
             example_dict
