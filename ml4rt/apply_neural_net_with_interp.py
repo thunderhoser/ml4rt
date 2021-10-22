@@ -278,7 +278,7 @@ def _get_data_on_orig_grid(
     }
 
     air_density_matrix_kg_m03 = example_utils.get_air_density(example_dict)
-    print('Min/mean/max air density on original grid = {0:.4f}, {1:.4f}, {2:.4f} kg m^-3'.format(
+    print('Min/mean/max air density on original grid = {0:.4g}, {1:.4g}, {2:.4g} kg m^-3'.format(
         numpy.min(air_density_matrix_kg_m03),
         numpy.mean(air_density_matrix_kg_m03),
         numpy.max(air_density_matrix_kg_m03)
@@ -287,7 +287,7 @@ def _get_data_on_orig_grid(
     grid_cell_widths_metres = example_utils.get_grid_cell_widths(
         example_utils.get_grid_cell_edges(option_dict[neural_net.HEIGHTS_KEY])
     )
-    print('Min/mean/max grid-cell widths on original grid = {0:.4f}, {1:.4f}, {2:.4f} m'.format(
+    print('Min/mean/max grid-cell widths on original grid = {0:.4g}, {1:.4g}, {2:.4g} m'.format(
         numpy.min(grid_cell_widths_metres),
         numpy.mean(grid_cell_widths_metres),
         numpy.max(grid_cell_widths_metres)
@@ -408,7 +408,7 @@ def _get_data_on_new_grid(
     }
 
     air_density_matrix_kg_m03 = example_utils.get_air_density(example_dict)
-    print('Min/mean/max air density on new grid = {0:.4f}, {1:.4f}, {2:.4f} kg m^-3'.format(
+    print('Min/mean/max air density on new grid = {0:.4g}, {1:.4g}, {2:.4g} kg m^-3'.format(
         numpy.min(air_density_matrix_kg_m03),
         numpy.mean(air_density_matrix_kg_m03),
         numpy.max(air_density_matrix_kg_m03)
@@ -441,7 +441,7 @@ def _get_data_on_new_grid(
             grid_cell_width_matrix_metres, axis=0, repeats=num_examples
         )
 
-    print('Min/mean/max grid-cell widths on new grid = {0:.4f}, {1:.4f}, {2:.4f} m'.format(
+    print('Min/mean/max grid-cell widths on new grid = {0:.4g}, {1:.4g}, {2:.4g} m'.format(
         numpy.min(grid_cell_width_matrix_metres),
         numpy.mean(grid_cell_width_matrix_metres),
         numpy.max(grid_cell_width_matrix_metres)
@@ -710,7 +710,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     new_actual_hr_matrix_w_m02[:, -1] = 0.
 
     air_density_matrix_kg_m03 = example_utils.get_air_density(new_example_dict)
-    print('Min/mean/max air density on new grid = {0:.4f}, {1:.4f}, {2:.4f} kg m^-3'.format(
+    print('Min/mean/max air density on new grid = {0:.4g}, {1:.4g}, {2:.4g} kg m^-3'.format(
         numpy.min(air_density_matrix_kg_m03),
         numpy.mean(air_density_matrix_kg_m03),
         numpy.max(air_density_matrix_kg_m03)
@@ -745,7 +745,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
             grid_cell_width_matrix_metres, axis=0, repeats=num_examples
         )
 
-    print('Min/mean/max grid-cell widths on new grid = {0:.4f}, {1:.4f}, {2:.4f} m'.format(
+    print('Min/mean/max grid-cell widths on new grid = {0:.4g}, {1:.4g}, {2:.4g} m'.format(
         numpy.min(grid_cell_width_matrix_metres),
         numpy.mean(grid_cell_width_matrix_metres),
         numpy.max(grid_cell_width_matrix_metres)
