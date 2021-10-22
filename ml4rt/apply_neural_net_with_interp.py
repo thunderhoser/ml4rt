@@ -209,6 +209,7 @@ def _get_data_on_orig_grid(
         example_utils.PRESSURE_NAME
     ]
 
+    option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name.replace('/normalized', '')
     option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
     option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = variable_names
     option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
@@ -654,7 +655,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     )
     if new_scalar_target_matrix is not None:
         new_scalar_target_matrix = (
-            new_scalar_target_matrix[orig_indices_to_keep, :]
+            new_scalar_target_matrix[new_indices_to_keep, :]
         )
 
     if (
@@ -708,23 +709,79 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     new_predicted_hr_matrix_w_m02[:, -1] = 0.
     new_actual_hr_matrix_w_m02[:, -1] = 0.
 
-    new_example_dict = example_utils.heating_rate_to_k_day01(
-        example_dict=new_example_dict,
-        heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02
-    )
-    new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=new_example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
+    if (
+            example_utils.HEIGHT_NAME in
+            new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    ):
+        new_height_matrix_m_agl = example_utils.get_field_from_dict(
+            example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
+        )
 
-    new_example_dict = example_utils.heating_rate_to_k_day01(
-        example_dict=new_example_dict,
-        heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02
-    )
-    new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=new_example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
+        new_predicted_hr_matrix_k_day01 = numpy.full(
+            new_predicted_hr_matrix_w_m02.shape, numpy.nan
+        )
+        new_actual_hr_matrix_k_day01 = numpy.full(
+            new_actual_hr_matrix_w_m02.shape, numpy.nan
+        )
+        num_examples = new_predicted_hr_matrix_w_m02.shape[0]
+
+        for i in range(num_examples):
+            this_example_dict = example_utils.subset_by_index(
+                example_dict=copy.deepcopy(new_example_dict),
+                desired_indices=numpy.array([i], dtype=int)
+            )
+            this_example_dict[example_utils.HEIGHTS_KEY] = (
+                new_height_matrix_m_agl[i, :]
+            )
+
+            this_example_dict = example_utils.heating_rate_to_k_day01(
+                example_dict=this_example_dict,
+                heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02[[i], :]
+            )
+            new_predicted_hr_matrix_k_day01[i, :] = (
+                example_utils.get_field_from_dict(
+                    example_dict=this_example_dict,
+                    field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+                )[0, :]
+            )
+
+            this_example_dict = example_utils.heating_rate_to_k_day01(
+                example_dict=this_example_dict,
+                heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02[[i], :]
+            )
+            new_actual_hr_matrix_k_day01[i, :] = (
+                example_utils.get_field_from_dict(
+                    example_dict=this_example_dict,
+                    field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+                )[0, :]
+            )
+    else:
+        new_example_dict = example_utils.heating_rate_to_k_day01(
+            example_dict=new_example_dict,
+            heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02
+        )
+        new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=new_example_dict,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+
+        new_example_dict = example_utils.heating_rate_to_k_day01(
+            example_dict=new_example_dict,
+            heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02
+        )
+        new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=new_example_dict,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+
+    print(numpy.mean(new_predicted_hr_matrix_w_m02, axis=0))
+    print('\n')
+    print(numpy.mean(new_actual_hr_matrix_w_m02, axis=0))
+    print('\n\n\n')
+    print(numpy.mean(new_predicted_hr_matrix_k_day01, axis=0))
+    print('\n')
+    print(numpy.mean(new_actual_hr_matrix_k_day01, axis=0))
+    print('\n\n\n***********************\n\n\n')
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
