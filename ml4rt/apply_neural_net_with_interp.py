@@ -391,8 +391,7 @@ def _get_data_on_new_grid(
 
         for i in range(num_examples):
             this_example_dict = {
-                example_utils.HEIGHTS_KEY:
-                    training_example_dict[example_utils.HEIGHTS_KEY],
+                example_utils.HEIGHTS_KEY: predictor_matrix[i, :, -1],
                 example_utils.EXAMPLE_IDS_KEY: [example_id_strings[i]],
                 example_utils.VALID_TIMES_KEY: numpy.full(1, 0, dtype=int),
                 example_utils.STANDARD_ATMO_FLAGS_KEY:
