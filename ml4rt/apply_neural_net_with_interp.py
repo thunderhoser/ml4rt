@@ -658,6 +658,13 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
             new_scalar_target_matrix[new_indices_to_keep, :]
         )
 
+    from scipy.interpolate import interp1d
+
+    num_examples = new_actual_hr_matrix_w_m02.shape[0]
+    new_predicted_hr_matrix_w_m02 = numpy.full(
+        new_actual_hr_matrix_w_m02.shape, numpy.nan
+    )
+
     if (
             example_utils.HEIGHT_NAME in
             new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
@@ -665,46 +672,81 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         new_height_matrix_m_agl = example_utils.get_field_from_dict(
             example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
         )
-
-        new_predicted_hr_matrix_w_m02 = numpy.full(
-            new_height_matrix_m_agl.shape, numpy.nan
-        )
-        num_examples = new_predicted_hr_matrix_w_m02.shape[0]
-
-        for i in range(num_examples):
-            new_predicted_hr_matrix_w_m02[i, :] = (
-                heating_rate_interp.interpolate(
-                    orig_heating_rate_matrix_k_day01=
-                    orig_predicted_hr_matrix_w_m02[[i], :],
-                    orig_heights_m_agl=
-                    orig_example_dict[example_utils.HEIGHTS_KEY],
-                    new_heights_m_agl=new_height_matrix_m_agl[i, :],
-                    half_window_size_for_filter_px=
-                    half_window_size_for_interp_px
-                )[0, :]
-            )
-
-            top_indices = numpy.where(
-                new_height_matrix_m_agl[i, :] >
-                orig_example_dict[example_utils.HEIGHTS_KEY][-1]
-            )[0]
-
-            new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
-            new_actual_hr_matrix_w_m02[i, top_indices] = 0.
     else:
-        new_predicted_hr_matrix_w_m02 = heating_rate_interp.interpolate(
-            orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_w_m02,
-            orig_heights_m_agl=orig_example_dict[example_utils.HEIGHTS_KEY],
-            new_heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],
-            half_window_size_for_filter_px=half_window_size_for_interp_px
+        new_height_matrix_m_agl = None
+
+    for i in range(num_examples):
+        interp_object = interp1d(
+            x=orig_example_dict[example_utils.HEIGHTS_KEY],
+            y=orig_predicted_hr_matrix_w_m02[i, :],
+            axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
+            fill_value='extrapolate'
+        )
+
+        if new_height_matrix_m_agl is None:
+            these_new_heights_m_agl = new_example_dict[example_utils.HEIGHTS_KEY]
+        else:
+            these_new_heights_m_agl = new_height_matrix_m_agl[i, :]
+
+        new_predicted_hr_matrix_w_m02[i, :] = interp_object(
+            these_new_heights_m_agl
         )
 
         top_indices = numpy.where(
-            new_example_dict[example_utils.HEIGHTS_KEY] >
+            these_new_heights_m_agl >
             orig_example_dict[example_utils.HEIGHTS_KEY][-1]
         )[0]
-        new_predicted_hr_matrix_w_m02[:, top_indices] = 0.
-        new_actual_hr_matrix_w_m02[:, top_indices] = 0.
+
+        new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
+        new_actual_hr_matrix_w_m02[i, top_indices] = 0.
+
+    # if (
+    #         example_utils.HEIGHT_NAME in
+    #         new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    # ):
+    #     new_height_matrix_m_agl = example_utils.get_field_from_dict(
+    #         example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
+    #     )
+    #
+    #     new_predicted_hr_matrix_w_m02 = numpy.full(
+    #         new_height_matrix_m_agl.shape, numpy.nan
+    #     )
+    #     num_examples = new_predicted_hr_matrix_w_m02.shape[0]
+    #
+    #     for i in range(num_examples):
+    #         new_predicted_hr_matrix_w_m02[i, :] = (
+    #             heating_rate_interp.interpolate(
+    #                 orig_heating_rate_matrix_k_day01=
+    #                 orig_predicted_hr_matrix_w_m02[[i], :],
+    #                 orig_heights_m_agl=
+    #                 orig_example_dict[example_utils.HEIGHTS_KEY],
+    #                 new_heights_m_agl=new_height_matrix_m_agl[i, :],
+    #                 half_window_size_for_filter_px=
+    #                 half_window_size_for_interp_px
+    #             )[0, :]
+    #         )
+    #
+    #         top_indices = numpy.where(
+    #             new_height_matrix_m_agl[i, :] >
+    #             orig_example_dict[example_utils.HEIGHTS_KEY][-1]
+    #         )[0]
+    #
+    #         new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
+    #         new_actual_hr_matrix_w_m02[i, top_indices] = 0.
+    # else:
+    #     new_predicted_hr_matrix_w_m02 = heating_rate_interp.interpolate(
+    #         orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_w_m02,
+    #         orig_heights_m_agl=orig_example_dict[example_utils.HEIGHTS_KEY],
+    #         new_heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],
+    #         half_window_size_for_filter_px=half_window_size_for_interp_px
+    #     )
+    #
+    #     top_indices = numpy.where(
+    #         new_example_dict[example_utils.HEIGHTS_KEY] >
+    #         orig_example_dict[example_utils.HEIGHTS_KEY][-1]
+    #     )[0]
+    #     new_predicted_hr_matrix_w_m02[:, top_indices] = 0.
+    #     new_actual_hr_matrix_w_m02[:, top_indices] = 0.
 
     new_predicted_hr_matrix_w_m02[:, -1] = 0.
     new_actual_hr_matrix_w_m02[:, -1] = 0.
