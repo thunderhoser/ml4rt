@@ -5,7 +5,6 @@ import sys
 import copy
 import argparse
 import numpy
-from scipy.interpolate import interp1d
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -183,7 +182,7 @@ def _get_data_on_orig_grid(
     :param example_dir_name: See documentation at top of file.
     :param first_time_unix_sec: Same.
     :param last_time_unix_sec: Same.
-    :return: predicted_hr_matrix_w_m02: E-by-H numpy array of heating rates.
+    :return: predicted_hr_matrix_k_day01: E-by-H numpy array of heating rates.
     :return: scalar_prediction_matrix: E-by-S numpy array of scalar predictions
         (or None if there are no scalar target variables).
     :return: example_dict: Dictionary in format specified by
@@ -204,28 +203,6 @@ def _get_data_on_orig_grid(
         exclude_summit_greenland=True
     )
     print(SEPARATOR_STRING)
-
-    variable_names = [
-        example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
-        example_utils.PRESSURE_NAME
-    ]
-
-    option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name.replace('/normalized', '')
-    option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
-    option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = variable_names
-    option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
-    option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
-    option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
-    option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
-
-    data_matrix, _, new_example_id_strings = neural_net.create_data(
-        option_dict=option_dict,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True
-    )
-    print(SEPARATOR_STRING)
-
-    assert example_id_strings == new_example_id_strings
 
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
@@ -250,6 +227,7 @@ def _get_data_on_orig_grid(
         this_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., 0]
     )
     num_examples = predicted_hr_matrix_k_day01.shape[0]
+    num_heights = predicted_hr_matrix_k_day01.shape[1]
 
     if len(prediction_array) == 2:
         scalar_prediction_matrix = (
@@ -270,29 +248,17 @@ def _get_data_on_orig_grid(
         example_utils.SCALAR_TARGET_NAMES_KEY: [],
         example_utils.SCALAR_TARGET_VALS_KEY:
             numpy.full((num_examples, 0), 0.),
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY: variable_names,
-        example_utils.VECTOR_PREDICTOR_VALS_KEY: data_matrix,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
+            numpy.full((num_examples, num_heights, 0), 0.),
         example_utils.VECTOR_TARGET_NAMES_KEY:
             [example_utils.SHORTWAVE_HEATING_RATE_NAME],
         example_utils.VECTOR_TARGET_VALS_KEY:
             numpy.expand_dims(predicted_hr_matrix_k_day01, axis=-1)
     }
 
-    net_flux_diff_matrix_w_m02 = example_utils.heating_rate_to_flux_diff(
-        example_dict
-    )
-    print('Min/mean/max predicted net-flux diff on original grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
-        numpy.min(net_flux_diff_matrix_w_m02),
-        numpy.mean(net_flux_diff_matrix_w_m02),
-        numpy.max(net_flux_diff_matrix_w_m02)
-    ))
-
-    # predicted_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
-    #     example_dict
-    # )
-
     return (
-        net_flux_diff_matrix_w_m02, scalar_prediction_matrix, example_dict
+        predicted_hr_matrix_k_day01, scalar_prediction_matrix, example_dict
     )
 
 
@@ -311,7 +277,7 @@ def _get_data_on_new_grid(
     :param normalization_file_name: Same.
     :param first_time_unix_sec: Same.
     :param last_time_unix_sec: Same.
-    :return: actual_hr_matrix_w_m02: E-by-H numpy array of heating rates.
+    :return: actual_hr_matrix_k_day01: E-by-H numpy array of heating rates.
     :return: scalar_target_matrix: E-by-S numpy array of scalar target values
         (or None if there are no scalar target variables).
     :return: example_dict: Dictionary in format specified by
@@ -324,11 +290,6 @@ def _get_data_on_new_grid(
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
 
-    predictor_names = [
-        example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME,
-        example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME
-    ]
-
     option_dict = copy.deepcopy(
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
@@ -339,11 +300,15 @@ def _get_data_on_new_grid(
         training_example_dict[example_utils.HEIGHTS_KEY]
     )
     option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY] = []
-    option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = predictor_names
+    option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
+        example_utils.HEIGHT_NAME
+    ]
     option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
     option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
     option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
+
+    height_matrix_m_agl = None
 
     try:
         predictor_matrix, target_array, example_id_strings = (
@@ -353,17 +318,15 @@ def _get_data_on_new_grid(
                 exclude_summit_greenland=True
             )
         )
-    except:
-        option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = (
-            predictor_names[:-1]
-        )
 
-        predictor_matrix, target_array, example_id_strings = (
-            neural_net.create_data(
-                option_dict=option_dict,
-                net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-                exclude_summit_greenland=True
-            )
+        height_matrix_m_agl = predictor_matrix[..., 0]
+    except:
+        option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = []
+
+        _, target_array, example_id_strings = neural_net.create_data(
+            option_dict=option_dict,
+            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
+            exclude_summit_greenland=True
         )
 
     actual_hr_matrix_k_day01 = target_array[0][..., 0]
@@ -383,66 +346,21 @@ def _get_data_on_new_grid(
         example_utils.SCALAR_TARGET_NAMES_KEY: [],
         example_utils.SCALAR_TARGET_VALS_KEY:
             numpy.full((num_examples, 0), 0.),
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY: predictor_names,
-        example_utils.VECTOR_PREDICTOR_VALS_KEY: predictor_matrix,
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [example_utils.HEIGHT_NAME],
+        example_utils.VECTOR_PREDICTOR_VALS_KEY:
+            numpy.expand_dims(height_matrix_m_agl, axis=-1),
         example_utils.VECTOR_TARGET_NAMES_KEY:
             [example_utils.SHORTWAVE_HEATING_RATE_NAME],
         example_utils.VECTOR_TARGET_VALS_KEY:
             numpy.expand_dims(actual_hr_matrix_k_day01, axis=-1)
     }
 
-    net_flux_diff_matrix_w_m02 = example_utils.heating_rate_to_flux_diff(
-        example_dict
-    )
-    print('Min/mean/max actual net-flux diff on new grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
-        numpy.min(net_flux_diff_matrix_w_m02),
-        numpy.mean(net_flux_diff_matrix_w_m02),
-        numpy.max(net_flux_diff_matrix_w_m02)
-    ))
-
-    # if (
-    #         example_utils.HEIGHT_NAME in
-    #         option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
-    # ):
-    #     actual_hr_matrix_w_m02 = numpy.full(
-    #         actual_hr_matrix_k_day01.shape, numpy.nan
-    #     )
-    #
-    #     for i in range(num_examples):
-    #         this_example_dict = {
-    #             example_utils.HEIGHTS_KEY:
-    #                 training_example_dict[example_utils.HEIGHTS_KEY],
-    #             example_utils.EXAMPLE_IDS_KEY: [example_id_strings[i]],
-    #             example_utils.VALID_TIMES_KEY: numpy.full(1, 0, dtype=int),
-    #             example_utils.STANDARD_ATMO_FLAGS_KEY:
-    #                 numpy.full(1, 0, dtype=int),
-    #             example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
-    #             example_utils.SCALAR_PREDICTOR_VALS_KEY: numpy.full((1, 0), 0.),
-    #             example_utils.SCALAR_TARGET_NAMES_KEY: [],
-    #             example_utils.SCALAR_TARGET_VALS_KEY: numpy.full((1, 0), 0.),
-    #             example_utils.VECTOR_PREDICTOR_NAMES_KEY: predictor_names,
-    #             example_utils.VECTOR_PREDICTOR_VALS_KEY:
-    #                 predictor_matrix[[i], ...],
-    #             example_utils.VECTOR_TARGET_NAMES_KEY:
-    #                 [example_utils.SHORTWAVE_HEATING_RATE_NAME],
-    #             example_utils.VECTOR_TARGET_VALS_KEY:
-    #                 numpy.expand_dims(actual_hr_matrix_k_day01[[0], :], axis=-1)
-    #         }
-    #
-    #         actual_hr_matrix_w_m02[i, :] = example_utils.heating_rate_to_w_m02(
-    #             this_example_dict
-    #         )[[0], :]
-    # else:
-    #     actual_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
-    #         example_dict
-    #     )
-
     if len(target_array) == 2:
         scalar_target_matrix = target_array[1]
     else:
         scalar_target_matrix = None
 
-    return net_flux_diff_matrix_w_m02, scalar_target_matrix, example_dict
+    return actual_hr_matrix_k_day01, scalar_target_matrix, example_dict
 
 
 def _match_examples(orig_example_id_strings, new_example_id_strings):
@@ -555,7 +473,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     print(SEPARATOR_STRING)
 
     (
-        orig_predicted_hr_matrix_w_m02, orig_scalar_prediction_matrix,
+        orig_predicted_hr_matrix_k_day01, orig_scalar_prediction_matrix,
         orig_example_dict
     ) = _get_data_on_orig_grid(
         model_object=model_object, model_metadata_dict=model_metadata_dict,
@@ -565,7 +483,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     )
     print(SEPARATOR_STRING)
 
-    new_actual_hr_matrix_w_m02, new_scalar_target_matrix, new_example_dict = (
+    new_actual_hr_matrix_k_day01, new_scalar_target_matrix, new_example_dict = (
         _get_data_on_new_grid(
             model_metadata_dict=model_metadata_dict,
             example_dir_name=new_example_dir_name,
@@ -589,8 +507,8 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     orig_example_dict = example_utils.subset_by_index(
         example_dict=orig_example_dict, desired_indices=orig_indices_to_keep
     )
-    orig_predicted_hr_matrix_w_m02 = (
-        orig_predicted_hr_matrix_w_m02[orig_indices_to_keep, :]
+    orig_predicted_hr_matrix_k_day01 = (
+        orig_predicted_hr_matrix_k_day01[orig_indices_to_keep, :]
     )
     if orig_scalar_prediction_matrix is not None:
         orig_scalar_prediction_matrix = (
@@ -600,18 +518,13 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     new_example_dict = example_utils.subset_by_index(
         example_dict=new_example_dict, desired_indices=new_indices_to_keep
     )
-    new_actual_hr_matrix_w_m02 = (
-        new_actual_hr_matrix_w_m02[new_indices_to_keep, :]
+    new_actual_hr_matrix_k_day01 = (
+        new_actual_hr_matrix_k_day01[new_indices_to_keep, :]
     )
     if new_scalar_target_matrix is not None:
         new_scalar_target_matrix = (
             new_scalar_target_matrix[new_indices_to_keep, :]
         )
-
-    num_examples = new_actual_hr_matrix_w_m02.shape[0]
-    new_predicted_hr_matrix_w_m02 = numpy.full(
-        new_actual_hr_matrix_w_m02.shape, numpy.nan
-    )
 
     if (
             example_utils.HEIGHT_NAME in
@@ -620,118 +533,25 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         new_height_matrix_m_agl = example_utils.get_field_from_dict(
             example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
         )
-    else:
-        new_height_matrix_m_agl = None
 
-    for i in range(num_examples):
-        interp_object = interp1d(
-            x=orig_example_dict[example_utils.HEIGHTS_KEY],
-            y=orig_predicted_hr_matrix_w_m02[i, :],
-            axis=-1, kind='linear', bounds_error=False, assume_sorted=True,
-            fill_value='extrapolate'
+        num_examples = new_actual_hr_matrix_k_day01.shape[0]
+        new_predicted_hr_matrix_k_day01 = numpy.full(
+            new_actual_hr_matrix_k_day01.shape, numpy.nan
         )
 
-        if new_height_matrix_m_agl is None:
-            these_new_heights_m_agl = new_example_dict[example_utils.HEIGHTS_KEY]
-        else:
-            these_new_heights_m_agl = new_height_matrix_m_agl[i, :]
-
-        new_predicted_hr_matrix_w_m02[i, :] = interp_object(
-            these_new_heights_m_agl
-        )
-
-        top_indices = numpy.where(
-            these_new_heights_m_agl >
-            orig_example_dict[example_utils.HEIGHTS_KEY][-1]
-        )[0]
-
-        new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
-        new_actual_hr_matrix_w_m02[i, top_indices] = 0.
-
-    # if (
-    #         example_utils.HEIGHT_NAME in
-    #         new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-    # ):
-    #     new_height_matrix_m_agl = example_utils.get_field_from_dict(
-    #         example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
-    #     )
-    #
-    #     new_predicted_hr_matrix_w_m02 = numpy.full(
-    #         new_height_matrix_m_agl.shape, numpy.nan
-    #     )
-    #     num_examples = new_predicted_hr_matrix_w_m02.shape[0]
-    #
-    #     for i in range(num_examples):
-    #         new_predicted_hr_matrix_w_m02[i, :] = (
-    #             heating_rate_interp.interpolate(
-    #                 orig_heating_rate_matrix_k_day01=
-    #                 orig_predicted_hr_matrix_w_m02[[i], :],
-    #                 orig_heights_m_agl=
-    #                 orig_example_dict[example_utils.HEIGHTS_KEY],
-    #                 new_heights_m_agl=new_height_matrix_m_agl[i, :],
-    #                 half_window_size_for_filter_px=
-    #                 half_window_size_for_interp_px
-    #             )[0, :]
-    #         )
-    #
-    #         top_indices = numpy.where(
-    #             new_height_matrix_m_agl[i, :] >
-    #             orig_example_dict[example_utils.HEIGHTS_KEY][-1]
-    #         )[0]
-    #
-    #         new_predicted_hr_matrix_w_m02[i, top_indices] = 0.
-    #         new_actual_hr_matrix_w_m02[i, top_indices] = 0.
-    # else:
-    #     new_predicted_hr_matrix_w_m02 = heating_rate_interp.interpolate(
-    #         orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_w_m02,
-    #         orig_heights_m_agl=orig_example_dict[example_utils.HEIGHTS_KEY],
-    #         new_heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],
-    #         half_window_size_for_filter_px=half_window_size_for_interp_px
-    #     )
-    #
-    #     top_indices = numpy.where(
-    #         new_example_dict[example_utils.HEIGHTS_KEY] >
-    #         orig_example_dict[example_utils.HEIGHTS_KEY][-1]
-    #     )[0]
-    #     new_predicted_hr_matrix_w_m02[:, top_indices] = 0.
-    #     new_actual_hr_matrix_w_m02[:, top_indices] = 0.
-
-    new_predicted_hr_matrix_w_m02[:, -1] = 0.
-    new_actual_hr_matrix_w_m02[:, -1] = 0.
-
-    print('Min/mean/max predicted net-flux diff on new grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
-        numpy.min(new_predicted_hr_matrix_w_m02),
-        numpy.mean(new_predicted_hr_matrix_w_m02),
-        numpy.max(new_predicted_hr_matrix_w_m02)
-    ))
-    new_example_dict = example_utils.flux_diff_to_heating_rate(
-        example_dict=new_example_dict,
-        net_flux_diff_matrix_w_m02=new_predicted_hr_matrix_w_m02 + 0.
-    )
-    new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=new_example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-
-    print('Min/mean/max actual net-flux diff on new grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
-        numpy.min(new_actual_hr_matrix_w_m02),
-        numpy.mean(new_actual_hr_matrix_w_m02),
-        numpy.max(new_actual_hr_matrix_w_m02)
-    ))
-    new_example_dict = example_utils.flux_diff_to_heating_rate(
-        example_dict=new_example_dict,
-        net_flux_diff_matrix_w_m02=new_actual_hr_matrix_w_m02 + 0.
-    )
-    new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=new_example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-
-    if (
-            example_utils.HEIGHT_NAME in
-            new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-    ):
         for i in range(num_examples):
+            new_predicted_hr_matrix_k_day01[i, :] = (
+                heating_rate_interp.interpolate(
+                    orig_heating_rate_matrix_k_day01=
+                    orig_predicted_hr_matrix_k_day01[[i], :],
+                    orig_heights_m_agl=
+                    orig_example_dict[example_utils.HEIGHTS_KEY],
+                    new_heights_m_agl=new_height_matrix_m_agl[i, :],
+                    half_window_size_for_filter_px=
+                    half_window_size_for_interp_px
+                )[0, :]
+            )
+
             top_indices = numpy.where(
                 new_height_matrix_m_agl[i, :] >
                 orig_example_dict[example_utils.HEIGHTS_KEY][-1]
@@ -740,6 +560,13 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
             new_predicted_hr_matrix_k_day01[i, top_indices] = 0.
             new_actual_hr_matrix_k_day01[i, top_indices] = 0.
     else:
+        new_predicted_hr_matrix_k_day01 = heating_rate_interp.interpolate(
+            orig_heating_rate_matrix_k_day01=orig_predicted_hr_matrix_k_day01,
+            orig_heights_m_agl=orig_example_dict[example_utils.HEIGHTS_KEY],
+            new_heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],
+            half_window_size_for_filter_px=half_window_size_for_interp_px
+        )
+
         top_indices = numpy.where(
             new_example_dict[example_utils.HEIGHTS_KEY] >
             orig_example_dict[example_utils.HEIGHTS_KEY][-1]
@@ -747,78 +574,6 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         new_predicted_hr_matrix_k_day01[:, top_indices] = 0.
         new_actual_hr_matrix_k_day01[:, top_indices] = 0.
 
-    new_predicted_hr_matrix_k_day01[:, -1] = 0.
-    new_actual_hr_matrix_k_day01[:, -1] = 0.
-
-    # if (
-    #         example_utils.HEIGHT_NAME in
-    #         new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-    # ):
-    #     new_height_matrix_m_agl = example_utils.get_field_from_dict(
-    #         example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
-    #     )
-    #
-    #     new_predicted_hr_matrix_k_day01 = numpy.full(
-    #         new_predicted_hr_matrix_w_m02.shape, numpy.nan
-    #     )
-    #     new_actual_hr_matrix_k_day01 = numpy.full(
-    #         new_actual_hr_matrix_w_m02.shape, numpy.nan
-    #     )
-    #     num_examples = new_predicted_hr_matrix_w_m02.shape[0]
-    #
-    #     for i in range(num_examples):
-    #         this_example_dict = example_utils.subset_by_index(
-    #             example_dict=copy.deepcopy(new_example_dict),
-    #             desired_indices=numpy.array([i], dtype=int)
-    #         )
-    #         this_example_dict[example_utils.HEIGHTS_KEY] = (
-    #             new_height_matrix_m_agl[i, :]
-    #         )
-    #
-    #         this_example_dict = example_utils.heating_rate_to_k_day01(
-    #             example_dict=this_example_dict,
-    #             heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02[[i], :]
-    #         )
-    #         new_predicted_hr_matrix_k_day01[i, :] = (
-    #             example_utils.get_field_from_dict(
-    #                 example_dict=this_example_dict,
-    #                 field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    #             )[0, :]
-    #         )
-    #
-    #         this_example_dict = example_utils.heating_rate_to_k_day01(
-    #             example_dict=this_example_dict,
-    #             heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02[[i], :]
-    #         )
-    #         new_actual_hr_matrix_k_day01[i, :] = (
-    #             example_utils.get_field_from_dict(
-    #                 example_dict=this_example_dict,
-    #                 field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    #             )[0, :]
-    #         )
-    # else:
-    #     new_example_dict = example_utils.heating_rate_to_k_day01(
-    #         example_dict=new_example_dict,
-    #         heating_rate_matrix_w_m02=new_predicted_hr_matrix_w_m02
-    #     )
-    #     new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-    #         example_dict=new_example_dict,
-    #         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    #     )
-    #
-    #     new_example_dict = example_utils.heating_rate_to_k_day01(
-    #         example_dict=new_example_dict,
-    #         heating_rate_matrix_w_m02=new_actual_hr_matrix_w_m02
-    #     )
-    #     new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
-    #         example_dict=new_example_dict,
-    #         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    #     )
-
-    print(numpy.mean(new_predicted_hr_matrix_w_m02, axis=0))
-    print('\n')
-    print(numpy.mean(new_actual_hr_matrix_w_m02, axis=0))
-    print('\n\n\n')
     print(numpy.mean(new_predicted_hr_matrix_k_day01, axis=0))
     print('\n')
     print(numpy.mean(new_actual_hr_matrix_k_day01, axis=0))
