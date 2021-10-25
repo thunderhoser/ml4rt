@@ -584,13 +584,10 @@ def heating_rate_to_fluxes(example_dict):
 
     coefficient = DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02
     net_flux_diff_matrix_w_m02 = (
-        -1 * numpy.absolute(numpy.diff(pressure_matrix_pascals, axis=1)) *
+        -1 * numpy.diff(pressure_matrix_pascals, axis=1) *
         coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
     )
-    net_flux_matrix_w_m02 = numpy.flip(
-        numpy.cumsum(numpy.flip(net_flux_diff_matrix_w_m02, axis=1), axis=1),
-        axis=1
-    )
+    net_flux_matrix_w_m02 = numpy.cumsum(net_flux_diff_matrix_w_m02, axis=1)
 
     vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
     found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names
@@ -623,6 +620,89 @@ def heating_rate_to_fluxes(example_dict):
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY], obj=up_flux_index,
             values=numpy.full(net_flux_matrix_w_m02.shape, 0.), axis=-1
+        )
+
+    return example_dict
+
+
+def heating_rate_to_flux_diff(example_dict):
+    """For each example at each height, converts heating rate to net-flux diff.
+
+    E = number of examples
+    H = number of heights
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: net_flux_diff_matrix_w_m02: E-by-H numpy array of net-flux
+        differences.
+    """
+
+    heating_rate_matrix_k_day01 = get_field_from_dict(
+        example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
+    )
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    ) + 0.
+
+    dummy_pressure_matrix_pascals = (
+        pressure_matrix_pascals[:, [-1]] +
+        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
+    )
+    pressure_matrix_pascals = numpy.concatenate(
+        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
+    )
+
+    coefficient = DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02
+    net_flux_diff_matrix_w_m02 = (
+        -1 * numpy.diff(pressure_matrix_pascals, axis=1) *
+        coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
+    )
+
+    return net_flux_diff_matrix_w_m02
+
+
+def flux_diff_to_heating_rate(example_dict, net_flux_diff_matrix_w_m02):
+    """For each example at each height, converts net-flux diff to heating rate.
+
+    :param example_dict: See doc for `heating_rate_to_flux_diff`.
+    :param net_flux_diff_matrix_w_m02: Same.
+    :return: example_dict: Same as input but with new heating rates.
+    """
+
+    pressure_matrix_pascals = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    ) + 0.
+
+    dummy_pressure_matrix_pascals = (
+        pressure_matrix_pascals[:, [-1]] +
+        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
+    )
+    pressure_matrix_pascals = numpy.concatenate(
+        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
+    )
+
+    coefficient = GRAVITY_CONSTANT_M_S02 / DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
+    heating_rate_matrix_k_day01 = (
+        -1 * DAYS_TO_SECONDS * coefficient * net_flux_diff_matrix_w_m02 /
+        numpy.diff(pressure_matrix_pascals, axis=1)
+    )
+
+    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+    found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
+    if not found_heating_rate:
+        vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
+
+    heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
+    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+    if found_heating_rate:
+        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+            heating_rate_matrix_k_day01
+        )
+    else:
+        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_TARGET_VALS_KEY],
+            obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
         )
 
     return example_dict
@@ -670,9 +750,9 @@ def fluxes_to_heating_rate(example_dict):
     #     numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
     # )
 
-    heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
+    heating_rate_matrix_k_day01 = -1 * DAYS_TO_SECONDS * coefficient * (
         numpy.diff(net_flux_matrix_w_m02, axis=1) /
-        numpy.absolute(numpy.diff(pressure_matrix_pascals, axis=1))
+        numpy.diff(pressure_matrix_pascals, axis=1)
     )
 
     error_checking.assert_is_numpy_array_without_nan(net_flux_matrix_w_m02)
