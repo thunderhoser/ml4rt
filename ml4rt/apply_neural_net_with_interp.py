@@ -706,7 +706,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     ))
     new_example_dict = example_utils.flux_diff_to_heating_rate(
         example_dict=new_example_dict,
-        net_flux_diff_matrix_w_m02=new_predicted_hr_matrix_w_m02
+        net_flux_diff_matrix_w_m02=new_predicted_hr_matrix_w_m02 + 0.
     )
     new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=new_example_dict,
@@ -720,7 +720,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     ))
     new_example_dict = example_utils.flux_diff_to_heating_rate(
         example_dict=new_example_dict,
-        net_flux_diff_matrix_w_m02=new_actual_hr_matrix_w_m02
+        net_flux_diff_matrix_w_m02=new_actual_hr_matrix_w_m02 + 0.
     )
     new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=new_example_dict,

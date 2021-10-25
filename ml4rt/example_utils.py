@@ -1736,14 +1736,14 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
         data_matrix = example_dict[VECTOR_TARGET_VALS_KEY][..., field_index]
 
     if height_m_agl is None:
-        return data_matrix
+        return copy.deepcopy(data_matrix)
 
     height_index = match_heights(
         heights_m_agl=example_dict[HEIGHTS_KEY],
         desired_height_m_agl=height_m_agl
     )
 
-    return data_matrix[..., height_index]
+    return copy.deepcopy(data_matrix[..., height_index])
 
 
 def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
