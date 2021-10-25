@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="process_rrtm_745heights_testing"
+#SBATCH --job-name="make_norm_file_orig_heights"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -17,18 +17,19 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=process_rrtm_745heights_testing_%A.out
+#SBATCH --output=make_norm_file_orig_heights_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/more_sites/processed/new_heights"
-set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/new_heights/testing/learning_examples_2020_part02.nc"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/training"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/training/learning_examples_for_norm.nc"
 
-python3 -u "${CODE_DIR_NAME}/process_rrtm_files.py" \
---input_rrtm_dir_name="${INPUT_DIR_NAME}" \
---first_date_string="20200418" \
---last_date_string="20200519" \
---output_example_file_name="${OUTPUT_FILE_NAME}"
+python3 -u "${CODE_DIR_NAME}/make_normalization_file.py" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--first_training_time_string="2019-12-01-000000" \
+--last_training_time_string="2020-03-13-235959" \
+--num_examples=100000 \
+--output_norm_file_name="${NORMALIZATION_FILE_NAME}"
