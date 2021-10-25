@@ -278,38 +278,21 @@ def _get_data_on_orig_grid(
             numpy.expand_dims(predicted_hr_matrix_k_day01, axis=-1)
     }
 
-    air_density_matrix_kg_m03 = example_utils.get_air_density(example_dict)
-    print('Min/mean/max air density on original grid = {0:.4g}, {1:.4g}, {2:.4g} kg m^-3'.format(
-        numpy.min(air_density_matrix_kg_m03),
-        numpy.mean(air_density_matrix_kg_m03),
-        numpy.max(air_density_matrix_kg_m03)
+    net_flux_diff_matrix_w_m02 = example_utils.heating_rate_to_flux_diff(
+        example_dict
+    )
+    print('Min/mean/max predicted net-flux diff on original grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
+        numpy.min(net_flux_diff_matrix_w_m02),
+        numpy.mean(net_flux_diff_matrix_w_m02),
+        numpy.max(net_flux_diff_matrix_w_m02)
     ))
-
-    grid_cell_widths_metres = example_utils.get_grid_cell_widths(
-        example_utils.get_grid_cell_edges(option_dict[neural_net.HEIGHTS_KEY])
-    )
-    print('Min/mean/max grid-cell widths on original grid = {0:.4g}, {1:.4g}, {2:.4g} m'.format(
-        numpy.min(grid_cell_widths_metres),
-        numpy.mean(grid_cell_widths_metres),
-        numpy.max(grid_cell_widths_metres)
-    ))
-
-    grid_cell_width_matrix_metres = numpy.expand_dims(
-        grid_cell_widths_metres, axis=0
-    )
-    grid_cell_width_matrix_metres = numpy.repeat(
-        grid_cell_width_matrix_metres, axis=0, repeats=num_examples
-    )
-
-    ratio_matrix = air_density_matrix_kg_m03 * grid_cell_width_matrix_metres * (1004. / 86400)
-    predicted_hr_matrix_w_m02 = ratio_matrix * predicted_hr_matrix_k_day01
 
     # predicted_hr_matrix_w_m02 = example_utils.heating_rate_to_w_m02(
     #     example_dict
     # )
 
     return (
-        predicted_hr_matrix_w_m02, scalar_prediction_matrix, example_dict
+        net_flux_diff_matrix_w_m02, scalar_prediction_matrix, example_dict
     )
 
 
@@ -408,48 +391,14 @@ def _get_data_on_new_grid(
             numpy.expand_dims(actual_hr_matrix_k_day01, axis=-1)
     }
 
-    air_density_matrix_kg_m03 = example_utils.get_air_density(example_dict)
-    print('Min/mean/max air density on new grid = {0:.4g}, {1:.4g}, {2:.4g} kg m^-3'.format(
-        numpy.min(air_density_matrix_kg_m03),
-        numpy.mean(air_density_matrix_kg_m03),
-        numpy.max(air_density_matrix_kg_m03)
+    net_flux_diff_matrix_w_m02 = example_utils.heating_rate_to_flux_diff(
+        example_dict
+    )
+    print('Min/mean/max actual net-flux diff on new grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
+        numpy.min(net_flux_diff_matrix_w_m02),
+        numpy.mean(net_flux_diff_matrix_w_m02),
+        numpy.max(net_flux_diff_matrix_w_m02)
     ))
-
-    if (
-            example_utils.HEIGHT_NAME in
-            option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
-    ):
-        height_matrix_m_agl = example_utils.get_field_from_dict(
-            example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
-        )
-
-        these_arrays = [
-            example_utils.get_grid_cell_widths(
-                example_utils.get_grid_cell_edges(height_matrix_m_agl[i, :])
-            ) for i in range(num_examples)
-        ]
-        grid_cell_width_matrix_metres = numpy.stack(these_arrays, axis=0)
-    else:
-        grid_cell_widths_metres = example_utils.get_grid_cell_widths(
-            example_utils.get_grid_cell_edges(
-                training_example_dict[example_utils.HEIGHTS_KEY]
-            )
-        )
-        grid_cell_width_matrix_metres = numpy.expand_dims(
-            grid_cell_widths_metres, axis=0
-        )
-        grid_cell_width_matrix_metres = numpy.repeat(
-            grid_cell_width_matrix_metres, axis=0, repeats=num_examples
-        )
-
-    print('Min/mean/max grid-cell widths on new grid = {0:.4g}, {1:.4g}, {2:.4g} m'.format(
-        numpy.min(grid_cell_width_matrix_metres),
-        numpy.mean(grid_cell_width_matrix_metres),
-        numpy.max(grid_cell_width_matrix_metres)
-    ))
-
-    ratio_matrix = air_density_matrix_kg_m03 * grid_cell_width_matrix_metres * (1004. / 86400)
-    actual_hr_matrix_w_m02 = ratio_matrix * actual_hr_matrix_k_day01
 
     # if (
     #         example_utils.HEIGHT_NAME in
@@ -493,7 +442,7 @@ def _get_data_on_new_grid(
     else:
         scalar_target_matrix = None
 
-    return actual_hr_matrix_w_m02, scalar_target_matrix, example_dict
+    return net_flux_diff_matrix_w_m02, scalar_target_matrix, example_dict
 
 
 def _match_examples(orig_example_id_strings, new_example_id_strings):
@@ -750,51 +699,56 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     new_predicted_hr_matrix_w_m02[:, -1] = 0.
     new_actual_hr_matrix_w_m02[:, -1] = 0.
 
-    air_density_matrix_kg_m03 = example_utils.get_air_density(new_example_dict)
-    print('Min/mean/max air density on new grid = {0:.4g}, {1:.4g}, {2:.4g} kg m^-3'.format(
-        numpy.min(air_density_matrix_kg_m03),
-        numpy.mean(air_density_matrix_kg_m03),
-        numpy.max(air_density_matrix_kg_m03)
+    print('Min/mean/max predicted net-flux diff on new grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
+        numpy.min(new_predicted_hr_matrix_w_m02),
+        numpy.mean(new_predicted_hr_matrix_w_m02),
+        numpy.max(new_predicted_hr_matrix_w_m02)
     ))
+    new_example_dict = example_utils.flux_diff_to_heating_rate(
+        example_dict=new_example_dict,
+        net_flux_diff_matrix_w_m02=new_predicted_hr_matrix_w_m02
+    )
+    new_predicted_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=new_example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
 
-    num_examples = air_density_matrix_kg_m03.shape[0]
+    print('Min/mean/max actual net-flux diff on new grid = {0:.4g}, {1:.4g}, {2:.4g} W m^-2'.format(
+        numpy.min(new_actual_hr_matrix_w_m02),
+        numpy.mean(new_actual_hr_matrix_w_m02),
+        numpy.max(new_actual_hr_matrix_w_m02)
+    ))
+    new_example_dict = example_utils.flux_diff_to_heating_rate(
+        example_dict=new_example_dict,
+        net_flux_diff_matrix_w_m02=new_actual_hr_matrix_w_m02
+    )
+    new_actual_hr_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=new_example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
 
     if (
             example_utils.HEIGHT_NAME in
             new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
     ):
-        height_matrix_m_agl = example_utils.get_field_from_dict(
-            example_dict=new_example_dict, field_name=example_utils.HEIGHT_NAME
-        )
+        for i in range(num_examples):
+            top_indices = numpy.where(
+                new_height_matrix_m_agl[i, :] >
+                orig_example_dict[example_utils.HEIGHTS_KEY][-1]
+            )[0]
 
-        these_arrays = [
-            example_utils.get_grid_cell_widths(
-                example_utils.get_grid_cell_edges(height_matrix_m_agl[i, :])
-            ) for i in range(num_examples)
-        ]
-        grid_cell_width_matrix_metres = numpy.stack(these_arrays, axis=0)
+            new_predicted_hr_matrix_k_day01[i, top_indices] = 0.
+            new_actual_hr_matrix_k_day01[i, top_indices] = 0.
     else:
-        grid_cell_widths_metres = example_utils.get_grid_cell_widths(
-            example_utils.get_grid_cell_edges(
-                new_example_dict[example_utils.HEIGHTS_KEY]
-            )
-        )
-        grid_cell_width_matrix_metres = numpy.expand_dims(
-            grid_cell_widths_metres, axis=0
-        )
-        grid_cell_width_matrix_metres = numpy.repeat(
-            grid_cell_width_matrix_metres, axis=0, repeats=num_examples
-        )
+        top_indices = numpy.where(
+            new_example_dict[example_utils.HEIGHTS_KEY] >
+            orig_example_dict[example_utils.HEIGHTS_KEY][-1]
+        )[0]
+        new_predicted_hr_matrix_k_day01[:, top_indices] = 0.
+        new_actual_hr_matrix_k_day01[:, top_indices] = 0.
 
-    print('Min/mean/max grid-cell widths on new grid = {0:.4g}, {1:.4g}, {2:.4g} m'.format(
-        numpy.min(grid_cell_width_matrix_metres),
-        numpy.mean(grid_cell_width_matrix_metres),
-        numpy.max(grid_cell_width_matrix_metres)
-    ))
-
-    ratio_matrix = air_density_matrix_kg_m03 * grid_cell_width_matrix_metres * (1004. / 86400)
-    new_predicted_hr_matrix_k_day01 = new_predicted_hr_matrix_w_m02 / ratio_matrix
-    new_actual_hr_matrix_k_day01 = new_actual_hr_matrix_w_m02 / ratio_matrix
+    new_predicted_hr_matrix_k_day01[:, -1] = 0.
+    new_actual_hr_matrix_k_day01[:, -1] = 0.
 
     # if (
     #         example_utils.HEIGHT_NAME in
