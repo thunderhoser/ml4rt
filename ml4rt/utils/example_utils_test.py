@@ -371,13 +371,10 @@ THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
 ], dtype=float)
 
 THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
-    [50, 125, 200, 275, 350, 425],
-    [500, 550, 600, 650, 700, 750],
-    [1000, 1000, 1000, 1000, 1000, 1000]
+    [125, 200, 275, 350, 425, 500],
+    [450, 600, 750, 900, 1050, 1200],
+    [0, 0, 0, 0, 0, 0]
 ], dtype=float)
-
-# THIS_UP_FLUX_MATRIX_W_M02 = numpy.flip(THIS_UP_FLUX_MATRIX_W_M02, axis=1)
-# THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.flip(THIS_DOWN_FLUX_MATRIX_W_M02, axis=1)
 
 THIS_PRESSURE_MATRIX_PASCALS = 100 * numpy.array([
     [1000, 950, 900, 850, 800, 750],
@@ -393,7 +390,7 @@ THIS_PRESSURE_DIFF_MATRIX_PASCALS = 100 * numpy.array([
 
 THIS_NET_FLUX_DIFF_MATRIX_W_M02 = numpy.array([
     [25, 25, 25, 25, 25, 25],
-    [-50, -50, -50, -50, -50, -50],
+    [50, 50, 50, 50, 50, 50],
     [0, 0, 0, 0, 0, 0]
 ], dtype=float)
 
@@ -411,9 +408,8 @@ THIS_COEFF = example_utils.DAYS_TO_SECONDS * (
     example_utils.DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
 )
 
-THIS_HEATING_RATE_MATRIX_K_DAY01 = THIS_COEFF * (
-    THIS_NET_FLUX_DIFF_MATRIX_W_M02 /
-    numpy.absolute(THIS_PRESSURE_DIFF_MATRIX_PASCALS)
+THIS_HEATING_RATE_MATRIX_K_DAY01 = -1 * THIS_COEFF * (
+    THIS_NET_FLUX_DIFF_MATRIX_W_M02 / THIS_PRESSURE_DIFF_MATRIX_PASCALS
 )
 
 THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
@@ -462,8 +458,14 @@ EXAMPLE_DICT_WITH_HEATING_RATE = {
 }
 
 DUMMY_NET_FLUX_MATRIX_W_M02 = numpy.array([
-    [-150, -125, -100, -75, -50, -25],
-    [300, 250, 200, 150, 100, 50],
+    [25, 50, 75, 100, 125, 150],
+    [50, 100, 150, 200, 250, 300],
+    [0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+DUMMY_NET_FLUX_DIFF_MATRIX_W_M02 = numpy.array([
+    [25, 25, 25, 25, 25, 25],
+    [50, 50, 50, 50, 50, 50],
     [0, 0, 0, 0, 0, 0]
 ], dtype=float)
 
@@ -1299,6 +1301,38 @@ class ExampleUtilsTests(unittest.TestCase):
         this_example_dict = example_utils.fluxes_to_heating_rate(
             this_example_dict
         )
+        this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=this_example_dict,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+        exp_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=EXAMPLE_DICT_WITH_HEATING_RATE,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+        self.assertTrue(numpy.allclose(
+            this_heating_rate_matrix_k_day01, exp_heating_rate_matrix_k_day01,
+            atol=TOLERANCE
+        ))
+
+    def test_heating_rate_to_flux_diff(self):
+        """Ensures correct output from heating_rate_to_flux_diff."""
+
+        net_flux_diff_matrix_w_m02 = example_utils.heating_rate_to_flux_diff(
+            copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE)
+        )
+        self.assertTrue(numpy.allclose(
+            net_flux_diff_matrix_w_m02, DUMMY_NET_FLUX_DIFF_MATRIX_W_M02,
+            atol=TOLERANCE
+        ))
+
+    def test_flux_diff_to_heating_rate(self):
+        """Ensures correct output from flux_diff_to_heating_rate."""
+
+        this_example_dict = example_utils.flux_diff_to_heating_rate(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE),
+            net_flux_diff_matrix_w_m02=DUMMY_NET_FLUX_DIFF_MATRIX_W_M02
+        )
+
         this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
             example_dict=this_example_dict,
             field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
