@@ -5,6 +5,7 @@ import sys
 import copy
 import argparse
 import numpy
+from scipy.interpolate import interp1d
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -657,8 +658,6 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         new_scalar_target_matrix = (
             new_scalar_target_matrix[new_indices_to_keep, :]
         )
-
-    from scipy.interpolate import interp1d
 
     num_examples = new_actual_hr_matrix_w_m02.shape[0]
     new_predicted_hr_matrix_w_m02 = numpy.full(
