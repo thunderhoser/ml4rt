@@ -30,10 +30,12 @@ set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gf
 
 set FIRST_DATE_STRINGS=("20200101" "20200126" "20200219")
 set LAST_DATE_STRINGS=("20200125" "20200218" "20200313")
+set PART_NUMBERS=("04" "05" "06")
 
 set first_date_string=${FIRST_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
 set last_date_string=${LAST_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
-set output_file_name="${OUTPUT_DIR_NAME}/learning_examples_2020_part${SLURM_ARRAY_TASK_ID}.nc"
+set part_number=${PART_NUMBERS[$SLURM_ARRAY_TASK_ID]}
+set output_file_name="${OUTPUT_DIR_NAME}/learning_examples_2020_part${part_number}.nc"
 
 python3 -u "${CODE_DIR_NAME}/process_rrtm_files.py" \
 --input_rrtm_dir_name="${INPUT_DIR_NAME}" \
