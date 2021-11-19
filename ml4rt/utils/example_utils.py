@@ -586,6 +586,13 @@ def multiply_preds_by_layer_thickness(example_dict):
         if this_predictor_name not in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
             continue
 
+        print((
+            'Multiplying {0:s} by layer thickness (mean thickness = '
+            '{1:.2f} m)...'
+        ).format(
+            this_predictor_name, numpy.mean(width_matrix_metres)
+        ))
+
         this_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(
             this_predictor_name
         )

@@ -19,6 +19,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
          input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
          predictor_names, target_names, heights_m_agl,
+         multiply_preds_by_layer_thickness,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
          normalization_file_name, predictor_norm_type_string,
@@ -40,6 +41,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
     :param predictor_names: Same.
     :param target_names: Same.
     :param heights_m_agl: Same.
+    :param multiply_preds_by_layer_thickness: Same.
     :param first_training_time_string: Same.
     :param last_training_time_string: Same.
     :param first_validn_time_string: Same.
@@ -120,6 +122,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         neural_net.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
         neural_net.VECTOR_TARGET_NAMES_KEY: vector_target_names,
         neural_net.HEIGHTS_KEY: heights_m_agl,
+        neural_net.MULTIPLY_BY_THICKNESS_KEY: multiply_preds_by_layer_thickness,
         neural_net.NORMALIZATION_FILE_KEY: normalization_file_name,
         neural_net.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
         neural_net.PREDICTOR_MIN_NORM_VALUE_KEY: predictor_min_norm_value,
@@ -220,6 +223,9 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, training_args.HEIGHTS_ARG_NAME),
             dtype=float
         ),
+        multiply_preds_by_layer_thickness=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.MULTIPLY_BY_THICKNESS_ARG_NAME
+        )),
         first_training_time_string=getattr(
             INPUT_ARG_OBJECT, training_args.FIRST_TRAIN_TIME_ARG_NAME
         ),

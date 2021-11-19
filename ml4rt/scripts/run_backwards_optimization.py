@@ -223,6 +223,8 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     )
     init_example_dict.update(this_example_dict)
 
+    # TODO(thunderhoser): This will return weird values if predictors were
+    # originally multiplied by layer thickness before normalizing.
     if generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] is not None:
         init_example_dict = normalization.denormalize_data(
             new_example_dict=init_example_dict,
@@ -251,6 +253,8 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     )
     final_example_dict.update(this_example_dict)
 
+    # TODO(thunderhoser): This will return weird values if predictors were
+    # originally multiplied by layer thickness before normalizing.
     if generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] is not None:
         final_example_dict = normalization.denormalize_data(
             new_example_dict=final_example_dict,
