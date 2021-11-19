@@ -141,6 +141,14 @@ AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 HEIGHT_NAME = 'height_m_agl'
 
+# TODO(thunderhoser): I'm a little unsure on relative humidity.
+PREDICTOR_NAMES_THICKNESS_MATTERS = [
+    SPECIFIC_HUMIDITY_NAME, RELATIVE_HUMIDITY_NAME, LIQUID_WATER_CONTENT_NAME,
+    ICE_WATER_CONTENT_NAME, O3_MIXING_RATIO_NAME, O2_CONCENTRATION_NAME,
+    CO2_CONCENTRATION_NAME, CH4_CONCENTRATION_NAME, N2O_CONCENTRATION_NAME,
+    AEROSOL_EXTINCTION_NAME
+]
+
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
     COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME,
@@ -556,6 +564,52 @@ def get_grid_cell_widths(edge_heights_m_agl):
     error_checking.assert_is_numpy_array(edge_heights_m_agl, num_dimensions=1)
 
     return numpy.diff(edge_heights_m_agl)
+
+
+def multiply_preds_by_layer_thickness(example_dict):
+    """Multiplies relevant predictors by layer thickness.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: example_dict: Same but with relevant predictors multiplied by
+        layer thickness.
+    """
+
+    height_matrix_m_agl = get_field_from_dict(
+        example_dict=example_dict, field_name=HEIGHT_NAME
+    )
+    num_examples = height_matrix_m_agl.shape[0]
+
+    edge_height_matrix_m_agl = numpy.vstack([
+        get_grid_cell_edges(height_matrix_m_agl[i, :])
+        for i in range(num_examples)
+    ])
+
+    width_matrix_metres = numpy.vstack([
+        get_grid_cell_widths(edge_height_matrix_m_agl[i, :])
+        for i in range(num_examples)
+    ])
+
+    for this_predictor_name in PREDICTOR_NAMES_THICKNESS_MATTERS:
+        if this_predictor_name not in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
+            continue
+
+        print((
+            'Multiplying {0:s} by layer thickness (mean thickness = '
+            '{1:.2f} m)...'
+        ).format(
+            this_predictor_name, numpy.mean(width_matrix_metres)
+        ))
+
+        this_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(
+            this_predictor_name
+        )
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index] = (
+            width_matrix_metres *
+            example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index]
+        )
+
+    return example_dict
 
 
 def heating_rate_to_fluxes(example_dict):
@@ -1736,14 +1790,14 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
         data_matrix = example_dict[VECTOR_TARGET_VALS_KEY][..., field_index]
 
     if height_m_agl is None:
-        return copy.deepcopy(data_matrix)
+        return data_matrix
 
     height_index = match_heights(
         heights_m_agl=example_dict[HEIGHTS_KEY],
         desired_height_m_agl=height_m_agl
     )
 
-    return copy.deepcopy(data_matrix[..., height_index])
+    return data_matrix[..., height_index]
 
 
 def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):

@@ -16,6 +16,7 @@ import example_utils
 
 INPUT_FILE_ARG_NAME = 'input_example_file_name'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
+MULTIPLY_BY_THICKNESS_ARG_NAME = 'multiply_preds_by_layer_thickness'
 PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
 PREDICTOR_MIN_VALUE_ARG_NAME = 'predictor_min_norm_value'
 PREDICTOR_MAX_VALUE_ARG_NAME = 'predictor_max_norm_value'
@@ -35,6 +36,10 @@ NORMALIZATION_FILE_HELP_STRING = (
     'Path to normalization file, containing unnormalized sample values that '
     'will be used to create uniform distributions.  Will be read by '
     '`example_io.read_file`.'
+)
+MULTIPLY_BY_THICKNESS_HELP_STRING = (
+    'Boolean flag.  If 1, predictors must be multiplied by layer thickness '
+    'before normalization.'
 )
 PREDICTOR_NORM_TYPE_HELP_STRING = (
     'Normalization type for predictors (must be accepted by '
@@ -86,6 +91,10 @@ INPUT_ARG_PARSER.add_argument(
     help=NORMALIZATION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + MULTIPLY_BY_THICKNESS_ARG_NAME, type=int, required=False, default=0,
+    help=MULTIPLY_BY_THICKNESS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + PREDICTOR_NORM_TYPE_ARG_NAME, type=str, required=False,
     default=normalization.Z_SCORE_NORM_STRING,
     help=PREDICTOR_NORM_TYPE_HELP_STRING
@@ -129,6 +138,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(input_example_file_name, normalization_file_name,
+         multiply_preds_by_layer_thickness,
          predictor_norm_type_string, predictor_min_norm_value,
          predictor_max_norm_value, vector_target_norm_type_string,
          vector_target_min_norm_value, vector_target_max_norm_value,
@@ -140,6 +150,7 @@ def _run(input_example_file_name, normalization_file_name,
 
     :param input_example_file_name: See documentation at top of file.
     :param normalization_file_name: Same.
+    :param multiply_preds_by_layer_thickness: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
@@ -173,6 +184,14 @@ def _run(input_example_file_name, normalization_file_name,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
+
+    if multiply_preds_by_layer_thickness:
+        example_dict = example_utils.multiply_preds_by_layer_thickness(
+            example_dict
+        )
+        training_example_dict = example_utils.multiply_preds_by_layer_thickness(
+            training_example_dict
+        )
 
     if predictor_norm_type_string == '':
         predictor_norm_type_string = None
@@ -256,6 +275,9 @@ if __name__ == '__main__':
         input_example_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
         normalization_file_name=getattr(
             INPUT_ARG_OBJECT, NORMALIZATION_FILE_ARG_NAME
+        ),
+        multiply_preds_by_layer_thickness=bool(
+            getattr(INPUT_ARG_OBJECT, MULTIPLY_BY_THICKNESS_ARG_NAME)
         ),
         predictor_norm_type_string=getattr(
             INPUT_ARG_OBJECT, PREDICTOR_NORM_TYPE_ARG_NAME
