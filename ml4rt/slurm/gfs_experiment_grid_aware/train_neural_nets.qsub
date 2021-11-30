@@ -23,7 +23,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_batch_size_orig_heights/template"
+set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_grid_aware/templates"
 set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_grid_aware"
 
 set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/training/learning_examples_for_norm_20200103-20200313.nc"
@@ -46,7 +46,7 @@ set num_batches_per_epoch_string=`printf "%04d" $num_batches_per_epoch`
 set use_height_flag_string=`printf "%1d" $use_height_flag`
 set multiply_by_thickness_flag_string=`printf "%1d" $multiply_by_thickness_flag`
 
-set template_file_name="${TEMPLATE_DIR_NAME}/model.h5"
+set template_file_name="${TEMPLATE_DIR_NAME}/model_use-height=${use_height_flag_string}.h5"
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}"
 echo $output_dir_name
 
