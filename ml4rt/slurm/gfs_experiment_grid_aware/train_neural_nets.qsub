@@ -87,8 +87,8 @@ if ($use_height_flag > 0) then
 else
     python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
     --net_type_string="u_net" \
-    --input_training_dir_name="${TRAINING_DIR_NAME}" \
-    --input_validation_dir_name="${VALIDATION_DIR_NAME}" \
+    --input_training_dir_name="${training_dir_name}" \
+    --input_validation_dir_name="${validation_dir_name}" \
     --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
     --input_model_file_name="${template_file_name}" \
     --output_model_dir_name="${output_dir_name}" \
