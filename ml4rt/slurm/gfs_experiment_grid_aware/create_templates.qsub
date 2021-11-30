@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="create_template"
+#SBATCH --job-name="create_templates"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -20,4 +20,4 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 
-python3 -u "${CODE_DIR_NAME}/make_template_gfs_exp_grid_aware.py"
+python3 -u "${CODE_DIR_NAME}/make_templates_gfs_exp_grid_aware.py"
