@@ -21,7 +21,7 @@ import example_utils
 TOLERANCE = 1e-6
 PASCALS_TO_MB = 0.01
 
-MARKER_SIZE = 1
+MARKER_SIZE = 2
 MARKER_TYPE = 'o'
 MARKER_FACE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 MARKER_EDGE_COLOUR = MARKER_FACE_COLOUR
@@ -41,7 +41,7 @@ pyplot.rc('legend', fontsize=FONT_SIZE)
 pyplot.rc('figure', titlesize=FONT_SIZE)
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
-EXAMPLE_DIR_ARG_NAME = 'input_predictor_dir_name'
+EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 HEIGHT_ARG_NAME = 'height_m_agl'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
