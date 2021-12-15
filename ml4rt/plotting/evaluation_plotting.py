@@ -733,6 +733,69 @@ def plot_error_distribution(
     axes_object.set_xticks([], [])
 
 
+def plot_error_dist_many_pressures(
+        error_matrix, pressures_pa, min_error_to_plot, max_error_to_plot,
+        axes_object):
+    """Plots error distribution at each pressure level on the same axes.
+
+    E = number of examples
+    P = number of pressure levels
+
+    :param error_matrix: E-by-P numpy array of signed errors.
+    :param pressures_pa: length-P numpy array of pressures (Pascals).
+    :param min_error_to_plot: Lower limit for x-axis.
+    :param max_error_to_plot: Upper limit for x-axis.
+    :param axes_object: Will plot on these axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(error_matrix)
+    error_checking.assert_is_numpy_array(error_matrix, num_dimensions=2)
+
+    num_pressures = error_matrix.shape[1]
+    error_checking.assert_is_greater_numpy_array(pressures_pa, 0.)
+    error_checking.assert_is_numpy_array(
+        pressures_pa, exact_dimensions=numpy.array([num_pressures], dtype=int)
+    )
+
+    error_checking.assert_is_greater(max_error_to_plot, min_error_to_plot)
+
+    boxplot_style_dict = {
+        'color': 'k',
+        'linewidth': 2
+    }
+
+    y_values = numpy.linspace(
+        0, num_pressures - 1, num=num_pressures, dtype=float
+    )
+
+    for j in range(num_pressures):
+        axes_object.boxplot(
+            error_matrix[:, j], widths=0.9, vert=False, notch=False, sym='o',
+            whis=(5, 95),
+            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+            positions=y_values[[j]]
+        )
+
+    axes_object.set_xlim(min_error_to_plot, max_error_to_plot)
+
+    y_tick_strings = profile_plotting.create_height_labels(
+        tick_values_km_agl=pressures_pa * PASCALS_TO_MB,
+        use_log_scale=False
+    )
+
+    for j in range(len(y_tick_strings)):
+        if numpy.mod(j, 5) == 0:
+            continue
+
+        y_tick_strings[j] = ' '
+
+    axes_object.set_yticklabels(y_tick_strings)
+    axes_object.set_ylabel('Pressure (mb)')
+    axes_object.invert_yaxis()
+
+
 def plot_error_dist_many_heights(
         error_matrix, heights_m_agl, min_error_to_plot, max_error_to_plot,
         axes_object):

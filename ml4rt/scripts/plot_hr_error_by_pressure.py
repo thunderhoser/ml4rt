@@ -252,7 +252,9 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     bias_profile_k_day01 = numpy.full(num_bins_for_profiles, numpy.nan)
     correlation_profile = numpy.full(num_bins_for_profiles, numpy.nan)
     mae_profile_k_day01 = numpy.full(num_bins_for_profiles, numpy.nan)
+    mae_skill_score_profile = numpy.full(num_bins_for_profiles, numpy.nan)
     mse_profile_k2_day02 = numpy.full(num_bins_for_profiles, numpy.nan)
+    mse_skill_score_profile = numpy.full(num_bins_for_profiles, numpy.nan)
     kge_profile = numpy.full(num_bins_for_profiles, numpy.nan)
 
     target_matrix_k_day01 = (
@@ -262,11 +264,13 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]
     )
 
+    num_examples_per_bin = int(1e10)
+
     for k in range(num_bins_for_profiles):
         if numpy.mod(k, 10) == 0:
             print((
-                'Have computed heating-rate error for {0:d} of {1:d} pressure '
-                'bins...'
+                'Have computed heating-rate errors (first pass) for {0:d} of '
+                '{1:d} pressure bins...'
             ).format(
                 k, num_bins_for_profiles
             ))
@@ -280,6 +284,10 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
                 pressure_matrix_pa >= bin_edges_pa[k],
                 pressure_matrix_pa < bin_edges_pa[k + 1]
             ))
+
+        num_examples_per_bin = min([
+            num_examples_per_bin, len(these_i)
+        ])
 
         bias_profile_k_day01[k] = evaluation._get_bias_one_scalar(
             target_values=target_matrix_k_day01[these_i, these_j],
@@ -302,8 +310,54 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
             predicted_values=prediction_matrix_k_day01[these_i, these_j]
         )
 
+        # TODO(thunderhoser): These are not true skill scores, because the climo
+        # value comes from the evaluation data, not the training data.  I am
+        # just being lazy for now.
+        mae_skill_score_profile[k] = evaluation._get_mae_ss_one_scalar(
+            target_values=target_matrix_k_day01[these_i, these_j],
+            predicted_values=prediction_matrix_k_day01[these_i, these_j],
+            mean_training_target_value=
+            numpy.mean(target_matrix_k_day01[these_i, these_j])
+        )
+        mse_skill_score_profile[k] = evaluation._get_mse_ss_one_scalar(
+            target_values=target_matrix_k_day01[these_i, these_j],
+            predicted_values=prediction_matrix_k_day01[these_i, these_j],
+            mean_training_target_value=
+            numpy.mean(target_matrix_k_day01[these_i, these_j])
+        )
+
+    error_matrix_k_day01 = numpy.full(
+        (num_examples_per_bin, num_bins_for_profiles), numpy.nan
+    )
+    print('\n')
+
+    for k in range(num_bins_for_profiles):
+        if numpy.mod(k, 10) == 0:
+            print((
+                'Have computed heating-rate errors (second pass) for {0:d} of '
+                '{1:d} pressure bins...'
+            ).format(
+                k, num_bins_for_profiles
+            ))
+
+        if k == num_bins_for_profiles - 1:
+            these_i, these_j = numpy.where(
+                pressure_matrix_pa >= bin_edges_pa[k]
+            )
+        else:
+            these_i, these_j = numpy.where(numpy.logical_and(
+                pressure_matrix_pa >= bin_edges_pa[k],
+                pressure_matrix_pa < bin_edges_pa[k + 1]
+            ))
+
+        these_errors_k_day01 = (
+            prediction_matrix_k_day01[these_i, these_j] -
+            target_matrix_k_day01[these_i, these_j]
+        )
+        error_matrix_k_day01[:, k] = these_errors_k_day01[:num_examples_per_bin]
+
     print((
-        'Have computed heating-rate error for all {0:d} pressure bins!\n'
+        'Have computed heating-rate errors for all {0:d} pressure bins!\n'
     ).format(num_bins_for_profiles))
 
     figure_object, axes_object = pyplot.subplots(
@@ -394,6 +448,69 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     axes_object.set_xlabel('Kling-Gupta efficiency')
 
     figure_file_name = '{0:s}/kge_profile.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    eval_plotting.plot_score_profile_by_pressure(
+        pressures_pa=bin_centers_pa, score_values=mae_skill_score_profile,
+        score_name=eval_plotting.MAE_SKILL_SCORE_NAME,
+        line_colour=PROFILE_COLOUR, line_width=2,
+        axes_object=axes_object, are_axes_new=True
+    )
+    axes_object.set_title('Heating-rate MAESS vs. pressure')
+    axes_object.set_xlabel('Mean absolute error (MAE) skill score')
+
+    figure_file_name = '{0:s}/mae_skill_score_profile.jpg'.format(
+        output_dir_name
+    )
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    eval_plotting.plot_score_profile_by_pressure(
+        pressures_pa=bin_centers_pa, score_values=mse_skill_score_profile,
+        score_name=eval_plotting.MSE_SKILL_SCORE_NAME,
+        line_colour=PROFILE_COLOUR, line_width=2,
+        axes_object=axes_object, are_axes_new=True
+    )
+    axes_object.set_title('Heating-rate MSESS vs. pressure')
+    axes_object.set_xlabel('Mean squared error (MSE) skill score')
+
+    figure_file_name = '{0:s}/mse_skill_score_profile.jpg'.format(
+        output_dir_name
+    )
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    eval_plotting.plot_error_dist_many_pressures(
+        error_matrix=error_matrix_k_day01, pressures_pa=bin_centers_pa,
+        min_error_to_plot=numpy.percentile(error_matrix_k_day01, 1.),
+        max_error_to_plot=numpy.percentile(error_matrix_k_day01, 99.),
+        axes_object=axes_object
+    )
+    axes_object.set_title(r'Error distribution for heating rate (K day$^{-1}$')
+
+    figure_file_name = '{0:s}/boxplot_profile.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(figure_file_name))
     figure_object.savefig(
         figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
