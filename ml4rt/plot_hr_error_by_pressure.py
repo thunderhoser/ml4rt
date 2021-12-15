@@ -1,14 +1,22 @@
 """Plots heating-rate error as a fcn of pressure, using scatter plot."""
 
+import os
+import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.io import prediction_io
-from ml4rt.io import example_io
-from ml4rt.utils import example_utils
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import prediction_io
+import example_io
+import example_utils
 
 TOLERANCE = 1e-6
 PASCALS_TO_MB = 0.01
