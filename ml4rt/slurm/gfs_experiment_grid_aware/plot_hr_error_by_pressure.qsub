@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_hr_error_scatter"
+#SBATCH --job-name="plot_hr_error_by_pressure"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -13,7 +13,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_hr_error_scatter_%A_%a.out
+#SBATCH --output=plot_hr_error_by_pressure_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -53,5 +53,6 @@ set prediction_file_name="${validation_dir_name}/predictions.nc"
 python3 -u "${CODE_DIR_NAME}/plot_hr_error_by_pressure.py" \
 --input_prediction_file_name="${prediction_file_name}" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
---height_m_agl=21 \
---output_dir_name="${validation_dir_name}/hr_error_scatterplots"
+--scatterplot_height_m_agl=21 \
+--num_bins_for_profiles=127 \
+--output_dir_name="${validation_dir_name}/hr_error_by_pressure"

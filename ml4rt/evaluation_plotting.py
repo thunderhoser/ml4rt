@@ -23,6 +23,7 @@ import profile_plotting
 # of scripts.
 
 METRES_TO_KM = 0.001
+PASCALS_TO_MB = 0.01
 
 MSE_NAME = 'mean_squared_error'
 MSE_SKILL_SCORE_NAME = 'mse_skill_score'
@@ -608,6 +609,105 @@ def plot_score_profile(
     )
     axes_object.set_yticklabels(y_tick_strings)
     axes_object.set_ylabel('Height (km AGL)')
+
+    return main_line_handle
+
+
+def plot_score_profile_by_pressure(
+        pressures_pa, score_values, score_name, line_colour, line_width,
+        axes_object, are_axes_new, line_style='solid'):
+    """Plots vertical profile of one score, using pressure as height coord.
+
+    P = number of pressures
+
+    :param pressures_pa: length-P numpy array of pressures (Pascals).
+    :param score_values: length-P numpy array with values of score.
+    :param score_name: Name of score (must be accepted by `_check_score_name`).
+    :param line_colour: Line colour (in any format accepted by matplotlib).
+    :param line_width: Line width (in any format accepted by matplotlib).
+    :param axes_object: Will plot on these axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    :param are_axes_new: Boolean flag.  If True, axes are new (do not already
+        contain plot).
+    :param line_style: Line style (in any format accepted by matplotlib).
+    :return: main_line_handle: Handle for main line (score profile).
+    """
+
+    error_checking.assert_is_numpy_array(pressures_pa, num_dimensions=1)
+    error_checking.assert_is_greater_numpy_array(pressures_pa, 0.)
+
+    num_pressures = len(pressures_pa)
+    error_checking.assert_is_numpy_array(
+        score_values, exact_dimensions=numpy.array([num_pressures], dtype=int)
+    )
+
+    _check_score_name(score_name)
+    error_checking.assert_is_boolean(are_axes_new)
+
+    if are_axes_new:
+        orig_x_limits = []
+        orig_y_limits = []
+    else:
+        orig_x_limits = axes_object.get_xlim()
+        orig_y_limits = axes_object.get_ylim()
+
+    axes_object.set_yscale('log')
+
+    pressures_mb = pressures_pa * PASCALS_TO_MB
+    min_pressure_mb = numpy.min(pressures_mb)
+    max_pressure_mb = numpy.max(pressures_mb)
+
+    if not are_axes_new:
+        min_pressure_mb = numpy.minimum(min_pressure_mb, orig_y_limits[0])
+        max_pressure_mb = numpy.maximum(max_pressure_mb, orig_y_limits[1])
+
+    skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
+    possibly_negative_score_names = (
+        skill_score_names + [BIAS_NAME, CORRELATION_NAME, KGE_NAME]
+    )
+
+    if score_name in possibly_negative_score_names:
+        reference_x_coords = numpy.full(2, 0.)
+        reference_y_coords = numpy.array(
+            [min_pressure_mb, max_pressure_mb], dtype=float
+        )
+
+        axes_object.plot(
+            reference_x_coords, reference_y_coords, color=REFERENCE_LINE_COLOUR,
+            linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
+        )
+
+    finite_indices = numpy.where(numpy.isfinite(score_values))[0]
+
+    main_line_handle = axes_object.plot(
+        score_values[finite_indices], pressures_mb[finite_indices],
+        color=line_colour, linestyle=line_style, linewidth=line_width
+    )[0]
+
+    x_max = numpy.maximum(
+        numpy.max(score_values[finite_indices]), 0.
+    )
+
+    if not are_axes_new:
+        x_max = numpy.maximum(x_max, orig_x_limits[1])
+
+    if score_name in possibly_negative_score_names:
+        x_min = numpy.minimum(
+            numpy.min(score_values[finite_indices]), 0.
+        )
+
+        if not are_axes_new:
+            x_min = numpy.minimum(x_min, orig_x_limits[0])
+
+        if score_name in skill_score_names:
+            x_min = numpy.maximum(x_min, -1.)
+    else:
+        x_min = 0.
+
+    axes_object.set_xlim(x_min, x_max)
+    axes_object.set_ylim(min_pressure_mb, max_pressure_mb)
+    axes_object.invert_yaxis()
+    axes_object.set_ylabel('Pressure (mb)')
 
     return main_line_handle
 
