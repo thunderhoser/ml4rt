@@ -1,277 +1,314 @@
 """Helper methods for plotting (mostly 2-D georeferenced maps)."""
 
+import os
 import sys
-import os.path
+import shutil
 import numpy
+from PIL import Image
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as pyplot
-import matplotlib.colors
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import number_rounding
+import longitude_conversion as lng_conversion
+import file_system_utils
 import error_checking
+import gg_plotting_utils
+import imagemagick_utils
 
-DEFAULT_FIGURE_WIDTH_INCHES = 15.
-DEFAULT_FIGURE_HEIGHT_INCHES = 15.
+FIGURE_RESOLUTION_DPI = 300
+CONCAT_FIGURE_SIZE_PX = int(1e7)
 
-DEFAULT_LABEL_FONT_SIZE = 50
-DEFAULT_LABEL_FONT_COLOUR = numpy.full(3, 0.)
-DEFAULT_LABEL_X_NORMALIZED = 0.
-DEFAULT_LABEL_Y_NORMALIZED = 1.
+GRID_LINE_WIDTH = 1.
+GRID_LINE_COLOUR = numpy.full(3, 0.)
+DEFAULT_PARALLEL_SPACING_DEG = 2.
+DEFAULT_MERIDIAN_SPACING_DEG = 2.
 
-VERTICAL_CBAR_PADDING = 0.05
-HORIZONTAL_CBAR_PADDING = 0.075
-DEFAULT_CBAR_ORIENTATION_STRING = 'horizontal'
+DEFAULT_BORDER_WIDTH = 2.
+DEFAULT_BORDER_Z_ORDER = -1e8
+DEFAULT_BORDER_COLOUR = numpy.array([139, 69, 19], dtype=float) / 255
 
-FONT_SIZE = 30
-pyplot.rc('font', size=FONT_SIZE)
-pyplot.rc('axes', titlesize=FONT_SIZE)
-pyplot.rc('axes', labelsize=FONT_SIZE)
-pyplot.rc('xtick', labelsize=FONT_SIZE)
-pyplot.rc('ytick', labelsize=FONT_SIZE)
-pyplot.rc('legend', fontsize=FONT_SIZE)
-pyplot.rc('figure', titlesize=FONT_SIZE)
+DEFAULT_FONT_SIZE = 30
+pyplot.rc('font', size=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
+pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
 
-def colour_from_numpy_to_tuple(input_colour):
-    """Converts colour from numpy array to tuple (if necessary).
+def plot_grid_lines(
+        plot_latitudes_deg_n, plot_longitudes_deg_e, axes_object,
+        parallel_spacing_deg=DEFAULT_PARALLEL_SPACING_DEG,
+        meridian_spacing_deg=DEFAULT_MERIDIAN_SPACING_DEG,
+        font_size=DEFAULT_FONT_SIZE):
+    """Adds grid lines (parallels and meridians) to plot.
 
-    :param input_colour: Colour (possibly length-3 or length-4 numpy array).
-    :return: output_colour: Colour (possibly length-3 or length-4 tuple).
+    :param plot_latitudes_deg_n: 1-D numpy array of latitudes in plot (deg N).
+    :param plot_longitudes_deg_e: 1-D numpy array of longitudes in plot (deg E).
+    :param axes_object: Axes handle (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    :param parallel_spacing_deg: Spacing between adjacent parallels.
+    :param meridian_spacing_deg: Spacing between adjacent meridians.
+    :param font_size: Font size.
     """
 
-    if not isinstance(input_colour, numpy.ndarray):
-        return input_colour
-
-    error_checking.assert_is_numpy_array(input_colour, num_dimensions=1)
-
-    num_entries = len(input_colour)
-    error_checking.assert_is_geq(num_entries, 3)
-    error_checking.assert_is_leq(num_entries, 4)
-
-    return tuple(input_colour.tolist())
-
-
-def create_paneled_figure(
-        num_rows, num_columns, figure_width_inches=DEFAULT_FIGURE_WIDTH_INCHES,
-        figure_height_inches=DEFAULT_FIGURE_HEIGHT_INCHES,
-        horizontal_spacing=0.075, vertical_spacing=0., shared_x_axis=False,
-        shared_y_axis=False, keep_aspect_ratio=True):
-    """Creates paneled figure.
-
-    This method only initializes the panels.  It does not plot anything.
-
-    J = number of panel rows
-    K = number of panel columns
-
-    :param num_rows: J in the above discussion.
-    :param num_columns: K in the above discussion.
-    :param figure_width_inches: Width of the entire figure (including all
-        panels).
-    :param figure_height_inches: Height of the entire figure (including all
-        panels).
-    :param horizontal_spacing: Spacing (in figure-relative coordinates, from
-        0...1) between adjacent panel columns.
-    :param vertical_spacing: Spacing (in figure-relative coordinates, from
-        0...1) between adjacent panel rows.
-    :param shared_x_axis: Boolean flag.  If True, all panels will share the same
-        x-axis.
-    :param shared_y_axis: Boolean flag.  If True, all panels will share the same
-        y-axis.
-    :param keep_aspect_ratio: Boolean flag.  If True, the aspect ratio of each
-        panel will be preserved (reflect the aspect ratio of the data plotted
-        therein).
-    :return: figure_object: Figure handle (instance of
-        `matplotlib.figure.Figure`).
-    :return: axes_object_matrix: J-by-K numpy array of axes handles (instances
-        of `matplotlib.axes._subplots.AxesSubplot`).
-    """
-
-    error_checking.assert_is_geq(horizontal_spacing, 0.)
-    error_checking.assert_is_less_than(horizontal_spacing, 1.)
-    error_checking.assert_is_geq(vertical_spacing, 0.)
-    error_checking.assert_is_less_than(vertical_spacing, 1.)
-    error_checking.assert_is_boolean(shared_x_axis)
-    error_checking.assert_is_boolean(shared_y_axis)
-    error_checking.assert_is_boolean(keep_aspect_ratio)
-
-    figure_object, axes_object_matrix = pyplot.subplots(
-        num_rows, num_columns, sharex=shared_x_axis, sharey=shared_y_axis,
-        figsize=(figure_width_inches, figure_height_inches)
+    error_checking.assert_is_numpy_array(plot_latitudes_deg_n, num_dimensions=1)
+    error_checking.assert_is_valid_lat_numpy_array(plot_latitudes_deg_n)
+    error_checking.assert_is_numpy_array(
+        plot_longitudes_deg_e, num_dimensions=1
+    )
+    plot_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        plot_longitudes_deg_e, allow_nan=False
     )
 
-    if num_rows == num_columns == 1:
-        axes_object_matrix = numpy.full(
-            (1, 1), axes_object_matrix, dtype=object
+    error_checking.assert_is_greater(parallel_spacing_deg, 0.)
+    error_checking.assert_is_greater(meridian_spacing_deg, 0.)
+    error_checking.assert_is_greater(font_size, 0.)
+
+    parallels_deg_n = numpy.unique(number_rounding.round_to_nearest(
+        plot_latitudes_deg_n, parallel_spacing_deg
+    ))
+    parallels_deg_n = parallels_deg_n[
+        parallels_deg_n >= numpy.min(plot_latitudes_deg_n)
+    ]
+    parallels_deg_n = parallels_deg_n[
+        parallels_deg_n <= numpy.max(plot_latitudes_deg_n)
+    ]
+    parallel_label_strings = [
+        '{0:.1f}'.format(p) if parallel_spacing_deg < 1.
+        else '{0:d}'.format(int(numpy.round(p)))
+        for p in parallels_deg_n
+    ]
+    parallel_label_strings = [
+        s + r'$^{\circ}$' for s in parallel_label_strings
+    ]
+
+    meridians_deg_e = numpy.unique(
+        number_rounding.round_to_nearest(
+            plot_longitudes_deg_e, meridian_spacing_deg
         )
+    )
+    meridians_deg_e = meridians_deg_e[
+        meridians_deg_e >= numpy.min(plot_longitudes_deg_e)
+    ]
+    meridians_deg_e = meridians_deg_e[
+        meridians_deg_e <= numpy.max(plot_longitudes_deg_e)
+    ]
+    meridian_label_strings = [
+        '{0:.1f}'.format(m) if meridian_spacing_deg < 1.
+        else '{0:d}'.format(int(numpy.round(m)))
+        for m in meridians_deg_e
+    ]
+    meridian_label_strings = [
+        s + r'$^{\circ}$' for s in meridian_label_strings
+    ]
 
-    if num_rows == 1 or num_columns == 1:
-        axes_object_matrix = numpy.reshape(
-            axes_object_matrix, (num_rows, num_columns)
-        )
+    axes_object.set_yticks(parallels_deg_n)
+    axes_object.set_yticklabels(
+        parallel_label_strings, fontdict={'fontsize': font_size}
+    )
 
-    pyplot.subplots_adjust(
-        left=0.02, bottom=0.02, right=0.98, top=0.95,
-        hspace=horizontal_spacing, wspace=vertical_spacing)
+    axes_object.set_xticks(meridians_deg_e)
+    axes_object.set_xticklabels(
+        meridian_label_strings, fontdict={'fontsize': font_size},
+        rotation=90.
+    )
 
-    if not keep_aspect_ratio:
-        return figure_object, axes_object_matrix
+    axes_object.grid(
+        b=True, which='major', axis='both', linestyle='--',
+        linewidth=GRID_LINE_WIDTH, color=GRID_LINE_COLOUR
+    )
 
-    for i in range(num_rows):
-        for j in range(num_columns):
-            axes_object_matrix[i][j].set(aspect='equal')
+    axes_object.set_xlim(
+        numpy.min(plot_longitudes_deg_e), numpy.max(plot_longitudes_deg_e)
+    )
+    axes_object.set_ylim(
+        numpy.min(plot_latitudes_deg_n), numpy.max(plot_latitudes_deg_n)
+    )
 
-    return figure_object, axes_object_matrix
 
+def plot_borders(
+        border_latitudes_deg_n, border_longitudes_deg_e, axes_object,
+        line_colour=DEFAULT_BORDER_COLOUR, line_width=DEFAULT_BORDER_WIDTH,
+        z_order=DEFAULT_BORDER_Z_ORDER):
+    """Adds borders to plot.
 
-def plot_colour_bar(
-        axes_object_or_matrix, data_matrix, colour_map_object,
-        colour_norm_object, orientation_string=DEFAULT_CBAR_ORIENTATION_STRING,
-        padding=None, extend_min=True, extend_max=True,
-        fraction_of_axis_length=1., font_size=FONT_SIZE):
-    """Plots colour bar.
+    P = number of points in border set
 
-    :param axes_object_or_matrix: Either one axis handle (instance of
-        `matplotlib.axes._subplots.AxesSubplot`) or a numpy array thereof.
-    :param data_matrix: numpy array of values to which the colour map applies.
-    :param colour_map_object: Colour map (instance of `matplotlib.pyplot.cm` or
-        similar).
-    :param colour_norm_object: Colour normalization (maps from data space to
-        colour-bar space, which goes from 0...1).  This should be an instance of
-        `matplotlib.colors.Normalize`.
-    :param orientation_string: Orientation ("vertical" or "horizontal").
-    :param padding: Padding between colour bar and main plot (in range 0...1).
-        To use the default (there are different defaults for vertical and horiz
-        colour bars), leave this alone.
-    :param extend_min: Boolean flag.  If True, values below the minimum
-        specified by `colour_norm_object` are possible, so the colour bar will
-        be plotted with an arrow at the bottom.
-    :param extend_max: Boolean flag.  If True, values above the max specified by
-        `colour_norm_object` are possible, so the colour bar will be plotted
-        with an arrow at the top.
-    :param fraction_of_axis_length: The colour bar will take up this fraction of
-        the axis length (x-axis if orientation_string = "horizontal", y-axis if
-        orientation_string = "vertical").
-    :param font_size: Font size for tick marks on colour bar.
-    :return: colour_bar_object: Colour-bar handle (instance of
-        `matplotlib.pyplot.colorbar`).
+    :param border_latitudes_deg_n: length-P numpy array of latitudes (deg N).
+    :param border_longitudes_deg_e: length-P numpy array of longitudes (deg E).
+    :param axes_object: Axes handle (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    :param line_colour: Line colour.
+    :param line_width: Line width.
+    :param z_order: z-order (lower values put borders near "back" of plot, and
+        higher values put borders near "front").
     """
 
-    error_checking.assert_is_real_numpy_array(data_matrix)
-    error_checking.assert_is_boolean(extend_min)
-    error_checking.assert_is_boolean(extend_max)
-    error_checking.assert_is_greater(fraction_of_axis_length, 0.)
-    # error_checking.assert_is_leq(fraction_of_axis_length, 1.)
-
-    scalar_mappable_object = pyplot.cm.ScalarMappable(
-        cmap=colour_map_object, norm=colour_norm_object
+    error_checking.assert_is_numpy_array(
+        border_latitudes_deg_n, num_dimensions=1
     )
-    scalar_mappable_object.set_array(data_matrix)
+    error_checking.assert_is_valid_lat_numpy_array(
+        border_latitudes_deg_n, allow_nan=True
+    )
 
-    if extend_min and extend_max:
-        extend_arg = 'both'
-    elif extend_min:
-        extend_arg = 'min'
-    elif extend_max:
-        extend_arg = 'max'
-    else:
-        extend_arg = 'neither'
+    expected_dim = numpy.array([len(border_latitudes_deg_n)], dtype=int)
+    error_checking.assert_is_numpy_array(
+        border_longitudes_deg_e, exact_dimensions=expected_dim
+    )
+    border_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        border_longitudes_deg_e, allow_nan=True
+    )
 
-    if padding is None:
-        if orientation_string == 'horizontal':
-            padding = HORIZONTAL_CBAR_PADDING
-        else:
-            padding = VERTICAL_CBAR_PADDING
-
-    # error_checking.assert_is_geq(padding, 0.)
-    # error_checking.assert_is_leq(padding, 1.)
-    error_checking.assert_is_real_number(padding)
-
-    if isinstance(axes_object_or_matrix, numpy.ndarray):
-        axes_arg = axes_object_or_matrix.ravel().tolist()
-    else:
-        axes_arg = axes_object_or_matrix
-
-    colour_bar_object = pyplot.colorbar(
-        ax=axes_arg, mappable=scalar_mappable_object,
-        orientation=orientation_string, pad=padding, extend=extend_arg,
-        shrink=fraction_of_axis_length)
-
-    colour_bar_object.ax.tick_params(labelsize=font_size)
-
-    if orientation_string == 'horizontal':
-        colour_bar_object.ax.set_xticklabels(
-            colour_bar_object.ax.get_xticklabels(), rotation=90
-        )
-
-    return colour_bar_object
+    axes_object.plot(
+        border_longitudes_deg_e, border_latitudes_deg_n, color=line_colour,
+        linestyle='solid', linewidth=line_width, zorder=z_order
+    )
 
 
-def plot_linear_colour_bar(
-        axes_object_or_matrix, data_matrix, colour_map_object, min_value,
-        max_value, orientation_string=DEFAULT_CBAR_ORIENTATION_STRING,
-        padding=None, extend_min=True, extend_max=True,
-        fraction_of_axis_length=1., font_size=FONT_SIZE):
-    """Plots colour bar with linear scale.
+def add_colour_bar(
+        figure_file_name, colour_map_object, colour_norm_object,
+        orientation_string, font_size, cbar_label_string,
+        tick_label_format_string='{0:.2g}', temporary_cbar_file_name=None):
+    """Adds colour bar to saved image file.
 
-    :param axes_object_or_matrix: See doc for `plot_colour_bar`.
-    :param data_matrix: Same.
-    :param colour_map_object: Same.
-    :param min_value: Minimum value in colour bar.
-    :param max_value: Max value in colour bar.
-    :param orientation_string: See doc for `plot_colour_bar`.
-    :param padding: Same.
-    :param extend_min: Same.
-    :param extend_max: Same.
-    :param fraction_of_axis_length: Same.
+    :param figure_file_name: Path to saved image file.  Colour bar will be added
+        to this image.
+    :param colour_map_object: See doc for `gg_plotting_utils.plot_colour_bar`.
+    :param colour_norm_object: Same.
+    :param orientation_string: Same.
     :param font_size: Same.
-    :return: colour_bar_object: Same.
+    :param cbar_label_string: Label for colour bar.
+    :param tick_label_format_string: Number format for tick labels.  A valid
+        example is '{0:.2g}'.
+    :param temporary_cbar_file_name: Path to temporary image file where colour
+        bar will be saved.  If None, will determine this on the fly.
     """
 
-    error_checking.assert_is_greater(max_value, min_value)
-    colour_norm_object = matplotlib.colors.Normalize(
-        vmin=min_value, vmax=max_value, clip=False)
+    this_image_matrix = Image.open(figure_file_name)
+    figure_width_px, figure_height_px = this_image_matrix.size
+    figure_width_inches = float(figure_width_px) / FIGURE_RESOLUTION_DPI
+    figure_height_inches = float(figure_height_px) / FIGURE_RESOLUTION_DPI
 
-    return plot_colour_bar(
-        axes_object_or_matrix=axes_object_or_matrix, data_matrix=data_matrix,
+    extra_figure_object, extra_axes_object = pyplot.subplots(
+        1, 1, figsize=(figure_width_inches, figure_height_inches)
+    )
+    extra_axes_object.axis('off')
+
+    if hasattr(colour_norm_object, 'boundaries'):
+        dummy_values = numpy.array([
+            colour_norm_object.boundaries[0], colour_norm_object.boundaries[-1]
+        ])
+    else:
+        dummy_values = numpy.array([
+            colour_norm_object.vmin, colour_norm_object.vmax
+        ])
+
+    colour_bar_object = gg_plotting_utils.plot_colour_bar(
+        axes_object_or_matrix=extra_axes_object, data_matrix=dummy_values,
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
-        orientation_string=orientation_string, padding=padding,
-        extend_min=extend_min, extend_max=extend_max,
-        fraction_of_axis_length=fraction_of_axis_length, font_size=font_size)
+        orientation_string=orientation_string,
+        extend_min=False, extend_max=False, fraction_of_axis_length=1.25,
+        font_size=font_size
+    )
+
+    tick_values = colour_bar_object.get_ticks()
+    if 'd' in tick_label_format_string:
+        tick_values = numpy.round(tick_values).astype(int)
+
+    tick_strings = [tick_label_format_string.format(v) for v in tick_values]
+    colour_bar_object.set_ticks(tick_values)
+    colour_bar_object.set_ticklabels(tick_strings)
+    colour_bar_object.set_label(cbar_label_string, fontsize=font_size)
+
+    if temporary_cbar_file_name is None:
+        temporary_cbar_file_name = '{0:s}_cbar.jpg'.format(
+            '.'.join(figure_file_name.split('.')[:-1])
+        )
+
+    extra_figure_object.savefig(
+        temporary_cbar_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(extra_figure_object)
+
+    print('Concatenating colour bar to: "{0:s}"...'.format(figure_file_name))
+
+    if orientation_string == 'vertical':
+        num_panel_rows = 1
+        num_panel_columns = 2
+    else:
+        num_panel_rows = 2
+        num_panel_columns = 1
+
+    imagemagick_utils.concatenate_images(
+        input_file_names=[figure_file_name, temporary_cbar_file_name],
+        output_file_name=figure_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns,
+        extra_args_string='-gravity Center'
+    )
+
+    os.remove(temporary_cbar_file_name)
+    imagemagick_utils.trim_whitespace(
+        input_file_name=figure_file_name, output_file_name=figure_file_name
+    )
 
 
-def label_axes(
-        axes_object, label_string, font_size=DEFAULT_LABEL_FONT_SIZE,
-        font_colour=DEFAULT_LABEL_FONT_COLOUR,
-        x_coord_normalized=DEFAULT_LABEL_X_NORMALIZED,
-        y_coord_normalized=DEFAULT_LABEL_Y_NORMALIZED):
-    """Adds text label to axes.
+def concat_panels(panel_file_names, concat_figure_file_name):
+    """Concatenates panels into one figure.
 
-    :param axes_object: Axes (instance of
-        `matplotlib.axes._subplots.AxesSubplot`).
-    :param label_string: Label.
-    :param font_size: Font size.
-    :param font_colour: Font colour.
-    :param x_coord_normalized: Normalized x-coordinate (from 0...1, where 1 is
-        the right side).
-    :param y_coord_normalized: Normalized y-coordinate (from 0...1, where 1 is
-        the top).
+    :param panel_file_names: 1-D list of paths to input image files.
+    :param concat_figure_file_name: Path to output image file.
     """
 
-    error_checking.assert_is_string(label_string)
-    # error_checking.assert_is_geq(x_coord_normalized, 0.)
-    # error_checking.assert_is_leq(x_coord_normalized, 1.)
-    # error_checking.assert_is_geq(y_coord_normalized, 0.)
-    # error_checking.assert_is_leq(y_coord_normalized, 1.)
-
-    axes_object.text(
-        x_coord_normalized, y_coord_normalized, label_string,
-        fontsize=font_size, color=colour_from_numpy_to_tuple(font_colour),
-        horizontalalignment='right', verticalalignment='bottom',
-        transform=axes_object.transAxes
+    error_checking.assert_is_string_list(panel_file_names)
+    error_checking.assert_is_string(concat_figure_file_name)
+    file_system_utils.mkdir_recursive_if_necessary(
+        file_name=concat_figure_file_name
     )
+
+    print('Concatenating panels to: "{0:s}"...'.format(
+        concat_figure_file_name
+    ))
+
+    num_panels = len(panel_file_names)
+    num_panel_rows = int(numpy.floor(
+        numpy.sqrt(num_panels)
+    ))
+    num_panel_columns = int(numpy.ceil(
+        float(num_panels) / num_panel_rows
+    ))
+
+    if num_panels == 1:
+        shutil.move(panel_file_names[0], concat_figure_file_name)
+    else:
+        imagemagick_utils.concatenate_images(
+            input_file_names=panel_file_names,
+            num_panel_rows=num_panel_rows,
+            num_panel_columns=num_panel_columns,
+            output_file_name=concat_figure_file_name
+        )
+
+    imagemagick_utils.resize_image(
+        input_file_name=concat_figure_file_name,
+        output_file_name=concat_figure_file_name,
+        output_size_pixels=CONCAT_FIGURE_SIZE_PX
+    )
+    imagemagick_utils.trim_whitespace(
+        input_file_name=concat_figure_file_name,
+        output_file_name=concat_figure_file_name
+    )
+
+    if num_panels == 1:
+        return
+
+    for this_panel_file_name in panel_file_names:
+        os.remove(this_panel_file_name)
