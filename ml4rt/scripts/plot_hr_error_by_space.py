@@ -329,7 +329,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     )
     latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
-    longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+    longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
         metadata_dict[example_utils.LONGITUDES_KEY]
     )
 
@@ -346,9 +346,6 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     border_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         border_longitudes_deg_e
     )
-    grid_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
-        grid_longitudes_deg_e
-    )
 
     grid_longitudes_deg_e += grid_spacing_deg / 2
     print(grid_longitudes_deg_e)
@@ -364,6 +361,9 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
             lng_spacing_deg=numpy.diff(grid_longitudes_deg_e[:2])[0],
             num_rows=num_grid_rows, num_columns=num_grid_columns
         )
+    )
+    grid_edge_longitudes_deg = lng_conversion.convert_lng_negative_in_west(
+        grid_edge_longitudes_deg
     )
 
     print(grid_edge_longitudes_deg)
@@ -451,6 +451,10 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
         num_grid_rows
     ))
     print(SEPARATOR_STRING)
+
+    grid_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        grid_longitudes_deg_e
+    )
 
     title_string = (
         'Bias at {0:d} m AGL for cells with >= {1:d} examples'
