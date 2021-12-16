@@ -337,7 +337,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     )
     latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
-    longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+    longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         metadata_dict[example_utils.LONGITUDES_KEY]
     )
 
@@ -349,6 +349,13 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
         min_longitude_deg_e=MIN_LONGITUDE_DEG_E,
         max_longitude_deg_e=MAX_LONGITUDE_DEG_E - grid_spacing_deg,
         longitude_spacing_deg=grid_spacing_deg
+    )
+
+    border_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        border_longitudes_deg_e
+    )
+    grid_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        grid_longitudes_deg_e
     )
 
     grid_longitudes_deg_e += grid_spacing_deg / 2
@@ -454,7 +461,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     print(SEPARATOR_STRING)
 
     title_string = (
-        'HR bias at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'Bias at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
@@ -469,7 +476,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'HR correlation at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'Correlation at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
@@ -484,7 +491,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'HR MAE at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'MAE at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
@@ -499,7 +506,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'HR MSE at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'MSE at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
@@ -514,7 +521,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'HR KGE at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'KGE at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
@@ -529,7 +536,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'HR MAESS at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'MAESS at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
@@ -544,7 +551,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'HR MSESS at {0:d} m AGL for grid cells with >= {1:d} examples'
+        'MSESS at {0:d} m AGL for cells with >= {1:d} examples'
     ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
