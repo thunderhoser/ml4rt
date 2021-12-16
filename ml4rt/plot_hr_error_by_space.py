@@ -260,6 +260,7 @@ def _plot_one_score(
         padding=0.01, font_size=FONT_SIZE
     )
 
+    colour_bar_object.set_label(score_name)
     tick_values = colour_bar_object.get_ticks()
     tick_strings = ['{0:.2g}'.format(v) for v in tick_values]
     colour_bar_object.set_ticks(tick_values)
@@ -453,8 +454,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     print(SEPARATOR_STRING)
 
     title_string = (
-        'Heating-rate bias for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR bias at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=bias_matrix_k_day01,
@@ -468,8 +469,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate correlation for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR correlation at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=correlation_matrix,
@@ -483,8 +484,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MAE for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR MAE at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mae_matrix_k_day01,
@@ -498,8 +499,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MSE for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR MSE at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mse_matrix_k2_day02,
@@ -513,8 +514,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate KGE for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR KGE at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=kge_matrix,
@@ -528,8 +529,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MAESS for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR MAESS at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mae_skill_score_matrix,
@@ -543,8 +544,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MSESS for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'HR MSESS at {0:d} m AGL for grid cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mse_skill_score_matrix,
