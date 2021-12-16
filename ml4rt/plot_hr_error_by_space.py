@@ -385,6 +385,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     mse_matrix_k2_day02 = numpy.full(dimensions, numpy.nan)
     mse_skill_score_matrix = numpy.full(dimensions, numpy.nan)
     kge_matrix = numpy.full(dimensions, numpy.nan)
+    num_examples_matrix = numpy.full(dimensions, -1, dtype=int)
 
     height_diffs_metres = numpy.absolute(
         prediction_dict[prediction_io.HEIGHTS_KEY] - height_m_agl
@@ -415,6 +416,7 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
                 row_index=i, column_index=j, verbose=False
             )
 
+            num_examples_matrix[i, j] = len(these_indices)
             if len(these_indices) < min_num_examples:
                 continue
 
@@ -567,6 +569,17 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
         colour_map_name=pyplot.get_cmap('seismic'),
         score_name=MSE_SKILL_SCORE_NAME, title_string=title_string,
         output_file_name='{0:s}/mse_skill_score.jpg'.format(output_dir_name)
+    )
+
+    _plot_one_score(
+        score_matrix=num_examples_matrix.astype(float),
+        grid_latitudes_deg_n=grid_latitudes_deg_n,
+        grid_longitudes_deg_e=grid_longitudes_deg_e,
+        border_latitudes_deg_n=border_latitudes_deg_n,
+        border_longitudes_deg_e=border_longitudes_deg_e,
+        colour_map_name=pyplot.get_cmap('viridis'),
+        score_name='', title_string='Number of examples',
+        output_file_name='{0:s}/num_examples.jpg'.format(output_dir_name)
     )
 
 
