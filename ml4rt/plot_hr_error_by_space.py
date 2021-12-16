@@ -199,7 +199,7 @@ def _plot_one_score(
     )
 
     colour_map_object = pyplot.get_cmap(colour_map_name)
-    colour_map_object.set_bad(numpy.full(3, 1.))
+    colour_map_object.set_bad(numpy.full(3, 152. / 255))
 
     if score_name == BIAS_NAME:
         max_colour_value = numpy.nanpercentile(
