@@ -252,6 +252,7 @@ def _plot_one_score(
         padding=0.01, font_size=FONT_SIZE
     )
 
+    colour_bar_object.set_label(score_name)
     tick_values = colour_bar_object.get_ticks()
     tick_strings = ['{0:.2g}'.format(v) for v in tick_values]
     colour_bar_object.set_ticks(tick_values)
@@ -327,9 +328,9 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     metadata_dict = example_utils.parse_example_ids(
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     )
-    latitudes_deg_n = metadata_dict[prediction_io.LATITUDES_KEY]
-    longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
-        metadata_dict[prediction_io.LONGITUDES_KEY]
+    latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
+    longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        metadata_dict[example_utils.LONGITUDES_KEY]
     )
 
     # Create grid.
@@ -340,6 +341,13 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
         min_longitude_deg_e=MIN_LONGITUDE_DEG_E,
         max_longitude_deg_e=MAX_LONGITUDE_DEG_E - grid_spacing_deg,
         longitude_spacing_deg=grid_spacing_deg
+    )
+
+    border_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        border_longitudes_deg_e
+    )
+    grid_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        grid_longitudes_deg_e
     )
 
     grid_longitudes_deg_e += grid_spacing_deg / 2
@@ -445,8 +453,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     print(SEPARATOR_STRING)
 
     title_string = (
-        'Heating-rate bias for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'Bias at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=bias_matrix_k_day01,
@@ -460,8 +468,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate correlation for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'Correlation at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=correlation_matrix,
@@ -475,8 +483,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MAE for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'MAE at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mae_matrix_k_day01,
@@ -490,8 +498,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MSE for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'MSE at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mse_matrix_k2_day02,
@@ -505,8 +513,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate KGE for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'KGE at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=kge_matrix,
@@ -520,8 +528,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MAESS for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'MAESS at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mae_skill_score_matrix,
@@ -535,8 +543,8 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     )
 
     title_string = (
-        'Heating-rate MSESS for grid cells with >= {0:d} examples'
-    ).format(min_num_examples)
+        'MSESS at {0:d} m AGL for cells with >= {1:d} examples'
+    ).format(height_m_agl, min_num_examples)
 
     _plot_one_score(
         score_matrix=mse_skill_score_matrix,
