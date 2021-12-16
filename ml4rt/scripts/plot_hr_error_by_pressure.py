@@ -12,6 +12,8 @@ from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
 from ml4rt.plotting import evaluation_plotting as eval_plotting
 
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
 TOLERANCE = 1e-6
 PASCALS_TO_MB = 0.01
 
@@ -84,41 +86,37 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
-         num_bins_for_profiles, output_dir_name):
-    """Plots heating-rate error as a fcn of pressure, using scatter plot.
+def _make_scatterplots(prediction_dict, example_dir_name,
+                       scatterplot_height_m_agl, output_dir_name):
+    """Creates two scatterplots.
 
-    This is effectively the main method.
+    The first shows heating-rate error at the desired height z vs. pressure at
+    height z.
 
-    :param prediction_file_name: See documentation at top of file.
-    :param example_dir_name: Same.
+    The second shows heating-rate error at height z vs. surface pressure.
+
+    E = number of examples
+    H = number of height levels
+
+    :param prediction_dict: Dictionary returned by `prediction_io.read_file`.
+    :param example_dir_name: See documentation at top of file.
     :param scatterplot_height_m_agl: Same.
-    :param num_bins_for_profiles: Same.
     :param output_dir_name: Same.
+    :return: pressure_matrix_pa: E-by-H numpy array of pressures (Pascals).
     """
 
-    file_system_utils.mkdir_recursive_if_necessary(
-        directory_name=output_dir_name
-    )
-
-    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
-    prediction_dict = prediction_io.read_file(prediction_file_name)
-    example_id_strings = prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     height_diffs_metres = numpy.absolute(
         prediction_dict[prediction_io.HEIGHTS_KEY] - scatterplot_height_m_agl
     )
-    height_index = numpy.argmin(height_diffs_metres)
-
     assert numpy.min(height_diffs_metres) <= TOLERANCE
-    assert prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[-1] == 1
+    h_index = numpy.argmin(height_diffs_metres)
 
     heating_rate_errors_k_day01 = (
-        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][
-            :, height_index, 0
-        ]
-        - prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, height_index, 0]
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][:, h_index, 0] -
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, h_index, 0]
     )
 
+    example_id_strings = prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     valid_times_unix_sec = example_utils.parse_example_ids(example_id_strings)[
         example_utils.VALID_TIMES_KEY
     ]
@@ -243,6 +241,37 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     )
     pyplot.close(figure_object)
 
+    return pressure_matrix_pa
+
+
+def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
+         num_bins_for_profiles, output_dir_name):
+    """Plots heating-rate error as a fcn of pressure, using scatter plot.
+
+    This is effectively the main method.
+
+    :param prediction_file_name: See documentation at top of file.
+    :param example_dir_name: Same.
+    :param scatterplot_height_m_agl: Same.
+    :param num_bins_for_profiles: Same.
+    :param output_dir_name: Same.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+    assert prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[-1] == 1
+
+    pressure_matrix_pa = _make_scatterplots(
+        prediction_dict=prediction_dict, example_dir_name=example_dir_name,
+        scatterplot_height_m_agl=scatterplot_height_m_agl,
+        output_dir_name=output_dir_name
+    )
+    print(SEPARATOR_STRING)
+
     percentile_levels = numpy.linspace(
         0, 100, num=num_bins_for_profiles + 1, dtype=float
     )
@@ -263,7 +292,6 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     prediction_matrix_k_day01 = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]
     )
-
     num_examples_per_bin = int(1e10)
 
     for k in range(num_bins_for_profiles):
@@ -357,8 +385,9 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
         error_matrix_k_day01[:, k] = these_errors_k_day01[:num_examples_per_bin]
 
     print((
-        'Have computed heating-rate errors for all {0:d} pressure bins!\n'
+        'Have computed heating-rate errors for all {0:d} pressure bins!'
     ).format(num_bins_for_profiles))
+    print(SEPARATOR_STRING)
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -504,11 +533,13 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     )
     eval_plotting.plot_error_dist_many_pressures(
         error_matrix=error_matrix_k_day01, pressures_pa=bin_centers_pa,
-        min_error_to_plot=numpy.percentile(error_matrix_k_day01, 1.),
-        max_error_to_plot=numpy.percentile(error_matrix_k_day01, 99.),
+        min_error_to_plot=
+        numpy.min(numpy.percentile(error_matrix_k_day01, 1, axis=0)),
+        max_error_to_plot=
+        numpy.max(numpy.percentile(error_matrix_k_day01, 99, axis=0)),
         axes_object=axes_object
     )
-    axes_object.set_title(r'Error distribution for heating rate (K day$^{-1}$')
+    axes_object.set_title(r'Error distribution for heating rate (K day$^{-1}$)')
 
     figure_file_name = '{0:s}/boxplot_profile.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(figure_file_name))
