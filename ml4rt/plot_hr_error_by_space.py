@@ -373,6 +373,9 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
             num_rows=num_grid_rows, num_columns=num_grid_columns
         )
     )
+    grid_edge_longitudes_deg = lng_conversion.convert_lng_negative_in_west(
+        grid_edge_longitudes_deg
+    )
 
     print(grid_edge_longitudes_deg)
     print(SEPARATOR_STRING)
