@@ -336,9 +336,9 @@ def _run(prediction_file_name, height_m_agl, grid_spacing_deg, min_num_examples,
     metadata_dict = example_utils.parse_example_ids(
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     )
-    latitudes_deg_n = metadata_dict[prediction_io.LATITUDES_KEY]
+    latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
     longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
-        metadata_dict[prediction_io.LONGITUDES_KEY]
+        metadata_dict[example_utils.LONGITUDES_KEY]
     )
 
     # Create grid.
