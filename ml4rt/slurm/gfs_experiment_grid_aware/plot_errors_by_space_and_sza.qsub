@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_hr_error_by_space_and_sza"
+#SBATCH --job-name="plot_errors_by_space_and_sza"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -13,7 +13,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_hr_error_by_space_and_sza_%A_%a.out
+#SBATCH --output=plot_errors_by_space_and_sza_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -50,9 +50,16 @@ set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set prediction_dir_name="${model_dir_name}/validation/by_time"
 
-python3 -u "${CODE_DIR_NAME}/plot_hr_error_by_space.py" \
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
 --input_prediction_file_name="${prediction_dir_name}/predictions_zenith-angle-bin=${angle_bin_string}.nc" \
---height_m_agl=21 \
+--heating_rate_height_m_agl=-1 \
 --grid_spacing_deg=5 \
 --min_num_examples=50 \
---output_dir_name="${prediction_dir_name}/hr_error_by_space/zenith-angle-bin=${angle_bin_string}"
+--output_dir_name="${prediction_dir_name}/errors_by_space/zenith-angle-bin=${angle_bin_string}"
+
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
+--input_prediction_file_name="${prediction_dir_name}/predictions_zenith-angle-bin=${angle_bin_string}.nc" \
+--heating_rate_height_m_agl=21 \
+--grid_spacing_deg=5 \
+--min_num_examples=50 \
+--output_dir_name="${prediction_dir_name}/errors_by_space/zenith-angle-bin=${angle_bin_string}"
