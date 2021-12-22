@@ -442,7 +442,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             height_index = numpy.argmin(height_diffs_metres)
 
             channel_index = training_option_dict[
-                neural_net.VECTOR_PREDICTOR_NAMES_KEY
+                neural_net.VECTOR_TARGET_NAMES_KEY
             ].index(target_names[k])
 
             actual_values = prediction_dict[
@@ -455,11 +455,11 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
 
         elif target_names[k] == NET_FLUX_NAME:
             down_flux_index = training_option_dict[
-                neural_net.SCALAR_PREDICTOR_NAMES_KEY
+                neural_net.SCALAR_TARGET_NAMES_KEY
             ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
 
             up_flux_index = training_option_dict[
-                neural_net.SCALAR_PREDICTOR_NAMES_KEY
+                neural_net.SCALAR_TARGET_NAMES_KEY
             ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
 
             actual_values = (
@@ -482,7 +482,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
 
         else:
             channel_index = training_option_dict[
-                neural_net.SCALAR_PREDICTOR_NAMES_KEY
+                neural_net.SCALAR_TARGET_NAMES_KEY
             ].index(target_names[k])
 
             actual_values = prediction_dict[
