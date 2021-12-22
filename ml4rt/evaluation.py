@@ -1452,13 +1452,16 @@ def get_scores_all_variables(
 
 
 def find_file(
-        directory_name, zenith_angle_bin=None, albedo_bin=None, month=None,
+        directory_name, zenith_angle_bin=None, albedo_bin=None,
+        surface_down_flux_bin=None, aerosol_optical_depth_bin=None, month=None,
         grid_row=None, grid_column=None, raise_error_if_missing=True):
     """Finds NetCDF file with evaluation results.
 
     :param directory_name: See doc for `prediction_io.find_file`.
     :param zenith_angle_bin: Same.
     :param albedo_bin: Same.
+    :param surface_down_flux_bin: Same.
+    :param aerosol_optical_depth_bin: Same.
     :param month: Same.
     :param grid_row: Same.
     :param grid_column: Same.
@@ -1468,7 +1471,8 @@ def find_file(
 
     prediction_file_name = prediction_io.find_file(
         directory_name=directory_name, zenith_angle_bin=zenith_angle_bin,
-        albedo_bin=albedo_bin, month=month,
+        albedo_bin=albedo_bin, surface_down_flux_bin=surface_down_flux_bin,
+        aerosol_optical_depth_bin=aerosol_optical_depth_bin, month=month,
         grid_row=grid_row, grid_column=grid_column,
         raise_error_if_missing=raise_error_if_missing
     )

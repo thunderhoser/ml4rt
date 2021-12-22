@@ -52,5 +52,7 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_time.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
 --num_zenith_angle_bins=9 \
 --num_albedo_bins=20 \
+--num_surface_down_flux_bins=12 \
+--num_aod_bins=9 \
 --confidence_level=0.99 \
 --output_dir_name="${evaluation_dir_name}/evaluation"

@@ -54,12 +54,12 @@ python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
 --input_prediction_file_name="${prediction_dir_name}/predictions_zenith-angle-bin=${angle_bin_string}.nc" \
 --heating_rate_height_m_agl=-1 \
 --grid_spacing_deg=5 \
---min_num_examples=50 \
+--min_num_examples=1 \
 --output_dir_name="${prediction_dir_name}/errors_by_space/zenith-angle-bin=${angle_bin_string}"
 
 python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
 --input_prediction_file_name="${prediction_dir_name}/predictions_zenith-angle-bin=${angle_bin_string}.nc" \
 --heating_rate_height_m_agl=21 \
 --grid_spacing_deg=5 \
---min_num_examples=50 \
+--min_num_examples=1 \
 --output_dir_name="${prediction_dir_name}/errors_by_space/zenith-angle-bin=${angle_bin_string}"

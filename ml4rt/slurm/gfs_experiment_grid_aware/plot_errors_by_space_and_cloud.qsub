@@ -58,12 +58,12 @@ python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
 --input_prediction_file_name="${prediction_file_name}" \
 --heating_rate_height_m_agl=-1 \
 --grid_spacing_deg=5 \
---min_num_examples=50 \
+--min_num_examples=1 \
 --output_dir_name="${output_dir_name}"
 
 python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
 --input_prediction_file_name="${prediction_file_name}" \
 --heating_rate_height_m_agl=21 \
 --grid_spacing_deg=5 \
---min_num_examples=50 \
+--min_num_examples=1 \
 --output_dir_name="${output_dir_name}"
