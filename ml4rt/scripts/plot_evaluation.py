@@ -711,8 +711,8 @@ def _plot_error_distributions(
 
             evaluation_plotting.plot_error_dist_many_heights(
                 error_matrix=error_matrix, heights_m_agl=heights_m_agl,
-                min_error_to_plot=numpy.percentile(error_matrix, 1.),
-                max_error_to_plot=numpy.percentile(error_matrix, 99.),
+                min_error_to_plot=numpy.percentile(error_matrix, 0.),
+                max_error_to_plot=numpy.percentile(error_matrix, 100.),
                 axes_object=axes_object
             )
 
