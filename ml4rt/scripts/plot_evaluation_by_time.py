@@ -13,20 +13,26 @@ from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
 from ml4rt.scripts import plot_evaluation
+from ml4rt.scripts import split_predictions_by_time as split_predictions
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 MONTH_STRING = 'month'
 ZENITH_ANGLE_STRING = 'zenith_angle'
 ALBEDO_STRING = 'albedo'
+SURFACE_DOWN_FLUX_STRING = 'surface_down_flux'
+AEROSOL_OPTICAL_DEPTH_STRING = 'aerosol_optical_depth'
+
 VALID_SPLIT_TYPE_STRINGS = [
-    MONTH_STRING, ZENITH_ANGLE_STRING,
-    ALBEDO_STRING
+    MONTH_STRING, ZENITH_ANGLE_STRING, ALBEDO_STRING, SURFACE_DOWN_FLUX_STRING,
+    AEROSOL_OPTICAL_DEPTH_STRING
 ]
 
 MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 RADIANS_TO_DEGREES = 180. / numpy.pi
+MAX_SURFACE_DOWN_FLUX_W_M02 = split_predictions.MAX_SURFACE_DOWN_FLUX_W_M02
+MAX_AEROSOL_OPTICAL_DEPTH = split_predictions.MAX_AEROSOL_OPTICAL_DEPTH
 
 EXAMPLE_DIM = 'example'
 SCALAR_TARGET_KEY = 'scalar_target_value'
@@ -78,6 +84,8 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_ALBEDO_BINS_ARG_NAME = 'num_albedo_bins'
+NUM_DOWN_FLUX_BINS_ARG_NAME = 'num_surface_down_flux_bins'
+NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -88,6 +96,14 @@ INPUT_DIR_HELP_STRING = (
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
 NUM_ALBEDO_BINS_HELP_STRING = 'Number of bins for albedo.'
+NUM_DOWN_FLUX_BINS_HELP_STRING = (
+    'Number of bins for surface downwelling flux.  If you do not want to split '
+    'by surface downwelling flux, make this argument <= 0.'
+)
+NUM_AOD_BINS_HELP_STRING = (
+    'Number of bins for aerosol optical depth (AOD).  If you do not want to '
+    'split by AOD, make this argument <= 0.'
+)
 CONFIDENCE_LEVEL_HELP_STRING = (
     'Confidence level (from 0...1).  If you do not want to plot confidence '
     'intervals, leave this alone.'
@@ -108,6 +124,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_ALBEDO_BINS_ARG_NAME, type=int, required=False, default=20,
     help=NUM_ALBEDO_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_DOWN_FLUX_BINS_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_DOWN_FLUX_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_AOD_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=-1,
@@ -589,8 +613,10 @@ def _plot_all_scores_one_split(
     :param output_dir_name: Same.
     :param split_type_string: Method used to split evaluation files (must be
         accepted by `_check_split_type`).
-    :param num_bins: [used only if split type is zenith angle or albedo]
-        Number of bins for zenith angle or albedo.
+    :param num_bins:
+        [used only if split type is zenith angle, albedo, surface downwelling
+        flux, or aerosol optical depth]
+        Number of bins.
     """
 
     _check_split_type(split_type_string)
@@ -636,7 +662,8 @@ def _plot_all_scores_one_split(
             x_tick_label_strings[k] += r'$^{\circ}$'
 
         x_axis_label_string = 'Solar zenith angle'
-    else:
+
+    elif split_type_string == ALBEDO_STRING:
         bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
         evaluation_file_names = [
             evaluation.find_file(
@@ -658,6 +685,50 @@ def _plot_all_scores_one_split(
                 x_tick_label_strings[k] += ')'
 
         x_axis_label_string = 'Albedo'
+
+    elif split_type_string == SURFACE_DOWN_FLUX_STRING:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, surface_down_flux_bin=k
+            ) for k in bin_indices
+        ]
+
+        edge_surface_down_fluxes_w_m02 = numpy.linspace(
+            0, MAX_SURFACE_DOWN_FLUX_W_M02, num=num_bins + 1, dtype=float
+        )
+        edge_surface_down_fluxes_w_m02[-1] = numpy.inf
+        x_tick_label_strings = ['foo'] * num_bins
+
+        for k in range(num_bins):
+            x_tick_label_strings[k] = '[{0:.3f}, {1:.3f}]'.format(
+                edge_surface_down_fluxes_w_m02[k],
+                edge_surface_down_fluxes_w_m02[k + 1]
+            )
+
+        x_axis_label_string = r'Surface downwelling flxu (W m$^{-2}$)'
+
+    else:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, aerosol_optical_depth_bin=k
+            ) for k in bin_indices
+        ]
+
+        edge_aerosol_optical_depths = numpy.linspace(
+            0, MAX_AEROSOL_OPTICAL_DEPTH, num=num_bins + 1, dtype=float
+        )
+        edge_aerosol_optical_depths[-1] = numpy.inf
+        x_tick_label_strings = ['foo'] * num_bins
+
+        for k in range(num_bins):
+            x_tick_label_strings[k] = '[{0:.3f}, {1:.3f}]'.format(
+                edge_aerosol_optical_depths[k],
+                edge_aerosol_optical_depths[k + 1]
+            )
+
+        x_axis_label_string = 'Aerosol optical depth'
 
     evaluation_tables_xarray = _read_files_one_split(evaluation_file_names)
     print(SEPARATOR_STRING)
@@ -937,7 +1008,8 @@ def _plot_all_scores_one_split(
 
 
 def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
-         confidence_level, top_output_dir_name):
+         num_surface_down_flux_bins, num_aod_bins, confidence_level,
+         top_output_dir_name):
     """Plots evaluation scores by time of day and year.
 
     This is effectively the main method.
@@ -945,6 +1017,8 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
     :param evaluation_dir_name: See documentation at top of file.
     :param num_zenith_angle_bins: Same.
     :param num_albedo_bins: Same.
+    :param num_surface_down_flux_bins: Same.
+    :param num_aod_bins: Same.
     :param confidence_level: Same.
     :param top_output_dir_name: Same.
     """
@@ -964,6 +1038,7 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
         split_type_string=ZENITH_ANGLE_STRING, num_bins=num_zenith_angle_bins,
         confidence_level=confidence_level
     )
+    print(SEPARATOR_STRING)
 
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
@@ -971,6 +1046,29 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
         split_type_string=ALBEDO_STRING, num_bins=num_albedo_bins,
         confidence_level=confidence_level
     )
+
+    if num_surface_down_flux_bins > 0:
+        print(SEPARATOR_STRING)
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_surface_down_flux'.format(
+                top_output_dir_name
+            ),
+            split_type_string=SURFACE_DOWN_FLUX_STRING,
+            num_bins=num_surface_down_flux_bins,
+            confidence_level=confidence_level
+        )
+
+    if num_aod_bins > 0:
+        print(SEPARATOR_STRING)
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_aerosol_optical_depth'.format(
+                top_output_dir_name
+            ),
+            split_type_string=AEROSOL_OPTICAL_DEPTH_STRING,
+            num_bins=num_aod_bins, confidence_level=confidence_level
+        )
 
 
 if __name__ == '__main__':
@@ -982,6 +1080,10 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
         num_albedo_bins=getattr(INPUT_ARG_OBJECT, NUM_ALBEDO_BINS_ARG_NAME),
+        num_surface_down_flux_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_DOWN_FLUX_BINS_ARG_NAME
+        ),
+        num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
         confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         top_output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
