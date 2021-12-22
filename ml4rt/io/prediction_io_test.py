@@ -255,6 +255,8 @@ FILE_NAME_MONTHLY = 'foo/predictions_month=12.nc'
 METADATA_DICT_DEFAULT = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
     prediction_io.ALBEDO_BIN_KEY: None,
+    prediction_io.SURFACE_DOWN_FLUX_BIN_KEY: None,
+    prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY: None,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
@@ -263,6 +265,8 @@ METADATA_DICT_DEFAULT = {
 METADATA_DICT_SPATIAL = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
     prediction_io.ALBEDO_BIN_KEY: None,
+    prediction_io.SURFACE_DOWN_FLUX_BIN_KEY: None,
+    prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY: None,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: 0,
     prediction_io.GRID_COLUMN_KEY: 666
@@ -271,6 +275,8 @@ METADATA_DICT_SPATIAL = {
 METADATA_DICT_ANGULAR = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: 99,
     prediction_io.ALBEDO_BIN_KEY: None,
+    prediction_io.SURFACE_DOWN_FLUX_BIN_KEY: None,
+    prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY: None,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
@@ -279,6 +285,8 @@ METADATA_DICT_ANGULAR = {
 METADATA_DICT_ALBEDO = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
     prediction_io.ALBEDO_BIN_KEY: 1,
+    prediction_io.SURFACE_DOWN_FLUX_BIN_KEY: None,
+    prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY: None,
     prediction_io.MONTH_KEY: None,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
@@ -287,6 +295,8 @@ METADATA_DICT_ALBEDO = {
 METADATA_DICT_MONTHLY = {
     prediction_io.ZENITH_ANGLE_BIN_KEY: None,
     prediction_io.ALBEDO_BIN_KEY: None,
+    prediction_io.SURFACE_DOWN_FLUX_BIN_KEY: None,
+    prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY: None,
     prediction_io.MONTH_KEY: 12,
     prediction_io.GRID_ROW_KEY: None,
     prediction_io.GRID_COLUMN_KEY: None
