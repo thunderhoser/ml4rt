@@ -20,6 +20,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/validation"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_grid_aware"
 
 set USE_GENERATOR_FLAGS=(0 0 0 1 1 1 0 0 0 1 1 1)
@@ -55,4 +56,5 @@ python3 -u "${CODE_DIR_NAME}/split_predictions_by_time.py" \
 --num_albedo_bins=20 \
 --num_surface_down_flux_bins=12 \
 --num_aod_bins=9 \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --output_prediction_dir_name="${validation_dir_name}/by_time"
