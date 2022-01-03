@@ -48,7 +48,31 @@ set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set evaluation_dir_name="${model_dir_name}/validation/by_time/evaluation/by_zenith_angle"
-set output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}/by_zenith_angle"
+
+python3 -u "${CODE_DIR_NAME}/make_by_time_eval_figure.py" \
+--input_evaluation_dir_name="${evaluation_dir_name}" \
+--heights_m_agl 93 999 10164 14895 44899 \
+--output_dir_name="${output_dir_name}"
+
+set evaluation_dir_name="${model_dir_name}/validation/by_time/evaluation/by_albedo"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}/by_albedo"
+
+python3 -u "${CODE_DIR_NAME}/make_by_time_eval_figure.py" \
+--input_evaluation_dir_name="${evaluation_dir_name}" \
+--heights_m_agl 93 999 10164 14895 44899 \
+--output_dir_name="${output_dir_name}"
+
+set evaluation_dir_name="${model_dir_name}/validation/by_time/evaluation/by_aerosol_optical_depth"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}/by_aerosol_optical_depth"
+
+python3 -u "${CODE_DIR_NAME}/make_by_time_eval_figure.py" \
+--input_evaluation_dir_name="${evaluation_dir_name}" \
+--heights_m_agl 93 999 10164 14895 44899 \
+--output_dir_name="${output_dir_name}"
+
+set evaluation_dir_name="${model_dir_name}/validation/by_time/evaluation/by_surface_down_flux"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}/by_surface_down_flux"
 
 python3 -u "${CODE_DIR_NAME}/make_by_time_eval_figure.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
