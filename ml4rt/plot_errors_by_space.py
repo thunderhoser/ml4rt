@@ -234,24 +234,12 @@ def _plot_one_score(
         cbar_extend_min_flag = True
         cbar_extend_max_flag = True
     elif score_name in SKILL_SCORE_NAMES:
-        print('Any skill score not NaN? = {0:d}'.format(
-            int(numpy.any(numpy.isfinite(score_matrix)))
-        ))
-
-        print(numpy.nanmin(score_matrix))
-        print(numpy.nanmax(score_matrix))
-
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(score_matrix), MAX_COLOUR_PERCENTILE
+        max_colour_value = numpy.percentile(
+            numpy.absolute(score_matrix[numpy.isfinite(score_matrix)]),
+            MAX_COLOUR_PERCENTILE
         )
-        print(max_colour_value)
-
         max_colour_value = min([max_colour_value, 1.])
-        print(max_colour_value)
-
         min_colour_value = -1 * max_colour_value
-        print(min_colour_value)
-        print('\n\n\n*****************************************************\n\n\n')
 
         cbar_extend_min_flag = True
         cbar_extend_max_flag = max_colour_value < 1 - TOLERANCE
@@ -560,10 +548,6 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                         numpy.mean(actual_values[these_indices])
                     )
                 )
-                print('Any MAE skill score not NaN? = {0:d}'.format(
-                    int(numpy.any(numpy.isfinite(mae_skill_score_matrix)))
-                ))
-
                 mse_skill_score_matrix[i, j] = (
                     evaluation._get_mse_ss_one_scalar(
                         target_values=actual_values[these_indices],
@@ -589,7 +573,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=bias_matrix + 0,
+            score_matrix=bias_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -611,7 +595,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=correlation_matrix + 0,
+            score_matrix=correlation_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -634,7 +618,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=mae_matrix + 0,
+            score_matrix=mae_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -657,7 +641,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=mse_matrix + 0,
+            score_matrix=mse_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -679,7 +663,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=kge_matrix + 0,
+            score_matrix=kge_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -700,14 +684,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             min_num_examples
         )
 
-        print('Any MAE skill score not NaN? = {0:d}'.format(
-            int(numpy.any(numpy.isfinite(mae_skill_score_matrix)))
-        ))
-        print(mae_skill_score_matrix[numpy.isfinite(mae_skill_score_matrix)])
-        print('\n\n\n*****************************************\n\n\n')
-
         _plot_one_score(
-            score_matrix=mae_skill_score_matrix + 0,
+            score_matrix=mae_skill_score_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -729,7 +707,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=mse_skill_score_matrix + 0,
+            score_matrix=mse_skill_score_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -742,7 +720,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         )
 
         _plot_one_score(
-            score_matrix=num_examples_matrix.astype(float) + 0,
+            score_matrix=num_examples_matrix.astype(float),
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
