@@ -237,8 +237,14 @@ def _plot_one_score(
         max_colour_value = numpy.nanpercentile(
             numpy.absolute(score_matrix), MAX_COLOUR_PERCENTILE
         )
+        print(max_colour_value)
+
         max_colour_value = min([max_colour_value, 1.])
+        print(max_colour_value)
+
         min_colour_value = -1 * max_colour_value
+        print(min_colour_value)
+        print('\n\n\n*****************************************************\n\n\n')
 
         cbar_extend_min_flag = True
         cbar_extend_max_flag = max_colour_value < 1 - TOLERANCE
@@ -547,12 +553,6 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                         numpy.mean(actual_values[these_indices])
                     )
                 )
-
-                print(actual_values[these_indices])
-                print(numpy.mean(actual_values[these_indices]))
-                print(mae_skill_score_matrix[i, j])
-                print('\n\n\n***********************************************\n\n\n')
-
                 mse_skill_score_matrix[i, j] = (
                     evaluation._get_mse_ss_one_scalar(
                         target_values=actual_values[these_indices],
