@@ -539,11 +539,6 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                 # TODO(thunderhoser): These are not true skill scores, because
                 # the climo value comes from the evaluation data, not the
                 # training data.  I am just being lazy for now.
-                print(actual_values[these_indices])
-                print(numpy.mean(actual_values[these_indices]))
-                print(mae_skill_score_matrix[i, j])
-                print('\n\n\n***********************************************\n\n\n')
-
                 mae_skill_score_matrix[i, j] = (
                     evaluation._get_mae_ss_one_scalar(
                         target_values=actual_values[these_indices],
@@ -552,6 +547,12 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                         numpy.mean(actual_values[these_indices])
                     )
                 )
+
+                print(actual_values[these_indices])
+                print(numpy.mean(actual_values[these_indices]))
+                print(mae_skill_score_matrix[i, j])
+                print('\n\n\n***********************************************\n\n\n')
+
                 mse_skill_score_matrix[i, j] = (
                     evaluation._get_mse_ss_one_scalar(
                         target_values=actual_values[these_indices],
