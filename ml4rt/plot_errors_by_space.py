@@ -553,6 +553,10 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                         numpy.mean(actual_values[these_indices])
                     )
                 )
+                print('Any MAE skill score not NaN? = {0:d}'.format(
+                    int(numpy.any(numpy.isfinite(mae_skill_score_matrix)))
+                ))
+
                 mse_skill_score_matrix[i, j] = (
                     evaluation._get_mse_ss_one_scalar(
                         target_values=actual_values[these_indices],
@@ -689,6 +693,9 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             min_num_examples
         )
 
+        print('Any MAE skill score not NaN? = {0:d}'.format(
+            int(numpy.any(numpy.isfinite(mae_skill_score_matrix)))
+        ))
         _plot_one_score(
             score_matrix=mae_skill_score_matrix,
             grid_latitudes_deg_n=grid_latitudes_deg_n,

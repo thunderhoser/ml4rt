@@ -63,6 +63,10 @@ def _run(prediction_file_name, num_bootstrap_reps, output_dir_name):
         zenith_angle_bin=file_metadata_dict[prediction_io.ZENITH_ANGLE_BIN_KEY],
         albedo_bin=file_metadata_dict[prediction_io.ALBEDO_BIN_KEY],
         month=file_metadata_dict[prediction_io.MONTH_KEY],
+        surface_down_flux_bin=
+        file_metadata_dict[prediction_io.SURFACE_DOWN_FLUX_BIN_KEY],
+        aerosol_optical_depth_bin=
+        file_metadata_dict[prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY],
         grid_row=file_metadata_dict[prediction_io.GRID_ROW_KEY],
         grid_column=file_metadata_dict[prediction_io.GRID_COLUMN_KEY],
         raise_error_if_missing=False
