@@ -238,6 +238,9 @@ def _plot_one_score(
             int(numpy.any(numpy.isfinite(score_matrix)))
         ))
 
+        print(numpy.nanmin(score_matrix))
+        print(numpy.nanmax(score_matrix))
+
         max_colour_value = numpy.nanpercentile(
             numpy.absolute(score_matrix), MAX_COLOUR_PERCENTILE
         )
@@ -700,6 +703,9 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         print('Any MAE skill score not NaN? = {0:d}'.format(
             int(numpy.any(numpy.isfinite(mae_skill_score_matrix)))
         ))
+        print(mae_skill_score_matrix[numpy.isfinite(mae_skill_score_matrix)])
+        print('\n\n\n*****************************************\n\n\n')
+
         _plot_one_score(
             score_matrix=mae_skill_score_matrix + 0,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
