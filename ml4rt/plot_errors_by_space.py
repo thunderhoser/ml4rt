@@ -114,25 +114,25 @@ SCORE_TO_COLOUR_MAP_OBJECT = {
 }
 
 SCORE_AND_TARGET_TO_MIN_COLOUR_VALUE = {
-    [[BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]]: -1.,
-    [[BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]]: -100.,
-    [[BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]]: -100.,
-    [[BIAS_NAME, NET_FLUX_NAME]]: -100.
+    (BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): -1.,
+    (BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): -100.,
+    (BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): -100.,
+    (BIAS_NAME, NET_FLUX_NAME): -100.
 }
 
 SCORE_AND_TARGET_TO_MAX_COLOUR_VALUE = {
-    [[BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]]: 1.,
-    [[BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]]: 100.,
-    [[BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]]: 100.,
-    [[BIAS_NAME, NET_FLUX_NAME]]: 100.,
-    [[MAE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]]: 1.,
-    [[MAE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]]: 100.,
-    [[MAE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]]: 100.,
-    [[MAE_NAME, NET_FLUX_NAME]]: 100.,
-    [[MSE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]]: 4.,
-    [[MSE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]]: 1e4,
-    [[MSE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]]: 1e4,
-    [[MSE_NAME, NET_FLUX_NAME]]: 1e4
+    (BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): 1.,
+    (BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): 100.,
+    (BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): 100.,
+    (BIAS_NAME, NET_FLUX_NAME): 100.,
+    (MAE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): 1.,
+    (MAE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): 100.,
+    (MAE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): 100.,
+    (MAE_NAME, NET_FLUX_NAME): 100.,
+    (MSE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): 4.,
+    (MSE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): 1e4,
+    (MSE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): 1e4,
+    (MSE_NAME, NET_FLUX_NAME): 1e4
 }
 
 MIN_LATITUDE_DEG_N = -90.
@@ -306,14 +306,14 @@ def _plot_one_score(
             min_colour_value = SCORE_TO_MIN_COLOUR_VALUE[score_name]
         else:
             min_colour_value = SCORE_AND_TARGET_TO_MIN_COLOUR_VALUE[
-                [score_name, target_name]
+                (score_name, target_name)
             ]
 
         if score_name in SCORE_TO_MAX_COLOUR_VALUE:
             max_colour_value = SCORE_TO_MAX_COLOUR_VALUE[score_name]
         else:
             max_colour_value = SCORE_AND_TARGET_TO_MAX_COLOUR_VALUE[
-                [score_name, target_name]
+                (score_name, target_name)
             ]
 
         cbar_extend_min_flag = SCORE_TO_CBAR_EXTEND_MIN_FLAG[score_name]
