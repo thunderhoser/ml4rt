@@ -294,14 +294,15 @@ def _plot_one_score(
         axes_object=axes_object
     )
 
-    colour_map_object = SCORE_TO_COLOUR_MAP_OBJECT[score_name]
-
     if score_name == '':
+        colour_map_object = MAIN_COLOUR_MAP_OBJECT
         min_colour_value = 0
         max_colour_value = numpy.nanmax(score_matrix)
         cbar_extend_min_flag = False
         cbar_extend_max_flag = False
     else:
+        colour_map_object = SCORE_TO_COLOUR_MAP_OBJECT[score_name]
+
         if score_name in SCORE_TO_MIN_COLOUR_VALUE:
             min_colour_value = SCORE_TO_MIN_COLOUR_VALUE[score_name]
         else:
