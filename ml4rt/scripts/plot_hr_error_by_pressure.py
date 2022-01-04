@@ -1,5 +1,6 @@
 """Plots heating-rate errors as a function of pressure."""
 
+import os
 import argparse
 import numpy
 import matplotlib
@@ -10,6 +11,7 @@ from ml4rt.io import prediction_io
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
+from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import evaluation_plotting as eval_plotting
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -265,6 +267,35 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     prediction_dict = prediction_io.read_file(prediction_file_name)
     assert prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[-1] == 1
 
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    normalization_file_name = (
+        training_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+
+    print((
+        'Reading training examples (for climatology) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+
+    training_pressure_matrix_pa = example_utils.get_field_from_dict(
+        example_dict=training_example_dict,
+        field_name=example_utils.PRESSURE_NAME
+    )
+    training_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+        example_dict=training_example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
+
     pressure_matrix_pa = _make_scatterplots(
         prediction_dict=prediction_dict, example_dir_name=example_dir_name,
         scatterplot_height_m_agl=scatterplot_height_m_agl,
@@ -303,6 +334,14 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
                 k, num_bins_for_profiles
             ))
 
+        these_i, these_j = numpy.where(numpy.logical_and(
+            training_pressure_matrix_pa >= bin_edges_pa[k],
+            training_pressure_matrix_pa < bin_edges_pa[k + 1]
+        ))
+        climo_heating_rate_k_day01 = numpy.mean(
+            training_heating_rate_matrix_k_day01[these_i, these_j]
+        )
+
         if k == num_bins_for_profiles - 1:
             these_i, these_j = numpy.where(
                 pressure_matrix_pa >= bin_edges_pa[k]
@@ -338,20 +377,15 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
             predicted_values=prediction_matrix_k_day01[these_i, these_j]
         )
 
-        # TODO(thunderhoser): These are not true skill scores, because the climo
-        # value comes from the evaluation data, not the training data.  I am
-        # just being lazy for now.
         mae_skill_score_profile[k] = evaluation._get_mae_ss_one_scalar(
             target_values=target_matrix_k_day01[these_i, these_j],
             predicted_values=prediction_matrix_k_day01[these_i, these_j],
-            mean_training_target_value=
-            numpy.mean(target_matrix_k_day01[these_i, these_j])
+            mean_training_target_value=climo_heating_rate_k_day01
         )
         mse_skill_score_profile[k] = evaluation._get_mse_ss_one_scalar(
             target_values=target_matrix_k_day01[these_i, these_j],
             predicted_values=prediction_matrix_k_day01[these_i, these_j],
-            mean_training_target_value=
-            numpy.mean(target_matrix_k_day01[these_i, these_j])
+            mean_training_target_value=climo_heating_rate_k_day01
         )
 
     error_matrix_k_day01 = numpy.full(

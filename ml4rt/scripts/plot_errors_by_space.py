@@ -14,6 +14,7 @@ from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from gewittergefahr.plotting import radar_plotting
 from ml4rt.io import border_io
+from ml4rt.io import example_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
@@ -54,11 +55,83 @@ MAE_SKILL_SCORE_NAME = 'Mean-absolute-error skill score'
 MSE_SKILL_SCORE_NAME = 'Mean-squared-error skill score'
 SKILL_SCORE_NAMES = [KGE_NAME, MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
 
+SCORE_TO_MIN_COLOUR_VALUE = {
+    CORRELATION_NAME: 0.5,
+    MAE_NAME: 0.,
+    MSE_NAME: 0.,
+    KGE_NAME: 0.,
+    MAE_SKILL_SCORE_NAME: 0.,
+    MSE_SKILL_SCORE_NAME: 0.
+}
+
+SCORE_TO_CBAR_EXTEND_MIN_FLAG = {
+    BIAS_NAME: True,
+    CORRELATION_NAME: True,
+    MAE_NAME: False,
+    MSE_NAME: False,
+    KGE_NAME: True,
+    MAE_SKILL_SCORE_NAME: True,
+    MSE_SKILL_SCORE_NAME: True
+}
+
+SCORE_TO_MAX_COLOUR_VALUE = {
+    CORRELATION_NAME: 1.,
+    KGE_NAME: 1.,
+    MAE_SKILL_SCORE_NAME: 1.,
+    MSE_SKILL_SCORE_NAME: 1.
+}
+
+SCORE_TO_CBAR_EXTEND_MAX_FLAG = {
+    BIAS_NAME: True,
+    CORRELATION_NAME: False,
+    MAE_NAME: True,
+    MSE_NAME: True,
+    KGE_NAME: False,
+    MAE_SKILL_SCORE_NAME: False,
+    MSE_SKILL_SCORE_NAME: False
+}
+
+MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
+BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
+MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+
+SCORE_TO_COLOUR_MAP_OBJECT = {
+    BIAS_NAME: BIAS_COLOUR_MAP_OBJECT,
+    CORRELATION_NAME: MAIN_COLOUR_MAP_OBJECT,
+    MAE_NAME: MAIN_COLOUR_MAP_OBJECT,
+    MSE_NAME: MAIN_COLOUR_MAP_OBJECT,
+    KGE_NAME: MAIN_COLOUR_MAP_OBJECT,
+    MAE_SKILL_SCORE_NAME: MAIN_COLOUR_MAP_OBJECT,
+    MSE_SKILL_SCORE_NAME: MAIN_COLOUR_MAP_OBJECT
+}
+
+SCORE_AND_TARGET_TO_MIN_COLOUR_VALUE = {
+    [BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]: -1.,
+    [BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]: -100.,
+    [BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]: -100.,
+    [BIAS_NAME, NET_FLUX_NAME]: -100.
+}
+
+SCORE_AND_TARGET_TO_MAX_COLOUR_VALUE = {
+    [BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]: 1.,
+    [BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]: 100.,
+    [BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]: 100.,
+    [BIAS_NAME, NET_FLUX_NAME]: 100.,
+    [MAE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]: 1.,
+    [MAE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]: 100.,
+    [MAE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]: 100.,
+    [MAE_NAME, NET_FLUX_NAME]: 100.,
+    [MSE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME]: 4.,
+    [MSE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME]: 1e4,
+    [MSE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME]: 1e4,
+    [MSE_NAME, NET_FLUX_NAME]: 1e4
+}
+
 MIN_LATITUDE_DEG_N = -90.
 MAX_LATITUDE_DEG_N = 90.
 MIN_LONGITUDE_DEG_E = 0.
 MAX_LONGITUDE_DEG_E = 360.
-MAX_COLOUR_PERCENTILE = 100.
 
 BORDER_LINE_WIDTH = 2.
 BORDER_Z_ORDER = -1e8
@@ -185,8 +258,8 @@ def _create_latlng_grid(
 
 def _plot_one_score(
         score_matrix, grid_latitudes_deg_n, grid_longitudes_deg_e,
-        border_latitudes_deg_n, border_longitudes_deg_e, colour_map_name,
-        score_name, output_file_name, title_string):
+        border_latitudes_deg_n, border_longitudes_deg_e, score_name,
+        target_name, output_file_name, title_string):
     """Plots one score on 2-D georeferenced grid.
 
     M = number of rows in grid
@@ -198,9 +271,8 @@ def _plot_one_score(
     :param grid_longitudes_deg_e: length-N numpy array of longitudes (deg E).
     :param border_latitudes_deg_n: length-P numpy array of latitudes (deg N).
     :param border_longitudes_deg_e: length-P numpy array of longitudes (deg E).
-    :param colour_map_name: Name of colour scheme (must be accepted by
-        `matplotlib.pyplot.get_cmap`).
     :param score_name: Name of score to be plotted.
+    :param target_name: Name of target variable.
     :param output_file_name: Path to output file (figure will be saved here).
     :param title_string: Title (will be added above figure).  If you do not want
         a title, make this None.
@@ -215,39 +287,30 @@ def _plot_one_score(
         axes_object=axes_object
     )
 
-    colour_map_object = pyplot.get_cmap(colour_map_name)
-    colour_map_object.set_bad(numpy.full(3, 152. / 255))
+    colour_map_object = SCORE_TO_COLOUR_MAP_OBJECT[score_name]
 
-    if score_name == BIAS_NAME:
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(score_matrix), MAX_COLOUR_PERCENTILE
-        )
-        min_colour_value = -1 * max_colour_value
-
-        cbar_extend_min_flag = True
-        cbar_extend_max_flag = True
-    elif score_name in SKILL_SCORE_NAMES:
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(score_matrix), MAX_COLOUR_PERCENTILE
-        )
-        max_colour_value = min([max_colour_value, 1.])
-        min_colour_value = -1 * max_colour_value
-
-        cbar_extend_min_flag = True
-        cbar_extend_max_flag = max_colour_value < 1 - TOLERANCE
+    if score_name == '':
+        min_colour_value = 0
+        max_colour_value = numpy.nanmax(score_matrix)
+        cbar_extend_min_flag = False
+        cbar_extend_max_flag = False
     else:
-        max_colour_value = numpy.nanpercentile(
-            score_matrix, MAX_COLOUR_PERCENTILE
-        )
-        min_colour_value = numpy.nanpercentile(
-            score_matrix, 100 - MAX_COLOUR_PERCENTILE
-        )
-        cbar_extend_min_flag = min_colour_value > TOLERANCE
-
-        if score_name == CORRELATION_NAME:
-            cbar_extend_max_flag = max_colour_value < 1 - TOLERANCE
+        if score_name in SCORE_TO_MIN_COLOUR_VALUE:
+            min_colour_value = SCORE_TO_MIN_COLOUR_VALUE[score_name]
         else:
-            cbar_extend_max_flag = True
+            min_colour_value = SCORE_AND_TARGET_TO_MIN_COLOUR_VALUE[
+                [score_name, target_name]
+            ]
+
+        if score_name in SCORE_TO_MAX_COLOUR_VALUE:
+            max_colour_value = SCORE_TO_MAX_COLOUR_VALUE[score_name]
+        else:
+            max_colour_value = SCORE_AND_TARGET_TO_MAX_COLOUR_VALUE[
+                [score_name, target_name]
+            ]
+
+        cbar_extend_min_flag = SCORE_TO_CBAR_EXTEND_MIN_FLAG[score_name]
+        cbar_extend_max_flag = SCORE_TO_CBAR_EXTEND_MAX_FLAG[score_name]
 
     colour_norm_object = pyplot.Normalize(
         vmin=min_colour_value, vmax=max_colour_value
@@ -361,6 +424,52 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    normalization_file_name = (
+        training_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+
+    print((
+        'Reading training examples (for climatology) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+
+    if heating_rate_height_m_agl is None:
+        target_names = [
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
+            NET_FLUX_NAME
+        ]
+    else:
+        target_names = [example_utils.SHORTWAVE_HEATING_RATE_NAME]
+
+    num_target_vars = len(target_names)
+    climo_value_by_target = numpy.full(num_target_vars, numpy.nan)
+
+    for k in range(num_target_vars):
+        if target_names[k] == example_utils.SHORTWAVE_HEATING_RATE_NAME:
+            these_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=target_names[k],
+                height_m_agl=heating_rate_height_m_agl
+            )
+        elif target_names[k] == NET_FLUX_NAME:
+            down_flux_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            up_flux_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+            these_values = down_flux_values - up_flux_values
+        else:
+            these_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict, field_name=target_names[k]
+            )
+
+        climo_value_by_target[k] = numpy.mean(these_values)
 
     metadata_dict = example_utils.parse_example_ids(
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
@@ -404,15 +513,6 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
     )
 
     # Do actual stuff.
-    if heating_rate_height_m_agl is None:
-        target_names = [
-            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
-            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
-            NET_FLUX_NAME
-        ]
-    else:
-        target_names = [example_utils.SHORTWAVE_HEATING_RATE_NAME]
-
     for k in range(len(target_names)):
         print(SEPARATOR_STRING)
 
@@ -529,23 +629,18 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                     predicted_values=predicted_values[these_indices]
                 )
 
-                # TODO(thunderhoser): These are not true skill scores, because
-                # the climo value comes from the evaluation data, not the
-                # training data.  I am just being lazy for now.
                 mae_skill_score_matrix[i, j] = (
                     evaluation._get_mae_ss_one_scalar(
                         target_values=actual_values[these_indices],
                         predicted_values=predicted_values[these_indices],
-                        mean_training_target_value=
-                        numpy.mean(actual_values[these_indices])
+                        mean_training_target_value=climo_value_by_target[k]
                     )
                 )
                 mse_skill_score_matrix[i, j] = (
                     evaluation._get_mse_ss_one_scalar(
                         target_values=actual_values[these_indices],
                         predicted_values=predicted_values[these_indices],
-                        mean_training_target_value=
-                        numpy.mean(actual_values[these_indices])
+                        mean_training_target_value=climo_value_by_target[k]
                     )
                 )
 
@@ -570,8 +665,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('seismic'),
-            score_name=BIAS_NAME, title_string=title_string,
+            score_name=BIAS_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_bias.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -592,8 +687,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('viridis'),
-            score_name=CORRELATION_NAME, title_string=title_string,
+            score_name=CORRELATION_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_correlation.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -615,8 +710,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('viridis'),
-            score_name=MAE_NAME, title_string=title_string,
+            score_name=MAE_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_mae.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -638,8 +733,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('viridis'),
-            score_name=MSE_NAME, title_string=title_string,
+            score_name=MSE_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_mse.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -660,8 +755,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('seismic'),
-            score_name=KGE_NAME, title_string=title_string,
+            score_name=KGE_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_kge.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -682,8 +777,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('seismic'),
-            score_name=MAE_SKILL_SCORE_NAME, title_string=title_string,
+            score_name=MAE_SKILL_SCORE_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_maess.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -704,8 +799,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('seismic'),
-            score_name=MSE_SKILL_SCORE_NAME, title_string=title_string,
+            score_name=MSE_SKILL_SCORE_NAME, target_name=target_names[k],
+            title_string=title_string,
             output_file_name='{0:s}/{1:s}_msess.jpg'.format(
                 output_dir_name, target_names[k].replace('_', '-')
             )
@@ -717,8 +812,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            colour_map_name=pyplot.get_cmap('viridis'),
-            score_name='', title_string='Number of examples',
+            score_name='', target_name=target_names[k],
+            title_string='Number of examples',
             output_file_name='{0:s}/num_examples.jpg'.format(output_dir_name)
         )
 
