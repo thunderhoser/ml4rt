@@ -1,0 +1,33 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="subset_low_aerosol_examples_testing"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=02:00:00
+#SBATCH --array=1-2
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=subset_low_aerosol_examples_testing_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set INPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/testing"
+set OUTPUT_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/low_aerosol_only/testing"
+
+set YEARS=(2019 2020)
+set year=${YEARS[$SLURM_ARRAY_TASK_ID]}
+
+python3 -u "${CODE_DIR_NAME}/subset_low_aerosol_examples.py" \
+--input_example_dir_name="${INPUT_EXAMPLE_DIR_NAME}" \
+--year=${year} \
+--max_aerosol_optical_depth=0.2 \
+--output_example_dir_name="${OUTPUT_EXAMPLE_DIR_NAME}"
