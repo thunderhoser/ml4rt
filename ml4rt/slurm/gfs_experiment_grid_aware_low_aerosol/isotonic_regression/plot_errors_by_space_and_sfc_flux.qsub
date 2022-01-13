@@ -1,0 +1,65 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_errors_by_space_and_sfc_flux"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=24:00:00
+#SBATCH --array=1-144
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_errors_by_space_and_sfc_flux_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_grid_aware_low_aerosol"
+
+set USE_GENERATOR_FLAGS=(0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1 0 0 0 1 1 1)
+set EXAMPLES_PER_BATCH_COUNTS=(181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362 181 181 181 362 362 362 724 724 724 362 362 362)
+set BATCHES_PER_EPOCH_COUNTS=(3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500 3000 3000 3000 750 750 750 5000 5000 5000 500 500 500)
+set USE_HEIGHT_FLAGS=(0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1)
+set MULTIPLY_BY_THICKNESS_FLAGS=(1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1 1 0 1)
+set FLUX_BIN_STRINGS=("000" "000" "000" "000" "000" "000" "000" "000" "000" "000" "000" "000" "001" "001" "001" "001" "001" "001" "001" "001" "001" "001" "001" "001" "002" "002" "002" "002" "002" "002" "002" "002" "002" "002" "002" "002" "003" "003" "003" "003" "003" "003" "003" "003" "003" "003" "003" "003" "004" "004" "004" "004" "004" "004" "004" "004" "004" "004" "004" "004" "005" "005" "005" "005" "005" "005" "005" "005" "005" "005" "005" "005" "006" "006" "006" "006" "006" "006" "006" "006" "006" "006" "006" "006" "007" "007" "007" "007" "007" "007" "007" "007" "007" "007" "007" "007" "008" "008" "008" "008" "008" "008" "008" "008" "008" "008" "008" "008" "009" "009" "009" "009" "009" "009" "009" "009" "009" "009" "009" "009" "010" "010" "010" "010" "010" "010" "010" "010" "010" "010" "010" "010" "011" "011" "011" "011" "011" "011" "011" "011" "011" "011" "011" "011")
+
+set use_generator_flag=${USE_GENERATOR_FLAGS[$SLURM_ARRAY_TASK_ID]}
+set num_examples_per_batch=${EXAMPLES_PER_BATCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set use_height_flag=${USE_HEIGHT_FLAGS[$SLURM_ARRAY_TASK_ID]}
+set multiply_by_thickness_flag=${MULTIPLY_BY_THICKNESS_FLAGS[$SLURM_ARRAY_TASK_ID]}
+set flux_bin_string=${FLUX_BIN_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+set use_generator_flag_string=`printf "%1d" $use_generator_flag`
+set num_examples_per_batch_string=`printf "%03d" $num_examples_per_batch`
+set num_batches_per_epoch_string=`printf "%04d" $num_batches_per_epoch`
+set use_height_flag_string=`printf "%1d" $use_height_flag`
+set multiply_by_thickness_flag_string=`printf "%1d" $multiply_by_thickness_flag`
+
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_use-height=${use_height_flag_string}_multiply-by-layer-thickness=${multiply_by_thickness_flag_string}"
+
+set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+
+set prediction_dir_name="${model_dir_name}/isotonic_regression/validation/by_time"
+
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
+--input_prediction_file_name="${prediction_dir_name}/predictions_surface-down-flux-bin=${flux_bin_string}.nc" \
+--heating_rate_height_m_agl=-1 \
+--grid_spacing_deg=5 \
+--min_num_examples=1 \
+--output_dir_name="${prediction_dir_name}/errors_by_space/surface-down-flux-bin=${flux_bin_string}"
+
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
+--input_prediction_file_name="${prediction_dir_name}/predictions_surface-down-flux-bin=${flux_bin_string}.nc" \
+--heating_rate_height_m_agl=21 \
+--grid_spacing_deg=5 \
+--min_num_examples=1 \
+--output_dir_name="${prediction_dir_name}/errors_by_space/surface-down-flux-bin=${flux_bin_string}"
