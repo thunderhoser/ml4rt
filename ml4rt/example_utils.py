@@ -584,11 +584,11 @@ def multiply_hr_by_layer_thickness(example_dict):
         get_grid_cell_edges(pressure_matrix_pa[i, :])
         for i in range(num_examples)
     ])
-
     thickness_matrix_pa = numpy.vstack([
         get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
         for i in range(num_examples)
     ])
+    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
 
     print((
         'Multiplying heating rates by layer thickness (mean thickness = '
