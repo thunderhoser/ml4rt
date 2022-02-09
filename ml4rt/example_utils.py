@@ -141,12 +141,13 @@ AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 HEIGHT_NAME = 'height_m_agl'
 
-# TODO(thunderhoser): I'm a little unsure on relative humidity.
-PREDICTOR_NAMES_THICKNESS_MATTERS = [
-    SPECIFIC_HUMIDITY_NAME, RELATIVE_HUMIDITY_NAME, LIQUID_WATER_CONTENT_NAME,
-    ICE_WATER_CONTENT_NAME, O3_MIXING_RATIO_NAME, O2_CONCENTRATION_NAME,
+PREDICTOR_NAMES_Z_THICKNESS_MATTERS = [
+    LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME, O2_CONCENTRATION_NAME,
     CO2_CONCENTRATION_NAME, CH4_CONCENTRATION_NAME, N2O_CONCENTRATION_NAME,
     AEROSOL_EXTINCTION_NAME
+]
+PREDICTOR_NAMES_P_THICKNESS_MATTERS = [
+    SPECIFIC_HUMIDITY_NAME, RELATIVE_HUMIDITY_NAME, O3_MIXING_RATIO_NAME
 ]
 
 ALL_SCALAR_PREDICTOR_NAMES = [
@@ -676,13 +677,25 @@ def multiply_preds_by_layer_thickness(example_dict):
         get_grid_cell_edges(height_matrix_m_agl[i, :])
         for i in range(num_examples)
     ])
-
-    width_matrix_metres = numpy.vstack([
+    thickness_matrix_metres = numpy.vstack([
         get_grid_cell_widths(edge_height_matrix_m_agl[i, :])
         for i in range(num_examples)
     ])
 
-    for this_predictor_name in PREDICTOR_NAMES_THICKNESS_MATTERS:
+    pressure_matrix_pa = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+    edge_pressure_matrix_pa = numpy.vstack([
+        get_grid_cell_edges(pressure_matrix_pa[i, :])
+        for i in range(num_examples)
+    ])
+    thickness_matrix_pa = numpy.vstack([
+        get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
+        for i in range(num_examples)
+    ])
+    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
+
+    for this_predictor_name in PREDICTOR_NAMES_Z_THICKNESS_MATTERS:
         if this_predictor_name not in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
             continue
 
@@ -690,14 +703,33 @@ def multiply_preds_by_layer_thickness(example_dict):
             'Multiplying {0:s} by layer thickness (mean thickness = '
             '{1:.2f} m)...'
         ).format(
-            this_predictor_name, numpy.mean(width_matrix_metres)
+            this_predictor_name, numpy.mean(thickness_matrix_metres)
         ))
 
         this_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(
             this_predictor_name
         )
         example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index] = (
-            width_matrix_metres *
+            thickness_matrix_metres *
+            example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index]
+        )
+
+    for this_predictor_name in PREDICTOR_NAMES_P_THICKNESS_MATTERS:
+        if this_predictor_name not in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
+            continue
+
+        print((
+            'Multiplying {0:s} by layer thickness (mean thickness = '
+            '{1:.2f} Pa)...'
+        ).format(
+            this_predictor_name, numpy.mean(thickness_matrix_pa)
+        ))
+
+        this_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(
+            this_predictor_name
+        )
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index] = (
+            thickness_matrix_pa *
             example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index]
         )
 
