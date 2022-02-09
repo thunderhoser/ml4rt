@@ -31,6 +31,7 @@ TARGET_NAMES_IN_FILE = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME
 ]
 
+HEAT_FLUX_NAME = 'heat_flux_w_m02'
 SHORTWAVE_NET_FLUX_NAME = 'shortwave_net_flux_w_m02'
 TARGET_NAMES = copy.deepcopy(TARGET_NAMES_IN_FILE)
 TARGET_NAMES.insert(-1, SHORTWAVE_NET_FLUX_NAME)
@@ -41,7 +42,8 @@ TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
         r'$F_{down}^{sfc}$ (W m$^{-2}$)',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'$F_{up}^{TOA}$ (W m$^{-2}$)',
-    SHORTWAVE_NET_FLUX_NAME: r'Net flux (W m$^{-2}$)'
+    SHORTWAVE_NET_FLUX_NAME: r'Net flux (W m$^{-2}$)',
+    HEAT_FLUX_NAME: r'Heat flux (W m$^{-2}$)',
 }
 
 FIGURE_WIDTH_INCHES = 15
@@ -311,7 +313,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
 
     this_file_name = _plot_histogram_one_target(
         target_values=numpy.ravel(heat_flux_matrix_w_m02),
-        target_name='heat_flux_w_m02',
+        target_name=HEAT_FLUX_NAME,
         num_bins=num_histogram_bins, letter_label=letter_label,
         output_dir_name=output_dir_name
     )
