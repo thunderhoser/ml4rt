@@ -25,6 +25,12 @@ import example_utils
 FIRST_YEAR = 2020
 LAST_YEAR = 2020
 
+DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = (
+    example_utils.DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
+)
+GRAVITY_CONSTANT_M_S02 = example_utils.GRAVITY_CONSTANT_M_S02
+DAYS_TO_SECONDS = example_utils.DAYS_TO_SECONDS
+
 TARGET_NAMES_IN_FILE = [
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
@@ -301,8 +307,13 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     ), axis=1)
 
     pressure_diff_matrix_pa = numpy.diff(edge_pressure_matrix_pa, axis=1)
+    scale_factor = (
+        (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
+        DAYS_TO_SECONDS
+    )
+
     heat_flux_matrix_w_m02 = (
-        (1004. / 9.81) * heating_rate_matrix_k_day01 *
+        scale_factor * heating_rate_matrix_k_day01 *
         numpy.absolute(pressure_diff_matrix_pa)
     )
 
