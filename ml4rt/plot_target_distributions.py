@@ -232,7 +232,8 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(this_file_name)
         this_example_dict = example_utils.subset_by_field(
-            example_dict=this_example_dict, field_names=TARGET_NAMES_IN_FILE
+            example_dict=this_example_dict,
+            field_names=TARGET_NAMES_IN_FILE + [example_utils.PRESSURE_NAME]
         )
 
         example_dicts.append(this_example_dict)
