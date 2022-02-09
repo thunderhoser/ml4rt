@@ -25,12 +25,6 @@ import example_utils
 FIRST_YEAR = 2020
 LAST_YEAR = 2020
 
-DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = (
-    example_utils.DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
-)
-GRAVITY_CONSTANT_M_S02 = example_utils.GRAVITY_CONSTANT_M_S02
-DAYS_TO_SECONDS = example_utils.DAYS_TO_SECONDS
-
 TARGET_NAMES_IN_FILE = [
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
@@ -282,39 +276,10 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
         )
         panel_file_names.append(this_file_name)
 
-    heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+    example_dict = example_utils.multiply_hr_by_layer_thickness(example_dict)
+    heat_flux_matrix_w_m02 = example_utils.get_field_from_dict(
         example_dict=example_dict,
         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-    pressure_matrix_pa = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.PRESSURE_NAME
-    )
-
-    pressure_diff_matrix_pa = numpy.diff(pressure_matrix_pa, axis=1)
-    edge_pressure_matrix_pa = (
-        pressure_matrix_pa[:, :-1] + pressure_diff_matrix_pa / 2
-    )
-    bottom_pressure_matrix_pa = (
-        pressure_matrix_pa[:, [0]] - pressure_diff_matrix_pa[:, [0]] / 2
-    )
-    top_pressure_matrix_pa = (
-        pressure_matrix_pa[:, [-1]] + pressure_diff_matrix_pa[:, [-1]] / 2
-    )
-    edge_pressure_matrix_pa = numpy.concatenate((
-        bottom_pressure_matrix_pa, edge_pressure_matrix_pa,
-        top_pressure_matrix_pa
-    ), axis=1)
-
-    pressure_diff_matrix_pa = numpy.diff(edge_pressure_matrix_pa, axis=1)
-    scale_factor = (
-        (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
-        DAYS_TO_SECONDS
-    )
-
-    heat_flux_matrix_w_m02 = (
-        scale_factor * heating_rate_matrix_k_day01 *
-        numpy.absolute(pressure_diff_matrix_pa)
     )
 
     if letter_label is None:
