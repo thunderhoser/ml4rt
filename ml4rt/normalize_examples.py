@@ -241,6 +241,23 @@ def _run(input_example_file_name, normalization_file_name,
             apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
 
+    variable_names = (
+            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY] +
+            example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY] +
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY] +
+            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
+    )
+
+    for this_name in variable_names:
+        this_data_matrix = example_utils.get_field_from_dict(
+            example_dict=example_dict, field_name=this_name
+        )
+
+        for this_percentile in [1, 5, 25, 50, 75, 95, 99]:
+            print('{0:d}th percentile of {1:s} after normalization = {2:.4f}'.format(this_percentile, this_name, numpy.percentile(this_data_matrix, this_percentile)))
+
+        print('Mean {0:s} after normalization = {1:.4f}'.format(this_name, numpy.mean(this_data_matrix)))
+
     normalization_metadata_dict = {
         example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
         example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
