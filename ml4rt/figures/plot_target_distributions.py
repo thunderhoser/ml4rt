@@ -225,9 +225,13 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(this_file_name)
+
+        these_field_names = (
+            TARGET_NAMES_IN_FILE +
+            [example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME]
+        )
         this_example_dict = example_utils.subset_by_field(
-            example_dict=this_example_dict,
-            field_names=TARGET_NAMES_IN_FILE + [example_utils.PRESSURE_NAME]
+            example_dict=this_example_dict, field_names=these_field_names
         )
 
         example_dicts.append(this_example_dict)
@@ -286,6 +290,27 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
         output_dir_name=output_dir_name
     )
     panel_file_names.append(this_file_name)
+
+    if (
+            example_utils.HEIGHT_NAME in
+            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    ):
+        height_matrix_m_agl = example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.HEIGHT_NAME
+        )
+        height_diff_matrix_metres = numpy.diff(height_matrix_m_agl, axis=1)
+
+        num_sigma_levels = height_matrix_m_agl.shape[1]
+
+        for j in range(num_sigma_levels - 1):
+            print((
+                'Difference between {0:d}th and {1:d}th sigma-levels ... '
+                'mean = {2:.2f} m ... stdev = {3:.2f} m'
+            ).format(
+                j + 1, j + 2, numpy.mean(height_diff_matrix_metres[:, j]),
+                numpy.std(height_diff_matrix_metres[:, j], ddof=1)
+            ))
 
     concat_file_name = '{0:s}/target_distributions.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
