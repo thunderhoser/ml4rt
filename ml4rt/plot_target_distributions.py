@@ -295,6 +295,26 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     )
     panel_file_names.append(this_file_name)
 
+    if (
+            example_utils.HEIGHT_NAME in
+            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    ):
+        height_matrix_m_agl = example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.HEIGHT_NAME
+        )
+
+        num_sigma_levels = height_matrix_m_agl.shape[1]
+
+        for j in range(num_sigma_levels):
+            print((
+                '{0:d}th sigma-level ... mean = {1:.2f} m AGL ... '
+                'stdev = {2:.2f} m AGL'
+            ).format(
+                j + 1, numpy.mean(height_matrix_m_agl[:, j]),
+                numpy.std(height_matrix_m_agl[:, j], ddof=1)
+            ))
+
     concat_file_name = '{0:s}/target_distributions.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
 
