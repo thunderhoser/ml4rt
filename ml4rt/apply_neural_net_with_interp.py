@@ -469,6 +469,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] ==
         [example_utils.SHORTWAVE_HEATING_RATE_NAME]
     )
+    assert not generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]
 
     print(SEPARATOR_STRING)
 

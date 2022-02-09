@@ -47,7 +47,8 @@ USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
-MULTIPLY_BY_THICKNESS_ARG_NAME = 'multiply_preds_by_layer_thickness'
+MULTIPLY_PREDICTORS_ARG_NAME = 'multiply_preds_by_layer_thickness'
+MULTIPLY_HEATING_RATES_ARG_NAME = 'multiply_hr_by_layer_thickness'
 FIRST_TRAIN_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
 FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
@@ -106,8 +107,11 @@ HEIGHTS_HELP_STRING = (
     'List of heights (metres above ground level) for profile (vector) '
     'variables.'
 )
-MULTIPLY_BY_THICKNESS_HELP_STRING = (
+MULTIPLY_PREDICTORS_HELP_STRING = (
     'Boolean flag.  If 1, will multiply relevant predictors by layer thickness.'
+)
+MULTIPLY_HEATING_RATES_HELP_STRING = (
+    'Boolean flag.  If 1, will multiply heating rates by layer thickness.'
 )
 TRAIN_TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The training period will be '
@@ -221,8 +225,12 @@ def add_input_args(parser_object):
         default=[-1], help=HEIGHTS_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + MULTIPLY_BY_THICKNESS_ARG_NAME, type=int, required=False,
-        default=0, help=MULTIPLY_BY_THICKNESS_HELP_STRING
+        '--' + MULTIPLY_PREDICTORS_ARG_NAME, type=int, required=False,
+        default=0, help=MULTIPLY_PREDICTORS_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + MULTIPLY_HEATING_RATES_ARG_NAME, type=int, required=False,
+        default=0, help=MULTIPLY_HEATING_RATES_HELP_STRING
     )
     parser_object.add_argument(
         '--' + FIRST_TRAIN_TIME_ARG_NAME, type=str, required=False,

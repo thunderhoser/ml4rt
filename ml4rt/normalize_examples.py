@@ -16,7 +16,8 @@ import example_utils
 
 INPUT_FILE_ARG_NAME = 'input_example_file_name'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
-MULTIPLY_BY_THICKNESS_ARG_NAME = 'multiply_preds_by_layer_thickness'
+MULTIPLY_PREDICTORS_ARG_NAME = 'multiply_preds_by_layer_thickness'
+MULTIPLY_HEATING_RATES_ARG_NAME = 'multiply_hr_by_layer_thickness'
 PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
 PREDICTOR_MIN_VALUE_ARG_NAME = 'predictor_min_norm_value'
 PREDICTOR_MAX_VALUE_ARG_NAME = 'predictor_max_norm_value'
@@ -37,8 +38,12 @@ NORMALIZATION_FILE_HELP_STRING = (
     'will be used to create uniform distributions.  Will be read by '
     '`example_io.read_file`.'
 )
-MULTIPLY_BY_THICKNESS_HELP_STRING = (
-    'Boolean flag.  If 1, predictors must be multiplied by layer thickness '
+MULTIPLY_PREDICTORS_HELP_STRING = (
+    'Boolean flag.  If 1, predictors will be multiplied by layer thickness '
+    'before normalization.'
+)
+MULTIPLY_HEATING_RATES_HELP_STRING = (
+    'Boolean flag.  If 1, heating rates be multiplied by layer thickness '
     'before normalization.'
 )
 PREDICTOR_NORM_TYPE_HELP_STRING = (
@@ -91,8 +96,12 @@ INPUT_ARG_PARSER.add_argument(
     help=NORMALIZATION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MULTIPLY_BY_THICKNESS_ARG_NAME, type=int, required=False, default=0,
-    help=MULTIPLY_BY_THICKNESS_HELP_STRING
+    '--' + MULTIPLY_PREDICTORS_ARG_NAME, type=int, required=False, default=0,
+    help=MULTIPLY_PREDICTORS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MULTIPLY_HEATING_RATES_ARG_NAME, type=int, required=False, default=0,
+    help=MULTIPLY_HEATING_RATES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PREDICTOR_NORM_TYPE_ARG_NAME, type=str, required=False,
@@ -138,7 +147,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(input_example_file_name, normalization_file_name,
-         multiply_preds_by_layer_thickness,
+         multiply_preds_by_layer_thickness, multiply_hr_by_layer_thickness,
          predictor_norm_type_string, predictor_min_norm_value,
          predictor_max_norm_value, vector_target_norm_type_string,
          vector_target_min_norm_value, vector_target_max_norm_value,
@@ -151,6 +160,7 @@ def _run(input_example_file_name, normalization_file_name,
     :param input_example_file_name: See documentation at top of file.
     :param normalization_file_name: Same.
     :param multiply_preds_by_layer_thickness: Same.
+    :param multiply_hr_by_layer_thickness: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
@@ -190,6 +200,14 @@ def _run(input_example_file_name, normalization_file_name,
             example_dict
         )
         training_example_dict = example_utils.multiply_preds_by_layer_thickness(
+            training_example_dict
+        )
+
+    if multiply_hr_by_layer_thickness:
+        example_dict = example_utils.multiply_hr_by_layer_thickness(
+            example_dict
+        )
+        training_example_dict = example_utils.multiply_hr_by_layer_thickness(
             training_example_dict
         )
 
@@ -241,23 +259,6 @@ def _run(input_example_file_name, normalization_file_name,
             apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
 
-    variable_names = (
-            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY] +
-            example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY] +
-            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY] +
-            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
-    )
-
-    for this_name in variable_names:
-        this_data_matrix = example_utils.get_field_from_dict(
-            example_dict=example_dict, field_name=this_name
-        )
-
-        for this_percentile in [1, 5, 25, 50, 75, 95, 99]:
-            print('{0:d}th percentile of {1:s} after normalization = {2:.4f}'.format(this_percentile, this_name, numpy.percentile(this_data_matrix, this_percentile)))
-
-        print('Mean {0:s} after normalization = {1:.4f}'.format(this_name, numpy.mean(this_data_matrix)))
-
     normalization_metadata_dict = {
         example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
         example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
@@ -294,7 +295,10 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NORMALIZATION_FILE_ARG_NAME
         ),
         multiply_preds_by_layer_thickness=bool(
-            getattr(INPUT_ARG_OBJECT, MULTIPLY_BY_THICKNESS_ARG_NAME)
+            getattr(INPUT_ARG_OBJECT, MULTIPLY_PREDICTORS_ARG_NAME)
+        ),
+        multiply_hr_by_layer_thickness=bool(
+            getattr(INPUT_ARG_OBJECT, MULTIPLY_HEATING_RATES_ARG_NAME)
         ),
         predictor_norm_type_string=getattr(
             INPUT_ARG_OBJECT, PREDICTOR_NORM_TYPE_ARG_NAME

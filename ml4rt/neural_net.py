@@ -3,6 +3,7 @@
 import os
 import sys
 import copy
+import os.path
 import pickle
 import numpy
 import keras
@@ -60,7 +61,8 @@ VECTOR_PREDICTOR_NAMES_KEY = 'vector_predictor_names'
 SCALAR_TARGET_NAMES_KEY = 'scalar_target_names'
 VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 HEIGHTS_KEY = 'heights_m_agl'
-MULTIPLY_BY_THICKNESS_KEY = 'multiply_preds_by_layer_thickness'
+MULTIPLY_PREDS_BY_THICKNESS_KEY = 'multiply_preds_by_layer_thickness'
+MULTIPLY_HR_BY_THICKNESS_KEY = 'multiply_hr_by_layer_thickness'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
@@ -80,7 +82,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_TARGET_NAMES_KEY: example_utils.ALL_SCALAR_TARGET_NAMES,
     VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
     HEIGHTS_KEY: example_utils.DEFAULT_HEIGHTS_M_AGL,
-    MULTIPLY_BY_THICKNESS_KEY: False,
+    MULTIPLY_PREDS_BY_THICKNESS_KEY: False,
+    MULTIPLY_HR_BY_THICKNESS_KEY: False,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -155,7 +158,10 @@ def _check_generator_args(option_dict):
         option_dict[HEIGHTS_KEY], num_dimensions=1
     )
     error_checking.assert_is_geq_numpy_array(option_dict[HEIGHTS_KEY], 0.)
-    error_checking.assert_is_boolean(option_dict[MULTIPLY_BY_THICKNESS_KEY])
+    error_checking.assert_is_boolean(
+        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
+    )
+    error_checking.assert_is_boolean(option_dict[MULTIPLY_HR_BY_THICKNESS_KEY])
 
     if option_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
         error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
@@ -200,12 +206,12 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
         heights_m_agl, multiply_preds_by_layer_thickness,
-        normalization_file_name, predictor_norm_type_string,
-        predictor_min_norm_value, predictor_max_norm_value,
-        vector_target_norm_type_string, vector_target_min_norm_value,
-        vector_target_max_norm_value, scalar_target_norm_type_string,
-        scalar_target_min_norm_value, scalar_target_max_norm_value,
-        exclude_summit_greenland=False):
+        multiply_hr_by_layer_thickness, normalization_file_name,
+        predictor_norm_type_string, predictor_min_norm_value,
+        predictor_max_norm_value, vector_target_norm_type_string,
+        vector_target_min_norm_value, vector_target_max_norm_value,
+        scalar_target_norm_type_string, scalar_target_min_norm_value,
+        scalar_target_max_norm_value, exclude_summit_greenland=False):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -216,6 +222,7 @@ def _read_file_for_generator(
     :param heights_m_agl: 1-D numpy array of heights to keep (metres above
         ground level).
     :param multiply_preds_by_layer_thickness: See doc for `data_generator`.
+    :param multiply_hr_by_layer_thickness: Same.
     :param normalization_file_name: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
@@ -260,12 +267,18 @@ def _read_file_for_generator(
             example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
             example_io.PREDICTOR_MIN_VALUE_KEY: predictor_min_norm_value,
             example_io.PREDICTOR_MAX_VALUE_KEY: predictor_max_norm_value,
-            example_io.VECTOR_TARGET_NORM_TYPE_KEY: vector_target_norm_type_string,
-            example_io.VECTOR_TARGET_MIN_VALUE_KEY: vector_target_min_norm_value,
-            example_io.VECTOR_TARGET_MAX_VALUE_KEY: vector_target_max_norm_value,
-            example_io.SCALAR_TARGET_NORM_TYPE_KEY: scalar_target_norm_type_string,
-            example_io.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
-            example_io.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value
+            example_io.VECTOR_TARGET_NORM_TYPE_KEY:
+                vector_target_norm_type_string,
+            example_io.VECTOR_TARGET_MIN_VALUE_KEY:
+                vector_target_min_norm_value,
+            example_io.VECTOR_TARGET_MAX_VALUE_KEY:
+                vector_target_max_norm_value,
+            example_io.SCALAR_TARGET_NORM_TYPE_KEY:
+                scalar_target_norm_type_string,
+            example_io.SCALAR_TARGET_MIN_VALUE_KEY:
+                scalar_target_min_norm_value,
+            example_io.SCALAR_TARGET_MAX_VALUE_KEY:
+                scalar_target_max_norm_value
         }
 
         assert example_io.are_normalization_metadata_same(
@@ -277,6 +290,10 @@ def _read_file_for_generator(
 
     if multiply_preds_by_layer_thickness:
         example_dict = example_utils.multiply_preds_by_layer_thickness(
+            example_dict
+        )
+    if multiply_hr_by_layer_thickness:
+        example_dict = example_utils.multiply_hr_by_layer_thickness(
             example_dict
         )
 
@@ -295,6 +312,10 @@ def _read_file_for_generator(
 
     if multiply_preds_by_layer_thickness:
         training_example_dict = example_utils.multiply_preds_by_layer_thickness(
+            training_example_dict
+        )
+    if multiply_hr_by_layer_thickness:
+        training_example_dict = example_utils.multiply_hr_by_layer_thickness(
             training_example_dict
         )
 
@@ -927,6 +948,8 @@ def data_generator(option_dict, for_inference, net_type_string):
         after this time).
     option_dict['multiply_preds_by_layer_thickness']: Boolean flag.  If True,
         will multiply relevant predictors by layer thickness.
+    option_dict['multiply_hr_by_layer_thickness']: Boolean flag.  If True,
+        will multiply heating rates by layer thickness.
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['predictor_norm_type_string']: Normalization type for predictors
@@ -981,7 +1004,10 @@ def data_generator(option_dict, for_inference, net_type_string):
     scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
     vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = option_dict[HEIGHTS_KEY]
-    multiply_preds_by_layer_thickness = option_dict[MULTIPLY_BY_THICKNESS_KEY]
+    multiply_preds_by_layer_thickness = (
+        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
+    )
+    multiply_hr_by_layer_thickness = option_dict[MULTIPLY_HR_BY_THICKNESS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
@@ -1014,6 +1040,7 @@ def data_generator(option_dict, for_inference, net_type_string):
         last_time_unix_sec=last_time_unix_sec,
         field_names=all_field_names, heights_m_agl=heights_m_agl,
         multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
+        multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
         normalization_file_name=normalization_file_name,
         predictor_norm_type_string=predictor_norm_type_string,
         predictor_min_norm_value=predictor_min_norm_value,
@@ -1073,6 +1100,8 @@ def data_generator(option_dict, for_inference, net_type_string):
                     field_names=all_field_names, heights_m_agl=heights_m_agl,
                     multiply_preds_by_layer_thickness=
                     multiply_preds_by_layer_thickness,
+                    multiply_hr_by_layer_thickness=
+                    multiply_hr_by_layer_thickness,
                     normalization_file_name=normalization_file_name,
                     predictor_norm_type_string=predictor_norm_type_string,
                     predictor_min_norm_value=predictor_min_norm_value,
@@ -1092,7 +1121,8 @@ def data_generator(option_dict, for_inference, net_type_string):
                 )
                 example_dict = example_utils.subset_by_index(
                     example_dict=example_dict,
-                    desired_indices=numpy.random.permutation(num_examples_in_dict)
+                    desired_indices=
+                    numpy.random.permutation(num_examples_in_dict)
                 )
 
             this_num_examples = num_examples_per_batch - num_examples_in_memory
@@ -1214,7 +1244,10 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
     vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = option_dict[HEIGHTS_KEY]
-    multiply_preds_by_layer_thickness = option_dict[MULTIPLY_BY_THICKNESS_KEY]
+    multiply_preds_by_layer_thickness = (
+        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
+    )
+    multiply_hr_by_layer_thickness = option_dict[MULTIPLY_HR_BY_THICKNESS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
@@ -1250,6 +1283,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             last_time_unix_sec=last_time_unix_sec,
             field_names=all_field_names, heights_m_agl=heights_m_agl,
             multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
+            multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
             normalization_file_name=normalization_file_name,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
@@ -1322,7 +1356,10 @@ def create_data_specific_examples(
     scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
     vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = option_dict[HEIGHTS_KEY]
-    multiply_preds_by_layer_thickness = option_dict[MULTIPLY_BY_THICKNESS_KEY]
+    multiply_preds_by_layer_thickness = (
+        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
+    )
+    multiply_hr_by_layer_thickness = option_dict[MULTIPLY_HR_BY_THICKNESS_KEY]
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
@@ -1368,6 +1405,7 @@ def create_data_specific_examples(
             last_time_unix_sec=numpy.max(example_times_unix_sec),
             field_names=all_field_names, heights_m_agl=heights_m_agl,
             multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
+            multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
             normalization_file_name=normalization_file_name,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
@@ -1811,10 +1849,10 @@ def read_metafile(dill_file_name):
     metadata_dict = pickle.load(dill_file_handle)
     dill_file_handle.close()
 
-    if VECTOR_TARGET_NORM_TYPE_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        t = metadata_dict[TRAINING_OPTIONS_KEY]
-        v = metadata_dict[VALIDATION_OPTIONS_KEY]
+    t = metadata_dict[TRAINING_OPTIONS_KEY]
+    v = metadata_dict[VALIDATION_OPTIONS_KEY]
 
+    if VECTOR_TARGET_NORM_TYPE_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         target_norm_type_string = t['target_norm_type_string']
         target_min_norm_value = t['target_min_norm_value']
         target_max_norm_value = t['target_max_norm_value']
@@ -1825,6 +1863,7 @@ def read_metafile(dill_file_name):
         t[SCALAR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
         t[SCALAR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
         t[SCALAR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
+
         v[VECTOR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
         v[VECTOR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
         v[VECTOR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
@@ -1832,12 +1871,16 @@ def read_metafile(dill_file_name):
         v[SCALAR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
         v[SCALAR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
 
-        metadata_dict[TRAINING_OPTIONS_KEY] = t
-        metadata_dict[VALIDATION_OPTIONS_KEY] = v
+    if MULTIPLY_PREDS_BY_THICKNESS_KEY not in t:
+        t[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
+        v[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
 
-    if MULTIPLY_BY_THICKNESS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        metadata_dict[TRAINING_OPTIONS_KEY][MULTIPLY_BY_THICKNESS_KEY] = False
-        metadata_dict[VALIDATION_OPTIONS_KEY][MULTIPLY_BY_THICKNESS_KEY] = False
+    if MULTIPLY_HR_BY_THICKNESS_KEY not in t:
+        t[MULTIPLY_HR_BY_THICKNESS_KEY] = False
+        v[MULTIPLY_HR_BY_THICKNESS_KEY] = False
+
+    metadata_dict[TRAINING_OPTIONS_KEY] = t
+    metadata_dict[VALIDATION_OPTIONS_KEY] = v
 
     if EARLY_STOPPING_KEY not in metadata_dict:
         metadata_dict[EARLY_STOPPING_KEY] = True
