@@ -14,7 +14,7 @@ from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
 
-FIRST_YEAR = 2017
+FIRST_YEAR = 2020
 LAST_YEAR = 2020
 
 TARGET_NAMES_IN_FILE = [
@@ -23,6 +23,7 @@ TARGET_NAMES_IN_FILE = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME
 ]
 
+HEAT_FLUX_NAME = 'heat_flux_w_m02'
 SHORTWAVE_NET_FLUX_NAME = 'shortwave_net_flux_w_m02'
 TARGET_NAMES = copy.deepcopy(TARGET_NAMES_IN_FILE)
 TARGET_NAMES.insert(-1, SHORTWAVE_NET_FLUX_NAME)
@@ -33,7 +34,8 @@ TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
         r'$F_{down}^{sfc}$ (W m$^{-2}$)',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'$F_{up}^{TOA}$ (W m$^{-2}$)',
-    SHORTWAVE_NET_FLUX_NAME: r'Net flux (W m$^{-2}$)'
+    SHORTWAVE_NET_FLUX_NAME: r'Net flux (W m$^{-2}$)',
+    HEAT_FLUX_NAME: r'Heat flux (W m$^{-2}$)',
 }
 
 FIGURE_WIDTH_INCHES = 15
@@ -217,13 +219,15 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
         raise_error_if_all_missing=True, raise_error_if_any_missing=True
     )
 
+    example_file_names = list(set(example_file_names))
     example_dicts = []
 
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(this_file_name)
         this_example_dict = example_utils.subset_by_field(
-            example_dict=this_example_dict, field_names=TARGET_NAMES_IN_FILE
+            example_dict=this_example_dict,
+            field_names=TARGET_NAMES_IN_FILE + [example_utils.PRESSURE_NAME]
         )
 
         example_dicts.append(this_example_dict)
@@ -264,12 +268,31 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
         )
         panel_file_names.append(this_file_name)
 
+    example_dict = example_utils.multiply_hr_by_layer_thickness(example_dict)
+    heat_flux_matrix_w_m02 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    )
+
+    if letter_label is None:
+        letter_label = 'a'
+    else:
+        letter_label = chr(ord(letter_label) + 1)
+
+    this_file_name = _plot_histogram_one_target(
+        target_values=numpy.ravel(heat_flux_matrix_w_m02),
+        target_name=HEAT_FLUX_NAME,
+        num_bins=num_histogram_bins, letter_label=letter_label,
+        output_dir_name=output_dir_name
+    )
+    panel_file_names.append(this_file_name)
+
     concat_file_name = '{0:s}/target_distributions.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
 
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names, output_file_name=concat_file_name,
-        num_panel_rows=2, num_panel_columns=2, border_width_pixels=25
+        num_panel_rows=2, num_panel_columns=3, border_width_pixels=25
     )
     imagemagick_utils.trim_whitespace(
         input_file_name=concat_file_name, output_file_name=concat_file_name

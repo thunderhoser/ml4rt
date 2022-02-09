@@ -576,11 +576,11 @@ def multiply_hr_by_layer_thickness(example_dict):
         get_grid_cell_edges(pressure_matrix_pa[i, :])
         for i in range(num_examples)
     ])
-
     thickness_matrix_pa = numpy.vstack([
         get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
         for i in range(num_examples)
     ])
+    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
 
     print((
         'Multiplying heating rates by layer thickness (mean thickness = '
@@ -599,6 +599,52 @@ def multiply_hr_by_layer_thickness(example_dict):
     example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
         scale_factor * thickness_matrix_pa *
         example_dict[VECTOR_TARGET_VALS_KEY][..., this_index]
+    )
+
+    return example_dict
+
+
+def divide_hr_by_layer_thickness(example_dict):
+    """Divides heating rates by layer thickness.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :return: example_dict: Same but with heating rates divided by layer
+        thickness.
+    """
+
+    pressure_matrix_pa = get_field_from_dict(
+        example_dict=example_dict, field_name=PRESSURE_NAME
+    )
+    num_examples = pressure_matrix_pa.shape[0]
+
+    edge_pressure_matrix_pa = numpy.vstack([
+        get_grid_cell_edges(pressure_matrix_pa[i, :])
+        for i in range(num_examples)
+    ])
+    thickness_matrix_pa = numpy.vstack([
+        get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
+        for i in range(num_examples)
+    ])
+    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
+
+    print((
+        'Dividing heating rates by layer thickness (mean thickness = {0:.2f} '
+        'Pa)...'
+    ).format(
+        numpy.mean(thickness_matrix_pa)
+    ))
+
+    scale_factor = (
+        (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
+        DAYS_TO_SECONDS
+    )
+    this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
+        SHORTWAVE_HEATING_RATE_NAME
+    )
+    example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
+        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] /
+        (scale_factor * thickness_matrix_pa)
     )
 
     return example_dict
