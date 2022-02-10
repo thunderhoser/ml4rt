@@ -606,6 +606,7 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
         example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )
+        num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
 
     if different_height_grids:
         height_matrix_m_agl = example_utils.get_field_from_dict(
@@ -970,6 +971,7 @@ def read_file(netcdf_file_name, allow_bad_values=False,
         example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )
+        # num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
 
     longitude_index = (
         example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
