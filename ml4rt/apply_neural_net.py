@@ -5,6 +5,7 @@ import sys
 import copy
 import time
 import argparse
+import warnings
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -183,6 +184,8 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         new_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
         new_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
         new_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
+        new_option_dict[neural_net.MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
+        new_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY] = False
         new_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = [
             example_utils.PRESSURE_NAME
         ]
@@ -207,11 +210,36 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     print(SEPARATOR_STRING)
 
     if generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]:
-        these_indices = example_utils.find_examples(
+        good_pressure_indices = example_utils.find_examples(
             all_id_strings=pressure_id_strings,
             desired_id_strings=example_id_strings, allow_missing=False
         )
-        pressure_matrix_pa = pressure_matrix_pa[these_indices, :]
+
+        if numpy.any(good_pressure_indices < 0):
+            warning_string = (
+                'POTENTIAL ERROR: Could not find pressure profile for {0:d} of '
+                '{1:d} examples.'
+            ).format(
+                numpy.sum(good_pressure_indices < 0),
+                len(good_pressure_indices)
+            )
+
+            warnings.warn(warning_string)
+
+        good_overall_indices = numpy.where(good_pressure_indices >= 0)[0]
+        good_pressure_indices = good_pressure_indices[good_overall_indices]
+
+        pressure_matrix_pa = pressure_matrix_pa[good_pressure_indices, :]
+        predictor_matrix = predictor_matrix[good_overall_indices, ...]
+        example_id_strings = [
+            example_id_strings[k] for k in good_overall_indices
+        ]
+
+        if isinstance(target_array, list):
+            for k in range(len(target_array)):
+                target_array[k] = target_array[k][good_overall_indices, ...]
+        else:
+            target_array = target_array[good_overall_indices, ...]
 
     exec_start_time_unix_sec = time.time()
     prediction_array = neural_net.apply_model(
