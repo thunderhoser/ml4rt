@@ -54,6 +54,8 @@ O2_CONCENTRATION_KEY_ORIG_PPMV = 'o2_concentration_ppmv'
 CO2_CONCENTRATION_KEY_ORIG_PPMV = 'co2_concentration_ppmv'
 CH4_CONCENTRATION_KEY_ORIG_PPMV = 'ch4_concentration_ppmv'
 N2O_CONCENTRATION_KEY_ORIG_PPMV = 'n2o_concentration_ppmv'
+HEIGHT_THICKNESS_KEY_ORIG_METRES = 'height_thickness_metres'
+PRESSURE_THICKNESS_KEY_ORIG_PASCALS = 'pressure_thickness_pascals'
 LIQUID_EFF_RADIUS_KEY_ORIG_METRES = 'liquid_eff_radius_metres'
 ICE_EFF_RADIUS_KEY_ORIG_METRES = 'ice_eff_radius_metres'
 AEROSOL_EXTINCTION_KEY_ORIG_METRES01 = 'aerosol_extinction_metres01'
@@ -109,6 +111,8 @@ ORIG_TO_NEW_KEY_DICT = {
     CO2_CONCENTRATION_KEY_ORIG_PPMV: CO2_CONCENTRATION_KEY_ORIG_PPMV,
     CH4_CONCENTRATION_KEY_ORIG_PPMV: CH4_CONCENTRATION_KEY_ORIG_PPMV,
     N2O_CONCENTRATION_KEY_ORIG_PPMV: N2O_CONCENTRATION_KEY_ORIG_PPMV,
+    HEIGHT_THICKNESS_KEY_ORIG_METRES: HEIGHT_THICKNESS_KEY_ORIG_METRES,
+    PRESSURE_THICKNESS_KEY_ORIG_PASCALS: PRESSURE_THICKNESS_KEY_ORIG_PASCALS,
     LIQUID_EFF_RADIUS_KEY_ORIG_METRES: LIQUID_EFF_RADIUS_KEY_ORIG_METRES,
     ICE_EFF_RADIUS_KEY_ORIG_METRES: ICE_EFF_RADIUS_KEY_ORIG_METRES,
     AEROSOL_EXTINCTION_KEY_ORIG_METRES01: AEROSOL_EXTINCTION_KEY_ORIG_METRES01,
@@ -614,27 +618,64 @@ def _run(input_file_name, output_file_name):
         processed_data_dict=processed_data_dict
     )
 
-    dummy_vector_predictor_matrix = numpy.reshape(
+    temperature_matrix_kelvins = numpy.reshape(
         processed_data_dict[TEMPERATURE_KEY_ORIG_KELVINS],
         (num_times * num_sites, num_heights)
     )
-    dummy_vector_predictor_matrix = numpy.expand_dims(
-        dummy_vector_predictor_matrix, axis=-1
+    height_matrix_m_agl = numpy.reshape(
+        processed_data_dict[HEIGHT_KEY_ORIG_M_AGL],
+        (num_times * num_sites, num_heights)
+    )
+    pressure_matrix_pa = numpy.reshape(
+        processed_data_dict[PRESSURE_KEY_ORIG_PASCALS],
+        (num_times * num_sites, num_heights)
+    )
+    dummy_vector_predictor_matrix = numpy.stack(
+        (temperature_matrix_kelvins, height_matrix_m_agl, pressure_matrix_pa),
+        axis=-1
     )
 
     dummy_example_dict = {
         example_utils.EXAMPLE_IDS_KEY: dummy_id_strings,
         example_utils.HEIGHTS_KEY:
             orig_gfs_table_xarray.coords[HEIGHT_DIMENSION_ORIG].values,
-        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-            [example_utils.TEMPERATURE_NAME],
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY: [
+            example_utils.TEMPERATURE_NAME, example_utils.HEIGHT_NAME,
+            example_utils.PRESSURE_NAME
+        ],
         example_utils.VECTOR_PREDICTOR_VALS_KEY:
             dummy_vector_predictor_matrix,
         example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             [example_utils.ZENITH_ANGLE_NAME],
         example_utils.SCALAR_PREDICTOR_VALS_KEY:
-            dummy_vector_predictor_matrix[:, 0, :]
+            dummy_vector_predictor_matrix[:, 0, [0]]
     }
+
+    print('Adding layer thicknesses (in terms of both height and pressure)...')
+    dummy_example_dict = example_utils.add_layer_thicknesses(
+        example_dict=dummy_example_dict, use_height_coords=True
+    )
+    dummy_example_dict = example_utils.add_layer_thicknesses(
+        example_dict=dummy_example_dict, use_height_coords=False
+    )
+
+    height_thickness_matrix_metres = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.HEIGHT_THICKNESS_NAME
+    )
+    processed_data_dict[HEIGHT_THICKNESS_KEY_ORIG_METRES] = numpy.reshape(
+        height_thickness_matrix_metres,
+        (num_times, num_sites, num_heights)
+    )
+
+    pressure_thickness_matrix_pa = example_utils.get_field_from_dict(
+        example_dict=dummy_example_dict,
+        field_name=example_utils.PRESSURE_THICKNESS_NAME
+    )
+    processed_data_dict[PRESSURE_THICKNESS_KEY_ORIG_PASCALS] = numpy.reshape(
+        pressure_thickness_matrix_pa,
+        (num_times, num_sites, num_heights)
+    )
 
     print('Adding effective radii of liquid and ice particles...')
     dummy_example_dict = example_utils.add_effective_radii(

@@ -88,6 +88,60 @@ GRID_CELL_WIDTHS_METRES = numpy.array([
     10, 15, 20, 20, 20, 14960, 16450, 3000, 3000, 3000, 3500, 4000, 4000
 ], dtype=float)
 
+# The following constants are used to test add_layer_thicknesses.
+THESE_HEIGHTS_M_AGL = numpy.array(
+    [100, 250, 500, 1000, 2000, 5000, 10000], dtype=int
+)
+THESE_EXAMPLE_ID_STRINGS = ['foo', 'bar', 'moo']
+THIS_PRESSURE_MATRIX_PA = numpy.array([
+    [85000, 84000, 83000, 75000, 67500, 55000, 25000],
+    [105000, 103500, 101000, 95000, 84000, 57000, 26500],
+    [100000, 98800, 97000, 92000, 81500, 54500, 24000]
+], dtype=float)
+
+EXAMPLE_DICT_NO_THICKNESS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+        [example_utils.PRESSURE_NAME],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY:
+        numpy.expand_dims(THIS_PRESSURE_MATRIX_PA, axis=-1),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THIS_THICKNESS_MATRIX_METRES = numpy.array([
+    [150, 200, 375, 750, 2000, 4000, 5000],
+    [150, 200, 375, 750, 2000, 4000, 5000],
+    [150, 200, 375, 750, 2000, 4000, 5000]
+], dtype=float)
+
+EXAMPLE_DICT_WITH_HEIGHT_THICKNESS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: [
+        example_utils.PRESSURE_NAME, example_utils.HEIGHT_THICKNESS_NAME
+    ],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: numpy.stack(
+        (THIS_PRESSURE_MATRIX_PA, THIS_THICKNESS_MATRIX_METRES), axis=-1
+    ),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
+THIS_THICKNESS_MATRIX_PA = numpy.array([
+    [1000, 1000, 4500, 7750, 10000, 21250, 30000],
+    [1500, 2000, 4250, 8500, 19000, 28750, 30500],
+    [1200, 1500, 3400, 7750, 18750, 28750, 30500]
+], dtype=float)
+
+EXAMPLE_DICT_WITH_PRESSURE_THICKNESS = {
+    example_utils.VECTOR_PREDICTOR_NAMES_KEY: [
+        example_utils.PRESSURE_NAME, example_utils.PRESSURE_THICKNESS_NAME
+    ],
+    example_utils.VECTOR_PREDICTOR_VALS_KEY: numpy.stack(
+        (THIS_PRESSURE_MATRIX_PA, THIS_THICKNESS_MATRIX_PA), axis=-1
+    ),
+    example_utils.EXAMPLE_IDS_KEY: THESE_EXAMPLE_ID_STRINGS,
+    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
+}
+
 # The following constants are used to test add_trace_gases.
 THIS_TRACE_GAS_DICT = trace_gases.read_profiles()[1]
 THESE_HEIGHTS_M_AGL = THIS_TRACE_GAS_DICT[trace_gases.HEIGHTS_KEY][:6]
@@ -1233,6 +1287,36 @@ class ExampleUtilsTests(unittest.TestCase):
         )
         self.assertTrue(numpy.allclose(
             these_widths_metres, GRID_CELL_WIDTHS_METRES, atol=TOLERANCE
+        ))
+
+    def test_add_layer_thicknesses_height(self):
+        """Ensures correct output from add_layer_thicknesses.
+
+        In this case, using height coords rather than pressure coords.
+        """
+
+        this_example_dict = example_utils.add_layer_thicknesses(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_NO_THICKNESS),
+            use_height_coords=True
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_HEIGHT_THICKNESS
+        ))
+
+    def test_add_layer_thicknesses_pressure(self):
+        """Ensures correct output from add_layer_thicknesses.
+
+        In this case, using pressure coords rather than height coords.
+        """
+
+        this_example_dict = example_utils.add_layer_thicknesses(
+            example_dict=copy.deepcopy(EXAMPLE_DICT_NO_THICKNESS),
+            use_height_coords=False
+        )
+
+        self.assertTrue(_compare_example_dicts(
+            this_example_dict, EXAMPLE_DICT_WITH_PRESSURE_THICKNESS
         ))
 
     def test_add_trace_gases(self):

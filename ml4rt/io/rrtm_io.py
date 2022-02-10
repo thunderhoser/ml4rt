@@ -116,7 +116,9 @@ PREDICTOR_NAME_TO_ORIG_GFS = {
     example_utils.AEROSOL_EXTINCTION_NAME: 'aerosol_extinction_metres01',
     example_utils.LIQUID_EFF_RADIUS_NAME: 'liquid_eff_radius_metres',
     example_utils.ICE_EFF_RADIUS_NAME: 'ice_eff_radius_metres',
-    example_utils.HEIGHT_NAME: 'height_m_agl'
+    example_utils.HEIGHT_NAME: 'height_m_agl',
+    example_utils.HEIGHT_THICKNESS_NAME: 'height_thickness_metres',
+    example_utils.PRESSURE_THICKNESS_NAME: 'pressure_thickness_pascals'
 }
 PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
     example_utils.ZENITH_ANGLE_NAME: DEG_TO_RADIANS,
@@ -139,7 +141,9 @@ PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
     example_utils.AEROSOL_EXTINCTION_NAME: 1.,
     example_utils.LIQUID_EFF_RADIUS_NAME: 1.,
     example_utils.ICE_EFF_RADIUS_NAME: 1.,
-    example_utils.HEIGHT_NAME: 1.
+    example_utils.HEIGHT_NAME: 1.,
+    example_utils.HEIGHT_THICKNESS_NAME: 1.,
+    example_utils.PRESSURE_THICKNESS_NAME: 1.
 }
 TARGET_NAME_TO_ORIG_GFS = {
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:

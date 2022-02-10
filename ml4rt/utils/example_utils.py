@@ -132,6 +132,8 @@ AEROSOL_EXTINCTION_NAME = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_NAME = 'aerosol_single_scattering_albedo'
 AEROSOL_ASYMMETRY_PARAM_NAME = 'aerosol_asymmetry_param'
 HEIGHT_NAME = 'height_m_agl'
+HEIGHT_THICKNESS_NAME = 'height_thickness_metres'
+PRESSURE_THICKNESS_NAME = 'pressure_thickness_pascals'
 
 PREDICTOR_NAMES_Z_THICKNESS_MATTERS = [
     LIQUID_WATER_CONTENT_NAME, ICE_WATER_CONTENT_NAME, O2_CONCENTRATION_NAME,
@@ -159,7 +161,8 @@ BASIC_VECTOR_PREDICTOR_NAMES = [
 ALL_VECTOR_PREDICTOR_NAMES = BASIC_VECTOR_PREDICTOR_NAMES + [
     LIQUID_EFF_RADIUS_NAME, ICE_EFF_RADIUS_NAME, O3_MIXING_RATIO_NAME,
     O2_CONCENTRATION_NAME, CO2_CONCENTRATION_NAME, CH4_CONCENTRATION_NAME,
-    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME, HEIGHT_NAME
+    N2O_CONCENTRATION_NAME, AEROSOL_EXTINCTION_NAME, HEIGHT_NAME,
+    HEIGHT_THICKNESS_NAME, PRESSURE_THICKNESS_NAME
 ]
 
 ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
@@ -1088,6 +1091,74 @@ def heating_rate_to_k_day01(example_dict, heating_rate_matrix_w_m02):
         example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
             example_dict[VECTOR_TARGET_VALS_KEY],
             obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+        )
+
+    return example_dict
+
+
+def add_layer_thicknesses(example_dict, use_height_coords):
+    """Adds layer thicknesses to dictionary.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :param use_height_coords: Boolean flag.  If True (False), will define layer
+        thicknesses in terms of height (pressure).
+    :return: example_dict: Same as input but with layer thicknesses.
+    """
+
+    error_checking.assert_is_boolean(use_height_coords)
+
+    if use_height_coords:
+        if HEIGHT_NAME in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
+            vertical_coord_matrix = get_field_from_dict(
+                example_dict=example_dict, field_name=HEIGHT_NAME
+            )
+        else:
+            vertical_coord_matrix = numpy.repeat(
+                numpy.expand_dims(example_dict[HEIGHTS_KEY], axis=0),
+                repeats=len(example_dict[EXAMPLE_IDS_KEY]), axis=0
+            )
+    else:
+        vertical_coord_matrix = get_field_from_dict(
+            example_dict=example_dict, field_name=PRESSURE_NAME
+        )
+
+    thickness_matrix = numpy.diff(vertical_coord_matrix, axis=1)
+    edge_coord_matrix = vertical_coord_matrix[:, :-1] + thickness_matrix / 2
+    bottom_coord_matrix = (
+        vertical_coord_matrix[:, [0]] - thickness_matrix[:, [0]] / 2
+    )
+    top_coord_matrix = (
+        vertical_coord_matrix[:, [-1]] + thickness_matrix[:, [-1]] / 2
+    )
+    edge_coord_matrix = numpy.concatenate(
+        (bottom_coord_matrix, edge_coord_matrix, top_coord_matrix), axis=1
+    )
+    thickness_matrix = numpy.absolute(
+        numpy.diff(edge_coord_matrix, axis=1)
+    )
+
+    thickness_name = (
+        HEIGHT_THICKNESS_NAME if use_height_coords
+        else PRESSURE_THICKNESS_NAME
+    )
+
+    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
+    found_thickness = thickness_name in vector_predictor_names
+    if not found_thickness:
+        vector_predictor_names.append(thickness_name)
+
+    thickness_index = vector_predictor_names.index(thickness_name)
+    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
+
+    if found_thickness:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., thickness_index] = (
+            thickness_matrix
+        )
+    else:
+        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
+            example_dict[VECTOR_PREDICTOR_VALS_KEY],
+            obj=thickness_index, values=thickness_matrix, axis=-1
         )
 
     return example_dict
