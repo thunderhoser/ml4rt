@@ -24,12 +24,12 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/training"
-set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/training/learning_examples_for_norm.nc"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/training"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/training/learning_examples_for_norm_20200103-20200313.nc"
 
 python3 -u "${CODE_DIR_NAME}/make_normalization_file.py" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
---first_training_time_string="2019-12-01-000000" \
+--first_training_time_string="2020-01-03-000000" \
 --last_training_time_string="2020-03-13-235959" \
 --num_examples=100000 \
 --output_norm_file_name="${NORMALIZATION_FILE_NAME}"

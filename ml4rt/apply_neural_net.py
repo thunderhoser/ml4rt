@@ -212,7 +212,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     if generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]:
         good_pressure_indices = example_utils.find_examples(
             all_id_strings=pressure_id_strings,
-            desired_id_strings=example_id_strings, allow_missing=False
+            desired_id_strings=example_id_strings, allow_missing=True
         )
 
         if numpy.any(good_pressure_indices < 0):

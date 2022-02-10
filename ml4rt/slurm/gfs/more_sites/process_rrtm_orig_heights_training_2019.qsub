@@ -25,7 +25,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/more_sites/processed/orig_heights"
-set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/training/learning_examples_2019_part02.nc"
+set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/training/learning_examples_2019_part02.nc"
 
 python3 -u "${CODE_DIR_NAME}/process_rrtm_files.py" \
 --input_rrtm_dir_name="${INPUT_DIR_NAME}" \

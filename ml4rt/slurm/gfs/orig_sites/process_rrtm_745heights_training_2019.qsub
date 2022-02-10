@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_target_distribution_orig_heights"
+#SBATCH --job-name="process_rrtm_745heights_training_2019"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -17,17 +17,18 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_target_distribution_orig_heights_%A.out
+#SBATCH --output=process_rrtm_745heights_training_2019_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/testing"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples/orig_heights/testing/target_distributions"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/new_heights"
+set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/new_heights/training/learning_examples_2019_part01.nc"
 
-python3 -u "${CODE_DIR_NAME}/plot_target_distributions.py" \
---input_tropical_dir_name="${EXAMPLE_DIR_NAME}" \
---input_non_tropical_dir_name="${EXAMPLE_DIR_NAME}" \
---output_dir_name="${OUTPUT_DIR_NAME}"
+python3 -u "${CODE_DIR_NAME}/process_rrtm_files.py" \
+--input_rrtm_dir_name="${INPUT_DIR_NAME}" \
+--first_date_string="20191201" \
+--last_date_string="20191231" \
+--output_example_file_name="${OUTPUT_FILE_NAME}"
