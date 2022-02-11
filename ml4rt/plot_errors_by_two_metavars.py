@@ -720,7 +720,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
     edge_zenith_angles_deg = edge_zenith_angles_rad * RADIANS_TO_DEGREES
     zenith_angle_tick_labels = [
         '[{0:d}, {1:d}]'.format(
-            int(numpy.round(a)), int(numpy.round(a))
+            int(numpy.round(a)), int(numpy.round(b))
         ) for a, b in
         zip(edge_zenith_angles_deg[:-1], edge_zenith_angles_deg[1:])
     ]
@@ -734,7 +734,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
     edge_down_fluxes_w_m02[-1] = MAX_SURFACE_DOWN_FLUX_W_M02
     down_flux_tick_labels = [
         '[{0:d}, {1:d}]'.format(
-            int(numpy.round(a)), int(numpy.round(a))
+            int(numpy.round(a)), int(numpy.round(b))
         ) for a, b in
         zip(edge_down_fluxes_w_m02[:-1], edge_down_fluxes_w_m02[1:])
     ]
