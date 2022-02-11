@@ -1,6 +1,8 @@
 """Creates normalization file."""
 
 import argparse
+import copy
+
 import numpy
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
@@ -85,16 +87,25 @@ def _run(example_dir_name, first_training_time_string,
         raise_error_if_any_missing=True
     )
 
-    example_dicts = []
+    example_dict = dict()
 
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
-        example_dicts.append(
-            example_io.read_file(this_file_name)
-        )
+        this_example_dict = example_io.read_file(this_file_name)
+        this_example_dict = example_utils.subset_by_time(
+            example_dict=this_example_dict,
+            first_time_unix_sec=first_training_time_unix_sec,
+            last_time_unix_sec=last_training_time_unix_sec
+        )[0]
 
-    example_dict = example_utils.concat_examples(example_dicts)
-    del example_dicts
+        if len(example_dict) > 0:
+            example_dict = copy.deepcopy(this_example_dict)
+        else:
+            example_dict = example_utils.concat_examples(
+                [example_dict, this_example_dict]
+            )
+
+    del this_example_dict
 
     num_examples = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
     print('Number of examples read = {0:d}'.format(num_examples))
