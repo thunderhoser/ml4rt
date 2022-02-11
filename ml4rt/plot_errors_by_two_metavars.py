@@ -309,6 +309,10 @@ def _plot_all_scores_one_var(
         here.
     """
 
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
     if heating_rate_height_m_agl is None:
         target_var_name = 'net flux'
         target_var_unit_string = r'W m$^{-2}$'
@@ -387,7 +391,7 @@ def _plot_all_scores_one_var(
         target_var_name, target_var_unit_string
     ))
 
-    output_file_name = '{0:s}/sza_aod_bias.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/bias.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -414,7 +418,7 @@ def _plot_all_scores_one_var(
         target_var_name
     ))
 
-    output_file_name = '{0:s}/sza_aod_correlation.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/correlation.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -437,7 +441,7 @@ def _plot_all_scores_one_var(
         target_var_name, target_var_unit_string
     ))
 
-    output_file_name = '{0:s}/sza_aod_mae.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/mae.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -460,7 +464,7 @@ def _plot_all_scores_one_var(
         target_var_name, target_var_squared_unit_string
     ))
 
-    output_file_name = '{0:s}/sza_aod_mse.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/mse.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -486,7 +490,7 @@ def _plot_all_scores_one_var(
         target_var_name
     ))
 
-    output_file_name = '{0:s}/sza_aod_kge.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/kge.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -513,7 +517,7 @@ def _plot_all_scores_one_var(
         target_var_name
     ))
 
-    output_file_name = '{0:s}/sza_aod_maess.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/maess.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -540,7 +544,7 @@ def _plot_all_scores_one_var(
         target_var_name
     ))
 
-    output_file_name = '{0:s}/sza_aod_msess.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/msess.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -562,7 +566,7 @@ def _plot_all_scores_one_var(
     axes_object.set_ylabel(y_axis_label)
     axes_object.set_title('Number of examples')
 
-    output_file_name = '{0:s}/sza_aod_num-examples.jpg'.format(output_dir_name)
+    output_file_name = '{0:s}/num_examples.jpg'.format(output_dir_name)
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -573,7 +577,7 @@ def _plot_all_scores_one_var(
 
 def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
          num_surface_down_flux_bins, num_aod_bins, example_dir_name,
-         output_dir_name):
+         top_output_dir_name):
     """Plots errors as a function of two metadata variables.
 
     This is effectively the main method.
@@ -584,15 +588,11 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
     :param num_surface_down_flux_bins: Same.
     :param num_aod_bins: Same.
     :param example_dir_name: Same.
-    :param output_dir_name: Same.
+    :param top_output_dir_name: Same.
     """
 
     if heating_rate_height_m_agl < 0:
         heating_rate_height_m_agl = None
-
-    file_system_utils.mkdir_recursive_if_necessary(
-        directory_name=output_dir_name
-    )
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
@@ -749,7 +749,7 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         y_axis_label='Aerosol optical depth (unitless)',
         x_tick_labels=zenith_angle_tick_labels, y_tick_labels=aod_tick_labels,
         heating_rate_height_m_agl=heating_rate_height_m_agl,
-        output_dir_name=output_dir_name
+        output_dir_name='{0:s}/versus_sza_and_aod'.format(top_output_dir_name)
     )
 
     _plot_all_scores_one_var(
@@ -762,7 +762,9 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         y_axis_label='Aerosol optical depth (unitless)',
         x_tick_labels=down_flux_tick_labels, y_tick_labels=aod_tick_labels,
         heating_rate_height_m_agl=heating_rate_height_m_agl,
-        output_dir_name=output_dir_name
+        output_dir_name='{0:s}/versus_down_flux_and_aod'.format(
+            top_output_dir_name
+        )
     )
 
     _plot_all_scores_one_var(
@@ -777,7 +779,9 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         x_tick_labels=down_flux_tick_labels,
         y_tick_labels=zenith_angle_tick_labels,
         heating_rate_height_m_agl=heating_rate_height_m_agl,
-        output_dir_name=output_dir_name
+        output_dir_name='{0:s}/versus_down_flux_and_sza'.format(
+            top_output_dir_name
+        )
     )
 
 
@@ -797,5 +801,5 @@ if __name__ == '__main__':
         ),
         num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
-        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
+        top_output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
