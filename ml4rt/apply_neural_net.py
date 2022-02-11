@@ -209,6 +209,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     )
     print(SEPARATOR_STRING)
 
+    generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY] = False
     if generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]:
         good_pressure_indices = example_utils.find_examples(
             all_id_strings=pressure_id_strings,
