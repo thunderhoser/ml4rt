@@ -222,10 +222,10 @@ def _get_aerosol_optical_depths(prediction_dict, example_dir_name):
     return aerosol_optical_depths
 
 
-def _plot_scores_2d(
+def _plot_score_2d(
         score_matrix, colour_map_object, colour_norm_object, x_tick_labels,
         y_tick_labels):
-    """Plots scores on 2-D grid.
+    """Plots one score on 2-D grid.
 
     M = number of rows in grid
     N = number of columns in grid
@@ -257,7 +257,7 @@ def _plot_scores_2d(
     y_tick_values = numpy.linspace(
         0, score_matrix.shape[0] - 1, num=score_matrix.shape[0], dtype=float
     )
-    pyplot.xticks(x_tick_values, x_tick_labels)
+    pyplot.xticks(x_tick_values, x_tick_labels, rotation=90)
     pyplot.yticks(y_tick_values, y_tick_labels)
 
     colour_bar_object = gg_plotting_utils.plot_colour_bar(
@@ -275,6 +275,300 @@ def _plot_scores_2d(
     colour_bar_object.set_ticklabels(tick_strings)
 
     return figure_object, axes_object
+
+
+def _plot_all_scores_one_var(
+        num_first_bins, num_second_bins,
+        example_to_first_bin_indices, example_to_second_bin_indices,
+        target_values, predicted_values, climo_value,
+        x_axis_label, y_axis_label, x_tick_labels, y_tick_labels,
+        heating_rate_height_m_agl, output_dir_name):
+    """Plots all scores for one variable.
+
+    E = number of examples
+    F = number of bins for first metadata variable
+    S = number of bins for second metadata variable
+
+    :param num_first_bins: F in the above definitions.
+    :param num_second_bins: S in the above definitions.
+    :param example_to_first_bin_indices: length-E numpy array of integers from
+        0...(F - 1), indicating bin membership for first metadata variable.
+    :param example_to_second_bin_indices: length-E numpy array of integers from
+        0...(S - 1), indicating bin membership for second metadata variable.
+    :param target_values: length-E numpy array of target values.
+    :param predicted_values: length-E numpy array of predicted value.
+    :param climo_value: Climatological value (average in training data).
+    :param x_axis_label: String used to label entire x-axis.
+    :param y_axis_label: String used to label entire y-axis.
+    :param x_tick_labels: length-S list of strings.
+    :param y_tick_labels: length-F list of strings.
+    :param heating_rate_height_m_agl: Heating-rate height (metres above ground
+        level).  If the target variable here is not heating rate, make this
+        None.
+    :param output_dir_name: Name of output directory.  Figures will be saved
+        here.
+    """
+
+    if heating_rate_height_m_agl is None:
+        target_var_name = 'net flux'
+        target_var_unit_string = r'W m$^{-2}$'
+        target_var_squared_unit_string = r'W$^{2}$ m$^{-4}$'
+    else:
+        target_var_name = '{0:d}-metre heating rate'.format(
+            heating_rate_height_m_agl
+        )
+        target_var_unit_string = r'K day$^{-1}$'
+        target_var_squared_unit_string = r'K$^{2}$ day$^{-2}$'
+
+    dimensions = (num_first_bins, num_second_bins)
+    bias_matrix = numpy.full(dimensions, numpy.nan)
+    correlation_matrix = numpy.full(dimensions, numpy.nan)
+    mae_matrix = numpy.full(dimensions, numpy.nan)
+    mae_skill_score_matrix = numpy.full(dimensions, numpy.nan)
+    mse_matrix = numpy.full(dimensions, numpy.nan)
+    mse_skill_score_matrix = numpy.full(dimensions, numpy.nan)
+    kge_matrix = numpy.full(dimensions, numpy.nan)
+    num_examples_matrix = numpy.full(dimensions, 0, dtype=int)
+
+    for i in range(num_first_bins):
+        for j in range(num_second_bins):
+            these_indices = numpy.where(numpy.logical_and(
+                example_to_first_bin_indices == i,
+                example_to_second_bin_indices == j
+            ))[0]
+
+            if len(these_indices) == 0:
+                continue
+
+            bias_matrix[i, j] = evaluation._get_bias_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices]
+            )
+            correlation_matrix[i, j] = evaluation._get_correlation_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices]
+            )
+            mae_matrix[i, j] = evaluation._get_mae_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices]
+            )
+            mse_matrix[i, j] = evaluation._get_mse_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices]
+            )[0]
+            kge_matrix[i, j] = evaluation._get_kge_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices]
+            )
+            mae_skill_score_matrix[i, j] = evaluation._get_mae_ss_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices],
+                mean_training_target_value=climo_value
+            )
+            mse_skill_score_matrix[i, j] = evaluation._get_mse_ss_one_scalar(
+                target_values=target_values[these_indices],
+                predicted_values=predicted_values[these_indices],
+                mean_training_target_value=climo_value
+            )
+            num_examples_matrix[i, j] = len(these_indices)
+
+    max_colour_value = numpy.nanpercentile(numpy.absolute(bias_matrix), 99)
+    colour_norm_object = pyplot.Normalize(
+        vmin=-1 * max_colour_value, vmax=max_colour_value
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=bias_matrix, colour_map_object=BIAS_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('Bias for {0:s} ({1:s})'.format(
+        target_var_name, target_var_unit_string
+    ))
+
+    output_file_name = '{0:s}/sza_aod_bias.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    max_colour_value = numpy.nanpercentile(correlation_matrix, 99)
+    min_colour_value = max([
+        numpy.nanpercentile(correlation_matrix, 1), 0
+    ])
+    colour_norm_object = pyplot.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=correlation_matrix,
+        colour_map_object=MAIN_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('Correlation for {0:s}'.format(
+        target_var_name
+    ))
+
+    output_file_name = '{0:s}/sza_aod_correlation.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    colour_norm_object = pyplot.Normalize(
+        vmin=numpy.nanpercentile(mae_matrix, 1),
+        vmax=numpy.nanpercentile(mae_matrix, 99)
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=mae_matrix, colour_map_object=MAIN_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('Mean absolute error for {0:s} ({1:s})'.format(
+        target_var_name, target_var_unit_string
+    ))
+
+    output_file_name = '{0:s}/sza_aod_mae.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    colour_norm_object = pyplot.Normalize(
+        vmin=numpy.nanpercentile(mse_matrix, 1),
+        vmax=numpy.nanpercentile(mse_matrix, 99)
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=mse_matrix, colour_map_object=MAIN_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('Mean squared error for {0:s} ({1:s})'.format(
+        target_var_name, target_var_squared_unit_string
+    ))
+
+    output_file_name = '{0:s}/sza_aod_mse.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    max_colour_value = numpy.nanpercentile(kge_matrix, 99)
+    min_colour_value = max([
+        numpy.nanpercentile(kge_matrix, 1), -1
+    ])
+    colour_norm_object = pyplot.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=kge_matrix, colour_map_object=MAIN_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('Kling-Gupta efficiency for {0:s}'.format(
+        target_var_name
+    ))
+
+    output_file_name = '{0:s}/sza_aod_kge.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    max_colour_value = numpy.nanpercentile(mae_skill_score_matrix, 99)
+    min_colour_value = max([
+        numpy.nanpercentile(mae_skill_score_matrix, 1), -1
+    ])
+    colour_norm_object = pyplot.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=mae_skill_score_matrix,
+        colour_map_object=MAIN_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('MAE skill score for {0:s}'.format(
+        target_var_name
+    ))
+
+    output_file_name = '{0:s}/sza_aod_maess.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    max_colour_value = numpy.nanpercentile(mse_skill_score_matrix, 99)
+    min_colour_value = max([
+        numpy.nanpercentile(mse_skill_score_matrix, 1), -1
+    ])
+    colour_norm_object = pyplot.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=mse_skill_score_matrix,
+        colour_map_object=MAIN_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('MSE skill score for {0:s}'.format(
+        target_var_name
+    ))
+
+    output_file_name = '{0:s}/sza_aod_msess.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    colour_norm_object = pyplot.Normalize(
+        vmin=numpy.nanpercentile(num_examples_matrix, 1),
+        vmax=numpy.nanpercentile(num_examples_matrix, 99)
+    )
+    figure_object, axes_object = _plot_score_2d(
+        score_matrix=num_examples_matrix,
+        colour_map_object=NUM_EXAMPLES_COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+    )
+    axes_object.set_xlabel(x_axis_label)
+    axes_object.set_ylabel(y_axis_label)
+    axes_object.set_title('Number of examples')
+
+    output_file_name = '{0:s}/sza_aod_num-examples.jpg'.format(output_dir_name)
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
 
 
 def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
@@ -422,61 +716,9 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         )
         climo_value = numpy.mean(training_values)
 
-    # TODO(thunderhoser): Modularize this shit!
-    dimensions = (num_aod_bins, num_zenith_angle_bins)
-    bias_matrix = numpy.full(dimensions, numpy.nan)
-    correlation_matrix = numpy.full(dimensions, numpy.nan)
-    mae_matrix = numpy.full(dimensions, numpy.nan)
-    mae_skill_score_matrix = numpy.full(dimensions, numpy.nan)
-    mse_matrix = numpy.full(dimensions, numpy.nan)
-    mse_skill_score_matrix = numpy.full(dimensions, numpy.nan)
-    kge_matrix = numpy.full(dimensions, numpy.nan)
-    num_examples_matrix = numpy.full(dimensions, 0, dtype=int)
-
-    for i in range(num_aod_bins):
-        for j in range(num_zenith_angle_bins):
-            these_indices = numpy.where(numpy.logical_and(
-                aod_bin_indices == i, zenith_angle_bin_indices == j
-            ))[0]
-
-            if len(these_indices) == 0:
-                continue
-
-            bias_matrix[i, j] = evaluation._get_bias_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices]
-            )
-            correlation_matrix[i, j] = evaluation._get_correlation_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices]
-            )
-            mae_matrix[i, j] = evaluation._get_mae_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices]
-            )
-            mse_matrix[i, j] = evaluation._get_mse_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices]
-            )[0]
-            kge_matrix[i, j] = evaluation._get_kge_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices]
-            )
-            mae_skill_score_matrix[i, j] = evaluation._get_mae_ss_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices],
-                mean_training_target_value=climo_value
-            )
-            mse_skill_score_matrix[i, j] = evaluation._get_mse_ss_one_scalar(
-                target_values=target_values[these_indices],
-                predicted_values=predicted_values[these_indices],
-                mean_training_target_value=climo_value
-            )
-            num_examples_matrix[i, j] = len(these_indices)
-
     edge_zenith_angles_rad[-1] = MAX_ZENITH_ANGLE_RAD
     edge_zenith_angles_deg = edge_zenith_angles_rad * RADIANS_TO_DEGREES
-    x_tick_labels = [
+    zenith_angle_tick_labels = [
         '[{0:d}, {1:d}]'.format(
             int(numpy.round(a)), int(numpy.round(a))
         ) for a, b in
@@ -484,182 +726,59 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
     ]
 
     edge_aerosol_optical_depths[-1] = MAX_AEROSOL_OPTICAL_DEPTH
-    y_tick_labels = [
+    aod_tick_labels = [
         '[{0:.1f}, {1:.1f}]'.format(a, b) for a, b in
         zip(edge_aerosol_optical_depths[:-1], edge_aerosol_optical_depths[1:])
     ]
 
-    colour_norm_object = pyplot.Normalize(
-        vmin=-1 * numpy.nanpercentile(numpy.absolute(bias_matrix), 99),
-        vmax=numpy.nanpercentile(numpy.absolute(bias_matrix), 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=bias_matrix, colour_map_object=BIAS_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('Bias')
+    edge_down_fluxes_w_m02[-1] = MAX_SURFACE_DOWN_FLUX_W_M02
+    down_flux_tick_labels = [
+        '[{0:d}, {1:d}]'.format(
+            int(numpy.round(a)), int(numpy.round(a))
+        ) for a, b in
+        zip(edge_down_fluxes_w_m02[:-1], edge_down_fluxes_w_m02[1:])
+    ]
 
-    output_file_name = '{0:s}/sza_aod_bias.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
+    _plot_all_scores_one_var(
+        num_first_bins=num_aod_bins, num_second_bins=num_zenith_angle_bins,
+        example_to_first_bin_indices=aod_bin_indices,
+        example_to_second_bin_indices=zenith_angle_bin_indices,
+        target_values=target_values, predicted_values=predicted_values,
+        climo_value=climo_value,
+        x_axis_label='Solar zenith angle (deg)',
+        y_axis_label='Aerosol optical depth (unitless)',
+        x_tick_labels=zenith_angle_tick_labels, y_tick_labels=aod_tick_labels,
+        heating_rate_height_m_agl=heating_rate_height_m_agl,
+        output_dir_name=output_dir_name
     )
-    pyplot.close(figure_object)
 
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(correlation_matrix, 1),
-        vmax=numpy.nanpercentile(correlation_matrix, 99)
+    _plot_all_scores_one_var(
+        num_first_bins=num_aod_bins, num_second_bins=num_surface_down_flux_bins,
+        example_to_first_bin_indices=aod_bin_indices,
+        example_to_second_bin_indices=down_flux_bin_indices,
+        target_values=target_values, predicted_values=predicted_values,
+        climo_value=climo_value,
+        x_axis_label=r'Surface downwelling flux (W m$^{-2}$)',
+        y_axis_label='Aerosol optical depth (unitless)',
+        x_tick_labels=down_flux_tick_labels, y_tick_labels=aod_tick_labels,
+        heating_rate_height_m_agl=heating_rate_height_m_agl,
+        output_dir_name=output_dir_name
     )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=correlation_matrix,
-        colour_map_object=MAIN_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('Correlation')
 
-    output_file_name = '{0:s}/sza_aod_correlation.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
+    _plot_all_scores_one_var(
+        num_first_bins=num_zenith_angle_bins,
+        num_second_bins=num_surface_down_flux_bins,
+        example_to_first_bin_indices=zenith_angle_bin_indices,
+        example_to_second_bin_indices=down_flux_bin_indices,
+        target_values=target_values, predicted_values=predicted_values,
+        climo_value=climo_value,
+        x_axis_label=r'Surface downwelling flux (W m$^{-2}$)',
+        y_axis_label='Solar zenith angle (deg)',
+        x_tick_labels=down_flux_tick_labels,
+        y_tick_labels=zenith_angle_tick_labels,
+        heating_rate_height_m_agl=heating_rate_height_m_agl,
+        output_dir_name=output_dir_name
     )
-    pyplot.close(figure_object)
-
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(mae_matrix, 1),
-        vmax=numpy.nanpercentile(mae_matrix, 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=mae_matrix, colour_map_object=MAIN_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('Mean absolute error')
-
-    output_file_name = '{0:s}/sza_aod_mae.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
-
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(mse_matrix, 1),
-        vmax=numpy.nanpercentile(mse_matrix, 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=mse_matrix, colour_map_object=MAIN_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('Mean squared error')
-
-    output_file_name = '{0:s}/sza_aod_mse.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
-
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(kge_matrix, 1),
-        vmax=numpy.nanpercentile(kge_matrix, 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=kge_matrix, colour_map_object=MAIN_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('Kling-Gupta efficiency')
-
-    output_file_name = '{0:s}/sza_aod_kge.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
-
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(mae_skill_score_matrix, 1),
-        vmax=numpy.nanpercentile(mae_skill_score_matrix, 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=mae_skill_score_matrix,
-        colour_map_object=MAIN_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('MAE skill score')
-
-    output_file_name = '{0:s}/sza_aod_maess.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
-
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(mse_skill_score_matrix, 1),
-        vmax=numpy.nanpercentile(mse_skill_score_matrix, 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=mse_skill_score_matrix,
-        colour_map_object=MAIN_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('MSE skill score')
-
-    output_file_name = '{0:s}/sza_aod_msess.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
-
-    colour_norm_object = pyplot.Normalize(
-        vmin=numpy.nanpercentile(num_examples_matrix, 1),
-        vmax=numpy.nanpercentile(num_examples_matrix, 99)
-    )
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=num_examples_matrix,
-        colour_map_object=NUM_EXAMPLES_COLOUR_MAP_OBJECT,
-        colour_norm_object=colour_norm_object,
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
-    axes_object.set_xlabel('Solar zenith angle (deg)')
-    axes_object.set_ylabel('Aerosol optical depth (unitless)')
-    axes_object.set_title('Number of examples')
-
-    output_file_name = '{0:s}/sza_aod_num-examples.jpg'.format(output_dir_name)
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
-    figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
 
 
 if __name__ == '__main__':
