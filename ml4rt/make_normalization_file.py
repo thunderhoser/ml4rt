@@ -106,11 +106,11 @@ def _run(example_dir_name, first_training_time_string,
         )[0]
 
         if len(example_dict) > 0:
-            example_dict = copy.deepcopy(this_example_dict)
-        else:
             example_dict = example_utils.concat_examples(
                 [example_dict, this_example_dict]
             )
+        else:
+            example_dict = copy.deepcopy(this_example_dict)
 
     del this_example_dict
 
