@@ -670,6 +670,12 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
         )
     )
 
+    example_dict = example_utils.add_layer_thicknesses(
+        example_dict=example_dict, use_height_coords=True
+    )
+    example_dict = example_utils.add_layer_thicknesses(
+        example_dict=example_dict, use_height_coords=False
+    )
     example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
         integrate_upward=False
@@ -987,11 +993,16 @@ def read_file(netcdf_file_name, allow_bad_values=False,
         )
     )
 
+    example_dict = example_utils.add_layer_thicknesses(
+        example_dict=example_dict, use_height_coords=True
+    )
+    example_dict = example_utils.add_layer_thicknesses(
+        example_dict=example_dict, use_height_coords=False
+    )
     example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
         integrate_upward=False
     )
-
     example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
         integrate_upward=True
