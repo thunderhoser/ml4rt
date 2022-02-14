@@ -1561,19 +1561,24 @@ def train_model_with_generator(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    # model_file_name = (
-    #     output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
-    # )
     model_file_name = output_dir_name + '/model.h5'
-
-    history_object = keras.callbacks.CSVLogger(
-        filename='{0:s}/history.csv'.format(output_dir_name),
-        separator=',', append=False
-    )
     checkpoint_object = keras.callbacks.ModelCheckpoint(
         filepath=model_file_name, monitor='val_loss', verbose=1,
         save_best_only=do_early_stopping, save_weights_only=False, mode='min',
         period=1
+    )
+
+    # model_file_name = (
+    #     output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
+    # )
+    # checkpoint_object = keras.callbacks.ModelCheckpoint(
+    #     filepath=model_file_name, monitor='val_loss', verbose=1,
+    #     save_best_only=False, save_weights_only=False, mode='min', period=1
+    # )
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
     )
     list_of_callback_objects = [history_object, checkpoint_object]
 
@@ -1689,19 +1694,24 @@ def train_model_sans_generator(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    # model_file_name = (
-    #     output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
-    # )
     model_file_name = output_dir_name + '/model.h5'
-
-    history_object = keras.callbacks.CSVLogger(
-        filename='{0:s}/history.csv'.format(output_dir_name),
-        separator=',', append=False
-    )
     checkpoint_object = keras.callbacks.ModelCheckpoint(
         filepath=model_file_name, monitor='val_loss', verbose=1,
         save_best_only=do_early_stopping, save_weights_only=False, mode='min',
         period=1
+    )
+
+    # model_file_name = (
+    #     output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
+    # )
+    # checkpoint_object = keras.callbacks.ModelCheckpoint(
+    #     filepath=model_file_name, monitor='val_loss', verbose=1,
+    #     save_best_only=False, save_weights_only=False, mode='min', period=1
+    # )
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
     )
     list_of_callback_objects = [history_object, checkpoint_object]
 
