@@ -91,11 +91,14 @@ def weighted_mse():
     return loss
 
 
-def dual_weighted_mse():
+def dual_weighted_mse(use_lowest_n_heights=None):
     """Dual-weighted MSE (mean squared error).
 
     Weight = max(magnitude of target value, magnitude of predicted value).
 
+    :param use_lowest_n_heights: Will use this number of heights in the loss
+        function, starting at the bottom.  If you want to penalize predictions
+        at all heights, make this None.
     :return: loss: Loss function (defined below).
     """
 
@@ -107,9 +110,20 @@ def dual_weighted_mse():
         :return: loss: Dual-weighted MSE.
         """
 
+        if use_lowest_n_heights is None:
+            return K.mean(
+                K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)) *
+                (prediction_tensor - target_tensor) ** 2
+            )
+
+        this_target_tensor = target_tensor[..., :use_lowest_n_heights, :]
+        this_prediction_tensor = (
+            prediction_tensor[..., :use_lowest_n_heights, :]
+        )
+
         return K.mean(
-            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)) *
-            (prediction_tensor - target_tensor) ** 2
+            K.maximum(K.abs(this_target_tensor), K.abs(this_prediction_tensor))
+            * (this_prediction_tensor - this_target_tensor) ** 2
         )
 
     return loss
