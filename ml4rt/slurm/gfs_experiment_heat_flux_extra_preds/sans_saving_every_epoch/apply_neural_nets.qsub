@@ -11,7 +11,7 @@
 ##SBATCH --ntasks=1
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
-#SBATCH --time=30:00:00
+#SBATCH --time=02:00:00
 #SBATCH --array=1-12
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
@@ -49,7 +49,11 @@ set multiply_predictors_flag_string=`printf "%1d" $multiply_predictors_flag`
 set multiply_heating_rate_flag_string=`printf "%1d" $multiply_heating_rate_flag`
 
 set top_model_dir_name="${TOP_MODEL_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_multiply-predictors=${multiply_predictors_flag_string}_multiply-heating-rate=${multiply_heating_rate_flag_string}"
+
 set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+set prediction_file_name="${model_dir_name}/validation/predictions.nc"
 
 if ($multiply_predictors_flag > 0 && $multiply_heating_rate_flag > 0) then
     set example_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/normalized_multiply_preds_and_hr/validation"
@@ -60,20 +64,11 @@ else
 endif
 
 set unnorm_example_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/validation"
-set i=1
 
-while ($i <= ${#model_file_names})
-    set model_file_name=${model_file_names[$i]}
-    set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
-    set prediction_file_name="${model_dir_name}/validation/predictions.nc"
-    
-    python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
-    --input_model_file_name="${model_file_name}" \
-    --input_example_dir_name="${example_dir_name}" \
-    --input_example_dir_name_for_pressure="${unnorm_example_dir_name}" \
-    --first_time_string="${FIRST_VALIDN_TIME_STRING}" \
-    --last_time_string="${LAST_VALIDN_TIME_STRING}" \
-    --output_file_name="${prediction_file_name}"
-    
-    @ i = $i + 2
-end
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_file_name}" \
+--input_example_dir_name="${example_dir_name}" \
+--input_example_dir_name_for_pressure="${unnorm_example_dir_name}" \
+--first_time_string="${FIRST_VALIDN_TIME_STRING}" \
+--last_time_string="${LAST_VALIDN_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
