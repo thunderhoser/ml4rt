@@ -24,6 +24,7 @@ import trace_gases
 import land_ocean_mask
 
 TOLERANCE = 1e-6
+MAX_AEROSOL_OPTICAL_DEPTH = 1.5
 
 DAYS_TO_SECONDS = 86400.
 GRAVITY_CONSTANT_M_S02 = 9.8066
@@ -467,14 +468,40 @@ def _get_aerosol_extinction_profiles_one_region(
             y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
             axis=-1, even='avg'
         )
-        actual_optical_depths = 0.1 * numpy.random.gamma(
+
+        this_sample_size = max([
+            5 * num_examples, int(1e6)
+        ])
+
+        dummy_optical_depths = 0.1 * numpy.random.gamma(
             shape=
             30 * aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
             scale=aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
             size=num_examples
         )
 
+        actual_optical_depths = 0.1 * numpy.random.gamma(
+            shape=
+            120 * aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
+            scale=3 * aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
+            size=this_sample_size
+        )
+
+        actual_optical_depths -= (
+            numpy.mean(actual_optical_depths) - numpy.mean(dummy_optical_depths)
+        )
+        actual_optical_depths = actual_optical_depths[
+            actual_optical_depths >= 0
+        ]
+        actual_optical_depths = actual_optical_depths[
+            actual_optical_depths <= MAX_AEROSOL_OPTICAL_DEPTH
+        ]
+        actual_optical_depths = actual_optical_depths[:num_examples]
+
     actual_optical_depths = numpy.maximum(actual_optical_depths, 0.)
+    actual_optical_depths = numpy.minimum(
+        actual_optical_depths, MAX_AEROSOL_OPTICAL_DEPTH
+    )
 
     scale_factors = actual_optical_depths / baseline_optical_depths
     scale_factor_matrix = numpy.repeat(
