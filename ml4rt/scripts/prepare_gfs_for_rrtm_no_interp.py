@@ -168,6 +168,30 @@ def _process_data_one_profile(
     heights_m_agl = numpy.cumsum(numpy.flip(
         -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     ))
+
+    # TODO(thunderhoser): Commented code leads to negative pressures!
+    # pressures_below_surface_pa = numpy.cumsum(numpy.flip(
+    #     orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
+    # ))
+    # pressures_below_surface_pa = numpy.concatenate((
+    #     numpy.array([0.]), pressures_below_surface_pa
+    # ))
+    # pressures_below_surface_pa = 0.5 * (
+    #     pressures_below_surface_pa[:-1] + pressures_below_surface_pa[1:]
+    # )
+    # pressures_pascals = (
+    #     orig_gfs_table_xarray['pressfc'].values[i, j] -
+    #     pressures_below_surface_pa
+    # )
+    #
+    # heights_m_agl = numpy.cumsum(numpy.flip(
+    #     -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
+    # ))
+    # heights_m_agl = numpy.concatenate((
+    #     numpy.array([0.]), heights_m_agl
+    # ))
+    # heights_m_agl = 0.5 * (heights_m_agl[:-1] + heights_m_agl[1:])
+
     processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pascals
     processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
 
