@@ -296,7 +296,7 @@ pro runit, year
 	          stdatmos, 10000./[0.1,10], [1,1]-(surface_albedo_matrix(foo(0),bar(0))>0.03<0.99), djulian(bar(0)), sza, $
 	          aerosol_vector, aer_ext=aerosol_extinction_km01, $
               co2=these_co2_concentrations_ppmv, ch4=these_ch4_concentrations_ppmv, n2o=these_n2o_concentrations_ppmv, o3p=these_ozone_mixing_ratios_g_kg01, o3_units='g/kg', $
-              rrtm_sw_command, silent=1)
+              rrtm_sw_command)
 	      if(outsw.success eq 0) then begin
 	        print,'Warning: RRTM_SW not run properly.  Time to investigate...'
 	        continue

@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import numpy
+from scipy.integrate import simps
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -16,6 +17,8 @@ import example_io
 import example_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+RADIANS_TO_DEGREES = 180. / numpy.pi
 
 ORIG_DATE_FORMAT = time_conversion.SPC_DATE_FORMAT
 RRTM_DATE_FORMAT = '%Y%j'
@@ -152,10 +155,77 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
     print(SEPARATOR_STRING)
     example_dict = _remove_duplicate_examples(example_dict)
 
+    edge_zenith_angles_deg = numpy.linspace(0, 85, num=10, dtype=float)
+    edge_zenith_angles_deg[-1] = numpy.inf
+    actual_zenith_angles_deg = example_utils.parse_example_ids(
+        example_dict[example_utils.EXAMPLE_IDS_KEY]
+    )[example_utils.ZENITH_ANGLES_KEY]
+
+    actual_zenith_angles_deg = RADIANS_TO_DEGREES * actual_zenith_angles_deg
+
+    for i in range(len(edge_zenith_angles_deg) - 1):
+        this_num_examples = numpy.sum(numpy.logical_and(
+            actual_zenith_angles_deg >= edge_zenith_angles_deg[i],
+            actual_zenith_angles_deg <= edge_zenith_angles_deg[i + 1]
+        ))
+
+        print((
+            'Number of examples with zenith angle in [{0:.2f}, {1:.2f}] deg = '
+            '{2:d}'
+        ).format(
+            edge_zenith_angles_deg[i],
+            edge_zenith_angles_deg[i + 1],
+            this_num_examples
+        ))
+
+    edge_aerosol_optical_depths = numpy.linspace(0, 1.5, num=11, dtype=float)
+    edge_aerosol_optical_depths[-1] = numpy.inf
+
+    height_matrix_m_agl = example_utils.get_field_from_dict(
+        example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
+    )
+    aerosol_extinction_matrix_metres01 = example_utils.get_field_from_dict(
+        example_dict=example_dict,
+        field_name=example_utils.AEROSOL_EXTINCTION_NAME
+    )
+    num_examples = height_matrix_m_agl.shape[0]
+    actual_aerosol_optical_depths = numpy.full(num_examples, numpy.nan)
+    print('\n')
+
+    for i in range(num_examples):
+        if numpy.mod(i, 1000) == 0:
+            print((
+                'Have computed aerosol optical depth for {0:d} of {1:d} '
+                'profiles...'
+            ).format(
+                i, num_examples
+            ))
+
+        actual_aerosol_optical_depths[i] = simps(
+            y=aerosol_extinction_matrix_metres01[i, :],
+            x=height_matrix_m_agl[i, :],
+            even='avg'
+        )
+
+    for i in range(len(edge_aerosol_optical_depths) - 1):
+        this_num_examples = numpy.sum(numpy.logical_and(
+            actual_aerosol_optical_depths >= edge_aerosol_optical_depths[i],
+            actual_aerosol_optical_depths <= edge_aerosol_optical_depths[i + 1]
+        ))
+
+        print((
+            'Number of examples with AOD in [{0:.2f}, {1:.2f}] = {2:d}'
+        ).format(
+            edge_aerosol_optical_depths[i],
+            edge_aerosol_optical_depths[i + 1],
+            this_num_examples
+        ))
+
     print('Writing {0:d} examples to file: "{1:s}"...'.format(
         len(example_dict[example_utils.VALID_TIMES_KEY]),
         output_file_name
     ))
+
     example_io.write_file(
         example_dict=example_dict, netcdf_file_name=output_file_name
     )
