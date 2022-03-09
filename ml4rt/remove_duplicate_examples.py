@@ -59,9 +59,10 @@ def _run(input_example_dir_name, years, output_example_dir_name):
     for this_year in years:
         input_example_file_names += example_io.find_files_one_year(
             directory_name=input_example_dir_name, year=this_year,
-            raise_error_if_missing=True
+            raise_error_if_missing=False
         )
 
+    assert len(input_example_file_names) > 0
     example_id_strings = []
 
     for this_file_name in input_example_file_names:
