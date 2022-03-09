@@ -198,7 +198,13 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             net_type_string=net_type_string,
             exclude_summit_greenland=exclude_summit_greenland
         )
-        pressure_matrix_pa = pressure_matrix_pa[..., 0]
+
+        pressure_id_strings, unique_indices = numpy.unique(
+            numpy.array(pressure_id_strings), return_index=True
+        )
+        pressure_id_strings = pressure_id_strings.tolist()
+        pressure_matrix_pa = pressure_matrix_pa[unique_indices, ..., 0]
+
         print(SEPARATOR_STRING)
 
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
