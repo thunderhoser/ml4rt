@@ -4,8 +4,8 @@ import os
 import sys
 import copy
 import time
-import argparse
 import warnings
+import argparse
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -198,14 +198,13 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             net_type_string=net_type_string,
             exclude_summit_greenland=exclude_summit_greenland
         )
+        print(SEPARATOR_STRING)
 
         pressure_id_strings, unique_indices = numpy.unique(
             numpy.array(pressure_id_strings), return_index=True
         )
         pressure_id_strings = pressure_id_strings.tolist()
         pressure_matrix_pa = pressure_matrix_pa[unique_indices, ..., 0]
-
-        print(SEPARATOR_STRING)
 
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
@@ -214,6 +213,18 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         exclude_summit_greenland=exclude_summit_greenland
     )
     print(SEPARATOR_STRING)
+
+    example_id_strings, unique_indices = numpy.unique(
+        numpy.array(example_id_strings), return_index=True
+    )
+    example_id_strings = example_id_strings.tolist()
+    predictor_matrix = predictor_matrix[unique_indices, ...]
+
+    if isinstance(target_array, list):
+        for k in range(len(target_array)):
+            target_array[k] = target_array[k][unique_indices, ...]
+    else:
+        target_array = target_array[unique_indices, ...]
 
     if generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]:
         good_pressure_indices = example_utils.find_examples(
