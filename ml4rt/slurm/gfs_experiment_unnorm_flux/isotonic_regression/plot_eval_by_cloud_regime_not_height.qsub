@@ -1,0 +1,61 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_eval_by_cloud_regime_not_height"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+#SBATCH --array=5,6,7,13,14,15
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_eval_by_cloud_regime_not_height_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_all_aerosol_preds"
+
+set USE_GENERATOR_FLAGS=(0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1)
+set EXAMPLES_PER_BATCH_COUNTS=(181 362 724 362 181 362 724 362 181 362 724 362 181 362 724 362)
+set BATCHES_PER_EPOCH_COUNTS=(3000 750 5000 500 3000 750 5000 500 3000 750 5000 500 3000 750 5000 500)
+set MULTIPLY_PREDICTORS_FLAGS=(0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0)
+set MULTIPLY_HEATING_RATE_FLAGS=(1 1 1 1 0 0 0 0 1 1 1 1 0 0 0 0)
+
+set use_generator_flag=${USE_GENERATOR_FLAGS[$SLURM_ARRAY_TASK_ID]}
+set num_examples_per_batch=${EXAMPLES_PER_BATCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set multiply_predictors_flag=${MULTIPLY_PREDICTORS_FLAGS[$SLURM_ARRAY_TASK_ID]}
+set multiply_heating_rate_flag=${MULTIPLY_HEATING_RATE_FLAGS[$SLURM_ARRAY_TASK_ID]}
+
+set use_generator_flag_string=`printf "%1d" $use_generator_flag`
+set num_examples_per_batch_string=`printf "%03d" $num_examples_per_batch`
+set num_batches_per_epoch_string=`printf "%04d" $num_batches_per_epoch`
+set multiply_predictors_flag_string=`printf "%1d" $multiply_predictors_flag`
+set multiply_heating_rate_flag_string=`printf "%1d" $multiply_heating_rate_flag`
+
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/use-generator=${use_generator_flag_string}_num-examples-per-batch=${num_examples_per_batch_string}_num-batches-per-epoch=${num_batches_per_epoch_string}_multiply-predictors=${multiply_predictors_flag_string}_multiply-heating-rate=${multiply_heating_rate_flag_string}"
+
+set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+
+set validation_dir_name="${model_dir_name}/isotonic_regression/validation"
+set evaluation_file_names=("${validation_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
+set evaluation_dir_name="${validation_dir_name}/by_cloud_regime/evaluation"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" \
+--line_styles "solid" "solid" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" \
+--set_descriptions "No_cloud" "Single-layer_cloud" "Multi-layer_cloud" \
+--confidence_level=0.99 \
+--use_log_scale=1 \
+--plot_by_height=0 \
+--output_dir_name="${evaluation_dir_name}"
