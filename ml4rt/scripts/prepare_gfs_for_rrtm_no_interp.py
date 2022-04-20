@@ -46,6 +46,7 @@ TEMPERATURE_KEY_ORIG_KELVINS = 'tmp'
 VAPOUR_MIXR_KEY_ORIG_KG_KG01 = 'r0'
 SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01 = 'spfh'
 ALBEDO_KEY_ORIG_PERCENT = 'albdo_ave'
+SURFACE_TEMP_KEY_ORIG_KELVINS = 'tmpsfc'
 HEIGHT_KEY_ORIG_M_AGL = 'height_m_agl'
 PRESSURE_KEY_ORIG_PASCALS = 'pressure_pa'
 PRESSURE_AT_EDGE_KEY_ORIG_PASCALS = 'pressure_at_edge_pa'
@@ -93,6 +94,7 @@ SNOW_PATH_KEY_KG_M02 = 'layerwise_snow_path_kg_m02'
 OZONE_MIXR_KEY_KG_KG01 = 'ozone_mixing_ratio_kg_kg01'
 CLOUD_FRACTION_KEY_PERCENT = 'cloud_fraction_percent'
 ALBEDO_KEY = 'surface_albedo'
+SURFACE_TEMPERATURE_KEY = 'surface_temperature_kelvins'
 
 ORIG_TO_NEW_KEY_DICT = {
     HEIGHT_KEY_ORIG_M_AGL: HEIGHT_KEY_M_AGL,
@@ -777,6 +779,9 @@ def _run(input_file_name, output_file_name):
         PERCENT_TO_UNITLESS *
         orig_gfs_table_xarray[ALBEDO_KEY_ORIG_PERCENT].values
     )
+    surface_temp_matrix_kelvins = (
+        orig_gfs_table_xarray[SURFACE_TEMP_KEY_ORIG_KELVINS].values
+    )
 
     # Create xarray table with processed data.
     for this_key_orig in processed_data_dict:
@@ -797,6 +802,7 @@ def _run(input_file_name, output_file_name):
     these_dim = (TIME_DIMENSION, SITE_DIMENSION)
     new_data_dict.update({
         ALBEDO_KEY: (these_dim, albedo_matrix),
+        SURFACE_TEMPERATURE_KEY: (these_dim, surface_temp_matrix_kelvins)
     })
 
     new_gfs_table_xarray = xarray.Dataset(
