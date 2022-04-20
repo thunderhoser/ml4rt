@@ -57,6 +57,7 @@ LIQUID_EFF_RADIUS_KEY = 'liquid_eff_radius_metres'
 ICE_EFF_RADIUS_KEY = 'ice_eff_radius_metres'
 CLOUD_FRACTION_KEY = 'cloud_fraction_percent'
 ALBEDO_KEY = 'surface_albedo'
+SURFACE_TEMPERATURE_KEY = 'surface_temperature_kelvins'
 AEROSOL_EXTINCTION_KEY = 'aerosol_extinction_metres01'
 AEROSOL_ALBEDO_KEY = 'aerosol_albedo'
 AEROSOL_ASYMMETRY_PARAM_KEY = 'aerosol_asymmetry_param'
@@ -93,7 +94,8 @@ CONSERVE_MASS_KEYS = [
 ]
 SCALAR_KEYS = [
     SITE_NAME_KEY, LATITUDE_KEY, LONGITUDE_KEY, FORECAST_HOUR_KEY,
-    ALBEDO_KEY, AEROSOL_ALBEDO_KEY, AEROSOL_ASYMMETRY_PARAM_KEY
+    ALBEDO_KEY, SURFACE_TEMPERATURE_KEY, AEROSOL_ALBEDO_KEY,
+    AEROSOL_ASYMMETRY_PARAM_KEY
 ]
 
 INPUT_FILE_ARG_NAME = 'input_file_name'

@@ -27,6 +27,7 @@ TIME_DIMENSION = 'valid_time_unix_sec'
 ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
 SURFACE_ALBEDO_KEY = 'albdo_ave'
+SURFACE_TEMPERATURE_KEY = 'tmpsfc'
 
 ATMOSPHERE_FILES_ARG_NAME = 'input_atmos_file_names'
 SURFACE_FILES_ARG_NAME = 'input_surface_file_names'
@@ -181,24 +182,23 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
         ]
         new_data_dict[this_key] = (new_dimensions, new_data_matrix)
 
-    print('Adding {0:s} to new data dictionary...'.format(SURFACE_ALBEDO_KEY))
+    for this_key in [SURFACE_ALBEDO_KEY, SURFACE_TEMPERATURE_KEY]:
+        print('Adding {0:s} to new data dictionary...'.format(this_key))
 
-    orig_dimensions = surface_table_xarray[SURFACE_ALBEDO_KEY].dims
-    new_dimensions = [
-        d for d in orig_dimensions if d not in ROWCOL_DIMENSIONS
-    ]
-    new_dimensions = [
-        TIME_DIMENSION if d == TIME_DIMENSION_ORIG else d
-        for d in new_dimensions
-    ]
-    new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
-
-    new_data_dict[SURFACE_ALBEDO_KEY] = (
-        new_dimensions,
-        surface_table_xarray[SURFACE_ALBEDO_KEY].values[
-            ..., site_rows, site_columns
+        orig_dimensions = surface_table_xarray[this_key].dims
+        new_dimensions = [
+            d for d in orig_dimensions if d not in ROWCOL_DIMENSIONS
         ]
-    )
+        new_dimensions = [
+            TIME_DIMENSION if d == TIME_DIMENSION_ORIG else d
+            for d in new_dimensions
+        ]
+        new_dimensions = tuple(new_dimensions + [SITE_DIMENSION])
+
+        new_data_dict[this_key] = (
+            new_dimensions,
+            surface_table_xarray[this_key].values[..., site_rows, site_columns]
+        )
 
     return xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict,
