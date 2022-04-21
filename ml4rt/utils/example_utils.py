@@ -107,6 +107,7 @@ ZENITH_ANGLE_NAME = 'zenith_angle_radians'
 LATITUDE_NAME = 'latitude_deg_n'
 LONGITUDE_NAME = 'longitude_deg_e'
 ALBEDO_NAME = 'albedo'
+SURFACE_TEMPERATURE_NAME = 'surface_temperature_kelvins'
 COLUMN_LIQUID_WATER_PATH_NAME = 'column_liquid_water_path_kg_m02'
 COLUMN_ICE_WATER_PATH_NAME = 'column_ice_water_path_kg_m02'
 PRESSURE_NAME = 'pressure_pascals'
@@ -146,7 +147,8 @@ PREDICTOR_NAMES_P_THICKNESS_MATTERS = [
 ]
 
 ALL_SCALAR_PREDICTOR_NAMES = [
-    ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
+    ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME,
+    ALBEDO_NAME, SURFACE_TEMPERATURE_NAME,
     COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME,
     AEROSOL_ALBEDO_NAME, AEROSOL_ASYMMETRY_PARAM_NAME
 ]
@@ -175,6 +177,12 @@ SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m03'
 SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m03'
 SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
 SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
+
+LONGWAVE_HEATING_RATE_NAME = 'longwave_heating_rate_k_day01'
+LONGWAVE_DOWN_FLUX_NAME = 'longwave_down_flux_w_m02'
+LONGWAVE_UP_FLUX_NAME = 'longwave_up_flux_w_m02'
+LONGWAVE_SURFACE_DOWN_FLUX_NAME = 'longwave_surface_down_flux_w_m02'
+LONGWAVE_TOA_UP_FLUX_NAME = 'longwave_toa_up_flux_w_m02'
 
 ALL_SCALAR_TARGET_NAMES = [
     SHORTWAVE_SURFACE_DOWN_FLUX_NAME, SHORTWAVE_TOA_UP_FLUX_NAME

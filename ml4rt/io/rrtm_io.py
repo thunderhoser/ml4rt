@@ -82,7 +82,8 @@ STANDARD_ATMO_FLAGS_KEY_GFS = 'standard_atmosphere_enum'
 
 DEFAULT_SCALAR_PREDICTOR_NAMES_GFS = DEFAULT_SCALAR_PREDICTOR_NAMES + [
     example_utils.AEROSOL_ALBEDO_NAME,
-    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
+    example_utils.SURFACE_TEMPERATURE_NAME
 ]
 DEFAULT_VECTOR_PREDICTOR_NAMES_GFS = DEFAULT_VECTOR_PREDICTOR_NAMES + [
     example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
@@ -90,14 +91,22 @@ DEFAULT_VECTOR_PREDICTOR_NAMES_GFS = DEFAULT_VECTOR_PREDICTOR_NAMES + [
     example_utils.AEROSOL_EXTINCTION_NAME,
     example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
 ]
-DEFAULT_SCALAR_TARGET_NAMES_GFS = DEFAULT_SCALAR_TARGET_NAMES
-DEFAULT_VECTOR_TARGET_NAMES_GFS = DEFAULT_VECTOR_TARGET_NAMES
+DEFAULT_SCALAR_TARGET_NAMES_GFS = DEFAULT_SCALAR_TARGET_NAMES + [
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+]
+DEFAULT_VECTOR_TARGET_NAMES_GFS = DEFAULT_VECTOR_TARGET_NAMES + [
+    example_utils.LONGWAVE_DOWN_FLUX_NAME,
+    example_utils.LONGWAVE_UP_FLUX_NAME,
+    example_utils.LONGWAVE_HEATING_RATE_NAME
+]
 
 PREDICTOR_NAME_TO_ORIG_GFS = {
     example_utils.ZENITH_ANGLE_NAME: 'solar_zenith_angle_deg',
     example_utils.LATITUDE_NAME: 'site_latitude_deg_n',
     example_utils.LONGITUDE_NAME: 'site_longitude_deg_e',
     example_utils.ALBEDO_NAME: 'surface_albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'surface_temperature_kelvins',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
         'total_liquid_water_path_kg_m02',
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 'total_ice_water_path_kg_m02',
@@ -125,6 +134,7 @@ PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
     example_utils.LATITUDE_NAME: 1.,
     example_utils.LONGITUDE_NAME: 1.,
     example_utils.ALBEDO_NAME: 1.,
+    example_utils.SURFACE_TEMPERATURE_NAME: 1.,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 1.,
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 1.,
     example_utils.AEROSOL_ALBEDO_NAME: 1.,
@@ -147,11 +157,19 @@ PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
 }
 TARGET_NAME_TO_ORIG_GFS = {
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME:
-        'surface_downwelling_flux_w_m02',
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'toa_upwelling_flux_w_m02',
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling_flux_w_m02',
-    example_utils.SHORTWAVE_UP_FLUX_NAME: 'upwelling_flux_w_m02',
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating_rate_k_day01'
+        'shortwave_surface_downwelling_flux_w_m02',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME:
+        'shortwave_toa_upwelling_flux_w_m02',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'shortwave_downwelling_flux_w_m02',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'shortwave_upwelling_flux_w_m02',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'shortwave_heating_rate_k_day01',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME:
+        'longwave_surface_downwelling_flux_w_m02',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME:
+        'longwave_toa_upwelling_flux_w_m02',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: 'longwave_downwelling_flux_w_m02',
+    example_utils.LONGWAVE_UP_FLUX_NAME: 'longwave_upwelling_flux_w_m02',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'longwave_heating_rate_k_day01'
 }
 
 

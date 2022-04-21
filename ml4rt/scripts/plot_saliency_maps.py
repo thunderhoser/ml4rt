@@ -35,6 +35,7 @@ VECTOR_PREDICTOR_COLOURS_BY_SET = [
 
 FIRST_SCALAR_PREDICTOR_NAMES = [
     example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.SURFACE_TEMPERATURE_NAME,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME
 ]
 FIRST_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
@@ -69,6 +70,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.LATITUDE_NAME: 'Latitude',
     example_utils.LONGITUDE_NAME: 'Longitude',
     example_utils.ALBEDO_NAME: 'Albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'Sfc temp',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 'Column LWP',
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 'Column IWP'
 }

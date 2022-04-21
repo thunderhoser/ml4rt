@@ -55,7 +55,7 @@ def scaled_mse_for_net_flux(scaling_factor):
         )
         individual_flux_term = K.mean((prediction_tensor - target_tensor) ** 2)
 
-        return scaling_factor * (net_flux_term + individual_flux_term)
+        return scaling_factor * (net_flux_term + 2 * individual_flux_term)
 
     return loss
 

@@ -42,6 +42,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
         r'Upward ice-water path (mg m$^{-2}$)',
     example_utils.ZENITH_ANGLE_NAME: r'Zenith angle ($^{\circ}$)',
     example_utils.ALBEDO_NAME: 'Albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'Surface temp (K)',
     example_utils.LATITUDE_NAME: r'Latitude ($^{\circ}$N)',
     example_utils.LONGITUDE_NAME: r'Longitude ($^{\circ}$E)',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
@@ -269,7 +270,10 @@ def plot_predictors(
             )[example_index, ...]
 
         if include_units:
-            if predictor_names[k] == example_utils.TEMPERATURE_NAME:
+            if predictor_names[k] in [
+                    example_utils.TEMPERATURE_NAME,
+                    example_utils.SURFACE_TEMPERATURE_NAME
+            ]:
                 these_predictor_values = temperature_conv.kelvins_to_celsius(
                     these_predictor_values
                 )

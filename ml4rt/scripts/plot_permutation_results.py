@@ -18,6 +18,7 @@ FIGURE_RESOLUTION_DPI = 300
 PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.ZENITH_ANGLE_NAME: 'Solar zenith angle',
     example_utils.ALBEDO_NAME: 'Surface albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'Surface temperature',
     example_utils.PRESSURE_NAME: 'Pressure',
     example_utils.TEMPERATURE_NAME: 'Temperature',
     example_utils.SPECIFIC_HUMIDITY_NAME: 'Specific humidity',
