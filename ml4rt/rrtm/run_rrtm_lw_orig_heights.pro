@@ -93,7 +93,7 @@ function create_output_file, name, num_heights
     ncdf_attput,fid,vid,'long_name','LW upwelling flux at the top of the atmosphere'
     ncdf_attput,fid,vid,'units','W/m2'
   ncdf_attput,fid,/global,'Author','dave.turner@noaa.gov'
-  ncdf_attput,fid,/global,'Comment1','Shortwave radiative flux calculations and atmospheric state inputs'
+  ncdf_attput,fid,/global,'Comment1','Longwave radiative flux calculations and atmospheric state inputs'
   ncdf_attput,fid,/global,'Comment2','LW calculations made with RRTM_LW'
   ncdf_control,fid,/endef
   ncdf_close,fid
