@@ -67,11 +67,7 @@ SQUARED_UNIT_SCORE_NAMES = [
 
 TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{down}}{\Delta z}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{up}}{\Delta z}$',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'$F_{down}^{sfc}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'$F_{up}^{TOA}$',
@@ -82,9 +78,7 @@ TARGET_NAME_TO_VERBOSE = {
 
 TARGET_NAME_TO_UNITS = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
@@ -95,9 +89,7 @@ TARGET_NAME_TO_UNITS = {
 
 TARGET_NAME_TO_SQUARED_UNITS = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',

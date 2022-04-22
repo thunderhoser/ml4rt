@@ -21,27 +21,17 @@ DEFAULT_VECTOR_TARGET_NAMES = [
 FLUX_NAMES = [
     example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
-FLUX_INCREMENT_NAMES = [
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME,
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME
-]
 
 TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'Downwelling shortwave flux',
     example_utils.SHORTWAVE_UP_FLUX_NAME: 'Upwelling shortwave flux',
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'Shortwave heating rate',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{up}}{\Delta z}$'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'Shortwave heating rate'
 }
 
 TARGET_NAME_TO_UNITS = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$'
 }
 
 TARGET_NAME_TO_COLOUR = {
@@ -50,11 +40,7 @@ TARGET_NAME_TO_COLOUR = {
     example_utils.SHORTWAVE_UP_FLUX_NAME:
         profile_plotting.UPWELLING_FLUX_COLOUR,
     example_utils.SHORTWAVE_HEATING_RATE_NAME:
-        profile_plotting.HEATING_RATE_COLOUR,
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
-        profile_plotting.DOWNWELLING_FLUX_COLOUR,
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
-        profile_plotting.UPWELLING_FLUX_COLOUR
+        profile_plotting.HEATING_RATE_COLOUR
 }
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
