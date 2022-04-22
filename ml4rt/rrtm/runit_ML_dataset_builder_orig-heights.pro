@@ -295,7 +295,7 @@ pro runit, year
 	      outsw = make_rrtm_sw_calc(these_heights_km_agl, these_pressures_mb, these_temps_kelvins, these_vapour_mixing_ratios_g_kg01, $
 	          these_liquid_paths_g_m02, these_ice_paths_g_m02, these_liquid_eff_radii_microns, these_ice_eff_radii_microns, $
 	          stdatmos, 10000./[0.1,10], [1,1]-(surface_albedo_matrix(foo(0),bar(0))>0.03<0.99), djulian(bar(0)), sza, $
-	          aerosol_vector, aer_ext=aerosol_extinction_km01, $
+	          aerosol_vector, aer_ext=these_aerosol_extinctions_km01, $
               co2=these_co2_concentrations_ppmv, ch4=these_ch4_concentrations_ppmv, n2o=these_n2o_concentrations_ppmv, o3p=these_ozone_mixing_ratios_g_kg01, o3_units='g/kg', $
               rrtm_sw_command, silent=1)
 	      if(outsw.success eq 0) then begin
