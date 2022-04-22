@@ -25,7 +25,7 @@ data_dir_name_docker="${TOP_DATA_DIR_NAME_DOCKER}/${date_string}"
 
 rm -v "${data_dir_name_actual}/output_file_lwsw.${year_string}.cdf"
 mkdir -p $data_dir_name_actual
-cp $actual_gfs_file_name "${data_dir_name_actual}/"
+mv $actual_gfs_file_name "${data_dir_name_actual}/"
 
 gdl_script_file_name="${data_dir_name_actual}/run_rrtm_lwsw_${date_string}.gdl"
 echo "Writing GDL batch script to: '${gdl_script_file_name}'..."
