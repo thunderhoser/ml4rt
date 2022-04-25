@@ -115,6 +115,7 @@ ZENITH_ANGLE_NAME = 'zenith_angle_radians'
 LATITUDE_NAME = 'latitude_deg_n'
 LONGITUDE_NAME = 'longitude_deg_e'
 ALBEDO_NAME = 'albedo'
+SURFACE_TEMPERATURE_NAME = 'surface_temperature_kelvins'
 COLUMN_LIQUID_WATER_PATH_NAME = 'column_liquid_water_path_kg_m02'
 COLUMN_ICE_WATER_PATH_NAME = 'column_ice_water_path_kg_m02'
 PRESSURE_NAME = 'pressure_pascals'
@@ -154,7 +155,8 @@ PREDICTOR_NAMES_P_THICKNESS_MATTERS = [
 ]
 
 ALL_SCALAR_PREDICTOR_NAMES = [
-    ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME, ALBEDO_NAME,
+    ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME,
+    ALBEDO_NAME, SURFACE_TEMPERATURE_NAME,
     COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME,
     AEROSOL_ALBEDO_NAME, AEROSOL_ASYMMETRY_PARAM_NAME
 ]
@@ -179,19 +181,25 @@ ALL_PREDICTOR_NAMES = ALL_SCALAR_PREDICTOR_NAMES + ALL_VECTOR_PREDICTOR_NAMES
 SHORTWAVE_HEATING_RATE_NAME = 'shortwave_heating_rate_k_day01'
 SHORTWAVE_DOWN_FLUX_NAME = 'shortwave_down_flux_w_m02'
 SHORTWAVE_UP_FLUX_NAME = 'shortwave_up_flux_w_m02'
-SHORTWAVE_DOWN_FLUX_INC_NAME = 'shortwave_down_flux_increment_w_m03'
-SHORTWAVE_UP_FLUX_INC_NAME = 'shortwave_up_flux_increment_w_m03'
 SHORTWAVE_SURFACE_DOWN_FLUX_NAME = 'shortwave_surface_down_flux_w_m02'
 SHORTWAVE_TOA_UP_FLUX_NAME = 'shortwave_toa_up_flux_w_m02'
 
+LONGWAVE_HEATING_RATE_NAME = 'longwave_heating_rate_k_day01'
+LONGWAVE_DOWN_FLUX_NAME = 'longwave_down_flux_w_m02'
+LONGWAVE_UP_FLUX_NAME = 'longwave_up_flux_w_m02'
+LONGWAVE_SURFACE_DOWN_FLUX_NAME = 'longwave_surface_down_flux_w_m02'
+LONGWAVE_TOA_UP_FLUX_NAME = 'longwave_toa_up_flux_w_m02'
+
 ALL_SCALAR_TARGET_NAMES = [
-    SHORTWAVE_SURFACE_DOWN_FLUX_NAME, SHORTWAVE_TOA_UP_FLUX_NAME
+    SHORTWAVE_SURFACE_DOWN_FLUX_NAME, SHORTWAVE_TOA_UP_FLUX_NAME,
+    LONGWAVE_SURFACE_DOWN_FLUX_NAME, LONGWAVE_TOA_UP_FLUX_NAME
 ]
 
 ALL_VECTOR_TARGET_NAMES = [
     SHORTWAVE_DOWN_FLUX_NAME, SHORTWAVE_UP_FLUX_NAME,
     SHORTWAVE_HEATING_RATE_NAME,
-    SHORTWAVE_DOWN_FLUX_INC_NAME, SHORTWAVE_UP_FLUX_INC_NAME
+    LONGWAVE_DOWN_FLUX_NAME, LONGWAVE_UP_FLUX_NAME,
+    LONGWAVE_HEATING_RATE_NAME
 ]
 
 ALL_TARGET_NAMES = ALL_SCALAR_TARGET_NAMES + ALL_VECTOR_TARGET_NAMES
@@ -480,23 +488,28 @@ def _get_aerosol_extinction_profiles_one_region(
             size=num_examples
         )
 
-        actual_optical_depths = 0.1 * numpy.random.gamma(
-            shape=
-            120 * aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
-            scale=3 * aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
-            size=this_sample_size
-        )
+        actual_optical_depths = numpy.array([])
 
-        actual_optical_depths -= (
-            numpy.mean(actual_optical_depths) - numpy.mean(dummy_optical_depths)
-        )
-        actual_optical_depths = actual_optical_depths[
-            actual_optical_depths >= 0
-        ]
-        actual_optical_depths = actual_optical_depths[
-            actual_optical_depths <= MAX_AEROSOL_OPTICAL_DEPTH
-        ]
-        actual_optical_depths = actual_optical_depths[:num_examples]
+        while len(actual_optical_depths) < num_examples:
+            these_depths = 0.1 * numpy.random.gamma(
+                shape=
+                120 * aerosols.REGION_TO_OPTICAL_DEPTH_SHAPE_PARAM[region_name],
+                scale=
+                3 * aerosols.REGION_TO_OPTICAL_DEPTH_SCALE_PARAM[region_name],
+                size=this_sample_size
+            )
+
+            these_depths -= (
+                numpy.mean(these_depths) - numpy.mean(dummy_optical_depths)
+            )
+            these_depths = these_depths[these_depths >= 0]
+            these_depths = these_depths[
+                these_depths <= MAX_AEROSOL_OPTICAL_DEPTH
+                ]
+            actual_optical_depths = numpy.concatenate(
+                (actual_optical_depths, these_depths[:num_examples]),
+                axis=0
+            )
 
     actual_optical_depths = numpy.maximum(actual_optical_depths, 0.)
     actual_optical_depths = numpy.minimum(
@@ -632,13 +645,28 @@ def multiply_hr_by_layer_thickness(example_dict):
         (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
         DAYS_TO_SECONDS
     )
-    this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
-        SHORTWAVE_HEATING_RATE_NAME
-    )
-    example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
-        scale_factor * thickness_matrix_pa *
-        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index]
-    )
+
+    try:
+        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
+            SHORTWAVE_HEATING_RATE_NAME
+        )
+        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
+            scale_factor * thickness_matrix_pa *
+            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index]
+        )
+    except ValueError:
+        pass
+
+    try:
+        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
+            LONGWAVE_HEATING_RATE_NAME
+        )
+        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
+            scale_factor * thickness_matrix_pa *
+            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index]
+        )
+    except ValueError:
+        pass
 
     return example_dict
 
@@ -678,13 +706,28 @@ def divide_hr_by_layer_thickness(example_dict):
         (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
         DAYS_TO_SECONDS
     )
-    this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
-        SHORTWAVE_HEATING_RATE_NAME
-    )
-    example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
-        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] /
-        (scale_factor * thickness_matrix_pa)
-    )
+
+    try:
+        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
+            SHORTWAVE_HEATING_RATE_NAME
+        )
+        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
+            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] /
+            (scale_factor * thickness_matrix_pa)
+        )
+    except ValueError:
+        pass
+
+    try:
+        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
+            LONGWAVE_HEATING_RATE_NAME
+        )
+        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
+            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] /
+            (scale_factor * thickness_matrix_pa)
+        )
+    except ValueError:
+        pass
 
     return example_dict
 
@@ -775,13 +818,9 @@ def heating_rate_to_fluxes(example_dict):
         profiles.
     """
 
-    heating_rate_matrix_k_day01 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
-    )
     pressure_matrix_pascals = get_field_from_dict(
         example_dict=example_dict, field_name=PRESSURE_NAME
     ) + 0.
-
     dummy_pressure_matrix_pascals = (
         pressure_matrix_pascals[:, [-1]] +
         (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
@@ -791,127 +830,63 @@ def heating_rate_to_fluxes(example_dict):
     )
 
     coefficient = DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02
-    net_flux_diff_matrix_w_m02 = (
-        -1 * numpy.diff(pressure_matrix_pascals, axis=1) *
-        coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
-    )
-    net_flux_matrix_w_m02 = numpy.cumsum(net_flux_diff_matrix_w_m02, axis=1)
 
-    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    found_down_flux = SHORTWAVE_DOWN_FLUX_NAME in vector_target_names
-    found_up_flux = SHORTWAVE_UP_FLUX_NAME in vector_target_names
+    heating_rate_names = []
+    up_flux_names = []
+    down_flux_names = []
 
-    if not found_down_flux:
-        vector_target_names.append(SHORTWAVE_DOWN_FLUX_NAME)
-    if not found_up_flux:
-        vector_target_names.append(SHORTWAVE_UP_FLUX_NAME)
+    if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
+        heating_rate_names.append(SHORTWAVE_HEATING_RATE_NAME)
+        up_flux_names.append(SHORTWAVE_UP_FLUX_NAME)
+        down_flux_names.append(SHORTWAVE_DOWN_FLUX_NAME)
 
-    down_flux_index = vector_target_names.index(SHORTWAVE_DOWN_FLUX_NAME)
-    up_flux_index = vector_target_names.index(SHORTWAVE_UP_FLUX_NAME)
-    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+    if LONGWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
+        heating_rate_names.append(LONGWAVE_HEATING_RATE_NAME)
+        up_flux_names.append(LONGWAVE_UP_FLUX_NAME)
+        down_flux_names.append(LONGWAVE_DOWN_FLUX_NAME)
 
-    if found_down_flux:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
-            net_flux_matrix_w_m02
+    for k in range(len(heating_rate_names)):
+        heating_rate_matrix_k_day01 = get_field_from_dict(
+            example_dict=example_dict, field_name=heating_rate_names[k]
         )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY],
-            obj=down_flux_index, values=net_flux_matrix_w_m02, axis=-1
+        net_flux_diff_matrix_w_m02 = (
+            -1 * numpy.diff(pressure_matrix_pascals, axis=1) *
+            coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
         )
+        net_flux_matrix_w_m02 = numpy.cumsum(net_flux_diff_matrix_w_m02, axis=1)
 
-    if found_up_flux:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = numpy.full(
-            net_flux_matrix_w_m02.shape, 0.
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY], obj=up_flux_index,
-            values=numpy.full(net_flux_matrix_w_m02.shape, 0.), axis=-1
-        )
+        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+        found_down_flux = down_flux_names[k] in vector_target_names
+        found_up_flux = up_flux_names[k] in vector_target_names
 
-    return example_dict
+        if not found_down_flux:
+            vector_target_names.append(down_flux_names[k])
+        if not found_up_flux:
+            vector_target_names.append(up_flux_names[k])
 
+        down_flux_index = vector_target_names.index(down_flux_names[k])
+        up_flux_index = vector_target_names.index(up_flux_names[k])
+        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
 
-def heating_rate_to_flux_diff(example_dict):
-    """For each example at each height, converts heating rate to net-flux diff.
+        if found_down_flux:
+            example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
+                net_flux_matrix_w_m02
+            )
+        else:
+            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+                example_dict[VECTOR_TARGET_VALS_KEY],
+                obj=down_flux_index, values=net_flux_matrix_w_m02, axis=-1
+            )
 
-    E = number of examples
-    H = number of heights
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: net_flux_diff_matrix_w_m02: E-by-H numpy array of net-flux
-        differences.
-    """
-
-    heating_rate_matrix_k_day01 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
-    )
-    pressure_matrix_pascals = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    ) + 0.
-
-    dummy_pressure_matrix_pascals = (
-        pressure_matrix_pascals[:, [-1]] +
-        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
-    )
-    pressure_matrix_pascals = numpy.concatenate(
-        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
-    )
-
-    coefficient = DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02
-    net_flux_diff_matrix_w_m02 = (
-        -1 * numpy.diff(pressure_matrix_pascals, axis=1) *
-        coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
-    )
-
-    return net_flux_diff_matrix_w_m02
-
-
-def flux_diff_to_heating_rate(example_dict, net_flux_diff_matrix_w_m02):
-    """For each example at each height, converts net-flux diff to heating rate.
-
-    :param example_dict: See doc for `heating_rate_to_flux_diff`.
-    :param net_flux_diff_matrix_w_m02: Same.
-    :return: example_dict: Same as input but with new heating rates.
-    """
-
-    pressure_matrix_pascals = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    ) + 0.
-
-    dummy_pressure_matrix_pascals = (
-        pressure_matrix_pascals[:, [-1]] +
-        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
-    )
-    pressure_matrix_pascals = numpy.concatenate(
-        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
-    )
-
-    coefficient = GRAVITY_CONSTANT_M_S02 / DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
-    heating_rate_matrix_k_day01 = (
-        -1 * DAYS_TO_SECONDS * coefficient * net_flux_diff_matrix_w_m02 /
-        numpy.diff(pressure_matrix_pascals, axis=1)
-    )
-
-    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
-    if not found_heating_rate:
-        vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
-
-    heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
-    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-    if found_heating_rate:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-            heating_rate_matrix_k_day01
-        )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY],
-            obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
-        )
+        if found_up_flux:
+            example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
+                numpy.full(net_flux_matrix_w_m02.shape, 0.)
+            )
+        else:
+            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+                example_dict[VECTOR_TARGET_VALS_KEY], obj=up_flux_index,
+                values=numpy.full(net_flux_matrix_w_m02.shape, 0.), axis=-1
+            )
 
     return example_dict
 
@@ -924,16 +899,9 @@ def fluxes_to_heating_rate(example_dict):
     :return: example_dict: Same but with heating-rate profiles.
     """
 
-    down_flux_matrix_w_m02 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_DOWN_FLUX_NAME
-    )
-    up_flux_matrix_w_m02 = get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_UP_FLUX_NAME
-    )
     pressure_matrix_pascals = get_field_from_dict(
         example_dict=example_dict, field_name=PRESSURE_NAME
     ) + 0.
-
     dummy_pressure_matrix_pascals = (
         pressure_matrix_pascals[:, [-1]] +
         (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
@@ -942,48 +910,81 @@ def fluxes_to_heating_rate(example_dict):
         (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
     )
 
-    net_flux_matrix_w_m02 = down_flux_matrix_w_m02 - up_flux_matrix_w_m02
-    dummy_net_flux_matrix_w_m02 = (
-        net_flux_matrix_w_m02[:, [-1]] +
-        (net_flux_matrix_w_m02[:, [-1]] - net_flux_matrix_w_m02[:, [-2]])
-    )
-    net_flux_matrix_w_m02 = numpy.concatenate(
-        (net_flux_matrix_w_m02, dummy_net_flux_matrix_w_m02), axis=1
-    )
-
     coefficient = GRAVITY_CONSTANT_M_S02 / DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
 
-    # heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
-    #     numpy.gradient(net_flux_matrix_w_m02, axis=1) /
-    #     numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
-    # )
+    heating_rate_names = []
+    up_flux_names = []
+    down_flux_names = []
 
-    heating_rate_matrix_k_day01 = -1 * DAYS_TO_SECONDS * coefficient * (
-        numpy.diff(net_flux_matrix_w_m02, axis=1) /
-        numpy.diff(pressure_matrix_pascals, axis=1)
-    )
+    if (
+            SHORTWAVE_UP_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY] and
+            SHORTWAVE_DOWN_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]
+    ):
+        heating_rate_names.append(SHORTWAVE_HEATING_RATE_NAME)
+        up_flux_names.append(SHORTWAVE_UP_FLUX_NAME)
+        down_flux_names.append(SHORTWAVE_DOWN_FLUX_NAME)
 
-    error_checking.assert_is_numpy_array_without_nan(net_flux_matrix_w_m02)
-    error_checking.assert_is_numpy_array_without_nan(pressure_matrix_pascals)
-    heating_rate_matrix_k_day01[numpy.isnan(heating_rate_matrix_k_day01)] = 0.
+    if (
+            LONGWAVE_UP_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY] and
+            LONGWAVE_DOWN_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]
+    ):
+        heating_rate_names.append(LONGWAVE_HEATING_RATE_NAME)
+        up_flux_names.append(LONGWAVE_UP_FLUX_NAME)
+        down_flux_names.append(LONGWAVE_DOWN_FLUX_NAME)
 
-    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
-    if not found_heating_rate:
-        vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
-
-    heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
-    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-    if found_heating_rate:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-            heating_rate_matrix_k_day01
+    for k in range(len(up_flux_names)):
+        down_flux_matrix_w_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=down_flux_names[k]
         )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY],
-            obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+        up_flux_matrix_w_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=up_flux_names[k]
         )
+        net_flux_matrix_w_m02 = down_flux_matrix_w_m02 - up_flux_matrix_w_m02
+
+        dummy_net_flux_matrix_w_m02 = (
+            net_flux_matrix_w_m02[:, [-1]] +
+            (net_flux_matrix_w_m02[:, [-1]] - net_flux_matrix_w_m02[:, [-2]])
+        )
+        net_flux_matrix_w_m02 = numpy.concatenate(
+            (net_flux_matrix_w_m02, dummy_net_flux_matrix_w_m02), axis=1
+        )
+
+        # heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
+        #     numpy.gradient(net_flux_matrix_w_m02, axis=1) /
+        #     numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
+        # )
+
+        heating_rate_matrix_k_day01 = -1 * DAYS_TO_SECONDS * coefficient * (
+            numpy.diff(net_flux_matrix_w_m02, axis=1) /
+            numpy.diff(pressure_matrix_pascals, axis=1)
+        )
+
+        error_checking.assert_is_numpy_array_without_nan(net_flux_matrix_w_m02)
+        error_checking.assert_is_numpy_array_without_nan(
+            pressure_matrix_pascals
+        )
+        heating_rate_matrix_k_day01[
+            numpy.isnan(heating_rate_matrix_k_day01)
+        ] = 0.
+
+        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+        found_heating_rate = heating_rate_names[k] in vector_target_names
+        if not found_heating_rate:
+            vector_target_names.append(heating_rate_names[k])
+
+        heating_rate_index = vector_target_names.index(heating_rate_names[k])
+        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+        if found_heating_rate:
+            example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+                heating_rate_matrix_k_day01
+            )
+        else:
+            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+                example_dict[VECTOR_TARGET_VALS_KEY],
+                obj=heating_rate_index, values=heating_rate_matrix_k_day01,
+                axis=-1
+            )
 
     return example_dict
 
@@ -1045,8 +1046,10 @@ def heating_rate_to_w_m02(example_dict):
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
-    :return: heating_rate_matrix_w_m02: E-by-H numpy array of heating rates in
-        W m^-2.
+    :return: shortwave_hr_matrix_w_m02: E-by-H numpy array of shortwave heating
+        rates in W m^-2.  This may also be None.
+    :return: longwave_hr_matrix_w_m02: E-by-H numpy array of longwave heating
+        rates in W m^-2.  This may also be None.
     """
 
     # TODO(thunderhoser): Add unit tests.
@@ -1064,16 +1067,30 @@ def heating_rate_to_w_m02(example_dict):
         grid_cell_width_matrix_metres, axis=0, repeats=num_examples
     )
 
-    heating_rate_matrix_k_s01 = (DAYS_TO_SECONDS ** -1) * get_field_from_dict(
-        example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
-    )
-    return (
-        heating_rate_matrix_k_s01 * air_density_matrix_kg_m03 *
+    multiplier_matrix = (
+        (DAYS_TO_SECONDS ** -1) * air_density_matrix_kg_m03 *
         DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres
     )
 
+    if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
+        shortwave_hr_matrix_w_m02 = multiplier_matrix * get_field_from_dict(
+            example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
+        )
+    else:
+        shortwave_hr_matrix_w_m02 = None
 
-def heating_rate_to_k_day01(example_dict, heating_rate_matrix_w_m02):
+    if LONGWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
+        longwave_hr_matrix_w_m02 = multiplier_matrix * get_field_from_dict(
+            example_dict=example_dict, field_name=LONGWAVE_HEATING_RATE_NAME
+        )
+    else:
+        longwave_hr_matrix_w_m02 = None
+
+    return shortwave_hr_matrix_w_m02, longwave_hr_matrix_w_m02
+
+
+def heating_rate_to_k_day01(example_dict, shortwave_hr_matrix_w_m02,
+                            longwave_hr_matrix_w_m02):
     """Converts heating rates from W m^-2 to K day^-1.
 
     E = number of examples
@@ -1081,8 +1098,9 @@ def heating_rate_to_k_day01(example_dict, heating_rate_matrix_w_m02):
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
-    :param heating_rate_matrix_w_m02: E-by-H numpy array of heating rates in
-        W m^-2.
+    :param shortwave_hr_matrix_w_m02: E-by-H numpy array of shortwave heating
+        rates in W m^-2.  This may also be None.
+    :param longwave_hr_matrix_w_m02: Same but for longeave.
     :return: example_dict: Same as input but with different heating-rate values.
     """
 
@@ -1101,32 +1119,62 @@ def heating_rate_to_k_day01(example_dict, heating_rate_matrix_w_m02):
         grid_cell_width_matrix_metres, axis=0, repeats=num_examples
     )
 
-    denom_matrix = (
-        air_density_matrix_kg_m03 * DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 *
-        grid_cell_width_matrix_metres
-    )
-    heating_rate_matrix_k_day01 = (
-        DAYS_TO_SECONDS * heating_rate_matrix_w_m02 / denom_matrix
+    multiplier_matrix = 1. / (
+        (DAYS_TO_SECONDS ** -1) * air_density_matrix_kg_m03 *
+        DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres
     )
 
-    vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-    found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
-
-    if not found_heating_rate:
-        vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
-
-    heating_rate_index = vector_target_names.index(SHORTWAVE_HEATING_RATE_NAME)
-    example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-    if found_heating_rate:
-        example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-            heating_rate_matrix_k_day01
+    if shortwave_hr_matrix_w_m02 is not None:
+        shortwave_hr_matrix_k_day01 = (
+            multiplier_matrix * shortwave_hr_matrix_w_m02
         )
-    else:
-        example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_TARGET_VALS_KEY],
-            obj=heating_rate_index, values=heating_rate_matrix_k_day01, axis=-1
+
+        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+        found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
+        if not found_heating_rate:
+            vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
+
+        heating_rate_index = vector_target_names.index(
+            SHORTWAVE_HEATING_RATE_NAME
         )
+        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+        if found_heating_rate:
+            example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+                shortwave_hr_matrix_k_day01
+            )
+        else:
+            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+                example_dict[VECTOR_TARGET_VALS_KEY],
+                obj=heating_rate_index, values=shortwave_hr_matrix_k_day01,
+                axis=-1
+            )
+
+    if longwave_hr_matrix_w_m02 is not None:
+        longwave_hr_matrix_k_day01 = (
+            multiplier_matrix * longwave_hr_matrix_w_m02
+        )
+
+        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
+        found_heating_rate = LONGWAVE_HEATING_RATE_NAME in vector_target_names
+        if not found_heating_rate:
+            vector_target_names.append(LONGWAVE_HEATING_RATE_NAME)
+
+        heating_rate_index = vector_target_names.index(
+            LONGWAVE_HEATING_RATE_NAME
+        )
+        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
+
+        if found_heating_rate:
+            example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
+                longwave_hr_matrix_k_day01
+            )
+        else:
+            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
+                example_dict[VECTOR_TARGET_VALS_KEY],
+                obj=heating_rate_index, values=longwave_hr_matrix_k_day01,
+                axis=-1
+            )
 
     return example_dict
 
