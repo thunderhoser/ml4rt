@@ -114,7 +114,7 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
     rrtm_file_names = []
 
     for this_date_string in date_strings:
-        this_file_name = '{0:s}/{1:s}/output_file.{2:s}.cdf'.format(
+        this_file_name = '{0:s}/{1:s}/output_file_lwsw.{2:s}.cdf'.format(
             top_rrtm_dir_name, this_date_string, this_date_string[:4]
         )
 
