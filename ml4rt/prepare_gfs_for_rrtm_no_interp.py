@@ -550,6 +550,12 @@ def _run(input_file_name, output_file_name):
         },
         drop=False
     )
+    orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
+        indexers={
+            TIME_DIMENSION_ORIG: numpy.array([1], dtype=int)
+        },
+        drop=False
+    )
 
     this_matrix = moisture_conv.specific_humidity_to_mixing_ratio(
         orig_gfs_table_xarray[SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01].values

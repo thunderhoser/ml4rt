@@ -14,7 +14,7 @@ SINGULARITY_CONTAINER_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_pro
 TOP_DATA_DIR_NAME_ACTUAL="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights"
 TOP_DATA_DIR_NAME_DOCKER="/home/user/data"
 
-cp -v "${GITHUB_CODE_DIR_NAME}/make_rrtm_lw_calc.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
+cp -v "${GITHUB_CODE_DIR_NAME}/make_rrtm_lw_calc_no-delete.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/make_rrtm_lw_calc.pro"
 cp -v "${GITHUB_CODE_DIR_NAME}/make_rrtm_sw_calc.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
 cp -v "${GITHUB_CODE_DIR_NAME}/run_rrtm_lwsw_orig_heights.pro" "${TOP_DATA_DIR_NAME_ACTUAL}/"
 
@@ -40,5 +40,5 @@ echo "exit" >> $gdl_script_file_name
 singularity exec -C -B "${TOP_DATA_DIR_NAME_ACTUAL}":"${TOP_DATA_DIR_NAME_DOCKER}" "${SINGULARITY_CONTAINER_NAME}" /bin/sh -c "cd ${data_dir_name_docker}; gdl -e '@run_rrtm_lwsw_${date_string}.gdl'"
 
 rm -v ${data_dir_name_actual}/core.*
-rm -v ${data_dir_name_actual}/TAPE*
+# rm -v ${data_dir_name_actual}/TAPE*
 # rm -v ${data_dir_name_actual}/*RRTM
