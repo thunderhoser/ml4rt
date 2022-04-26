@@ -546,7 +546,7 @@ def _run(input_file_name, output_file_name):
     orig_gfs_table_xarray = xarray.open_dataset(input_file_name)
     orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
         indexers={
-            SITE_DIMENSION_ORIG: numpy.array([0], dtype=int)
+            SITE_DIMENSION_ORIG: numpy.array([17], dtype=int)
         },
         drop=False
     )
