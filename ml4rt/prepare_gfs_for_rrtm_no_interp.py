@@ -552,7 +552,7 @@ def _run(input_file_name, output_file_name):
     )
     orig_gfs_table_xarray = orig_gfs_table_xarray.isel(
         indexers={
-            TIME_DIMENSION_ORIG: numpy.array([1], dtype=int)
+            TIME_DIMENSION_ORIG: numpy.array([0, 1, 2, 3], dtype=int)
         },
         drop=False
     )
