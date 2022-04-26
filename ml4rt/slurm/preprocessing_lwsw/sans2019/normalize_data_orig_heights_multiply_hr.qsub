@@ -1,0 +1,44 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="normalize_data_orig_heights_multiply_hr"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=06:00:00
+#SBATCH --array=3-8
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=normalize_data_orig_heights_multiply_hr_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/training/learning_examples_for_norm_20200103-20200313.nc"
+
+set INPUT_FILE_NAMES=("/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/training/learning_examples_2019_part01.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/training/learning_examples_2019_part02.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/training/learning_examples_2020_part01.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/training/learning_examples_2020_part02.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/validation/learning_examples_2020_part01.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/validation/learning_examples_2020_part02.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/testing/learning_examples_2020_part01.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/testing/learning_examples_2020_part02.nc")
+set OUTPUT_DIR_NAMES=("/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/training" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/training" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/training" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/training" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/validation" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/validation" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/testing" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/normalized_multiply_hr/testing")
+
+set input_file_name=${INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}
+set output_dir_name=${OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}
+
+python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
+--input_example_file_name="${input_file_name}" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--multiply_preds_by_layer_thickness=0 \
+--multiply_hr_by_layer_thickness=1 \
+--predictor_norm_type_string="z_score" \
+--vector_target_norm_type_string="" \
+--scalar_target_norm_type_string="" \
+--output_example_dir_name="${output_dir_name}"
