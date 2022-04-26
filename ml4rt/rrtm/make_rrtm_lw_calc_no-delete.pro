@@ -199,7 +199,7 @@
   if(keyword_set(dostop)) then stop,'Stopping at end of routine before returning'
 
 	; Make sure there are no residual RRTM input files hanging around
-  spawn,'rm -f TAPE6 TAPE7 INPUT_RRTM IN_CLD_RRTM OUTPUT_RRTM OUT_CLD_RRTM'
+  ; spawn,'rm -f TAPE6 TAPE7 INPUT_RRTM IN_CLD_RRTM OUTPUT_RRTM OUT_CLD_RRTM'
 
   return,output
 end
