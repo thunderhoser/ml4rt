@@ -76,11 +76,16 @@ PREDICTOR_NAME_TO_VERBOSE = {
 }
 
 TARGET_NAME_TO_VERBOSE = {
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_utils.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'SW heating rate',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'SW up flux',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'SW down flux',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'SW TOA up flux',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'SW sfc down flux',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'LW heating rate',
+    example_utils.LONGWAVE_UP_FLUX_NAME: 'LW up flux',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: 'LW down flux',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: 'LW TOA up flux',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: 'LW sfc down flux'
 }
 
 TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS

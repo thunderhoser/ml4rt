@@ -48,7 +48,9 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
         r'Column liquid-water path (g m$^{-2}$)',
     example_utils.COLUMN_ICE_WATER_PATH_NAME:
-        r'Column ice-water path (mg m$^{-2}$)'
+        r'Column ice-water path (mg m$^{-2}$)',
+    example_utils.AEROSOL_EXTINCTION_NAME: r'Aerosol extinction (km$^{-1}$)',
+    example_utils.O3_MIXING_RATIO_NAME: r'O$_3$ mixing ratio (mg kg$^{-1}$)'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
@@ -68,7 +70,9 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_utils.LATITUDE_NAME: 1.,
     example_utils.LONGITUDE_NAME: 1.,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_utils.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_utils.AEROSOL_EXTINCTION_NAME: 1000.,
+    example_utils.O3_MIXING_RATIO_NAME: KG_TO_MILLIGRAMS
 }
 
 DEFAULT_LINE_WIDTH = 2
@@ -320,14 +324,17 @@ def plot_predictors(
 
 
 def plot_targets(
-        example_dict, example_index, use_log_scale,
-        line_width=DEFAULT_LINE_WIDTH, line_style='solid', handle_dict=None):
-    """Plots targets (shortwave upwelling flux, down flux, heating rate).
+        example_dict, example_index, use_log_scale, for_shortwave=True,
+        line_width=DEFAULT_LINE_WIDTH, line_style='solid',
+        handle_dict=None):
+    """Plots targets (upwelling flux, downwelling flux, heating rate).
 
     :param example_dict: See doc for `plot_predictors`.
     :param example_index: Same.
     :param use_log_scale: Same.
-    :param line_width: Same.
+    :param for_shortwave: Boolean flag.  If True (False), will plot targets for
+        shortwave (longwave) flux.
+    :param line_width: See doc for `plot_predictors`.
     :param line_style: Same.
     :param handle_dict: Same.
     :return: handle_dict: Dictionary with the following keys.
@@ -346,6 +353,7 @@ def plot_targets(
     error_checking.assert_is_integer(example_index)
     error_checking.assert_is_geq(example_index, 0)
     error_checking.assert_is_boolean(use_log_scale)
+    error_checking.assert_is_boolean(for_shortwave)
 
     if handle_dict is None:
         figure_object, heating_rate_axes_object = pyplot.subplots(
@@ -378,7 +386,10 @@ def plot_targets(
 
     heating_rates_kelvins_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=(
+            example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
+            else example_utils.LONGWAVE_HEATING_RATE_NAME
+        )
     )[example_index, ...]
 
     heating_rate_axes_object.plot(
@@ -388,7 +399,10 @@ def plot_targets(
 
     downwelling_fluxes_w_m02 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_DOWN_FLUX_NAME
+        field_name=(
+            example_utils.SHORTWAVE_DOWN_FLUX_NAME if for_shortwave
+            else example_utils.LONGWAVE_DOWN_FLUX_NAME
+        )
     )[example_index, ...]
 
     down_flux_axes_object.plot(
@@ -399,7 +413,10 @@ def plot_targets(
 
     upwelling_fluxes_w_m02 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_UP_FLUX_NAME
+        field_name=(
+            example_utils.SHORTWAVE_UP_FLUX_NAME if for_shortwave
+            else example_utils.LONGWAVE_UP_FLUX_NAME
+        )
     )[example_index, ...]
 
     up_flux_axes_object.plot(
@@ -408,15 +425,20 @@ def plot_targets(
     )
 
     if handle_dict is None:
+        if for_shortwave:
+            band_string = 'Shortwave'
+        else:
+            band_string = 'Longwave'
+
         heating_rate_axes_object.set_ylabel('Height (km AGL)')
         heating_rate_axes_object.set_xlabel(
-            r'Shortwave heating rate (K day$^{-1}$)'
+            band_string + r' heating rate (K day$^{-1}$)'
         )
         down_flux_axes_object.set_xlabel(
-            r'Downwelling shortwave flux (W m$^{-2}$)'
+            r'Downwelling ' + band_string.lower() + ' flux (W m$^{-2}$)'
         )
         up_flux_axes_object.set_xlabel(
-            r'Upwelling shortwave flux (W m$^{-2}$)'
+            r'Upwelling ' + band_string.lower() + ' flux (W m$^{-2}$)'
         )
 
         heating_rate_axes_object.set_ylim([

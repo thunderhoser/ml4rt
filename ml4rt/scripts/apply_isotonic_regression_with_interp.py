@@ -11,6 +11,9 @@ from ml4rt.utils import heating_rate_interp
 from ml4rt.machine_learning import isotonic_regression
 from ml4rt.machine_learning import neural_net
 
+# TODO(thunderhoser): Generalize this script to handle both shortwave and
+# longwave radiation.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 EXAMPLE_MATCHING_TIME_SEC = 180
@@ -158,7 +161,8 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
         ))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name,
-            exclude_summit_greenland=False, max_heating_rate_k_day=numpy.inf
+            exclude_summit_greenland=False,
+            max_shortwave_heating_k_day01=numpy.inf
         )
 
         new_grid_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]
@@ -384,11 +388,11 @@ def _run(input_prediction_file_name, model_file_name, new_grid_example_dir_name,
                 i, top_indices, 0
             ] = 0.
 
-    new_heating_rate_matrix_k_day01[:, -1] = 0.
+    # new_heating_rate_matrix_k_day01[:, -1] = 0.
     prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
         new_heating_rate_matrix_k_day01, axis=-1
     )
-    prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, 0] = 0.
+    # prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, 0] = 0.
 
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name

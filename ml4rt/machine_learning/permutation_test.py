@@ -97,7 +97,13 @@ DWMSE_FOR_HEATING_RATES = numpy.mean(
     ACTUAL_HEATING_RATES_K_DAY01 * (0.25 * ACTUAL_HEATING_RATES_K_DAY01) ** 2
 )
 MSE_FOR_FLUXES_SANS_NET = numpy.mean((0.1 * SECOND_TARGET_MATRIX) ** 2)
-MSE_FOR_FLUXES_WITH_NET = MSE_FOR_FLUXES_SANS_NET + 1.
+MSE_FOR_FLUXES_WITH_NET = numpy.average(
+    a=numpy.array([MSE_FOR_FLUXES_SANS_NET, 1]),
+    weights=numpy.array([2, 1])
+)
+
+DOWN_FLUX_INDICES = numpy.array([0], dtype=int)
+UP_FLUX_INDICES = numpy.array([1], dtype=int)
 
 FIRST_HEATING_RATE_WEIGHT = 1.
 FIRST_FLUX_WEIGHT = 0.
@@ -290,7 +296,9 @@ class PermutationTests(unittest.TestCase):
         this_cost_function = permutation.make_cost_function(
             heating_rate_weight=FIRST_HEATING_RATE_WEIGHT,
             flux_weight=FIRST_FLUX_WEIGHT,
-            include_net_flux=FIRST_INCLUDE_NET_FLUX_FLAG
+            include_net_flux=FIRST_INCLUDE_NET_FLUX_FLAG,
+            down_flux_indices=DOWN_FLUX_INDICES,
+            up_flux_indices=UP_FLUX_INDICES
         )
 
         this_cost = this_cost_function(
@@ -309,7 +317,9 @@ class PermutationTests(unittest.TestCase):
         this_cost_function = permutation.make_cost_function(
             heating_rate_weight=SECOND_HEATING_RATE_WEIGHT,
             flux_weight=SECOND_FLUX_WEIGHT,
-            include_net_flux=SECOND_INCLUDE_NET_FLUX_FLAG
+            include_net_flux=SECOND_INCLUDE_NET_FLUX_FLAG,
+            down_flux_indices=DOWN_FLUX_INDICES,
+            up_flux_indices=UP_FLUX_INDICES
         )
 
         this_cost = this_cost_function(
@@ -328,7 +338,9 @@ class PermutationTests(unittest.TestCase):
         this_cost_function = permutation.make_cost_function(
             heating_rate_weight=THIRD_HEATING_RATE_WEIGHT,
             flux_weight=THIRD_FLUX_WEIGHT,
-            include_net_flux=THIRD_INCLUDE_NET_FLUX_FLAG
+            include_net_flux=THIRD_INCLUDE_NET_FLUX_FLAG,
+            down_flux_indices=DOWN_FLUX_INDICES,
+            up_flux_indices=UP_FLUX_INDICES
         )
 
         this_cost = this_cost_function(
@@ -347,7 +359,9 @@ class PermutationTests(unittest.TestCase):
         this_cost_function = permutation.make_cost_function(
             heating_rate_weight=FOURTH_HEATING_RATE_WEIGHT,
             flux_weight=FOURTH_FLUX_WEIGHT,
-            include_net_flux=FOURTH_INCLUDE_NET_FLUX_FLAG
+            include_net_flux=FOURTH_INCLUDE_NET_FLUX_FLAG,
+            down_flux_indices=DOWN_FLUX_INDICES,
+            up_flux_indices=UP_FLUX_INDICES
         )
 
         this_cost = this_cost_function(

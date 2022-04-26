@@ -18,13 +18,13 @@ from ml4rt.utils import example_utils
 
 MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
-MAX_SURFACE_DOWN_FLUX_W_M02 = 1200.
+MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02 = 1200.
 MAX_AEROSOL_OPTICAL_DEPTH = 1.8
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_ALBEDO_BINS_ARG_NAME = 'num_albedo_bins'
-NUM_DOWN_FLUX_BINS_ARG_NAME = 'num_surface_down_flux_bins'
+NUM_FLUX_BINS_ARG_NAME = 'num_shortwave_sfc_down_flux_bins'
 NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
@@ -35,9 +35,9 @@ INPUT_FILE_HELP_STRING = (
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
 NUM_ALBEDO_BINS_HELP_STRING = 'Number of bins for albedo.'
-NUM_DOWN_FLUX_BINS_HELP_STRING = (
-    'Number of bins for surface downwelling flux.  If you do not want to split '
-    'by surface downwelling flux, make this argument <= 0.'
+NUM_FLUX_BINS_HELP_STRING = (
+    'Number of bins for shortwave surface downwelling flux.  If you do not want'
+    ' to split by shortwave surface downwelling flux, make this argument <= 0.'
 )
 NUM_AOD_BINS_HELP_STRING = (
     'Number of bins for aerosol optical depth (AOD).  If you do not want to '
@@ -67,8 +67,8 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_ALBEDO_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_DOWN_FLUX_BINS_ARG_NAME, type=int, required=False, default=-1,
-    help=NUM_DOWN_FLUX_BINS_HELP_STRING
+    '--' + NUM_FLUX_BINS_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_FLUX_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=-1,
@@ -85,7 +85,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
-         num_surface_down_flux_bins, num_aod_bins, example_dir_name,
+         num_shortwave_sfc_down_flux_bins, num_aod_bins, example_dir_name,
          output_dir_name):
     """Splits predictions by time of day and time of year.
 
@@ -94,22 +94,22 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
     :param input_file_name: See documentation at top of file.
     :param num_zenith_angle_bins: Same.
     :param num_albedo_bins: Same.
-    :param num_surface_down_flux_bins: Same.
+    :param num_shortwave_sfc_down_flux_bins: Same.
     :param num_aod_bins: Same.
     :param example_dir_name: Same.
     :param output_dir_name: Same.
     """
 
     # Process input args.
-    if num_surface_down_flux_bins <= 0:
-        num_surface_down_flux_bins = None
+    if num_shortwave_sfc_down_flux_bins <= 0:
+        num_shortwave_sfc_down_flux_bins = None
     if num_aod_bins <= 0:
         num_aod_bins = None
 
     error_checking.assert_is_geq(num_zenith_angle_bins, 3)
     error_checking.assert_is_geq(num_albedo_bins, 3)
-    if num_surface_down_flux_bins is not None:
-        error_checking.assert_is_geq(num_surface_down_flux_bins, 3)
+    if num_shortwave_sfc_down_flux_bins is not None:
+        error_checking.assert_is_geq(num_shortwave_sfc_down_flux_bins, 3)
     if num_aod_bins is not None:
         error_checking.assert_is_geq(num_aod_bins, 3)
 
@@ -243,35 +243,35 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
 
     print('\n')
 
-    # Split by surface downwelling flux.
-    if num_surface_down_flux_bins is not None:
-        edge_surface_down_fluxes_w_m02 = numpy.linspace(
-            0, MAX_SURFACE_DOWN_FLUX_W_M02,
-            num=num_surface_down_flux_bins + 1, dtype=float
+    # Split by shortwave surface downwelling flux.
+    if num_shortwave_sfc_down_flux_bins is not None:
+        edge_fluxes_w_m02 = numpy.linspace(
+            0, MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02,
+            num=num_shortwave_sfc_down_flux_bins + 1, dtype=float
         )
-        min_surface_down_fluxes_w_m02 = edge_surface_down_fluxes_w_m02[:-1]
-        max_surface_down_fluxes_w_m02 = edge_surface_down_fluxes_w_m02[1:]
-        max_surface_down_fluxes_w_m02[-1] = numpy.inf
+        min_fluxes_w_m02 = edge_fluxes_w_m02[:-1]
+        max_fluxes_w_m02 = edge_fluxes_w_m02[1:]
+        max_fluxes_w_m02[-1] = numpy.inf
 
-        for k in range(num_surface_down_flux_bins):
-            this_prediction_dict = prediction_io.subset_by_surface_down_flux(
-                prediction_dict=copy.deepcopy(prediction_dict),
-                min_surface_down_flux_w_m02=min_surface_down_fluxes_w_m02[k],
-                max_surface_down_flux_w_m02=max_surface_down_fluxes_w_m02[k]
+        for k in range(num_shortwave_sfc_down_flux_bins):
+            this_prediction_dict = (
+                prediction_io.subset_by_shortwave_sfc_down_flux(
+                    prediction_dict=copy.deepcopy(prediction_dict),
+                    min_flux_w_m02=min_fluxes_w_m02[k],
+                    max_flux_w_m02=max_fluxes_w_m02[k]
+                )
             )
 
             this_output_file_name = prediction_io.find_file(
-                directory_name=output_dir_name, surface_down_flux_bin=k,
+                directory_name=output_dir_name, shortwave_sfc_down_flux_bin=k,
                 raise_error_if_missing=False
             )
             print((
-                'Writing {0:d} examples (with surface downwelling fluxes of '
-                '{1:.4f}...{2:.4f} W m^-2) to: "{3:s}"...'
+                'Writing {0:d} examples (with shortwave surface downwelling '
+                'fluxes of {1:.4f}...{2:.4f} W m^-2) to: "{3:s}"...'
             ).format(
                 len(this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]),
-                min_surface_down_fluxes_w_m02[k],
-                max_surface_down_fluxes_w_m02[k],
-                this_output_file_name
+                min_fluxes_w_m02[k], max_fluxes_w_m02[k], this_output_file_name
             ))
 
             prediction_io.write_file(
@@ -317,7 +317,7 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_heating_rate_k_day=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf
         )
 
         example_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]
@@ -462,8 +462,8 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
         num_albedo_bins=getattr(INPUT_ARG_OBJECT, NUM_ALBEDO_BINS_ARG_NAME),
-        num_surface_down_flux_bins=getattr(
-            INPUT_ARG_OBJECT, NUM_DOWN_FLUX_BINS_ARG_NAME
+        num_shortwave_sfc_down_flux_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_FLUX_BINS_ARG_NAME
         ),
         num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),

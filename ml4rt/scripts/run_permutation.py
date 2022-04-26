@@ -2,11 +2,14 @@
 
 import os.path
 import argparse
+import numpy
+from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import permutation
 from ml4rt.scripts import make_saliency_maps
 
+TOLERANCE = 1e-6
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
@@ -126,14 +129,13 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     :param output_file_name: Same.
     """
 
-    cost_function = permutation.make_cost_function(
-        heating_rate_weight=heating_rate_weight, flux_weight=flux_weight,
-        include_net_flux=include_net_flux
-    )
+    if flux_weight < TOLERANCE:
+        flux_weight = -1.
+    if flux_weight <= 0:
+        include_net_flux = False
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
-
     metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
@@ -141,6 +143,51 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
+    training_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    down_flux_indices = []
+    up_flux_indices = []
+
+    if include_net_flux:
+        scalar_target_names = training_option_dict[
+            neural_net.SCALAR_TARGET_NAMES_KEY
+        ]
+
+        try:
+            i = scalar_target_names.index(
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            j = scalar_target_names.index(
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+
+            down_flux_indices.append(i)
+            up_flux_indices.append(j)
+        except ValueError:
+            pass
+
+        try:
+            i = scalar_target_names.index(
+                example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            j = scalar_target_names.index(
+                example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+            )
+
+            down_flux_indices.append(i)
+            up_flux_indices.append(j)
+        except ValueError:
+            pass
+
+        assert len(down_flux_indices) > 0
+        down_flux_indices = numpy.array(down_flux_indices, dtype=int)
+        up_flux_indices = numpy.array(up_flux_indices, dtype=int)
+
+    cost_function = permutation.make_cost_function(
+        heating_rate_weight=heating_rate_weight,
+        flux_weight=flux_weight, include_net_flux=include_net_flux,
+        down_flux_indices=down_flux_indices, up_flux_indices=up_flux_indices
+    )
 
     predictor_matrix, target_matrices = (
         misc_utils.get_examples_for_inference(

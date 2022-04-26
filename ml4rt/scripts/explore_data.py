@@ -345,7 +345,8 @@ def _run(example_file_names, output_dir_name):
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
-            netcdf_file_name=this_file_name, max_heating_rate_k_day=numpy.inf
+            netcdf_file_name=this_file_name,
+            max_shortwave_heating_k_day01=numpy.inf
         )
         example_dicts.append(this_example_dict)
 

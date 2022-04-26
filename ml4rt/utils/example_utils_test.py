@@ -1398,38 +1398,6 @@ class ExampleUtilsTests(unittest.TestCase):
             atol=TOLERANCE
         ))
 
-    def test_heating_rate_to_flux_diff(self):
-        """Ensures correct output from heating_rate_to_flux_diff."""
-
-        net_flux_diff_matrix_w_m02 = example_utils.heating_rate_to_flux_diff(
-            copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE)
-        )
-        self.assertTrue(numpy.allclose(
-            net_flux_diff_matrix_w_m02, DUMMY_NET_FLUX_DIFF_MATRIX_W_M02,
-            atol=TOLERANCE
-        ))
-
-    def test_flux_diff_to_heating_rate(self):
-        """Ensures correct output from flux_diff_to_heating_rate."""
-
-        this_example_dict = example_utils.flux_diff_to_heating_rate(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE),
-            net_flux_diff_matrix_w_m02=DUMMY_NET_FLUX_DIFF_MATRIX_W_M02
-        )
-
-        this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-            example_dict=this_example_dict,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
-        exp_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-            example_dict=EXAMPLE_DICT_WITH_HEATING_RATE,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
-        self.assertTrue(numpy.allclose(
-            this_heating_rate_matrix_k_day01, exp_heating_rate_matrix_k_day01,
-            atol=TOLERANCE
-        ))
-
     def test_get_air_density(self):
         """Ensures correct output from get_air_density."""
 

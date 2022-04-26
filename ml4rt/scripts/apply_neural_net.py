@@ -383,56 +383,74 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     )
 
     if generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]:
-        k = vector_target_names.index(
-            example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
+        hr_indices = []
+
+        try:
+            hr_indices.append(vector_target_names.index(
+                example_utils.SHORTWAVE_HEATING_RATE_NAME
+            ))
+        except ValueError:
+            pass
+
+        try:
+            hr_indices.append(vector_target_names.index(
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+            ))
+        except ValueError:
+            pass
 
         dummy_example_dict = {
-            example_utils.VECTOR_TARGET_NAMES_KEY:
-                [example_utils.SHORTWAVE_HEATING_RATE_NAME],
-            example_utils.VECTOR_TARGET_VALS_KEY: target_example_dict[
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][..., [k]],
-            example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-                [example_utils.PRESSURE_NAME],
-            example_utils.VECTOR_PREDICTOR_VALS_KEY:
-                numpy.expand_dims(pressure_matrix_pa, axis=-1)
+            example_utils.VECTOR_TARGET_NAMES_KEY: [
+                vector_target_names[k] for k in hr_indices
+            ],
+            example_utils.VECTOR_TARGET_VALS_KEY:
+                target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+                    ..., hr_indices
+                ],
+            example_utils.VECTOR_PREDICTOR_NAMES_KEY: [
+                example_utils.PRESSURE_NAME
+            ],
+            example_utils.VECTOR_PREDICTOR_VALS_KEY: numpy.expand_dims(
+                pressure_matrix_pa, axis=-1
+            )
         }
         dummy_example_dict = example_utils.divide_hr_by_layer_thickness(
             dummy_example_dict
         )
-        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., k] = (
-            dummy_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., 0]
-        )
+        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+            ..., hr_indices
+        ] = dummy_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
 
         dummy_example_dict = {
-            example_utils.VECTOR_TARGET_NAMES_KEY:
-                [example_utils.SHORTWAVE_HEATING_RATE_NAME],
-            example_utils.VECTOR_TARGET_VALS_KEY: prediction_example_dict[
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][..., [k]],
-            example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-                [example_utils.PRESSURE_NAME],
-            example_utils.VECTOR_PREDICTOR_VALS_KEY:
-                numpy.expand_dims(pressure_matrix_pa, axis=-1)
+            example_utils.VECTOR_TARGET_NAMES_KEY: [
+                vector_target_names[k] for k in hr_indices
+            ],
+            example_utils.VECTOR_TARGET_VALS_KEY:
+                prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+                    ..., hr_indices
+                ],
+            example_utils.VECTOR_PREDICTOR_NAMES_KEY: [
+                example_utils.PRESSURE_NAME
+            ],
+            example_utils.VECTOR_PREDICTOR_VALS_KEY: numpy.expand_dims(
+                pressure_matrix_pa, axis=-1
+            )
         }
         dummy_example_dict = example_utils.divide_hr_by_layer_thickness(
             dummy_example_dict
         )
-        prediction_example_dict[
-            example_utils.VECTOR_TARGET_VALS_KEY
-        ][..., k] = (
-            dummy_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., 0]
-        )
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][
+            ..., hr_indices
+        ] = dummy_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
 
-    if example_utils.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
-        k = vector_target_names.index(
-            example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
-        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, k] = 0.
-        prediction_example_dict[
-            example_utils.VECTOR_TARGET_VALS_KEY
-        ][:, -1, k] = 0.
+    # if example_utils.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
+    #     k = vector_target_names.index(
+    #         example_utils.SHORTWAVE_HEATING_RATE_NAME
+    #     )
+    #     target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, k] = 0.
+    #     prediction_example_dict[
+    #         example_utils.VECTOR_TARGET_VALS_KEY
+    #     ][:, -1, k] = 0.
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name

@@ -1,34 +1,8 @@
 """Contains list of input arguments for training a neural net."""
 
-import os.path
-from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
-from ml4rt.machine_learning import neural_net
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
-
-HOME_DIR_NAME = os.path.expanduser('~')
-DEFAULT_TRAINING_DIR_NAME = (
-    '{0:s}/ml4rt_project/examples/with_new_data/for_base_model'
-).format(HOME_DIR_NAME)
-
-DEFAULT_VALIDATION_DIR_NAME = (
-    '{0:s}/ml4rt_project/examples/with_new_data'
-).format(HOME_DIR_NAME)
-
-DEFAULT_NORM_FILE_NAME = '{0:s}/learning_examples_20170101-20181224.nc'.format(
-    DEFAULT_TRAINING_DIR_NAME
-)
-
-DEFAULT_PREDICTOR_NAMES = example_utils.BASIC_VECTOR_PREDICTOR_NAMES + [
-    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME
-]
-
-NET_TYPE_TO_DEFAULT_HEIGHTS_M_AGL = {
-    neural_net.U_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL,
-    neural_net.DENSE_NET_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL,
-    neural_net.CNN_TYPE_STRING: example_utils.DEFAULT_HEIGHTS_M_AGL
-}
 
 NET_TYPE_ARG_NAME = 'net_type_string'
 TRAINING_DIR_ARG_NAME = 'input_training_dir_name'
@@ -182,12 +156,12 @@ def add_input_args(parser_object):
         help=NET_TYPE_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + TRAINING_DIR_ARG_NAME, type=str, required=False,
-        default=DEFAULT_TRAINING_DIR_NAME, help=TRAINING_DIR_HELP_STRING
+        '--' + TRAINING_DIR_ARG_NAME, type=str, required=True,
+        help=TRAINING_DIR_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + VALIDATION_DIR_ARG_NAME, type=str, required=False,
-        default=DEFAULT_VALIDATION_DIR_NAME, help=VALIDATION_DIR_HELP_STRING
+        '--' + VALIDATION_DIR_ARG_NAME, type=str, required=True,
+        help=VALIDATION_DIR_HELP_STRING
     )
     parser_object.add_argument(
         '--' + INPUT_MODEL_FILE_ARG_NAME, type=str, required=True,
@@ -206,8 +180,8 @@ def add_input_args(parser_object):
         default=0, help=USE_GENERATOR_FOR_VALIDN_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + PREDICTOR_NAMES_ARG_NAME, type=str, nargs='+', required=False,
-        default=DEFAULT_PREDICTOR_NAMES, help=PREDICTOR_NAMES_HELP_STRING
+        '--' + PREDICTOR_NAMES_ARG_NAME, type=str, nargs='+', required=True,
+        help=PREDICTOR_NAMES_HELP_STRING
     )
     parser_object.add_argument(
         '--' + TARGET_NAMES_ARG_NAME, type=str, nargs='+', required=True,
@@ -242,8 +216,8 @@ def add_input_args(parser_object):
         default='2019-12-24-235959', help=VALIDN_TIME_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + NORMALIZATION_FILE_ARG_NAME, type=str, required=False,
-        default=DEFAULT_NORM_FILE_NAME, help=NORMALIZATION_FILE_HELP_STRING
+        '--' + NORMALIZATION_FILE_ARG_NAME, type=str, required=True,
+        help=NORMALIZATION_FILE_HELP_STRING
     )
     parser_object.add_argument(
         '--' + PREDICTOR_NORM_TYPE_ARG_NAME, type=str, required=False,

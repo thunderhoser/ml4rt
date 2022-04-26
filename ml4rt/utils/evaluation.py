@@ -16,9 +16,13 @@ from ml4rt.machine_learning import neural_net
 DEFAULT_NUM_RELIABILITY_BINS = 20
 DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
 
-NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
-LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
-HIGHEST_UP_FLUX_NAME = 'highest_shortwave_up_flux_w_m02'
+SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
+SHORTWAVE_LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
+SHORTWAVE_HIGHEST_UP_FLUX_NAME = 'highest_shortwave_up_flux_w_m02'
+
+LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
+LONGWAVE_LOWEST_DOWN_FLUX_NAME = 'lowest_longwave_down_flux_w_m02'
+LONGWAVE_HIGHEST_UP_FLUX_NAME = 'highest_longwave_up_flux_w_m02'
 
 SCALAR_FIELD_DIM = 'scalar_field'
 HEIGHT_DIM = 'height_m_agl'
@@ -97,8 +101,10 @@ AUX_TARGET_NAMES_KEY = 'aux_target_field_names'
 AUX_PREDICTED_NAMES_KEY = 'aux_predicted_field_names'
 AUX_TARGET_VALS_KEY = 'aux_target_matrix'
 AUX_PREDICTED_VALS_KEY = 'aux_prediction_matrix'
-SURFACE_DOWN_FLUX_INDEX_KEY = 'surface_down_flux_index'
-TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
+SHORTWAVE_SURFACE_DOWN_FLUX_INDEX_KEY = 'shortwave_surface_down_flux_index'
+SHORTWAVE_TOA_UP_FLUX_INDEX_KEY = 'shortwave_toa_up_flux_index'
+LONGWAVE_SURFACE_DOWN_FLUX_INDEX_KEY = 'longwave_surface_down_flux_index'
+LONGWAVE_TOA_UP_FLUX_INDEX_KEY = 'longwave_toa_up_flux_index'
 
 SCALAR_TARGET_VALS_KEY = 'scalar_target_matrix'
 SCALAR_PREDICTED_VALS_KEY = 'scalar_prediction_matrix'
@@ -370,7 +376,8 @@ def _get_rel_curve_one_scalar(
 def _get_scores_one_replicate(
         result_table_xarray, prediction_dict, replicate_index,
         example_indices_in_replicate, mean_training_example_dict,
-        max_bin_edge_percentile, climo_net_flux_w_m02=None):
+        max_bin_edge_percentile, climo_shortwave_net_flux_w_m02=None,
+        climo_longwave_net_flux_w_m02=None):
     """Computes scores for one bootstrap replicate.
 
     E = number of examples
@@ -400,8 +407,10 @@ def _get_scores_one_replicate(
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
     :param max_bin_edge_percentile: See doc for `get_scores_all_variables`.
-    :param climo_net_flux_w_m02: Average net flux (W m^-2) in training data.  If
-        auxiliary target variables do not include net flux, leave this alone.
+    :param climo_shortwave_net_flux_w_m02: Average shortwave net flux (W m^-2)
+        in training data.  If auxiliary target variables do not include
+        shortwave net flux, leave this alone.
+    :param climo_longwave_net_flux_w_m02: Same but for longwave.
     :return: result_table_xarray: Same as input but with values filled for [i]th
         bootstrap replicate, where i = `replicate_index`.
     """
@@ -682,18 +691,33 @@ def _get_scores_one_replicate(
         )
 
         if (
-                aux_target_field_names[k] == NET_FLUX_NAME and
-                climo_net_flux_w_m02 is not None
+                aux_target_field_names[k] == SHORTWAVE_NET_FLUX_NAME and
+                climo_shortwave_net_flux_w_m02 is not None
         ):
             t[AUX_MAE_SKILL_KEY].values[k, i] = _get_mae_ss_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
-                mean_training_target_value=climo_net_flux_w_m02
+                mean_training_target_value=climo_shortwave_net_flux_w_m02
             )
             t[AUX_MSE_SKILL_KEY].values[k, i] = _get_mse_ss_one_scalar(
                 target_values=aux_target_matrix[:, k],
                 predicted_values=aux_prediction_matrix[:, k],
-                mean_training_target_value=climo_net_flux_w_m02
+                mean_training_target_value=climo_shortwave_net_flux_w_m02
+            )
+
+        if (
+                aux_target_field_names[k] == LONGWAVE_NET_FLUX_NAME and
+                climo_longwave_net_flux_w_m02 is not None
+        ):
+            t[AUX_MAE_SKILL_KEY].values[k, i] = _get_mae_ss_one_scalar(
+                target_values=aux_target_matrix[:, k],
+                predicted_values=aux_prediction_matrix[:, k],
+                mean_training_target_value=climo_longwave_net_flux_w_m02
+            )
+            t[AUX_MSE_SKILL_KEY].values[k, i] = _get_mse_ss_one_scalar(
+                target_values=aux_target_matrix[:, k],
+                predicted_values=aux_prediction_matrix[:, k],
+                mean_training_target_value=climo_longwave_net_flux_w_m02
             )
 
         t[AUX_BIAS_KEY].values[k, i] = _get_bias_one_scalar(
@@ -864,8 +888,6 @@ def get_aux_fields(prediction_dict, example_dict):
     :param example_dict: Dictionary with the following keys (details for each
         key in documentation for `example_io.read_file`).
     example_dict['scalar_target_names']
-    example_dict['vector_target_names']
-    example_dict['heights_m_agl']
 
     :return: aux_prediction_dict: Dictionary with the following keys.
     aux_prediction_dict['aux_target_field_names']: length-F list with names of
@@ -876,123 +898,108 @@ def get_aux_fields(prediction_dict, example_dict):
         (actual) values.
     aux_prediction_dict['aux_prediction_matrix']: E-by-F numpy array of
         predicted values.
-    aux_prediction_dict['surface_down_flux_index']: Array index of surface
-        downwelling flux in `mean_training_example_dict`.  If surface
-        downwelling flux is not available, this is -1.
-    aux_prediction_dict['toa_up_flux_index']: Array index of TOA upwelling flux
-        in `mean_training_example_dict`.  If TOA upwelling flux is not
-        available, this is -1.
+    aux_prediction_dict['shortwave_surface_down_flux_index']: Array index of
+        shortwave surface downwelling flux in `mean_training_example_dict`.  If
+        surface downwelling flux is not available, this is -1.
+    aux_prediction_dict['longwave_surface_down_flux_index']: Same but for
+        longwave.
+    aux_prediction_dict['shortwave_toa_up_flux_index']: Array index of shortwave
+        TOA upwelling flux in `mean_training_example_dict`.  If TOA upwelling
+        flux is not available, this is -1.
+    aux_prediction_dict['longwave_toa_up_flux_index']: Same but for longwave.
     """
 
     scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
     scalar_prediction_matrix = (
         prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
     )
-    vector_prediction_matrix = (
-        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
-    )
-
-    scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
-    aux_target_field_names = []
-    aux_predicted_field_names = []
 
     num_examples = scalar_target_matrix.shape[0]
     aux_target_matrix = numpy.full((num_examples, 0), numpy.nan)
     aux_prediction_matrix = numpy.full((num_examples, 0), numpy.nan)
+    aux_target_field_names = []
+    aux_predicted_field_names = []
 
-    try:
-        surface_down_flux_index = scalar_target_names.index(
+    shortwave_surface_down_flux_index = -1
+    shortwave_toa_up_flux_index = -1
+    longwave_surface_down_flux_index = -1
+    longwave_toa_up_flux_index = -1
+
+    scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
+    these_flux_names = [
+        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+    ]
+
+    if all([n in scalar_target_names for n in these_flux_names]):
+        shortwave_surface_down_flux_index = scalar_target_names.index(
             example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        toa_up_flux_index = scalar_target_names.index(
+        shortwave_toa_up_flux_index = scalar_target_names.index(
             example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
         )
 
-        aux_target_field_names.append(NET_FLUX_NAME)
-        aux_predicted_field_names.append(NET_FLUX_NAME)
+        aux_target_field_names.append(SHORTWAVE_NET_FLUX_NAME)
+        aux_predicted_field_names.append(SHORTWAVE_NET_FLUX_NAME)
 
         this_target_matrix = (
-            scalar_target_matrix[:, [surface_down_flux_index]] -
-            scalar_target_matrix[:, [toa_up_flux_index]]
+            scalar_target_matrix[:, [shortwave_surface_down_flux_index]] -
+            scalar_target_matrix[:, [shortwave_toa_up_flux_index]]
         )
         aux_target_matrix = numpy.concatenate(
             (aux_target_matrix, this_target_matrix), axis=1
         )
 
         this_prediction_matrix = (
-            scalar_prediction_matrix[:, [surface_down_flux_index]] -
-            scalar_prediction_matrix[:, [toa_up_flux_index]]
+            scalar_prediction_matrix[:, [shortwave_surface_down_flux_index]] -
+            scalar_prediction_matrix[:, [shortwave_toa_up_flux_index]]
         )
         aux_prediction_matrix = numpy.concatenate(
             (aux_prediction_matrix, this_prediction_matrix), axis=1
         )
-    except ValueError:
-        surface_down_flux_index = -1
-        toa_up_flux_index = -1
 
-    vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    these_flux_names = [
+        example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+        example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+    ]
 
-    if toa_up_flux_index >= 0:
-        try:
-            this_field_index = vector_target_names.index(
-                example_utils.SHORTWAVE_UP_FLUX_NAME
-            )
+    if all([n in scalar_target_names for n in these_flux_names]):
+        longwave_surface_down_flux_index = scalar_target_names.index(
+            example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+        )
+        longwave_toa_up_flux_index = scalar_target_names.index(
+            example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+        )
 
-            aux_target_field_names.append(
-                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-            )
-            aux_predicted_field_names.append(HIGHEST_UP_FLUX_NAME)
+        aux_target_field_names.append(LONGWAVE_NET_FLUX_NAME)
+        aux_predicted_field_names.append(LONGWAVE_NET_FLUX_NAME)
 
-            this_target_matrix = (
-                scalar_prediction_matrix[:, [toa_up_flux_index]]
-            )
-            aux_target_matrix = numpy.concatenate(
-                (aux_target_matrix, this_target_matrix), axis=1
-            )
+        this_target_matrix = (
+            scalar_target_matrix[:, [longwave_surface_down_flux_index]] -
+            scalar_target_matrix[:, [longwave_toa_up_flux_index]]
+        )
+        aux_target_matrix = numpy.concatenate(
+            (aux_target_matrix, this_target_matrix), axis=1
+        )
 
-            this_prediction_matrix = (
-                vector_prediction_matrix[:, -1, [this_field_index]]
-            )
-            aux_prediction_matrix = numpy.concatenate(
-                (aux_prediction_matrix, this_prediction_matrix), axis=1
-            )
-        except ValueError:
-            pass
-
-    if surface_down_flux_index >= 0:
-        try:
-            this_field_index = vector_target_names.index(
-                example_utils.SHORTWAVE_DOWN_FLUX_NAME
-            )
-
-            aux_target_field_names.append(
-                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            aux_predicted_field_names.append(LOWEST_DOWN_FLUX_NAME)
-
-            this_target_matrix = (
-                scalar_prediction_matrix[:, [surface_down_flux_index]]
-            )
-            aux_target_matrix = numpy.concatenate(
-                (aux_target_matrix, this_target_matrix), axis=1
-            )
-
-            this_prediction_matrix = (
-                vector_prediction_matrix[:, 0, [this_field_index]]
-            )
-            aux_prediction_matrix = numpy.concatenate(
-                (aux_prediction_matrix, this_prediction_matrix), axis=1
-            )
-        except ValueError:
-            pass
+        this_prediction_matrix = (
+            scalar_prediction_matrix[:, [longwave_surface_down_flux_index]] -
+            scalar_prediction_matrix[:, [longwave_toa_up_flux_index]]
+        )
+        aux_prediction_matrix = numpy.concatenate(
+            (aux_prediction_matrix, this_prediction_matrix), axis=1
+        )
 
     return {
         AUX_TARGET_NAMES_KEY: aux_target_field_names,
         AUX_PREDICTED_NAMES_KEY: aux_predicted_field_names,
         AUX_TARGET_VALS_KEY: aux_target_matrix,
         AUX_PREDICTED_VALS_KEY: aux_prediction_matrix,
-        SURFACE_DOWN_FLUX_INDEX_KEY: surface_down_flux_index,
-        TOA_UP_FLUX_INDEX_KEY: toa_up_flux_index
+        SHORTWAVE_SURFACE_DOWN_FLUX_INDEX_KEY:
+            shortwave_surface_down_flux_index,
+        SHORTWAVE_TOA_UP_FLUX_INDEX_KEY: shortwave_toa_up_flux_index,
+        LONGWAVE_SURFACE_DOWN_FLUX_INDEX_KEY: longwave_surface_down_flux_index,
+        LONGWAVE_TOA_UP_FLUX_INDEX_KEY: longwave_toa_up_flux_index
     }
 
 
@@ -1091,17 +1098,36 @@ def get_scores_all_variables(
     aux_predicted_field_names = aux_prediction_dict[AUX_PREDICTED_NAMES_KEY]
     aux_target_matrix = aux_prediction_dict[AUX_TARGET_VALS_KEY]
     aux_prediction_matrix = aux_prediction_dict[AUX_PREDICTED_VALS_KEY]
-    surface_down_flux_index = aux_prediction_dict[SURFACE_DOWN_FLUX_INDEX_KEY]
-    toa_up_flux_index = aux_prediction_dict[TOA_UP_FLUX_INDEX_KEY]
+    sw_surface_down_flux_index = (
+        aux_prediction_dict[SHORTWAVE_SURFACE_DOWN_FLUX_INDEX_KEY]
+    )
+    sw_toa_up_flux_index = (
+        aux_prediction_dict[SHORTWAVE_TOA_UP_FLUX_INDEX_KEY]
+    )
+    lw_surface_down_flux_index = (
+        aux_prediction_dict[LONGWAVE_SURFACE_DOWN_FLUX_INDEX_KEY]
+    )
+    lw_toa_up_flux_index = (
+        aux_prediction_dict[LONGWAVE_TOA_UP_FLUX_INDEX_KEY]
+    )
 
-    if surface_down_flux_index >= 0 and toa_up_flux_index >= 0:
+    if sw_surface_down_flux_index >= 0 and sw_toa_up_flux_index >= 0:
         this_key = example_utils.SCALAR_TARGET_VALS_KEY
-        climo_net_flux_w_m02 = (
-            mean_training_example_dict[this_key][0, surface_down_flux_index] -
-            mean_training_example_dict[this_key][0, toa_up_flux_index]
+        climo_shortwave_net_flux_w_m02 = (
+            mean_training_example_dict[this_key][0, sw_surface_down_flux_index]
+            - mean_training_example_dict[this_key][0, sw_toa_up_flux_index]
         )
     else:
-        climo_net_flux_w_m02 = None
+        climo_shortwave_net_flux_w_m02 = None
+
+    if lw_surface_down_flux_index >= 0 and lw_toa_up_flux_index >= 0:
+        this_key = example_utils.SCALAR_TARGET_VALS_KEY
+        climo_longwave_net_flux_w_m02 = (
+            mean_training_example_dict[this_key][0, lw_surface_down_flux_index]
+            - mean_training_example_dict[this_key][0, lw_toa_up_flux_index]
+        )
+    else:
+        climo_longwave_net_flux_w_m02 = None
 
     prediction_dict = {
         SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
@@ -1438,7 +1464,8 @@ def get_scores_all_variables(
             example_indices_in_replicate=these_indices,
             mean_training_example_dict=mean_training_example_dict,
             max_bin_edge_percentile=max_bin_edge_percentile,
-            climo_net_flux_w_m02=climo_net_flux_w_m02
+            climo_shortwave_net_flux_w_m02=climo_shortwave_net_flux_w_m02,
+            climo_longwave_net_flux_w_m02=climo_longwave_net_flux_w_m02
         )
 
     return result_table_xarray
@@ -1446,14 +1473,14 @@ def get_scores_all_variables(
 
 def find_file(
         directory_name, zenith_angle_bin=None, albedo_bin=None,
-        surface_down_flux_bin=None, aerosol_optical_depth_bin=None, month=None,
+        shortwave_sfc_down_flux_bin=None, aerosol_optical_depth_bin=None, month=None,
         grid_row=None, grid_column=None, raise_error_if_missing=True):
     """Finds NetCDF file with evaluation results.
 
     :param directory_name: See doc for `prediction_io.find_file`.
     :param zenith_angle_bin: Same.
     :param albedo_bin: Same.
-    :param surface_down_flux_bin: Same.
+    :param shortwave_sfc_down_flux_bin: Same.
     :param aerosol_optical_depth_bin: Same.
     :param month: Same.
     :param grid_row: Same.
@@ -1464,7 +1491,8 @@ def find_file(
 
     prediction_file_name = prediction_io.find_file(
         directory_name=directory_name, zenith_angle_bin=zenith_angle_bin,
-        albedo_bin=albedo_bin, surface_down_flux_bin=surface_down_flux_bin,
+        albedo_bin=albedo_bin,
+        shortwave_sfc_down_flux_bin=shortwave_sfc_down_flux_bin,
         aerosol_optical_depth_bin=aerosol_optical_depth_bin, month=month,
         grid_row=grid_row, grid_column=grid_column,
         raise_error_if_missing=raise_error_if_missing

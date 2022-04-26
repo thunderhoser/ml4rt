@@ -75,11 +75,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
 
     neural_net.check_net_type(net_type_string)
 
-    if len(heights_m_agl) and heights_m_agl[0] <= 0:
-        heights_m_agl = (
-            training_args.NET_TYPE_TO_DEFAULT_HEIGHTS_M_AGL[net_type_string]
-        )
-
     for n in predictor_names:
         example_utils.check_field_name(n)
 

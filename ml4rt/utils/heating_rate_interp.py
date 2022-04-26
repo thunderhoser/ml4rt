@@ -12,6 +12,8 @@ LARGE_NUMBER = 1e10
 DAYS_TO_SECONDS = 86400
 SPECIFIC_HEAT_J_KG01_K01 = 3.5 * 287.04
 
+# TODO(thunderhoser): Make this file deal with longwave heating.
+
 
 def _find_local_maxima(orig_heating_rate_matrix_k_day01, orig_heights_m_agl,
                        new_heights_m_agl, half_window_size_px):

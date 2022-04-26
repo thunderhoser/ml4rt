@@ -14,6 +14,9 @@ from ml4rt.utils import heating_rate_interp
 from ml4rt.machine_learning import neural_net
 from ml4rt.scripts import apply_neural_net as apply_nn
 
+# TODO(thunderhoser): Generalize this script to handle both shortwave and
+# longwave radiation.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'

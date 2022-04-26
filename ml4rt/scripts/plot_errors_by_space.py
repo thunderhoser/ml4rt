@@ -25,25 +25,38 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TOLERANCE = 1e-6
 DUMMY_FIELD_NAME = 'reflectivity_column_max_dbz'
 
-NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
+SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
+LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
 
 TARGET_NAME_TO_VERBOSE = {
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'surface down flux',
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
-    NET_FLUX_NAME: 'net flux'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'SW heating rate',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'SW $F_{down}^{sfc}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'SW $F_{up}^{TOA}$',
+    SHORTWAVE_NET_FLUX_NAME: 'SW net flux',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'LW heating rate',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'LW $F_{down}^{sfc}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'LW $F_{up}^{TOA}$',
+    LONGWAVE_NET_FLUX_NAME: 'LW net flux'
 }
 TARGET_NAME_TO_UNITS = {
     example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
-    NET_FLUX_NAME: r'W m$^{-2}$'
+    SHORTWAVE_NET_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    LONGWAVE_NET_FLUX_NAME: r'W m$^{-2}$'
 }
 TARGET_NAME_TO_SQUARED_UNITS = {
     example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
+    SHORTWAVE_NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    LONGWAVE_NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
 BIAS_NAME = 'Bias'
@@ -110,22 +123,38 @@ SCORE_AND_TARGET_TO_MIN_COLOUR_VALUE = {
     (BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): -1.,
     (BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): -100.,
     (BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): -100.,
-    (BIAS_NAME, NET_FLUX_NAME): -100.
+    (BIAS_NAME, SHORTWAVE_NET_FLUX_NAME): -100.,
+    (BIAS_NAME, example_utils.LONGWAVE_HEATING_RATE_NAME): -1.,
+    (BIAS_NAME, example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME): -100.,
+    (BIAS_NAME, example_utils.LONGWAVE_TOA_UP_FLUX_NAME): -100.,
+    (BIAS_NAME, LONGWAVE_NET_FLUX_NAME): -100.,
 }
 
 SCORE_AND_TARGET_TO_MAX_COLOUR_VALUE = {
     (BIAS_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): 1.,
     (BIAS_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): 100.,
     (BIAS_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): 100.,
-    (BIAS_NAME, NET_FLUX_NAME): 100.,
+    (BIAS_NAME, SHORTWAVE_NET_FLUX_NAME): 100.,
     (MAE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): 1.,
     (MAE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): 100.,
     (MAE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): 100.,
-    (MAE_NAME, NET_FLUX_NAME): 100.,
+    (MAE_NAME, SHORTWAVE_NET_FLUX_NAME): 100.,
     (MSE_NAME, example_utils.SHORTWAVE_HEATING_RATE_NAME): 4.,
     (MSE_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME): 1e4,
     (MSE_NAME, example_utils.SHORTWAVE_TOA_UP_FLUX_NAME): 1e4,
-    (MSE_NAME, NET_FLUX_NAME): 1e4
+    (MSE_NAME, SHORTWAVE_NET_FLUX_NAME): 1e4,
+    (BIAS_NAME, example_utils.LONGWAVE_HEATING_RATE_NAME): 1.,
+    (BIAS_NAME, example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME): 100.,
+    (BIAS_NAME, example_utils.LONGWAVE_TOA_UP_FLUX_NAME): 100.,
+    (BIAS_NAME, LONGWAVE_NET_FLUX_NAME): 100.,
+    (MAE_NAME, example_utils.LONGWAVE_HEATING_RATE_NAME): 1.,
+    (MAE_NAME, example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME): 100.,
+    (MAE_NAME, example_utils.LONGWAVE_TOA_UP_FLUX_NAME): 100.,
+    (MAE_NAME, LONGWAVE_NET_FLUX_NAME): 100.,
+    (MSE_NAME, example_utils.LONGWAVE_HEATING_RATE_NAME): 4.,
+    (MSE_NAME, example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME): 1e4,
+    (MSE_NAME, example_utils.LONGWAVE_TOA_UP_FLUX_NAME): 1e4,
+    (MSE_NAME, LONGWAVE_NET_FLUX_NAME): 1e4
 }
 
 MIN_LATITUDE_DEG_N = -90.
@@ -440,22 +469,39 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         target_names = [
             example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
             example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
-            NET_FLUX_NAME
+            SHORTWAVE_NET_FLUX_NAME,
+            example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+            example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
+            LONGWAVE_NET_FLUX_NAME
+        ]
+        target_names = [
+            n for n in target_names
+            if n in training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         ]
     else:
-        target_names = [example_utils.SHORTWAVE_HEATING_RATE_NAME]
+        target_names = [
+            example_utils.SHORTWAVE_HEATING_RATE_NAME,
+            example_utils.LONGWAVE_HEATING_RATE_NAME
+        ]
+        target_names = [
+            n for n in target_names
+            if n in training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+        ]
 
     num_target_vars = len(target_names)
     climo_value_by_target = numpy.full(num_target_vars, numpy.nan)
 
     for k in range(num_target_vars):
-        if target_names[k] == example_utils.SHORTWAVE_HEATING_RATE_NAME:
+        if target_names[k] in [
+                example_utils.SHORTWAVE_HEATING_RATE_NAME,
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+        ]:
             these_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=target_names[k],
                 height_m_agl=heating_rate_height_m_agl
             )
-        elif target_names[k] == NET_FLUX_NAME:
+        elif target_names[k] == SHORTWAVE_NET_FLUX_NAME:
             down_flux_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
@@ -463,6 +509,16 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             up_flux_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+            these_values = down_flux_values - up_flux_values
+        elif target_names[k] == LONGWAVE_NET_FLUX_NAME:
+            down_flux_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            up_flux_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME
             )
             these_values = down_flux_values - up_flux_values
         else:
@@ -527,7 +583,10 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         kge_matrix = numpy.full(dimensions, numpy.nan)
         num_examples_matrix = numpy.full(dimensions, -1, dtype=int)
 
-        if target_names[k] == example_utils.SHORTWAVE_HEATING_RATE_NAME:
+        if target_names[k] in [
+                example_utils.SHORTWAVE_HEATING_RATE_NAME,
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+        ]:
             height_diffs_metres = numpy.absolute(
                 prediction_dict[prediction_io.HEIGHTS_KEY] -
                 heating_rate_height_m_agl
@@ -547,14 +606,25 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
                 prediction_io.VECTOR_PREDICTIONS_KEY
             ][:, height_index, channel_index]
 
-        elif target_names[k] == NET_FLUX_NAME:
-            down_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
+        elif target_names[k] in [
+                SHORTWAVE_NET_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
+        ]:
+            if target_names[k] == SHORTWAVE_NET_FLUX_NAME:
+                down_flux_index = training_option_dict[
+                    neural_net.SCALAR_TARGET_NAMES_KEY
+                ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
 
-            up_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+                up_flux_index = training_option_dict[
+                    neural_net.SCALAR_TARGET_NAMES_KEY
+                ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+            else:
+                down_flux_index = training_option_dict[
+                    neural_net.SCALAR_TARGET_NAMES_KEY
+                ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
+
+                up_flux_index = training_option_dict[
+                    neural_net.SCALAR_TARGET_NAMES_KEY
+                ].index(example_utils.LONGWAVE_TOA_UP_FLUX_NAME)
 
             actual_values = (
                 prediction_dict[prediction_io.SCALAR_TARGETS_KEY][

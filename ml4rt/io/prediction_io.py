@@ -40,14 +40,14 @@ MAX_ZENITH_ANGLE_RADIANS = numpy.pi / 2
 
 ZENITH_ANGLE_BIN_KEY = 'zenith_angle_bin'
 ALBEDO_BIN_KEY = 'albedo_bin'
-SURFACE_DOWN_FLUX_BIN_KEY = 'surface_down_flux_bin'
+SHORTWAVE_SFC_DOWN_FLUX_BIN_KEY = 'shortwave_sfc_down_flux_bin'
 AEROSOL_OPTICAL_DEPTH_BIN_KEY = 'aerosol_optical_depth_bin'
 MONTH_KEY = 'month'
 GRID_ROW_KEY = 'grid_row'
 GRID_COLUMN_KEY = 'grid_column'
 
 METADATA_KEYS = [
-    ZENITH_ANGLE_BIN_KEY, ALBEDO_BIN_KEY, SURFACE_DOWN_FLUX_BIN_KEY,
+    ZENITH_ANGLE_BIN_KEY, ALBEDO_BIN_KEY, SHORTWAVE_SFC_DOWN_FLUX_BIN_KEY,
     AEROSOL_OPTICAL_DEPTH_BIN_KEY, MONTH_KEY, GRID_ROW_KEY, GRID_COLUMN_KEY
 ]
 
@@ -59,8 +59,9 @@ LONGITUDES_KEY = 'longitude_deg_e'
 
 def find_file(
         directory_name, zenith_angle_bin=None, albedo_bin=None,
-        surface_down_flux_bin=None, aerosol_optical_depth_bin=None, month=None,
-        grid_row=None, grid_column=None, raise_error_if_missing=True):
+        shortwave_sfc_down_flux_bin=None, aerosol_optical_depth_bin=None,
+        month=None, grid_row=None, grid_column=None,
+        raise_error_if_missing=True):
     """Finds NetCDF file with predictions.
 
     :param directory_name: Name of directory where file is expected.
@@ -69,12 +70,12 @@ def find_file(
         alone.
     :param albedo_bin: Albedo bin (non-negative integer).  If file does not
         contain predictions for a specific albedo bin, leave this alone.
-    :param surface_down_flux_bin: Bin for surface downwelling flux (non-negative
-        integer).  If file does not contain predictions for a specific flux bin,
-        leave this alone.
-    :param aerosol_optical_depth_bin: Bin for aerosol optical depth
-        (non-negative integer).  If file does not contain predictions for a
+    :param shortwave_sfc_down_flux_bin: Bin for shortwave surface downwelling
+        flux (non-negative integer).  If file does not contain predictions for a
         specific flux bin, leave this alone.
+    :param aerosol_optical_depth_bin: Bin for aerosol optical depth
+        (AOD; non-negative integer).  If file does not contain predictions for a
+        specific AOD bin, leave this alone.
     :param month: Month (integer from 1...12).  If file does not contain
         predictions for a specific month, leave this alone.
     :param grid_row: Grid row (non-negative integer).  If file does not contain
@@ -111,15 +112,15 @@ def find_file(
             directory_name, ALBEDO_BIN_KEY.replace('_', '-'), albedo_bin
         )
 
-    elif surface_down_flux_bin is not None:
-        error_checking.assert_is_integer(surface_down_flux_bin)
-        error_checking.assert_is_geq(surface_down_flux_bin, 0)
+    elif shortwave_sfc_down_flux_bin is not None:
+        error_checking.assert_is_integer(shortwave_sfc_down_flux_bin)
+        error_checking.assert_is_geq(shortwave_sfc_down_flux_bin, 0)
 
         prediction_file_name = (
             '{0:s}/predictions_{1:s}={2:03d}.nc'
         ).format(
-            directory_name, SURFACE_DOWN_FLUX_BIN_KEY.replace('_', '-'),
-            surface_down_flux_bin
+            directory_name, SHORTWAVE_SFC_DOWN_FLUX_BIN_KEY.replace('_', '-'),
+            shortwave_sfc_down_flux_bin
         )
 
     elif aerosol_optical_depth_bin is not None:
@@ -178,7 +179,7 @@ def file_name_to_metadata(prediction_file_name):
     :return: metadata_dict: Dictionary with the following keys.
     metadata_dict['zenith_angle_bin']: See input doc for `find_file`.
     metadata_dict['albedo_bin']: Same.
-    metadata_dict['surface_down_flux_bin']: Same.
+    metadata_dict['shortwave_sfc_down_flux_bin']: Same.
     metadata_dict['aerosol_optical_depth_bin']: Same.
     metadata_dict['month']: Same.
     metadata_dict['grid_row']: Same.
@@ -729,20 +730,19 @@ def subset_by_zenith_angle(
     )
 
 
-def subset_by_surface_down_flux(
-        prediction_dict, min_surface_down_flux_w_m02,
-        max_surface_down_flux_w_m02):
-    """Subsets examples by surface downwelling flux.
+def subset_by_shortwave_sfc_down_flux(
+        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+    """Subsets examples by shortwave surface downwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
-    :param min_surface_down_flux_w_m02: Minimum flux.
-    :param max_surface_down_flux_w_m02: Max flux.
+    :param min_flux_w_m02: Minimum flux.
+    :param max_flux_w_m02: Max flux.
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
-    error_checking.assert_is_geq(min_surface_down_flux_w_m02, 0.)
+    error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
-        max_surface_down_flux_w_m02, min_surface_down_flux_w_m02
+        max_flux_w_m02, min_flux_w_m02
     )
 
     model_file_name = prediction_dict[MODEL_FILE_KEY]
@@ -758,11 +758,11 @@ def subset_by_surface_down_flux(
     k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    actual_surface_down_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
 
     desired_indices = numpy.where(numpy.logical_and(
-        actual_surface_down_fluxes_w_m02 >= min_surface_down_flux_w_m02,
-        actual_surface_down_fluxes_w_m02 <= max_surface_down_flux_w_m02
+        actual_fluxes_w_m02 >= min_flux_w_m02,
+        actual_fluxes_w_m02 <= max_flux_w_m02
     ))[0]
 
     return subset_by_index(
