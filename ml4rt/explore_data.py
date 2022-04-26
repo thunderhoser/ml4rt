@@ -42,12 +42,16 @@ MULTI_LAYER_CLOUD_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILES_ARG_NAME = 'input_example_file_names'
+PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
 OUTPUT_DIR_ARG_NAME = 'output_figure_dir_name'
 
 INPUT_FILES_HELP_STRING = (
     'List of paths to input files.  Each file will be read by '
     '`example_io.read_file`, and all examples in these files will be explored '
     'together.'
+)
+PLOT_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot shortwave (longwave) values.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -59,17 +63,22 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=PLOT_SHORTWAVE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _plot_profiles(example_dict, example_indices):
+def _plot_profiles(example_dict, example_indices, plot_shortwave):
     """Plots a subset of heating-rate profiles.
 
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`.
     :param example_indices: 1-D numpy array with indices of profiles to plot.
+    :param plot_shortwave: See documentation at top of file.
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -78,7 +87,9 @@ def _plot_profiles(example_dict, example_indices):
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
 
     figure_object = None
@@ -99,11 +110,12 @@ def _plot_profiles(example_dict, example_indices):
     return figure_object, axes_object
 
 
-def _plot_by_zenith_angle(example_dict, output_dir_name):
+def _plot_by_zenith_angle(example_dict, plot_shortwave, output_dir_name):
     """Plots mean heating-rate profile by solar zenith angle.
 
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`.
+    :param plot_shortwave: See documentation at top of file.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
@@ -131,7 +143,9 @@ def _plot_by_zenith_angle(example_dict, output_dir_name):
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
     figure_object = None
     axes_object = None
@@ -181,11 +195,12 @@ def _plot_by_zenith_angle(example_dict, output_dir_name):
     pyplot.close(figure_object)
 
 
-def _plot_by_latitude(example_dict, output_dir_name):
+def _plot_by_latitude(example_dict, plot_shortwave, output_dir_name):
     """Plots mean heating-rate profile by latitude.
 
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`.
+    :param plot_shortwave: See documentation at top of file.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
@@ -212,7 +227,9 @@ def _plot_by_latitude(example_dict, output_dir_name):
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
     figure_object = None
     axes_object = None
@@ -262,11 +279,12 @@ def _plot_by_latitude(example_dict, output_dir_name):
     pyplot.close(figure_object)
 
 
-def _plot_by_cloud_regime(example_dict, output_dir_name):
+def _plot_by_cloud_regime(example_dict, plot_shortwave, output_dir_name):
     """Plots mean heating-rate profile by cloud regime.
 
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`.
+    :param plot_shortwave: See documentation at top of file.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
@@ -290,7 +308,9 @@ def _plot_by_cloud_regime(example_dict, output_dir_name):
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
 
     figure_object, axes_object = profile_plotting.plot_one_variable(
@@ -335,12 +355,13 @@ def _plot_by_cloud_regime(example_dict, output_dir_name):
     pyplot.close(figure_object)
 
 
-def _run(example_file_names, output_dir_name):
+def _run(example_file_names, plot_shortwave, output_dir_name):
     """Explores data by creating plots for different subsets of profiles.
 
     This is effectively the main method.
 
     :param example_file_names: See documentation at top of file.
+    :param plot_shortwave: Same.
     :param output_dir_name: Same.
     """
 
@@ -362,7 +383,9 @@ def _run(example_file_names, output_dir_name):
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
     heating_rate_percentiles_k_day01 = numpy.percentile(
         heating_rate_matrix_k_day01, PERCENTILE_LEVELS
@@ -375,19 +398,22 @@ def _run(example_file_names, output_dir_name):
     print(SEPARATOR_STRING)
 
     _plot_by_cloud_regime(
-        example_dict=example_dict, output_dir_name=output_dir_name
+        example_dict=example_dict, plot_shortwave=plot_shortwave,
+        output_dir_name=output_dir_name
     )
     _plot_by_latitude(
-        example_dict=example_dict, output_dir_name=output_dir_name
+        example_dict=example_dict, plot_shortwave=plot_shortwave,
+        output_dir_name=output_dir_name
     )
     _plot_by_zenith_angle(
-        example_dict=example_dict, output_dir_name=output_dir_name
+        example_dict=example_dict, plot_shortwave=plot_shortwave,
+        output_dir_name=output_dir_name
     )
 
     mean_heating_rates_k_day01 = numpy.mean(heating_rate_matrix_k_day01, axis=1)
     sort_indices = numpy.argsort(-mean_heating_rates_k_day01)
     figure_object, axes_object = _plot_profiles(
-        example_dict=example_dict,
+        example_dict=example_dict, plot_shortwave=plot_shortwave,
         example_indices=sort_indices[:NUM_EXTREME_PROFILES]
     )
     axes_object.set_title(
@@ -408,6 +434,7 @@ def _run(example_file_names, output_dir_name):
     sort_indices = numpy.argsort(mean_heating_rates_k_day01)
     figure_object, axes_object = _plot_profiles(
         example_dict=example_dict,
+        plot_shortwave=plot_shortwave,
         example_indices=sort_indices[:NUM_EXTREME_PROFILES]
     )
     axes_object.set_title(
@@ -429,6 +456,7 @@ def _run(example_file_names, output_dir_name):
     sort_indices = numpy.argsort(-max_heating_rates_k_day01)
     figure_object, axes_object = _plot_profiles(
         example_dict=example_dict,
+        plot_shortwave=plot_shortwave,
         example_indices=sort_indices[:NUM_EXTREME_PROFILES]
     )
     axes_object.set_title(
@@ -452,5 +480,6 @@ if __name__ == '__main__':
 
     _run(
         example_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
