@@ -32,7 +32,6 @@ DENSE_LAYER_NEURON_COUNTS = architecture_utils.get_dense_layer_dimensions(
 
 FLUX_LOSS_SCALING_FACTORS = numpy.linspace(0.02, 1, num=50, dtype=float)
 
-# TODO(thunderhoser): How to get 2 output channels?
 DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.INPUT_DIMENSIONS_KEY:
         numpy.array([127, 27], dtype=int),
@@ -51,9 +50,10 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     u_net_pp_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    u_net_pp_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
+    u_net_pp_architecture.CONV_OUTPUT_ACTIV_FUNC_KEY: None,
+    u_net_pp_architecture.DENSE_OUTPUT_ACTIV_FUNC_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
-    u_net_pp_architecture.OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
+    u_net_pp_architecture.DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
     u_net_pp_architecture.L1_WEIGHT_KEY: 0.,
     u_net_pp_architecture.L2_WEIGHT_KEY: 1e-7,
     u_net_pp_architecture.USE_BATCH_NORM_KEY: True,
