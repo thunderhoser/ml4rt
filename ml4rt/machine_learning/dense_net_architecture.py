@@ -14,8 +14,10 @@ HIDDEN_LAYER_NEURON_NUMS_KEY = 'hidden_layer_neuron_nums'
 HIDDEN_LAYER_DROPOUT_RATES_KEY = 'hidden_layer_dropout_rates'
 INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
 INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
-OUTPUT_ACTIV_FUNCTION_KEY = 'output_activ_function_name'
-OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
+HEATING_RATE_ACTIV_FUNC_KEY = 'heating_rate_activ_func_name'
+HEATING_RATE_ACTIV_FUNC_ALPHA_KEY = 'heating_rate_activ_func_alpha'
+FLUX_ACTIV_FUNC_KEY = 'flux_activ_func_name'
+FLUX_ACTIV_FUNC_ALPHA_KEY = 'flux_activ_func_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
@@ -27,8 +29,10 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     HIDDEN_LAYER_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    OUTPUT_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
-    OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
+    HEATING_RATE_ACTIV_FUNC_KEY: None,
+    HEATING_RATE_ACTIV_FUNC_ALPHA_KEY: 0.,
+    FLUX_ACTIV_FUNC_KEY: architecture_utils.RELU_FUNCTION_STRING,
+    FLUX_ACTIV_FUNC_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
     USE_BATCH_NORM_KEY: True
@@ -134,12 +138,16 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
         `architecture_utils.check_activation_function`.
     option_dict['inner_activ_function_alpha']: Alpha (slope parameter) for
         activation function for all inner layers.  Applies only to ReLU and eLU.
-    option_dict['output_activ_function_name']: Same as
-        `inner_activ_function_name` but for output layers (profiles and
-        scalars).
-    option_dict['output_activ_function_alpha']: Same as
-        `inner_activ_function_alpha` but for output layers (profiles and
-        scalars).
+    option_dict['heating_rate_activ_func_name']: Same as
+        `inner_activ_function_name` but for heating-rate predictions.  Use
+        `None` for no activation function.
+    option_dict['heating_rate_activ_func_alpha']: Same as
+        `inner_activ_function_alpha` but for heating-rate predictions.
+    option_dict['flux_activ_func_name']: Same as
+        `inner_activ_function_name` but for flux predictions.  Use `None` for
+        no activation function.
+    option_dict['flux_activ_func_alpha']: Same as
+        `inner_activ_function_alpha` but for flux predictions.
     option_dict['l1_weight']: Weight for L_1 regularization.
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
@@ -159,8 +167,12 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
     hidden_layer_dropout_rates = option_dict[HIDDEN_LAYER_DROPOUT_RATES_KEY]
     inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
     inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
-    output_activ_function_name = option_dict[OUTPUT_ACTIV_FUNCTION_KEY]
-    output_activ_function_alpha = option_dict[OUTPUT_ACTIV_FUNCTION_ALPHA_KEY]
+    heating_rate_activ_func_name = option_dict[HEATING_RATE_ACTIV_FUNC_KEY]
+    heating_rate_activ_func_alpha = (
+        option_dict[HEATING_RATE_ACTIV_FUNC_ALPHA_KEY]
+    )
+    flux_activ_func_name = option_dict[FLUX_ACTIV_FUNC_KEY]
+    flux_activ_func_alpha = option_dict[FLUX_ACTIV_FUNC_ALPHA_KEY]
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
@@ -202,7 +214,9 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
 
     heating_rate_layer_object = architecture_utils.get_dense_layer(
         num_output_units=num_heights,
-        weight_regularizer=regularizer_object
+        weight_regularizer=regularizer_object,
+        layer_name=
+        'conv_output' if heating_rate_activ_func_name is None else None
     )(layer_object)
 
     # heating_rate_layer_object = architecture_utils.get_activation_layer(
@@ -216,25 +230,28 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
     #     this_function, name='conv_output'
     # )(heating_rate_layer_object)
 
-    heating_rate_layer_object = architecture_utils.get_activation_layer(
-        activation_function_string=output_activ_function_name,
-        alpha_for_relu=output_activ_function_alpha,
-        alpha_for_elu=output_activ_function_alpha,
-        layer_name='conv_output'
-    )(heating_rate_layer_object)
+    if heating_rate_activ_func_name is not None:
+        heating_rate_layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=heating_rate_activ_func_name,
+            alpha_for_relu=heating_rate_activ_func_alpha,
+            alpha_for_elu=heating_rate_activ_func_alpha,
+            layer_name='conv_output'
+        )(heating_rate_layer_object)
 
     if num_flux_components > 0:
         flux_layer_object = architecture_utils.get_dense_layer(
             num_output_units=num_flux_components,
-            weight_regularizer=regularizer_object
+            weight_regularizer=regularizer_object,
+            layer_name='dense_output' if flux_activ_func_name is None else None
         )(layer_object)
 
-        flux_layer_object = architecture_utils.get_activation_layer(
-            activation_function_string=output_activ_function_name,
-            alpha_for_relu=output_activ_function_alpha,
-            alpha_for_elu=output_activ_function_alpha,
-            layer_name='dense_output'
-        )(flux_layer_object)
+        if flux_activ_func_name is not None:
+            flux_layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=flux_activ_func_name,
+                alpha_for_relu=flux_activ_func_alpha,
+                alpha_for_elu=flux_activ_func_alpha,
+                layer_name='dense_output'
+            )(flux_layer_object)
 
         model_object = keras.models.Model(
             inputs=input_layer_object,

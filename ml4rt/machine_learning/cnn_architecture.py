@@ -16,8 +16,10 @@ DENSE_LAYER_NEURON_NUMS_KEY = 'dense_layer_neuron_nums'
 DENSE_LAYER_DROPOUT_RATES_KEY = 'dense_layer_dropout_rates'
 INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
 INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
-OUTPUT_ACTIV_FUNCTION_KEY = 'output_activ_function_name'
-OUTPUT_ACTIV_FUNCTION_ALPHA_KEY = 'output_activ_function_alpha'
+CONV_OUTPUT_ACTIV_FUNC_KEY = 'conv_output_activ_func_name'
+CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'conv_output_activ_func_alpha'
+DENSE_OUTPUT_ACTIV_FUNC_KEY = 'dense_output_activ_func_name'
+DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'dense_output_activ_func_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
@@ -32,8 +34,10 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     DENSE_LAYER_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, numpy.nan]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    OUTPUT_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
-    OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
+    CONV_OUTPUT_ACTIV_FUNC_KEY: None,
+    CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
+    DENSE_OUTPUT_ACTIV_FUNC_KEY: architecture_utils.RELU_FUNCTION_STRING,
+    DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
     USE_BATCH_NORM_KEY: True
@@ -197,12 +201,16 @@ def create_model(option_dict, loss_function):
         `architecture_utils.check_activation_function`.
     option_dict['inner_activ_function_alpha']: Alpha (slope parameter) for
         activation function for all inner layers.  Applies only to ReLU and eLU.
-    option_dict['output_activ_function_name']: Same as
-        `inner_activ_function_name` but for output layers (profiles and
-        scalars).
-    option_dict['output_activ_function_alpha']: Same as
-        `inner_activ_function_alpha` but for output layers (profiles and
-        scalars).
+    option_dict['conv_output_activ_func_name']: Same as
+        `inner_activ_function_name` but for conv output layer.  Use `None` for
+        no activation function.
+    option_dict['conv_output_activ_func_alpha']: Same as
+        `inner_activ_function_alpha` but for conv output layer.
+    option_dict['dense_output_activ_func_name']: Same as
+        `inner_activ_function_name` but for dense output layer.  Use `None` for
+        no activation function.
+    option_dict['dense_output_activ_func_alpha']: Same as
+        `inner_activ_function_alpha` but for dense output layer.
     option_dict['l1_weight']: Weight for L_1 regularization.
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
@@ -211,6 +219,8 @@ def create_model(option_dict, loss_function):
     :param loss_function: Function handle.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
+
+    # TODO(thunderhoser): Allow different loss functions for dense vs. conv.
 
     option_dict = _check_architecture_args(option_dict)
 
@@ -223,8 +233,12 @@ def create_model(option_dict, loss_function):
     dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
     inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
     inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
-    output_activ_function_name = option_dict[OUTPUT_ACTIV_FUNCTION_KEY]
-    output_activ_function_alpha = option_dict[OUTPUT_ACTIV_FUNCTION_ALPHA_KEY]
+    conv_output_activ_func_name = option_dict[CONV_OUTPUT_ACTIV_FUNC_KEY]
+    conv_output_activ_func_alpha = option_dict[CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY]
+    dense_output_activ_func_name = option_dict[DENSE_OUTPUT_ACTIV_FUNC_KEY]
+    dense_output_activ_func_alpha = (
+        option_dict[DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY]
+    )
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
@@ -251,20 +265,36 @@ def create_model(option_dict, loss_function):
         if i == num_conv_layers - 1:
             dense_input_layer_object = conv_output_layer_object
 
+        if (
+                i == num_conv_layers - 1 and
+                conv_layer_dropout_rates[i] <= 0 and
+                conv_output_activ_func_name is None
+        ):
+            this_name = 'conv_output'
+        else:
+            this_name = None
+
         conv_output_layer_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=conv_layer_filter_sizes[i], num_rows_per_stride=1,
             num_filters=conv_layer_channel_nums[i],
             padding_type_string=architecture_utils.YES_PADDING_STRING,
-            weight_regularizer=regularizer_object
+            weight_regularizer=regularizer_object, layer_name=this_name
         )(this_input_layer_object)
 
         if i == num_conv_layers - 1:
-            conv_output_layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=output_activ_function_name,
-                alpha_for_relu=output_activ_function_alpha,
-                alpha_for_elu=output_activ_function_alpha,
-                layer_name='conv_output'
-            )(conv_output_layer_object)
+            if conv_output_activ_func_name is not None:
+                this_name = (
+                    None if conv_layer_dropout_rates[i] > 0 else 'conv_output'
+                )
+
+                conv_output_layer_object = (
+                    architecture_utils.get_activation_layer(
+                        activation_function_string=conv_output_activ_func_name,
+                        alpha_for_relu=conv_output_activ_func_alpha,
+                        alpha_for_elu=conv_output_activ_func_alpha,
+                        layer_name=this_name
+                    )(conv_output_layer_object)
+                )
         else:
             conv_output_layer_object = architecture_utils.get_activation_layer(
                 activation_function_string=inner_activ_function_name,
@@ -274,7 +304,8 @@ def create_model(option_dict, loss_function):
 
         if conv_layer_dropout_rates[i] > 0:
             conv_output_layer_object = architecture_utils.get_dropout_layer(
-                dropout_fraction=conv_layer_dropout_rates[i]
+                dropout_fraction=conv_layer_dropout_rates[i],
+                layer_name='conv_output' if i == num_conv_layers - 1 else None
             )(conv_output_layer_object)
 
         if use_batch_normalization and i != num_conv_layers - 1:
@@ -291,19 +322,36 @@ def create_model(option_dict, loss_function):
         )
 
         for i in range(num_dense_layers):
+            if (
+                    i == num_dense_layers - 1 and
+                    dense_layer_dropout_rates[i] <= 0 and
+                    dense_output_activ_func_name is None
+            ):
+                this_name = 'dense_output'
+            else:
+                this_name = None
+
             dense_output_layer_object = architecture_utils.get_dense_layer(
-                num_output_units=dense_layer_neuron_nums[i]
+                num_output_units=dense_layer_neuron_nums[i],
+                layer_name=this_name
             )(dense_output_layer_object)
 
             if i == num_dense_layers - 1:
-                dense_output_layer_object = (
-                    architecture_utils.get_activation_layer(
-                        activation_function_string=output_activ_function_name,
-                        alpha_for_relu=output_activ_function_alpha,
-                        alpha_for_elu=output_activ_function_alpha,
-                        layer_name='dense_output'
-                    )(dense_output_layer_object)
-                )
+                if dense_output_activ_func_name is not None:
+                    this_name = (
+                        None if dense_layer_dropout_rates[i] > 0
+                        else 'dense_output'
+                    )
+
+                    dense_output_layer_object = (
+                        architecture_utils.get_activation_layer(
+                            activation_function_string=
+                            dense_output_activ_func_name,
+                            alpha_for_relu=dense_output_activ_func_alpha,
+                            alpha_for_elu=dense_output_activ_func_alpha,
+                            layer_name=this_name
+                        )(dense_output_layer_object)
+                    )
             else:
                 dense_output_layer_object = (
                     architecture_utils.get_activation_layer(
@@ -314,9 +362,14 @@ def create_model(option_dict, loss_function):
                 )
 
             if dense_layer_dropout_rates[i] > 0:
+                this_name = (
+                    'dense_output' if i == num_dense_layers - 1 else None
+                )
+
                 dense_output_layer_object = (
                     architecture_utils.get_dropout_layer(
-                        dropout_fraction=dense_layer_dropout_rates[i]
+                        dropout_fraction=dense_layer_dropout_rates[i],
+                        layer_name=this_name
                     )(dense_output_layer_object)
                 )
 
