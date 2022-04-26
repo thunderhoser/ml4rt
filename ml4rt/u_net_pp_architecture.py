@@ -455,13 +455,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         weight_regularizer=regularizer_object, layer_name='last_conv'
     )(last_conv_layer_matrix[0, -1])
 
-    conv_output_layer_object = architecture_utils.get_activation_layer(
-        activation_function_string=output_activ_function_name,
-        alpha_for_relu=output_activ_function_alpha,
-        alpha_for_elu=output_activ_function_alpha,
-        layer_name='last_conv_activation'
-    )(conv_output_layer_object)
-
+    # conv_output_layer_object = architecture_utils.get_activation_layer(
+    #     activation_function_string=output_activ_function_name,
+    #     alpha_for_relu=output_activ_function_alpha,
+    #     alpha_for_elu=output_activ_function_alpha,
+    #     layer_name='last_conv_activation'
+    # )(conv_output_layer_object)
+    #
     # this_function = u_net_architecture.zero_top_heating_rate_function(
     #     heating_rate_channel_index=0, height_index=input_dimensions[0] - 1
     # )
@@ -469,6 +469,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
     # conv_output_layer_object = keras.layers.Lambda(
     #     this_function, name='conv_output'
     # )(conv_output_layer_object)
+
+    conv_output_layer_object = architecture_utils.get_activation_layer(
+        activation_function_string=output_activ_function_name,
+        alpha_for_relu=output_activ_function_alpha,
+        alpha_for_elu=output_activ_function_alpha,
+        layer_name='conv_output'
+    )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)

@@ -213,16 +213,23 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
         weight_regularizer=regularizer_object
     )(layer_object)
 
-    heating_rate_layer_object = architecture_utils.get_activation_layer(
-        activation_function_string=output_activ_function_name,
-        alpha_for_relu=output_activ_function_alpha,
-        alpha_for_elu=output_activ_function_alpha
-    )(heating_rate_layer_object)
-
+    # heating_rate_layer_object = architecture_utils.get_activation_layer(
+    #     activation_function_string=output_activ_function_name,
+    #     alpha_for_relu=output_activ_function_alpha,
+    #     alpha_for_elu=output_activ_function_alpha
+    # )(heating_rate_layer_object)
+    #
     # this_function = _zero_top_heating_rate_function()
     # heating_rate_layer_object = keras.layers.Lambda(
     #     this_function, name='conv_output'
     # )(heating_rate_layer_object)
+
+    heating_rate_layer_object = architecture_utils.get_activation_layer(
+        activation_function_string=output_activ_function_name,
+        alpha_for_relu=output_activ_function_alpha,
+        alpha_for_elu=output_activ_function_alpha,
+        layer_name='conv_output'
+    )(heating_rate_layer_object)
 
     if num_flux_components > 0:
         flux_layer_object = architecture_utils.get_dense_layer(
