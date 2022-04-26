@@ -3,7 +3,7 @@
 import os
 import sys
 import copy
-import dill
+import pickle
 import numpy
 import keras
 import tensorflow.keras as tf_keras
@@ -397,7 +397,7 @@ def _write_metafile(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    dill.dump(metadata_dict, dill_file_handle)
+    pickle.dump(metadata_dict, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -1837,7 +1837,7 @@ def read_metafile(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    metadata_dict = dill.load(dill_file_handle)
+    metadata_dict = pickle.load(dill_file_handle)
     dill_file_handle.close()
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
