@@ -15,7 +15,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
-import plotting_utils
+import gg_plotting_utils
 import example_io
 import example_utils
 import profile_plotting
@@ -157,7 +157,7 @@ def _plot_by_zenith_angle(example_dict, output_dir_name):
     axes_object.set_title('Heating rate by solar zenith angle')
     axes_object.set_xlabel(r'Heating rate (K day$^{-1}$)')
 
-    colour_bar_object = plotting_utils.plot_linear_colour_bar(
+    colour_bar_object = gg_plotting_utils.plot_linear_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=bin_centers_deg,
         colour_map_object=ZENITH_ANGLE_COLOUR_MAP_OBJECT,
         min_value=bin_centers_deg[0], max_value=bin_centers_deg[-1],
@@ -238,7 +238,7 @@ def _plot_by_latitude(example_dict, output_dir_name):
     axes_object.set_title('Heating rate by latitude')
     axes_object.set_xlabel(r'Heating rate (K day$^{-1}$)')
 
-    colour_bar_object = plotting_utils.plot_linear_colour_bar(
+    colour_bar_object = gg_plotting_utils.plot_linear_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=bin_centers_deg_n,
         colour_map_object=LATITUDE_COLOUR_MAP_OBJECT,
         min_value=bin_centers_deg_n[0], max_value=bin_centers_deg_n[-1],
@@ -353,7 +353,8 @@ def _run(example_file_names, output_dir_name):
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
-            netcdf_file_name=this_file_name, max_heating_rate_k_day=numpy.inf
+            netcdf_file_name=this_file_name,
+            max_shortwave_heating_k_day01=numpy.inf
         )
         example_dicts.append(this_example_dict)
 

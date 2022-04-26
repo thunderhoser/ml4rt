@@ -15,7 +15,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
 import gg_permutation
-import plotting_utils
+import gg_plotting_utils
 import permutation_plotting
 import example_utils
 import permutation as ml4rt_permutation
@@ -26,6 +26,7 @@ FIGURE_RESOLUTION_DPI = 300
 PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.ZENITH_ANGLE_NAME: 'Solar zenith angle',
     example_utils.ALBEDO_NAME: 'Surface albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'Surface temperature',
     example_utils.PRESSURE_NAME: 'Pressure',
     example_utils.TEMPERATURE_NAME: 'Temperature',
     example_utils.SPECIFIC_HUMIDITY_NAME: 'Specific humidity',
@@ -158,7 +159,7 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     permutation_dict = ml4rt_permutation.read_file(input_file_name)
     permutation_dict = _results_to_gg_format(permutation_dict)
 
-    figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
+    figure_object, axes_object_matrix = gg_plotting_utils.create_paneled_figure(
         num_rows=1, num_columns=2, shared_x_axis=False, shared_y_axis=True,
         keep_aspect_ratio=False, horizontal_spacing=0.1, vertical_spacing=0.05
     )
@@ -192,7 +193,7 @@ def _run(input_file_name, num_predictors_to_plot, confidence_level,
     )
     pyplot.close(figure_object)
 
-    figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
+    figure_object, axes_object_matrix = gg_plotting_utils.create_paneled_figure(
         num_rows=1, num_columns=2, shared_x_axis=False, shared_y_axis=True,
         keep_aspect_ratio=False, horizontal_spacing=0.1, vertical_spacing=0.05
     )

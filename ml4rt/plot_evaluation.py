@@ -73,44 +73,60 @@ SQUARED_UNIT_SCORE_NAMES = [
 ]
 
 TARGET_NAME_TO_VERBOSE = {
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'downwelling flux',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_utils.SHORTWAVE_UP_FLUX_NAME: 'upwelling flux',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{up}}{\Delta z}$',
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'$F_{down}^{sfc}$',
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'$F_{up}^{TOA}$',
-    evaluation.NET_FLUX_NAME: r'$F_{net}$',
-    evaluation.HIGHEST_UP_FLUX_NAME: 'top-of-profile upwelling flux',
-    evaluation.LOWEST_DOWN_FLUX_NAME: 'bottom-of-profile downwelling flux'
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'SW downwelling flux',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'SW upwelling flux',
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'SW heating rate',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'SW $F_{down}^{sfc}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'SW $F_{up}^{TOA}$',
+    evaluation.SHORTWAVE_NET_FLUX_NAME: r'SW $F_{net}$',
+    evaluation.SHORTWAVE_HIGHEST_UP_FLUX_NAME: r'SW $F_{up}^{TOP}$',
+    evaluation.SHORTWAVE_LOWEST_DOWN_FLUX_NAME: r'SW $F_{down}^{BOP}$',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: 'LW downwelling flux',
+    example_utils.LONGWAVE_UP_FLUX_NAME: 'LW upwelling flux',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'LW heating rate',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'LW $F_{down}^{sfc}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'LW $F_{up}^{TOA}$',
+    evaluation.LONGWAVE_NET_FLUX_NAME: r'LW $F_{net}$',
+    evaluation.LONGWAVE_HIGHEST_UP_FLUX_NAME: r'LW $F_{up}^{TOP}$',
+    evaluation.LONGWAVE_LOWEST_DOWN_FLUX_NAME: r'LW $F_{down}^{BOP}$'
 }
 
 TARGET_NAME_TO_UNITS = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W m$^{-3}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W m$^{-3}$',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.NET_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
-    evaluation.LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
+    evaluation.SHORTWAVE_NET_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.SHORTWAVE_HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.SHORTWAVE_LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.LONGWAVE_NET_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.LONGWAVE_HIGHEST_UP_FLUX_NAME: r'W m$^{-2}$',
+    evaluation.LONGWAVE_LOWEST_DOWN_FLUX_NAME: r'W m$^{-2}$'
 }
 
 TARGET_NAME_TO_SQUARED_UNITS = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME: r'W$^{2}$ m$^{-6}$',
     example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    evaluation.NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    evaluation.HIGHEST_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
-    evaluation.LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
+    evaluation.SHORTWAVE_NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.SHORTWAVE_HIGHEST_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.SHORTWAVE_LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.LONGWAVE_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K$^{2}$ day$^{-2}$',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.LONGWAVE_NET_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.LONGWAVE_HIGHEST_UP_FLUX_NAME: r'W$^{2}$ m$^{-4}$',
+    evaluation.LONGWAVE_LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
 POLYGON_OPACITY = 0.5
@@ -314,12 +330,23 @@ def _plot_attributes_diagram(
             example_utils.SCALAR_TARGET_VALS_KEY
         ]
 
-        if target_name == evaluation.NET_FLUX_NAME:
+        if target_name == evaluation.SHORTWAVE_NET_FLUX_NAME:
             down_flux_index = training_target_names.index(
                 example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
             )
             up_flux_index = training_target_names.index(
                 example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+            climo_value = (
+                training_target_matrix[0, down_flux_index] -
+                training_target_matrix[0, up_flux_index]
+            )
+        elif target_name == evaluation.LONGWAVE_NET_FLUX_NAME:
+            down_flux_index = training_target_names.index(
+                example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            up_flux_index = training_target_names.index(
+                example_utils.LONGWAVE_TOA_UP_FLUX_NAME
             )
             climo_value = (
                 training_target_matrix[0, down_flux_index] -
@@ -392,7 +419,6 @@ def _plot_attributes_diagram(
     ])
     max_value_to_plot = numpy.nanpercentile(concat_values, 99.9)
     min_value_to_plot = numpy.nanpercentile(concat_values, 0.1)
-    min_value_to_plot = numpy.minimum(min_value_to_plot, 0.)
 
     num_evaluation_sets = len(evaluation_tables_xarray)
 
@@ -584,7 +610,8 @@ def _plot_score_profile(
         t = evaluation_tables_xarray[i]
 
         if score_key in [
-            evaluation.VECTOR_KS_STATISTIC_KEY, evaluation.VECTOR_KS_P_VALUE_KEY
+                evaluation.VECTOR_KS_STATISTIC_KEY,
+            evaluation.VECTOR_KS_P_VALUE_KEY
         ]:
             this_score_matrix = numpy.expand_dims(
                 t[score_key].values[:, k], axis=-1
@@ -791,13 +818,24 @@ def _plot_error_distributions(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
-            if aux_target_names[k] == evaluation.NET_FLUX_NAME:
-                down_flux_index = scalar_target_names.index(
-                    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-                )
-                up_flux_index = scalar_target_names.index(
-                    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-                )
+            if aux_target_names[k] in [
+                    evaluation.SHORTWAVE_NET_FLUX_NAME,
+                    evaluation.LONGWAVE_NET_FLUX_NAME
+            ]:
+                if aux_target_names[k] == evaluation.SHORTWAVE_NET_FLUX_NAME:
+                    down_flux_index = scalar_target_names.index(
+                        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+                    )
+                    up_flux_index = scalar_target_names.index(
+                        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+                    )
+                else:
+                    down_flux_index = scalar_target_names.index(
+                        example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+                    )
+                    up_flux_index = scalar_target_names.index(
+                        example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+                    )
 
                 predicted_values = (
                     prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
@@ -894,7 +932,8 @@ def _plot_reliability_by_height(
             concat_matrix = numpy.concatenate(
                 (mean_prediction_matrix, mean_target_matrix), axis=0
             )
-            max_value_to_plot = numpy.nanpercentile(concat_matrix, 99)
+            min_value_to_plot = numpy.nanpercentile(concat_matrix, 0.1)
+            max_value_to_plot = numpy.nanpercentile(concat_matrix, 99.9)
 
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -903,8 +942,10 @@ def _plot_reliability_by_height(
             evaluation_plotting.plot_rel_curve_many_heights(
                 mean_target_matrix=mean_target_matrix,
                 mean_prediction_matrix=mean_prediction_matrix,
-                heights_m_agl=heights_m_agl, min_value_to_plot=0.,
-                max_value_to_plot=max_value_to_plot, axes_object=axes_object
+                heights_m_agl=heights_m_agl,
+                min_value_to_plot=min_value_to_plot,
+                max_value_to_plot=max_value_to_plot,
+                axes_object=axes_object
             )
 
             title_string = 'Reliability curves for {0:s}'.format(

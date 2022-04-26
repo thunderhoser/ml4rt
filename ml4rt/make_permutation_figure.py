@@ -15,7 +15,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
 import gg_permutation
-import plotting_utils
+import gg_plotting_utils
 import permutation_plotting
 import example_utils
 import permutation as ml4rt_permutation
@@ -25,6 +25,7 @@ CONFIDENCE_LEVEL = 0.99
 PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.ZENITH_ANGLE_NAME: 'Solar zenith angle',
     example_utils.ALBEDO_NAME: 'Surface albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'Surface temperature',
     example_utils.PRESSURE_NAME: 'Pressure',
     example_utils.TEMPERATURE_NAME: 'Temperature',
     example_utils.SPECIFIC_HUMIDITY_NAME: 'Specific humidity ',
@@ -198,7 +199,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name, use_forward_test,
         exp1_heating_permutation_dict
     )
 
-    figure_object, axes_object_matrix = plotting_utils.create_paneled_figure(
+    figure_object, axes_object_matrix = gg_plotting_utils.create_paneled_figure(
         num_rows=2, num_columns=2, shared_x_axis=False, shared_y_axis=True,
         keep_aspect_ratio=False, horizontal_spacing=0.25, vertical_spacing=0.25
     )
@@ -216,7 +217,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name, use_forward_test,
             plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
         )
 
-    plotting_utils.label_axes(
+    gg_plotting_utils.label_axes(
         axes_object=axes_object_matrix[0, 0], label_string='(a)',
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
@@ -245,7 +246,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name, use_forward_test,
             plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
         )
 
-    plotting_utils.label_axes(
+    gg_plotting_utils.label_axes(
         axes_object=axes_object_matrix[0, 1], label_string='(b)',
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
@@ -274,7 +275,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name, use_forward_test,
             plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
         )
 
-    plotting_utils.label_axes(
+    gg_plotting_utils.label_axes(
         axes_object=axes_object_matrix[1, 0], label_string='(c)',
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )
@@ -303,7 +304,7 @@ def _run(exp1_permutation_dir_name, exp2_permutation_dir_name, use_forward_test,
             plot_percent_increase=False, confidence_level=CONFIDENCE_LEVEL
         )
 
-    plotting_utils.label_axes(
+    gg_plotting_utils.label_axes(
         axes_object=axes_object_matrix[1, 1], label_string='(d)',
         font_size=30, x_coord_normalized=0.1, y_coord_normalized=1.01
     )

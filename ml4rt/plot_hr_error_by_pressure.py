@@ -49,6 +49,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 SCATTERPLOT_HEIGHT_ARG_NAME = 'scatterplot_height_m_agl'
+PLOT_SHORTWAVE_ERRORS_ARG_NAME = 'plot_shortwave_errors'
 NUM_BINS_FOR_PROFILES_ARG_NAME = 'num_bins_for_profiles'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -64,6 +65,10 @@ EXAMPLE_DIR_HELP_STRING = (
 SCATTERPLOT_HEIGHT_HELP_STRING = (
     'Will create scatterplot of heating-rate errors at this height (metres '
     'above ground level).'
+)
+PLOT_SHORTWAVE_ERRORS_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot errors for shortwave (longwave) '
+    'predictions.'
 )
 NUM_BINS_FOR_PROFILES_HELP_STRING = (
     'Number of pressure bins for error profiles.'
@@ -84,6 +89,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + SCATTERPLOT_HEIGHT_ARG_NAME, type=int, required=True,
     help=SCATTERPLOT_HEIGHT_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_SHORTWAVE_ERRORS_ARG_NAME, type=int, required=True,
+    help=PLOT_SHORTWAVE_ERRORS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_BINS_FOR_PROFILES_ARG_NAME, type=int, required=True,
@@ -120,6 +129,7 @@ def _make_scatterplots(prediction_dict, example_dir_name,
     assert numpy.min(height_diffs_metres) <= TOLERANCE
     h_index = numpy.argmin(height_diffs_metres)
 
+    # TODO(thunderhoser): Fuck with this.
     heating_rate_errors_k_day01 = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][:, h_index, 0] -
         prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, h_index, 0]
@@ -145,7 +155,7 @@ def _make_scatterplots(prediction_dict, example_dir_name,
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_heating_rate_k_day=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf
         )
         this_example_dict = example_utils.subset_by_field(
             example_dict=this_example_dict,
@@ -254,7 +264,7 @@ def _make_scatterplots(prediction_dict, example_dir_name,
 
 
 def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
-         num_bins_for_profiles, output_dir_name):
+         plot_shortwave_errors, num_bins_for_profiles, output_dir_name):
     """Plots heating-rate error as a fcn of pressure, using scatter plot.
 
     This is effectively the main method.
@@ -262,6 +272,7 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     :param prediction_file_name: See documentation at top of file.
     :param example_dir_name: Same.
     :param scatterplot_height_m_agl: Same.
+    :param plot_shortwave_errors: Same.
     :param num_bins_for_profiles: Same.
     :param output_dir_name: Same.
     """
@@ -298,9 +309,12 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
         example_dict=training_example_dict,
         field_name=example_utils.PRESSURE_NAME
     )
+
     training_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=training_example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave_errors
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
 
     pressure_matrix_pa = _make_scatterplots(
@@ -324,6 +338,7 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     mse_skill_score_profile = numpy.full(num_bins_for_profiles, numpy.nan)
     kge_profile = numpy.full(num_bins_for_profiles, numpy.nan)
 
+    # TODO(thunderhoser): Fuck with this.
     target_matrix_k_day01 = (
         prediction_dict[prediction_io.VECTOR_TARGETS_KEY][..., 0]
     )
@@ -602,6 +617,9 @@ if __name__ == '__main__':
         scatterplot_height_m_agl=getattr(
             INPUT_ARG_OBJECT, SCATTERPLOT_HEIGHT_ARG_NAME
         ),
+        plot_shortwave_errors=bool(getattr(
+            INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ERRORS_ARG_NAME
+        )),
         num_bins_for_profiles=getattr(
             INPUT_ARG_OBJECT, NUM_BINS_FOR_PROFILES_ARG_NAME
         ),

@@ -3,8 +3,7 @@
 import os
 import sys
 import copy
-import os.path
-import pickle
+import dill
 import numpy
 import keras
 import tensorflow.keras as tf_keras
@@ -398,7 +397,7 @@ def _write_metafile(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    pickle.dump(metadata_dict, dill_file_handle)
+    dill.dump(metadata_dict, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -707,29 +706,11 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     )
     num_examples = vector_target_matrix.shape[0]
 
-    try:
-        vector_target_matrix = numpy.reshape(
-            vector_target_matrix,
-            (num_examples, num_heights, num_vector_targets),
-            order='F'
-        )
-    except ValueError:
-
-        # TODO(thunderhoser): This is kind of a HACK.
-        vector_target_matrix = numpy.reshape(
-            vector_target_matrix,
-            (num_examples, num_heights, num_vector_targets - 1),
-            order='F'
-        )
-        heating_rate_index = (
-            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY].index(
-                example_utils.SHORTWAVE_HEATING_RATE_NAME
-            )
-        )
-        vector_target_matrix = numpy.insert(
-            vector_target_matrix, obj=heating_rate_index,
-            values=0., axis=-1
-        )
+    vector_target_matrix = numpy.reshape(
+        vector_target_matrix,
+        (num_examples, num_heights, num_vector_targets),
+        order='F'
+    )
 
     return {
         example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
@@ -1856,7 +1837,7 @@ def read_metafile(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    metadata_dict = pickle.load(dill_file_handle)
+    metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]

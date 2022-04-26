@@ -3,23 +3,27 @@
 import os
 import sys
 import argparse
+import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import example_utils
 import misc as misc_utils
 import neural_net
 import permutation
+import make_saliency_maps
 
+TOLERANCE = 1e-6
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
-EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
-NUM_EXAMPLES_ARG_NAME = 'num_examples'
-EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
-EXAMPLE_ID_FILE_ARG_NAME = 'input_example_id_file_name'
+EXAMPLE_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_FILE_ARG_NAME
+NUM_EXAMPLES_ARG_NAME = make_saliency_maps.NUM_EXAMPLES_ARG_NAME
+EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
+EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
 HEATING_RATE_WEIGHT_ARG_NAME = 'heating_rate_weight'
 FLUX_WEIGHT_ARG_NAME = 'flux_weight'
 INCLUDE_NET_FLUX_ARG_NAME = 'include_net_flux'
@@ -31,24 +35,10 @@ OUTPUT_FILE_ARG_NAME = 'output_file_name'
 MODEL_FILE_HELP_STRING = (
     'Path to trained model.  Will be read by `neural_net.read_model`.'
 )
-EXAMPLE_FILE_HELP_STRING = (
-    '[use only if you want random examples] Path to file with data examples.  '
-    'Will be read by `example_io.read_file`.'
-)
-NUM_EXAMPLES_HELP_STRING = (
-    '[use only if you want random examples] Number of examples to use.  If you '
-    'want to use all examples in `{0:s}`, leave this alone.'
-).format(EXAMPLE_FILE_ARG_NAME)
-
-EXAMPLE_DIR_HELP_STRING = (
-    '[use only if you want specific examples] Name of directory with data '
-    'examples.  Files therein will be found by `example_io.find_file` and read '
-    'by `example_io.read_file`.'
-)
-EXAMPLE_ID_FILE_HELP_STRING = (
-    '[use only if you want specific examples] Path to file with desired IDs.  '
-    'Will be read by `misc.read_example_ids_from_netcdf`.'
-)
+EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
+NUM_EXAMPLES_HELP_STRING = make_saliency_maps.NUM_EXAMPLES_HELP_STRING
+EXAMPLE_DIR_HELP_STRING = make_saliency_maps.EXAMPLE_DIR_HELP_STRING
+EXAMPLE_ID_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_ID_FILE_HELP_STRING
 
 HEATING_RATE_WEIGHT_HELP_STRING = 'Weight for heating rates in loss function.'
 FLUX_WEIGHT_HELP_STRING = 'Weight for fluxes in loss function.'
@@ -146,14 +136,13 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
     :param output_file_name: Same.
     """
 
-    cost_function = permutation.make_cost_function(
-        heating_rate_weight=heating_rate_weight, flux_weight=flux_weight,
-        include_net_flux=include_net_flux
-    )
+    if flux_weight < TOLERANCE:
+        flux_weight = -1.
+    if flux_weight <= 0:
+        include_net_flux = False
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = neural_net.read_model(model_file_name)
-
     metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
@@ -161,6 +150,51 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
+    training_option_dict = metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    down_flux_indices = []
+    up_flux_indices = []
+
+    if include_net_flux:
+        scalar_target_names = training_option_dict[
+            neural_net.SCALAR_TARGET_NAMES_KEY
+        ]
+
+        try:
+            i = scalar_target_names.index(
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            j = scalar_target_names.index(
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+
+            down_flux_indices.append(i)
+            up_flux_indices.append(j)
+        except ValueError:
+            pass
+
+        try:
+            i = scalar_target_names.index(
+                example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            j = scalar_target_names.index(
+                example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+            )
+
+            down_flux_indices.append(i)
+            up_flux_indices.append(j)
+        except ValueError:
+            pass
+
+        assert len(down_flux_indices) > 0
+        down_flux_indices = numpy.array(down_flux_indices, dtype=int)
+        up_flux_indices = numpy.array(up_flux_indices, dtype=int)
+
+    cost_function = permutation.make_cost_function(
+        heating_rate_weight=heating_rate_weight,
+        flux_weight=flux_weight, include_net_flux=include_net_flux,
+        down_flux_indices=down_flux_indices, up_flux_indices=up_flux_indices
+    )
 
     predictor_matrix, target_matrices = (
         misc_utils.get_examples_for_inference(

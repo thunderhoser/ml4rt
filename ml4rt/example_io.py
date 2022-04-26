@@ -352,8 +352,7 @@ def find_many_files(
 
 
 def read_file(netcdf_file_name, exclude_summit_greenland=False,
-              max_heating_rate_k_day=41.5, id_strings_to_read=None,
-              allow_missing_ids=False):
+              max_shortwave_heating_k_day01=41.5):
     """Reads learning examples from NetCDF file.
 
     E = number of examples
@@ -366,13 +365,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     :param netcdf_file_name: Path to input file.
     :param exclude_summit_greenland: Boolean flag.  If True, will not read data
         from Summit, Greenland.
-    :param max_heating_rate_k_day: Max heating rate.  Will not read any examples
-        with greater heating rate anywhere in profile.
-    :param id_strings_to_read: 1-D list of IDs for examples to read.  If None,
-        will read all examples.
-    :param allow_missing_ids: [used only if `id_strings_to_read is not None`]
-        Boolean flag.  If True, will allow missing IDs.  If False, will throw
-        error for missing IDs.
+    :param max_shortwave_heating_k_day01: Max shortwave heating rate.  Will not
+        read any examples with greater heating rate anywhere in profile.
 
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (E x P_s) with values
@@ -403,7 +397,7 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
     """
 
     error_checking.assert_is_boolean(exclude_summit_greenland)
-    error_checking.assert_is_not_nan(max_heating_rate_k_day)
+    error_checking.assert_is_not_nan(max_shortwave_heating_k_day01)
 
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
@@ -437,22 +431,12 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
         )
     ]
 
-    if id_strings_to_read is None:
-        num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY].size
-        indices_to_read = numpy.linspace(
-            0, num_examples - 1, num=num_examples, dtype=int
-        )
-    else:
-        exclude_summit_greenland = False
-
-        indices_to_read = example_utils.find_examples(
-            all_id_strings=example_id_strings,
-            desired_id_strings=id_strings_to_read,
-            allow_missing=allow_missing_ids
-        )
-        indices_to_read = indices_to_read[indices_to_read >= 0]
-
     error_checking.assert_is_boolean(exclude_summit_greenland)
+
+    num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY].size
+    indices_to_read = numpy.linspace(
+        0, num_examples - 1, num=num_examples, dtype=int
+    )
 
     # TODO(thunderhoser): This is a HACK to deal with potentially bad data.
     if exclude_summit_greenland:
@@ -543,7 +527,7 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
 
     dataset_object.close()
 
-    if max_heating_rate_k_day <= 0:
+    if max_shortwave_heating_k_day01 <= 0:
         return example_dict
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
@@ -551,7 +535,7 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
         field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
     )
     good_example_flags = numpy.all(
-        heating_rate_matrix_k_day01 <= max_heating_rate_k_day, axis=1
+        heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01, axis=1
     )
     good_example_indices = numpy.where(good_example_flags)[0]
 

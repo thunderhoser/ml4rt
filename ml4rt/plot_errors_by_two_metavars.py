@@ -4,8 +4,8 @@ For the desired target variable, this script creates three sets of plots:
 
 - Error metrics as a function of aerosol optical depth (AOD) and solar zenith
   angle (SZA)
-- Error metrics as a function of AOD and surface downwelling flux
-- Error metrics as a function of SZA and surface downwelling flux
+- Error metrics as a function of AOD and shortwave surface downwelling flux
+- Error metrics as a function of SZA and shortwave surface downwelling flux
 """
 
 import os
@@ -35,7 +35,7 @@ RADIANS_TO_DEGREES = 180. / numpy.pi
 
 MIN_ZENITH_ANGLE_RAD = 0.
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
-MAX_SURFACE_DOWN_FLUX_W_M02 = 1200.
+MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02 = 1200.
 MAX_AEROSOL_OPTICAL_DEPTH = 1.8
 
 FIGURE_WIDTH_INCHES = 15
@@ -50,9 +50,10 @@ MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
+PLOT_SHORTWAVE_ERRORS_ARG_NAME = 'plot_shortwave_errors'
 HEATING_RATE_HEIGHT_ARG_NAME = 'heating_rate_height_m_agl'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
-NUM_DOWN_FLUX_BINS_ARG_NAME = 'num_surface_down_flux_bins'
+NUM_FLUX_BINS_ARG_NAME = 'num_shortwave_sfc_down_flux_bins'
 NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -61,13 +62,19 @@ INPUT_FILE_HELP_STRING = (
     'Path to input file, containing predictions and observations.  Will be read'
     ' by `prediction_io.read_file`.'
 )
+PLOT_SHORTWAVE_ERRORS_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot errors for shortwave (longwave) '
+    'predictions.'
+)
 HEATING_RATE_HEIGHT_HELP_STRING = (
     'Will plot error metrics for heating rate at this height (metres above '
     'ground level).  If you want to plot error metrics for net flux instead, '
     'leave this argument alone.'
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
-NUM_DOWN_FLUX_BINS_HELP_STRING = 'Number of bins for surface downwelling flux.'
+NUM_FLUX_BINS_HELP_STRING = (
+    'Number of bins for shortwave surface downwelling flux.'
+)
 NUM_AOD_BINS_HELP_STRING = 'Number of bins for aerosol optical depth (AOD).'
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with example files.  Aerosol optical depths will be '
@@ -83,6 +90,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_SHORTWAVE_ERRORS_ARG_NAME, type=int, required=True,
+    help=PLOT_SHORTWAVE_ERRORS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + HEATING_RATE_HEIGHT_ARG_NAME, type=int, required=False, default=-1,
     help=HEATING_RATE_HEIGHT_HELP_STRING
 )
@@ -91,8 +102,8 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_ANGLE_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_DOWN_FLUX_BINS_ARG_NAME, type=int, required=False, default=12,
-    help=NUM_DOWN_FLUX_BINS_HELP_STRING
+    '--' + NUM_FLUX_BINS_ARG_NAME, type=int, required=False, default=12,
+    help=NUM_FLUX_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=9,
@@ -136,7 +147,7 @@ def _get_aerosol_optical_depths(prediction_dict, example_dir_name):
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_heating_rate_k_day=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf
         )
 
         example_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]
@@ -282,7 +293,7 @@ def _plot_all_scores_one_var(
         example_to_first_bin_indices, example_to_second_bin_indices,
         target_values, predicted_values, climo_value,
         x_axis_label, y_axis_label, x_tick_labels, y_tick_labels,
-        heating_rate_height_m_agl, output_dir_name):
+        heating_rate_height_m_agl, plot_shortwave_errors, output_dir_name):
     """Plots all scores for one variable.
 
     E = number of examples
@@ -305,6 +316,8 @@ def _plot_all_scores_one_var(
     :param heating_rate_height_m_agl: Heating-rate height (metres above ground
         level).  If the target variable here is not heating rate, make this
         None.
+    :param plot_shortwave_errors: Boolean flag.  If True (False), plotting
+        errors for shortwave (longwave) predictions.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     """
@@ -313,13 +326,18 @@ def _plot_all_scores_one_var(
         directory_name=output_dir_name
     )
 
+    if plot_shortwave_errors:
+        band_string = 'SW'
+    else:
+        band_string = 'LW'
+
     if heating_rate_height_m_agl is None:
-        target_var_name = 'net flux'
+        target_var_name = band_string + ' net flux'
         target_var_unit_string = r'W m$^{-2}$'
         target_var_squared_unit_string = r'W$^{2}$ m$^{-4}$'
     else:
-        target_var_name = '{0:d}-metre heating rate'.format(
-            heating_rate_height_m_agl
+        target_var_name = '{0:d}-metre {1:s} heating rate'.format(
+            heating_rate_height_m_agl, band_string
         )
         target_var_unit_string = r'K day$^{-1}$'
         target_var_squared_unit_string = r'K$^{2}$ day$^{-2}$'
@@ -575,17 +593,18 @@ def _plot_all_scores_one_var(
     pyplot.close(figure_object)
 
 
-def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
-         num_surface_down_flux_bins, num_aod_bins, example_dir_name,
-         top_output_dir_name):
+def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
+         num_zenith_angle_bins, num_shortwave_sfc_down_flux_bins, num_aod_bins,
+         example_dir_name, top_output_dir_name):
     """Plots errors as a function of two metadata variables.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
+    :param plot_shortwave_errors: Same.
     :param heating_rate_height_m_agl: Same.
     :param num_zenith_angle_bins: Same.
-    :param num_surface_down_flux_bins: Same.
+    :param num_shortwave_sfc_down_flux_bins: Same.
     :param num_aod_bins: Same.
     :param example_dir_name: Same.
     :param top_output_dir_name: Same.
@@ -618,18 +637,18 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
     training_example_dict = example_io.read_file(normalization_file_name)
 
     # Bin examples by surface downwelling flux.
-    edge_down_fluxes_w_m02 = numpy.linspace(
-        0, MAX_SURFACE_DOWN_FLUX_W_M02,
-        num=num_surface_down_flux_bins + 1, dtype=float
+    edge_fluxes_w_m02 = numpy.linspace(
+        0, MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02,
+        num=num_shortwave_sfc_down_flux_bins + 1, dtype=float
     )
-    edge_down_fluxes_w_m02[-1] = numpy.inf
+    edge_fluxes_w_m02[-1] = numpy.inf
 
     k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    down_flux_bin_indices = numpy.digitize(
+    flux_bin_indices = numpy.digitize(
         x=prediction_dict[prediction_io.SCALAR_TARGETS_KEY][:, k],
-        bins=edge_down_fluxes_w_m02, right=False
+        bins=edge_fluxes_w_m02, right=False
     ) - 1
 
     # Bin examples by solar zenith angle.
@@ -664,12 +683,38 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
 
     # Extracted predicted and observed values of target variable.
     if heating_rate_height_m_agl is None:
-        j = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
-            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-        )
-        k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
-            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-        )
+        if plot_shortwave_errors:
+            j = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+
+            training_down_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            training_up_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+        else:
+            j = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+            )
+
+            training_down_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            training_up_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+            )
 
         target_values = (
             prediction_dict[prediction_io.SCALAR_TARGETS_KEY][:, j] -
@@ -679,22 +724,28 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
             prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, j] -
             prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, k]
         )
-
-        training_down_fluxes_w_m02 = example_utils.get_field_from_dict(
-            example_dict=training_example_dict,
-            field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-        )
-        training_up_fluxes_w_m02 = example_utils.get_field_from_dict(
-            example_dict=training_example_dict,
-            field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-        )
         climo_value = numpy.mean(
             training_down_fluxes_w_m02 - training_up_fluxes_w_m02
         )
     else:
-        k = training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
-            example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
+        if plot_shortwave_errors:
+            k = training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_HEATING_RATE_NAME
+            )
+            training_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME,
+                height_m_agl=heating_rate_height_m_agl
+            )
+        else:
+            k = training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+            )
+            training_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_HEATING_RATE_NAME,
+                height_m_agl=heating_rate_height_m_agl
+            )
 
         height_diffs_metres = numpy.absolute(
             heating_rate_height_m_agl -
@@ -707,12 +758,6 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         )
         predicted_values = (
             prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k]
-        )
-
-        training_values = example_utils.get_field_from_dict(
-            example_dict=training_example_dict,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME,
-            height_m_agl=heating_rate_height_m_agl
         )
         climo_value = numpy.mean(training_values)
 
@@ -731,12 +776,12 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         zip(edge_aerosol_optical_depths[:-1], edge_aerosol_optical_depths[1:])
     ]
 
-    edge_down_fluxes_w_m02[-1] = MAX_SURFACE_DOWN_FLUX_W_M02
-    down_flux_tick_labels = [
+    edge_fluxes_w_m02[-1] = MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02
+    flux_tick_labels = [
         '[{0:d}, {1:d}]'.format(
             int(numpy.round(a)), int(numpy.round(b))
         ) for a, b in
-        zip(edge_down_fluxes_w_m02[:-1], edge_down_fluxes_w_m02[1:])
+        zip(edge_fluxes_w_m02[:-1], edge_fluxes_w_m02[1:])
     ]
 
     _plot_all_scores_one_var(
@@ -749,19 +794,22 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
         y_axis_label='Aerosol optical depth (unitless)',
         x_tick_labels=zenith_angle_tick_labels, y_tick_labels=aod_tick_labels,
         heating_rate_height_m_agl=heating_rate_height_m_agl,
+        plot_shortwave_errors=plot_shortwave_errors,
         output_dir_name='{0:s}/versus_sza_and_aod'.format(top_output_dir_name)
     )
 
     _plot_all_scores_one_var(
-        num_first_bins=num_aod_bins, num_second_bins=num_surface_down_flux_bins,
+        num_first_bins=num_aod_bins,
+        num_second_bins=num_shortwave_sfc_down_flux_bins,
         example_to_first_bin_indices=aod_bin_indices,
-        example_to_second_bin_indices=down_flux_bin_indices,
+        example_to_second_bin_indices=flux_bin_indices,
         target_values=target_values, predicted_values=predicted_values,
         climo_value=climo_value,
-        x_axis_label=r'Surface downwelling flux (W m$^{-2}$)',
+        x_axis_label=r'Shortwave surface downwelling flux (W m$^{-2}$)',
         y_axis_label='Aerosol optical depth (unitless)',
-        x_tick_labels=down_flux_tick_labels, y_tick_labels=aod_tick_labels,
+        x_tick_labels=flux_tick_labels, y_tick_labels=aod_tick_labels,
         heating_rate_height_m_agl=heating_rate_height_m_agl,
+        plot_shortwave_errors=plot_shortwave_errors,
         output_dir_name='{0:s}/versus_down_flux_and_aod'.format(
             top_output_dir_name
         )
@@ -769,16 +817,17 @@ def _run(prediction_file_name, heating_rate_height_m_agl, num_zenith_angle_bins,
 
     _plot_all_scores_one_var(
         num_first_bins=num_zenith_angle_bins,
-        num_second_bins=num_surface_down_flux_bins,
+        num_second_bins=num_shortwave_sfc_down_flux_bins,
         example_to_first_bin_indices=zenith_angle_bin_indices,
-        example_to_second_bin_indices=down_flux_bin_indices,
+        example_to_second_bin_indices=flux_bin_indices,
         target_values=target_values, predicted_values=predicted_values,
         climo_value=climo_value,
-        x_axis_label=r'Surface downwelling flux (W m$^{-2}$)',
+        x_axis_label=r'Shortwave surface downwelling flux (W m$^{-2}$)',
         y_axis_label='Solar zenith angle (deg)',
-        x_tick_labels=down_flux_tick_labels,
+        x_tick_labels=flux_tick_labels,
         y_tick_labels=zenith_angle_tick_labels,
         heating_rate_height_m_agl=heating_rate_height_m_agl,
+        plot_shortwave_errors=plot_shortwave_errors,
         output_dir_name='{0:s}/versus_down_flux_and_sza'.format(
             top_output_dir_name
         )
@@ -790,14 +839,17 @@ if __name__ == '__main__':
 
     _run(
         prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        plot_shortwave_errors=bool(getattr(
+            INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ERRORS_ARG_NAME
+        )),
         heating_rate_height_m_agl=getattr(
             INPUT_ARG_OBJECT, HEATING_RATE_HEIGHT_ARG_NAME
         ),
         num_zenith_angle_bins=getattr(
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
-        num_surface_down_flux_bins=getattr(
-            INPUT_ARG_OBJECT, NUM_DOWN_FLUX_BINS_ARG_NAME
+        num_shortwave_sfc_down_flux_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_FLUX_BINS_ARG_NAME
         ),
         num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),

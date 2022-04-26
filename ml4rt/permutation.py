@@ -18,6 +18,7 @@ import neural_net
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
+TOLERANCE = 1e-6
 DEFAULT_NUM_BOOTSTRAP_REPS = 1000
 
 PREDICTORS_KEY = 'predictor_matrix'
@@ -656,8 +657,12 @@ def run_backwards_test_one_step(
     }
 
 
-def make_cost_function(heating_rate_weight, flux_weight, include_net_flux):
+def make_cost_function(heating_rate_weight, flux_weight, include_net_flux=False,
+                       down_flux_indices=None, up_flux_indices=None):
     """Creates cost function.
+
+    B = number of wavelength bands simulated.  The shortwave is one band, and
+        the longwave is another.
 
     :param heating_rate_weight: Weight for vector part of loss function (the one
         that penalizes heating rates).
@@ -666,13 +671,33 @@ def make_cost_function(heating_rate_weight, flux_weight, include_net_flux):
     :param include_net_flux: Boolean flag.  If True, will penalize surface
         downwelling flux, TOA upwelling flux, and net flux.  If False, will
         penalize only the first two.
+    :param down_flux_indices: length-B numpy array with channel indices for
+        surface downwelling flux.
+    :param up_flux_indices: length-B numpy array with channel indices for
+        top-of-atmosphere upwelling flux.
     :return: cost_function: Function (see below).
     """
 
     error_checking.assert_is_geq(heating_rate_weight, 0.)
     error_checking.assert_is_geq(flux_weight, 0.)
     error_checking.assert_is_greater(heating_rate_weight + flux_weight, 0.)
+
+    if flux_weight < TOLERANCE:
+        flux_weight = -1.
+    if flux_weight <= 0:
+        include_net_flux = False
+
     error_checking.assert_is_boolean(include_net_flux)
+
+    if include_net_flux:
+        error_checking.assert_is_numpy_array(
+            down_flux_indices, num_dimensions=1
+        )
+        error_checking.assert_is_integer_numpy_array(down_flux_indices)
+        error_checking.assert_is_geq_numpy_array(down_flux_indices, 0)
+        error_checking.assert_is_numpy_array(up_flux_indices, num_dimensions=1)
+        error_checking.assert_is_integer_numpy_array(up_flux_indices)
+        error_checking.assert_is_geq_numpy_array(up_flux_indices, 0)
 
     def cost_function(target_matrices, prediction_matrices):
         """Actual cost function.
@@ -691,24 +716,28 @@ def make_cost_function(heating_rate_weight, flux_weight, include_net_flux):
             (target_matrices[0] - prediction_matrices[0]) ** 2
         )
 
-        if len(target_matrices) == 1:
+        if len(target_matrices) == 1 or flux_weight <= 0:
             return dwmse_for_heating_rates
 
-        mse_for_fluxes = numpy.mean(
-            (target_matrices[1] - prediction_matrices[1]) ** 2
-        )
+        predicted_flux_matrix_w_m02 = prediction_matrices[1] + 0.
+        target_flux_matrix_w_m02 = target_matrices[1] + 0.
 
         if include_net_flux:
-            predicted_net_flux_matrix_w_m02 = (
-                prediction_matrices[1][..., 0] - prediction_matrices[1][..., 1]
-            )
-            target_net_flux_matrix_w_m02 = (
-                target_matrices[1][..., 0] - target_matrices[1][..., 1]
-            )
-            mse_for_fluxes += numpy.mean(
-                (target_net_flux_matrix_w_m02 - predicted_net_flux_matrix_w_m02)
-                ** 2
-            )
+            predicted_flux_matrix_w_m02 = numpy.concatenate((
+                predicted_flux_matrix_w_m02,
+                predicted_flux_matrix_w_m02[..., down_flux_indices] -
+                predicted_flux_matrix_w_m02[..., up_flux_indices]
+            ), axis=-1)
+
+            target_flux_matrix_w_m02 = numpy.concatenate((
+                target_flux_matrix_w_m02,
+                target_flux_matrix_w_m02[..., down_flux_indices] -
+                target_flux_matrix_w_m02[..., up_flux_indices]
+            ), axis=-1)
+
+        mse_for_fluxes = numpy.mean(
+            (target_flux_matrix_w_m02 - predicted_flux_matrix_w_m02) ** 2
+        )
 
         return (
             heating_rate_weight * dwmse_for_heating_rates +

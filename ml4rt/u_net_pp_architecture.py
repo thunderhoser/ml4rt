@@ -16,7 +16,6 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import error_checking
 import architecture_utils
 import neural_net
-import u_net_architecture
 
 INPUT_DIMENSIONS_KEY = 'input_dimensions'
 NUM_LEVELS_KEY = 'num_levels'
@@ -50,7 +49,7 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     DENSE_LAYER_DROPOUT_RATES_KEY: None,
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    OUTPUT_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
+    OUTPUT_ACTIV_FUNCTION_KEY: architecture_utils.SIGMOID_FUNCTION_STRING,
     OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
@@ -463,13 +462,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         layer_name='last_conv_activation'
     )(conv_output_layer_object)
 
-    this_function = u_net_architecture.zero_top_heating_rate_function(
-        heating_rate_channel_index=0, height_index=input_dimensions[0] - 1
-    )
-
-    conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
-    )(conv_output_layer_object)
+    # this_function = u_net_architecture.zero_top_heating_rate_function(
+    #     heating_rate_channel_index=0, height_index=input_dimensions[0] - 1
+    # )
+    #
+    # conv_output_layer_object = keras.layers.Lambda(
+    #     this_function, name='conv_output'
+    # )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)

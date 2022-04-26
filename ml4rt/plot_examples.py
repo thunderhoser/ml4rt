@@ -30,20 +30,23 @@ GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 VECTOR_TARGET_NAMES = [
     example_utils.SHORTWAVE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_UP_FLUX_NAME,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME
+    example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    example_utils.LONGWAVE_DOWN_FLUX_NAME,
+    example_utils.LONGWAVE_UP_FLUX_NAME,
+    example_utils.LONGWAVE_HEATING_RATE_NAME
 ]
 
 FIRST_PREDICTOR_NAMES = [
     example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
-    example_utils.RELATIVE_HUMIDITY_NAME,
-    example_utils.LIQUID_WATER_CONTENT_NAME
+    example_utils.WATER_VAPOUR_PATH_NAME,
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME
 ]
 FIRST_PREDICTOR_COLOURS = [
     BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
 ]
 
 SECOND_PREDICTOR_NAMES = [
-    example_utils.WATER_VAPOUR_PATH_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
     example_utils.LIQUID_WATER_PATH_NAME,
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME
 ]
@@ -86,7 +89,9 @@ MODEL_FILE_HELP_STRING = (
     'specified, this script will plot only the variables/heights used by the '
     'model.'
 )
-OUTPUT_DIR_HELP_STRING = 'Name of output directory (figures will be saved here).'
+OUTPUT_DIR_HELP_STRING = (
+    'Name of output directory (figures will be saved here).'
+)
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
@@ -174,13 +179,30 @@ def _plot_one_example(
 
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
-        use_log_scale=use_log_scale, line_width=LINE_WIDTH, line_style='solid'
-    )
-
-    output_file_name = '{0:s}/{1:s}_targets.jpg'.format(
-        output_dir_name, example_id_string.replace('_', '-')
+        for_shortwave=True, use_log_scale=use_log_scale,
+        line_width=LINE_WIDTH, line_style='solid'
     )
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    output_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
+        output_dir_name, example_id_string.replace('_', '-')
+    )
+
+    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    handle_dict = profile_plotting.plot_targets(
+        example_dict=example_dict, example_index=example_index,
+        for_shortwave=False, use_log_scale=use_log_scale,
+        line_width=LINE_WIDTH, line_style='solid'
+    )
+    figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    output_file_name = '{0:s}/{1:s}_longwave_targets.jpg'.format(
+        output_dir_name, example_id_string.replace('_', '-')
+    )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(

@@ -47,6 +47,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.LATITUDE_NAME: 'latitude',
     example_utils.LONGITUDE_NAME: 'longitude',
     example_utils.ALBEDO_NAME: 'albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'sfc temp',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 'column LWP',
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 'column IWP'
 }

@@ -42,6 +42,7 @@ VECTOR_PREDICTOR_COLOURS_BY_SET = [
 
 FIRST_SCALAR_PREDICTOR_NAMES = [
     example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.SURFACE_TEMPERATURE_NAME,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME
 ]
 FIRST_SCALAR_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
@@ -76,20 +77,22 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.LATITUDE_NAME: 'Latitude',
     example_utils.LONGITUDE_NAME: 'Longitude',
     example_utils.ALBEDO_NAME: 'Albedo',
+    example_utils.SURFACE_TEMPERATURE_NAME: 'Sfc temp',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 'Column LWP',
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 'Column IWP'
 }
 
 TARGET_NAME_TO_VERBOSE = {
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'heating rate',
-    example_utils.SHORTWAVE_UP_FLUX_NAME: 'up flux',
-    example_utils.SHORTWAVE_UP_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{up}}{\Delta z}$',
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'down flux',
-    example_utils.SHORTWAVE_DOWN_FLUX_INC_NAME:
-        r'$\frac{\Delta F_{down}}{\Delta z}$',
-    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'TOA up flux',
-    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'sfc down flux'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'SW heating rate',
+    example_utils.SHORTWAVE_UP_FLUX_NAME: 'SW up flux',
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'SW down flux',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: 'SW TOA up flux',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: 'SW sfc down flux',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'LW heating rate',
+    example_utils.LONGWAVE_UP_FLUX_NAME: 'LW up flux',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: 'LW down flux',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: 'LW TOA up flux',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: 'LW sfc down flux'
 }
 
 TARGET_NAME_TO_UNITS = plot_evaluation.TARGET_NAME_TO_UNITS
