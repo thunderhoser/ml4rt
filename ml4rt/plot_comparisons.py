@@ -215,12 +215,16 @@ def _plot_comparisons_simple(
     num_target_vars = len(target_names)
 
     for i in range(num_examples):
-        for k in range(num_target_vars):
+        for j in range(num_target_vars):
+            k = generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                target_names[j]
+            )
+
             this_figure_object, this_axes_object = (
                 profile_plotting.plot_one_variable(
                     values=vector_target_matrix[i, :, k],
                     heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
-                    line_colour=TARGET_NAME_TO_COLOUR[target_names[k]],
+                    line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
                     line_style='solid', figure_object=None
                 )
             )
@@ -228,20 +232,20 @@ def _plot_comparisons_simple(
             profile_plotting.plot_one_variable(
                 values=vector_prediction_matrix[i, :, k],
                 heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
-                line_colour=TARGET_NAME_TO_COLOUR[target_names[k]],
+                line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
                 line_style='dashed', figure_object=this_figure_object
             )
 
             this_axes_object.set_xlabel('{0:s} ({1:s})'.format(
-                TARGET_NAME_TO_VERBOSE[target_names[k]],
-                TARGET_NAME_TO_UNITS[target_names[k]]
+                TARGET_NAME_TO_VERBOSE[target_names[j]],
+                TARGET_NAME_TO_UNITS[target_names[j]]
             ))
 
             this_axes_object.set_title(title_strings[i])
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
                 output_dir_name, example_id_strings[i].replace('_', '-'),
-                target_names[k].replace('_', '-')
+                target_names[j].replace('_', '-')
             )
             print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
