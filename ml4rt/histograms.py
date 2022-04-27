@@ -40,7 +40,6 @@ def create_histogram(input_values, num_bins, min_value, max_value):
     for this_cutoff in bin_cutoffs:
         print(this_cutoff)
 
-
     input_to_bin_indices = numpy.digitize(
         input_values, bin_cutoffs, right=False) - 1
     input_to_bin_indices[input_to_bin_indices < 0] = 0
