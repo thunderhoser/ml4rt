@@ -27,6 +27,7 @@ FAKE_LOW_RES_LINE_WIDTH = 3.
 FIGURE_RESOLUTION_DPI = 300
 
 EXAMPLE_FILE_ARG_NAME = 'input_example_file_name'
+USE_SHORTWAVE_ARG_NAME = 'use_shortwave'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
 CHOOSE_MAX_HEATING_ARG_NAME = 'choose_max_heating_rate'
 MAX_NOISE_ARG_NAME = 'max_noise_k_day01'
@@ -39,6 +40,10 @@ OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 EXAMPLE_FILE_HELP_STRING = (
     'Path to example file.  Will be read by `example_io.read_file`.'
+)
+USE_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will run experiment for shortwave (longwave) '
+    'radiation.'
 )
 NUM_EXAMPLES_HELP_STRING = (
     'Number of examples to experiment with.  Will pick the `{0:s}` examples '
@@ -86,6 +91,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_FILE_ARG_NAME, type=str, required=True,
     help=EXAMPLE_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=USE_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=100,
@@ -167,7 +176,7 @@ def _fluxes_to_heating_rate(down_fluxes_w_m02, up_fluxes_w_m02, pressures_pa):
 
 def _run_experiment_one_example(
         example_dict, example_index, max_noise_k_day01,
-        high_res_pressures_pa, high_res_heights_m_asl,
+        high_res_pressures_pa, high_res_heights_m_asl, use_shortwave,
         first_interp_method_name, second_interp_method_name,
         interp_fluxes, output_dir_name):
     """Runs interpolation experiment for one example (one profile).
@@ -183,7 +192,8 @@ def _run_experiment_one_example(
         high-resolution grid.
     :param high_res_heights_m_asl: length-H numpy array of heights (metres above
         sea level) in high-resolution grid.
-    :param first_interp_method_name: See documentation at top of file.
+    :param use_shortwave: See documentation at top of file.
+    :param first_interp_method_name: Same.
     :param second_interp_method_name: Same.
     :param interp_fluxes: Same.
     :param output_dir_name: Same.
@@ -207,13 +217,17 @@ def _run_experiment_one_example(
     )
     low_res_heating_rates_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if use_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )[example_index, :]
 
     if interp_fluxes:
         low_res_down_fluxes_w_m02 = example_utils.get_field_from_dict(
             example_dict=example_dict,
-            field_name=example_utils.SHORTWAVE_DOWN_FLUX_NAME
+            field_name=
+            example_utils.SHORTWAVE_DOWN_FLUX_NAME if use_shortwave
+            else example_utils.LONGWAVE_DOWN_FLUX_NAME
         )[example_index, :]
 
         interp_object = interp1d(
@@ -225,7 +239,9 @@ def _run_experiment_one_example(
 
         low_res_up_fluxes_w_m02 = example_utils.get_field_from_dict(
             example_dict=example_dict,
-            field_name=example_utils.SHORTWAVE_UP_FLUX_NAME
+            field_name=
+            example_utils.SHORTWAVE_UP_FLUX_NAME if use_shortwave
+            else example_utils.LONGWAVE_UP_FLUX_NAME
         )[example_index, :]
 
         interp_object = interp1d(
@@ -336,15 +352,16 @@ def _run_experiment_one_example(
     return max_difference_k_day01
 
 
-def _run(example_file_name, num_examples, choose_max_heating_rate,
-         max_noise_k_day01, pressure_cutoffs_pa, pressure_spacings_pa,
-         first_interp_method_name, second_interp_method_name, interp_fluxes,
-         output_dir_name):
+def _run(example_file_name, use_shortwave, num_examples,
+         choose_max_heating_rate, max_noise_k_day01, pressure_cutoffs_pa,
+         pressure_spacings_pa, first_interp_method_name,
+         second_interp_method_name, interp_fluxes, output_dir_name):
     """Runs interpolation experiment.
 
     This is effectively the main method.
 
     :param example_file_name: See documentation at top of file.
+    :param use_shortwave: Same.
     :param num_examples: Same.
     :param choose_max_heating_rate: Same.
     :param max_noise_k_day01: Same.
@@ -414,7 +431,9 @@ def _run(example_file_name, num_examples, choose_max_heating_rate,
 
     heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if use_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
 
     if choose_max_heating_rate:
@@ -461,6 +480,7 @@ if __name__ == '__main__':
 
     _run(
         example_file_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_FILE_ARG_NAME),
+        use_shortwave=bool(getattr(INPUT_ARG_OBJECT, USE_SHORTWAVE_ARG_NAME)),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         choose_max_heating_rate=bool(getattr(
             INPUT_ARG_OBJECT, CHOOSE_MAX_HEATING_ARG_NAME
