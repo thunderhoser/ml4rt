@@ -1,0 +1,34 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="compute_emissivities_from_raw_gfs"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=12:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=compute_emissivities_from_raw_gfs_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3"
+set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/gfs_emissivities_20200201-20200207.nc"
+
+python3 -u "${CODE_DIR_NAME}/compute_emissivities_from_raw_gfs.py" \
+--input_dir_name="${INPUT_DIR_NAME}" \
+--first_date_string="20200201" \
+--last_date_string="20200207" \
+--output_file_name="${output_file_name}"
