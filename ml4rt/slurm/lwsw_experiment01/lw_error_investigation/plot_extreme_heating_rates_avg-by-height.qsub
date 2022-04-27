@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_extreme_heating_rates_1height"
+#SBATCH --job-name="plot_extreme_heating_rates_avg-by-height"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -12,13 +12,13 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=30:00:00
-#SBATCH --array=1-4
+#SBATCH --array=1-5
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_extreme_heating_rates_1height_%A_%a.out
+#SBATCH --output=plot_extreme_heating_rates_avg-by-height_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -36,8 +36,8 @@ set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
-set PATHLESS_PREDICTION_FILE_NAMES=("predictions_high-bias.nc" "predictions_low-bias.nc" "predictions_low-absolute-error.nc" "predictions_large-heating-rate.nc")
-set input_file_name="${model_dir_name}/validation/extreme_heating_rates_1height/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set PATHLESS_PREDICTION_FILE_NAMES=("predictions_high-bias.nc" "predictions_low-bias.nc" "predictions_low-absolute-error.nc" "predictions_large-heating-rate.nc" "predictions_small-heating-rate.nc")
+set input_file_name="${model_dir_name}/validation/extreme_heating_rates_avg-by-height/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
 set output_dir_name=`echo $input_file_name | rev | cut -c 4- | rev`
 
 python3 -u "${CODE_DIR_NAME}/plot_comparisons.py" \
