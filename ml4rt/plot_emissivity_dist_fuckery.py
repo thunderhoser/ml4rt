@@ -57,8 +57,11 @@ def _plot_histogram_one_target(
         min_value=min_value, max_value=max_value
     )[1]
     frequency_by_bin = (
-            num_examples_by_bin.astype(float) / numpy.sum(num_examples_by_bin)
+        num_examples_by_bin.astype(float) / numpy.sum(num_examples_by_bin)
     )
+
+    for this_freq in frequency_by_bin:
+        print(this_freq)
 
     bin_edges = numpy.linspace(min_value, max_value, num=num_bins + 1)
     bin_centers = numpy.array([
@@ -130,9 +133,6 @@ OUTPUT_DIR_NAME = (
 file_system_utils.mkdir_recursive_if_necessary(directory_name=OUTPUT_DIR_NAME)
 emissivity_table_xarray = xarray.open_dataset(EMISSIVITY_FILE_NAME)
 
-print(numpy.mean(numpy.isnan(emissivity_table_xarray['full_emissivities'].values)))
-print(numpy.mean(numpy.isnan(emissivity_table_xarray['approx_emissivities'].values)))
-
 _plot_histogram_one_target(
     target_values=numpy.ravel(
         emissivity_table_xarray['full_emissivities'].values
@@ -145,6 +145,6 @@ _plot_histogram_one_target(
     target_values=numpy.ravel(
         emissivity_table_xarray['approx_emissivities'].values
     ),
-    target_name='Approx emissivity', num_bins=100, letter_label='a',
+    target_name='Approx emissivity', num_bins=100, letter_label='b',
     output_dir_name=OUTPUT_DIR_NAME
 )
