@@ -128,11 +128,11 @@ def _do_plotting(example_dict, example_index, output_dir_name):
 
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
-        use_log_scale=True, line_width=LINE_WIDTH, line_style='solid'
+        for_shortwave=True, use_log_scale=True, line_width=LINE_WIDTH,
+        line_style='solid'
     )
 
     letter_label = chr(ord(letter_label) + 1)
-
     plotting_utils.label_axes(
         axes_object=handle_dict[profile_plotting.HEATING_RATE_HANDLE_KEY],
         label_string='({0:s})'.format(letter_label),
@@ -141,12 +141,48 @@ def _do_plotting(example_dict, example_index, output_dir_name):
         y_coord_normalized=LETTER_LABEL_Y_COORD
     )
 
-    this_file_name = '{0:s}/{1:s}_targets.jpg'.format(
+    this_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
     )
     panel_file_names.append(this_file_name)
-    print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
+    print('Saving figure to: "{0:s}"...'.format(this_file_name))
+    figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    figure_object.savefig(
+        this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    imagemagick_utils.trim_whitespace(
+        input_file_name=this_file_name, output_file_name=this_file_name
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=this_file_name, output_file_name=this_file_name,
+        output_size_pixels=int(2.5e6)
+    )
+
+    handle_dict = profile_plotting.plot_targets(
+        example_dict=example_dict, example_index=example_index,
+        for_shortwave=False, use_log_scale=True, line_width=LINE_WIDTH,
+        line_style='solid'
+    )
+
+    letter_label = chr(ord(letter_label) + 1)
+    plotting_utils.label_axes(
+        axes_object=handle_dict[profile_plotting.HEATING_RATE_HANDLE_KEY],
+        label_string='({0:s})'.format(letter_label),
+        font_size=LETTER_LABEL_FONT_SIZE,
+        x_coord_normalized=LETTER_LABEL_X_COORD,
+        y_coord_normalized=LETTER_LABEL_Y_COORD
+    )
+
+    this_file_name = '{0:s}/{1:s}_longwave_targets.jpg'.format(
+        output_dir_name, example_id_string.replace('_', '-')
+    )
+    panel_file_names.append(this_file_name)
+
+    print('Saving figure to: "{0:s}"...'.format(this_file_name))
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     figure_object.savefig(
         this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
@@ -169,7 +205,7 @@ def _do_plotting(example_dict, example_index, output_dir_name):
 
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names, output_file_name=concat_file_name,
-        num_panel_rows=2, num_panel_columns=2, border_width_pixels=25
+        num_panel_rows=2, num_panel_columns=3, border_width_pixels=25
     )
     imagemagick_utils.trim_whitespace(
         input_file_name=concat_file_name, output_file_name=concat_file_name

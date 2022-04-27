@@ -15,6 +15,7 @@ PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
+FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
 SITES_FOR_RELIA_ARG_NAME = 'site_names_for_reliability'
 SITE_FOR_HISTO_ARG_NAME = 'site_name_for_histograms'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -23,6 +24,10 @@ INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing evaluation figures created by '
     'plot_evaluation_by_time.py.  This script will panel some of those figures '
     'together.'
+)
+FOR_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will make figure with shortwave (longwave) '
+    'errors.'
 )
 SITES_FOR_RELIA_HELP_STRING = (
     'Names of sites for which height-coded reliability curves will be plotted.'
@@ -41,6 +46,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
     help=INPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=FOR_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + SITES_FOR_RELIA_ARG_NAME, type=str, nargs=3, required=True,
@@ -84,13 +93,14 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
-         output_dir_name):
+def _run(input_dir_name, for_shortwave, site_names_for_reliability,
+         site_name_for_histogram, output_dir_name):
     """Creates figure showing overall model evaluation.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
+    :param for_shortwave: Same.
     :param site_names_for_reliability: Same.
     :param site_name_for_histogram: Same.
     :param output_dir_name: Same.
@@ -100,27 +110,35 @@ def _run(input_dir_name, site_names_for_reliability, site_name_for_histogram,
         directory_name=output_dir_name
     )
 
+    band_string = 'shortwave' if for_shortwave else 'longwave'
+
     pathless_input_file_names = [
-        'shortwave-surface-down-flux-w-m02_attributes_{0:s}.jpg'.format(
-            site_name_for_histogram
+        '{0:s}-surface-down-flux-w-m02_attributes_{1:s}.jpg'.format(
+            band_string, site_name_for_histogram
         ),
-        'shortwave-toa-up-flux-w-m02_attributes_{0:s}.jpg'.format(
-            site_name_for_histogram
+        '{0:s}-toa-up-flux-w-m02_attributes_{1:s}.jpg'.format(
+            band_string, site_name_for_histogram
         ),
-        'net-shortwave-flux-w-m02_attributes_{0:s}.jpg'.format(
-            site_name_for_histogram
+        'net-{0:s}-flux-w-m02_attributes_{1:s}.jpg'.format(
+            band_string, site_name_for_histogram
         ),
-        'shortwave-heating-rate-k-day01_bias_profile.jpg',
-        'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
-        'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg'
+        '{0:s}-heating-rate-k-day01_bias_profile.jpg'.format(
+            band_string
+        ),
+        '{0:s}-heating-rate-k-day01_mean-absolute-error_profile.jpg'.format(
+            band_string
+        ),
+        '{0:s}-heating-rate-k-day01_mae-skill-score_profile.jpg'.format(
+            band_string
+        )
     ]
 
     num_sites_for_relia = len(site_names_for_reliability)
 
     for j in range(num_sites_for_relia):
         this_file_name = (
-            'shortwave-heating-rate-k-day01_reliability_{0:s}.jpg'
-        ).format(site_names_for_reliability[j])
+            '{0:s}-heating-rate-k-day01_reliability_{1:s}.jpg'
+        ).format(band_string, site_names_for_reliability[j])
 
         pathless_input_file_names.append(this_file_name)
 
@@ -188,6 +206,7 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
         site_names_for_reliability=getattr(
             INPUT_ARG_OBJECT, SITES_FOR_RELIA_ARG_NAME
         ),

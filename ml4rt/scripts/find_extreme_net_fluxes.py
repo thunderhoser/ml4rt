@@ -13,12 +13,16 @@ from ml4rt.machine_learning import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
+FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
 NUM_EXAMPLES_ARG_NAME = 'num_examples_per_set'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing actual and predicted values.  Will be read '
     'by `prediction_io.write_file`.'
+)
+FOR_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will find extreme shortwave (longwave) fluxes.'
 )
 NUM_EXAMPLES_HELP_STRING = (
     'Number of examples in each set (of either best or worst predictions).'
@@ -34,6 +38,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=FOR_SHORTWAVE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=100,
     help=NUM_EXAMPLES_HELP_STRING
 )
@@ -43,12 +51,14 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
+def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
+         output_dir_name):
     """Finds best and worst heating-rate predictions.
 
     This is effectively the main method.
 
     :param input_prediction_file_name: See documentation at top of file.
+    :param for_shortwave: Same.
     :param num_examples_per_set: Same.
     :param output_dir_name: Same.
     """
@@ -71,10 +81,12 @@ def _run(input_prediction_file_name, num_examples_per_set, output_dir_name):
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     )
     down_index = scalar_target_names.index(
-        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME if for_shortwave
+        else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
     )
     up_index = scalar_target_names.index(
-        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME if for_shortwave
+        else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
     )
 
     targets_w_m02 = (
@@ -261,6 +273,7 @@ if __name__ == '__main__':
         input_prediction_file_name=getattr(
             INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME
         ),
+        for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
         num_examples_per_set=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
     )

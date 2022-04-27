@@ -14,24 +14,31 @@ from ml4rt.plotting import profile_plotting
 
 FIGURE_RESOLUTION_DPI = 300
 
-DEFAULT_VECTOR_TARGET_NAMES = [
+SHORTWAVE_VECTOR_TARGET_NAMES = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
 ]
-FLUX_NAMES = [
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME, example_utils.SHORTWAVE_UP_FLUX_NAME
+LONGWAVE_VECTOR_TARGET_NAMES = [
+    example_utils.LONGWAVE_HEATING_RATE_NAME,
+    example_utils.LONGWAVE_DOWN_FLUX_NAME, example_utils.LONGWAVE_UP_FLUX_NAME
 ]
 
 TARGET_NAME_TO_VERBOSE = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: 'Downwelling shortwave flux',
     example_utils.SHORTWAVE_UP_FLUX_NAME: 'Upwelling shortwave flux',
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'Shortwave heating rate'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'Shortwave heating rate',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: 'Downwelling longwave flux',
+    example_utils.LONGWAVE_UP_FLUX_NAME: 'Upwelling longwave flux',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'Longwave heating rate'
 }
 
 TARGET_NAME_TO_UNITS = {
     example_utils.SHORTWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
     example_utils.SHORTWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
-    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$'
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.LONGWAVE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_UP_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K day$^{-1}$'
 }
 
 TARGET_NAME_TO_COLOUR = {
@@ -40,10 +47,17 @@ TARGET_NAME_TO_COLOUR = {
     example_utils.SHORTWAVE_UP_FLUX_NAME:
         profile_plotting.UPWELLING_FLUX_COLOUR,
     example_utils.SHORTWAVE_HEATING_RATE_NAME:
+        profile_plotting.HEATING_RATE_COLOUR,
+    example_utils.LONGWAVE_DOWN_FLUX_NAME:
+        profile_plotting.DOWNWELLING_FLUX_COLOUR,
+    example_utils.LONGWAVE_UP_FLUX_NAME:
+        profile_plotting.UPWELLING_FLUX_COLOUR,
+    example_utils.LONGWAVE_HEATING_RATE_NAME:
         profile_plotting.HEATING_RATE_COLOUR
 }
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
+PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -51,6 +65,9 @@ OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 PREDICTION_FILE_HELP_STRING = (
     'Path to prediction file, containing both predicted and actual (target) '
     'profiles.  Will be read by `prediction_io.read_file`.'
+)
+PLOT_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot shortwave (longwave) values.'
 )
 NUM_EXAMPLES_HELP_STRING = (
     'Will plot the first N examples, where N = `{0:s}`.  If you want to plot '
@@ -71,6 +88,10 @@ INPUT_ARG_PARSER.add_argument(
     help=PREDICTION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=PLOT_SHORTWAVE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=-1,
     help=NUM_EXAMPLES_HELP_STRING
 )
@@ -86,7 +107,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_comparisons_fancy(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
-        model_metadata_dict, use_log_scale, output_dir_name):
+        model_metadata_dict, use_log_scale, plot_shortwave, output_dir_name):
     """Plots fancy comparisons (with all target variables in the same plot).
 
     E = number of examples
@@ -101,6 +122,7 @@ def _plot_comparisons_fancy(
     :param model_metadata_dict: Dictionary returned by
         `neural_net.read_metadata`.
     :param use_log_scale: See documentation at top of file.
+    :param plot_shortwave: Same.
     :param output_dir_name: Path to output directory (figures will be saved
         here).
     """
@@ -128,12 +150,13 @@ def _plot_comparisons_fancy(
     for i in range(num_examples):
         this_handle_dict = profile_plotting.plot_targets(
             example_dict=target_example_dict, example_index=i,
-            use_log_scale=use_log_scale, line_style='solid', handle_dict=None
+            use_log_scale=use_log_scale, for_shortwave=plot_shortwave,
+            line_style='solid', handle_dict=None
         )
         profile_plotting.plot_targets(
             example_dict=prediction_example_dict, example_index=i,
-            use_log_scale=use_log_scale, line_style='dashed',
-            handle_dict=this_handle_dict
+            use_log_scale=use_log_scale, for_shortwave=plot_shortwave,
+            line_style='dashed', handle_dict=this_handle_dict
         )
 
         this_file_name = '{0:s}/{1:s}_comparison.jpg'.format(
@@ -153,7 +176,8 @@ def _plot_comparisons_fancy(
 
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
-        model_metadata_dict, use_log_scale, title_strings, output_dir_name):
+        model_metadata_dict, use_log_scale, plot_shortwave, title_strings,
+        output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
     :param vector_target_matrix: See doc for `_plot_comparisons_fancy`.
@@ -161,13 +185,24 @@ def _plot_comparisons_simple(
     :param example_id_strings: Same.
     :param model_metadata_dict: Same.
     :param use_log_scale: Same.
+    :param plot_shortwave: Same.
     :param title_strings: 1-D list of titles, one per example.
     :param output_dir_name: See doc for `_plot_comparisons_fancy`.
     """
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    target_names = generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+
+    if plot_shortwave:
+        target_names = [
+            n for n in generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+            if n in SHORTWAVE_VECTOR_TARGET_NAMES
+        ]
+    else:
+        target_names = [
+            n for n in generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+            if n in LONGWAVE_VECTOR_TARGET_NAMES
+        ]
 
     num_examples = vector_target_matrix.shape[0]
     num_target_vars = len(target_names)
@@ -211,7 +246,8 @@ def _plot_comparisons_simple(
 
 
 def _get_flux_strings(
-        scalar_target_matrix, scalar_prediction_matrix, model_metadata_dict):
+        scalar_target_matrix, scalar_prediction_matrix, model_metadata_dict,
+        plot_shortwave):
     """For each example, returns string with actual and predicted fluxes.
 
     E = number of examples
@@ -221,6 +257,7 @@ def _get_flux_strings(
     :param scalar_prediction_matrix: E-by-S numpy array of predicted values.
     :param model_metadata_dict: Dictionary returned by
         `neural_net.read_metadata`.
+    :param plot_shortwave: See documentation at top of file.
     :return: flux_strings: length-E list of strings.
     """
 
@@ -231,7 +268,8 @@ def _get_flux_strings(
 
     try:
         down_flux_index = scalar_target_names.index(
-            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME if plot_shortwave
+            else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
         )
 
         down_flux_strings = [
@@ -249,7 +287,8 @@ def _get_flux_strings(
 
     try:
         up_flux_index = scalar_target_names.index(
-            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME if plot_shortwave
+            else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
         )
 
         up_flux_strings = [
@@ -279,12 +318,14 @@ def _get_flux_strings(
     return up_flux_strings
 
 
-def _run(prediction_file_name, num_examples, use_log_scale, output_dir_name):
+def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
+         output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
+    :param plot_shortwave: Same.
     :param num_examples: Same.
     :param use_log_scale: Same.
     :param output_dir_name: Same.
@@ -338,9 +379,15 @@ def _run(prediction_file_name, num_examples, use_log_scale, output_dir_name):
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
-    plot_fancy = all([
-        t in vector_target_names for t in DEFAULT_VECTOR_TARGET_NAMES
-    ])
+
+    if plot_shortwave:
+        plot_fancy = all([
+            t in vector_target_names for t in SHORTWAVE_VECTOR_TARGET_NAMES
+        ])
+    else:
+        plot_fancy = all([
+            t in vector_target_names for t in LONGWAVE_VECTOR_TARGET_NAMES
+        ])
 
     if plot_fancy:
         _plot_comparisons_fancy(
@@ -348,13 +395,15 @@ def _run(prediction_file_name, num_examples, use_log_scale, output_dir_name):
             vector_prediction_matrix=vector_prediction_matrix,
             example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
-            use_log_scale=use_log_scale, output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
+            output_dir_name=output_dir_name
         )
     else:
         title_strings = _get_flux_strings(
             scalar_target_matrix=scalar_target_matrix,
             scalar_prediction_matrix=scalar_prediction_matrix,
-            model_metadata_dict=model_metadata_dict
+            model_metadata_dict=model_metadata_dict,
+            plot_shortwave=plot_shortwave
         )
 
         _plot_comparisons_simple(
@@ -362,8 +411,8 @@ def _run(prediction_file_name, num_examples, use_log_scale, output_dir_name):
             vector_prediction_matrix=vector_prediction_matrix,
             example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
-            use_log_scale=use_log_scale, title_strings=title_strings,
-            output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
+            title_strings=title_strings, output_dir_name=output_dir_name
         )
 
 
@@ -374,6 +423,7 @@ if __name__ == '__main__':
         prediction_file_name=getattr(
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
+        plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)

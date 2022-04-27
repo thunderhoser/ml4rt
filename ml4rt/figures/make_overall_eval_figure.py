@@ -5,7 +5,7 @@ import argparse
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 
-PATHLESS_INPUT_FILE_NAMES = [
+PATHLESS_SHORTWAVE_INPUT_FILE_NAMES = [
     'shortwave-surface-down-flux-w-m02_attributes_new-model.jpg',
     'shortwave-toa-up-flux-w-m02_attributes_new-model.jpg',
     'net-shortwave-flux-w-m02_attributes_new-model.jpg',
@@ -14,6 +14,17 @@ PATHLESS_INPUT_FILE_NAMES = [
     'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
     'shortwave-heating-rate-k-day01_reliability_new-model.jpg',
     # 'shortwave-heating-rate-k-day01_error-dist_new-model.jpg'
+]
+
+PATHLESS_LONGWAVE_INPUT_FILE_NAMES = [
+    'longwave-surface-down-flux-w-m02_attributes_new-model.jpg',
+    'longwave-toa-up-flux-w-m02_attributes_new-model.jpg',
+    'net-longwave-flux-w-m02_attributes_new-model.jpg',
+    'longwave-heating-rate-k-day01_bias_profile.jpg',
+    'longwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
+    'longwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
+    'longwave-heating-rate-k-day01_reliability_new-model.jpg',
+    # 'longwave-heating-rate-k-day01_error-dist_new-model.jpg'
 ]
 
 CONVERT_EXE_NAME = '/usr/bin/convert'
@@ -26,12 +37,17 @@ PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
+FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing evaluation figures created by '
     'plot_evaluation.py.  This script will panel some of those figures '
     'together.'
+)
+FOR_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will make figure with shortwave (longwave) '
+    'errors.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Output images (paneled figure and temporary '
@@ -42,6 +58,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
     help=INPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=FOR_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -77,12 +97,13 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, output_dir_name):
+def _run(input_dir_name, for_shortwave, output_dir_name):
     """Creates figure showing overall model evaluation.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
+    :param for_shortwave: Same.
     :param output_dir_name: Same.
     """
 
@@ -90,13 +111,17 @@ def _run(input_dir_name, output_dir_name):
         directory_name=output_dir_name
     )
 
+    pathless_input_file_names = (
+        PATHLESS_SHORTWAVE_INPUT_FILE_NAMES if for_shortwave
+        else PATHLESS_LONGWAVE_INPUT_FILE_NAMES
+    )
     panel_file_names = [
         '{0:s}/{1:s}'.format(input_dir_name, p)
-        for p in PATHLESS_INPUT_FILE_NAMES
+        for p in pathless_input_file_names
     ]
     resized_panel_file_names = [
         '{0:s}/{1:s}'.format(output_dir_name, p)
-        for p in PATHLESS_INPUT_FILE_NAMES
+        for p in pathless_input_file_names
     ]
 
     letter_label = None
@@ -149,5 +174,6 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

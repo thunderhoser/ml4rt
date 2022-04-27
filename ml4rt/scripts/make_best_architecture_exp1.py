@@ -42,9 +42,12 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     u_net_pp_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    u_net_pp_architecture.OUTPUT_ACTIV_FUNCTION_KEY:
+    u_net_pp_architecture.CONV_OUTPUT_ACTIV_FUNC_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
-    u_net_pp_architecture.OUTPUT_ACTIV_FUNCTION_ALPHA_KEY: 0.,
+    u_net_pp_architecture.CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
+    u_net_pp_architecture.DENSE_OUTPUT_ACTIV_FUNC_KEY:
+        architecture_utils.RELU_FUNCTION_STRING,
+    u_net_pp_architecture.DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
     u_net_pp_architecture.L1_WEIGHT_KEY: 0.,
     u_net_pp_architecture.USE_BATCH_NORM_KEY: True
 }
