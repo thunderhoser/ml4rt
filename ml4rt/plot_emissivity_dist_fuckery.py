@@ -49,12 +49,12 @@ def _plot_histogram_one_target(
     :return: output_file_name: Path to output file.
     """
 
-    min_value = numpy.min(target_values)
-    max_value = numpy.max(target_values)
+    min_value = 0.
+    max_value = 1.
 
     num_examples_by_bin = histograms.create_histogram(
         input_values=target_values, num_bins=num_bins,
-        min_value=0., max_value=1.
+        min_value=min_value, max_value=max_value
     )[1]
     frequency_by_bin = (
         num_examples_by_bin.astype(float) / numpy.sum(num_examples_by_bin)
