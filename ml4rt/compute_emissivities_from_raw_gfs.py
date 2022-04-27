@@ -101,6 +101,7 @@ def _run(input_dir_name, first_date_string, last_date_string, output_file_name):
         )
         print(this_file_pattern)
         these_file_names = glob.glob(this_file_pattern)
+        print(these_file_names)
 
         if len(these_file_names) == 0:
             continue
