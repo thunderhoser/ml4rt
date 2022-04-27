@@ -1,4 +1,4 @@
--#!/bin/tcsh
+#!/bin/tcsh
 
 #SBATCH --job-name="plot_examples_extreme_heating_rates_avg-by-height"
 #SBATCH --partition="fge"
