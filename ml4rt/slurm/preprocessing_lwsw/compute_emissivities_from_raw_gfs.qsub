@@ -31,4 +31,4 @@ python3 -u "${CODE_DIR_NAME}/compute_emissivities_from_raw_gfs.py" \
 --input_dir_name="${INPUT_DIR_NAME}" \
 --first_date_string="20200201" \
 --last_date_string="20200207" \
---output_file_name="${output_file_name}"
+--output_file_name="${OUTPUT_FILE_NAME}"
