@@ -60,9 +60,6 @@ def _plot_histogram_one_target(
         num_examples_by_bin.astype(float) / numpy.sum(num_examples_by_bin)
     )
 
-    for this_freq in frequency_by_bin:
-        print(this_freq)
-
     bin_edges = numpy.linspace(min_value, max_value, num=num_bins + 1)
     bin_centers = numpy.array([
         numpy.mean(bin_edges[[k, k + 1]])
