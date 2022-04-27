@@ -52,7 +52,8 @@ TARGET_NAME_TO_VERBOSE = {
         r'Longwave $F_{down}^{sfc}$ (W m$^{-2}$)',
     example_utils.LONGWAVE_TOA_UP_FLUX_NAME:
         r'Longwave $F_{up}^{TOA}$ (W m$^{-2}$)',
-    LONGWAVE_NET_FLUX_NAME: r'Longwave net flux (W m$^{-2}$)'
+    LONGWAVE_NET_FLUX_NAME: r'Longwave net flux (W m$^{-2}$)',
+    LONGWAVE_HEAT_FLUX_NAME: r'Longwave heat flux (W m$^{-2}$)'
 }
 
 FIGURE_WIDTH_INCHES = 15
