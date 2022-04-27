@@ -152,11 +152,6 @@ def _run(input_dir_name, first_date_string, last_date_string, output_file_name):
         )
         full_emissivity_matrices.append(this_emissivity_matrix + 0.)
 
-        denom_matrix = blackbody_up_flux_matrix_w_m02 - downwelling_flux_matrix_w_m02
-        print(denom_matrix[:5, :5])
-        print(numpy.min(denom_matrix))
-        print(numpy.max(denom_matrix))
-
         this_emissivity_matrix = (
             upwelling_flux_matrix_w_m02 / blackbody_up_flux_matrix_w_m02
         )

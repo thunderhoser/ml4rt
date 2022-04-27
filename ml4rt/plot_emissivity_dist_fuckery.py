@@ -130,18 +130,24 @@ OUTPUT_DIR_NAME = (
 file_system_utils.mkdir_recursive_if_necessary(directory_name=OUTPUT_DIR_NAME)
 emissivity_table_xarray = xarray.open_dataset(EMISSIVITY_FILE_NAME)
 
+full_emissivity_matrix = emissivity_table_xarray['full_emissivities'].values
+full_emissivity_matrix = full_emissivity_matrix[
+    numpy.isfinite(full_emissivity_matrix)
+]
+
 _plot_histogram_one_target(
-    target_values=numpy.ravel(
-        emissivity_table_xarray['full_emissivities'].values
-    ),
+    target_values=numpy.ravel(full_emissivity_matrix),
     target_name='Full emissivity', num_bins=100, letter_label='a',
     output_dir_name=OUTPUT_DIR_NAME
 )
 
+approx_emissivity_matrix = emissivity_table_xarray['approx_emissivities'].values
+approx_emissivity_matrix = approx_emissivity_matrix[
+    numpy.isfinite(approx_emissivity_matrix)
+]
+
 _plot_histogram_one_target(
-    target_values=numpy.ravel(
-        emissivity_table_xarray['approx_emissivities'].values
-    ),
+    target_values=numpy.ravel(approx_emissivity_matrix),
     target_name='Approx emissivity', num_bins=100, letter_label='b',
     output_dir_name=OUTPUT_DIR_NAME
 )
