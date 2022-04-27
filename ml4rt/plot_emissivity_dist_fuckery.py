@@ -26,7 +26,7 @@ FACE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 EDGE_COLOUR = numpy.full(3, 0.)
 EDGE_WIDTH = 1.5
 
-FONT_SIZE = 36
+FONT_SIZE = 32
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -54,7 +54,7 @@ def _plot_histogram_one_target(
 
     num_examples_by_bin = histograms.create_histogram(
         input_values=target_values, num_bins=num_bins,
-        min_value=min_value, max_value=max_value
+        min_value=0., max_value=1.
     )[1]
     frequency_by_bin = (
         num_examples_by_bin.astype(float) / numpy.sum(num_examples_by_bin)
