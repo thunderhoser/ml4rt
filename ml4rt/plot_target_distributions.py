@@ -17,7 +17,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import histograms
 import time_conversion
 import file_system_utils
-import plotting_utils
+import gg_plotting_utils
 import imagemagick_utils
 import example_io
 import example_utils
@@ -188,7 +188,7 @@ def _plot_histogram_one_target(
 
     axes_object.set_ylabel('Frequency')
     axes_object.set_xlabel(TARGET_NAME_TO_VERBOSE[target_name])
-    plotting_utils.label_axes(
+    gg_plotting_utils.label_axes(
         axes_object=axes_object, label_string='({0:s})'.format(letter_label)
     )
 
