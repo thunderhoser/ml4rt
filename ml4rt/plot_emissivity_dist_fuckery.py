@@ -130,6 +130,9 @@ OUTPUT_DIR_NAME = (
 file_system_utils.mkdir_recursive_if_necessary(directory_name=OUTPUT_DIR_NAME)
 emissivity_table_xarray = xarray.open_dataset(EMISSIVITY_FILE_NAME)
 
+print(numpy.mean(numpy.isnan(emissivity_table_xarray['full_emissivities'].values)))
+print(numpy.mean(numpy.isnan(emissivity_table_xarray['approx_emissivities'].values)))
+
 _plot_histogram_one_target(
     target_values=numpy.ravel(
         emissivity_table_xarray['full_emissivities'].values
