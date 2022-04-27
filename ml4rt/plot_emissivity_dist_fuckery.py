@@ -26,7 +26,7 @@ FACE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 EDGE_COLOUR = numpy.full(3, 0.)
 EDGE_WIDTH = 1.5
 
-FONT_SIZE = 44
+FONT_SIZE = 36
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -70,7 +70,7 @@ def _plot_histogram_one_target(
         0, num_bins - 1, num=num_bins, dtype=float
     )
 
-    x_tick_labels = ['{0:.3f}'.format(c) for c in bin_centers]
+    x_tick_labels = ['{0:.2f}'.format(c) for c in bin_centers]
     x_tick_labels = [
         x_tick_labels[k] if numpy.mod(k, 3) == 0 else ' '
         for k in range(num_bins)
@@ -97,7 +97,7 @@ def _plot_histogram_one_target(
     )
 
     output_file_name = '{0:s}/histogram_{1:s}.jpg'.format(
-        output_dir_name, target_name.replace('_', '-').lower()
+        output_dir_name, target_name.replace('_', '-').replace(' ', '-').lower()
     )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
