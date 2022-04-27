@@ -23,7 +23,8 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TOLERANCE = 1e-6
 
 FLUX_NAMES = [
-    evaluation.NET_FLUX_NAME, example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+    evaluation.SHORTWAVE_NET_FLUX_NAME,
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
 ]
 
@@ -129,7 +130,7 @@ def _read_one_file(evaluation_file_name, heights_m_agl):
 
     net_flux_index = numpy.where(
         result_table_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values ==
-        evaluation.NET_FLUX_NAME
+        evaluation.SHORTWAVE_NET_FLUX_NAME
     )[0][0]
 
     other_flux_indices = numpy.array([

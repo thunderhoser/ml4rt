@@ -22,6 +22,7 @@ import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
+FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
 AVERAGE_OVER_HEIGHT_ARG_NAME = 'average_over_height'
 SCALE_BY_CLIMO_ARG_NAME = 'scale_by_climo'
 NUM_EXAMPLES_ARG_NAME = 'num_examples_per_set'
@@ -30,6 +31,10 @@ OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing actual and predicted values.  Will be read '
     'by `prediction_io.write_file`.'
+)
+FOR_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will find extreme shortwave (longwave) heating '
+    'rates.'
 )
 AVERAGE_OVER_HEIGHT_HELP_STRING = (
     'Boolean flag.  If 1, will average errors over height for each profile.  '
@@ -53,6 +58,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=FOR_SHORTWAVE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + AVERAGE_OVER_HEIGHT_ARG_NAME, type=int, required=True,
     help=AVERAGE_OVER_HEIGHT_HELP_STRING
 )
@@ -70,13 +79,14 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_prediction_file_name, average_over_height, scale_by_climo,
-         num_examples_per_set, output_dir_name):
+def _run(input_prediction_file_name, for_shortwave, average_over_height,
+         scale_by_climo, num_examples_per_set, output_dir_name):
     """Finds best and worst heating-rate predictions.
 
     This is effectively the main method.
 
     :param input_prediction_file_name: See documentation at top of file.
+    :param for_shortwave: Same.
     :param average_over_height: Same.
     :param scale_by_climo: Same.
     :param num_examples_per_set: Same.
@@ -103,8 +113,9 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
-    hr_index = (
-        vector_target_names.index(example_utils.SHORTWAVE_HEATING_RATE_NAME)
+    hr_index = vector_target_names.index(
+        example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
+        else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
 
     target_matrix_k_day01 = (
@@ -142,7 +153,10 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
         training_example_dict = example_io.read_file(normalization_file_name)
         training_example_dict = example_utils.subset_by_field(
             example_dict=training_example_dict,
-            field_names=[example_utils.SHORTWAVE_HEATING_RATE_NAME]
+            field_names=[
+                example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
+                else example_utils.LONGWAVE_HEATING_RATE_NAME
+            ]
         )
 
         if prediction_dict[prediction_io.NORMALIZATION_FILE_KEY] is None:
@@ -158,8 +172,10 @@ def _run(input_prediction_file_name, average_over_height, scale_by_climo,
             example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
             example_utils.VECTOR_PREDICTOR_NAMES_KEY: [],
             example_utils.SCALAR_TARGET_NAMES_KEY: [],
-            example_utils.VECTOR_TARGET_NAMES_KEY:
-                [example_utils.SHORTWAVE_HEATING_RATE_NAME],
+            example_utils.VECTOR_TARGET_NAMES_KEY: [
+                example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
+                else example_utils.LONGWAVE_HEATING_RATE_NAME
+            ],
             example_utils.HEIGHTS_KEY: heights_m_agl
         }
 
@@ -356,6 +372,7 @@ if __name__ == '__main__':
         input_prediction_file_name=getattr(
             INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME
         ),
+        for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
         average_over_height=bool(
             getattr(INPUT_ARG_OBJECT, AVERAGE_OVER_HEIGHT_ARG_NAME)
         ),

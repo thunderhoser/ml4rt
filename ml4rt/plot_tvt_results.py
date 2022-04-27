@@ -78,7 +78,7 @@ def _read_one_file(evaluation_file_name, heights_m_agl, confidence_level):
 
     net_flux_index = numpy.where(
         result_table_xarray.coords[evaluation.AUX_TARGET_FIELD_DIM].values ==
-        evaluation.NET_FLUX_NAME
+        evaluation.SHORTWAVE_NET_FLUX_NAME
     )[0][0]
 
     net_flux_mse_skill_scores = (

@@ -23,6 +23,7 @@ PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
+FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -30,6 +31,10 @@ INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing evaluation figures created by '
     'plot_evaluation_by_time.py.  This script will panel some of those figures '
     'together.'
+)
+FOR_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will make figure with shortwave (longwave) '
+    'errors.'
 )
 HEIGHTS_HELP_STRING = (
     'The figure will include scores for net flux and heating rate at these '
@@ -44,6 +49,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
     help=INPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=FOR_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + HEIGHTS_ARG_NAME, type=int, nargs='+', required=True,
@@ -83,12 +92,13 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, heights_m_agl, output_dir_name):
+def _run(input_dir_name, for_shortwave, heights_m_agl, output_dir_name):
     """Creates figure showing overall model evaluation.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
+    :param for_shortwave: Same.
     :param heights_m_agl: Same.
     :param output_dir_name: Same.
     """
@@ -96,25 +106,26 @@ def _run(input_dir_name, heights_m_agl, output_dir_name):
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
+    band_string = 'shortwave' if for_shortwave else 'longwave'
 
     num_heights = len(heights_m_agl)
     pathless_input_file_names = []
 
     for j in range(num_heights):
         first_file_name = (
-            'shortwave-heating-rate-k-day01_{0:05d}metres_scores_without_units'
+            '{0:s}-heating-rate-k-day01_{1:05d}metres_scores_without_units'
             '.jpg'
-        ).format(heights_m_agl[j])
+        ).format(band_string, heights_m_agl[j])
 
         second_file_name = (
-            'shortwave-heating-rate-k-day01_{0:05d}metres_scores_with_units.jpg'
-        ).format(heights_m_agl[j])
+            '{0:s}-heating-rate-k-day01_{1:05d}metres_scores_with_units.jpg'
+        ).format(band_string, heights_m_agl[j])
 
         pathless_input_file_names += [first_file_name, second_file_name]
 
     pathless_input_file_names += [
-        'net-shortwave-flux-w-m02_scores_without_units.jpg',
-        'net-shortwave-flux-w-m02_scores_with_units.jpg'
+        'net-{0:s}-flux-w-m02_scores_without_units.jpg'.format(band_string),
+        'net-{0:s}-flux-w-m02_scores_with_units.jpg'.format(band_string)
     ]
 
     panel_file_names = [
@@ -179,6 +190,7 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
         heights_m_agl=numpy.array(
             getattr(INPUT_ARG_OBJECT, HEIGHTS_ARG_NAME), dtype=int
         ),
