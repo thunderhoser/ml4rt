@@ -146,26 +146,17 @@ def _run(input_dir_name, first_date_string, last_date_string, output_file_name):
             gfs_table_xarray[SURFACE_TEMPERATURE_KEY].values[0, ...]
         ) ** 4
 
-        print(blackbody_up_flux_matrix_w_m02[:5, :5])
-        print('\n\n')
-
-        numer_matrix = upwelling_flux_matrix_w_m02 - downwelling_flux_matrix_w_m02
-        print(numer_matrix[:5, :5])
-        print('\n\n')
-
-        denom_matrix = blackbody_up_flux_matrix_w_m02 - downwelling_flux_matrix_w_m02
-        print(denom_matrix[:5, :5])
-        print('\n\n')
-
         this_emissivity_matrix = (
             (upwelling_flux_matrix_w_m02 - downwelling_flux_matrix_w_m02) /
             (blackbody_up_flux_matrix_w_m02 - downwelling_flux_matrix_w_m02)
         )
+        print(numpy.mean(numpy.isnan(this_emissivity_matrix)))
         full_emissivity_matrices.append(this_emissivity_matrix + 0.)
 
         this_emissivity_matrix = (
             upwelling_flux_matrix_w_m02 / blackbody_up_flux_matrix_w_m02
         )
+        print(numpy.mean(numpy.isnan(this_emissivity_matrix)))
         approx_emissivity_matrices.append(this_emissivity_matrix + 0.)
 
     valid_times_unix_sec = numpy.array(valid_times_unix_sec, dtype=int)
