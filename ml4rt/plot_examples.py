@@ -1,18 +1,25 @@
 """Plots profiles (vector predictor and target variables) for each example."""
 
-import os.path
+import os
+import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import imagemagick_utils
-from ml4rt.utils import example_utils
-from ml4rt.utils import misc as misc_utils
-from ml4rt.machine_learning import neural_net
-from ml4rt.plotting import profile_plotting
-from ml4rt.scripts import make_saliency_maps
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import imagemagick_utils
+import example_utils
+import misc as misc_utils
+import neural_net
+import profile_plotting
+import make_saliency_maps
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
