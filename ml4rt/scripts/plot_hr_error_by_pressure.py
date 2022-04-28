@@ -97,7 +97,7 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _make_scatterplots(prediction_dict, example_dir_name,
+def _make_scatterplots(prediction_dict, heating_rate_index, example_dir_name,
                        scatterplot_height_m_agl, output_dir_name):
     """Creates two scatterplots.
 
@@ -110,6 +110,7 @@ def _make_scatterplots(prediction_dict, example_dir_name,
     H = number of height levels
 
     :param prediction_dict: Dictionary returned by `prediction_io.read_file`.
+    :param heating_rate_index: Channel index for heating rate.
     :param example_dir_name: See documentation at top of file.
     :param scatterplot_height_m_agl: Same.
     :param output_dir_name: Same.
@@ -120,12 +121,13 @@ def _make_scatterplots(prediction_dict, example_dir_name,
         prediction_dict[prediction_io.HEIGHTS_KEY] - scatterplot_height_m_agl
     )
     assert numpy.min(height_diffs_metres) <= TOLERANCE
-    h_index = numpy.argmin(height_diffs_metres)
 
-    # TODO(thunderhoser): Fuck with this.
+    j = numpy.argmin(height_diffs_metres)
+    k = heating_rate_index
+
     heating_rate_errors_k_day01 = (
-        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][:, h_index, 0] -
-        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, h_index, 0]
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k] -
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, j, k]
     )
 
     example_id_strings = prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
@@ -276,7 +278,6 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
-    assert prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[-1] == 1
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
@@ -289,6 +290,12 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     normalization_file_name = (
         training_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
+    heating_rate_index = (
+        training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+            example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave_errors
+            else example_utils.LONGWAVE_HEATING_RATE_NAME
+        )
     )
 
     print((
@@ -311,7 +318,8 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     )
 
     pressure_matrix_pa = _make_scatterplots(
-        prediction_dict=prediction_dict, example_dir_name=example_dir_name,
+        prediction_dict=prediction_dict, heating_rate_index=heating_rate_index,
+        example_dir_name=example_dir_name,
         scatterplot_height_m_agl=scatterplot_height_m_agl,
         output_dir_name=output_dir_name
     )
@@ -331,13 +339,13 @@ def _run(prediction_file_name, example_dir_name, scatterplot_height_m_agl,
     mse_skill_score_profile = numpy.full(num_bins_for_profiles, numpy.nan)
     kge_profile = numpy.full(num_bins_for_profiles, numpy.nan)
 
-    # TODO(thunderhoser): Fuck with this.
-    target_matrix_k_day01 = (
-        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][..., 0]
-    )
-    prediction_matrix_k_day01 = (
-        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]
-    )
+    target_matrix_k_day01 = prediction_dict[prediction_io.VECTOR_TARGETS_KEY][
+        ..., heating_rate_index
+    ]
+    prediction_matrix_k_day01 = prediction_dict[
+        prediction_io.VECTOR_PREDICTIONS_KEY
+    ][..., heating_rate_index]
+
     num_examples_per_bin = int(1e10)
 
     for k in range(num_bins_for_profiles):
