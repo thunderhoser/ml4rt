@@ -7,6 +7,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.utils import example_utils
 from ml4rt.utils import misc as misc_utils
 from ml4rt.machine_learning import neural_net
@@ -131,7 +132,9 @@ def _plot_one_example(
     example_id_string = (
         example_dict[example_utils.EXAMPLE_IDS_KEY][example_index]
     )
+
     num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
+    panel_file_names = []
 
     for k in range(num_predictor_sets):
         these_flags = numpy.array([
@@ -157,18 +160,24 @@ def _plot_one_example(
             predictor_line_styles=['solid'] * len(these_indices),
             use_log_scale=use_log_scale
         )
-
-        output_file_name = '{0:s}/{1:s}_predictor-set-{2:d}.jpg'.format(
-            output_dir_name, example_id_string.replace('_', '-'), k
-        )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 
-        print('Saving figure to: "{0:s}"...'.format(output_file_name))
+        this_file_name = '{0:s}/{1:s}_predictor-set-{2:d}.jpg'.format(
+            output_dir_name, example_id_string.replace('_', '-'), k
+        )
+        panel_file_names.append(this_file_name)
+
+        print('Saving figure to: "{0:s}"...'.format(this_file_name))
         figure_object.savefig(
-            output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
             bbox_inches='tight'
         )
         pyplot.close(figure_object)
+
+        imagemagick_utils.resize_image(
+            input_file_name=this_file_name, output_file_name=this_file_name,
+            output_size_pixels=int(2.5e6)
+        )
 
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
@@ -176,16 +185,23 @@ def _plot_one_example(
         line_width=LINE_WIDTH, line_style='solid'
     )
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-    output_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
+
+    this_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
     )
+    panel_file_names.append(this_file_name)
 
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    print('Saving figure to: "{0:s}"...'.format(this_file_name))
     figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
         bbox_inches='tight'
     )
     pyplot.close(figure_object)
+
+    imagemagick_utils.resize_image(
+        input_file_name=this_file_name, output_file_name=this_file_name,
+        output_size_pixels=int(2.5e6)
+    )
 
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
@@ -193,16 +209,44 @@ def _plot_one_example(
         line_width=LINE_WIDTH, line_style='solid'
     )
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-    output_file_name = '{0:s}/{1:s}_longwave_targets.jpg'.format(
+
+    this_file_name = '{0:s}/{1:s}_longwave_targets.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
     )
+    panel_file_names.append(this_file_name)
 
-    print('Saving figure to: "{0:s}"...'.format(output_file_name))
+    print('Saving figure to: "{0:s}"...'.format(this_file_name))
     figure_object.savefig(
-        output_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+        this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
         bbox_inches='tight'
     )
     pyplot.close(figure_object)
+
+    imagemagick_utils.resize_image(
+        input_file_name=this_file_name, output_file_name=this_file_name,
+        output_size_pixels=int(2.5e6)
+    )
+
+    num_panels = len(panel_file_names)
+    num_panel_rows = int(numpy.floor(
+        numpy.sqrt(num_panels)
+    ))
+    num_panel_columns = int(numpy.ceil(
+        float(num_panels) / num_panel_rows
+    ))
+    concat_file_name = '{0:s}/{1:s}.jpg'.format(
+        output_dir_name, example_id_string.replace('_', '-')
+    )
+
+    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
+    imagemagick_utils.concatenate_images(
+        input_file_names=panel_file_names, output_file_name=concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns,
+        border_width_pixels=50
+    )
+
+    for this_file_name in panel_file_names:
+        os.remove(this_file_name)
 
 
 def _run(example_file_name, num_examples, example_dir_name,

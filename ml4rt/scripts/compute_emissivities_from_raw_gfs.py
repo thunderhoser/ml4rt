@@ -100,7 +100,7 @@ def _run(input_dir_name, first_date_string, last_date_string, output_file_name):
         gfs_file_names += these_file_names
         gfs_date_strings += [this_date_string] * len(these_file_names)
 
-    if len(gfs_file_names):
+    if len(gfs_file_names) == 0:
         error_string = (
             'Cannot find any GFS surface files from dates {0:s} to {1:s} in '
             'directory: "{2:s}"'
