@@ -164,6 +164,11 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
     for this_key in NORM_METADATA_STRING_KEYS:
+
+        # TODO(thunderhoser): HACK!!!
+        if this_key == NORMALIZATION_FILE_KEY:
+            continue
+
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
             return False
 
