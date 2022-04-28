@@ -222,29 +222,20 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
 
     heating_rate_layer_object = architecture_utils.get_dense_layer(
         num_output_units=num_heights,
-        weight_regularizer=regularizer_object,
-        layer_name=
-        'conv_output' if heating_rate_activ_func_name is None else None
+        weight_regularizer=regularizer_object
     )(layer_object)
-
-    # heating_rate_layer_object = architecture_utils.get_activation_layer(
-    #     activation_function_string=output_activ_function_name,
-    #     alpha_for_relu=output_activ_function_alpha,
-    #     alpha_for_elu=output_activ_function_alpha
-    # )(heating_rate_layer_object)
-    #
-    # this_function = _zero_top_heating_rate_function()
-    # heating_rate_layer_object = keras.layers.Lambda(
-    #     this_function, name='conv_output'
-    # )(heating_rate_layer_object)
 
     if heating_rate_activ_func_name is not None:
         heating_rate_layer_object = architecture_utils.get_activation_layer(
             activation_function_string=heating_rate_activ_func_name,
             alpha_for_relu=heating_rate_activ_func_alpha,
-            alpha_for_elu=heating_rate_activ_func_alpha,
-            layer_name='conv_output'
+            alpha_for_elu=heating_rate_activ_func_alpha
         )(heating_rate_layer_object)
+
+    this_function = _zero_top_heating_rate_function()
+    heating_rate_layer_object = keras.layers.Lambda(
+        this_function, name='conv_output'
+    )(heating_rate_layer_object)
 
     if num_flux_components > 0:
         flux_layer_object = architecture_utils.get_dense_layer(

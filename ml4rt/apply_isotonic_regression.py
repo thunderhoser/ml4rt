@@ -10,7 +10,9 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import prediction_io
+import example_utils
 import isotonic_regression
+import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -96,6 +98,30 @@ def _run(input_prediction_file_name, model_file_name,
         )
     )
     print(SEPARATOR_STRING)
+
+    neural_net_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(neural_net_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(metafile_name))
+    metadata_dict = neural_net.read_metafile(metafile_name)
+    vector_target_names = metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
+        neural_net.VECTOR_TARGET_NAMES_KEY
+    ]
+
+    for this_target_name in [
+            example_utils.SHORTWAVE_HEATING_RATE_NAME,
+            example_utils.LONGWAVE_HEATING_RATE_NAME
+    ]:
+        try:
+            k = vector_target_names.index(this_target_name)
+        except ValueError:
+            continue
+
+        new_vector_prediction_matrix[:, -1, k] = 0.
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, k] = 0.
 
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name

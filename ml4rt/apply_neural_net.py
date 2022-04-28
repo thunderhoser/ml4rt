@@ -450,14 +450,19 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             ..., hr_indices
         ] = dummy_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
 
-    # if example_utils.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
-    #     k = vector_target_names.index(
-    #         example_utils.SHORTWAVE_HEATING_RATE_NAME
-    #     )
-    #     target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, k] = 0.
-    #     prediction_example_dict[
-    #         example_utils.VECTOR_TARGET_VALS_KEY
-    #     ][:, -1, k] = 0.
+    for this_target_name in [
+            example_utils.SHORTWAVE_HEATING_RATE_NAME,
+            example_utils.LONGWAVE_HEATING_RATE_NAME
+    ]:
+        try:
+            k = vector_target_names.index(this_target_name)
+        except ValueError:
+            continue
+
+        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, k] = 0.
+        prediction_example_dict[
+            example_utils.VECTOR_TARGET_VALS_KEY
+        ][:, -1, k] = 0.
 
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name

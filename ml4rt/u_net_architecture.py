@@ -202,16 +202,13 @@ def _check_args(option_dict):
     return option_dict
 
 
-def zero_top_heating_rate_function(heating_rate_channel_index, height_index):
+def zero_top_heating_rate_function(height_index):
     """Returns function that zeroes predicted heating rate at top of profile.
 
-    :param heating_rate_channel_index: Channel index for heating rate.
     :param height_index: Will zero out heating rate at this height.
     :return: zeroing_function: Function handle (see below).
     """
 
-    error_checking.assert_is_integer(heating_rate_channel_index)
-    error_checking.assert_is_geq(heating_rate_channel_index, 0)
     error_checking.assert_is_integer(height_index)
     error_checking.assert_is_geq(height_index, 0)
 
@@ -224,43 +221,25 @@ def zero_top_heating_rate_function(heating_rate_channel_index, height_index):
         """
 
         num_heights = orig_prediction_tensor.get_shape().as_list()[-2]
-        num_channels = orig_prediction_tensor.get_shape().as_list()[-1]
 
         zero_tensor = K.greater_equal(
-            orig_prediction_tensor[
-                ..., height_index, heating_rate_channel_index
-            ],
+            orig_prediction_tensor[..., height_index, :],
             1e12
         )
         zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
 
         heating_rate_tensor = K.concatenate((
-            orig_prediction_tensor[..., heating_rate_channel_index][
-                ..., :height_index
-            ],
-            K.expand_dims(zero_tensor, axis=-1)
-        ), axis=-1)
+            orig_prediction_tensor[..., :height_index, :],
+            K.expand_dims(zero_tensor, axis=-2)
+        ), axis=-2)
 
         if height_index != num_heights - 1:
             heating_rate_tensor = K.concatenate((
                 heating_rate_tensor,
-                orig_prediction_tensor[..., heating_rate_channel_index][
-                    ..., (height_index + 1):
-                ]
-            ), axis=-1)
+                orig_prediction_tensor[..., (height_index + 1):]
+            ), axis=-2)
 
-        new_prediction_tensor = K.concatenate((
-            orig_prediction_tensor[..., :heating_rate_channel_index],
-            K.expand_dims(heating_rate_tensor, axis=-1)
-        ), axis=-1)
-
-        if heating_rate_channel_index == num_channels - 1:
-            return new_prediction_tensor
-
-        return K.concatenate((
-            new_prediction_tensor,
-            orig_prediction_tensor[..., (heating_rate_channel_index + 1):]
-        ), axis=-1)
+        return heating_rate_tensor
 
     return zeroing_function
 
@@ -502,33 +481,24 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         num_kernel_rows=1, num_rows_per_stride=1,
         num_filters=num_output_channels,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
-        weight_regularizer=regularizer_object,
-        layer_name=
-        'conv_output' if conv_output_activ_func_name is None else 'last_conv'
+        weight_regularizer=regularizer_object, layer_name='last_conv'
     )(skip_layer_by_level[0])
-
-    # conv_output_layer_object = architecture_utils.get_activation_layer(
-    #     activation_function_string=output_activ_function_name,
-    #     alpha_for_relu=output_activ_function_alpha,
-    #     alpha_for_elu=output_activ_function_alpha,
-    #     layer_name='last_conv_activation'
-    # )(conv_output_layer_object)
-    #
-    # this_function = zero_top_heating_rate_function(
-    #     heating_rate_channel_index=0, height_index=input_dimensions[0] - 1
-    # )
-    #
-    # conv_output_layer_object = keras.layers.Lambda(
-    #     this_function, name='conv_output'
-    # )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
         conv_output_layer_object = architecture_utils.get_activation_layer(
             activation_function_string=conv_output_activ_func_name,
             alpha_for_relu=conv_output_activ_func_alpha,
             alpha_for_elu=conv_output_activ_func_alpha,
-            layer_name='conv_output'
+            layer_name='last_conv_activation'
         )(conv_output_layer_object)
+
+    this_function = zero_top_heating_rate_function(
+        height_index=input_dimensions[0] - 1
+    )
+
+    conv_output_layer_object = keras.layers.Lambda(
+        this_function, name='conv_output'
+    )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
