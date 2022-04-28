@@ -6,6 +6,7 @@ from keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
+from ml4rt.machine_learning import u_net_architecture
 
 NUM_HEIGHTS_KEY = 'num_heights'
 NUM_INPUT_CHANNELS_KEY = 'num_input_channels'
@@ -265,34 +266,20 @@ def create_model(option_dict, loss_function):
         if i == num_conv_layers - 1:
             dense_input_layer_object = conv_output_layer_object
 
-        if (
-                i == num_conv_layers - 1 and
-                conv_layer_dropout_rates[i] <= 0 and
-                conv_output_activ_func_name is None
-        ):
-            this_name = 'conv_output'
-        else:
-            this_name = None
-
         conv_output_layer_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=conv_layer_filter_sizes[i], num_rows_per_stride=1,
             num_filters=conv_layer_channel_nums[i],
             padding_type_string=architecture_utils.YES_PADDING_STRING,
-            weight_regularizer=regularizer_object, layer_name=this_name
+            weight_regularizer=regularizer_object
         )(this_input_layer_object)
 
         if i == num_conv_layers - 1:
             if conv_output_activ_func_name is not None:
-                this_name = (
-                    None if conv_layer_dropout_rates[i] > 0 else 'conv_output'
-                )
-
                 conv_output_layer_object = (
                     architecture_utils.get_activation_layer(
                         activation_function_string=conv_output_activ_func_name,
                         alpha_for_relu=conv_output_activ_func_alpha,
-                        alpha_for_elu=conv_output_activ_func_alpha,
-                        layer_name=this_name
+                        alpha_for_elu=conv_output_activ_func_alpha
                     )(conv_output_layer_object)
                 )
         else:
@@ -304,8 +291,7 @@ def create_model(option_dict, loss_function):
 
         if conv_layer_dropout_rates[i] > 0:
             conv_output_layer_object = architecture_utils.get_dropout_layer(
-                dropout_fraction=conv_layer_dropout_rates[i],
-                layer_name='conv_output' if i == num_conv_layers - 1 else None
+                dropout_fraction=conv_layer_dropout_rates[i]
             )(conv_output_layer_object)
 
         if use_batch_normalization and i != num_conv_layers - 1:
@@ -382,10 +368,13 @@ def create_model(option_dict, loss_function):
     else:
         dense_output_layer_object = None
 
-    # this_function = _zero_top_heating_rate_function(0)
-    # conv_output_layer_object = keras.layers.Lambda(this_function)(
-    #     conv_output_layer_object
-    # )
+    this_function = u_net_architecture.zero_top_heating_rate_function(
+        height_index=num_heights - 1
+    )
+
+    conv_output_layer_object = keras.layers.Lambda(
+        this_function, name='conv_output'
+    )(conv_output_layer_object)
 
     if any_dense_layers:
         model_object = keras.models.Model(
