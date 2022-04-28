@@ -23,7 +23,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_lwsw/orig_heights/validation"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/lwsw_experiment01"
 
-set FLUX_LOSS_SCALING_FACTORS=(0.06 0.54 0.64 0.70)
+set FLUX_LOSS_SCALING_FACTORS=(0.52 0.74 0.80 0.84)
 set flux_loss_scaling_factor=${FLUX_LOSS_SCALING_FACTORS[$SLURM_ARRAY_TASK_ID]}
 set flux_loss_scaling_factor=`printf "%.2f" $flux_loss_scaling_factor`
 
