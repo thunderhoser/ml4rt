@@ -150,7 +150,9 @@ def _make_scatterplots(prediction_dict, heating_rate_index, example_dir_name,
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
         this_example_dict = example_utils.subset_by_field(
             example_dict=this_example_dict,

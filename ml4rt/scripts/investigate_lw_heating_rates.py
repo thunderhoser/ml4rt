@@ -2,8 +2,12 @@
 
 import argparse
 import numpy
+from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
+
+FIRST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec('20000101', '%Y%m%d')
+LAST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec('20300101', '%Y%m%d')
 
 PERCENTILE_LEVELS = numpy.concatenate((
     numpy.linspace(0, 1, num=101, dtype=float),
@@ -37,7 +41,8 @@ def _run(example_dir_names):
     for this_dir_name in example_dir_names:
         example_file_names += example_io.find_many_files(
             directory_name=this_dir_name,
-            first_time_unix_sec=0, last_time_unix_sec=int(1e12),
+            first_time_unix_sec=FIRST_TIME_UNIX_SEC,
+            last_time_unix_sec=LAST_TIME_UNIX_SEC,
             raise_error_if_any_missing=False, raise_error_if_all_missing=False
         )
 
@@ -55,7 +60,9 @@ def _run(example_dir_names):
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
         this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
             example_dict=this_example_dict,

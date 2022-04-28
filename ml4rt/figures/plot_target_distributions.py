@@ -249,7 +249,12 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
 
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
-        this_example_dict = example_io.read_file(this_file_name)
+        this_example_dict = example_io.read_file(
+            netcdf_file_name=this_file_name,
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
+        )
 
         these_field_names = (
             SHORTWAVE_TARGET_NAMES_IN_FILE + LONGWAVE_TARGET_NAMES_IN_FILE +

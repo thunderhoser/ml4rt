@@ -61,7 +61,9 @@ def _run(input_example_dir_name, years, output_example_dir_name):
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
         example_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]
 
@@ -83,9 +85,10 @@ def _run(input_example_dir_name, years, output_example_dir_name):
     for input_file_name in input_example_file_names:
         print('Reading data from: "{0:s}"...'.format(input_file_name))
         example_dict = example_io.read_file(
-            netcdf_file_name=input_file_name,
-            exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            netcdf_file_name=input_file_name, exclude_summit_greenland=False,
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
 
         all_id_strings = numpy.array(
