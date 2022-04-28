@@ -10,8 +10,12 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import example_io
 import example_utils
+
+FIRST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec('20000101', '%Y%m%d')
+LAST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec('20300101', '%Y%m%d')
 
 PERCENTILE_LEVELS = numpy.concatenate((
     numpy.linspace(0, 1, num=101, dtype=float),
@@ -45,7 +49,8 @@ def _run(example_dir_names):
     for this_dir_name in example_dir_names:
         example_file_names += example_io.find_many_files(
             directory_name=this_dir_name,
-            first_time_unix_sec=0, last_time_unix_sec=int(1e12),
+            first_time_unix_sec=FIRST_TIME_UNIX_SEC,
+            last_time_unix_sec=LAST_TIME_UNIX_SEC,
             raise_error_if_any_missing=False, raise_error_if_all_missing=False
         )
 
