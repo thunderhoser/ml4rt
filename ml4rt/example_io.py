@@ -165,6 +165,9 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
 
     for this_key in NORM_METADATA_STRING_KEYS:
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
+            print(this_key)
+            print(first_metadata_dict[this_key])
+            print(second_metadata_dict[this_key])
             return False
 
     for this_key in NORM_METADATA_FLOAT_KEYS:
@@ -172,6 +175,9 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
                 first_metadata_dict[this_key], second_metadata_dict[this_key],
                 atol=TOLERANCE, equal_nan=True
         ):
+            print(this_key)
+            print(first_metadata_dict[this_key])
+            print(second_metadata_dict[this_key])
             return False
 
     return True
