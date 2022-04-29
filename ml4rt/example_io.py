@@ -164,11 +164,6 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
     for this_key in NORM_METADATA_STRING_KEYS:
-
-        # TODO(thunderhoser): HACK!!!
-        if this_key == NORMALIZATION_FILE_KEY:
-            continue
-
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
             return False
 
@@ -356,8 +351,10 @@ def find_many_files(
     return example_file_names
 
 
-def read_file(netcdf_file_name, exclude_summit_greenland=False,
-              max_shortwave_heating_k_day01=41.5):
+def read_file(
+        netcdf_file_name, exclude_summit_greenland=False,
+        max_shortwave_heating_k_day01=41.5, min_longwave_heating_k_day01=-90.,
+        max_longwave_heating_k_day01=50.):
     """Reads learning examples from NetCDF file.
 
     E = number of examples
@@ -372,6 +369,8 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
         from Summit, Greenland.
     :param max_shortwave_heating_k_day01: Max shortwave heating rate.  Will not
         read any examples with greater heating rate anywhere in profile.
+    :param min_longwave_heating_k_day01: Same but for minimum longwave heating.
+    :param max_longwave_heating_k_day01: Same but for max longwave heating.
 
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (E x P_s) with values
@@ -403,6 +402,9 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
 
     error_checking.assert_is_boolean(exclude_summit_greenland)
     error_checking.assert_is_not_nan(max_shortwave_heating_k_day01)
+    error_checking.assert_is_greater(
+        max_longwave_heating_k_day01, min_longwave_heating_k_day01
+    )
 
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
@@ -532,21 +534,49 @@ def read_file(netcdf_file_name, exclude_summit_greenland=False,
 
     dataset_object.close()
 
-    if max_shortwave_heating_k_day01 <= 0:
-        return example_dict
+    if not numpy.isinf(max_shortwave_heating_k_day01):
+        heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        )
+        good_example_flags = numpy.all(
+            heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01, axis=1
+        )
+        good_example_indices = numpy.where(good_example_flags)[0]
 
-    heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-    good_example_flags = numpy.all(
-        heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01, axis=1
-    )
-    good_example_indices = numpy.where(good_example_flags)[0]
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=good_example_indices
+        )
 
-    return example_utils.subset_by_index(
-        example_dict=example_dict, desired_indices=good_example_indices
-    )
+    if not numpy.isinf(min_longwave_heating_k_day01):
+        heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
+        )
+        good_example_flags = numpy.all(
+            heating_rate_matrix_k_day01 >= min_longwave_heating_k_day01, axis=1
+        )
+        good_example_indices = numpy.where(good_example_flags)[0]
+
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=good_example_indices
+        )
+
+    if not numpy.isinf(max_longwave_heating_k_day01):
+        heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
+        )
+        good_example_flags = numpy.all(
+            heating_rate_matrix_k_day01 <= max_longwave_heating_k_day01, axis=1
+        )
+        good_example_indices = numpy.where(good_example_flags)[0]
+
+        example_dict = example_utils.subset_by_index(
+            example_dict=example_dict, desired_indices=good_example_indices
+        )
+
+    return example_dict
 
 
 def write_file(example_dict, netcdf_file_name):

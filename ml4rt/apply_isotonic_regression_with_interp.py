@@ -168,8 +168,7 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
         ))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name,
-            exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            exclude_summit_greenland=False
         )
 
         new_grid_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]

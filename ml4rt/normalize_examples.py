@@ -179,7 +179,9 @@ def _run(input_example_file_name, normalization_file_name,
     example_dict = example_io.read_file(
         netcdf_file_name=input_example_file_name,
         exclude_summit_greenland=False,
-        max_shortwave_heating_k_day01=numpy.inf
+        max_shortwave_heating_k_day01=numpy.inf,
+        min_longwave_heating_k_day01=-1 * numpy.inf,
+        max_longwave_heating_k_day01=numpy.inf
     )
 
     normalization_metadata_dict = (

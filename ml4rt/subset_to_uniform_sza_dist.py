@@ -97,7 +97,9 @@ def _run(input_example_dir_name, years, num_zenith_angle_bins,
         this_example_dict = example_io.read_file(
             netcdf_file_name=input_example_file_names[i],
             exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
 
         zenith_angles_by_file_rad[i] = example_utils.parse_example_ids(
@@ -168,7 +170,9 @@ def _run(input_example_dir_name, years, num_zenith_angle_bins,
         this_example_dict = example_io.read_file(
             netcdf_file_name=input_example_file_names[i],
             exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
         this_example_dict = example_utils.subset_by_index(
             example_dict=this_example_dict,

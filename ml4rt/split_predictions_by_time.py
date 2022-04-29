@@ -325,7 +325,9 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
             netcdf_file_name=this_file_name, exclude_summit_greenland=False,
-            max_shortwave_heating_k_day01=numpy.inf
+            max_shortwave_heating_k_day01=numpy.inf,
+            min_longwave_heating_k_day01=-1 * numpy.inf,
+            max_longwave_heating_k_day01=numpy.inf
         )
 
         example_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]
