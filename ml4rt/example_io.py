@@ -163,11 +163,21 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     first_metadata_dict = _check_normalization_metadata(first_metadata_dict)
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
+    first_norm_file_name = first_metadata_dict[NORMALIZATION_FILE_KEY].replace(
+        '/examples_lwsw_with2019/', '/examples_lwsw/'
+    )
+    second_norm_file_name = second_metadata_dict[
+        NORMALIZATION_FILE_KEY
+    ].replace('/examples_lwsw_with2019/', '/examples_lwsw/')
+
+    if first_norm_file_name != second_norm_file_name:
+        return False
+
     for this_key in NORM_METADATA_STRING_KEYS:
+        if this_key == NORMALIZATION_FILE_KEY:
+            continue
+
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
-            print(this_key)
-            print(first_metadata_dict[this_key])
-            print(second_metadata_dict[this_key])
             return False
 
     for this_key in NORM_METADATA_FLOAT_KEYS:
@@ -175,9 +185,6 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
                 first_metadata_dict[this_key], second_metadata_dict[this_key],
                 atol=TOLERANCE, equal_nan=True
         ):
-            print(this_key)
-            print(first_metadata_dict[this_key])
-            print(second_metadata_dict[this_key])
             return False
 
     return True
