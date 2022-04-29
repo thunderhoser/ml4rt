@@ -27,7 +27,7 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/lwsw_experiment01"
 
-set flux_loss_scaling_factor=0.84
+set flux_loss_scaling_factor=0.16
 set flux_loss_scaling_factor=`printf "%.2f" $flux_loss_scaling_factor`
 
 set top_model_dir_name="${TOP_MODEL_DIR_NAME}/flux-loss-scaling-factor=${flux_loss_scaling_factor}"
