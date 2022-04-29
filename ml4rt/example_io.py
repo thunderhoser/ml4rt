@@ -547,6 +547,19 @@ def read_file(
 
     dataset_object.close()
 
+    if (
+            example_utils.SHORTWAVE_HEATING_RATE_NAME not in
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    ):
+        max_shortwave_heating_k_day01 = numpy.inf
+
+    if (
+            example_utils.LONGWAVE_HEATING_RATE_NAME not in
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    ):
+        min_longwave_heating_k_day01 = -numpy.inf
+        max_longwave_heating_k_day01 = numpy.inf
+
     if not numpy.isinf(max_shortwave_heating_k_day01):
         heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
             example_dict=example_dict,
