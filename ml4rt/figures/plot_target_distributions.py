@@ -9,7 +9,7 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import histograms
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils
+from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
@@ -181,7 +181,7 @@ def _plot_histogram_one_target(
 
     axes_object.set_ylabel('Frequency')
     axes_object.set_xlabel(TARGET_NAME_TO_VERBOSE[target_name])
-    plotting_utils.label_axes(
+    gg_plotting_utils.label_axes(
         axes_object=axes_object, label_string='({0:s})'.format(letter_label)
     )
 

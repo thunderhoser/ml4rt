@@ -25,6 +25,9 @@ function create_output_file, name, num_heights
   vid = ncdf_vardef(fid,'height_m_agl',/float,[did1,did0])
     ncdf_attput,fid,vid,'long_name','Height above ground'
     ncdf_attput,fid,vid,'units','m'
+  vid = ncdf_vardef(fid,'solar_zenith_angle_deg',/float,did0)	
+    ncdf_attput,fid,vid,'long_name','Solar zenith angle'	
+    ncdf_attput,fid,vid,'units','degrees'
   vid = ncdf_vardef(fid,'standard_atmosphere_enum',/float,did0)
     ncdf_attput,fid,vid,'long_name','Standard atmosphere used'
     ncdf_attput,fid,vid,'units','1 -- tropics, 2 -- Midlat Summer, 3 -- Midlat Winter, ' + $
@@ -100,7 +103,7 @@ function create_output_file, name, num_heights
 return, 0
 end
 ;---------------------------------------------------------------------------------
-function append_to_output_file, name, index, valid_times_unix_sec, julian_days, $
+function append_to_output_file, name, index, valid_times_unix_sec, julian_days, zenith_angles_deg, $
     standard_atmo_enums, latitudes_deg_n, longitudes_deg_e, surface_temperatures_kelvins, $
     total_liquid_paths_g_m02, total_ice_paths_g_m02, liquid_paths_g_m02, ice_paths_g_m02, $
     temps_kelvins, pressures_mb, heights_km_agl, vapour_mixing_ratios_g_kg01, $
@@ -111,6 +114,7 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
   fid = ncdf_open(name, /write)
   ncdf_varput,fid,'valid_time_unix_sec',valid_times_unix_sec,offset=index
   ncdf_varput,fid,'julian_day',julian_days,offset=index
+  ncdf_varput,fid,'solar_zenith_angle_deg',zenith_angles_deg,offset=index
   ncdf_varput,fid,'standard_atmosphere_enum',standard_atmo_enums,offset=index
   ncdf_varput,fid,'site_latitude_deg_n',latitudes_deg_n,offset=index
   ncdf_varput,fid,'site_longitude_deg_e',longitudes_deg_e,offset=index
@@ -208,6 +212,10 @@ pro runit, year
         print,'  Working on forecast hour '+string(forecast_hours(bar))
   	    if(nbar ge 2) then stop,'Found multiple fhours for this time -- this should not happen'
 	    if(nbar eq 1) then begin
+	      solarpos,dyy(bar(0)),dmm(bar(0)),ddd(bar(0)),dhh(bar(0)),dnn(bar(0)),dss(bar(0)), $
+	  	    site_latitudes_deg_n(foo(0)),site_longitudes_deg_e(foo(0)),xhour,ra,sd,salt
+          sza = 90 - salt
+	    
           if(abs(site_latitudes_deg_n(foo(0))) lt 65) then begin
 	        if(3 lt dmm(bar(0)) and dmm(bar(0)) le 9) then stdatmos = 2 $ 	; Mid-lat summer
 	        else stdatmos = 3							; Mid-lat winter
@@ -284,6 +292,7 @@ pro runit, year
 	        output_pressures_mb = transpose(these_pressures_mb)
 	        output_heights_km_agl = transpose(these_heights_km_agl)
 	        output_vapour_mixing_ratios_g_kg01 = transpose(these_vapour_mixing_ratios_g_kg01)
+	        output_zenith_angles_deg = sza(0)
 	        output_surface_temps_kelvins = reform(surface_temp_matrix_kelvins(foo(0),bar(0)))
 	        output_standard_atmo_enums = stdatmos
 	        output_latitudes_deg_n = site_latitudes_deg_n(foo)
@@ -310,6 +319,7 @@ pro runit, year
 	        output_pressures_mb = [output_pressures_mb,transpose(these_pressures_mb)]
 	        output_heights_km_agl = [output_heights_km_agl,transpose(these_heights_km_agl)]
 	        output_vapour_mixing_ratios_g_kg01 = [output_vapour_mixing_ratios_g_kg01,transpose(these_vapour_mixing_ratios_g_kg01)]
+	        output_zenith_angles_deg = [output_zenith_angles_deg,sza(0)]
 	        output_surface_temps_kelvins = [output_surface_temps_kelvins,reform(surface_temp_matrix_kelvins(foo(0),bar(0)))]
 	        output_standard_atmo_enums = [output_standard_atmo_enums,stdatmos]
 	        output_latitudes_deg_n = [output_latitudes_deg_n,site_latitudes_deg_n(foo)]
@@ -352,7 +362,7 @@ pro runit, year
 
 		    ; Append output to the file
         print,'Adding ',n_elements(output_times_unix_sec),' samples to the output file ',outname, ' at ',index, format='(A,I0,A,A,A,I0)'
-        index = append_to_output_file(outname, index, output_times_unix_sec, output_julian_days, $
+        index = append_to_output_file(outname, index, output_times_unix_sec, output_julian_days, output_zenith_angles_deg, $
           output_standard_atmo_enums, output_latitudes_deg_n, output_longitudes_deg_e, output_surface_temps_kelvins, $
 	      output_total_liquid_paths_g_m02, output_total_ice_paths_g_m02, output_liquid_paths_g_m02, output_ice_paths_g_m02, $
 	      output_temps_kelvins, output_pressures_mb, output_heights_km_agl, output_vapour_mixing_ratios_g_kg01, $

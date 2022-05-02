@@ -156,7 +156,20 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     first_metadata_dict = _check_normalization_metadata(first_metadata_dict)
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
+    first_norm_file_name = first_metadata_dict[NORMALIZATION_FILE_KEY].replace(
+        '/examples_lwsw_with2019/', '/examples_lwsw/'
+    )
+    second_norm_file_name = second_metadata_dict[
+        NORMALIZATION_FILE_KEY
+    ].replace('/examples_lwsw_with2019/', '/examples_lwsw/')
+
+    if first_norm_file_name != second_norm_file_name:
+        return False
+
     for this_key in NORM_METADATA_STRING_KEYS:
+        if this_key == NORMALIZATION_FILE_KEY:
+            continue
+
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
             return False
 
@@ -526,6 +539,19 @@ def read_file(
     )
 
     dataset_object.close()
+
+    if (
+            example_utils.SHORTWAVE_HEATING_RATE_NAME not in
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    ):
+        max_shortwave_heating_k_day01 = numpy.inf
+
+    if (
+            example_utils.LONGWAVE_HEATING_RATE_NAME not in
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    ):
+        min_longwave_heating_k_day01 = -numpy.inf
+        max_longwave_heating_k_day01 = numpy.inf
 
     if not numpy.isinf(max_shortwave_heating_k_day01):
         heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(

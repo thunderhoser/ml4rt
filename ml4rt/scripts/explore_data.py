@@ -7,7 +7,7 @@ matplotlib.use('agg')
 import matplotlib.colors
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils
+from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
 from ml4rt.plotting import profile_plotting
@@ -163,7 +163,7 @@ def _plot_by_zenith_angle(example_dict, plot_shortwave, output_dir_name):
     axes_object.set_title('Heating rate by solar zenith angle')
     axes_object.set_xlabel(r'Heating rate (K day$^{-1}$)')
 
-    colour_bar_object = plotting_utils.plot_linear_colour_bar(
+    colour_bar_object = gg_plotting_utils.plot_linear_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=bin_centers_deg,
         colour_map_object=ZENITH_ANGLE_COLOUR_MAP_OBJECT,
         min_value=bin_centers_deg[0], max_value=bin_centers_deg[-1],
@@ -247,7 +247,7 @@ def _plot_by_latitude(example_dict, plot_shortwave, output_dir_name):
     axes_object.set_title('Heating rate by latitude')
     axes_object.set_xlabel(r'Heating rate (K day$^{-1}$)')
 
-    colour_bar_object = plotting_utils.plot_linear_colour_bar(
+    colour_bar_object = gg_plotting_utils.plot_linear_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=bin_centers_deg_n,
         colour_map_object=LATITUDE_COLOUR_MAP_OBJECT,
         min_value=bin_centers_deg_n[0], max_value=bin_centers_deg_n[-1],
