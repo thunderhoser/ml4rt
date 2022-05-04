@@ -91,11 +91,13 @@ DEFAULT_VECTOR_PREDICTOR_NAMES_GFS = DEFAULT_VECTOR_PREDICTOR_NAMES + [
     example_utils.AEROSOL_EXTINCTION_NAME,
     example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
 ]
-DEFAULT_SCALAR_TARGET_NAMES_GFS = DEFAULT_SCALAR_TARGET_NAMES + [
+SHORTWAVE_SCALAR_TARGET_NAMES_GFS = DEFAULT_SCALAR_TARGET_NAMES
+LONGWAVE_SCALAR_TARGET_NAMES_GFS = [
     example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
     example_utils.LONGWAVE_TOA_UP_FLUX_NAME
 ]
-DEFAULT_VECTOR_TARGET_NAMES_GFS = DEFAULT_VECTOR_TARGET_NAMES + [
+SHORTWAVE_VECTOR_TARGET_NAMES_GFS = DEFAULT_VECTOR_TARGET_NAMES
+LONGWAVE_VECTOR_TARGET_NAMES_GFS = [
     example_utils.LONGWAVE_DOWN_FLUX_NAME,
     example_utils.LONGWAVE_UP_FLUX_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME
@@ -480,8 +482,23 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
 
     scalar_predictor_names = copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES_GFS)
     vector_predictor_names = copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES_GFS)
-    scalar_target_names = copy.deepcopy(DEFAULT_SCALAR_TARGET_NAMES_GFS)
-    vector_target_names = copy.deepcopy(DEFAULT_VECTOR_TARGET_NAMES_GFS)
+    scalar_target_names = []
+    vector_target_names = []
+
+    if any([
+            n in dataset_object.variables for n in
+            SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
+            SHORTWAVE_VECTOR_TARGET_NAMES_GFS
+    ]):
+        scalar_target_names += SHORTWAVE_SCALAR_TARGET_NAMES_GFS
+        vector_target_names += SHORTWAVE_VECTOR_TARGET_NAMES_GFS
+
+    if any([
+            n in dataset_object.variables for n in
+            LONGWAVE_SCALAR_TARGET_NAMES_GFS + LONGWAVE_VECTOR_TARGET_NAMES_GFS
+    ]):
+        scalar_target_names += LONGWAVE_SCALAR_TARGET_NAMES_GFS
+        vector_target_names += LONGWAVE_VECTOR_TARGET_NAMES_GFS
 
     height_matrix_m_agl = numpy.array(
         dataset_object.variables[HEIGHTS_KEY_GFS][:], dtype=float
