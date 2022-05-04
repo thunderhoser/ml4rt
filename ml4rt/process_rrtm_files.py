@@ -187,6 +187,14 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
     print(SEPARATOR_STRING)
     example_dict = _remove_duplicate_examples(example_dict)
 
+    print('Writing {0:d} examples to file: "{1:s}"...'.format(
+        len(example_dict[example_utils.VALID_TIMES_KEY]),
+        output_file_name
+    ))
+    example_io.write_file(
+        example_dict=example_dict, netcdf_file_name=output_file_name
+    )
+
     edge_zenith_angles_deg = numpy.linspace(0, 85, num=10, dtype=float)
     edge_zenith_angles_deg[-1] = numpy.inf
     actual_zenith_angles_deg = example_utils.parse_example_ids(
@@ -209,6 +217,12 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
             edge_zenith_angles_deg[i + 1],
             this_num_examples
         ))
+
+    if (
+            example_utils.AEROSOL_EXTINCTION_NAME not in
+            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    ):
+        return
 
     edge_aerosol_optical_depths = numpy.linspace(0, 1.5, num=11, dtype=float)
     edge_aerosol_optical_depths[-1] = numpy.inf
@@ -252,15 +266,6 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
             edge_aerosol_optical_depths[i + 1],
             this_num_examples
         ))
-
-    print('Writing {0:d} examples to file: "{1:s}"...'.format(
-        len(example_dict[example_utils.VALID_TIMES_KEY]),
-        output_file_name
-    ))
-
-    example_io.write_file(
-        example_dict=example_dict, netcdf_file_name=output_file_name
-    )
 
 
 if __name__ == '__main__':
