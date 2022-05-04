@@ -174,7 +174,9 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = rrtm_io.read_file(
             netcdf_file_name=this_file_name, allow_bad_values=True,
-            dummy_heights_m_agl=dummy_heights_m_agl
+            dummy_heights_m_agl=dummy_heights_m_agl,
+            look_for_shortwave=look_for_shortwave,
+            look_for_longwave=look_for_longwave
         )
 
         example_dicts.append(this_example_dict)

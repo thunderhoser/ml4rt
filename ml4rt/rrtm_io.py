@@ -513,43 +513,53 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     return example_dict
 
 
-def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
+def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl,
+                   look_for_shortwave, look_for_longwave):
     """Reads RRTM data, created with GFS inputs, from NetCDF file.
 
     :param netcdf_file_name: See doc for `read_file`.
     :param allow_bad_values: Same.
     :param dummy_heights_m_agl: Same.
+    :param look_for_shortwave: Same.
+    :param look_for_longwave: Same.
     :return: example_dict: Same.
     """
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
-    scalar_target_names = []
-    vector_target_names = []
-    look_for_shortwave = False
-    look_for_longwave = False
+    if look_for_shortwave:
+        if look_for_longwave:
+            scalar_target_names = (
+                SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
+                LONGWAVE_SCALAR_TARGET_NAMES_GFS
+            )
+            vector_target_names = (
+                SHORTWAVE_VECTOR_TARGET_NAMES_GFS +
+                LONGWAVE_VECTOR_TARGET_NAMES_GFS
+            )
+        else:
+            scalar_target_names = SHORTWAVE_SCALAR_TARGET_NAMES_GFS
+            vector_target_names = SHORTWAVE_VECTOR_TARGET_NAMES_GFS
+    else:
+        scalar_target_names = LONGWAVE_SCALAR_TARGET_NAMES_GFS
+        vector_target_names = LONGWAVE_VECTOR_TARGET_NAMES_GFS
 
-    print(dataset_object.variables)
+    scalar_target_names_orig = [
+        TARGET_NAME_TO_ORIG_GFS[n] for n in scalar_target_names
+    ]
+    vector_target_names_orig = [
+        TARGET_NAME_TO_ORIG_GFS[n] for n in vector_target_names
+    ]
 
-    if any([
-            TARGET_NAME_TO_ORIG_GFS[n] in dataset_object.variables for n in
-            SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
-            SHORTWAVE_VECTOR_TARGET_NAMES_GFS
-    ]):
-        scalar_target_names += SHORTWAVE_SCALAR_TARGET_NAMES_GFS
-        vector_target_names += SHORTWAVE_VECTOR_TARGET_NAMES_GFS
-        look_for_shortwave = True
-
-    if any([
-            TARGET_NAME_TO_ORIG_GFS[n] in dataset_object.variables for n in
-            LONGWAVE_SCALAR_TARGET_NAMES_GFS +
-            LONGWAVE_VECTOR_TARGET_NAMES_GFS
-    ]):
-        scalar_target_names += LONGWAVE_SCALAR_TARGET_NAMES_GFS
-        vector_target_names += LONGWAVE_VECTOR_TARGET_NAMES_GFS
-        look_for_longwave = True
-
-    assert look_for_shortwave or look_for_longwave
+    if not (look_for_shortwave and look_for_longwave):
+        scalar_target_names_orig = [
+            n.replace('longwave_', '').replace('shortwave_', '')
+            for n in scalar_target_names_orig
+        ]
+        vector_target_names_orig = [
+            n.replace('longwave_', '').replace('shortwave_', '')
+            for n in vector_target_names_orig
+        ]
 
     if look_for_shortwave:
         if look_for_longwave:
@@ -675,15 +685,15 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
         )
 
     for k in range(num_scalar_targets):
-        this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[scalar_target_names[k]]
         scalar_target_matrix[:, k] = numpy.array(
-            dataset_object.variables[this_target_name_orig][:], dtype=float
+            dataset_object.variables[scalar_target_names_orig[k]][:],
+            dtype=float
         )
 
     for k in range(num_vector_targets):
-        this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[vector_target_names[k]]
         vector_target_matrix[..., k] = numpy.array(
-            dataset_object.variables[this_target_name_orig][:], dtype=float
+            dataset_object.variables[vector_target_names_orig[k]][:],
+            dtype=float
         )
 
     example_dict.update({
@@ -904,7 +914,8 @@ def find_many_files(
 
 
 def read_file(netcdf_file_name, allow_bad_values=False,
-              dummy_heights_m_agl=None):
+              dummy_heights_m_agl=None, look_for_shortwave=True,
+              look_for_longwave=True):
     """Reads RRTM data from NetCDF file.
 
     E = number of examples
@@ -920,6 +931,9 @@ def read_file(netcdf_file_name, allow_bad_values=False,
     :param dummy_heights_m_agl: length-H numpy array of dummy heights (metres
         above ground level), used only if input file contains a different height
         grid for each example.
+    :param look_for_shortwave: Boolean flag.  If True, will look for shortwave
+        results.
+    :param look_for_longwave: Same but for longwave.
 
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (E x P_s) with values
@@ -948,6 +962,11 @@ def read_file(netcdf_file_name, allow_bad_values=False,
     """
 
     error_checking.assert_is_boolean(allow_bad_values)
+    error_checking.assert_is_boolean(look_for_shortwave)
+    error_checking.assert_is_boolean(look_for_longwave)
+    error_checking.assert_is_greater(
+        int(look_for_shortwave) + int(look_for_longwave), 0
+    )
 
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
@@ -965,7 +984,9 @@ def read_file(netcdf_file_name, allow_bad_values=False,
         return _read_file_gfs(
             netcdf_file_name=netcdf_file_name,
             allow_bad_values=allow_bad_values,
-            dummy_heights_m_agl=dummy_heights_m_agl
+            dummy_heights_m_agl=dummy_heights_m_agl,
+            look_for_shortwave=look_for_shortwave,
+            look_for_longwave=look_for_longwave
         )
 
     example_dict = {
