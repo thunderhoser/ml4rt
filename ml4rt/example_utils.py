@@ -1919,9 +1919,14 @@ def create_example_ids(example_dict):
     zenith_angles_rad = get_field_from_dict(
         example_dict=example_dict, field_name=ZENITH_ANGLE_NAME
     )
-    albedos = get_field_from_dict(
-        example_dict=example_dict, field_name=ALBEDO_NAME
-    )
+
+    if ALBEDO_NAME in example_dict[SCALAR_PREDICTOR_NAMES_KEY]:
+        albedos = get_field_from_dict(
+            example_dict=example_dict, field_name=ALBEDO_NAME
+        )
+    else:
+        albedos = numpy.full(zenith_angles_rad.shape, 0.)
+
     valid_times_unix_sec = example_dict[VALID_TIMES_KEY]
     standard_atmo_flags = example_dict[STANDARD_ATMO_FLAGS_KEY]
 
