@@ -874,7 +874,7 @@ def read_file(netcdf_file_name, allow_bad_values=False,
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     if (
-            TARGET_NAME_TO_ORIG_GFS[example_utils.SHORTWAVE_UP_FLUX_NAME]
+            PREDICTOR_NAME_TO_ORIG_GFS[example_utils.O3_MIXING_RATIO_NAME]
             in dataset_object.variables
     ):
         dataset_object.close()
