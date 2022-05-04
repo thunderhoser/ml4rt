@@ -80,6 +80,43 @@ VALID_TIMES_KEY_GFS = 'valid_time_unix_sec'
 HEIGHTS_KEY_GFS = 'height_m_agl'
 STANDARD_ATMO_FLAGS_KEY_GFS = 'standard_atmosphere_enum'
 
+REQUIRED_SHORTWAVE_PREDICTOR_NAMES = [
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME,
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
+    # example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_CONTENT_NAME,
+    example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
+    example_utils.CH4_CONCENTRATION_NAME, example_utils.N2O_CONCENTRATION_NAME,
+    example_utils.AEROSOL_EXTINCTION_NAME,
+    example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
+]
+
+REQUIRED_LONGWAVE_PREDICTOR_NAMES = [
+    example_utils.ZENITH_ANGLE_NAME,
+    # example_utils.ALBEDO_NAME,
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME,
+    # example_utils.AEROSOL_ALBEDO_NAME,
+    # example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
+    example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_CONTENT_NAME,
+    example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
+    example_utils.CH4_CONCENTRATION_NAME, example_utils.N2O_CONCENTRATION_NAME,
+    # example_utils.AEROSOL_EXTINCTION_NAME,
+    example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
+]
+
 DEFAULT_SCALAR_PREDICTOR_NAMES_GFS = DEFAULT_SCALAR_PREDICTOR_NAMES + [
     example_utils.AEROSOL_ALBEDO_NAME,
     example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
@@ -469,36 +506,93 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     return example_dict
 
 
-def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
+def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl,
+                   look_for_shortwave, look_for_longwave):
     """Reads RRTM data, created with GFS inputs, from NetCDF file.
 
     :param netcdf_file_name: See doc for `read_file`.
     :param allow_bad_values: Same.
     :param dummy_heights_m_agl: Same.
+    :param look_for_shortwave: Same.
+    :param look_for_longwave: Same.
     :return: example_dict: Same.
     """
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
-    scalar_predictor_names = copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES_GFS)
-    vector_predictor_names = copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES_GFS)
-    scalar_target_names = []
-    vector_target_names = []
+    if look_for_shortwave:
+        if look_for_longwave:
+            scalar_target_names = (
+                SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
+                LONGWAVE_SCALAR_TARGET_NAMES_GFS
+            )
+            vector_target_names = (
+                SHORTWAVE_VECTOR_TARGET_NAMES_GFS +
+                LONGWAVE_VECTOR_TARGET_NAMES_GFS
+            )
+        else:
+            scalar_target_names = SHORTWAVE_SCALAR_TARGET_NAMES_GFS
+            vector_target_names = SHORTWAVE_VECTOR_TARGET_NAMES_GFS
+    else:
+        scalar_target_names = LONGWAVE_SCALAR_TARGET_NAMES_GFS
+        vector_target_names = LONGWAVE_VECTOR_TARGET_NAMES_GFS
 
-    if any([
-            n in dataset_object.variables for n in
-            SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
-            SHORTWAVE_VECTOR_TARGET_NAMES_GFS
-    ]):
-        scalar_target_names += SHORTWAVE_SCALAR_TARGET_NAMES_GFS
-        vector_target_names += SHORTWAVE_VECTOR_TARGET_NAMES_GFS
+    scalar_target_names_orig = [
+        TARGET_NAME_TO_ORIG_GFS[n] for n in scalar_target_names
+    ]
+    vector_target_names_orig = [
+        TARGET_NAME_TO_ORIG_GFS[n] for n in vector_target_names
+    ]
 
-    if any([
-            n in dataset_object.variables for n in
-            LONGWAVE_SCALAR_TARGET_NAMES_GFS + LONGWAVE_VECTOR_TARGET_NAMES_GFS
-    ]):
-        scalar_target_names += LONGWAVE_SCALAR_TARGET_NAMES_GFS
-        vector_target_names += LONGWAVE_VECTOR_TARGET_NAMES_GFS
+    if not (look_for_shortwave and look_for_longwave):
+        scalar_target_names_orig = [
+            n.replace('longwave_', '').replace('shortwave_', '')
+            for n in scalar_target_names_orig
+        ]
+        vector_target_names_orig = [
+            n.replace('longwave_', '').replace('shortwave_', '')
+            for n in vector_target_names_orig
+        ]
+
+    if look_for_shortwave:
+        if look_for_longwave:
+            required_predictor_names = list(
+                set(REQUIRED_SHORTWAVE_PREDICTOR_NAMES) &
+                set(REQUIRED_LONGWAVE_PREDICTOR_NAMES)
+            )
+        else:
+            required_predictor_names = REQUIRED_SHORTWAVE_PREDICTOR_NAMES
+    else:
+        required_predictor_names = REQUIRED_LONGWAVE_PREDICTOR_NAMES
+
+    scalar_predictor_names = []
+    vector_predictor_names = []
+
+    for this_name in DEFAULT_SCALAR_PREDICTOR_NAMES_GFS:
+        if this_name in required_predictor_names:
+            scalar_predictor_names.append(this_name)
+            continue
+
+        if (
+                PREDICTOR_NAME_TO_ORIG_GFS[this_name] not in
+                dataset_object.variables
+        ):
+            continue
+
+        scalar_predictor_names.append(this_name)
+
+    for this_name in DEFAULT_VECTOR_PREDICTOR_NAMES_GFS:
+        if this_name in required_predictor_names:
+            vector_predictor_names.append(this_name)
+            continue
+
+        if (
+                PREDICTOR_NAME_TO_ORIG_GFS[this_name] not in
+                dataset_object.variables
+        ):
+            continue
+
+        vector_predictor_names.append(this_name)
 
     height_matrix_m_agl = numpy.array(
         dataset_object.variables[HEIGHTS_KEY_GFS][:], dtype=float
@@ -584,15 +678,15 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
         )
 
     for k in range(num_scalar_targets):
-        this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[scalar_target_names[k]]
         scalar_target_matrix[:, k] = numpy.array(
-            dataset_object.variables[this_target_name_orig][:], dtype=float
+            dataset_object.variables[scalar_target_names_orig[k]][:],
+            dtype=float
         )
 
     for k in range(num_vector_targets):
-        this_target_name_orig = TARGET_NAME_TO_ORIG_GFS[vector_target_names[k]]
         vector_target_matrix[..., k] = numpy.array(
-            dataset_object.variables[this_target_name_orig][:], dtype=float
+            dataset_object.variables[vector_target_names_orig[k]][:],
+            dtype=float
         )
 
     example_dict.update({
@@ -813,7 +907,8 @@ def find_many_files(
 
 
 def read_file(netcdf_file_name, allow_bad_values=False,
-              dummy_heights_m_agl=None):
+              dummy_heights_m_agl=None, look_for_shortwave=True,
+              look_for_longwave=True):
     """Reads RRTM data from NetCDF file.
 
     E = number of examples
@@ -829,6 +924,9 @@ def read_file(netcdf_file_name, allow_bad_values=False,
     :param dummy_heights_m_agl: length-H numpy array of dummy heights (metres
         above ground level), used only if input file contains a different height
         grid for each example.
+    :param look_for_shortwave: Boolean flag.  If True, will look for shortwave
+        results.
+    :param look_for_longwave: Same but for longwave.
 
     :return: example_dict: Dictionary with the following keys.
     example_dict['scalar_predictor_matrix']: numpy array (E x P_s) with values
@@ -857,6 +955,11 @@ def read_file(netcdf_file_name, allow_bad_values=False,
     """
 
     error_checking.assert_is_boolean(allow_bad_values)
+    error_checking.assert_is_boolean(look_for_shortwave)
+    error_checking.assert_is_boolean(look_for_longwave)
+    error_checking.assert_is_greater(
+        int(look_for_shortwave) + int(look_for_longwave), 0
+    )
 
     # TODO(thunderhoser): This is a HACK.
     if not os.path.isfile(netcdf_file_name):
@@ -867,14 +970,16 @@ def read_file(netcdf_file_name, allow_bad_values=False,
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     if (
-            TARGET_NAME_TO_ORIG_GFS[example_utils.SHORTWAVE_UP_FLUX_NAME]
+            PREDICTOR_NAME_TO_ORIG_GFS[example_utils.O3_MIXING_RATIO_NAME]
             in dataset_object.variables
     ):
         dataset_object.close()
         return _read_file_gfs(
             netcdf_file_name=netcdf_file_name,
             allow_bad_values=allow_bad_values,
-            dummy_heights_m_agl=dummy_heights_m_agl
+            dummy_heights_m_agl=dummy_heights_m_agl,
+            look_for_shortwave=look_for_shortwave,
+            look_for_longwave=look_for_longwave
         )
 
     example_dict = {
