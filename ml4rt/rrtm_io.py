@@ -529,6 +529,8 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
     look_for_shortwave = False
     look_for_longwave = False
 
+    print(dataset_object.variables)
+
     if any([
             TARGET_NAME_TO_ORIG_GFS[n] in dataset_object.variables for n in
             SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
