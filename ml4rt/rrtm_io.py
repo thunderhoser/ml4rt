@@ -87,6 +87,43 @@ VALID_TIMES_KEY_GFS = 'valid_time_unix_sec'
 HEIGHTS_KEY_GFS = 'height_m_agl'
 STANDARD_ATMO_FLAGS_KEY_GFS = 'standard_atmosphere_enum'
 
+REQUIRED_SHORTWAVE_PREDICTOR_NAMES = [
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME,
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
+    # example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_CONTENT_NAME,
+    example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
+    example_utils.CH4_CONCENTRATION_NAME, example_utils.N2O_CONCENTRATION_NAME,
+    example_utils.AEROSOL_EXTINCTION_NAME,
+    example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
+]
+
+REQUIRED_LONGWAVE_PREDICTOR_NAMES = [
+    example_utils.ZENITH_ANGLE_NAME,
+    # example_utils.ALBEDO_NAME,
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME,
+    # example_utils.AEROSOL_ALBEDO_NAME,
+    # example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
+    example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.LIQUID_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_CONTENT_NAME,
+    example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
+    example_utils.CH4_CONCENTRATION_NAME, example_utils.N2O_CONCENTRATION_NAME,
+    # example_utils.AEROSOL_EXTINCTION_NAME,
+    example_utils.LIQUID_EFF_RADIUS_NAME, example_utils.ICE_EFF_RADIUS_NAME
+]
+
 DEFAULT_SCALAR_PREDICTOR_NAMES_GFS = DEFAULT_SCALAR_PREDICTOR_NAMES + [
     example_utils.AEROSOL_ALBEDO_NAME,
     example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
@@ -487,25 +524,70 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl):
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
-    scalar_predictor_names = copy.deepcopy(DEFAULT_SCALAR_PREDICTOR_NAMES_GFS)
-    vector_predictor_names = copy.deepcopy(DEFAULT_VECTOR_PREDICTOR_NAMES_GFS)
     scalar_target_names = []
     vector_target_names = []
+    look_for_shortwave = False
+    look_for_longwave = False
 
     if any([
-            n in dataset_object.variables for n in
+            TARGET_NAME_TO_ORIG_GFS[n] in dataset_object.variables for n in
             SHORTWAVE_SCALAR_TARGET_NAMES_GFS +
             SHORTWAVE_VECTOR_TARGET_NAMES_GFS
     ]):
         scalar_target_names += SHORTWAVE_SCALAR_TARGET_NAMES_GFS
         vector_target_names += SHORTWAVE_VECTOR_TARGET_NAMES_GFS
+        look_for_shortwave = True
 
     if any([
-            n in dataset_object.variables for n in
-            LONGWAVE_SCALAR_TARGET_NAMES_GFS + LONGWAVE_VECTOR_TARGET_NAMES_GFS
+            TARGET_NAME_TO_ORIG_GFS[n] in dataset_object.variables for n in
+            LONGWAVE_SCALAR_TARGET_NAMES_GFS +
+            LONGWAVE_VECTOR_TARGET_NAMES_GFS
     ]):
         scalar_target_names += LONGWAVE_SCALAR_TARGET_NAMES_GFS
         vector_target_names += LONGWAVE_VECTOR_TARGET_NAMES_GFS
+        look_for_longwave = True
+
+    assert look_for_shortwave or look_for_longwave
+
+    if look_for_shortwave:
+        if look_for_longwave:
+            required_predictor_names = list(
+                set(REQUIRED_SHORTWAVE_PREDICTOR_NAMES) &
+                set(REQUIRED_LONGWAVE_PREDICTOR_NAMES)
+            )
+        else:
+            required_predictor_names = REQUIRED_SHORTWAVE_PREDICTOR_NAMES
+    else:
+        required_predictor_names = REQUIRED_LONGWAVE_PREDICTOR_NAMES
+
+    scalar_predictor_names = []
+    vector_predictor_names = []
+
+    for this_name in DEFAULT_SCALAR_PREDICTOR_NAMES_GFS:
+        if this_name in required_predictor_names:
+            scalar_predictor_names.append(this_name)
+            continue
+
+        if (
+                PREDICTOR_NAME_TO_ORIG_GFS[this_name] not in
+                dataset_object.variables
+        ):
+            continue
+
+        scalar_predictor_names.append(this_name)
+
+    for this_name in DEFAULT_VECTOR_PREDICTOR_NAMES_GFS:
+        if this_name in required_predictor_names:
+            vector_predictor_names.append(this_name)
+            continue
+
+        if (
+                PREDICTOR_NAME_TO_ORIG_GFS[this_name] not in
+                dataset_object.variables
+        ):
+            continue
+
+        vector_predictor_names.append(this_name)
 
     height_matrix_m_agl = numpy.array(
         dataset_object.variables[HEIGHTS_KEY_GFS][:], dtype=float
