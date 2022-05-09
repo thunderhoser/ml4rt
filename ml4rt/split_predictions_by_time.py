@@ -24,7 +24,7 @@ import prediction_io
 import example_io
 import example_utils
 
-MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
+MAX_ZENITH_ANGLE_RAD = numpy.pi
 MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02 = 1200.
 MAX_AEROSOL_OPTICAL_DEPTH = 1.8
 MIN_SURFACE_TEMP_KELVINS = 190.
