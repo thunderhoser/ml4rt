@@ -1,0 +1,52 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_errors_by_space_and_aod"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=24:00:00
+#SBATCH --array=1-36
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_errors_by_space_and_aod_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/lw_only_experiment"
+
+set FLUX_LOSS_SCALING_FACTORS=(0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52 0.32 0.36 0.50 0.52)
+set AOD_BIN_STRINGS=("000" "000" "000" "000" "001" "001" "001" "001" "002" "002" "002" "002" "003" "003" "003" "003" "004" "004" "004" "004" "005" "005" "005" "005" "006" "006" "006" "006" "007" "007" "007" "007" "008" "008" "008" "008")
+
+set flux_loss_scaling_factor=${FLUX_LOSS_SCALING_FACTORS[$SLURM_ARRAY_TASK_ID]}
+set flux_loss_scaling_factor=`printf "%.2f" $flux_loss_scaling_factor`
+set aod_bin_string=${AOD_BIN_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/flux-loss-scaling-factor=${flux_loss_scaling_factor}"
+
+set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+
+set prediction_dir_name="${model_dir_name}/isotonic_regression/validation/by_time"
+
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
+--input_prediction_file_name="${prediction_dir_name}/predictions_aerosol-optical-depth-bin=${aod_bin_string}.nc" \
+--heating_rate_height_m_agl=-1 \
+--grid_spacing_deg=5 \
+--min_num_examples=1 \
+--output_dir_name="${prediction_dir_name}/errors_by_space/aerosol-optical-depth-bin=${aod_bin_string}"
+
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_space.py" \
+--input_prediction_file_name="${prediction_dir_name}/predictions_aerosol-optical-depth-bin=${aod_bin_string}.nc" \
+--heating_rate_height_m_agl=21 \
+--grid_spacing_deg=5 \
+--min_num_examples=1 \
+--output_dir_name="${prediction_dir_name}/errors_by_space/aerosol-optical-depth-bin=${aod_bin_string}"

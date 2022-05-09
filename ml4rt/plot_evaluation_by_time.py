@@ -30,19 +30,32 @@ ZENITH_ANGLE_STRING = 'zenith_angle'
 ALBEDO_STRING = 'albedo'
 SHORTWAVE_SURFACE_DOWN_FLUX_STRING = 'shortwave_surface_down_flux'
 AEROSOL_OPTICAL_DEPTH_STRING = 'aerosol_optical_depth'
+SURFACE_TEMP_STRING = 'surface_temp'
+LONGWAVE_SURFACE_DOWN_FLUX_STRING = 'longwave_surface_down_flux'
+LONGWAVE_TOA_UP_FLUX_STRING = 'longwave_toa_up_flux'
 
 VALID_SPLIT_TYPE_STRINGS = [
     MONTH_STRING, ZENITH_ANGLE_STRING, ALBEDO_STRING,
-    SHORTWAVE_SURFACE_DOWN_FLUX_STRING, AEROSOL_OPTICAL_DEPTH_STRING
+    SHORTWAVE_SURFACE_DOWN_FLUX_STRING, AEROSOL_OPTICAL_DEPTH_STRING,
+    SURFACE_TEMP_STRING, LONGWAVE_SURFACE_DOWN_FLUX_STRING,
+    LONGWAVE_TOA_UP_FLUX_STRING
 ]
 
-MIN_ZENITH_ANGLE_RAD = 0.
-MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
 RADIANS_TO_DEGREES = 180. / numpy.pi
+
+MAX_ZENITH_ANGLE_RAD = split_predictions.MAX_ZENITH_ANGLE_RAD
 MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02 = (
     split_predictions.MAX_SHORTWAVE_SFC_DOWN_FLUX_W_M02
 )
 MAX_AEROSOL_OPTICAL_DEPTH = split_predictions.MAX_AEROSOL_OPTICAL_DEPTH
+MIN_SURFACE_TEMP_KELVINS = split_predictions.MIN_SURFACE_TEMP_KELVINS
+MAX_SURFACE_TEMP_KELVINS = split_predictions.MAX_SURFACE_TEMP_KELVINS
+MAX_LONGWAVE_SFC_DOWN_FLUX_W_M02 = (
+    split_predictions.MAX_LONGWAVE_SFC_DOWN_FLUX_W_M02
+)
+MAX_LONGWAVE_TOA_UP_FLUX_W_M02 = (
+    split_predictions.MAX_LONGWAVE_TOA_UP_FLUX_W_M02
+)
 
 EXAMPLE_DIM = 'example'
 SCALAR_TARGET_KEY = 'scalar_target_value'
@@ -94,8 +107,11 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_ALBEDO_BINS_ARG_NAME = 'num_albedo_bins'
-NUM_FLUX_BINS_ARG_NAME = 'num_shortwave_sfc_down_flux_bins'
+NUM_SW_DOWN_FLUX_BINS_ARG_NAME = 'num_shortwave_sfc_down_flux_bins'
 NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
+NUM_SURFACE_TEMP_BINS_ARG_NAME = 'num_surface_temp_bins'
+NUM_LW_DOWN_FLUX_BINS_ARG_NAME = 'num_longwave_sfc_down_flux_bins'
+NUM_LW_UP_FLUX_BINS_ARG_NAME = 'num_longwave_toa_up_flux_bins'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -104,15 +120,33 @@ INPUT_DIR_HELP_STRING = (
     'one for each month).  Files will be found by `evaluation.find_file` and '
     'read by `evaluation.read_file`.'
 )
-NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for zenith angle.'
-NUM_ALBEDO_BINS_HELP_STRING = 'Number of bins for albedo.'
-NUM_FLUX_BINS_HELP_STRING = (
+NUM_ANGLE_BINS_HELP_STRING = (
+    'Number of bins for zenith angle.  If you do not want plots as a function '
+    'of zenith angle, make this <= 0.'
+)
+NUM_ALBEDO_BINS_HELP_STRING = (
+    'Number of bins for surface albedo.  If you do not want plots as a '
+    'function of surface albedo, make this <= 0.'
+)
+NUM_SW_DOWN_FLUX_BINS_HELP_STRING = (
     'Number of bins for shortwave surface downwelling flux.  If you do not want'
-    ' to split by shortwave surface downwelling flux, make this argument <= 0.'
+    ' plots as a function of SW sfc down flux, make this <= 0.'
 )
 NUM_AOD_BINS_HELP_STRING = (
-    'Number of bins for aerosol optical depth (AOD).  If you do not want to '
-    'split by AOD, make this argument <= 0.'
+    'Number of bins for aerosol optical depth (AOD).  If you do not want plots '
+    'as a function of AOD, make this <= 0.'
+)
+NUM_SURFACE_TEMP_BINS_HELP_STRING = (
+    'Number of bins for surface temperature.  If you do not want plots as a '
+    'function of surface temperature, make this <= 0.'
+)
+NUM_LW_DOWN_FLUX_BINS_HELP_STRING = (
+    'Number of bins for longwave surface downwelling flux.  If you do not want '
+    'plots as a function of LW sfc down flux, make this <= 0.'
+)
+NUM_LW_UP_FLUX_BINS_HELP_STRING = (
+    'Number of bins for longwave TOA upwelling flux.  If you do not want plots '
+    'as a function of LW TOA up flux, make this <= 0.'
 )
 CONFIDENCE_LEVEL_HELP_STRING = (
     'Confidence level (from 0...1).  If you do not want to plot confidence '
@@ -136,12 +170,24 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_ALBEDO_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_FLUX_BINS_ARG_NAME, type=int, required=False, default=-1,
-    help=NUM_FLUX_BINS_HELP_STRING
+    '--' + NUM_SW_DOWN_FLUX_BINS_ARG_NAME, type=int, required=False, default=12,
+    help=NUM_SW_DOWN_FLUX_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=-1,
+    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=9,
     help=NUM_AOD_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_SURFACE_TEMP_BINS_ARG_NAME, type=int, required=False, default=14,
+    help=NUM_SURFACE_TEMP_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_LW_DOWN_FLUX_BINS_ARG_NAME, type=int, required=False, default=10,
+    help=NUM_LW_DOWN_FLUX_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_LW_UP_FLUX_BINS_ARG_NAME, type=int, required=False, default=10,
+    help=NUM_LW_UP_FLUX_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=-1,
@@ -653,8 +699,7 @@ def _plot_all_scores_one_split(
         ]
 
         bin_edge_angles_deg = RADIANS_TO_DEGREES * numpy.linspace(
-            MIN_ZENITH_ANGLE_RAD, MAX_ZENITH_ANGLE_RAD,
-            num=num_bins + 1, dtype=float
+            0, MAX_ZENITH_ANGLE_RAD, num=num_bins + 1, dtype=float
         )
 
         x_tick_label_strings = ['foo'] * num_bins
@@ -685,7 +730,7 @@ def _plot_all_scores_one_split(
         x_tick_label_strings = ['foo'] * num_bins
 
         for k in range(num_bins):
-            x_tick_label_strings[k] = '[{0:.3f}, {1:.3f}'.format(
+            x_tick_label_strings[k] = '[{0:.2f}, {1:.2f}'.format(
                 edge_albedos[k], edge_albedos[k + 1]
             )
 
@@ -712,13 +757,13 @@ def _plot_all_scores_one_split(
         x_tick_label_strings = ['foo'] * num_bins
 
         for k in range(num_bins):
-            x_tick_label_strings[k] = '[{0:.3f}, {1:.3f}]'.format(
+            x_tick_label_strings[k] = '[{0:.1f}, {1:.1f}]'.format(
                 edge_fluxes_w_m02[k], edge_fluxes_w_m02[k + 1]
             )
 
-        x_axis_label_string = r'Surface downwelling flxu (W m$^{-2}$)'
+        x_axis_label_string = r'Sfc SW downwelling flux (W m$^{-2}$)'
 
-    else:
+    elif split_type_string == AEROSOL_OPTICAL_DEPTH_STRING:
         bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
         evaluation_file_names = [
             evaluation.find_file(
@@ -733,12 +778,78 @@ def _plot_all_scores_one_split(
         x_tick_label_strings = ['foo'] * num_bins
 
         for k in range(num_bins):
-            x_tick_label_strings[k] = '[{0:.3f}, {1:.3f}]'.format(
+            x_tick_label_strings[k] = '[{0:.2f}, {1:.2f}]'.format(
                 edge_aerosol_optical_depths[k],
                 edge_aerosol_optical_depths[k + 1]
             )
 
         x_axis_label_string = 'Aerosol optical depth'
+
+    elif split_type_string == SURFACE_TEMP_STRING:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, surface_temp_bin=k
+            ) for k in bin_indices
+        ]
+
+        edge_temps_kelvins = numpy.linspace(
+            MIN_SURFACE_TEMP_KELVINS, MAX_SURFACE_TEMP_KELVINS,
+            num=num_bins + 1, dtype=float
+        )
+        edge_temps_kelvins[0] = -numpy.inf
+        edge_temps_kelvins[-1] = numpy.inf
+        x_tick_label_strings = ['foo'] * num_bins
+
+        for k in range(num_bins):
+            x_tick_label_strings[k] = '[{0:.1f}, {1:.1f}]'.format(
+                edge_temps_kelvins[k],
+                edge_temps_kelvins[k + 1]
+            )
+
+        x_axis_label_string = 'Surface temperature (K)'
+
+    elif split_type_string == LONGWAVE_SURFACE_DOWN_FLUX_STRING:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, longwave_sfc_down_flux_bin=k
+            ) for k in bin_indices
+        ]
+
+        edge_fluxes_w_m02 = numpy.linspace(
+            0, MAX_LONGWAVE_SFC_DOWN_FLUX_W_M02, num=num_bins + 1, dtype=float
+        )
+        edge_fluxes_w_m02[-1] = numpy.inf
+        x_tick_label_strings = ['foo'] * num_bins
+
+        for k in range(num_bins):
+            x_tick_label_strings[k] = '[{0:.1f}, {1:.1f}]'.format(
+                edge_fluxes_w_m02[k], edge_fluxes_w_m02[k + 1]
+            )
+
+        x_axis_label_string = r'Sfc LW downwelling flux (W m$^{-2}$)'
+
+    else:
+        bin_indices = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+        evaluation_file_names = [
+            evaluation.find_file(
+                directory_name=evaluation_dir_name, longwave_toa_up_flux_bin=k
+            ) for k in bin_indices
+        ]
+
+        edge_fluxes_w_m02 = numpy.linspace(
+            0, MAX_LONGWAVE_TOA_UP_FLUX_W_M02, num=num_bins + 1, dtype=float
+        )
+        edge_fluxes_w_m02[-1] = numpy.inf
+        x_tick_label_strings = ['foo'] * num_bins
+
+        for k in range(num_bins):
+            x_tick_label_strings[k] = '[{0:.1f}, {1:.1f}]'.format(
+                edge_fluxes_w_m02[k], edge_fluxes_w_m02[k + 1]
+            )
+
+        x_axis_label_string = r'TOA LW upwelling flux (W m$^{-2}$)'
 
     evaluation_tables_xarray = _read_files_one_split(evaluation_file_names)
     print(SEPARATOR_STRING)
@@ -1018,8 +1129,9 @@ def _plot_all_scores_one_split(
 
 
 def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
-         num_shortwave_sfc_down_flux_bins, num_aod_bins, confidence_level,
-         top_output_dir_name):
+         num_shortwave_sfc_down_flux_bins, num_aod_bins, num_surface_temp_bins,
+         num_longwave_sfc_down_flux_bins, num_longwave_toa_up_flux_bins,
+         confidence_level, top_output_dir_name):
     """Plots evaluation scores by time of day and year.
 
     This is effectively the main method.
@@ -1029,11 +1141,12 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
     :param num_albedo_bins: Same.
     :param num_shortwave_sfc_down_flux_bins: Same.
     :param num_aod_bins: Same.
+    :param num_surface_temp_bins: Same.
+    :param num_longwave_sfc_down_flux_bins: Same.
+    :param num_longwave_toa_up_flux_bins: Same.
     :param confidence_level: Same.
     :param top_output_dir_name: Same.
     """
-
-    error_checking.assert_is_geq(num_zenith_angle_bins, 2)
 
     _plot_all_scores_one_split(
         evaluation_dir_name=evaluation_dir_name,
@@ -1042,20 +1155,22 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
     )
     print(SEPARATOR_STRING)
 
-    _plot_all_scores_one_split(
-        evaluation_dir_name=evaluation_dir_name,
-        output_dir_name='{0:s}/by_zenith_angle'.format(top_output_dir_name),
-        split_type_string=ZENITH_ANGLE_STRING, num_bins=num_zenith_angle_bins,
-        confidence_level=confidence_level
-    )
-    print(SEPARATOR_STRING)
+    if num_zenith_angle_bins > 0:
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_zenith_angle'.format(top_output_dir_name),
+            split_type_string=ZENITH_ANGLE_STRING,
+            num_bins=num_zenith_angle_bins, confidence_level=confidence_level
+        )
+        print(SEPARATOR_STRING)
 
-    _plot_all_scores_one_split(
-        evaluation_dir_name=evaluation_dir_name,
-        output_dir_name='{0:s}/by_albedo'.format(top_output_dir_name),
-        split_type_string=ALBEDO_STRING, num_bins=num_albedo_bins,
-        confidence_level=confidence_level
-    )
+    if num_albedo_bins > 0:
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_albedo'.format(top_output_dir_name),
+            split_type_string=ALBEDO_STRING, num_bins=num_albedo_bins,
+            confidence_level=confidence_level
+        )
 
     if num_shortwave_sfc_down_flux_bins > 0:
         print(SEPARATOR_STRING)
@@ -1080,6 +1195,39 @@ def _run(evaluation_dir_name, num_zenith_angle_bins, num_albedo_bins,
             num_bins=num_aod_bins, confidence_level=confidence_level
         )
 
+    if num_surface_temp_bins > 0:
+        print(SEPARATOR_STRING)
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_surface_temp'.format(top_output_dir_name),
+            split_type_string=SURFACE_TEMP_STRING,
+            num_bins=num_surface_temp_bins, confidence_level=confidence_level
+        )
+
+    if num_longwave_sfc_down_flux_bins > 0:
+        print(SEPARATOR_STRING)
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_longwave_sfc_down_flux'.format(
+                top_output_dir_name
+            ),
+            split_type_string=LONGWAVE_SURFACE_DOWN_FLUX_STRING,
+            num_bins=num_longwave_sfc_down_flux_bins,
+            confidence_level=confidence_level
+        )
+
+    if num_longwave_toa_up_flux_bins > 0:
+        print(SEPARATOR_STRING)
+        _plot_all_scores_one_split(
+            evaluation_dir_name=evaluation_dir_name,
+            output_dir_name='{0:s}/by_longwave_toa_up_flux'.format(
+                top_output_dir_name
+            ),
+            split_type_string=LONGWAVE_TOA_UP_FLUX_STRING,
+            num_bins=num_longwave_toa_up_flux_bins,
+            confidence_level=confidence_level
+        )
+
 
 if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
@@ -1091,9 +1239,18 @@ if __name__ == '__main__':
         ),
         num_albedo_bins=getattr(INPUT_ARG_OBJECT, NUM_ALBEDO_BINS_ARG_NAME),
         num_shortwave_sfc_down_flux_bins=getattr(
-            INPUT_ARG_OBJECT, NUM_FLUX_BINS_ARG_NAME
+            INPUT_ARG_OBJECT, NUM_SW_DOWN_FLUX_BINS_ARG_NAME
         ),
         num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
+        num_surface_temp_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_SURFACE_TEMP_BINS_ARG_NAME
+        ),
+        num_longwave_sfc_down_flux_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_LW_DOWN_FLUX_BINS_ARG_NAME
+        ),
+        num_longwave_toa_up_flux_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_LW_UP_FLUX_BINS_ARG_NAME
+        ),
         confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         top_output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

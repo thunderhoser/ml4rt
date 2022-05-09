@@ -67,6 +67,11 @@ def _run(prediction_file_name, num_bootstrap_reps, output_dir_name):
         file_metadata_dict[prediction_io.SHORTWAVE_SFC_DOWN_FLUX_BIN_KEY],
         aerosol_optical_depth_bin=
         file_metadata_dict[prediction_io.AEROSOL_OPTICAL_DEPTH_BIN_KEY],
+        surface_temp_bin=file_metadata_dict[prediction_io.SURFACE_TEMP_BIN_KEY],
+        longwave_sfc_down_flux_bin=
+        file_metadata_dict[prediction_io.LONGWAVE_SFC_DOWN_FLUX_BIN_KEY],
+        longwave_toa_up_flux_bin=
+        file_metadata_dict[prediction_io.LONGWAVE_TOA_UP_FLUX_BIN_KEY],
         grid_row=file_metadata_dict[prediction_io.GRID_ROW_KEY],
         grid_column=file_metadata_dict[prediction_io.GRID_COLUMN_KEY],
         raise_error_if_missing=False
