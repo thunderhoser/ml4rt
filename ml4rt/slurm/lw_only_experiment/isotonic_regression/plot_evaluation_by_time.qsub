@@ -36,9 +36,12 @@ set evaluation_dir_name="${model_dir_name}/isotonic_regression/validation/by_tim
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_time.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
---num_zenith_angle_bins=9 \
---num_albedo_bins=20 \
---num_shortwave_sfc_down_flux_bins=12 \
---num_aod_bins=9 \
+--num_zenith_angle_bins=18 \
+--num_albedo_bins=0 \
+--num_shortwave_sfc_down_flux_bins=0 \
+--num_aod_bins=0 \
+--num_surface_temp_bins=14 \
+--num_longwave_sfc_down_flux_bins=10 \
+--num_longwave_toa_up_flux_bins=10 \
 --confidence_level=0.99 \
 --output_dir_name="${evaluation_dir_name}/evaluation"
