@@ -42,13 +42,18 @@ ZENITH_ANGLE_BIN_KEY = 'zenith_angle_bin'
 ALBEDO_BIN_KEY = 'albedo_bin'
 SHORTWAVE_SFC_DOWN_FLUX_BIN_KEY = 'shortwave_sfc_down_flux_bin'
 AEROSOL_OPTICAL_DEPTH_BIN_KEY = 'aerosol_optical_depth_bin'
+SURFACE_TEMP_BIN_KEY = 'surface_temp_bin'
+LONGWAVE_SFC_DOWN_FLUX_BIN_KEY = 'longwave_sfc_down_flux_bin'
+LONGWAVE_TOA_UP_FLUX_BIN_KEY = 'longwave_toa_up_flux_bin'
 MONTH_KEY = 'month'
 GRID_ROW_KEY = 'grid_row'
 GRID_COLUMN_KEY = 'grid_column'
 
 METADATA_KEYS = [
     ZENITH_ANGLE_BIN_KEY, ALBEDO_BIN_KEY, SHORTWAVE_SFC_DOWN_FLUX_BIN_KEY,
-    AEROSOL_OPTICAL_DEPTH_BIN_KEY, MONTH_KEY, GRID_ROW_KEY, GRID_COLUMN_KEY
+    AEROSOL_OPTICAL_DEPTH_BIN_KEY, SURFACE_TEMP_BIN_KEY,
+    LONGWAVE_SFC_DOWN_FLUX_BIN_KEY, LONGWAVE_TOA_UP_FLUX_BIN_KEY,
+    MONTH_KEY, GRID_ROW_KEY, GRID_COLUMN_KEY
 ]
 
 GRID_ROW_DIMENSION_KEY = 'row'
@@ -60,8 +65,9 @@ LONGITUDES_KEY = 'longitude_deg_e'
 def find_file(
         directory_name, zenith_angle_bin=None, albedo_bin=None,
         shortwave_sfc_down_flux_bin=None, aerosol_optical_depth_bin=None,
-        month=None, grid_row=None, grid_column=None,
-        raise_error_if_missing=True):
+        surface_temp_bin=None, longwave_sfc_down_flux_bin=None,
+        longwave_toa_up_flux_bin=None, month=None, grid_row=None,
+        grid_column=None, raise_error_if_missing=True):
     """Finds NetCDF file with predictions.
 
     :param directory_name: Name of directory where file is expected.
@@ -76,6 +82,13 @@ def find_file(
     :param aerosol_optical_depth_bin: Bin for aerosol optical depth
         (AOD; non-negative integer).  If file does not contain predictions for a
         specific AOD bin, leave this alone.
+    :param surface_temp_bin: Bin for surface temperature (non-negative integer).
+        If file does not contain predictions for a specific surface-temperature
+        bin, leave this alone.
+    :param longwave_sfc_down_flux_bin: Same as `shortwave_sfc_down_flux_bin` but
+        for longwave.
+    :param longwave_toa_up_flux_bin: Same as `longwave_sfc_down_flux_bin` but
+        for top-of-atmosphere upwelling flux.
     :param month: Month (integer from 1...12).  If file does not contain
         predictions for a specific month, leave this alone.
     :param grid_row: Grid row (non-negative integer).  If file does not contain
@@ -141,6 +154,39 @@ def find_file(
 
         prediction_file_name = '{0:s}/predictions_{1:s}={2:02d}.nc'.format(
             directory_name, MONTH_KEY.replace('_', '-'), month
+        )
+
+    elif surface_temp_bin is not None:
+        error_checking.assert_is_integer(surface_temp_bin)
+        error_checking.assert_is_geq(surface_temp_bin, 0)
+
+        prediction_file_name = (
+            '{0:s}/predictions_{1:s}={2:03d}.nc'
+        ).format(
+            directory_name, SURFACE_TEMP_BIN_KEY.replace('_', '-'),
+            surface_temp_bin
+        )
+
+    elif longwave_sfc_down_flux_bin is not None:
+        error_checking.assert_is_integer(longwave_sfc_down_flux_bin)
+        error_checking.assert_is_geq(longwave_sfc_down_flux_bin, 0)
+
+        prediction_file_name = (
+            '{0:s}/predictions_{1:s}={2:03d}.nc'
+        ).format(
+            directory_name, LONGWAVE_SFC_DOWN_FLUX_BIN_KEY.replace('_', '-'),
+            longwave_sfc_down_flux_bin
+        )
+
+    elif longwave_toa_up_flux_bin is not None:
+        error_checking.assert_is_integer(longwave_toa_up_flux_bin)
+        error_checking.assert_is_geq(longwave_toa_up_flux_bin, 0)
+
+        prediction_file_name = (
+            '{0:s}/predictions_{1:s}={2:03d}.nc'
+        ).format(
+            directory_name, LONGWAVE_TOA_UP_FLUX_BIN_KEY.replace('_', '-'),
+            longwave_toa_up_flux_bin
         )
 
     elif grid_row is not None or grid_column is not None:
@@ -757,6 +803,86 @@ def subset_by_shortwave_sfc_down_flux(
 
     k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    )
+    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+
+    desired_indices = numpy.where(numpy.logical_and(
+        actual_fluxes_w_m02 >= min_flux_w_m02,
+        actual_fluxes_w_m02 <= max_flux_w_m02
+    ))[0]
+
+    return subset_by_index(
+        prediction_dict=prediction_dict, desired_indices=desired_indices
+    )
+
+
+def subset_by_longwave_sfc_down_flux(
+        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+    """Subsets examples by longwave surface downwelling flux.
+
+    :param prediction_dict: See doc for `write_file`.
+    :param min_flux_w_m02: Minimum flux.
+    :param max_flux_w_m02: Max flux.
+    :return: prediction_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_geq(min_flux_w_m02, 0.)
+    error_checking.assert_is_greater(
+        max_flux_w_m02, min_flux_w_m02
+    )
+
+    model_file_name = prediction_dict[MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+        example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+    )
+    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+
+    desired_indices = numpy.where(numpy.logical_and(
+        actual_fluxes_w_m02 >= min_flux_w_m02,
+        actual_fluxes_w_m02 <= max_flux_w_m02
+    ))[0]
+
+    return subset_by_index(
+        prediction_dict=prediction_dict, desired_indices=desired_indices
+    )
+
+
+def subset_by_longwave_toa_up_flux(
+        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+    """Subsets examples by longwave TOA upwelling flux.
+
+    :param prediction_dict: See doc for `write_file`.
+    :param min_flux_w_m02: Minimum flux.
+    :param max_flux_w_m02: Max flux.
+    :return: prediction_dict: Same as input but with fewer examples.
+    """
+
+    error_checking.assert_is_geq(min_flux_w_m02, 0.)
+    error_checking.assert_is_greater(
+        max_flux_w_m02, min_flux_w_m02
+    )
+
+    model_file_name = prediction_dict[MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+        example_utils.LONGWAVE_TOA_UP_FLUX_NAME
     )
     actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
 

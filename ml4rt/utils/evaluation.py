@@ -1473,8 +1473,10 @@ def get_scores_all_variables(
 
 def find_file(
         directory_name, zenith_angle_bin=None, albedo_bin=None,
-        shortwave_sfc_down_flux_bin=None, aerosol_optical_depth_bin=None, month=None,
-        grid_row=None, grid_column=None, raise_error_if_missing=True):
+        shortwave_sfc_down_flux_bin=None, aerosol_optical_depth_bin=None,
+        month=None, surface_temp_bin=None, longwave_sfc_down_flux_bin=None,
+        longwave_toa_up_flux_bin=None, grid_row=None, grid_column=None,
+        raise_error_if_missing=True):
     """Finds NetCDF file with evaluation results.
 
     :param directory_name: See doc for `prediction_io.find_file`.
@@ -1483,6 +1485,9 @@ def find_file(
     :param shortwave_sfc_down_flux_bin: Same.
     :param aerosol_optical_depth_bin: Same.
     :param month: Same.
+    :param surface_temp_bin: Same.
+    :param longwave_sfc_down_flux_bin: Same.
+    :param longwave_toa_up_flux_bin: Same.
     :param grid_row: Same.
     :param grid_column: Same.
     :param raise_error_if_missing: Same.
@@ -1494,6 +1499,9 @@ def find_file(
         albedo_bin=albedo_bin,
         shortwave_sfc_down_flux_bin=shortwave_sfc_down_flux_bin,
         aerosol_optical_depth_bin=aerosol_optical_depth_bin, month=month,
+        surface_temp_bin=surface_temp_bin,
+        longwave_sfc_down_flux_bin=longwave_sfc_down_flux_bin,
+        longwave_toa_up_flux_bin=longwave_toa_up_flux_bin,
         grid_row=grid_row, grid_column=grid_column,
         raise_error_if_missing=raise_error_if_missing
     )
