@@ -298,6 +298,12 @@ def _plot_attributes_diagram(
             for t in evaluation_tables_xarray
         ], dtype=int)
 
+        this_msess = evaluation_tables_xarray[0][evaluation.AUX_MSE_SKILL_KEY].values[target_indices[0], ...]
+        print('MSESS = {0:.4g}'.format(this_msess))
+
+        this_msess = evaluation_tables_xarray[0][evaluation.AUX_MSE_KEY].values[target_indices[0], ...]
+        print('MSE = {0:.4g}'.format(this_mse))
+
         mean_predictions_by_set = [
             t[evaluation.AUX_RELIABILITY_X_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
@@ -429,6 +435,28 @@ def _plot_attributes_diagram(
 
         legend_handles = []
         legend_strings = []
+
+        these_bin_frequencies = (
+            example_counts_by_set[main_index].astype(float) /
+            numpy.sum(example_counts_by_set[main_index])
+        )
+        these_mean_predictions = numpy.nanmean(
+            mean_predictions_by_set[main_index], axis=-1
+        )
+        these_mean_observations = numpy.nanmean(
+            mean_observations_by_set[main_index], axis=-1
+        )
+        this_reliability = numpy.sum(these_bin_frequencies * (these_mean_predictions - these_mean_observations) ** 2)
+        print('Reliability = {0:.4g}'.format(this_reliability))
+
+        this_resolution = numpy.sum(these_bin_frequencies * (these_mean_observations - climo_value) ** 2)
+        print('Resolution = {0:.4g}'.format(this_resolution))
+
+        this_uncertainty = climo_value * (1. - climo_value)
+        print('Uncertainty = {0:.4g}'.format(this_uncertainty))
+
+        this_msess = this_uncertainty + this_reliability - this_resolution
+        print('MSESS = {0:.4g}'.format(this_msess))
 
         this_handle = evaluation_plotting.plot_attributes_diagram(
             figure_object=figure_object, axes_object=axes_object,
