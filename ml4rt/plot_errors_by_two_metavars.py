@@ -906,12 +906,17 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             right=False
         ) - 1
 
+        edge_surface_temp_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_surface_temps_kelvins
+        ]
+
         surface_temp_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
+            '[{0:s}, {1:s}]'.format(a, b) for a, b in
             zip(
-                edge_surface_temps_kelvins[:-1], edge_surface_temps_kelvins[1:]
+                edge_surface_temp_strings[:-1], edge_surface_temp_strings[1:]
             )
         ]
     else:
