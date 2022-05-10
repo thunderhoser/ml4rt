@@ -298,10 +298,10 @@ def _plot_attributes_diagram(
             for t in evaluation_tables_xarray
         ], dtype=int)
 
-        this_msess = evaluation_tables_xarray[0][evaluation.AUX_MSE_SKILL_KEY].values[target_indices[0], ...]
+        this_msess = numpy.nanmean(evaluation_tables_xarray[0][evaluation.AUX_MSE_SKILL_KEY].values[target_indices[0], ...])
         print('MSESS = {0:.4g}'.format(this_msess))
 
-        this_msess = evaluation_tables_xarray[0][evaluation.AUX_MSE_KEY].values[target_indices[0], ...]
+        this_mse = numpy.nanmean(evaluation_tables_xarray[0][evaluation.AUX_MSE_KEY].values[target_indices[0], ...])
         print('MSE = {0:.4g}'.format(this_mse))
 
         mean_predictions_by_set = [
