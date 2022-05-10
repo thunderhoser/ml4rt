@@ -1,27 +1,20 @@
 """Plots errors as a function of two metadata variables."""
 
 import os
-import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from scipy.integrate import simps
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import file_system_utils
-import gg_plotting_utils
-import example_io
-import prediction_io
-import evaluation
-import example_utils
-import neural_net
-import split_predictions_by_time as split_predictions
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
+from ml4rt.io import example_io
+from ml4rt.io import prediction_io
+from ml4rt.utils import evaluation
+from ml4rt.utils import example_utils
+from ml4rt.machine_learning import neural_net
+from ml4rt.scripts import split_predictions_by_time as split_predictions
 
 TOLERANCE = 1e-6
 RADIANS_TO_DEGREES = 180. / numpy.pi
@@ -824,14 +817,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             bins=edge_shortwave_down_fluxes_w_m02, right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_shortwave_down_fluxes_w_m02
+        ]
+
         shortwave_down_flux_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_shortwave_down_fluxes_w_m02[:-1],
-                edge_shortwave_down_fluxes_w_m02[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         shortwave_down_flux_bin_indices = None
@@ -906,7 +901,7 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             right=False
         ) - 1
 
-        edge_surface_temp_strings = [
+        these_strings = [
             r'$\infty$' if numpy.isinf(t) and t > 0
             else r'-$\infty$' if numpy.isinf(t) and t < 0
             else '{0:d}'.format(int(numpy.round(t)))
@@ -914,10 +909,8 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
         ]
 
         surface_temp_tick_labels = [
-            '[{0:s}, {1:s}]'.format(a, b) for a, b in
-            zip(
-                edge_surface_temp_strings[:-1], edge_surface_temp_strings[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         surface_temp_bin_indices = None
@@ -939,14 +932,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             bins=edge_longwave_down_fluxes_w_m02, right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_longwave_down_fluxes_w_m02
+        ]
+
         longwave_down_flux_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_longwave_down_fluxes_w_m02[:-1],
-                edge_longwave_down_fluxes_w_m02[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         longwave_down_flux_bin_indices = None
@@ -968,14 +963,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             bins=edge_longwave_up_fluxes_w_m02, right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_longwave_up_fluxes_w_m02
+        ]
+
         longwave_up_flux_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_longwave_up_fluxes_w_m02[:-1],
-                edge_longwave_up_fluxes_w_m02[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         longwave_up_flux_bin_indices = None
