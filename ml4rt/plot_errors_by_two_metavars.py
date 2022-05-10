@@ -1,20 +1,27 @@
 """Plots errors as a function of two metadata variables."""
 
 import os
+import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from scipy.integrate import simps
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
-from ml4rt.io import example_io
-from ml4rt.io import prediction_io
-from ml4rt.utils import evaluation
-from ml4rt.utils import example_utils
-from ml4rt.machine_learning import neural_net
-from ml4rt.scripts import split_predictions_by_time as split_predictions
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import gg_plotting_utils
+import example_io
+import prediction_io
+import evaluation
+import example_utils
+import neural_net
+import split_predictions_by_time as split_predictions
 
 TOLERANCE = 1e-6
 RADIANS_TO_DEGREES = 180. / numpy.pi
