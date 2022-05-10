@@ -485,21 +485,24 @@ def _plot_attributes_diagram(
             has_predictions=False, bar_colour=line_colours[main_index]
         )
 
-        axes_object.set_xlabel('Prediction ({0:s})'.format(
-            TARGET_NAME_TO_UNITS[target_name]
-        ))
-        axes_object.set_ylabel('Conditional mean observation ({0:s})'.format(
-            TARGET_NAME_TO_UNITS[target_name]
-        ))
+        # axes_object.set_xlabel('Prediction ({0:s})'.format(
+        #     TARGET_NAME_TO_UNITS[target_name]
+        # ))
+        # axes_object.set_ylabel('Conditional mean observation ({0:s})'.format(
+        #     TARGET_NAME_TO_UNITS[target_name]
+        # ))
+        #
+        # title_string = 'Attributes diagram for {0:s}'.format(
+        #     TARGET_NAME_TO_VERBOSE[target_name]
+        # )
+        # if is_vector:
+        #     title_string += ' at {0:d} m AGL'.format(
+        #         int(numpy.round(height_m_agl))
+        #     )
 
-        title_string = 'Attributes diagram for {0:s}'.format(
-            TARGET_NAME_TO_VERBOSE[target_name]
-        )
-        if is_vector:
-            title_string += ' at {0:d} m AGL'.format(
-                int(numpy.round(height_m_agl))
-            )
-
+        axes_object.set_xlabel(r'Prediction (W m$^{-2}$)')
+        axes_object.set_xlabel(r'Conditional mean observation (W m$^{-2}$)')
+        title_string = 'Attributes diagram for regression'
         axes_object.set_title(title_string)
 
         for i in range(num_evaluation_sets):
