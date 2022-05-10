@@ -896,7 +896,7 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             num=num_surface_temp_bins + 1, dtype=float
         )
         edge_surface_temps_kelvins[0] = -numpy.inf
-        edge_surface_temps_kelvins[1] = numpy.inf
+        edge_surface_temps_kelvins[-1] = numpy.inf
 
         actual_surface_temps_kelvins = _get_surface_temperatures(
             prediction_dict=prediction_dict, example_dir_name=example_dir_name
