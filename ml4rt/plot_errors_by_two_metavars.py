@@ -440,6 +440,11 @@ def _plot_all_scores_one_var(
     kge_matrix = numpy.full(dimensions, numpy.nan)
     num_examples_matrix = numpy.full(dimensions, 0, dtype=int)
 
+    print('DIMENSIONS')
+    print(dimensions)
+    print(y_tick_labels)
+    print(x_tick_labels)
+
     for i in range(num_first_bins):
         for j in range(num_second_bins):
             these_indices = numpy.where(numpy.logical_and(
