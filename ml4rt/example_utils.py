@@ -505,7 +505,7 @@ def _get_aerosol_extinction_profiles_one_region(
             these_depths = these_depths[these_depths >= 0]
             these_depths = these_depths[
                 these_depths <= MAX_AEROSOL_OPTICAL_DEPTH
-                ]
+            ]
             actual_optical_depths = numpy.concatenate(
                 (actual_optical_depths, these_depths[:num_examples]),
                 axis=0
