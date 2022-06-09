@@ -152,3 +152,50 @@ def dual_weighted_mse(use_lowest_n_heights=None):
         )
 
     return loss
+
+
+def joined_output_loss(num_heights, flux_scaling_factor):
+    """Loss function for joined output.
+
+    This loss function is dual-weighted MSE for heating rates plus scaled MSE
+    for fluxes.
+
+    :param num_heights: Number of heights in grid.
+    :param flux_scaling_factor: Scaling factor for flux errors.
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss for joined output.
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Scalar.
+        """
+
+        target_hr_tensor = target_tensor[..., :num_heights]
+        predicted_hr_tensor = prediction_tensor[..., :num_heights]
+
+        first_term = K.mean(
+            K.maximum(K.abs(target_hr_tensor), K.abs(predicted_hr_tensor))
+            * (predicted_hr_tensor - target_hr_tensor) ** 2
+        )
+
+        predicted_net_flux_tensor = (
+            prediction_tensor[..., -2] - prediction_tensor[..., -1]
+        )
+        target_net_flux_tensor = target_tensor[..., -2] - target_tensor[..., -1]
+
+        net_flux_term = K.mean(
+            (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
+        )
+        individual_flux_term = K.mean(
+            (prediction_tensor[..., -2:] - target_tensor[..., -2:]) ** 2
+        )
+        second_term = (
+            flux_scaling_factor * (net_flux_term + 2 * individual_flux_term)
+        )
+
+        return first_term + second_term
+
+    return loss

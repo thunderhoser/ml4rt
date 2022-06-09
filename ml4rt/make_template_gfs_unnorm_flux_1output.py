@@ -24,7 +24,8 @@ OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/gfs_unnorm_flux_1output/template'.format(
 
 NUM_LEVELS = 4
 FLUX_LOSS_SCALING_FACTOR = 0.64
-VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
+LOSS_FUNCTION = custom_losses.joined_output_loss(127, 0.64)
+LOSS_FUNCTION_STRING = 'custom_losses.joined_output_loss(127, 0.64)'
 
 DENSE_LAYER_NEURON_COUNTS = architecture_utils.get_dense_layer_dimensions(
     num_input_units=7 * 1024, num_classes=2, num_dense_layers=4,
@@ -74,25 +75,9 @@ def _run():
     This is effectively the main method.
     """
 
-    scalar_loss_function = custom_losses.scaled_mse_for_net_flux(
-        FLUX_LOSS_SCALING_FACTOR
-    )
-    scalar_loss_string = (
-        'custom_losses.scaled_mse_for_net_flux({0:.10f})'.format(
-            FLUX_LOSS_SCALING_FACTOR
-        )
-    )
-    loss_dict = {
-        'conv_output': 'custom_losses.dual_weighted_mse()',
-        'dense_output': scalar_loss_string
-    }
-
-    model_object = u_net_pp_architecture.create_model(
-        option_dict=DEFAULT_OPTION_DICT,
-        vector_loss_function=VECTOR_LOSS_FUNCTION,
-        num_output_channels=1,
-        scalar_loss_function=scalar_loss_function,
-        join_output_layers=True
+    model_object = u_net_pp_architecture.create_model_1output_layer(
+        option_dict=DEFAULT_OPTION_DICT, loss_function=LOSS_FUNCTION,
+        num_output_channels=1
     )
     
     model_file_name = '{0:s}/model.h5'.format(OUTPUT_DIR_NAME)
@@ -116,7 +101,7 @@ def _run():
         num_validation_batches_per_epoch=100,
         validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
         net_type_string=neural_net.U_NET_TYPE_STRING,
-        loss_function_or_dict=loss_dict,
+        loss_function_or_dict=LOSS_FUNCTION_STRING,
         do_early_stopping=True, plateau_lr_multiplier=0.6
     )
 
