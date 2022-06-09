@@ -5,6 +5,7 @@ Based on: https://github.com/longuyen97/UnetPlusPlus/blob/master/unetpp.py
 
 import numpy
 import keras
+import keras.layers
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
@@ -198,7 +199,7 @@ def _check_args(option_dict):
 
 
 def create_model(option_dict, vector_loss_function, num_output_channels=1,
-                 scalar_loss_function=None):
+                 scalar_loss_function=None, join_output_layers=False):
     """Creates U-net ++.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -215,11 +216,13 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
     :param num_output_channels: Number of output channels.
     :param scalar_loss_function: Loss function scalar outputs.  If there are no
         dense layers, leave this alone.
+    :param join_output_layers: Boolean flag.  If True, will join output layers.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
 
     option_dict = _check_args(option_dict)
+    error_checking.assert_is_boolean(join_output_layers)
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -544,10 +547,19 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
             )
 
     if has_dense_layers:
-        model_object = keras.models.Model(
-            inputs=input_layer_object,
-            outputs=[conv_output_layer_object, dense_output_layer_object]
-        )
+        if join_output_layers:
+            output_layer_object = keras.layers.Concatenate(axis=-1)(
+                [conv_output_layer_object, dense_output_layer_object]
+            )
+
+            model_object = keras.models.Model(
+                inputs=input_layer_object, outputs=output_layer_object
+            )
+        else:
+            model_object = keras.models.Model(
+                inputs=input_layer_object,
+                outputs=[conv_output_layer_object, dense_output_layer_object]
+            )
     else:
         model_object = keras.models.Model(
             inputs=input_layer_object, outputs=conv_output_layer_object
