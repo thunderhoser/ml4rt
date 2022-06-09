@@ -18,7 +18,7 @@ INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 def _run(net_type_string, training_dir_name, validation_dir_name,
          input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
-         predictor_names, target_names, heights_m_agl,
+         joined_output_layer, predictor_names, target_names, heights_m_agl,
          multiply_preds_by_layer_thickness, multiply_hr_by_layer_thickness,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
@@ -38,6 +38,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
     :param output_model_dir_name: Same.
     :param use_generator_for_training: Same.
     :param use_generator_for_validn: Same.
+    :param joined_output_layer: Same.
     :param predictor_names: Same.
     :param target_names: Same.
     :param heights_m_agl: Same.
@@ -132,7 +133,8 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         neural_net.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
         neural_net.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
-        neural_net.LAST_TIME_KEY: last_training_time_unix_sec
+        neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
+        neural_net.JOINED_OUTPUT_LAYER_KEY: joined_output_layer
     }
 
     validation_option_dict = {
@@ -210,6 +212,9 @@ if __name__ == '__main__':
         )),
         use_generator_for_validn=bool(getattr(
             INPUT_ARG_OBJECT, training_args.USE_GENERATOR_FOR_VALIDN_ARG_NAME
+        )),
+        joined_output_layer=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.JOINED_OUTPUT_LAYER_ARG_NAME
         )),
         predictor_names=getattr(
             INPUT_ARG_OBJECT, training_args.PREDICTOR_NAMES_ARG_NAME

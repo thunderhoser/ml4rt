@@ -11,6 +11,7 @@ INPUT_MODEL_FILE_ARG_NAME = 'input_model_file_name'
 OUTPUT_MODEL_DIR_ARG_NAME = 'output_model_dir_name'
 USE_GENERATOR_FOR_TRAIN_ARG_NAME = 'use_generator_for_training'
 USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
+JOINED_OUTPUT_LAYER_ARG_NAME = 'joined_output_layer'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
@@ -62,6 +63,10 @@ USE_GENERATOR_FOR_VALIDN_HELP_STRING = (
     'Same as `{0:s}` but for validation (monitoring) data.'
 ).format(USE_GENERATOR_FOR_TRAIN_ARG_NAME)
 
+JOINED_OUTPUT_LAYER_HELP_STRING = (
+    'Boolean flag.  If 1, model has one output layer for both heating rates and'
+    ' fluxes.'
+)
 PREDICTOR_NAMES_HELP_STRING = (
     'List of predictor variables.  Each must be accepted by '
     '`example_utils.check_field_name`.'
@@ -178,6 +183,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + USE_GENERATOR_FOR_VALIDN_ARG_NAME, type=int, required=False,
         default=0, help=USE_GENERATOR_FOR_VALIDN_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + JOINED_OUTPUT_LAYER_ARG_NAME, type=int, required=False,
+        default=0, help=JOINED_OUTPUT_LAYER_HELP_STRING
     )
     parser_object.add_argument(
         '--' + PREDICTOR_NAMES_ARG_NAME, type=str, nargs='+', required=True,
