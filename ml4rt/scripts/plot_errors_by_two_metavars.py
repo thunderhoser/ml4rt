@@ -1,12 +1,4 @@
-"""Plots errors as a function of two metadata variables.
-
-For the desired target variable, this script creates three sets of plots:
-
-- Error metrics as a function of aerosol optical depth (AOD) and solar zenith
-  angle (SZA)
-- Error metrics as a function of AOD and shortwave surface downwelling flux
-- Error metrics as a function of SZA and shortwave surface downwelling flux
-"""
+"""Plots errors as a function of two metadata variables."""
 
 import os
 import argparse
@@ -825,14 +817,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             bins=edge_shortwave_down_fluxes_w_m02, right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_shortwave_down_fluxes_w_m02
+        ]
+
         shortwave_down_flux_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_shortwave_down_fluxes_w_m02[:-1],
-                edge_shortwave_down_fluxes_w_m02[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         shortwave_down_flux_bin_indices = None
@@ -897,7 +891,7 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             num=num_surface_temp_bins + 1, dtype=float
         )
         edge_surface_temps_kelvins[0] = -numpy.inf
-        edge_surface_temps_kelvins[1] = numpy.inf
+        edge_surface_temps_kelvins[-1] = numpy.inf
 
         actual_surface_temps_kelvins = _get_surface_temperatures(
             prediction_dict=prediction_dict, example_dir_name=example_dir_name
@@ -907,13 +901,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_surface_temps_kelvins
+        ]
+
         surface_temp_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_surface_temps_kelvins[:-1], edge_surface_temps_kelvins[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         surface_temp_bin_indices = None
@@ -935,14 +932,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             bins=edge_longwave_down_fluxes_w_m02, right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_longwave_down_fluxes_w_m02
+        ]
+
         longwave_down_flux_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_longwave_down_fluxes_w_m02[:-1],
-                edge_longwave_down_fluxes_w_m02[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         longwave_down_flux_bin_indices = None
@@ -964,14 +963,16 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
             bins=edge_longwave_up_fluxes_w_m02, right=False
         ) - 1
 
+        these_strings = [
+            r'$\infty$' if numpy.isinf(t) and t > 0
+            else r'-$\infty$' if numpy.isinf(t) and t < 0
+            else '{0:d}'.format(int(numpy.round(t)))
+            for t in edge_longwave_up_fluxes_w_m02
+        ]
+
         longwave_up_flux_tick_labels = [
-            '[{0:d}, {1:d}]'.format(
-                int(numpy.round(a)), int(numpy.round(b))
-            ) for a, b in
-            zip(
-                edge_longwave_up_fluxes_w_m02[:-1],
-                edge_longwave_up_fluxes_w_m02[1:]
-            )
+            '[{0:s}, {1:s}]'.format(a, b)
+            for a, b in zip(these_strings[:-1], these_strings[1:])
         ]
     else:
         longwave_up_flux_bin_indices = None
@@ -1021,10 +1022,10 @@ def _run(prediction_file_name, plot_shortwave_errors, heating_rate_height_m_agl,
                 example_to_second_bin_indices=bin_indices_by_metavar[j],
                 target_values=target_values, predicted_values=predicted_values,
                 climo_value=climo_value,
-                x_axis_label=axis_title_by_metavar[i],
-                y_axis_label=axis_title_by_metavar[j],
-                x_tick_labels=tick_labels_by_metavar[i],
-                y_tick_labels=tick_labels_by_metavar[j],
+                x_axis_label=axis_title_by_metavar[j],
+                y_axis_label=axis_title_by_metavar[i],
+                x_tick_labels=tick_labels_by_metavar[j],
+                y_tick_labels=tick_labels_by_metavar[i],
                 heating_rate_height_m_agl=heating_rate_height_m_agl,
                 plot_shortwave_errors=plot_shortwave_errors,
                 output_dir_name=output_dir_name
