@@ -18,6 +18,7 @@ import error_checking
 import example_io
 import example_utils
 import normalization
+import custom_losses
 import custom_metrics
 
 SENTINEL_VALUE = -9999.
