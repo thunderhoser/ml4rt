@@ -556,6 +556,11 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
 
     if has_dense_layers:
         if join_output_layers:
+            num_heights = input_dimensions[0]
+            conv_output_layer_object = keras.layers.Reshape(
+                target_shape=(num_heights,)
+            )(conv_output_layer_object)
+
             output_layer_object = keras.layers.Concatenate(axis=-1)(
                 [conv_output_layer_object, dense_output_layer_object]
             )
