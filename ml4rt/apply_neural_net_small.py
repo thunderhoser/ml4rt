@@ -247,6 +247,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
+    generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY] = False
     net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
 
     pressure_matrix_pa = numpy.array([])
@@ -338,6 +339,17 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
         net_type_string=net_type_string, verbose=True
     )
+
+    if metadata_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]:
+        num_scalar_targets = len(
+            metadata_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+        )
+
+        vector_prediction_matrix = numpy.expand_dims(
+            prediction_array[:, :-num_scalar_targets], axis=-1
+        )
+        scalar_prediction_matrix = prediction_array[:, -num_scalar_targets:]
+        prediction_array = [vector_prediction_matrix, scalar_prediction_matrix]
 
     print(SEPARATOR_STRING)
     print('Time to apply neural net = {0:.4f} seconds'.format(
