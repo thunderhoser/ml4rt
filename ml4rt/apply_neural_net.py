@@ -276,7 +276,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
 
     if joined_output_layer:
         num_scalar_targets = len(
-            metadata_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
 
         vector_prediction_matrix = numpy.expand_dims(
