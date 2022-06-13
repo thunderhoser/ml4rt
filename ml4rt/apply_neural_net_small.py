@@ -348,6 +348,10 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
 
+        print(generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY])
+        print(num_scalar_targets)
+        print(type(prediction_array))
+
         vector_prediction_matrix = numpy.expand_dims(
             prediction_array[:, :-num_scalar_targets], axis=-1
         )
