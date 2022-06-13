@@ -171,6 +171,9 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     generator_option_dict = copy.deepcopy(
         metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
+    joined_output_layer = copy.deepcopy(
+        generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]
+    )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
     generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY] = False
@@ -271,7 +274,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         time.time() - exec_start_time_unix_sec
     ))
 
-    if metadata_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]:
+    if joined_output_layer:
         num_scalar_targets = len(
             metadata_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
