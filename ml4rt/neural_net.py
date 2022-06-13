@@ -1993,6 +1993,9 @@ def apply_model(
             predictor_matrix[these_indices, ...], batch_size=len(these_indices)
         )
 
+        print('OUTPUT TYPE:\n')
+        print(type(this_output))
+
         if not isinstance(this_output, list):
             this_output = [this_output]
 
