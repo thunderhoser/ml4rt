@@ -12,6 +12,7 @@ from gewittergefahr.deep_learning import cnn
 from ml4rt.io import example_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
+from ml4rt.machine_learning import keras_losses as custom_losses
 from ml4rt.machine_learning import keras_metrics as custom_metrics
 
 SENTINEL_VALUE = -9999.
