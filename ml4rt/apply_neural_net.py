@@ -280,9 +280,9 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         )
 
         vector_prediction_matrix = numpy.expand_dims(
-            prediction_array[:, :-num_scalar_targets], axis=-1
+            prediction_array[0][:, :-num_scalar_targets], axis=-1
         )
-        scalar_prediction_matrix = prediction_array[:, -num_scalar_targets:]
+        scalar_prediction_matrix = prediction_array[0][:, -num_scalar_targets:]
         prediction_array = [vector_prediction_matrix, scalar_prediction_matrix]
 
     vector_target_matrix = target_array[0]
