@@ -166,7 +166,7 @@ def _zero_top_heating_rate_function(heating_rate_channel_index):
     return zeroing_function
 
 
-def create_model(option_dict, loss_function):
+def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
     """Creates CNN (convolutional neural net).
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -217,11 +217,11 @@ def create_model(option_dict, loss_function):
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
 
-    :param loss_function: Function handle.
+    :param vector_loss_function: Loss function for vector outputs.
+    :param scalar_loss_function: Loss function for scalar outputs.  If there are
+        no dense layers, leave this alone.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
-
-    # TODO(thunderhoser): Allow different loss functions for dense vs. conv.
 
     option_dict = _check_architecture_args(option_dict)
 
@@ -377,19 +377,29 @@ def create_model(option_dict, loss_function):
     )(conv_output_layer_object)
 
     if any_dense_layers:
+        loss_dict = {
+            'conv_output': vector_loss_function,
+            'dense_output': scalar_loss_function
+        }
+
         model_object = keras.models.Model(
             inputs=input_layer_object,
             outputs=[conv_output_layer_object, dense_output_layer_object]
+        )
+
+        model_object.compile(
+            loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
         )
     else:
         model_object = keras.models.Model(
             inputs=input_layer_object, outputs=conv_output_layer_object
         )
 
-    model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
-    )
+        model_object.compile(
+            loss=vector_loss_function, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
 
     model_object.summary()
     return model_object

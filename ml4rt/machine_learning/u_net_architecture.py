@@ -249,8 +249,8 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
     :param option_dict: See doc for `_check_architecture_args`.
     :param vector_loss_function: Loss function for vector outputs.
     :param num_output_channels: Number of output channels.
-    :param scalar_loss_function: Loss function scalar outputs.  If there are no
-        dense layers, leave this alone.
+    :param scalar_loss_function: Loss function for scalar outputs.  If there are
+        no dense layers, leave this alone.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
