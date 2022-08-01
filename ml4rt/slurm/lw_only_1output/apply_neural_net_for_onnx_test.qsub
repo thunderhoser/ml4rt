@@ -1,0 +1,43 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="apply_neural_net_for_onnx_test"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_net_for_onnx_test_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_longwave/orig_heights/normalized/training"
+set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_longwave/orig_heights/training"
+set MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/lw_only_1output"
+
+set FIRST_TRAINING_TIME_STRING="2019-12-01-000000"
+set LAST_TRAINING_TIME_STRING="2019-12-31-235959"
+
+set model_file_name="${MODEL_DIR_NAME}/model.h5"
+set prediction_file_name="${MODEL_DIR_NAME}/predictions_and_predictors_for_onnx_test.nc"
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net_small.py" \
+--input_model_file_name="${model_file_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--input_example_dir_name_for_pressure="${UNNORM_EXAMPLE_DIR_NAME}" \
+--first_time_string="${FIRST_TRAINING_TIME_STRING}" \
+--last_time_string="${LAST_TRAINING_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
