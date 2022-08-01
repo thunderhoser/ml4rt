@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
-#SBATCH --time=14:45:00
+#SBATCH --time=14:20:00
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -53,6 +53,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --last_validn_time_string="2020-04-15-235959" \
 --vector_target_norm_type_string="" \
 --scalar_target_norm_type_string="" \
+--joined_output_layer=1 \
 --num_examples_per_batch=724 \
 --num_training_batches_per_epoch=5000 \
 --num_validn_batches_per_epoch=5000 \
