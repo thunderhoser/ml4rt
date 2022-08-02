@@ -10,7 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import cnn_architecture
+import dense_net_architecture
 import architecture_utils
 import custom_losses
 import file_system_utils
@@ -20,7 +20,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/tom_experiment/cnn/templates'
+    '{0:s}/ml4rt_models/tom_experiment/dense_net/templates'
 ).format(HOME_DIR_NAME)
 
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
@@ -31,25 +31,28 @@ LOSS_DICT = {
 }
 
 MODEL_DEPTHS = numpy.array([1, 2, 3, 4, 5, 6], dtype=int)
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([2, 4, 8, 16, 32, 64], dtype=int)
+HIDDEN_LAYER_NEURON_COUNTS = numpy.array(
+    [64, 128, 256, 512, 1024, 2048], dtype=int
+)
 
 DEFAULT_OPTION_DICT = {
-    cnn_architecture.NUM_HEIGHTS_KEY: 127,
-    cnn_architecture.NUM_INPUT_CHANNELS_KEY: 26,
-    cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
+    dense_net_architecture.NUM_INPUTS_KEY: 127 * 22 + 4,
+    dense_net_architecture.NUM_HEIGHTS_KEY: 127,
+    dense_net_architecture.NUM_FLUX_COMPONENTS_KEY: 2,
+    # dense_net_architecture.HIDDEN_LAYER_NEURON_NUMS_KEY: None,
+    # dense_net_architecture.HIDDEN_LAYER_DROPOUT_RATES_KEY: None,
+    dense_net_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
-    cnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    cnn_architecture.CONV_OUTPUT_ACTIV_FUNC_KEY:
+    dense_net_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
+    dense_net_architecture.HEATING_RATE_ACTIV_FUNC_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
-    cnn_architecture.CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
-    cnn_architecture.DENSE_OUTPUT_ACTIV_FUNC_KEY:
+    dense_net_architecture.HEATING_RATE_ACTIV_FUNC_ALPHA_KEY: 0.,
+    dense_net_architecture.FLUX_ACTIV_FUNC_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
-    cnn_architecture.DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
-    cnn_architecture.L1_WEIGHT_KEY: 0.,
-    cnn_architecture.L2_WEIGHT_KEY: 1e-7,
-    cnn_architecture.USE_BATCH_NORM_KEY: True,
-    # cnn_architecture.DENSE_LAYER_NEURON_NUMS_KEY: DENSE_LAYER_NEURON_COUNTS,
-    cnn_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.)
+    dense_net_architecture.FLUX_ACTIV_FUNC_ALPHA_KEY: 0.,
+    dense_net_architecture.L1_WEIGHT_KEY: 0.,
+    dense_net_architecture.L2_WEIGHT_KEY: 1e-7,
+    dense_net_architecture.USE_BATCH_NORM_KEY: True
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -65,53 +68,33 @@ def _run():
     """
 
     num_model_depths = len(MODEL_DEPTHS)
-    num_channel_counts = len(FIRST_LAYER_CHANNEL_COUNTS)
+    num_neuron_counts = len(HIDDEN_LAYER_NEURON_COUNTS)
 
     for i in range(num_model_depths):
-        for j in range(num_channel_counts):
+        for j in range(num_neuron_counts):
             option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
 
-            these_coeffs = numpy.logspace(
-                0, MODEL_DEPTHS[i] - 1, num=MODEL_DEPTHS[i], base=2.
-            )
-            channel_counts = numpy.minimum(
-                these_coeffs * FIRST_LAYER_CHANNEL_COUNTS[j],
-                64
-            )
-            option_dict[cnn_architecture.CONV_LAYER_CHANNEL_NUMS_KEY] = (
-                numpy.round(channel_counts).astype(int)
+            option_dict[dense_net_architecture.HIDDEN_LAYER_NEURON_NUMS_KEY] = (
+                numpy.full(
+                    MODEL_DEPTHS[i], HIDDEN_LAYER_NEURON_COUNTS[j], dtype=int
+                )
             )
 
-            option_dict[cnn_architecture.CONV_LAYER_DROPOUT_RATES_KEY] = (
-                numpy.full(MODEL_DEPTHS[i], 0.)
-            )
-            option_dict[cnn_architecture.CONV_LAYER_FILTER_SIZES_KEY] = (
-                numpy.full(MODEL_DEPTHS[i], 3, dtype=int)
-            )
+            option_dict[
+                dense_net_architecture.HIDDEN_LAYER_DROPOUT_RATES_KEY
+            ] = numpy.full(MODEL_DEPTHS[i], 0.)
 
-            num_flattened_features = (
-                127 *
-                option_dict[cnn_architecture.CONV_LAYER_CHANNEL_NUMS_KEY][-1]
-            )
-
-            option_dict[cnn_architecture.DENSE_LAYER_NEURON_NUMS_KEY] = (
-                architecture_utils.get_dense_layer_dimensions(
-                    num_input_units=num_flattened_features,
-                    num_classes=2, num_dense_layers=4, for_classification=False
-                )[1]
-            )
-
-            model_object = cnn_architecture.create_model(
-                option_dict=DEFAULT_OPTION_DICT,
-                vector_loss_function=VECTOR_LOSS_FUNCTION,
-                scalar_loss_function=SCALAR_LOSS_FUNCTION
+            model_object = dense_net_architecture.create_model(
+                option_dict=option_dict,
+                heating_rate_loss_function=VECTOR_LOSS_FUNCTION,
+                flux_loss_function=SCALAR_LOSS_FUNCTION
             )
 
             model_file_name = (
-                '{0:s}/num-levels={1:d}_num-first-layer-channels={2:02d}/'
+                '{0:s}/num-levels={1:d}_num-neurons-per-layer={2:04d}/'
                 'model.h5'
             ).format(
-                OUTPUT_DIR_NAME, MODEL_DEPTHS[i], FIRST_LAYER_CHANNEL_COUNTS[j]
+                OUTPUT_DIR_NAME, MODEL_DEPTHS[i], HIDDEN_LAYER_NEURON_COUNTS[j]
             )
 
             file_system_utils.mkdir_recursive_if_necessary(
@@ -140,7 +123,7 @@ def _run():
                 training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                 num_validation_batches_per_epoch=100,
                 validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                net_type_string=neural_net.CNN_TYPE_STRING,
+                net_type_string=neural_net.DENSE_NET_TYPE_STRING,
                 loss_function_or_dict=LOSS_DICT,
                 do_early_stopping=True, plateau_lr_multiplier=0.6
             )

@@ -220,6 +220,9 @@ def create_model(option_dict, heating_rate_loss_function, flux_loss_function):
                 layer_object
             )
 
+    if layer_object is None:  # If no hidden layers
+        layer_object = input_layer_object
+
     heating_rate_layer_object = architecture_utils.get_dense_layer(
         num_output_units=num_heights,
         weight_regularizer=regularizer_object

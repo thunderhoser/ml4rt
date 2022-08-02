@@ -126,7 +126,7 @@ def _run():
             )
 
             model_object = u_net_architecture.create_model(
-                option_dict=DEFAULT_OPTION_DICT,
+                option_dict=option_dict,
                 vector_loss_function=VECTOR_LOSS_FUNCTION,
                 num_output_channels=1,
                 scalar_loss_function=SCALAR_LOSS_FUNCTION

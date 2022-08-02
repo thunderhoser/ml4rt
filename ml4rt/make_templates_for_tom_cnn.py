@@ -102,7 +102,7 @@ def _run():
             )
 
             model_object = cnn_architecture.create_model(
-                option_dict=DEFAULT_OPTION_DICT,
+                option_dict=option_dict,
                 vector_loss_function=VECTOR_LOSS_FUNCTION,
                 scalar_loss_function=SCALAR_LOSS_FUNCTION
             )
