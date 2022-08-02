@@ -74,19 +74,23 @@ def _run():
             these_coeffs = numpy.logspace(
                 0, MODEL_DEPTHS[i] - 1, num=MODEL_DEPTHS[i], base=2.
             )
-            channel_counts = numpy.minimum(
-                these_coeffs * FIRST_LAYER_CHANNEL_COUNTS[j],
-                64
-            )
-            option_dict[cnn_architecture.CONV_LAYER_CHANNEL_NUMS_KEY] = (
-                numpy.round(channel_counts).astype(int)
-            )
+            channel_counts = numpy.round(
+                numpy.minimum(these_coeffs * FIRST_LAYER_CHANNEL_COUNTS[j], 64)
+            ).astype(int)
 
+            channel_counts = numpy.concatenate((
+                channel_counts,
+                numpy.array([1], dtype=int)
+            ))
+
+            option_dict[cnn_architecture.CONV_LAYER_CHANNEL_NUMS_KEY] = (
+                channel_counts
+            )
             option_dict[cnn_architecture.CONV_LAYER_DROPOUT_RATES_KEY] = (
-                numpy.full(MODEL_DEPTHS[i], 0.)
+                numpy.full(MODEL_DEPTHS[i] + 1, 0.)
             )
             option_dict[cnn_architecture.CONV_LAYER_FILTER_SIZES_KEY] = (
-                numpy.full(MODEL_DEPTHS[i], 3, dtype=int)
+                numpy.full(MODEL_DEPTHS[i] + 1, 3, dtype=int)
             )
 
             num_flattened_features = (

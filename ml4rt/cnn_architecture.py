@@ -272,7 +272,10 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
             this_input_layer_object = conv_output_layer_object
 
         if i == num_conv_layers - 1:
-            dense_input_layer_object = conv_output_layer_object
+            if conv_output_layer_object is None:
+                dense_input_layer_object = input_layer_object
+            else:
+                dense_input_layer_object = conv_output_layer_object
 
         conv_output_layer_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=conv_layer_filter_sizes[i], num_rows_per_stride=1,
