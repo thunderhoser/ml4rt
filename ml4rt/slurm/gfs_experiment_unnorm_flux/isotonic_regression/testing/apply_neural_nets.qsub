@@ -29,8 +29,8 @@ set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/g
 set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/testing"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_unnorm_flux"
 
-set FIRST_TRAINING_TIME_STRING="2019-12-01-000000"
-set LAST_TRAINING_TIME_STRING="2019-12-31-235959"
+set FIRST_TESTING_TIME_STRING="2020-04-18-000000"
+set LAST_TESTING_TIME_STRING="2020-05-21-235959"
 
 set FLUX_LOSS_SCALING_FACTORS=(0.64)
 set flux_loss_scaling_factor=${FLUX_LOSS_SCALING_FACTORS[$SLURM_ARRAY_TASK_ID]}
@@ -47,6 +47,6 @@ python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_file_name}" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --input_example_dir_name_for_pressure="${UNNORM_EXAMPLE_DIR_NAME}" \
---first_time_string="${FIRST_TRAINING_TIME_STRING}" \
---last_time_string="${LAST_TRAINING_TIME_STRING}" \
+--first_time_string="${FIRST_TESTING_TIME_STRING}" \
+--last_time_string="${LAST_TESTING_TIME_STRING}" \
 --output_file_name="${prediction_file_name}"
