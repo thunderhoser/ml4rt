@@ -38,4 +38,5 @@ set output_dir_name="${TOP_OUTPUT_DIR_NAME}/flux-loss-scaling-factor=${flux_loss
 
 python3 -u "${CODE_DIR_NAME}/make_overall_eval_figure.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
+--for_shortwave=1 \
 --output_dir_name="${output_dir_name}"

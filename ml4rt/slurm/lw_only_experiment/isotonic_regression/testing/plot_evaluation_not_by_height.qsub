@@ -20,9 +20,9 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs_experiment_unnorm_flux"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/lw_only_experiment"
 
-set FLUX_LOSS_SCALING_FACTORS=(0.64)
+set FLUX_LOSS_SCALING_FACTORS=(0.50)
 set flux_loss_scaling_factor=${FLUX_LOSS_SCALING_FACTORS[$SLURM_ARRAY_TASK_ID]}
 set flux_loss_scaling_factor=`printf "%.2f" $flux_loss_scaling_factor`
 
