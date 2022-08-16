@@ -154,8 +154,8 @@ def dual_weighted_mse(
         height_weights = numpy.linspace(
             1, num_heights + 1, num=num_heights, dtype=float
         )[::-1]
-        height_weight_matrix = numpy.expand_dims(height_weights, 0)
-        # height_weight_matrix = numpy.expand_dims(height_weights, 0)
+        height_weight_matrix = numpy.expand_dims(height_weights, axis=0)
+        height_weight_matrix = numpy.expand_dims(height_weights, axis=-1)
 
         if height_weighting_type_string == 'log2':
             height_weight_matrix = numpy.log2(height_weight_matrix + 1.)
