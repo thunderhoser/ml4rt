@@ -3,7 +3,7 @@
 import os
 import sys
 import copy
-import pickle
+import dill
 import numpy
 import keras
 import tensorflow.keras as tf_keras
@@ -399,7 +399,7 @@ def _write_metafile(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    pickle.dump(metadata_dict, dill_file_handle)
+    dill.dump(metadata_dict, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -1861,7 +1861,7 @@ def read_metafile(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    metadata_dict = pickle.load(dill_file_handle)
+    metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
@@ -1911,16 +1911,6 @@ def read_metafile(dill_file_name):
         metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
             metadata_dict['loss_function']
         )
-
-    # TODO(thunderhoser): This is a HACK to deal with Hera not letting me
-    # install Dill.
-    # if isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str):
-    #     if 'dual_weighted_mse' in metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]:
-    #         metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
-    #             custom_losses.dual_weighted_mse()
-    #         )
-    #     else:
-    #         metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = keras.losses.mse
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
