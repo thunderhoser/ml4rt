@@ -141,6 +141,7 @@ def dual_weighted_mse(
         error_checking.assert_is_integer(use_lowest_n_heights)
         error_checking.assert_is_greater(use_lowest_n_heights, 0)
 
+    heating_rate_weight_exponent = float(heating_rate_weight_exponent)
     error_checking.assert_is_geq(heating_rate_weight_exponent, 1.)
 
     if height_weighting_type_string == 'None':
@@ -173,8 +174,8 @@ def dual_weighted_mse(
             target_tensor = target_tensor[..., :use_lowest_n_heights, :]
             prediction_tensor = prediction_tensor[..., :use_lowest_n_heights, :]
 
-        heating_rate_weight_tensor = (
-            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)) **
+        heating_rate_weight_tensor = K.pow(
+            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
             heating_rate_weight_exponent
         )
 
