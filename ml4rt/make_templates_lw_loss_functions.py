@@ -96,7 +96,7 @@ def _run():
             vector_loss_string = (
                 'custom_losses.dual_weighted_mse(use_lowest_n_heights=127, '
                 'heating_rate_weight_exponent={0:.1f}, '
-                'height_weighting_type_string="{1:s}"'.format(
+                'height_weighting_type_string="{1:s}")'.format(
                     HEATING_RATE_WEIGHT_EXPONENTS[j],
                     HEIGHT_WEIGHTING_TYPE_STRINGS[i]
                 )
