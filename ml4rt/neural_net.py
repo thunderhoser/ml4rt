@@ -75,6 +75,7 @@ SCALAR_TARGET_NORM_TYPE_KEY = 'scalar_target_norm_type_string'
 SCALAR_TARGET_MIN_VALUE_KEY = 'scalar_target_min_norm_value'
 SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
 JOINED_OUTPUT_LAYER_KEY = 'joined_output_layer'
+NUM_DEEP_SUPER_LAYERS_KEY = 'num_deep_supervision_layers'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_PREDICTOR_NAMES_KEY: example_utils.ALL_SCALAR_PREDICTOR_NAMES,
@@ -93,7 +94,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_TARGET_NORM_TYPE_KEY: normalization.MINMAX_NORM_STRING,
     SCALAR_TARGET_MIN_VALUE_KEY: 0.,
     SCALAR_TARGET_MAX_VALUE_KEY: 1.,
-    JOINED_OUTPUT_LAYER_KEY: False
+    JOINED_OUTPUT_LAYER_KEY: False,
+    NUM_DEEP_SUPER_LAYERS_KEY: 0
 }
 
 METRIC_FUNCTION_LIST = [
@@ -955,6 +957,8 @@ def data_generator(option_dict, for_inference, net_type_string):
         "vector_target_max_norm_value" but for scalar targets.
     option_dict['joined_output_layer']: Boolean flag.  If True, heating rates
         and fluxes are all joined into one output layer.
+    option_dict['num_deep_supervision_layers']: Number of deep-supervision
+        layers.
 
     :param for_inference: Boolean flag.  If True, generator is being used for
         inference stage (applying trained model to new data).  If False,
@@ -1012,6 +1016,9 @@ def data_generator(option_dict, for_inference, net_type_string):
     scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
     scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
     joined_output_layer = option_dict[JOINED_OUTPUT_LAYER_KEY]
+    num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
+
+    assert not (joined_output_layer and num_deep_supervision_layers > 0)
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1206,6 +1213,9 @@ def data_generator(option_dict, for_inference, net_type_string):
             target_array = [vector_target_matrix.astype('float16')]
             if scalar_target_matrix is not None:
                 target_array.append(scalar_target_matrix.astype('float16'))
+
+        for _ in num_deep_supervision_layers:
+            target_array.append(target_array[0])
 
         if for_inference:
             yield predictor_matrix, target_array, example_id_strings
@@ -1890,6 +1900,10 @@ def read_metafile(dill_file_name):
         t[JOINED_OUTPUT_LAYER_KEY] = False
         v[JOINED_OUTPUT_LAYER_KEY] = False
 
+    if NUM_DEEP_SUPER_LAYERS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[NUM_DEEP_SUPER_LAYERS_KEY] = 0
+        v[NUM_DEEP_SUPER_LAYERS_KEY] = 0
+
     if MULTIPLY_PREDS_BY_THICKNESS_KEY not in t:
         t[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
         v[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
@@ -1989,14 +2003,14 @@ def apply_model(
         if vector_prediction_matrix is None:
             vector_prediction_matrix = this_output[0] + 0.
 
-            if len(this_output) == 2:
+            if len(this_output) > 1:
                 scalar_prediction_matrix = this_output[1] + 0.
         else:
             vector_prediction_matrix = numpy.concatenate(
                 (vector_prediction_matrix, this_output[0]), axis=0
             )
 
-            if len(this_output) == 2:
+            if len(this_output) > 1:
                 scalar_prediction_matrix = numpy.concatenate(
                     (scalar_prediction_matrix, this_output[1]), axis=0
                 )
