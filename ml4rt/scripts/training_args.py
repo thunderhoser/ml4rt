@@ -12,6 +12,7 @@ OUTPUT_MODEL_DIR_ARG_NAME = 'output_model_dir_name'
 USE_GENERATOR_FOR_TRAIN_ARG_NAME = 'use_generator_for_training'
 USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
 JOINED_OUTPUT_LAYER_ARG_NAME = 'joined_output_layer'
+NUM_DEEP_SUPER_LAYERS_ARG_NAME = 'num_deep_supervision_layers'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
@@ -67,6 +68,7 @@ JOINED_OUTPUT_LAYER_HELP_STRING = (
     'Boolean flag.  If 1, model has one output layer for both heating rates and'
     ' fluxes.'
 )
+NUM_DEEP_SUPER_LAYERS_HELP_STRING = 'Number of deep-supervision layers.'
 PREDICTOR_NAMES_HELP_STRING = (
     'List of predictor variables.  Each must be accepted by '
     '`example_utils.check_field_name`.'
@@ -187,6 +189,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + JOINED_OUTPUT_LAYER_ARG_NAME, type=int, required=False,
         default=0, help=JOINED_OUTPUT_LAYER_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + NUM_DEEP_SUPER_LAYERS_ARG_NAME, type=int, required=False,
+        default=0, help=NUM_DEEP_SUPER_LAYERS_HELP_STRING
     )
     parser_object.add_argument(
         '--' + PREDICTOR_NAMES_ARG_NAME, type=str, nargs='+', required=True,
