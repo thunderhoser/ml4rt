@@ -348,11 +348,20 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
             num_upsampled_heights = this_layer_object.get_shape()[1]
             num_desired_heights = encoder_conv_layer_objects[i].get_shape()[1]
 
-            if num_desired_heights == num_upsampled_heights + 1:
+            if num_desired_heights != num_upsampled_heights:
                 this_name = '{0:s}_padding'.format(layer_name_prefix)
 
+                num_extra_heights = num_desired_heights - num_upsampled_heights
+                num_extra_heights_bottom = int(numpy.floor(
+                    float(num_extra_heights) / 2
+                ))
+                num_extra_heights_top = int(numpy.ceil(
+                    float(num_extra_heights) / 2
+                ))
+
                 this_layer_object = keras.layers.ZeroPadding1D(
-                    padding=(0, 1), name=this_name
+                    padding=(num_extra_heights_bottom, num_extra_heights_top),
+                    name=this_name
                 )(this_layer_object)
 
             this_name = '{0:s}_conv'.format(layer_name_prefix)
