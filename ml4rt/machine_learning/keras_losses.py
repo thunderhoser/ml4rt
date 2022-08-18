@@ -133,6 +133,7 @@ def dual_weighted_mse(
         error_checking.assert_is_integer(use_lowest_n_heights)
         error_checking.assert_is_greater(use_lowest_n_heights, 0)
 
+    heating_rate_weight_exponent = float(heating_rate_weight_exponent)
     error_checking.assert_is_geq(heating_rate_weight_exponent, 1.)
 
     if height_weighting_type_string == 'None':
@@ -145,8 +146,8 @@ def dual_weighted_mse(
         height_weights = numpy.linspace(
             1, num_heights + 1, num=num_heights, dtype=float
         )[::-1]
-        height_weight_matrix = numpy.expand_dims(height_weights, 0)
-        # height_weight_matrix = numpy.expand_dims(height_weights, 0)
+        height_weight_matrix = numpy.expand_dims(height_weights, axis=0)
+        height_weight_matrix = numpy.expand_dims(height_weights, axis=-1)
 
         if height_weighting_type_string == 'log2':
             height_weight_matrix = numpy.log2(height_weight_matrix + 1.)
@@ -165,8 +166,8 @@ def dual_weighted_mse(
             target_tensor = target_tensor[..., :use_lowest_n_heights, :]
             prediction_tensor = prediction_tensor[..., :use_lowest_n_heights, :]
 
-        heating_rate_weight_tensor = (
-            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)) **
+        heating_rate_weight_tensor = K.pow(
+            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
             heating_rate_weight_exponent
         )
 
