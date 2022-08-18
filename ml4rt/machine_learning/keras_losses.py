@@ -146,7 +146,7 @@ def dual_weighted_mse(
             1, num_heights + 1, num=num_heights, dtype=float
         )[::-1]
         height_weight_matrix = numpy.expand_dims(height_weights, 0)
-        height_weight_matrix = numpy.expand_dims(height_weights, 0)
+        # height_weight_matrix = numpy.expand_dims(height_weights, 0)
 
         if height_weighting_type_string == 'log2':
             height_weight_matrix = numpy.log2(height_weight_matrix + 1.)
@@ -162,8 +162,8 @@ def dual_weighted_mse(
         """
 
         if use_lowest_n_heights is not None:
-            target_tensor = target_tensor[:, :use_lowest_n_heights, :]
-            prediction_tensor = prediction_tensor[:, :use_lowest_n_heights, :]
+            target_tensor = target_tensor[..., :use_lowest_n_heights, :]
+            prediction_tensor = prediction_tensor[..., :use_lowest_n_heights, :]
 
         heating_rate_weight_tensor = (
             K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)) **
