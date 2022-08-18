@@ -96,7 +96,7 @@ def _run():
         this_model_object = u_net_ppp_architecture.create_model(
             option_dict=DEFAULT_OPTION_DICT,
             vector_loss_function=VECTOR_LOSS_FUNCTION,
-            num_output_channels=1,
+            use_deep_supervision=False, num_output_channels=1,
             scalar_loss_function=this_scalar_loss_function
         )
         this_model_file_name = (

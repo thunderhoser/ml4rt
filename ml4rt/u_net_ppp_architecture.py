@@ -207,8 +207,8 @@ def _check_args(option_dict):
     return option_dict
 
 
-def create_model(option_dict, vector_loss_function, num_output_channels=1,
-                 scalar_loss_function=None):
+def create_model(option_dict, vector_loss_function, use_deep_supervision,
+                 num_output_channels=1, scalar_loss_function=None):
     """Creates U-net 3+.
 
     Architecture based on:
@@ -216,6 +216,8 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
 
     :param option_dict: See doc for `_check_args`.
     :param vector_loss_function: Loss function for vector outputs.
+    :param use_deep_supervision: Boolean flag.  If True (False), will (not) use
+        deep supervision.
     :param num_output_channels: Number of output channels.
     :param scalar_loss_function: Loss function for scalar outputs.  If there are
         no dense layers, leave this alone.
@@ -224,6 +226,7 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
     """
 
     option_dict = _check_args(option_dict)
+    error_checking.assert_is_boolean(use_deep_supervision)
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -594,6 +597,71 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         this_function, name='conv_output'
     )(conv_output_layer_object)
 
+    output_layer_objects = [conv_output_layer_object]
+    loss_dict = {'conv_output': vector_loss_function}
+
+    if use_deep_supervision:
+        for i in range(1, num_levels):
+            this_name = 'deepsup{0:d}_upsampling'.format(i)
+
+            decoder_conv_layer_objects[i] = keras.layers.UpSampling1D(
+                size=2 ** i, name=this_name
+            )(decoder_conv_layer_objects[i])
+
+            num_upsampled_heights = decoder_conv_layer_objects[i].get_shape()[1]
+            num_desired_heights = encoder_conv_layer_objects[0].get_shape()[1]
+
+            if num_desired_heights != num_upsampled_heights:
+                this_name = 'deepsup{0:d}_padding'.format(i)
+
+                num_extra_heights = num_desired_heights - num_upsampled_heights
+                num_extra_heights_bottom = int(numpy.floor(
+                    float(num_extra_heights) / 2
+                ))
+                num_extra_heights_top = int(numpy.ceil(
+                    float(num_extra_heights) / 2
+                ))
+
+                decoder_conv_layer_objects[i] = keras.layers.ZeroPadding1D(
+                    padding=(num_extra_heights_bottom, num_extra_heights_top),
+                    name=this_name
+                )(decoder_conv_layer_objects[i])
+
+            this_name = 'deepsup{0:d}_conv'.format(i)
+
+            decoder_conv_layer_objects[i] = (
+                architecture_utils.get_1d_conv_layer(
+                    num_kernel_rows=1, num_rows_per_stride=1,
+                    num_filters=num_output_channels,
+                    padding_type_string=architecture_utils.YES_PADDING_STRING,
+                    weight_regularizer=regularizer_object, layer_name=this_name
+                )(decoder_conv_layer_objects[i])
+            )
+
+            if conv_output_activ_func_name is not None:
+                this_name = 'deepsup{0:d}_activation'.format(i)
+
+                decoder_conv_layer_objects[i] = (
+                    architecture_utils.get_activation_layer(
+                        activation_function_string=conv_output_activ_func_name,
+                        alpha_for_relu=conv_output_activ_func_alpha,
+                        alpha_for_elu=conv_output_activ_func_alpha,
+                        layer_name=this_name
+                    )(decoder_conv_layer_objects[i])
+                )
+
+            this_function = u_net_architecture.zero_top_heating_rate_function(
+                height_index=input_dimensions[0] - 1
+            )
+            this_name = 'deepsup{0:d}_output'.format(i)
+
+            decoder_conv_layer_objects[i] = keras.layers.Lambda(
+                this_function, name=this_name
+            )(decoder_conv_layer_objects[i])
+
+            output_layer_objects.append(decoder_conv_layer_objects[i])
+            loss_dict[this_name] = vector_loss_function
+
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
         dense_output_layer_object = architecture_utils.get_flattening_layer()(
@@ -660,30 +728,16 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
             )
 
     if has_dense_layers:
-        model_object = keras.models.Model(
-            inputs=input_layer_object,
-            outputs=[conv_output_layer_object, dense_output_layer_object]
-        )
-    else:
-        model_object = keras.models.Model(
-            inputs=input_layer_object, outputs=conv_output_layer_object
-        )
+        output_layer_objects.insert(1, dense_output_layer_object)
+        loss_dict['dense_output'] = scalar_loss_function
 
-    if has_dense_layers:
-        loss_dict = {
-            'conv_output': vector_loss_function,
-            'dense_output': scalar_loss_function
-        }
-
-        model_object.compile(
-            loss=loss_dict, optimizer=keras.optimizers.Adam(),
-            metrics=neural_net.METRIC_FUNCTION_LIST
-        )
-    else:
-        model_object.compile(
-            loss=vector_loss_function, optimizer=keras.optimizers.Adam(),
-            metrics=neural_net.METRIC_FUNCTION_LIST
-        )
+    model_object = keras.models.Model(
+        inputs=input_layer_object, outputs=output_layer_objects
+    )
+    model_object.compile(
+        loss=loss_dict, optimizer=keras.optimizers.Adam(),
+        metrics=neural_net.METRIC_FUNCTION_LIST
+    )
 
     model_object.summary()
     return model_object
