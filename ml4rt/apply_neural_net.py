@@ -196,6 +196,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         new_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = (
             example_dir_name_for_pressure
         )
+        new_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
         pressure_matrix_pa, _, pressure_id_strings = neural_net.create_data(
             option_dict=new_option_dict,
@@ -211,6 +212,8 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
         pressure_matrix_pa = pressure_matrix_pa[unique_indices, ..., 0]
 
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
+    generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
+
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict,
         net_type_string=net_type_string,
