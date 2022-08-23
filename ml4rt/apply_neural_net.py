@@ -485,6 +485,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
     ))
+    print(example_id_strings)
     prediction_io.write_file(
         netcdf_file_name=output_file_name,
         scalar_target_matrix=

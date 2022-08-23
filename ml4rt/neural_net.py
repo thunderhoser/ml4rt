@@ -1308,14 +1308,10 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
         example_dicts.append(this_example_dict)
 
     example_dict = example_utils.concat_examples(example_dicts)
-    print('FIRST EXAMPLE IDS:\n')
-    print(example_dict[example_utils.EXAMPLE_IDS_KEY][:5])
 
     predictor_matrix = predictors_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )[0]
-    print('SECOND EXAMPLE IDS:\n')
-    print(example_dict[example_utils.EXAMPLE_IDS_KEY][:5])
 
     if numpy.max(numpy.absolute(predictor_matrix)) > 2**16 - 1:
         predictor_matrix = predictor_matrix.astype('float32')
@@ -1325,8 +1321,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     prelim_target_list = targets_dict_to_numpy(
         example_dict=example_dict, net_type_string=net_type_string
     )
-    print('THIRD EXAMPLE IDS:\n')
-    print(example_dict[example_utils.EXAMPLE_IDS_KEY][:5])
     vector_target_matrix = prelim_target_list[0]
 
     if joined_output_layer:
@@ -1347,9 +1341,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
 
     for _ in range(num_deep_supervision_layers):
         target_array.append(target_array[0])
-
-    print('FOURTH EXAMPLE IDS:\n')
-    print(example_dict[example_utils.EXAMPLE_IDS_KEY][:5])
 
     return (
         predictor_matrix,
