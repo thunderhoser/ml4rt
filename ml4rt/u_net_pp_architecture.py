@@ -517,7 +517,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                         alpha_for_relu=conv_output_activ_func_alpha,
                         alpha_for_elu=conv_output_activ_func_alpha,
                         layer_name=this_name
-                    )(last_conv_layer_matrix[0, i])
+                    )(deep_supervision_layer_objects[i])
                 )
 
             this_function = u_net_architecture.zero_top_heating_rate_function(
