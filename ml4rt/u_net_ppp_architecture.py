@@ -545,41 +545,43 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                 )
 
     if include_penultimate_conv:
-        decoder_conv_layer_objects[0] = architecture_utils.get_1d_conv_layer(
+        conv_output_layer_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
             num_filters=2 * num_output_channels,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object, layer_name='penultimate_conv'
         )(decoder_conv_layer_objects[0])
 
-        decoder_conv_layer_objects[0] = architecture_utils.get_activation_layer(
+        conv_output_layer_object = architecture_utils.get_activation_layer(
             activation_function_string=inner_activ_function_name,
             alpha_for_relu=inner_activ_function_alpha,
             alpha_for_elu=inner_activ_function_alpha,
             layer_name='penultimate_conv_activation'
-        )(decoder_conv_layer_objects[0])
+        )(conv_output_layer_object)
 
         if penultimate_conv_dropout_rate > 0:
-            decoder_conv_layer_objects[0] = (
+            conv_output_layer_object = (
                 architecture_utils.get_dropout_layer(
                     dropout_fraction=penultimate_conv_dropout_rate,
                     layer_name='penultimate_conv_dropout'
-                )(decoder_conv_layer_objects[0])
+                )(conv_output_layer_object)
             )
 
         if use_batch_normalization:
-            decoder_conv_layer_objects[0] = (
+            conv_output_layer_object = (
                 architecture_utils.get_batch_norm_layer(
                     layer_name='penultimate_conv_bn'
-                )(decoder_conv_layer_objects[0])
+                )(conv_output_layer_object)
             )
+    else:
+        conv_output_layer_object = decoder_conv_layer_objects[0]
 
     conv_output_layer_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=1, num_rows_per_stride=1,
         num_filters=num_output_channels,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object, layer_name='last_conv'
-    )(decoder_conv_layer_objects[0])
+    )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
         conv_output_layer_object = architecture_utils.get_activation_layer(
@@ -600,16 +602,25 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {'conv_output': vector_loss_function}
 
+    deep_supervision_layer_objects = [None] * num_levels
+
     if use_deep_supervision:
-        for i in range(1, num_levels):
+        for i in range(1, num_levels + 1):
             this_name = 'deepsup{0:d}_upsampling'.format(i)
 
-            decoder_conv_layer_objects[i] = keras.layers.UpSampling1D(
-                size=2 ** i, name=this_name
-            )(decoder_conv_layer_objects[i])
+            if i == num_levels:
+                deep_supervision_layer_objects[i] = keras.layers.UpSampling1D(
+                    size=2 ** i, name=this_name
+                )(encoder_conv_layer_objects[i])
+            else:
+                deep_supervision_layer_objects[i] = keras.layers.UpSampling1D(
+                    size=2 ** i, name=this_name
+                )(decoder_conv_layer_objects[i])
 
-            num_upsampled_heights = decoder_conv_layer_objects[i].get_shape()[1]
-            num_desired_heights = encoder_conv_layer_objects[0].get_shape()[1]
+            num_upsampled_heights = (
+                deep_supervision_layer_objects[i].get_shape()[1]
+            )
+            num_desired_heights = input_dimensions[0]
 
             if num_desired_heights != num_upsampled_heights:
                 this_name = 'deepsup{0:d}_padding'.format(i)
@@ -622,32 +633,32 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                     float(num_extra_heights) / 2
                 ))
 
-                decoder_conv_layer_objects[i] = keras.layers.ZeroPadding1D(
+                deep_supervision_layer_objects[i] = keras.layers.ZeroPadding1D(
                     padding=(num_extra_heights_bottom, num_extra_heights_top),
                     name=this_name
-                )(decoder_conv_layer_objects[i])
+                )(deep_supervision_layer_objects[i])
 
             this_name = 'deepsup{0:d}_conv'.format(i)
 
-            decoder_conv_layer_objects[i] = (
+            deep_supervision_layer_objects[i] = (
                 architecture_utils.get_1d_conv_layer(
                     num_kernel_rows=1, num_rows_per_stride=1,
                     num_filters=num_output_channels,
                     padding_type_string=architecture_utils.YES_PADDING_STRING,
                     weight_regularizer=regularizer_object, layer_name=this_name
-                )(decoder_conv_layer_objects[i])
+                )(deep_supervision_layer_objects[i])
             )
 
             if conv_output_activ_func_name is not None:
                 this_name = 'deepsup{0:d}_activation'.format(i)
 
-                decoder_conv_layer_objects[i] = (
+                deep_supervision_layer_objects[i] = (
                     architecture_utils.get_activation_layer(
                         activation_function_string=conv_output_activ_func_name,
                         alpha_for_relu=conv_output_activ_func_alpha,
                         alpha_for_elu=conv_output_activ_func_alpha,
                         layer_name=this_name
-                    )(decoder_conv_layer_objects[i])
+                    )(deep_supervision_layer_objects[i])
                 )
 
             this_function = u_net_architecture.zero_top_heating_rate_function(
@@ -655,11 +666,11 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
             )
             this_name = 'deepsup{0:d}_output'.format(i)
 
-            decoder_conv_layer_objects[i] = keras.layers.Lambda(
+            deep_supervision_layer_objects[i] = keras.layers.Lambda(
                 this_function, name=this_name
-            )(decoder_conv_layer_objects[i])
+            )(deep_supervision_layer_objects[i])
 
-            output_layer_objects.append(decoder_conv_layer_objects[i])
+            output_layer_objects.append(deep_supervision_layer_objects[i])
             loss_dict[this_name] = vector_loss_function
 
     if has_dense_layers:
