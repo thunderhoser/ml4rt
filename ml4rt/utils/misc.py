@@ -158,6 +158,7 @@ def get_examples_for_inference(
     )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
+    generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
         option_dict=generator_option_dict,

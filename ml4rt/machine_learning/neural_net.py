@@ -1208,7 +1208,7 @@ def data_generator(option_dict, for_inference, net_type_string):
             if scalar_target_matrix is not None:
                 target_array.append(scalar_target_matrix.astype('float16'))
 
-        for _ in num_deep_supervision_layers:
+        for _ in range(num_deep_supervision_layers):
             target_array.append(target_array[0])
 
         if for_inference:
@@ -1265,6 +1265,9 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
     scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
     joined_output_layer = option_dict[JOINED_OUTPUT_LAYER_KEY]
+    num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
+
+    assert not (joined_output_layer and num_deep_supervision_layers > 0)
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1329,6 +1332,9 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
             target_array.append(scalar_target_matrix.astype('float16'))
+
+    for _ in range(num_deep_supervision_layers):
+        target_array.append(target_array[0])
 
     return (
         predictor_matrix,

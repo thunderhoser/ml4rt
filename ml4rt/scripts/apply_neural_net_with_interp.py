@@ -192,6 +192,7 @@ def _get_data_on_orig_grid(
     option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
+    option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     predictor_matrix, _, example_id_strings = neural_net.create_data(
         option_dict=option_dict,
@@ -303,6 +304,7 @@ def _get_data_on_new_grid(
     option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
     option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
+    option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     height_matrix_m_agl = None
 
