@@ -30,7 +30,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
          multiply_preds_by_layer_thickness, multiply_hr_by_layer_thickness,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
-         normalization_file_name, predictor_norm_type_string,
+         normalization_file_name, uniformize, predictor_norm_type_string,
          predictor_min_norm_value, predictor_max_norm_value,
          vector_target_norm_type_string, vector_target_min_norm_value,
          vector_target_max_norm_value, scalar_target_norm_type_string,
@@ -58,6 +58,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
     :param first_validn_time_string: Same.
     :param last_validn_time_string: Same.
     :param normalization_file_name: Same.
+    :param uniformize: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
@@ -132,6 +133,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
             multiply_preds_by_layer_thickness,
         neural_net.MULTIPLY_HR_BY_THICKNESS_KEY: multiply_hr_by_layer_thickness,
         neural_net.NORMALIZATION_FILE_KEY: normalization_file_name,
+        neural_net.UNIFORMIZE_FLAG_KEY: uniformize,
         neural_net.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
         neural_net.PREDICTOR_MIN_NORM_VALUE_KEY: predictor_min_norm_value,
         neural_net.PREDICTOR_MAX_NORM_VALUE_KEY: predictor_max_norm_value,
@@ -260,6 +262,9 @@ if __name__ == '__main__':
         normalization_file_name=getattr(
             INPUT_ARG_OBJECT, training_args.NORMALIZATION_FILE_ARG_NAME
         ),
+        uniformize=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.UNIFORMIZE_FLAG_ARG_NAME
+        )),
         predictor_norm_type_string=getattr(
             INPUT_ARG_OBJECT, training_args.PREDICTOR_NORM_TYPE_ARG_NAME
         ),

@@ -185,6 +185,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     if generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]:
         new_option_dict = copy.deepcopy(generator_option_dict)
         new_option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
+        new_option_dict[neural_net.UNIFORMIZE_FLAG_KEY] = False
         new_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
         new_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
         new_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
@@ -350,6 +351,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             training_example_dict=training_example_dict,
             normalization_type_string=
             generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY],
+            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
@@ -363,6 +365,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             training_example_dict=training_example_dict,
             normalization_type_string=
             generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY],
+            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
@@ -382,6 +385,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             training_example_dict=training_example_dict,
             normalization_type_string=
             generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY],
+            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
@@ -395,6 +399,7 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
             training_example_dict=training_example_dict,
             normalization_type_string=
             generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY],
+            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=
@@ -485,7 +490,6 @@ def _run(model_file_name, example_dir_name, example_dir_name_for_pressure,
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
     ))
-    print(example_id_strings)
     prediction_io.write_file(
         netcdf_file_name=output_file_name,
         scalar_target_matrix=

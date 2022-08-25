@@ -34,6 +34,7 @@ EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 FIELD_NAME_CHAR_DIM_KEY = 'field_name_char'
 
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
+UNIFORMIZE_FLAG_KEY = 'uniformize'
 PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
 PREDICTOR_MIN_VALUE_KEY = 'predictor_min_norm_value'
 PREDICTOR_MAX_VALUE_KEY = 'predictor_max_norm_value'
@@ -48,6 +49,7 @@ NORM_METADATA_STRING_KEYS = [
     NORMALIZATION_FILE_KEY, PREDICTOR_NORM_TYPE_KEY,
     VECTOR_TARGET_NORM_TYPE_KEY, SCALAR_TARGET_NORM_TYPE_KEY
 ]
+NORM_METADATA_BOOLEAN_KEYS = [UNIFORMIZE_FLAG_KEY]
 NORM_METADATA_FLOAT_KEYS = [
     PREDICTOR_MIN_VALUE_KEY, PREDICTOR_MAX_VALUE_KEY,
     VECTOR_TARGET_MIN_VALUE_KEY, VECTOR_TARGET_MAX_VALUE_KEY,
@@ -56,6 +58,7 @@ NORM_METADATA_FLOAT_KEYS = [
 
 DEFAULT_NORM_METADATA_DICT = {
     NORMALIZATION_FILE_KEY: None,
+    UNIFORMIZE_FLAG_KEY: False,
     PREDICTOR_NORM_TYPE_KEY: None,
     PREDICTOR_MIN_VALUE_KEY: numpy.nan,
     PREDICTOR_MAX_VALUE_KEY: numpy.nan,
@@ -75,6 +78,9 @@ def _check_normalization_metadata(normalization_metadata_dict):
     normalization_metadata_dict['normalization_file_name']: Path to
         normalization file, containing unnormalized sample values used to create
         uniform distributions.
+    normalization_metadata_dict['uniformize']: Boolean flag.  If True, each
+        variable will be converted to uniform distribution and then z-scores; if
+        False, each variable will be converted directly to z-scores.
     normalization_metadata_dict['predictor_norm_type_string']: Normalization
         type for predictors (must be accepted by
         `normalization.check_normalization_type`).  If no normalization, make
@@ -107,11 +113,16 @@ def _check_normalization_metadata(normalization_metadata_dict):
     if normalization_metadata_dict[NORMALIZATION_FILE_KEY] is None:
         return DEFAULT_NORM_METADATA_DICT
 
+    error_checking.assert_is_boolean(
+        normalization_metadata_dict[UNIFORMIZE_FLAG_KEY]
+    )
+
     predictor_norm_type_string = (
         normalization_metadata_dict[PREDICTOR_NORM_TYPE_KEY]
     )
     if predictor_norm_type_string is not None:
         normalization.check_normalization_type(predictor_norm_type_string)
+
     if predictor_norm_type_string == normalization.MINMAX_NORM_STRING:
         error_checking.assert_is_greater(
             normalization_metadata_dict[PREDICTOR_MAX_VALUE_KEY],
@@ -173,7 +184,7 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     if first_norm_file_name != second_norm_file_name:
         return False
 
-    for this_key in NORM_METADATA_STRING_KEYS:
+    for this_key in NORM_METADATA_STRING_KEYS + NORM_METADATA_BOOLEAN_KEYS:
         if this_key == NORMALIZATION_FILE_KEY:
             continue
 
@@ -436,6 +447,14 @@ def read_file(
             if normalization_metadata_dict[this_key] == 'None':
                 normalization_metadata_dict[this_key] = None
 
+        for this_key in NORM_METADATA_BOOLEAN_KEYS:
+            try:
+                normalization_metadata_dict[this_key] = bool(
+                    getattr(dataset_object, this_key)
+                )
+            except:
+                normalization_metadata_dict[this_key] = True
+
         for this_key in NORM_METADATA_FLOAT_KEYS:
             normalization_metadata_dict[this_key] = getattr(
                 dataset_object, this_key
@@ -627,6 +646,10 @@ def write_file(example_dict, netcdf_file_name):
     for this_key in NORM_METADATA_STRING_KEYS:
         dataset_object.setncattr(
             this_key, str(normalization_metadata_dict[this_key])
+        )
+    for this_key in NORM_METADATA_BOOLEAN_KEYS:
+        dataset_object.setncattr(
+            this_key, int(normalization_metadata_dict[this_key])
         )
     for this_key in NORM_METADATA_FLOAT_KEYS:
         dataset_object.setncattr(
