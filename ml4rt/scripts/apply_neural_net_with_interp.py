@@ -141,6 +141,7 @@ def _denorm_predictions(prediction_example_dict, model_metadata_dict):
             new_example_dict=prediction_example_dict,
             training_example_dict=norm_example_dict,
             normalization_type_string=vector_target_norm_type_string,
+            uniformize=d[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=d[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=d[neural_net.VECTOR_TARGET_MAX_VALUE_KEY],
             separate_heights=True, apply_to_predictors=False,
@@ -153,6 +154,7 @@ def _denorm_predictions(prediction_example_dict, model_metadata_dict):
             new_example_dict=prediction_example_dict,
             training_example_dict=norm_example_dict,
             normalization_type_string=scalar_target_norm_type_string,
+            uniformize=d[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=d[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
             max_normalized_value=d[neural_net.SCALAR_TARGET_MAX_VALUE_KEY],
             separate_heights=True, apply_to_predictors=False,
@@ -301,6 +303,7 @@ def _get_data_on_new_grid(
         example_utils.HEIGHT_NAME
     ]
     option_dict[neural_net.NORMALIZATION_FILE_KEY] = None
+    option_dict[neural_net.UNIFORMIZE_FLAG_KEY] = False
     option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
     option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
     option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None

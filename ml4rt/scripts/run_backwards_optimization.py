@@ -231,6 +231,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
             training_example_dict=training_example_dict,
             normalization_type_string=
             generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
+            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
             max_normalized_value=
@@ -261,6 +262,7 @@ def _run(model_file_name, example_file_name, num_examples, example_dir_name,
             training_example_dict=training_example_dict,
             normalization_type_string=
             generator_option_dict[neural_net.PREDICTOR_NORM_TYPE_KEY],
+            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
             min_normalized_value=
             generator_option_dict[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY],
             max_normalized_value=

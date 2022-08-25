@@ -86,52 +86,38 @@ def _uniform_to_orig_dist(uniform_values_new, orig_values_training):
     return numpy.reshape(orig_values_new_1d, uniform_values_new.shape)
 
 
-def _orig_to_normal_dist(orig_values_new, orig_values_training):
+def _orig_to_normal_dist(orig_values_new):
     """Converts values from original to normal distribution.
 
     :param orig_values_new: See doc for `_orig_to_uniform_dist`.
-    :param orig_values_training: Same.
     :return: normalized_values_new: numpy array (same shape as
         `orig_values_new`) with normalized values (z-scores).
     """
 
-    uniform_values_new = _orig_to_uniform_dist(
-        orig_values_new=orig_values_new,
-        orig_values_training=orig_values_training
+    normalized_values_new = numpy.maximum(
+        orig_values_new, MIN_CUMULATIVE_DENSITY
     )
-
-    uniform_values_new = numpy.maximum(
-        uniform_values_new, MIN_CUMULATIVE_DENSITY
+    normalized_values_new = numpy.minimum(
+        normalized_values_new, MAX_CUMULATIVE_DENSITY
     )
-    uniform_values_new = numpy.minimum(
-        uniform_values_new, MAX_CUMULATIVE_DENSITY
-    )
-    return scipy.stats.norm.ppf(uniform_values_new, loc=0., scale=1.)
+    return scipy.stats.norm.ppf(normalized_values_new, loc=0., scale=1.)
 
 
-def _normal_to_orig_dist(normalized_values_new, orig_values_training):
+def _normal_to_orig_dist(normalized_values_new):
     """Converts values from normal to original distribution.
 
     This method is the inverse of `_orig_to_normal_dist`.
 
     :param normalized_values_new: See doc for `_orig_to_normal_dist`.
-    :param orig_values_training: Same.
     :return: orig_values_new: Same.
     """
 
-    uniform_values_new = scipy.stats.norm.cdf(
-        normalized_values_new, loc=0., scale=1.
-    )
-
-    return _uniform_to_orig_dist(
-        uniform_values_new=uniform_values_new,
-        orig_values_training=orig_values_training
-    )
+    return scipy.stats.norm.cdf(normalized_values_new, loc=0., scale=1.)
 
 
 def _normalize_one_variable(
         orig_values_new, orig_values_training, normalization_type_string,
-        min_normalized_value=None, max_normalized_value=None):
+        uniformize, min_normalized_value=None, max_normalized_value=None):
     """Normalizes one variable (either predictor or target variable).
 
     :param orig_values_new: numpy array with original (unnormalized) values to
@@ -139,67 +125,78 @@ def _normalize_one_variable(
     :param orig_values_training: numpy array with original (unnormalized) values
         in training data.
     :param normalization_type_string: See doc for `normalize_data`.
-    :param min_normalized_value: Same.
+    :param uniformize: [used only if normalization type is z-score]
+        Boolean flag.  If True, will convert to uniform distribution and then to
+        z-scores; if False, will convert directly to z-scores.
+    :param min_normalized_value: See doc for `normalize_data`.
     :param max_normalized_value: Same.
     :return: normalized_values_new: numpy array with same shape as
         `orig_values_new`, containing normalized values.
     """
+
+    error_checking.assert_is_boolean(uniformize)
 
     if normalization_type_string == MINMAX_NORM_STRING:
         normalized_values_new = _orig_to_uniform_dist(
             orig_values_new=orig_values_new,
             orig_values_training=orig_values_training
         )
-        normalized_values_new = min_normalized_value + normalized_values_new * (
+
+        return min_normalized_value + normalized_values_new * (
             max_normalized_value - min_normalized_value
         )
-    else:
-        normalized_values_new = _orig_to_normal_dist(
+
+    if uniformize:
+        return _orig_to_normal_dist(_orig_to_uniform_dist(
             orig_values_new=orig_values_new,
             orig_values_training=orig_values_training
-        )
+        ))
 
-    return normalized_values_new
+    return _orig_to_normal_dist(orig_values_new)
 
 
 def _denorm_one_variable(
         normalized_values_new, orig_values_training, normalization_type_string,
-        min_normalized_value=None, max_normalized_value=None):
+        uniformize, min_normalized_value=None, max_normalized_value=None):
     """Denormalizes one variable (either predictor or target variable).
 
     :param normalized_values_new: See doc for `_normalize_one_variable`.
     :param orig_values_training: Same.
     :param normalization_type_string: Same.
+    :param uniformize: Same.
     :param min_normalized_value: Same.
     :param max_normalized_value: Same.
     :return: denorm_values_new: numpy array with same shape as
         `normalized_values_new`, containing denormalized values.
     """
 
+    error_checking.assert_is_boolean(uniformize)
+
     if normalization_type_string == MINMAX_NORM_STRING:
-        normalized_values_new = (
+        denorm_values_new = (
             (normalized_values_new - min_normalized_value) /
             (max_normalized_value - min_normalized_value)
         )
-        normalized_values_new = numpy.maximum(normalized_values_new, 0.)
-        normalized_values_new = numpy.minimum(normalized_values_new, 1.)
+        denorm_values_new = numpy.maximum(denorm_values_new, 0.)
+        denorm_values_new = numpy.minimum(denorm_values_new, 1.)
 
-        denorm_values = _uniform_to_orig_dist(
-            uniform_values_new=normalized_values_new,
-            orig_values_training=orig_values_training
-        )
-    else:
-        denorm_values = _normal_to_orig_dist(
-            normalized_values_new=normalized_values_new,
+        return _uniform_to_orig_dist(
+            uniform_values_new=denorm_values_new,
             orig_values_training=orig_values_training
         )
 
-    return denorm_values
+    if uniformize:
+        return _uniform_to_orig_dist(
+            uniform_values_new=_normal_to_orig_dist(normalized_values_new),
+            orig_values_training=orig_values_training
+        )
+
+    return _normal_to_orig_dist(normalized_values_new)
 
 
 def normalize_data(
         new_example_dict, training_example_dict, normalization_type_string,
-        min_normalized_value=-1., max_normalized_value=1.,
+        uniformize, min_normalized_value=-1., max_normalized_value=1.,
         separate_heights=False, apply_to_predictors=True,
         apply_to_vector_targets=True, apply_to_scalar_targets=True):
     """Normalizes data (both predictor and target variables).
@@ -210,6 +207,9 @@ def normalize_data(
         `example_io.read_file`).
     :param normalization_type_string: Normalization type (must be accepted by
         `check_normalization_type`).
+    :param uniformize: [used only if normalization type is z-score]
+        Boolean flag.  If True, will convert to uniform distribution and then to
+        z-scores; if False, will convert directly to z-scores.
     :param min_normalized_value:
         [used only if normalization_type_string == 'minmax']
         Minimum value after normalization.
@@ -229,6 +229,7 @@ def normalize_data(
         apply_to_scalar_targets == False`.
     """
 
+    error_checking.assert_is_boolean(uniformize)
     error_checking.assert_is_boolean(separate_heights)
     error_checking.assert_is_boolean(apply_to_predictors)
     error_checking.assert_is_boolean(apply_to_vector_targets)
@@ -272,6 +273,7 @@ def normalize_data(
             orig_values_new=new_scalar_predictor_matrix[..., k],
             orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
+            uniformize=uniformize,
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
@@ -301,6 +303,7 @@ def normalize_data(
             orig_values_new=new_scalar_target_matrix[..., k],
             orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
+            uniformize=uniformize,
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
@@ -338,6 +341,7 @@ def normalize_data(
                         orig_values_new=new_vector_predictor_matrix[..., j, k],
                         orig_values_training=these_training_values,
                         normalization_type_string=normalization_type_string,
+                        uniformize=uniformize,
                         min_normalized_value=min_normalized_value,
                         max_normalized_value=max_normalized_value
                     )
@@ -352,6 +356,7 @@ def normalize_data(
                 orig_values_new=new_vector_predictor_matrix[..., k],
                 orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
+                uniformize=uniformize,
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
@@ -384,6 +389,7 @@ def normalize_data(
                     orig_values_new=new_vector_target_matrix[..., j, k],
                     orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
+                    uniformize=uniformize,
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
@@ -397,6 +403,7 @@ def normalize_data(
                 orig_values_new=new_vector_target_matrix[..., k],
                 orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
+                uniformize=uniformize,
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
@@ -409,7 +416,7 @@ def normalize_data(
 
 def denormalize_data(
         new_example_dict, training_example_dict, normalization_type_string,
-        min_normalized_value=-1., max_normalized_value=1.,
+        uniformize, min_normalized_value=-1., max_normalized_value=1.,
         separate_heights=False, apply_to_predictors=True,
         apply_to_vector_targets=True, apply_to_scalar_targets=True):
     """Denormalizes data (both predictor and target variables).
@@ -417,6 +424,7 @@ def denormalize_data(
     :param new_example_dict: See doc for `normalize_data`.
     :param training_example_dict: Same.
     :param normalization_type_string: Same.
+    :param uniformize: Same.
     :param min_normalized_value: Same.
     :param max_normalized_value: Same.
     :param separate_heights: Same.
@@ -471,6 +479,7 @@ def denormalize_data(
             normalized_values_new=new_scalar_predictor_matrix[..., k],
             orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
+            uniformize=uniformize,
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
@@ -500,6 +509,7 @@ def denormalize_data(
             normalized_values_new=new_scalar_target_matrix[..., k],
             orig_values_training=these_training_values,
             normalization_type_string=normalization_type_string,
+            uniformize=uniformize,
             min_normalized_value=min_normalized_value,
             max_normalized_value=max_normalized_value
         )
@@ -537,6 +547,7 @@ def denormalize_data(
                     new_vector_predictor_matrix[..., j, k],
                     orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
+                    uniformize=uniformize,
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
@@ -550,6 +561,7 @@ def denormalize_data(
                 normalized_values_new=new_vector_predictor_matrix[..., k],
                 orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
+                uniformize=uniformize,
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )
@@ -582,6 +594,7 @@ def denormalize_data(
                     normalized_values_new=new_vector_target_matrix[..., j, k],
                     orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
+                    uniformize=uniformize,
                     min_normalized_value=min_normalized_value,
                     max_normalized_value=max_normalized_value
                 )
@@ -595,6 +608,7 @@ def denormalize_data(
                 normalized_values_new=new_vector_target_matrix[..., k],
                 orig_values_training=these_training_values,
                 normalization_type_string=normalization_type_string,
+                uniformize=uniformize,
                 min_normalized_value=min_normalized_value,
                 max_normalized_value=max_normalized_value
             )

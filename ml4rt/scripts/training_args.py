@@ -23,6 +23,7 @@ LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
 FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
 LAST_VALIDN_TIME_ARG_NAME = 'last_validn_time_string'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
+UNIFORMIZE_FLAG_ARG_NAME = 'uniformize'
 PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
 PREDICTOR_MIN_VALUE_ARG_NAME = 'predictor_min_norm_value'
 PREDICTOR_MAX_VALUE_ARG_NAME = 'predictor_max_norm_value'
@@ -100,6 +101,11 @@ VALIDN_TIME_HELP_STRING = (
 NORMALIZATION_FILE_HELP_STRING = (
     'Path to normalization file.  Will be read by `example_io.read_file`.  If '
     'you do not want to normalize, make this an empty string ("").'
+)
+UNIFORMIZE_FLAG_HELP_STRING = (
+    'Boolean flag, used only for z-score normalization.  If 1, each variable '
+    'will be converted to a uniform distribution and then z-scores.  If 0, '
+    'each variable will be converted directly to z-scores.'
 )
 PREDICTOR_NORM_TYPE_HELP_STRING = (
     'Normalization type for predictors (must be accepted by '
@@ -233,6 +239,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + NORMALIZATION_FILE_ARG_NAME, type=str, required=True,
         help=NORMALIZATION_FILE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + UNIFORMIZE_FLAG_ARG_NAME, type=int, required=True,
+        help=UNIFORMIZE_FLAG_HELP_STRING
     )
     parser_object.add_argument(
         '--' + PREDICTOR_NORM_TYPE_ARG_NAME, type=str, required=False,

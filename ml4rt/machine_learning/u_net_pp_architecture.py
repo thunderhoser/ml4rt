@@ -489,9 +489,18 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
 
     if use_deep_supervision:
         for i in range(1, num_levels):
-            if conv_output_activ_func_name is None:
-                deep_supervision_layer_objects[i] = last_conv_layer_matrix[0, i]
-            else:
+            this_name = 'deepsup{0:d}_conv'.format(i)
+
+            deep_supervision_layer_objects[i] = (
+                architecture_utils.get_1d_conv_layer(
+                    num_kernel_rows=1, num_rows_per_stride=1,
+                    num_filters=num_output_channels,
+                    padding_type_string=architecture_utils.YES_PADDING_STRING,
+                    weight_regularizer=regularizer_object, layer_name=this_name
+                )(last_conv_layer_matrix[0, i])
+            )
+
+            if conv_output_activ_func_name is not None:
                 this_name = 'deepsup{0:d}_activation'.format(i)
 
                 deep_supervision_layer_objects[i] = (
@@ -500,7 +509,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                         alpha_for_relu=conv_output_activ_func_alpha,
                         alpha_for_elu=conv_output_activ_func_alpha,
                         layer_name=this_name
-                    )(last_conv_layer_matrix[0, i])
+                    )(deep_supervision_layer_objects[i])
                 )
 
             this_function = u_net_architecture.zero_top_heating_rate_function(

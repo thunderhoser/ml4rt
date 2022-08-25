@@ -59,6 +59,7 @@ MULTIPLY_HR_BY_THICKNESS_KEY = 'multiply_hr_by_layer_thickness'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
+UNIFORMIZE_FLAG_KEY = 'uniformize'
 PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
 PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
 PREDICTOR_MAX_NORM_VALUE_KEY = 'predictor_max_norm_value'
@@ -203,7 +204,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
         heights_m_agl, multiply_preds_by_layer_thickness,
-        multiply_hr_by_layer_thickness, normalization_file_name,
+        multiply_hr_by_layer_thickness, normalization_file_name, uniformize,
         predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, vector_target_norm_type_string,
         vector_target_min_norm_value, vector_target_max_norm_value,
@@ -221,6 +222,7 @@ def _read_file_for_generator(
     :param multiply_preds_by_layer_thickness: See doc for `data_generator`.
     :param multiply_hr_by_layer_thickness: Same.
     :param normalization_file_name: Same.
+    :param uniformize: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
     :param predictor_max_norm_value: Same.
@@ -261,6 +263,7 @@ def _read_file_for_generator(
     if previous_norm_file_name is not None:
         normalization_metadata_dict = {
             example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
+            example_io.UNIFORMIZE_FLAG_KEY: uniformize,
             example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
             example_io.PREDICTOR_MIN_VALUE_KEY: predictor_min_norm_value,
             example_io.PREDICTOR_MAX_VALUE_KEY: predictor_max_norm_value,
@@ -324,6 +327,7 @@ def _read_file_for_generator(
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
             normalization_type_string=predictor_norm_type_string,
+            uniformize=uniformize,
             min_normalized_value=predictor_min_norm_value,
             max_normalized_value=predictor_max_norm_value,
             separate_heights=True, apply_to_predictors=True,
@@ -338,6 +342,7 @@ def _read_file_for_generator(
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
             normalization_type_string=vector_target_norm_type_string,
+            uniformize=uniformize,
             min_normalized_value=vector_target_min_norm_value,
             max_normalized_value=vector_target_max_norm_value,
             separate_heights=True, apply_to_predictors=False,
@@ -352,6 +357,7 @@ def _read_file_for_generator(
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
             normalization_type_string=scalar_target_norm_type_string,
+            uniformize=uniformize,
             min_normalized_value=scalar_target_min_norm_value,
             max_normalized_value=scalar_target_max_norm_value,
             separate_heights=True, apply_to_predictors=False,
@@ -931,6 +937,10 @@ def data_generator(option_dict, for_inference, net_type_string):
         will multiply heating rates by layer thickness.
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
+    option_dict['uniformize']: Boolean flag, used only for z-score
+        normalization.  If True, will convert each variable to uniform
+        distribution and then z-scores; if False, will convert directly to
+        z-scores.
     option_dict['predictor_norm_type_string']: Normalization type for predictors
         (must be accepted by `normalization.check_normalization_type`).  If you
         do not want to normalize predictors, make this None.
@@ -1000,6 +1010,7 @@ def data_generator(option_dict, for_inference, net_type_string):
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+    uniformize = option_dict[UNIFORMIZE_FLAG_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
@@ -1029,6 +1040,7 @@ def data_generator(option_dict, for_inference, net_type_string):
         multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
         multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
         normalization_file_name=normalization_file_name,
+        uniformize=uniformize,
         predictor_norm_type_string=predictor_norm_type_string,
         predictor_min_norm_value=predictor_min_norm_value,
         predictor_max_norm_value=predictor_max_norm_value,
@@ -1090,6 +1102,7 @@ def data_generator(option_dict, for_inference, net_type_string):
                     multiply_hr_by_layer_thickness=
                     multiply_hr_by_layer_thickness,
                     normalization_file_name=normalization_file_name,
+                    uniformize=uniformize,
                     predictor_norm_type_string=predictor_norm_type_string,
                     predictor_min_norm_value=predictor_min_norm_value,
                     predictor_max_norm_value=predictor_max_norm_value,
@@ -1255,6 +1268,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+    uniformize = option_dict[UNIFORMIZE_FLAG_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
@@ -1287,6 +1301,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
             multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
             normalization_file_name=normalization_file_name,
+            uniformize=uniformize,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
             predictor_max_norm_value=predictor_max_norm_value,
@@ -1382,6 +1397,7 @@ def create_data_specific_examples(
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+    uniformize = option_dict[UNIFORMIZE_FLAG_KEY]
     predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
     predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
     predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
@@ -1422,6 +1438,7 @@ def create_data_specific_examples(
             multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
             multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
             normalization_file_name=normalization_file_name,
+            uniformize=uniformize,
             predictor_norm_type_string=predictor_norm_type_string,
             predictor_min_norm_value=predictor_min_norm_value,
             predictor_max_norm_value=predictor_max_norm_value,
@@ -1895,6 +1912,10 @@ def read_metafile(dill_file_name):
         v[SCALAR_TARGET_NORM_TYPE_KEY] = target_norm_type_string
         v[SCALAR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
         v[SCALAR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
+
+    if UNIFORMIZE_FLAG_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[UNIFORMIZE_FLAG_KEY] = True
+        v[UNIFORMIZE_FLAG_KEY] = True
 
     if JOINED_OUTPUT_LAYER_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         t[JOINED_OUTPUT_LAYER_KEY] = False

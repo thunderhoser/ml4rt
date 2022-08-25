@@ -9,6 +9,7 @@ from ml4rt.utils import example_utils
 
 INPUT_FILE_ARG_NAME = 'input_example_file_name'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
+UNIFORMIZE_ARG_NAME = 'uniformize'
 MULTIPLY_PREDICTORS_ARG_NAME = 'multiply_preds_by_layer_thickness'
 MULTIPLY_HEATING_RATES_ARG_NAME = 'multiply_hr_by_layer_thickness'
 PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
@@ -30,6 +31,10 @@ NORMALIZATION_FILE_HELP_STRING = (
     'Path to normalization file, containing unnormalized sample values that '
     'will be used to create uniform distributions.  Will be read by '
     '`example_io.read_file`.'
+)
+UNIFORMIZE_HELP_STRING = (
+    'Boolean flag.  If 1, will convert each variable to uniform distribution '
+    'and then z-scores.  If 0, will convert directly to z-scores.'
 )
 MULTIPLY_PREDICTORS_HELP_STRING = (
     'Boolean flag.  If 1, predictors will be multiplied by layer thickness '
@@ -89,6 +94,10 @@ INPUT_ARG_PARSER.add_argument(
     help=NORMALIZATION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + UNIFORMIZE_ARG_NAME, type=int, required=True,
+    help=UNIFORMIZE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + MULTIPLY_PREDICTORS_ARG_NAME, type=int, required=False, default=0,
     help=MULTIPLY_PREDICTORS_HELP_STRING
 )
@@ -139,7 +148,7 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_example_file_name, normalization_file_name,
+def _run(input_example_file_name, normalization_file_name, uniformize,
          multiply_preds_by_layer_thickness, multiply_hr_by_layer_thickness,
          predictor_norm_type_string, predictor_min_norm_value,
          predictor_max_norm_value, vector_target_norm_type_string,
@@ -152,6 +161,7 @@ def _run(input_example_file_name, normalization_file_name,
 
     :param input_example_file_name: See documentation at top of file.
     :param normalization_file_name: Same.
+    :param uniformize: Same.
     :param multiply_preds_by_layer_thickness: Same.
     :param multiply_hr_by_layer_thickness: Same.
     :param predictor_norm_type_string: Same.
@@ -217,6 +227,7 @@ def _run(input_example_file_name, normalization_file_name,
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
             normalization_type_string=predictor_norm_type_string,
+            uniformize=uniformize,
             min_normalized_value=predictor_min_norm_value,
             max_normalized_value=predictor_max_norm_value,
             separate_heights=True, apply_to_predictors=True,
@@ -233,6 +244,7 @@ def _run(input_example_file_name, normalization_file_name,
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
             normalization_type_string=vector_target_norm_type_string,
+            uniformize=uniformize,
             min_normalized_value=vector_target_min_norm_value,
             max_normalized_value=vector_target_max_norm_value,
             separate_heights=True, apply_to_predictors=False,
@@ -249,6 +261,7 @@ def _run(input_example_file_name, normalization_file_name,
             new_example_dict=example_dict,
             training_example_dict=training_example_dict,
             normalization_type_string=scalar_target_norm_type_string,
+            uniformize=uniformize,
             min_normalized_value=scalar_target_min_norm_value,
             max_normalized_value=scalar_target_max_norm_value,
             separate_heights=True, apply_to_predictors=False,
@@ -257,6 +270,7 @@ def _run(input_example_file_name, normalization_file_name,
 
     normalization_metadata_dict = {
         example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
+        example_io.UNIFORMIZE_FLAG_KEY: uniformize,
         example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
         example_io.PREDICTOR_MIN_VALUE_KEY: predictor_min_norm_value,
         example_io.PREDICTOR_MAX_VALUE_KEY: predictor_max_norm_value,
@@ -290,6 +304,7 @@ if __name__ == '__main__':
         normalization_file_name=getattr(
             INPUT_ARG_OBJECT, NORMALIZATION_FILE_ARG_NAME
         ),
+        uniformize=bool(getattr(INPUT_ARG_OBJECT, UNIFORMIZE_ARG_NAME)),
         multiply_preds_by_layer_thickness=bool(
             getattr(INPUT_ARG_OBJECT, MULTIPLY_PREDICTORS_ARG_NAME)
         ),

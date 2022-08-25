@@ -665,6 +665,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=False, apply_to_predictors=True,
@@ -679,6 +680,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_MINMAX_BOTH_NO_HEIGHT),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=False, apply_to_predictors=True,
@@ -700,6 +702,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=False, apply_to_predictors=True,
@@ -715,6 +718,7 @@ class NormalizationTests(unittest.TestCase):
             copy.deepcopy(EXAMPLE_DICT_MINMAX_PREDICTORS_NO_HEIGHT),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=False, apply_to_predictors=True,
@@ -736,6 +740,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=False, apply_to_predictors=False,
@@ -751,6 +756,7 @@ class NormalizationTests(unittest.TestCase):
             copy.deepcopy(EXAMPLE_DICT_MINMAX_TARGETS_NO_HEIGHT),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=False, apply_to_predictors=False,
@@ -772,6 +778,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            uniformize=True,
             separate_heights=False, apply_to_predictors=True,
             apply_to_vector_targets=True, apply_to_scalar_targets=True
         )
@@ -791,6 +798,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            uniformize=True,
             separate_heights=False, apply_to_predictors=True,
             apply_to_vector_targets=False, apply_to_scalar_targets=False
         )
@@ -810,6 +818,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            uniformize=True,
             separate_heights=False, apply_to_predictors=False,
             apply_to_vector_targets=True, apply_to_scalar_targets=True
         )
@@ -829,6 +838,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=True, apply_to_predictors=True,
@@ -844,6 +854,7 @@ class NormalizationTests(unittest.TestCase):
             copy.deepcopy(EXAMPLE_DICT_MINMAX_BOTH_WITH_HEIGHT),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=True, apply_to_predictors=True,
@@ -865,6 +876,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=True, apply_to_predictors=True,
@@ -880,6 +892,7 @@ class NormalizationTests(unittest.TestCase):
             copy.deepcopy(EXAMPLE_DICT_MINMAX_PREDICTORS_WITH_HEIGHT),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=True, apply_to_predictors=True,
@@ -901,6 +914,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=True, apply_to_predictors=False,
@@ -916,6 +930,7 @@ class NormalizationTests(unittest.TestCase):
             copy.deepcopy(EXAMPLE_DICT_MINMAX_TARGETS_WITH_HEIGHT),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.MINMAX_NORM_STRING,
+            uniformize=True,
             min_normalized_value=MIN_NORMALIZED_VALUE,
             max_normalized_value=MAX_NORMALIZED_VALUE,
             separate_heights=True, apply_to_predictors=False,
@@ -937,6 +952,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            uniformize=True,
             separate_heights=True, apply_to_predictors=True,
             apply_to_vector_targets=True, apply_to_scalar_targets=True
         )
@@ -956,6 +972,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            uniformize=True,
             separate_heights=True, apply_to_predictors=True,
             apply_to_vector_targets=False, apply_to_scalar_targets=False
         )
@@ -975,6 +992,7 @@ class NormalizationTests(unittest.TestCase):
             new_example_dict=copy.deepcopy(EXAMPLE_DICT_ORIG),
             training_example_dict=TRAINING_EXAMPLE_DICT,
             normalization_type_string=normalization.Z_SCORE_NORM_STRING,
+            uniformize=True,
             separate_heights=True, apply_to_predictors=False,
             apply_to_vector_targets=True, apply_to_scalar_targets=True
         )
