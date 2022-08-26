@@ -118,8 +118,9 @@ def _run():
 
                 these_neuron_counts = (
                     architecture_utils.get_dense_layer_dimensions(
-                        num_input_units=
-                        multiplier * these_channel_counts_all[-1],
+                        num_input_units=int(numpy.round(
+                            multiplier * these_channel_counts_all[-1]
+                        )),
                         num_classes=2,
                         num_dense_layers=4,
                         for_classification=False
