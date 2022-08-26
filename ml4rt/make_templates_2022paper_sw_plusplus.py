@@ -1,4 +1,4 @@
-"""Makes templates for shortwave U-net++ models with deep sup in 2022 paper."""
+"""Makes templates for shortwave U-net++ models sans deep sup in 2022 paper."""
 
 import os
 import sys
@@ -20,7 +20,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/2022paper_experiment_sw_plusplus_deep/templates'
+    '{0:s}/ml4rt_models/2022paper_experiment_sw_plusplus/templates'
 ).format(HOME_DIR_NAME)
 
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
@@ -71,7 +71,7 @@ DUMMY_GENERATOR_OPTION_DICT = {
 
 
 def _run():
-    """Makes templates for shortwave U-net++ models with deep sup in 2022 paper.
+    """Makes templates for shortwave U-net++ models sans deep sup in 2022 paper.
 
     This is effectively the main method.
     """
@@ -138,7 +138,7 @@ def _run():
                 this_model_object = u_net_pp_architecture.create_model(
                     option_dict=this_option_dict,
                     vector_loss_function=VECTOR_LOSS_FUNCTION,
-                    use_deep_supervision=True, num_output_channels=1,
+                    use_deep_supervision=False, num_output_channels=1,
                     scalar_loss_function=SCALAR_LOSS_FUNCTION
                 )
 
