@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=02:00:00
-#SBATCH --array=1-50
+#SBATCH --array=1-72
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -25,18 +25,23 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_longwave/orig_heights/normalized/training"
-set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_longwave/orig_heights/training"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/lw_only_experiment_3plus"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_sw_plusplus"
+
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/normalized_not_flux/training"
+set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/training"
 
 set FIRST_TRAINING_TIME_STRING="2019-12-01-000000"
 set LAST_TRAINING_TIME_STRING="2019-12-31-235959"
 
-set FLUX_LOSS_SCALING_FACTORS=(0.02 0.04 0.06 0.08 0.10 0.12 0.14 0.16 0.18 0.20 0.22 0.24 0.26 0.28 0.30 0.32 0.34 0.36 0.38 0.40 0.42 0.44 0.46 0.48 0.50 0.52 0.54 0.56 0.58 0.60 0.62 0.64 0.66 0.68 0.70 0.72 0.74 0.76 0.78 0.80 0.82 0.84 0.86 0.88 0.90 0.92 0.94 0.96 0.98 1.00)
-set flux_loss_scaling_factor=${FLUX_LOSS_SCALING_FACTORS[$SLURM_ARRAY_TASK_ID]}
-set flux_loss_scaling_factor=`printf "%.2f" $flux_loss_scaling_factor`
+set MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
+set CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
+set FIRST_LAYER_CHANNEL_COUNTS=("004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128")
 
-set top_model_dir_name="${TOP_MODEL_DIR_NAME}/flux-loss-scaling-factor=${flux_loss_scaling_factor}"
+set model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+set num_conv_layers_per_block=${CONV_LAYER_PER_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}"
 
 set model_file_names={${top_model_dir_name}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
