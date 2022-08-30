@@ -31,10 +31,12 @@ set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_projec
 set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/training/learning_examples_for_norm_20200103-20200313.nc"
 
 set MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
+set DEEPSUP_LAYER_COUNTS=("2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4")
 set CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
 set FIRST_LAYER_CHANNEL_COUNTS=("004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128")
 
 set model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+set num_deep_supervision_layers=${DEEPSUP_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set num_conv_layers_per_block=${CONV_LAYER_PER_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
@@ -68,4 +70,4 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --num_training_batches_per_epoch=1000 \
 --num_validn_batches_per_epoch=1000 \
 --plateau_lr_multiplier=0.6 \
---num_deep_supervision_layers=3
+--num_deep_supervision_layers=${num_deep_supervision_layers}
