@@ -41,6 +41,9 @@ function create_output_file, name, num_heights
   vid = ncdf_vardef(fid,'surface_temperature_kelvins',/float,did0)
     ncdf_attput,fid,vid,'long_name','Surface temperature'
     ncdf_attput,fid,vid,'units','K'
+  vid = ncdf_vardef(fid,'surface_emissivity',/float,did0)
+    ncdf_attput,fid,vid,'long_name','Surface emissivity'
+    ncdf_attput,fid,vid,'units','unitless'
   vid = ncdf_vardef(fid,'total_liquid_water_path_kg_m02',/float,did0)
     ncdf_attput,fid,vid,'long_name','Liquid water path'
     ncdf_attput,fid,vid,'units','kg/m2'
@@ -104,7 +107,7 @@ return, 0
 end
 ;---------------------------------------------------------------------------------
 function append_to_output_file, name, index, valid_times_unix_sec, julian_days, zenith_angles_deg, $
-    standard_atmo_enums, latitudes_deg_n, longitudes_deg_e, surface_temperatures_kelvins, $
+    standard_atmo_enums, latitudes_deg_n, longitudes_deg_e, surface_temperatures_kelvins, surface_emissivities, $
     total_liquid_paths_g_m02, total_ice_paths_g_m02, liquid_paths_g_m02, ice_paths_g_m02, $
     temps_kelvins, pressures_mb, heights_km_agl, vapour_mixing_ratios_g_kg01, $
     ozone_mixing_ratios_g_kg01, co2_concentrations_ppmv, ch4_concentrations_ppmv, n2o_concentrations_ppmv, $
@@ -119,6 +122,7 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
   ncdf_varput,fid,'site_latitude_deg_n',latitudes_deg_n,offset=index
   ncdf_varput,fid,'site_longitude_deg_e',longitudes_deg_e,offset=index
   ncdf_varput,fid,'surface_temperature_kelvins',surface_temperatures_kelvins,offset=index
+  ncdf_varput,fid,'surface_emissivity',surface_emissivities,offset=index
   ncdf_varput,fid,'total_liquid_water_path_kg_m02',0.001*total_liquid_paths_g_m02,offset=index
   ncdf_varput,fid,'total_ice_water_path_kg_m02',0.001*total_ice_paths_g_m02,offset=index
   ncdf_varput,fid,'layerwise_liquid_water_path_kg_m02',0.001*liquid_paths_g_m02,offset=[0,index]
@@ -186,6 +190,7 @@ pro runit, year
     ncdf_varget,fid,'liquid_eff_radius_metres',liquid_eff_radius_matrix_metres
     ncdf_varget,fid,'ice_eff_radius_metres',ice_eff_radius_matrix_metres
     ncdf_varget,fid,'surface_temperature_kelvins',surface_temp_matrix_kelvins
+    ncdf_varget,fid,'surface_emissivity',surface_emissivity_matrix
     ncdf_close,fid
 
     layerwise_ice_path_matrix_kg_m02 = layerwise_ice_path_matrix_kg_m02 + layerwise_snow_path_kg_m02
@@ -269,7 +274,7 @@ pro runit, year
 		        ; Run the RT model RRTM_LW
 	      outlw = make_rrtm_lw_calc(these_heights_km_agl, these_pressures_mb, these_temps_kelvins, these_vapour_mixing_ratios_g_kg01, $
 	          these_liquid_paths_g_m02, these_ice_paths_g_m02, these_liquid_eff_radii_microns, these_ice_eff_radii_microns, $
-	          stdatmos, surface_temp_matrix_kelvins(foo(0),bar(0)), [10000,2000], [0.98,0.98], $
+	          stdatmos, surface_temp_matrix_kelvins(foo(0),bar(0)), [10000,2000], [surface_emissivity_matrix(foo(0),bar(0)),surface_emissivity_matrix(foo(0),bar(0))], $
               co2=these_co2_concentrations_ppmv, ch4=these_ch4_concentrations_ppmv, n2o=these_n2o_concentrations_ppmv, o3p=these_ozone_mixing_ratios_g_kg01, o3_units='g/kg', $
               rrtm_lw_command, silent=1)
 	      if(outlw.success eq 0) then begin
@@ -294,6 +299,7 @@ pro runit, year
 	        output_vapour_mixing_ratios_g_kg01 = transpose(these_vapour_mixing_ratios_g_kg01)
 	        output_zenith_angles_deg = sza(0)
 	        output_surface_temps_kelvins = reform(surface_temp_matrix_kelvins(foo(0),bar(0)))
+	        output_surface_emissivities = reform(surface_emissivity_matrix(foo(0),bar(0)))
 	        output_standard_atmo_enums = stdatmos
 	        output_latitudes_deg_n = site_latitudes_deg_n(foo)
 	        output_longitudes_deg_e = site_longitudes_deg_e(foo)
@@ -321,6 +327,7 @@ pro runit, year
 	        output_vapour_mixing_ratios_g_kg01 = [output_vapour_mixing_ratios_g_kg01,transpose(these_vapour_mixing_ratios_g_kg01)]
 	        output_zenith_angles_deg = [output_zenith_angles_deg,sza(0)]
 	        output_surface_temps_kelvins = [output_surface_temps_kelvins,reform(surface_temp_matrix_kelvins(foo(0),bar(0)))]
+	        output_surface_emissivities = [output_surface_emissivities,reform(surface_emissivity_matrix(foo(0),bar(0)))]
 	        output_standard_atmo_enums = [output_standard_atmo_enums,stdatmos]
 	        output_latitudes_deg_n = [output_latitudes_deg_n,site_latitudes_deg_n(foo)]
 	        output_longitudes_deg_e = [output_longitudes_deg_e,site_longitudes_deg_e(foo)]
@@ -363,7 +370,7 @@ pro runit, year
 		    ; Append output to the file
         print,'Adding ',n_elements(output_times_unix_sec),' samples to the output file ',outname, ' at ',index, format='(A,I0,A,A,A,I0)'
         index = append_to_output_file(outname, index, output_times_unix_sec, output_julian_days, output_zenith_angles_deg, $
-          output_standard_atmo_enums, output_latitudes_deg_n, output_longitudes_deg_e, output_surface_temps_kelvins, $
+          output_standard_atmo_enums, output_latitudes_deg_n, output_longitudes_deg_e, output_surface_temps_kelvins, output_surface_emissivities, $
 	      output_total_liquid_paths_g_m02, output_total_ice_paths_g_m02, output_liquid_paths_g_m02, output_ice_paths_g_m02, $
 	      output_temps_kelvins, output_pressures_mb, output_heights_km_agl, output_vapour_mixing_ratios_g_kg01, $
 	      output_ozone_mixing_ratios_g_kg01, output_co2_concentrations_ppmv, output_ch4_concentrations_ppmv, output_n2o_concentrations_ppmv, $
