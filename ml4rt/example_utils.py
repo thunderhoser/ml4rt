@@ -1,27 +1,19 @@
 """Helper methods for learning examples."""
 
-import os
-import sys
 import copy
 import warnings
 import numpy
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import time_conversion
-import prob_matched_means as pmm
-import temperature_conversions as temp_conversions
-import moisture_conversions as moisture_conv
-import longitude_conversion as lng_conversion
-import error_checking
-import aerosols
-import trace_gases
-import land_ocean_mask
+from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import prob_matched_means as pmm
+from gewittergefahr.gg_utils import temperature_conversions as temp_conversions
+from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
+from gewittergefahr.gg_utils import error_checking
+from ml4rt.utils import aerosols
+from ml4rt.utils import trace_gases
+from ml4rt.utils import land_ocean_mask
 
 TOLERANCE = 1e-6
 MAX_AEROSOL_OPTICAL_DEPTH = 1.5
@@ -116,6 +108,7 @@ LATITUDE_NAME = 'latitude_deg_n'
 LONGITUDE_NAME = 'longitude_deg_e'
 ALBEDO_NAME = 'albedo'
 SURFACE_TEMPERATURE_NAME = 'surface_temperature_kelvins'
+SURFACE_EMISSIVITY_NAME = 'surface_emissivity'
 COLUMN_LIQUID_WATER_PATH_NAME = 'column_liquid_water_path_kg_m02'
 COLUMN_ICE_WATER_PATH_NAME = 'column_ice_water_path_kg_m02'
 PRESSURE_NAME = 'pressure_pascals'
@@ -156,7 +149,7 @@ PREDICTOR_NAMES_P_THICKNESS_MATTERS = [
 
 ALL_SCALAR_PREDICTOR_NAMES = [
     ZENITH_ANGLE_NAME, LATITUDE_NAME, LONGITUDE_NAME,
-    ALBEDO_NAME, SURFACE_TEMPERATURE_NAME,
+    ALBEDO_NAME, SURFACE_TEMPERATURE_NAME, SURFACE_EMISSIVITY_NAME,
     COLUMN_LIQUID_WATER_PATH_NAME, COLUMN_ICE_WATER_PATH_NAME,
     AEROSOL_ALBEDO_NAME, AEROSOL_ASYMMETRY_PARAM_NAME
 ]

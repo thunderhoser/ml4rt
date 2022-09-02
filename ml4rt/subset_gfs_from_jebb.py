@@ -1,19 +1,12 @@
 """Subsets GFS data from Jebb by site."""
 
 import os
-import sys
 import argparse
 import numpy
 import xarray
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import time_conversion
-import file_system_utils
-import error_checking
+from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.gg_utils import error_checking
 
 TOLERANCE = 1e-6
 
@@ -28,6 +21,7 @@ ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
 SURFACE_ALBEDO_KEY = 'albdo_ave'
 SURFACE_TEMPERATURE_KEY = 'tmpsfc'
+SURFACE_UP_LONGWAVE_FLUX_KEY = 'ulwrf'
 
 ATMOSPHERE_FILES_ARG_NAME = 'input_atmos_file_names'
 SURFACE_FILES_ARG_NAME = 'input_surface_file_names'
@@ -182,7 +176,10 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
         ]
         new_data_dict[this_key] = (new_dimensions, new_data_matrix)
 
-    for this_key in [SURFACE_ALBEDO_KEY, SURFACE_TEMPERATURE_KEY]:
+    for this_key in [
+            SURFACE_ALBEDO_KEY, SURFACE_TEMPERATURE_KEY,
+            SURFACE_UP_LONGWAVE_FLUX_KEY
+    ]:
         print('Adding {0:s} to new data dictionary...'.format(this_key))
 
         orig_dimensions = surface_table_xarray[this_key].dims
