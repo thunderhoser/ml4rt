@@ -36,7 +36,7 @@ FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
 
 DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.INPUT_DIMENSIONS_KEY:
-        numpy.array([127, 23], dtype=int),
+        numpy.array([127, 24], dtype=int),
     # u_net_pp_architecture.NUM_LEVELS_KEY: NUM_LEVELS,
     # u_net_pp_architecture.CONV_LAYER_COUNTS_KEY:
     #     numpy.full(NUM_LEVELS + 1, 2, dtype=int),
