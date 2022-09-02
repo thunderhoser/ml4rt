@@ -107,6 +107,7 @@ REQUIRED_LONGWAVE_PREDICTOR_NAMES = [
     # example_utils.AEROSOL_ALBEDO_NAME,
     # example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
     example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.SURFACE_EMISSIVITY_NAME,
     example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
     example_utils.SPECIFIC_HUMIDITY_NAME,
     example_utils.LIQUID_WATER_CONTENT_NAME,
@@ -120,7 +121,8 @@ REQUIRED_LONGWAVE_PREDICTOR_NAMES = [
 DEFAULT_SCALAR_PREDICTOR_NAMES_GFS = DEFAULT_SCALAR_PREDICTOR_NAMES + [
     example_utils.AEROSOL_ALBEDO_NAME,
     example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
-    example_utils.SURFACE_TEMPERATURE_NAME
+    example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.SURFACE_EMISSIVITY_NAME
 ]
 DEFAULT_VECTOR_PREDICTOR_NAMES_GFS = DEFAULT_VECTOR_PREDICTOR_NAMES + [
     example_utils.O3_MIXING_RATIO_NAME, example_utils.CO2_CONCENTRATION_NAME,
@@ -146,6 +148,7 @@ PREDICTOR_NAME_TO_ORIG_GFS = {
     example_utils.LONGITUDE_NAME: 'site_longitude_deg_e',
     example_utils.ALBEDO_NAME: 'surface_albedo',
     example_utils.SURFACE_TEMPERATURE_NAME: 'surface_temperature_kelvins',
+    example_utils.SURFACE_EMISSIVITY_NAME: 'surface_emissivity',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
         'total_liquid_water_path_kg_m02',
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 'total_ice_water_path_kg_m02',
@@ -174,6 +177,7 @@ PREDICTOR_NAME_TO_CONV_FACTOR_GFS = {
     example_utils.LONGITUDE_NAME: 1.,
     example_utils.ALBEDO_NAME: 1.,
     example_utils.SURFACE_TEMPERATURE_NAME: 1.,
+    example_utils.SURFACE_EMISSIVITY_NAME: 1.,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: 1.,
     example_utils.COLUMN_ICE_WATER_PATH_NAME: 1.,
     example_utils.AEROSOL_ALBEDO_NAME: 1.,

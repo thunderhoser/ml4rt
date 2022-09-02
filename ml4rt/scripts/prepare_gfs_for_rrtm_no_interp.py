@@ -20,6 +20,7 @@ SECONDS_TO_HOURS = 1. / 3600
 UNITLESS_TO_PERCENT = 100.
 PERCENT_TO_UNITLESS = 0.01
 DRY_AIR_GAS_CONSTANT_J_KG01_K01 = 287.04
+STEFAN_BOLTZMANN_CONSTANT_W_M02_K04 = 5.67e-8
 
 SITE_DIMENSION_ORIG = 'site_index'
 TIME_DIMENSION_ORIG = 'valid_time_unix_sec'
@@ -47,6 +48,7 @@ VAPOUR_MIXR_KEY_ORIG_KG_KG01 = 'r0'
 SPECIFIC_HUMIDITY_KEY_ORIG_KG_KG01 = 'spfh'
 ALBEDO_KEY_ORIG_PERCENT = 'albdo_ave'
 SURFACE_TEMP_KEY_ORIG_KELVINS = 'tmpsfc'
+SURFACE_UP_LONGWAVE_FLUX_KEY_ORIG_W_M02 = 'ulwrf'
 HEIGHT_KEY_ORIG_M_AGL = 'height_m_agl'
 PRESSURE_KEY_ORIG_PASCALS = 'pressure_pa'
 PRESSURE_AT_EDGE_KEY_ORIG_PASCALS = 'pressure_at_edge_pa'
@@ -95,6 +97,7 @@ OZONE_MIXR_KEY_KG_KG01 = 'ozone_mixing_ratio_kg_kg01'
 CLOUD_FRACTION_KEY_PERCENT = 'cloud_fraction_percent'
 ALBEDO_KEY = 'surface_albedo'
 SURFACE_TEMPERATURE_KEY = 'surface_temperature_kelvins'
+SURFACE_EMISSIVITY_KEY = 'surface_emissivity'
 
 ORIG_TO_NEW_KEY_DICT = {
     HEIGHT_KEY_ORIG_M_AGL: HEIGHT_KEY_M_AGL,
@@ -783,6 +786,22 @@ def _run(input_file_name, output_file_name):
         orig_gfs_table_xarray[SURFACE_TEMP_KEY_ORIG_KELVINS].values
     )
 
+    print('Computing surface emissivities...')
+    upwelling_flux_matrix_w_m02 = (
+        orig_gfs_table_xarray[SURFACE_UP_LONGWAVE_FLUX_KEY_ORIG_W_M02].values
+    )
+    blackbody_up_flux_matrix_w_m02 = (
+        STEFAN_BOLTZMANN_CONSTANT_W_M02_K04 * surface_temp_matrix_kelvins ** 4
+    )
+    surface_emissivity_matrix = (
+        upwelling_flux_matrix_w_m02 / blackbody_up_flux_matrix_w_m02
+    )
+
+    # TODO(thunderhoser): Maybe I actually get rid of profiles with bad
+    # emissivity values, instead of bounding them?
+    surface_emissivity_matrix = numpy.maximum(surface_emissivity_matrix, 0.)
+    surface_emissivity_matrix = numpy.minimum(surface_emissivity_matrix, 1.)
+
     # Create xarray table with processed data.
     for this_key_orig in processed_data_dict:
         if this_key_orig == PRESSURE_AT_EDGE_KEY_ORIG_PASCALS:
@@ -802,7 +821,8 @@ def _run(input_file_name, output_file_name):
     these_dim = (TIME_DIMENSION, SITE_DIMENSION)
     new_data_dict.update({
         ALBEDO_KEY: (these_dim, albedo_matrix),
-        SURFACE_TEMPERATURE_KEY: (these_dim, surface_temp_matrix_kelvins)
+        SURFACE_TEMPERATURE_KEY: (these_dim, surface_temp_matrix_kelvins),
+        SURFACE_EMISSIVITY_KEY: (these_dim, surface_emissivity_matrix)
     })
 
     new_gfs_table_xarray = xarray.Dataset(
