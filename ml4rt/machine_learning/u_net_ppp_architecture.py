@@ -594,7 +594,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {'conv_output': vector_loss_function}
 
-    deep_supervision_layer_objects = [None] * num_levels
+    deep_supervision_layer_objects = [None] * (num_levels + 1)
 
     if use_deep_supervision:
         for i in range(1, num_levels + 1):

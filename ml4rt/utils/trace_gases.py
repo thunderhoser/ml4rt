@@ -107,7 +107,7 @@ def read_profiles(netcdf_file_name=None):
     heights_m_asl = KM_TO_METRES * dataset_object.variables[ORIG_HEIGHT_KEY][:]
     heights_m_asl = heights_m_asl.filled(0.)
 
-    num_standard_atmospheres = n2o_mixing_ratio_matrix_kg_kg01.shape[1]
+    num_standard_atmospheres = n2o_mixing_ratio_matrix_kg_kg01.shape[0]
     standard_atmosphere_enums = numpy.linspace(
         1, num_standard_atmospheres, num=num_standard_atmospheres, dtype=int
     )
