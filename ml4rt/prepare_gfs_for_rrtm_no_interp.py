@@ -1,15 +1,23 @@
 """Prepares GFS data for input to the RRTM, without interp to height grid."""
 
+import os
+import sys
 import argparse
 import numpy
 import xarray
 from scipy.interpolate import interp1d
-from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
-from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import rrtm_io
-from ml4rt.utils import example_utils
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import moisture_conversions as moisture_conv
+import longitude_conversion as longitude_conv
+import file_system_utils
+import error_checking
+import rrtm_io
+import example_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 

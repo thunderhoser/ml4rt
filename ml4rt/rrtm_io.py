@@ -1,15 +1,22 @@
 """IO methods for RRTM (Rapid Radiative-transfer Model) files."""
 
+import os
+import sys
 import copy
-import os.path
 import warnings
 import numpy
 import netCDF4
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
-from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.utils import example_utils
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import time_conversion
+import moisture_conversions as moisture_conv
+import longitude_conversion as longitude_conv
+import error_checking
+import example_utils
 
 MIN_BAD_VALUE = 1e30
 
