@@ -39,4 +39,5 @@ python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
 --predictor_norm_type_string="z_score" \
 --vector_target_norm_type_string="" \
 --scalar_target_norm_type_string="" \
+--uniformize=1 \
 --output_example_dir_name="${output_dir_name}"
