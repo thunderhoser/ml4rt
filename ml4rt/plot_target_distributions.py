@@ -264,8 +264,12 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
             max_longwave_heating_k_day01=numpy.inf
         )
 
+        # these_field_names = (
+        #     SHORTWAVE_TARGET_NAMES_IN_FILE + LONGWAVE_TARGET_NAMES_IN_FILE +
+        #     [example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME]
+        # )
         these_field_names = (
-            SHORTWAVE_TARGET_NAMES_IN_FILE + LONGWAVE_TARGET_NAMES_IN_FILE +
+            LONGWAVE_TARGET_NAMES_IN_FILE +
             [example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME]
         )
         this_example_dict = example_utils.subset_by_field(
@@ -277,95 +281,95 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     example_dict = example_utils.concat_examples(example_dicts)
     del example_dicts
 
-    letter_label = None
-    shortwave_panel_file_names = []
-
-    for this_target_name in SHORTWAVE_TARGET_NAMES:
-        if this_target_name in SHORTWAVE_TARGET_NAMES_IN_FILE:
-            these_target_values = example_utils.get_field_from_dict(
-                example_dict=example_dict, field_name=this_target_name
-            )
-        else:
-            down_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=example_dict,
-                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            up_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=example_dict,
-                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-            )
-            these_target_values = down_fluxes_w_m02 - up_fluxes_w_m02
-
-        these_target_values = numpy.ravel(these_target_values)
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        this_file_name = _plot_histogram_one_target(
-            target_values=these_target_values, target_name=this_target_name,
-            num_bins=num_histogram_bins, letter_label=letter_label,
-            output_dir_name=output_dir_name
-        )
-        shortwave_panel_file_names.append(this_file_name)
-
-    example_dict = example_utils.multiply_hr_by_layer_thickness(example_dict)
-    heat_flux_matrix_w_m02 = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-    )
-
-    if letter_label is None:
-        letter_label = 'a'
-    else:
-        letter_label = chr(ord(letter_label) + 1)
-
-    this_file_name = _plot_histogram_one_target(
-        target_values=numpy.ravel(heat_flux_matrix_w_m02),
-        target_name=SHORTWAVE_HEAT_FLUX_NAME,
-        num_bins=num_histogram_bins, letter_label=letter_label,
-        output_dir_name=output_dir_name
-    )
-    shortwave_panel_file_names.append(this_file_name)
-
-    if (
-            example_utils.HEIGHT_NAME in
-            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-    ):
-        height_matrix_m_agl = example_utils.get_field_from_dict(
-            example_dict=example_dict,
-            field_name=example_utils.HEIGHT_NAME
-        )
-        height_diff_matrix_metres = numpy.diff(height_matrix_m_agl, axis=1)
-
-        num_sigma_levels = height_matrix_m_agl.shape[1]
-
-        for j in range(num_sigma_levels - 1):
-            print((
-                'Difference between {0:d}th and {1:d}th sigma-levels ... '
-                'mean = {2:.2f} m ... stdev = {3:.2f} m'
-            ).format(
-                j + 1, j + 2, numpy.mean(height_diff_matrix_metres[:, j]),
-                numpy.std(height_diff_matrix_metres[:, j], ddof=1)
-            ))
-
-    shortwave_figure_file_name = (
-        '{0:s}/shortwave_target_distributions.jpg'
-    ).format(output_dir_name)
-
-    print('Concatenating panels to: "{0:s}"...'.format(
-        shortwave_figure_file_name
-    ))
-    imagemagick_utils.concatenate_images(
-        input_file_names=shortwave_panel_file_names,
-        output_file_name=shortwave_figure_file_name,
-        num_panel_rows=2, num_panel_columns=3, border_width_pixels=25
-    )
-    imagemagick_utils.trim_whitespace(
-        input_file_name=shortwave_figure_file_name,
-        output_file_name=shortwave_figure_file_name
-    )
+    # letter_label = None
+    # shortwave_panel_file_names = []
+    #
+    # for this_target_name in SHORTWAVE_TARGET_NAMES:
+    #     if this_target_name in SHORTWAVE_TARGET_NAMES_IN_FILE:
+    #         these_target_values = example_utils.get_field_from_dict(
+    #             example_dict=example_dict, field_name=this_target_name
+    #         )
+    #     else:
+    #         down_fluxes_w_m02 = example_utils.get_field_from_dict(
+    #             example_dict=example_dict,
+    #             field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    #         )
+    #         up_fluxes_w_m02 = example_utils.get_field_from_dict(
+    #             example_dict=example_dict,
+    #             field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+    #         )
+    #         these_target_values = down_fluxes_w_m02 - up_fluxes_w_m02
+    #
+    #     these_target_values = numpy.ravel(these_target_values)
+    #
+    #     if letter_label is None:
+    #         letter_label = 'a'
+    #     else:
+    #         letter_label = chr(ord(letter_label) + 1)
+    #
+    #     this_file_name = _plot_histogram_one_target(
+    #         target_values=these_target_values, target_name=this_target_name,
+    #         num_bins=num_histogram_bins, letter_label=letter_label,
+    #         output_dir_name=output_dir_name
+    #     )
+    #     shortwave_panel_file_names.append(this_file_name)
+    #
+    # example_dict = example_utils.multiply_hr_by_layer_thickness(example_dict)
+    # heat_flux_matrix_w_m02 = example_utils.get_field_from_dict(
+    #     example_dict=example_dict,
+    #     field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+    # )
+    #
+    # if letter_label is None:
+    #     letter_label = 'a'
+    # else:
+    #     letter_label = chr(ord(letter_label) + 1)
+    #
+    # this_file_name = _plot_histogram_one_target(
+    #     target_values=numpy.ravel(heat_flux_matrix_w_m02),
+    #     target_name=SHORTWAVE_HEAT_FLUX_NAME,
+    #     num_bins=num_histogram_bins, letter_label=letter_label,
+    #     output_dir_name=output_dir_name
+    # )
+    # shortwave_panel_file_names.append(this_file_name)
+    #
+    # if (
+    #         example_utils.HEIGHT_NAME in
+    #         example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    # ):
+    #     height_matrix_m_agl = example_utils.get_field_from_dict(
+    #         example_dict=example_dict,
+    #         field_name=example_utils.HEIGHT_NAME
+    #     )
+    #     height_diff_matrix_metres = numpy.diff(height_matrix_m_agl, axis=1)
+    #
+    #     num_sigma_levels = height_matrix_m_agl.shape[1]
+    #
+    #     for j in range(num_sigma_levels - 1):
+    #         print((
+    #             'Difference between {0:d}th and {1:d}th sigma-levels ... '
+    #             'mean = {2:.2f} m ... stdev = {3:.2f} m'
+    #         ).format(
+    #             j + 1, j + 2, numpy.mean(height_diff_matrix_metres[:, j]),
+    #             numpy.std(height_diff_matrix_metres[:, j], ddof=1)
+    #         ))
+    #
+    # shortwave_figure_file_name = (
+    #     '{0:s}/shortwave_target_distributions.jpg'
+    # ).format(output_dir_name)
+    #
+    # print('Concatenating panels to: "{0:s}"...'.format(
+    #     shortwave_figure_file_name
+    # ))
+    # imagemagick_utils.concatenate_images(
+    #     input_file_names=shortwave_panel_file_names,
+    #     output_file_name=shortwave_figure_file_name,
+    #     num_panel_rows=2, num_panel_columns=3, border_width_pixels=25
+    # )
+    # imagemagick_utils.trim_whitespace(
+    #     input_file_name=shortwave_figure_file_name,
+    #     output_file_name=shortwave_figure_file_name
+    # )
 
     letter_label = None
     longwave_panel_file_names = []
