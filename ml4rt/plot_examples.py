@@ -225,29 +225,29 @@ def _plot_one_example(
             output_size_pixels=int(2.5e6)
         )
 
-    handle_dict = profile_plotting.plot_targets(
-        example_dict=example_dict, example_index=example_index,
-        for_shortwave=True, use_log_scale=use_log_scale,
-        line_width=LINE_WIDTH, line_style='solid'
-    )
-    figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-
-    this_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
-        output_dir_name, example_id_string.replace('_', '-')
-    )
-    panel_file_names.append(this_file_name)
-
-    print('Saving figure to: "{0:s}"...'.format(this_file_name))
-    figure_object.savefig(
-        this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-        bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
-
-    imagemagick_utils.resize_image(
-        input_file_name=this_file_name, output_file_name=this_file_name,
-        output_size_pixels=int(2.5e6)
-    )
+    # handle_dict = profile_plotting.plot_targets(
+    #     example_dict=example_dict, example_index=example_index,
+    #     for_shortwave=True, use_log_scale=use_log_scale,
+    #     line_width=LINE_WIDTH, line_style='solid'
+    # )
+    # figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    #
+    # this_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
+    #     output_dir_name, example_id_string.replace('_', '-')
+    # )
+    # panel_file_names.append(this_file_name)
+    #
+    # print('Saving figure to: "{0:s}"...'.format(this_file_name))
+    # figure_object.savefig(
+    #     this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+    #     bbox_inches='tight'
+    # )
+    # pyplot.close(figure_object)
+    #
+    # imagemagick_utils.resize_image(
+    #     input_file_name=this_file_name, output_file_name=this_file_name,
+    #     output_size_pixels=int(2.5e6)
+    # )
 
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
