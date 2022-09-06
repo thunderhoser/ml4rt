@@ -1,13 +1,21 @@
 """Methods for plotting vertical profiles."""
 
+import os
+import sys
 import copy
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.utils import example_utils
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import temperature_conversions as temperature_conv
+import error_checking
+import example_utils
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
