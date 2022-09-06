@@ -183,27 +183,13 @@ def _plot_one_example(
     panel_file_names = []
 
     for k in range(num_predictor_sets):
-        these_flags = numpy.array([
-            n in example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-            for n in PREDICTOR_NAMES_BY_SET[k]
-        ], dtype=bool)
-
-        these_indices = numpy.where(these_flags)[0]
-        if len(these_indices) == 0:
-            continue
-
-        predictor_names = [PREDICTOR_NAMES_BY_SET[k][i] for i in these_indices]
-        predictor_colours = [
-            PREDICTOR_COLOURS_BY_SET[k][i] for i in these_indices
-        ]
-
         handle_dict = profile_plotting.plot_predictors(
             example_dict=example_dict, example_index=example_index,
-            predictor_names=predictor_names,
-            predictor_colours=predictor_colours,
+            predictor_names=PREDICTOR_NAMES_BY_SET[k],
+            predictor_colours=PREDICTOR_COLOURS_BY_SET[k],
             predictor_line_widths=
-            numpy.full(len(these_indices), LINE_WIDTH),
-            predictor_line_styles=['solid'] * len(these_indices),
+            numpy.full(len(PREDICTOR_NAMES_BY_SET[k]), LINE_WIDTH),
+            predictor_line_styles=['solid'] * len(PREDICTOR_NAMES_BY_SET[k]),
             use_log_scale=use_log_scale
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
