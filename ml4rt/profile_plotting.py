@@ -288,9 +288,11 @@ def plot_predictors(
             j = example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
                 predictor_names[k]
             )
-            these_predictor_values = (
+
+            these_predictor_values = numpy.full(
+                len(heights_km_agl),
                 example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY][
-                    example_index, :, j
+                    example_index, j
                 ]
             )
         else:
