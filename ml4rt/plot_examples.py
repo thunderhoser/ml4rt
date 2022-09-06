@@ -1,25 +1,18 @@
 """Plots profiles (vector predictor and target variables) for each example."""
 
-import os
-import sys
+import os.path
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import file_system_utils
-import imagemagick_utils
-import example_utils
-import misc as misc_utils
-import neural_net
-import profile_plotting
-import make_saliency_maps
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.plotting import imagemagick_utils
+from ml4rt.utils import example_utils
+from ml4rt.utils import misc as misc_utils
+from ml4rt.machine_learning import neural_net
+from ml4rt.plotting import profile_plotting
+from ml4rt.scripts import make_saliency_maps
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
@@ -29,41 +22,80 @@ PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
 VECTOR_TARGET_NAMES = [
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
-    example_utils.SHORTWAVE_UP_FLUX_NAME,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    # example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    # example_utils.SHORTWAVE_UP_FLUX_NAME,
+    # example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.LONGWAVE_DOWN_FLUX_NAME,
     example_utils.LONGWAVE_UP_FLUX_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME
 ]
 
 FIRST_PREDICTOR_NAMES = [
-    example_utils.TEMPERATURE_NAME, example_utils.SPECIFIC_HUMIDITY_NAME,
+    example_utils.SPECIFIC_HUMIDITY_NAME,
     example_utils.WATER_VAPOUR_PATH_NAME,
-    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME,
+    example_utils.RELATIVE_HUMIDITY_NAME
 ]
 FIRST_PREDICTOR_COLOURS = [
-    BLACK_COLOUR, ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
 ]
 
 SECOND_PREDICTOR_NAMES = [
     example_utils.LIQUID_WATER_CONTENT_NAME,
     example_utils.LIQUID_WATER_PATH_NAME,
-    example_utils.UPWARD_LIQUID_WATER_PATH_NAME
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME,
+    example_utils.LIQUID_EFF_RADIUS_NAME
 ]
-SECOND_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+SECOND_PREDICTOR_COLOURS = [
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
+]
 
 THIRD_PREDICTOR_NAMES = [
-    example_utils.ICE_WATER_CONTENT_NAME, example_utils.ICE_WATER_PATH_NAME,
-    example_utils.UPWARD_ICE_WATER_PATH_NAME
+    example_utils.ICE_WATER_CONTENT_NAME,
+    example_utils.ICE_WATER_PATH_NAME,
+    example_utils.UPWARD_ICE_WATER_PATH_NAME,
+    example_utils.ICE_EFF_RADIUS_NAME
 ]
-THIRD_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR]
+THIRD_PREDICTOR_COLOURS = [
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
+]
+
+FOURTH_PREDICTOR_NAMES = [
+    example_utils.TEMPERATURE_NAME,
+    example_utils.HEIGHT_THICKNESS_NAME,
+    example_utils.PRESSURE_THICKNESS_NAME,
+    example_utils.PRESSURE_NAME
+]
+FOURTH_PREDICTOR_COLOURS = [
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
+]
+
+FIFTH_PREDICTOR_NAMES = [
+    example_utils.CO2_CONCENTRATION_NAME,
+    example_utils.N2O_CONCENTRATION_NAME,
+    example_utils.CH4_CONCENTRATION_NAME,
+    example_utils.O3_MIXING_RATIO_NAME
+]
+FIFTH_PREDICTOR_COLOURS = [
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
+]
+
+SIXTH_PREDICTOR_NAMES = [
+    example_utils.ZENITH_ANGLE_NAME,
+    example_utils.SURFACE_TEMPERATURE_NAME,
+    example_utils.SURFACE_EMISSIVITY_NAME
+]
+SIXTH_PREDICTOR_COLOURS = [
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
+]
 
 PREDICTOR_NAMES_BY_SET = [
-    FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES
+    FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES,
+    FOURTH_PREDICTOR_NAMES, FIFTH_PREDICTOR_NAMES, SIXTH_PREDICTOR_NAMES
 ]
 PREDICTOR_COLOURS_BY_SET = [
-    FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS
+    FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS,
+    FOURTH_PREDICTOR_COLOURS, FIFTH_PREDICTOR_COLOURS, SIXTH_PREDICTOR_COLOURS
 ]
 
 LINE_WIDTH = 2

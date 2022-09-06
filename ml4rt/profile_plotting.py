@@ -1,27 +1,20 @@
 """Methods for plotting vertical profiles."""
 
-import os
-import sys
 import copy
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import temperature_conversions as temperature_conv
-import error_checking
-import example_utils
+from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
+from gewittergefahr.gg_utils import error_checking
+from ml4rt.utils import example_utils
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
 PASCALS_TO_MB = 0.01
 KG_TO_MILLIGRAMS = 1e6
 RADIANS_TO_DEGREES = 180. / numpy.pi
+METRES_TO_MICRONS = 1e6
 
 FIGURE_HANDLE_KEY = 'figure_object'
 AXES_OBJECTS_KEY = 'axes_objects'
@@ -30,57 +23,73 @@ DOWN_FLUX_HANDLE_KEY = 'down_flux_axes_object'
 UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
 
 PREDICTOR_NAME_TO_VERBOSE = {
-    example_utils.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
-    example_utils.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
     example_utils.RELATIVE_HUMIDITY_NAME: r'Relative humidity',
+    example_utils.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
     example_utils.WATER_VAPOUR_PATH_NAME:
         r'Downward water-vapour path (kg m$^{-2}$)',
     example_utils.UPWARD_WATER_VAPOUR_PATH_NAME:
         r'Upward water-vapour path (kg m$^{-2}$)',
-    example_utils.PRESSURE_NAME: 'Pressure (mb)',
     example_utils.LIQUID_WATER_CONTENT_NAME:
         r'Liquid-water content (g m$^{-3}$)',
-    example_utils.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
     example_utils.LIQUID_WATER_PATH_NAME:
         r'Downward liquid-water path (g m$^{-2}$)',
-    example_utils.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME:
         r'Upward liquid-water path (g m$^{-2}$)',
+    example_utils.LIQUID_EFF_RADIUS_NAME: r'Liquid effective radius ($\mu$m)',
+    example_utils.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
+    example_utils.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
     example_utils.UPWARD_ICE_WATER_PATH_NAME:
         r'Upward ice-water path (mg m$^{-2}$)',
+    example_utils.ICE_EFF_RADIUS_NAME: r'Ice effective radius ($\mu$m)',
+    example_utils.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
+    example_utils.PRESSURE_NAME: 'Pressure (mb)',
+    example_utils.HEIGHT_THICKNESS_NAME: 'Height thickness (m)',
+    example_utils.PRESSURE_THICKNESS_NAME: 'Pressure thickness (mb)',
+    example_utils.O3_MIXING_RATIO_NAME: r'O$_3$ mixing ratio (mg kg$^{-1}$)',
+    example_utils.CO2_CONCENTRATION_NAME: r'CO$_2$ concentration (ppmv)',
+    example_utils.N2O_CONCENTRATION_NAME: r'N$_2$O concentration (ppmv)',
+    example_utils.CH4_CONCENTRATION_NAME: r'CH$_4$ concentration (ppmv)',
     example_utils.ZENITH_ANGLE_NAME: r'Zenith angle ($^{\circ}$)',
-    example_utils.ALBEDO_NAME: 'Albedo',
     example_utils.SURFACE_TEMPERATURE_NAME: 'Surface temp (K)',
+    example_utils.SURFACE_EMISSIVITY_NAME: 'Surface emissivity',
+    example_utils.ALBEDO_NAME: 'Albedo',
     example_utils.LATITUDE_NAME: r'Latitude ($^{\circ}$N)',
     example_utils.LONGITUDE_NAME: r'Longitude ($^{\circ}$E)',
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
         r'Column liquid-water path (g m$^{-2}$)',
     example_utils.COLUMN_ICE_WATER_PATH_NAME:
         r'Column ice-water path (mg m$^{-2}$)',
-    example_utils.AEROSOL_EXTINCTION_NAME: r'Aerosol extinction (km$^{-1}$)',
-    example_utils.O3_MIXING_RATIO_NAME: r'O$_3$ mixing ratio (mg kg$^{-1}$)'
+    example_utils.AEROSOL_EXTINCTION_NAME: r'Aerosol extinction (km$^{-1}$)'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
-    example_utils.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
     example_utils.RELATIVE_HUMIDITY_NAME: 1.,
+    example_utils.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
     example_utils.WATER_VAPOUR_PATH_NAME: 1.,
     example_utils.UPWARD_WATER_VAPOUR_PATH_NAME: 1.,
-    example_utils.PRESSURE_NAME: PASCALS_TO_MB,
     example_utils.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
-    example_utils.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
     example_utils.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_utils.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_utils.LIQUID_EFF_RADIUS_NAME: METRES_TO_MICRONS,
+    example_utils.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
+    example_utils.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
     example_utils.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_utils.ICE_EFF_RADIUS_NAME: METRES_TO_MICRONS,
+    example_utils.PRESSURE_NAME: PASCALS_TO_MB,
+    example_utils.HEIGHT_THICKNESS_NAME: 1.,
+    example_utils.PRESSURE_THICKNESS_NAME: PASCALS_TO_MB,
+    example_utils.O3_MIXING_RATIO_NAME: KG_TO_MILLIGRAMS,
+    example_utils.CO2_CONCENTRATION_NAME: 1.,
+    example_utils.N2O_CONCENTRATION_NAME: 1.,
+    example_utils.CH4_CONCENTRATION_NAME: 1.,
     example_utils.ZENITH_ANGLE_NAME: RADIANS_TO_DEGREES,
+    example_utils.SURFACE_EMISSIVITY_NAME: 1.,
     example_utils.ALBEDO_NAME: 1.,
     example_utils.LATITUDE_NAME: 1.,
     example_utils.LONGITUDE_NAME: 1.,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
     example_utils.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
-    example_utils.AEROSOL_EXTINCTION_NAME: 1000.,
-    example_utils.O3_MIXING_RATIO_NAME: KG_TO_MILLIGRAMS
+    example_utils.AEROSOL_EXTINCTION_NAME: 1000.
 }
 
 DEFAULT_LINE_WIDTH = 2
