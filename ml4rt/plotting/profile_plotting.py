@@ -50,7 +50,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.N2O_CONCENTRATION_NAME: r'N$_2$O concentration (ppmv)',
     example_utils.CH4_CONCENTRATION_NAME: r'CH$_4$ concentration (ppmv)',
     example_utils.ZENITH_ANGLE_NAME: r'Zenith angle ($^{\circ}$)',
-    example_utils.SURFACE_TEMPERATURE_NAME: 'Surface temp (K)',
+    example_utils.SURFACE_TEMPERATURE_NAME: r'Surface temp ($^{\circ}$C)',
     example_utils.SURFACE_EMISSIVITY_NAME: 'Surface emissivity',
     example_utils.ALBEDO_NAME: 'Albedo',
     example_utils.LATITUDE_NAME: r'Latitude ($^{\circ}$N)',
@@ -280,9 +280,11 @@ def plot_predictors(
             j = example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY].index(
                 predictor_names[k]
             )
-            these_predictor_values = (
+
+            these_predictor_values = numpy.full(
+                len(heights_km_agl),
                 example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY][
-                    example_index, :, j
+                    example_index, j
                 ]
             )
         else:
