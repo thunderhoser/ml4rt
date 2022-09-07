@@ -401,15 +401,15 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     if different_height_grids:
         num_examples = height_matrix_m_agl.shape[0]
 
-        edge_height_matrix_m_agl = numpy.stack([
+        edge_height_matrix_m_agl = numpy.vstack([
             example_utils.get_grid_cell_edges(height_matrix_m_agl[i, :])
             for i in range(num_examples)
-        ], axis=0)
+        ])
 
-        grid_cell_width_matrix_metres = numpy.stack([
+        grid_cell_width_matrix_metres = numpy.vstack([
             example_utils.get_grid_cell_widths(edge_height_matrix_m_agl[i, :])
             for i in range(num_examples)
-        ], axis=0)
+        ])
 
     else:
         heights_m_agl = height_matrix_m_agl
