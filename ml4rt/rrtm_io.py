@@ -393,21 +393,30 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     if not (get_lwp or get_iwp or get_wvp):
         return example_dict
 
-    height_matrix_m_agl = example_dict[example_utils.HEIGHTS_KEY]
-    different_height_grids = len(height_matrix_m_agl.shape) == 2
+    different_height_grids = (
+        example_utils.HEIGHT_NAME in
+        example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
+    )
+
+    if different_height_grids:
+        height_matrix_m_agl = example_utils.get_field_from_dict(
+            example_dict=example_dict, field_name=example_utils.HEIGHT_NAME
+        )
+    else:
+        height_matrix_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
     if different_height_grids:
         num_examples = height_matrix_m_agl.shape[0]
 
-        edge_height_matrix_m_agl = numpy.concatenate([
+        edge_height_matrix_m_agl = numpy.vstack([
             example_utils.get_grid_cell_edges(height_matrix_m_agl[i, :])
             for i in range(num_examples)
-        ], axis=0)
+        ])
 
-        grid_cell_width_matrix_metres = numpy.concatenate([
+        grid_cell_width_matrix_metres = numpy.vstack([
             example_utils.get_grid_cell_widths(edge_height_matrix_m_agl[i, :])
             for i in range(num_examples)
-        ], axis=0)
+        ])
 
     else:
         heights_m_agl = height_matrix_m_agl
