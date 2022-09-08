@@ -160,7 +160,7 @@ def _plot_by_zenith_angle(example_dict, plot_shortwave, output_dir_name):
         )
 
         figure_object, axes_object = profile_plotting.plot_one_variable(
-            values=numpy.mean(
+            values=numpy.nanmean(
                 heating_rate_matrix_k_day01[these_example_indices, :], axis=0
             ),
             heights_m_agl=example_dict[example_utils.HEIGHTS_KEY],
@@ -244,7 +244,7 @@ def _plot_by_latitude(example_dict, plot_shortwave, output_dir_name):
         )
 
         figure_object, axes_object = profile_plotting.plot_one_variable(
-            values=numpy.mean(
+            values=numpy.nanmean(
                 heating_rate_matrix_k_day01[these_example_indices, :], axis=0
             ),
             heights_m_agl=example_dict[example_utils.HEIGHTS_KEY],
@@ -314,7 +314,7 @@ def _plot_by_cloud_regime(example_dict, plot_shortwave, output_dir_name):
     )
 
     figure_object, axes_object = profile_plotting.plot_one_variable(
-        values=numpy.mean(
+        values=numpy.nanmean(
             heating_rate_matrix_k_day01[no_cloud_indices, :], axis=0
         ),
         heights_m_agl=example_dict[example_utils.HEIGHTS_KEY],
@@ -327,7 +327,7 @@ def _plot_by_cloud_regime(example_dict, plot_shortwave, output_dir_name):
     axes_object.set_xlabel(r'Heating rate (K day$^{-1}$)')
 
     profile_plotting.plot_one_variable(
-        values=numpy.mean(
+        values=numpy.nanmean(
             heating_rate_matrix_k_day01[single_layer_cloud_indices, :], axis=0
         ),
         heights_m_agl=example_dict[example_utils.HEIGHTS_KEY],
@@ -336,7 +336,7 @@ def _plot_by_cloud_regime(example_dict, plot_shortwave, output_dir_name):
     )
 
     profile_plotting.plot_one_variable(
-        values=numpy.mean(
+        values=numpy.nanmean(
             heating_rate_matrix_k_day01[multi_layer_cloud_indices, :], axis=0
         ),
         heights_m_agl=example_dict[example_utils.HEIGHTS_KEY],
@@ -389,7 +389,7 @@ def _run(example_file_names, plot_shortwave, output_dir_name):
         example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
         else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
-    heating_rate_percentiles_k_day01 = numpy.percentile(
+    heating_rate_percentiles_k_day01 = numpy.nanpercentile(
         heating_rate_matrix_k_day01, PERCENTILE_LEVELS
     )
 
@@ -398,6 +398,10 @@ def _run(example_file_names, plot_shortwave, output_dir_name):
             a, b
         ))
     print(SEPARATOR_STRING)
+
+    print('Fraction of NaN heating rates = {0:.2g}'.format(
+        numpy.mean(numpy.isnan(heating_rate_matrix_k_day01))
+    ))
 
     _plot_by_cloud_regime(
         example_dict=example_dict, plot_shortwave=plot_shortwave,
@@ -413,7 +417,11 @@ def _run(example_file_names, plot_shortwave, output_dir_name):
     )
 
     mean_heating_rates_k_day01 = numpy.mean(heating_rate_matrix_k_day01, axis=1)
+    mean_heating_rates_k_day01[
+        numpy.isnan(mean_heating_rates_k_day01)
+    ] = -numpy.inf
     sort_indices = numpy.argsort(-mean_heating_rates_k_day01)
+
     figure_object, axes_object = _plot_profiles(
         example_dict=example_dict, plot_shortwave=plot_shortwave,
         example_indices=sort_indices[:NUM_EXTREME_PROFILES]
@@ -433,7 +441,11 @@ def _run(example_file_names, plot_shortwave, output_dir_name):
     )
     pyplot.close(figure_object)
 
+    mean_heating_rates_k_day01[
+        numpy.isinf(mean_heating_rates_k_day01)
+    ] = numpy.inf
     sort_indices = numpy.argsort(mean_heating_rates_k_day01)
+
     figure_object, axes_object = _plot_profiles(
         example_dict=example_dict,
         plot_shortwave=plot_shortwave,
@@ -455,7 +467,11 @@ def _run(example_file_names, plot_shortwave, output_dir_name):
     pyplot.close(figure_object)
 
     max_heating_rates_k_day01 = numpy.max(heating_rate_matrix_k_day01, axis=1)
+    max_heating_rates_k_day01[
+        numpy.isnan(max_heating_rates_k_day01)
+    ] = -numpy.inf
     sort_indices = numpy.argsort(-max_heating_rates_k_day01)
+
     figure_object, axes_object = _plot_profiles(
         example_dict=example_dict,
         plot_shortwave=plot_shortwave,
