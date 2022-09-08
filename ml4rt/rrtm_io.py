@@ -406,6 +406,8 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
         height_matrix_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
     if different_height_grids:
+        print('WATER-PATH PROFILES BEING COMPUTED WITH DIFFERENT HEIGHT GRIDS')
+
         num_examples = height_matrix_m_agl.shape[0]
 
         edge_height_matrix_m_agl = numpy.vstack([
@@ -419,6 +421,8 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
         ])
 
     else:
+        print('WATER-PATH PROFILES BEING COMPUTED WITH SAME HEIGHT GRID')
+
         heights_m_agl = height_matrix_m_agl
         edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
         grid_cell_widths_metres = example_utils.get_grid_cell_widths(
