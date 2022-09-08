@@ -398,9 +398,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
             letter_label = chr(ord(letter_label) + 1)
 
         this_file_name = _plot_histogram_one_target(
-            target_values=
-            these_target_values[numpy.isfinite(these_target_values)],
-            target_name=this_target_name,
+            target_values=these_target_values, target_name=this_target_name,
             num_bins=num_histogram_bins, letter_label=letter_label,
             output_dir_name=output_dir_name
         )
