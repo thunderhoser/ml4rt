@@ -21,6 +21,7 @@ ROWCOL_DIMENSIONS = [GRID_ROW_DIMENSION, GRID_COLUMN_DIMENSION]
 
 SURFACE_ALBEDO_KEY = 'albdo_ave'
 SURFACE_TEMPERATURE_KEY = 'tmpsfc'
+SURFACE_PRESSURE_KEY = 'pressfc'
 SURFACE_UP_LONGWAVE_FLUX_KEY = 'ulwrf'
 
 ATMOSPHERE_FILES_ARG_NAME = 'input_atmos_file_names'
@@ -178,7 +179,7 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
 
     for this_key in [
             SURFACE_ALBEDO_KEY, SURFACE_TEMPERATURE_KEY,
-            SURFACE_UP_LONGWAVE_FLUX_KEY
+            SURFACE_PRESSURE_KEY, SURFACE_UP_LONGWAVE_FLUX_KEY
     ]:
         print('Adding {0:s} to new data dictionary...'.format(this_key))
 
