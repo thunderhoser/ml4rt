@@ -3,7 +3,6 @@
 import argparse
 import numpy
 import xarray
-from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import file_system_utils
@@ -35,6 +34,7 @@ LATITUDE_KEY_ORIG_DEG_N = 'lat'
 LONGITUDE_KEY_ORIG_DEG_E = 'lon'
 DELTA_HEIGHT_KEY_ORIG_METRES = 'delz'
 DELTA_PRESSURE_KEY_ORIG_PASCALS = 'dpres'
+SURFACE_PRESSURE_KEY_ORIG_PASCALS = 'pressfc'
 
 CLOUD_FRACTION_KEY_ORIG = 'cld_amt'
 CLOUD_WATER_MIXR_KEY_ORIG_KG_KG01 = 'clwmr'
@@ -167,55 +167,45 @@ def _process_data_one_profile(
     i = time_index
     j = site_index
 
-    pressures_pascals = numpy.flip(numpy.cumsum(
-        orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
-    ))
-    heights_m_agl = numpy.cumsum(numpy.flip(
-        -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
-    ))
-
-    # TODO(thunderhoser): Commented code leads to negative pressures!
-    # pressures_below_surface_pa = numpy.cumsum(numpy.flip(
+    # pressures_pascals = numpy.flip(numpy.cumsum(
     #     orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
     # ))
-    # pressures_below_surface_pa = numpy.concatenate((
-    #     numpy.array([0.]), pressures_below_surface_pa
-    # ))
-    # pressures_below_surface_pa = 0.5 * (
-    #     pressures_below_surface_pa[:-1] + pressures_below_surface_pa[1:]
-    # )
-    # pressures_pascals = (
-    #     orig_gfs_table_xarray['pressfc'].values[i, j] -
-    #     pressures_below_surface_pa
-    # )
-    #
     # heights_m_agl = numpy.cumsum(numpy.flip(
     #     -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
     # ))
-    # heights_m_agl = numpy.concatenate((
-    #     numpy.array([0.]), heights_m_agl
-    # ))
-    # heights_m_agl = 0.5 * (heights_m_agl[:-1] + heights_m_agl[1:])
+
+    pressure_diffs_pascals = numpy.cumsum(
+        orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
+    )
+    edge_pressures_pascals = (
+        orig_gfs_table_xarray[SURFACE_PRESSURE_KEY_ORIG_PASCALS].values[i, j] -
+        numpy.concatenate((numpy.array([0]), pressure_diffs_pascals))
+    )
+
+    # TODO(thunderhoser): To deal with negative pressures, I make pressure
+    # increase with height.  This will cause the RRTM script to skip the
+    # profile.
+    if edge_pressures_pascals[-1] < 1:
+        edge_pressures_pascals = numpy.maximum(edge_pressures_pascals, 1.)
+        edge_pressures_pascals[-1] = 2.
+
+    pressures_pascals = (
+        0.5 * (edge_pressures_pascals[:-1] + edge_pressures_pascals[1:])
+    )
+
+    edge_heights_m_agl = numpy.cumsum(numpy.flip(
+        -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
+    ))
+    edge_heights_m_agl = numpy.concatenate((
+        numpy.array([0]), edge_heights_m_agl
+    ))
+    heights_m_agl = 0.5 * (edge_heights_m_agl[:-1] + edge_heights_m_agl[1:])
 
     processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pascals
-    processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
-
-    edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
-    edge_heights_m_agl[0] = max([
-        edge_heights_m_agl[0], 0.
-    ])
-
-    log_offset = 1. + -1 * numpy.min(pressures_pascals)
-    assert not numpy.isnan(log_offset)
-
-    interp_object = interp1d(
-        x=heights_m_agl, y=numpy.log(log_offset + pressures_pascals),
-        kind='linear', bounds_error=False, assume_sorted=True,
-        fill_value='extrapolate'
-    )
     processed_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
-        numpy.exp(interp_object(edge_heights_m_agl)) - log_offset
+        edge_pressures_pascals
     )
+    processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
 
     for this_key in MAIN_KEYS_ORIG:
         processed_data_dict[this_key][i, j, :] = numpy.flip(
