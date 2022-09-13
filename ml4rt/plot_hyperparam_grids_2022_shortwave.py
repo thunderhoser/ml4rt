@@ -21,6 +21,7 @@ import evaluation
 import example_utils
 import prediction_io
 import file_system_utils
+import imagemagick_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -956,6 +957,158 @@ def _run(experiment_dir_name, isotonic_flag):
             pad_inches=0, bbox_inches='tight'
         )
         pyplot.close(figure_object)
+
+    num_panel_rows = int(numpy.floor(
+        numpy.sqrt(num_nn_types)
+    ))
+    num_panel_columns = int(numpy.ceil(
+        float(num_nn_types) / num_panel_rows
+    ))
+
+    dwmse_concat_file_name = '{0:s}/{1:s}dwmse.jpg'.format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(dwmse_concat_file_name))
+    imagemagick_utils.concatenate_images(
+        input_file_names=dwmse_panel_file_names,
+        output_file_name=dwmse_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=dwmse_concat_file_name,
+        output_file_name=dwmse_concat_file_name, output_size_pixels=int(1e7)
+    )
+
+    near_sfc_dwmse_concat_file_name = (
+        '{0:s}/{1:s}near_surface_dwmse.jpg'
+    ).format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        near_sfc_dwmse_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=near_sfc_dwmse_panel_file_names,
+        output_file_name=near_sfc_dwmse_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=near_sfc_dwmse_concat_file_name,
+        output_file_name=near_sfc_dwmse_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    flux_rmse_concat_file_name = '{0:s}/{1:s}flux_rmse.jpg'.format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        flux_rmse_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=flux_rmse_panel_file_names,
+        output_file_name=flux_rmse_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=flux_rmse_concat_file_name,
+        output_file_name=flux_rmse_concat_file_name, output_size_pixels=int(1e7)
+    )
+
+    net_flux_rmse_concat_file_name = '{0:s}/{1:s}net_flux_rmse.jpg'.format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        net_flux_rmse_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=net_flux_rmse_panel_file_names,
+        output_file_name=net_flux_rmse_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=net_flux_rmse_concat_file_name,
+        output_file_name=net_flux_rmse_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    dwmse_mlc_concat_file_name = '{0:s}/{1:s}dwmse_mlc.jpg'.format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        dwmse_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=dwmse_mlc_panel_file_names,
+        output_file_name=dwmse_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=dwmse_mlc_concat_file_name,
+        output_file_name=dwmse_mlc_concat_file_name, output_size_pixels=int(1e7)
+    )
+
+    near_sfc_dwmse_mlc_concat_file_name = (
+        '{0:s}/{1:s}near_surface_dwmse_mlc.jpg'
+    ).format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        near_sfc_dwmse_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=near_sfc_dwmse_mlc_panel_file_names,
+        output_file_name=near_sfc_dwmse_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=near_sfc_dwmse_mlc_concat_file_name,
+        output_file_name=near_sfc_dwmse_mlc_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    flux_rmse_mlc_concat_file_name = '{0:s}/{1:s}flux_rmse_mlc.jpg'.format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        flux_rmse_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=flux_rmse_mlc_panel_file_names,
+        output_file_name=flux_rmse_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=flux_rmse_mlc_concat_file_name,
+        output_file_name=flux_rmse_mlc_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    net_flux_rmse_mlc_concat_file_name = (
+        '{0:s}/{1:s}net_flux_rmse_mlc.jpg'
+    ).format(
+        experiment_dir_name,
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        net_flux_rmse_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=net_flux_rmse_mlc_panel_file_names,
+        output_file_name=net_flux_rmse_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=net_flux_rmse_mlc_concat_file_name,
+        output_file_name=net_flux_rmse_mlc_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
 
 
 if __name__ == '__main__':
