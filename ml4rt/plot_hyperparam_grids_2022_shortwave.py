@@ -42,12 +42,12 @@ MODEL_DEPTH_WIDTH_STRINGS = [
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.12
+BEST_MARKER_SIZE_GRID_CELLS = 0.15
 MARKER_COLOUR = numpy.full(3, 1.)
 
 SELECTED_MARKER_TYPE = 'o'
-SELECTED_MARKER_SIZE_GRID_CELLS = 0.12
-SELECTED_MARKER_INDICES = numpy.array([2, 0], dtype=int)
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.15
+SELECTED_MARKER_INDICES = numpy.array([3, 8, 4], dtype=int)
 
 FONT_SIZE = 26
 pyplot.rc('font', size=FONT_SIZE)
@@ -132,7 +132,7 @@ def _plot_scores_2d(
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
         orientation_string='vertical', extend_min=False, extend_max=False,
-        fraction_of_axis_length=0.8, font_size=FONT_SIZE
+        font_size=FONT_SIZE
     )
 
     tick_values = colour_bar_object.get_ticks()
