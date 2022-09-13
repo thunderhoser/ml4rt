@@ -24,6 +24,14 @@ import file_system_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+NN_TYPE_STRINGS = [
+    'plusplus', 'plusplus_deep', 'plusplusplus', 'plusplusplus_deep'
+]
+NN_TYPE_STRINGS_FANCY = [
+    'U-net++ without DS', 'U-net++ with DS',
+    'U-net3+ without DS', 'U-net3+ with DS'
+]
+
 MODEL_DEPTH_WIDTH_STRINGS = [
     '3, 1', '3, 2', '3, 3', '3, 4',
     '4, 1', '4, 2', '4, 3', '4, 4',
@@ -33,14 +41,14 @@ MODEL_DEPTH_WIDTH_STRINGS = [
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.3
+BEST_MARKER_SIZE_GRID_CELLS = 0.12
 MARKER_COLOUR = numpy.full(3, 1.)
 
 SELECTED_MARKER_TYPE = 'o'
-SELECTED_MARKER_SIZE_GRID_CELLS = 0.2
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.12
 SELECTED_MARKER_INDICES = numpy.array([2, 0], dtype=int)
 
-FONT_SIZE = 30
+FONT_SIZE = 26
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -122,8 +130,8 @@ def _plot_scores_2d(
         data_matrix=score_matrix[numpy.invert(numpy.isnan(score_matrix))],
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
-        orientation_string='horizontal', extend_min=False, extend_max=False,
-        padding=0.09, fraction_of_axis_length=0.8, font_size=FONT_SIZE
+        orientation_string='vertical', extend_min=False, extend_max=False,
+        fraction_of_axis_length=0.8, font_size=FONT_SIZE
     )
 
     tick_values = colour_bar_object.get_ticks()
@@ -232,32 +240,38 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag,
 def _print_ranking_one_score(score_matrix, score_name):
     """Prints ranking for one score.
 
+    T = number of neural-net types
     D = number of depth/width combos
     F = number of channel counts in first conv layer
 
-    :param score_matrix: D-by-F numpy array of scores.
+    :param score_matrix: T-by-D-by-F numpy array of scores.
     :param score_name: Name of score.
     """
 
     scores_1d = numpy.ravel(score_matrix)
     scores_1d[numpy.isnan(scores_1d)] = numpy.inf
     sort_indices_1d = numpy.argsort(scores_1d)
-    i_sort_indices, j_sort_indices = numpy.unravel_index(
+    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
         sort_indices_1d, score_matrix.shape
     )
 
-    for k in range(len(i_sort_indices)):
-        i = i_sort_indices[k]
-        j = j_sort_indices[k]
+    for m in range(len(i_sort_indices)):
+        i = i_sort_indices[m]
+        j = j_sort_indices[m]
+        k = k_sort_indices[m]
 
         print((
-            '{0:d}th-lowest {1:s} = {2:.4g} ... NN depth = {3:s} ... '
-            'NN width = {4:s} ... num channels in first conv layer = {5:d}'
+            '{0:d}th-lowest {1:s} = {2:.4g} ... '
+            'NN type = {3:s} ... '
+            'NN depth = {4:s} ... '
+            'NN width = {5:s} ... '
+            'num channels in first conv layer = {6:d}'
         ).format(
-            k + 1, score_name, score_matrix[i, j],
-            MODEL_DEPTH_WIDTH_STRINGS[i].split(',')[0].strip(),
-            MODEL_DEPTH_WIDTH_STRINGS[i].split(',')[1].strip(),
-            FIRST_LAYER_CHANNEL_COUNTS[j]
+            m + 1, score_name, score_matrix[i, j, k],
+            NN_TYPE_STRINGS[i],
+            MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[0].strip(),
+            MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[1].strip(),
+            FIRST_LAYER_CHANNEL_COUNTS[k]
         ))
 
 
@@ -268,31 +282,32 @@ def _print_ranking_all_scores(
         flux_rmse_matrix_mlc_w_m02, net_flux_rmse_matrix_mlc_w_m02):
     """Prints ranking for all scores.
 
+    T = number of neural-net types
     D = number of depth/width combos
     F = number of channel counts in first conv layer
 
-    :param dwmse_matrix_k3_day03: D-by-F numpy array of dual-weighted mean
+    :param dwmse_matrix_k3_day03: T-by-D-by-F numpy array of dual-weighted mean
         squared error (DWMSE) for all profiles.
-    :param near_sfc_dwmse_matrix_k3_day03: D-by-F numpy array of near-surface
-        DWMSE for all profiles.
-    :param flux_rmse_matrix_w_m02: D-by-F numpy array of all-flux RMSE for all
-        profiles.
-    :param net_flux_rmse_matrix_w_m02: D-by-F numpy array of net-flux RMSE for
+    :param near_sfc_dwmse_matrix_k3_day03: T-by-D-by-F numpy array of
+        near-surface DWMSE for all profiles.
+    :param flux_rmse_matrix_w_m02: T-by-D-by-F numpy array of all-flux RMSE for
         all profiles.
-    :param dwmse_matrix_mlc_k3_day03: D-by-F numpy array of DWMSE for
+    :param net_flux_rmse_matrix_w_m02: T-by-D-by-F numpy array of net-flux RMSE
+        for all profiles.
+    :param dwmse_matrix_mlc_k3_day03: T-by-D-by-F numpy array of DWMSE for
         multi-layer cloud.
-    :param near_sfc_dwmse_matrix_mlc_k3_day03: D-by-F numpy array of
+    :param near_sfc_dwmse_matrix_mlc_k3_day03: T-by-D-by-F numpy array of
         near-surface DWMSE for multi-layer cloud.
-    :param flux_rmse_matrix_mlc_w_m02: D-by-F numpy array of all-flux RMSE for
-        multi-layer cloud.
-    :param net_flux_rmse_matrix_mlc_w_m02: D-by-F numpy array of net-flux RMSE
+    :param flux_rmse_matrix_mlc_w_m02: T-by-D-by-F numpy array of all-flux RMSE
         for multi-layer cloud.
+    :param net_flux_rmse_matrix_mlc_w_m02: T-by-D-by-F numpy array of net-flux
+        RMSE for multi-layer cloud.
     """
 
     these_scores = numpy.ravel(dwmse_matrix_k3_day03)
     these_scores[numpy.isnan(these_scores)] = numpy.inf
     sort_indices_1d = numpy.argsort(these_scores)
-    i_sort_indices, j_sort_indices = numpy.unravel_index(
+    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
         sort_indices_1d, dwmse_matrix_k3_day03.shape
     )
 
@@ -345,32 +360,35 @@ def _print_ranking_all_scores(
         net_flux_rmse_matrix_mlc_w_m02.shape
     )
 
-    for k in range(len(i_sort_indices)):
-        i = i_sort_indices[k]
-        j = j_sort_indices[k]
+    for m in range(len(i_sort_indices)):
+        i = i_sort_indices[m]
+        j = j_sort_indices[m]
+        k = k_sort_indices[m]
 
         print((
             '{0:d}th-lowest DWMSE = {1:.4g} K^3 day^-3 ... '
-            'NN depth = {2:s} ... '
-            'NN width = {3:s} ... '
-            'num channels in first conv layer = {4:d} ... '
-            'near-surface DWMSE rank = {5:.1f} ... '
-            'all-flux RMSE rank = {6:.1f} ... net-flux RMSE rank = {7:.1f} ... '
-            'DWMSE rank for MLC = {8:.1f} ... '
-            'near-surface DWMSE rank for MLC = {9:.1f} ... '
-            'all-flux RMSE rank for MLC = {10:.1f} ... '
-            'net-flux RMSE rank for MLC = {11:.1f}'
+            'NN type = {2:s} ... '
+            'NN depth = {3:s} ... '
+            'NN width = {4:s} ... '
+            'num channels in first conv layer = {5:d} ... '
+            'near-surface DWMSE rank = {6:.1f} ... '
+            'all-flux RMSE rank = {7:.1f} ... net-flux RMSE rank = {8:.1f} ... '
+            'DWMSE rank for MLC = {9:.1f} ... '
+            'near-surface DWMSE rank for MLC = {10:.1f} ... '
+            'all-flux RMSE rank for MLC = {11:.1f} ... '
+            'net-flux RMSE rank for MLC = {12:.1f}'
         ).format(
-            k + 1, dwmse_matrix_k3_day03[i, j],
-            MODEL_DEPTH_WIDTH_STRINGS[i].split(',')[0].strip(),
-            MODEL_DEPTH_WIDTH_STRINGS[i].split(',')[1].strip(),
-            FIRST_LAYER_CHANNEL_COUNTS[j],
-            near_sfc_dwmse_rank_matrix[i, j],
-            flux_rmse_rank_matrix[i, j], net_flux_rmse_rank_matrix[i, j],
-            dwmse_mlc_rank_matrix[i, j],
-            near_sfc_dwmse_mlc_rank_matrix[i, j],
-            flux_rmse_mlc_rank_matrix[i, j],
-            net_flux_rmse_mlc_rank_matrix[i, j]
+            m + 1, dwmse_matrix_k3_day03[i, j, k],
+            NN_TYPE_STRINGS[i],
+            MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[0].strip(),
+            MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[1].strip(),
+            FIRST_LAYER_CHANNEL_COUNTS[k],
+            near_sfc_dwmse_rank_matrix[i, j, k],
+            flux_rmse_rank_matrix[i, j, k], net_flux_rmse_rank_matrix[i, j, k],
+            dwmse_mlc_rank_matrix[i, j, k],
+            near_sfc_dwmse_mlc_rank_matrix[i, j, k],
+            flux_rmse_mlc_rank_matrix[i, j, k],
+            net_flux_rmse_mlc_rank_matrix[i, j, k]
         ))
 
 
@@ -383,6 +401,7 @@ def _run(experiment_dir_name, isotonic_flag):
     :param isotonic_flag: Same.
     """
 
+    num_nn_types = len(NN_TYPE_STRINGS)
     num_depth_width_combos = len(MODEL_DEPTH_WIDTH_STRINGS)
     num_channel_counts = len(FIRST_LAYER_CHANNEL_COUNTS)
 
@@ -396,7 +415,7 @@ def _run(experiment_dir_name, isotonic_flag):
     y_axis_label = 'NN depth, width'
     x_axis_label = 'Spectral complexity'
 
-    dimensions = (num_depth_width_combos, num_channel_counts)
+    dimensions = (num_nn_types, num_depth_width_combos, num_channel_counts)
     dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
     near_sfc_dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
     flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
@@ -406,39 +425,41 @@ def _run(experiment_dir_name, isotonic_flag):
     flux_rmse_matrix_mlc_w_m02 = numpy.full(dimensions, numpy.nan)
     net_flux_rmse_matrix_mlc_w_m02 = numpy.full(dimensions, numpy.nan)
 
-    for i in range(num_depth_width_combos):
-        for j in range(num_channel_counts):
-            this_model_dir_name = (
-                '{0:s}/depth={1:s}_num-conv-layers-per-block={2:s}_'
-                'num-first-layer-channels={3:03d}'
-            ).format(
-                experiment_dir_name,
-                MODEL_DEPTH_WIDTH_STRINGS[i].split(',')[0].strip(),
-                MODEL_DEPTH_WIDTH_STRINGS[i].split(',')[1].strip(),
-                FIRST_LAYER_CHANNEL_COUNTS[j]
-            )
+    for i in range(num_nn_types):
+        for j in range(num_depth_width_combos):
+            for k in range(num_channel_counts):
+                this_model_dir_name = (
+                    '{0:s}/2022paper_experiment_sw_{1:s}/'
+                    'depth={2:s}_num-conv-layers-per-block={3:s}_'
+                    'num-first-layer-channels={4:03d}'
+                ).format(
+                    experiment_dir_name, NN_TYPE_STRINGS[i],
+                    MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[0].strip(),
+                    MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[1].strip(),
+                    FIRST_LAYER_CHANNEL_COUNTS[k]
+                )
 
-            (
-                dwmse_matrix_k3_day03[i, j],
-                near_sfc_dwmse_matrix_k3_day03[i, j],
-                flux_rmse_matrix_w_m02[i, j],
-                net_flux_rmse_matrix_w_m02[i, j]
-            ) = _read_scores_one_model(
-                model_dir_name=this_model_dir_name,
-                multilayer_cloud_flag=False,
-                isotonic_flag=isotonic_flag
-            )
+                (
+                    dwmse_matrix_k3_day03[i, j, k],
+                    near_sfc_dwmse_matrix_k3_day03[i, j, k],
+                    flux_rmse_matrix_w_m02[i, j, k],
+                    net_flux_rmse_matrix_w_m02[i, j, k]
+                ) = _read_scores_one_model(
+                    model_dir_name=this_model_dir_name,
+                    multilayer_cloud_flag=False,
+                    isotonic_flag=isotonic_flag
+                )
 
-            (
-                dwmse_matrix_mlc_k3_day03[i, j],
-                near_sfc_dwmse_matrix_mlc_k3_day03[i, j],
-                flux_rmse_matrix_mlc_w_m02[i, j],
-                net_flux_rmse_matrix_mlc_w_m02[i, j]
-            ) = _read_scores_one_model(
-                model_dir_name=this_model_dir_name,
-                multilayer_cloud_flag=True,
-                isotonic_flag=isotonic_flag
-            )
+                (
+                    dwmse_matrix_mlc_k3_day03[i, j, k],
+                    near_sfc_dwmse_matrix_mlc_k3_day03[i, j, k],
+                    flux_rmse_matrix_mlc_w_m02[i, j, k],
+                    net_flux_rmse_matrix_mlc_w_m02[i, j, k]
+                ) = _read_scores_one_model(
+                    model_dir_name=this_model_dir_name,
+                    multilayer_cloud_flag=True,
+                    isotonic_flag=isotonic_flag
+                )
 
     print(SEPARATOR_STRING)
 
@@ -501,381 +522,440 @@ def _run(experiment_dir_name, isotonic_flag):
     )
     print(SEPARATOR_STRING)
 
-    # Plot DWMSE for all profiles.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=dwmse_matrix_k3_day03,
-        min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
-        max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+    dwmse_panel_file_names = [''] * num_nn_types
+    near_sfc_dwmse_panel_file_names = [''] * num_nn_types
+    flux_rmse_panel_file_names = [''] * num_nn_types
+    net_flux_rmse_panel_file_names = [''] * num_nn_types
+    dwmse_mlc_panel_file_names = [''] * num_nn_types
+    near_sfc_dwmse_mlc_panel_file_names = [''] * num_nn_types
+    flux_rmse_mlc_panel_file_names = [''] * num_nn_types
+    net_flux_rmse_mlc_panel_file_names = [''] * num_nn_types
 
-    this_index = numpy.argmin(numpy.ravel(dwmse_matrix_k3_day03))
-    best_indices = numpy.unravel_index(this_index, dwmse_matrix_k3_day03.shape)
+    for i in range(num_nn_types):
 
-    figure_width_px = (
-        figure_object.get_size_inches()[0] * figure_object.dpi
-    )
-    marker_size_px = figure_width_px * (
-        BEST_MARKER_SIZE_GRID_CELLS / dwmse_matrix_k3_day03.shape[1]
-    )
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        # Plot DWMSE for all profiles.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=dwmse_matrix_k3_day03[i, ...],
+            min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
+            max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    # TODO(thunderhoser): Need NN type in title.
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = r'DWMSE$_{hr}$ for all profiles (K$^3$ day$^{-3}$)'
-    axes_object.set_title(title_string)
+        this_index = numpy.argmin(numpy.ravel(dwmse_matrix_k3_day03))
+        best_indices = numpy.unravel_index(
+            this_index, dwmse_matrix_k3_day03.shape
+        )
 
-    figure_file_name = '{0:s}/{1:s}dwmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
-    file_system_utils.mkdir_recursive_if_necessary(file_name=figure_file_name)
+        figure_width_px = (
+            figure_object.get_size_inches()[0] * figure_object.dpi
+        )
+        marker_size_px = figure_width_px * (
+            BEST_MARKER_SIZE_GRID_CELLS / dwmse_matrix_k3_day03.shape[2]
+        )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    # Plot near-surface DWMSE for all profiles.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=near_sfc_dwmse_matrix_k3_day03,
-        min_colour_value=numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 0),
-        max_colour_value=
-        numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_k3_day03))
-    best_indices = numpy.unravel_index(
-        this_index, near_sfc_dwmse_matrix_k3_day03.shape
-    )
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        dwmse_panel_file_names[i] = '{0:s}/{1:s}dwmse_{2:s}.jpg'.format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+        file_system_utils.mkdir_recursive_if_necessary(
+            file_name=dwmse_panel_file_names[i]
+        )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = (
-        r'Near-surface DWMSE$_{hr}$ for all profiles (K$^3$ day$^{-3}$)'
-    )
-    axes_object.set_title(title_string)
+        print('Saving figure to: "{0:s}"...'.format(dwmse_panel_file_names[i]))
+        figure_object.savefig(
+            dwmse_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    figure_file_name = '{0:s}/{1:s}near_surface_dwmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        # Plot near-surface DWMSE for all profiles.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=near_sfc_dwmse_matrix_k3_day03[i, ...],
+            min_colour_value=
+            numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 0),
+            max_colour_value=
+            numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_k3_day03))
+        best_indices = numpy.unravel_index(
+            this_index, near_sfc_dwmse_matrix_k3_day03.shape
+        )
 
-    # Plot all-flux RMSE for all profiles.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=flux_rmse_matrix_w_m02,
-        min_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 0),
-        max_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_w_m02))
-    best_indices = numpy.unravel_index(
-        this_index, flux_rmse_matrix_w_m02.shape
-    )
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = r'RMSE$_{flux}$ for all profiles (W m$^{-2}$)'
-    axes_object.set_title(title_string)
+        near_sfc_dwmse_panel_file_names[i] = (
+            '{0:s}/{1:s}near_surface_dwmse_{2:s}.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
 
-    figure_file_name = '{0:s}/{1:s}flux_rmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        print('Saving figure to: "{0:s}"...'.format(
+            near_sfc_dwmse_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            near_sfc_dwmse_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        # Plot all-flux RMSE for all profiles.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=flux_rmse_matrix_w_m02[i, ...],
+            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 0),
+            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    # Plot net-flux RMSE for all profiles.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=net_flux_rmse_matrix_w_m02,
-        min_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 0),
-        max_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_w_m02))
+        best_indices = numpy.unravel_index(
+            this_index, flux_rmse_matrix_w_m02.shape
+        )
 
-    this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
-    best_indices = numpy.unravel_index(
-        this_index, net_flux_rmse_matrix_w_m02.shape
-    )
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = r'Net-flux RMSE for all profiles (W m$^{-2}$)'
-    axes_object.set_title(title_string)
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-    figure_file_name = '{0:s}/{1:s}net_flux_rmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        flux_rmse_panel_file_names[i] = '{0:s}/{1:s}flux_rmse_{2:s}.jpg'.format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        print('Saving figure to: "{0:s}"...'.format(
+            flux_rmse_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            flux_rmse_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    # Plot DWMSE for profiles with multi-layer cloud.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=dwmse_matrix_mlc_k3_day03,
-        min_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 0),
-        max_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        # Plot net-flux RMSE for all profiles.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=net_flux_rmse_matrix_w_m02[i, ...],
+            min_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 0),
+            max_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    this_index = numpy.argmin(numpy.ravel(dwmse_matrix_mlc_k3_day03))
-    best_indices = numpy.unravel_index(
-        this_index, dwmse_matrix_mlc_k3_day03.shape
-    )
+        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
+        best_indices = numpy.unravel_index(
+            this_index, net_flux_rmse_matrix_w_m02.shape
+        )
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = r'DWMSE$_{hr}$ for multi-layer cloud (K$^3$ day$^{-3}$)'
-    axes_object.set_title(title_string)
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    figure_file_name = '{0:s}/{1:s}dwmse_mlc.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        net_flux_rmse_panel_file_names[i] = (
+            '{0:s}/{1:s}net_flux_rmse_{2:s}.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
 
-    # Plot near-surface DWMSE for profiles with multi-layer cloud.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=near_sfc_dwmse_matrix_mlc_k3_day03,
-        min_colour_value=
-        numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 0),
-        max_colour_value=
-        numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        print('Saving figure to: "{0:s}"...'.format(
+            net_flux_rmse_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            net_flux_rmse_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_mlc_k3_day03))
-    best_indices = numpy.unravel_index(
-        this_index, near_sfc_dwmse_matrix_mlc_k3_day03.shape
-    )
+        # Plot DWMSE for profiles with multi-layer cloud.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=dwmse_matrix_mlc_k3_day03[i, ...],
+            min_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 0),
+            max_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        this_index = numpy.argmin(numpy.ravel(dwmse_matrix_mlc_k3_day03))
+        best_indices = numpy.unravel_index(
+            this_index, dwmse_matrix_mlc_k3_day03.shape
+        )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = (
-        r'Near-surface DWMSE$_{hr}$ for multi-layer cloud (K$^3$ day$^{-3}$)'
-    )
-    axes_object.set_title(title_string)
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    figure_file_name = '{0:s}/{1:s}near_surface_dwmse_mlc.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-    # Plot all-flux RMSE for profiles with multi-layer cloud.
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=flux_rmse_matrix_mlc_w_m02,
-        min_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 0),
-        max_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        dwmse_mlc_panel_file_names[i] = '{0:s}/{1:s}dwmse_mlc_{2:s}.jpg'.format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
 
-    this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_mlc_w_m02))
-    best_indices = numpy.unravel_index(
-        this_index, flux_rmse_matrix_mlc_w_m02.shape
-    )
+        print('Saving figure to: "{0:s}"...'.format(
+            dwmse_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            dwmse_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        # Plot near-surface DWMSE for profiles with multi-layer cloud.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=near_sfc_dwmse_matrix_mlc_k3_day03[i, ...],
+            min_colour_value=
+            numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 0),
+            max_colour_value=
+            numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = r'RMSE$_{flux}$ for multi-layer cloud (W m$^{-2}$)'
-    axes_object.set_title(title_string)
+        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_mlc_k3_day03))
+        best_indices = numpy.unravel_index(
+            this_index, near_sfc_dwmse_matrix_mlc_k3_day03.shape
+        )
 
-    figure_file_name = '{0:s}/{1:s}flux_rmse_mlc.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
 
-    # Plot net-flux RMSE for profiles with multi-layer cloud..
-    figure_object, axes_object = _plot_scores_2d(
-        score_matrix=net_flux_rmse_matrix_mlc_w_m02,
-        min_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 0),
-        max_colour_value=
-        numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 95),
-        x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
-    )
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-    this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_mlc_w_m02))
-    best_indices = numpy.unravel_index(
-        this_index, net_flux_rmse_matrix_mlc_w_m02.shape
-    )
+        near_sfc_dwmse_mlc_panel_file_names[i] = (
+            '{0:s}/{1:s}near_surface_dwmse_mlc_{2:s}.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
 
-    axes_object.plot(
-        best_indices[1], best_indices[0],
-        linestyle='None', marker=BEST_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
-    axes_object.plot(
-        SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
-        linestyle='None', marker=SELECTED_MARKER_TYPE,
-        markersize=marker_size_px, markeredgewidth=0,
-        markerfacecolor=MARKER_COLOUR,
-        markeredgecolor=MARKER_COLOUR
-    )
+        print('Saving figure to: "{0:s}"...'.format(
+            near_sfc_dwmse_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            near_sfc_dwmse_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
-    axes_object.set_xlabel(x_axis_label)
-    axes_object.set_ylabel(y_axis_label)
-    title_string = (
-        r'Net-flux RMSE for profiles with multi-layer cloud (W m$^{-2}$)'
-    )
-    axes_object.set_title(title_string)
+        # Plot all-flux RMSE for profiles with multi-layer cloud.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=flux_rmse_matrix_mlc_w_m02[i, ...],
+            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 0),
+            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
 
-    figure_file_name = '{0:s}/{1:s}net_flux_rmse_mlc.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_mlc_w_m02))
+        best_indices = numpy.unravel_index(
+            this_index, flux_rmse_matrix_mlc_w_m02.shape
+        )
 
-    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
-    figure_object.savefig(
-        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
-        pad_inches=0, bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        flux_rmse_mlc_panel_file_names[i] = (
+            '{0:s}/{1:s}flux_rmse_mlc_{2:s}.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            flux_rmse_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            flux_rmse_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        # Plot net-flux RMSE for profiles with multi-layer cloud..
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=net_flux_rmse_matrix_mlc_w_m02[i, ...],
+            min_colour_value=
+            numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 0),
+            max_colour_value=
+            numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 95),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_mlc_w_m02))
+        best_indices = numpy.unravel_index(
+            this_index, net_flux_rmse_matrix_mlc_w_m02.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        net_flux_rmse_mlc_panel_file_names[i] = (
+            '{0:s}/{1:s}net_flux_rmse_mlc_{2:s}.jpg'
+        ).format(
+            experiment_dir_name,
+            'isotonic_regression/' if isotonic_flag else '',
+            NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            net_flux_rmse_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            net_flux_rmse_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
 
 if __name__ == '__main__':
