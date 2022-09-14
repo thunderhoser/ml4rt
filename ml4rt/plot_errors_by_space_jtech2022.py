@@ -398,14 +398,10 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
             LONGWAVE_ALL_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
         ]
 
-    print(available_target_names)
-    print(TARGET_NAME_BY_STATISTIC)
-
     found_data_flags = numpy.array(
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
     )
-    print(found_data_flags)
 
     plot_statistic_indices = numpy.where(found_data_flags)[0]
     num_statistics = len(plot_statistic_indices)
@@ -555,10 +551,6 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
         ))
         print(SEPARATOR_STRING)
 
-        title_string = '{0:s} where sample size >= {1:d}'.format(
-            STATISTIC_NAMES_FANCY[k], min_num_examples
-        )
-
         if letter_label is None:
             letter_label = 'a'
         else:
@@ -574,7 +566,7 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            title_string=title_string, letter_label=letter_label,
+            title_string=STATISTIC_NAMES_FANCY[k], letter_label=letter_label,
             output_file_name=panel_file_names[m]
         )
 

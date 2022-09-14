@@ -352,6 +352,19 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
         training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
         training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     ]
+
+    while isinstance(available_target_names[0], list):
+        available_target_names = available_target_names[0]
+
+    if (
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME in available_target_names
+            and example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME in
+            available_target_names
+    ):
+        available_target_names += [
+            SHORTWAVE_ALL_FLUX_NAME, SHORTWAVE_NET_FLUX_NAME
+        ]
+
     found_data_flags = numpy.array(
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
