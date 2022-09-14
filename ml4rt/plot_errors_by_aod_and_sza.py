@@ -538,11 +538,11 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                 numpy.absolute(metric_matrix), 99.
             )
             min_colour_value = -1 * max_colour_value
-            colour_map_object = MAIN_COLOUR_MAP_OBJECT
+            colour_map_object = BIAS_COLOUR_MAP_OBJECT
         else:
             min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
             max_colour_value = numpy.nanpercentile(metric_matrix, 99.)
-            colour_map_object = BIAS_COLOUR_MAP_OBJECT
+            colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
         colour_norm_object = pyplot.Normalize(
             vmin=min_colour_value, vmax=max_colour_value
