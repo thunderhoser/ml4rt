@@ -55,6 +55,22 @@ STATISTIC_NAMES_FANCY = [
     r'RMSE for net flux only (W m$^{-2}$)',
     r'Bias for net flux only (W m$^{-2}$)'
 ]
+STATISTIC_NAMES_FANCY_FRACTIONAL = [
+    r'Relative RMSE$_{hr}$ (%)',
+    r'Relative near-surface RMSE$_{hr}$ (%)',
+    r'Relative bias$_{hr}$ (%)',
+    r'Relative near-surface bias$_{hr}$ (%)',
+    r'Relative RMSE$_{flux}$ (%)',
+    'Relative RMSE for net flux only (%)',
+    'Relative bias for net flux only (%)',
+    r'Relative RMSE$_{hr}$ (%)',
+    r'Relative near-surface RMSE$_{hr}$ (%)',
+    r'Relative bias$_{hr}$ (%)',
+    r'Relative near-surface bias$_{hr}$ (%)',
+    r'Relative RMSE$_{flux}$ (%)',
+    'Relative RMSE for net flux only (%)',
+    'Relative bias for net flux only (%)'
+]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
@@ -104,6 +120,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 GRID_SPACING_ARG_NAME = 'grid_spacing_deg'
+PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
 MIN_EXAMPLES_ARG_NAME = 'min_num_examples'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -112,6 +129,10 @@ PREDICTION_FILE_HELP_STRING = (
     '`prediction_io.read_file`.'
 )
 GRID_SPACING_HELP_STRING = 'Grid spacing (degrees).'
+PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
+    'Boolean flag.  If True (False), will plot fractional (raw) errors for '
+    'each metric -- "fractional" meaning as a fraction of the mean.'
+)
 MIN_EXAMPLES_HELP_STRING = (
     'Minimum number of examples.  For any grid cell with fewer examples, error '
     'metrics will not be plotted.'
@@ -128,6 +149,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + GRID_SPACING_ARG_NAME, type=float, required=True,
     help=GRID_SPACING_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_FRACTIONAL_ERRORS_ARG_NAME, type=int, required=False, default=0,
+    help=PLOT_FRACTIONAL_ERRORS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MIN_EXAMPLES_ARG_NAME, type=int, required=True,
@@ -317,14 +342,15 @@ def _plot_one_score(
     pyplot.close(figure_object)
 
 
-def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
-         output_dir_name):
+def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
+         min_num_examples, output_dir_name):
     """Plots error metrics vs. geographic location on a world map.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
     :param grid_spacing_deg: Same.
+    :param plot_fractional_errors: Same.
     :param min_num_examples: Same.
     :param output_dir_name: Same.
     """
@@ -552,6 +578,15 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
                     )[0]
 
                     metric_matrix[i, j] = numpy.sqrt(metric_matrix[i, j])
+
+                    if plot_fractional_errors:
+                        metric_matrix[i, j] = (
+                            100 * metric_matrix[i, j] /
+                            numpy.mean(
+                                numpy.absolute(actual_values[these_indices])
+                            )
+                        )
+
                 elif 'dwmse' in STATISTIC_NAMES[k]:
                     these_weights = numpy.maximum(
                         numpy.absolute(actual_values[these_indices]),
@@ -565,11 +600,27 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
                     metric_matrix[i, j] = numpy.mean(
                         these_weights * these_squared_errors
                     )
+
+                    if plot_fractional_errors:
+                        metric_matrix[i, j] = (
+                            100 * metric_matrix[i, j] /
+                            numpy.mean(
+                                these_weights * actual_values[these_indices] ** 2
+                            )
+                        )
                 else:
                     metric_matrix[i, j] = evaluation._get_bias_one_scalar(
                         target_values=actual_values[these_indices],
                         predicted_values=predicted_values[these_indices]
                     )
+
+                    if plot_fractional_errors:
+                        metric_matrix[i, j] = (
+                            100 * metric_matrix[i, j] /
+                            numpy.mean(
+                                numpy.absolute(actual_values[these_indices])
+                            )
+                        )
 
         print('Have computed {0:s} for all {1:d} grid rows!'.format(
             STATISTIC_NAMES[k], num_grid_rows
@@ -584,6 +635,10 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
         panel_file_names[m] = '{0:s}/{1:s}.jpg'.format(
             output_dir_name, STATISTIC_NAMES[k]
         )
+        title_string = (
+            STATISTIC_NAMES_FANCY_FRACTIONAL[k] if plot_fractional_errors
+            else STATISTIC_NAMES_FANCY[k]
+        )
 
         _plot_one_score(
             score_matrix=metric_matrix,
@@ -592,7 +647,7 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            title_string=STATISTIC_NAMES_FANCY[k], letter_label=letter_label,
+            title_string=title_string, letter_label=letter_label,
             output_file_name=panel_file_names[m]
         )
 
@@ -625,6 +680,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
         grid_spacing_deg=getattr(INPUT_ARG_OBJECT, GRID_SPACING_ARG_NAME),
+        plot_fractional_errors=bool(
+            getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
+        ),
         min_num_examples=getattr(INPUT_ARG_OBJECT, MIN_EXAMPLES_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
