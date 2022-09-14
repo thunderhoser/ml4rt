@@ -684,11 +684,11 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
         )
         pyplot.close(figure_object)
 
-    num_panel_rows = int(numpy.floor(
+    num_panel_columns = int(numpy.floor(
         numpy.sqrt(num_statistics)
     ))
-    num_panel_columns = int(numpy.ceil(
-        float(num_statistics) / num_panel_rows
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / num_panel_columns
     ))
 
     concat_file_name = '{0:s}/errors_by_aod_and_sfc_temp.jpg'.format(

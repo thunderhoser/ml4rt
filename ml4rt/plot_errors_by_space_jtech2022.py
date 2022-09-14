@@ -590,11 +590,11 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
             output_file_name=panel_file_names[m]
         )
 
-    num_panel_rows = int(numpy.floor(
+    num_panel_columns = int(numpy.floor(
         numpy.sqrt(num_statistics)
     ))
-    num_panel_columns = int(numpy.ceil(
-        float(num_statistics) / num_panel_rows
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / num_panel_columns
     ))
 
     concat_file_name = '{0:s}/errors_by_space.jpg'.format(output_dir_name)
