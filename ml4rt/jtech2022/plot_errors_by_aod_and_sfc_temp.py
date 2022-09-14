@@ -27,21 +27,28 @@ LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
 
 STATISTIC_NAMES = [
     'longwave_dwmse', 'longwave_near_sfc_dwmse',
+    'longwave_rmse', 'longwave_near_sfc_rmse',
     'longwave_all_flux_rmse', 'longwave_net_flux_rmse'
 ]
 STATISTIC_NAMES_FANCY = [
     r'DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
     r'Near-surface DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
-    r'MSE$_{flux}$ (W m$^{-2}$)',
-    r'Net-flux MSE (W m$^{-2}$)'
+    r'RMSE$_{hr}$ (K day$^{-1}$)',
+    r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
+    r'RMSE$_{flux}$ (W m$^{-2}$)',
+    r'Net-flux RMSE (W m$^{-2}$)'
 ]
 TARGET_NAME_BY_STATISTIC = [
+    example_utils.LONGWAVE_HEATING_RATE_NAME,
+    example_utils.LONGWAVE_HEATING_RATE_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     LONGWAVE_ALL_FLUX_NAME,
     LONGWAVE_NET_FLUX_NAME
 ]
-TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array([-1, 0, -1, -1], dtype=int)
+TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
+    [-1, 0, -1, 0, -1, -1], dtype=int
+)
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -506,6 +513,19 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
         training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
         training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     ]
+
+    while isinstance(available_target_names[0], list):
+        available_target_names = available_target_names[0]
+
+    if (
+            example_utils.LONGWAVE_TOA_UP_FLUX_NAME in available_target_names
+            and example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME in
+            available_target_names
+    ):
+        available_target_names += [
+            LONGWAVE_ALL_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
+        ]
+
     found_data_flags = numpy.array(
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
