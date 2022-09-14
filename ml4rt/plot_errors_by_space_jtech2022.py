@@ -37,26 +37,30 @@ LONGWAVE_ALL_FLUX_NAME = 'all_longwave_flux_w_m02'
 LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
 
 STATISTIC_NAMES = [
-    'shortwave_dwmse', 'shortwave_near_sfc_dwmse',
     'shortwave_rmse', 'shortwave_near_sfc_rmse',
+    'shortwave_bias', 'shortwave_near_sfc_bias',
     'shortwave_all_flux_rmse', 'shortwave_net_flux_rmse',
-    'longwave_dwmse', 'longwave_near_sfc_dwmse',
+    'shortwave_net_flux_bias',
     'longwave_rmse', 'longwave_near_sfc_rmse',
-    'longwave_all_flux_rmse', 'longwave_net_flux_rmse'
+    'longwave_bias', 'longwave_near_sfc_bias',
+    'longwave_all_flux_rmse', 'longwave_net_flux_rmse',
+    'longwave_net_flux_bias'
 ]
 STATISTIC_NAMES_FANCY = [
-    r'DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
-    r'Near-surface DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
     r'RMSE$_{hr}$ (K day$^{-1}$)',
     r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
+    r'Bias$_{hr}$ (K day$^{-1}$)',
+    r'Near-surface bias$_{hr}$ (K day$^{-1}$)',
     r'RMSE$_{flux}$ (W m$^{-2}$)',
-    r'Net-flux RMSE (W m$^{-2}$)',
-    r'DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
-    r'Near-surface DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
+    r'RMSE for net flux only (W m$^{-2}$)',
+    r'Bias for net flux only (W m$^{-2}$)',
     r'RMSE$_{hr}$ (K day$^{-1}$)',
     r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
+    r'Bias$_{hr}$ (K day$^{-1}$)',
+    r'Near-surface bias$_{hr}$ (K day$^{-1}$)',
     r'RMSE$_{flux}$ (W m$^{-2}$)',
-    r'Net-flux RMSE (W m$^{-2}$)'
+    r'RMSE for net flux only (W m$^{-2}$)',
+    r'Bias for net flux only (W m$^{-2}$)'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
@@ -65,15 +69,17 @@ TARGET_NAME_BY_STATISTIC = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     SHORTWAVE_ALL_FLUX_NAME,
     SHORTWAVE_NET_FLUX_NAME,
+    SHORTWAVE_NET_FLUX_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     LONGWAVE_ALL_FLUX_NAME,
+    LONGWAVE_NET_FLUX_NAME,
     LONGWAVE_NET_FLUX_NAME
 ]
 TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
-    [-1, 0, -1, 0, -1, -1, -1, 0, -1, 0, -1, -1], dtype=int
+    [-1, 0, -1, 0, -1, -1, -1, -1, 0, -1, 0, -1, -1, -1], dtype=int
 )
 
 COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
@@ -412,7 +418,6 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
     )
-
     plot_statistic_indices = numpy.where(found_data_flags)[0]
     num_statistics = len(plot_statistic_indices)
 
@@ -542,7 +547,7 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
                     )[0]
 
                     metric_matrix[i, j] = numpy.sqrt(metric_matrix[i, j])
-                else:
+                elif 'dwmse' in STATISTIC_NAMES[k]:
                     these_weights = numpy.maximum(
                         numpy.absolute(actual_values[these_indices]),
                         numpy.absolute(predicted_values[these_indices])
@@ -554,6 +559,11 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
 
                     metric_matrix[i, j] = numpy.mean(
                         these_weights * these_squared_errors
+                    )
+                else:
+                    metric_matrix[i, j] = evaluation._get_bias_one_scalar(
+                        target_values=actual_values[these_indices],
+                        predicted_values=predicted_values[these_indices]
                     )
 
         print('Have computed {0:s} for all {1:d} grid rows!'.format(
