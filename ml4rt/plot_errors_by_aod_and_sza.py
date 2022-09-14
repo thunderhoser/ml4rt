@@ -34,21 +34,28 @@ SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
 
 STATISTIC_NAMES = [
     'shortwave_dwmse', 'shortwave_near_sfc_dwmse',
+    'shortwave_rmse', 'shortwave_near_sfc_rmse',
     'shortwave_all_flux_rmse', 'shortwave_net_flux_rmse'
 ]
 STATISTIC_NAMES_FANCY = [
     r'DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
     r'Near-surface DWMSE$_{hr}$ (K$^3$ day$^{-3}$)',
-    r'MSE$_{flux}$ (W m$^{-2}$)',
-    r'Net-flux MSE (W m$^{-2}$)'
+    r'RMSE$_{hr}$ (K day$^{-1}$)',
+    r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
+    r'RMSE$_{flux}$ (W m$^{-2}$)',
+    r'Net-flux RMSE (W m$^{-2}$)'
 ]
 TARGET_NAME_BY_STATISTIC = [
+    example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     SHORTWAVE_ALL_FLUX_NAME,
     SHORTWAVE_NET_FLUX_NAME
 ]
-TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array([-1, 0, -1, -1], dtype=int)
+TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
+    [-1, 0, -1, 0, -1, -1], dtype=int
+)
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
