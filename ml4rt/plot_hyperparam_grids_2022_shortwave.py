@@ -33,13 +33,21 @@ NN_TYPE_STRINGS_FANCY = [
     'U-net3+ without DS', 'U-net3+ with DS'
 ]
 
+# MODEL_DEPTH_WIDTH_STRINGS = [
+#     '3, 1', '3, 2', '3, 3', '3, 4',
+#     '4, 1', '4, 2', '4, 3', '4, 4',
+#     '5, 1', '5, 2', '5, 3', '5, 4'
+# ]
+#
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+
 MODEL_DEPTH_WIDTH_STRINGS = [
-    '3, 1', '3, 2', '3, 3', '3, 4',
-    '4, 1', '4, 2', '4, 3', '4, 4',
-    '5, 1', '5, 2', '5, 3', '5, 4'
+    '3, 1',
+    '4, 1',
+    '5, 1',
 ]
 
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.15
@@ -156,15 +164,21 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag,
     :return: dwmse_k3_day03: Dual-weighted mean squared error (DWMSE) for
         heating rate.
     :return: near_sfc_dwmse_k3_day03: DWMSE for near-surface heating rate.
+    :return: bias_k_day01: Bias for heating rate.
+    :return: near_sfc_bias_k_day01: Bias for near-surface heating rate.
     :return: flux_rmse_w_m02: All-flux root mean squared error (RMSE).
     :return: net_flux_rmse_w_m02: Net-flux RMSE.
+    :return: net_flux_bias_w_m02: Net-flux bias.
     """
 
     model_file_pattern = '{0:s}/model*.h5'.format(model_dir_name)
     model_file_names = glob.glob(model_file_pattern)
 
     if len(model_file_names) == 0:
-        return numpy.nan, numpy.nan, numpy.nan, numpy.nan
+        return (
+            numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan,
+            numpy.nan
+        )
 
     model_file_names.sort()
     model_file_name = model_file_names[-1]
@@ -176,7 +190,10 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag,
     )
 
     if not os.path.isfile(evaluation_file_name):
-        return numpy.nan, numpy.nan, numpy.nan, numpy.nan
+        return (
+            numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan,
+            numpy.nan
+        )
 
     print('Reading data from: "{0:s}"...'.format(evaluation_file_name))
     evaluation_table_xarray = evaluation.read_file(evaluation_file_name)
@@ -208,6 +225,9 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag,
     net_flux_mse_w_m02 = numpy.nanmean(
         evaluation_table_xarray[evaluation.AUX_MSE_KEY].values[j, :]
     )
+    net_flux_bias_w_m02 = numpy.nanmean(
+        evaluation_table_xarray[evaluation.AUX_BIAS_KEY].values[j, :]
+    )
 
     flux_rmse_w_m02 = numpy.sqrt(
         (down_flux_mse_w_m02 + up_flux_mse_w_m02 + net_flux_mse_w_m02) / 3
@@ -232,9 +252,17 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag,
     dwmse_k3_day03 = numpy.mean(this_error_matrix)
     near_sfc_dwmse_k3_day03 = numpy.mean(this_error_matrix[:, 0, :])
 
+    bias_k_day01 = numpy.mean(
+        vector_prediction_matrix - vector_target_matrix
+    )
+    near_sfc_bias_k_day01 = numpy.mean(
+        vector_prediction_matrix[:, 0, :] - vector_target_matrix[:, 0, :]
+    )
+
     return (
         dwmse_k3_day03, near_sfc_dwmse_k3_day03,
-        flux_rmse_w_m02, net_flux_rmse_w_m02
+        bias_k_day01, near_sfc_bias_k_day01,
+        flux_rmse_w_m02, net_flux_rmse_w_m02, net_flux_bias_w_m02
     )
 
 
@@ -278,9 +306,13 @@ def _print_ranking_one_score(score_matrix, score_name):
 
 def _print_ranking_all_scores(
         dwmse_matrix_k3_day03, near_sfc_dwmse_matrix_k3_day03,
+        bias_matrix_k_day01, near_sfc_bias_matrix_k_day01,
         flux_rmse_matrix_w_m02, net_flux_rmse_matrix_w_m02,
+        net_flux_bias_matrix_w_m02,
         dwmse_matrix_mlc_k3_day03, near_sfc_dwmse_matrix_mlc_k3_day03,
-        flux_rmse_matrix_mlc_w_m02, net_flux_rmse_matrix_mlc_w_m02):
+        bias_matrix_mlc_k_day01, near_sfc_bias_matrix_mlc_k_day01,
+        flux_rmse_matrix_mlc_w_m02, net_flux_rmse_matrix_mlc_w_m02,
+        net_flux_bias_matrix_mlc_w_m02):
     """Prints ranking for all scores.
 
     T = number of neural-net types
@@ -291,18 +323,29 @@ def _print_ranking_all_scores(
         squared error (DWMSE) for all profiles.
     :param near_sfc_dwmse_matrix_k3_day03: T-by-D-by-F numpy array of
         near-surface DWMSE for all profiles.
+    :param bias_matrix_k_day01: T-by-D-by-F numpy array of bias for all profiles.
+    :param near_sfc_bias_matrix_k_day01: T-by-D-by-F numpy array of
+        near-surface bias for all profiles.
     :param flux_rmse_matrix_w_m02: T-by-D-by-F numpy array of all-flux RMSE for
         all profiles.
     :param net_flux_rmse_matrix_w_m02: T-by-D-by-F numpy array of net-flux RMSE
         for all profiles.
+    :param net_flux_bias_matrix_w_m02: T-by-D-by-F numpy array of
+        net-flux bias for all profiles.
     :param dwmse_matrix_mlc_k3_day03: T-by-D-by-F numpy array of DWMSE for
         multi-layer cloud.
     :param near_sfc_dwmse_matrix_mlc_k3_day03: T-by-D-by-F numpy array of
         near-surface DWMSE for multi-layer cloud.
+    :param bias_matrix_mlc_k_day01: T-by-D-by-F numpy array of bias for
+        multi-layer cloud.
+    :param near_sfc_bias_matrix_mlc_k_day01: T-by-D-by-F numpy array of
+        near-surface bias for multi-layer cloud.
     :param flux_rmse_matrix_mlc_w_m02: T-by-D-by-F numpy array of all-flux RMSE
         for multi-layer cloud.
     :param net_flux_rmse_matrix_mlc_w_m02: T-by-D-by-F numpy array of net-flux
         RMSE for multi-layer cloud.
+    :param net_flux_bias_matrix_mlc_w_m02: T-by-D-by-F numpy array of
+        net-flux bias for multi-layer cloud.
     """
 
     these_scores = numpy.ravel(dwmse_matrix_k3_day03)
@@ -319,6 +362,20 @@ def _print_ranking_all_scores(
         near_sfc_dwmse_matrix_k3_day03.shape
     )
 
+    these_scores = numpy.ravel(numpy.absolute(bias_matrix_k_day01))
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    bias_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        bias_matrix_k_day01.shape
+    )
+
+    these_scores = numpy.ravel(numpy.absolute(near_sfc_bias_matrix_k_day01))
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    near_sfc_bias_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        near_sfc_bias_matrix_k_day01.shape
+    )
+
     these_scores = numpy.ravel(flux_rmse_matrix_w_m02)
     these_scores[numpy.isnan(these_scores)] = numpy.inf
     flux_rmse_rank_matrix = numpy.reshape(
@@ -331,6 +388,13 @@ def _print_ranking_all_scores(
     net_flux_rmse_rank_matrix = numpy.reshape(
         rankdata(these_scores, method='average'),
         net_flux_rmse_matrix_w_m02.shape
+    )
+
+    these_scores = numpy.ravel(numpy.absolute(net_flux_bias_matrix_w_m02))
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    net_flux_bias_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        net_flux_bias_matrix_w_m02.shape
     )
 
     these_scores = numpy.ravel(dwmse_matrix_mlc_k3_day03)
@@ -347,6 +411,20 @@ def _print_ranking_all_scores(
         near_sfc_dwmse_matrix_mlc_k3_day03.shape
     )
 
+    these_scores = numpy.ravel(numpy.absolute(bias_matrix_mlc_k_day01))
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    bias_mlc_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        bias_matrix_mlc_k_day01.shape
+    )
+
+    these_scores = numpy.ravel(numpy.absolute(near_sfc_bias_matrix_mlc_k_day01))
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    near_sfc_bias_mlc_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        near_sfc_bias_matrix_mlc_k_day01.shape
+    )
+
     these_scores = numpy.ravel(flux_rmse_matrix_mlc_w_m02)
     these_scores[numpy.isnan(these_scores)] = numpy.inf
     flux_rmse_mlc_rank_matrix = numpy.reshape(
@@ -361,35 +439,43 @@ def _print_ranking_all_scores(
         net_flux_rmse_matrix_mlc_w_m02.shape
     )
 
+    these_scores = numpy.ravel(numpy.absolute(net_flux_bias_matrix_mlc_w_m02))
+    these_scores[numpy.isnan(these_scores)] = numpy.inf
+    net_flux_bias_mlc_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        net_flux_bias_matrix_mlc_w_m02.shape
+    )
+
     for m in range(len(i_sort_indices)):
         i = i_sort_indices[m]
         j = j_sort_indices[m]
         k = k_sort_indices[m]
 
         print((
-            '{0:d}th-lowest DWMSE = {1:.4g} K^3 day^-3 ... '
-            'NN type = {2:s} ... '
-            'NN depth = {3:s} ... '
-            'NN width = {4:s} ... '
-            'num channels in first conv layer = {5:d} ... '
-            'near-surface DWMSE rank = {6:.1f} ... '
-            'all-flux RMSE rank = {7:.1f} ... net-flux RMSE rank = {8:.1f} ... '
-            'DWMSE rank for MLC = {9:.1f} ... '
-            'near-surface DWMSE rank for MLC = {10:.1f} ... '
-            'all-flux RMSE rank for MLC = {11:.1f} ... '
-            'net-flux RMSE rank for MLC = {12:.1f}'
+            'NN type = {0:s} ... '
+            'NN depth = {1:s} ... '
+            'NN width = {2:s} ... '
+            'spectral cplxity = {3:d} ... '
+            'DWMSE ranks (all, sfc, MLC, MLC sfc) = '
+            '{4:.1f}, {5:.1f}, {6:.1f}, {7:.1f} ... '
+            'HR-bias ranks (all, sfc, MLC, MLC sfc) = '
+            '{8:.1f}, {9:.1f}, {10:.1f}, {11:.1f} ... '
+            'flux-RMSE ranks (all, net, MLC, MLC net) = '
+            '{12:.1f}, {13:.1f}, {14:.1f}, {15:.1f} ... '
+            'net-flux-bias ranks (all, MLC) = '
+            '{16:.1f}, {17:.1f}'
         ).format(
-            m + 1, dwmse_matrix_k3_day03[i, j, k],
             NN_TYPE_STRINGS[i],
             MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[0].strip(),
             MODEL_DEPTH_WIDTH_STRINGS[j].split(',')[1].strip(),
             FIRST_LAYER_CHANNEL_COUNTS[k],
-            near_sfc_dwmse_rank_matrix[i, j, k],
+            m + 1, near_sfc_dwmse_rank_matrix[i, j, k],
+            dwmse_mlc_rank_matrix[i, j, k], near_sfc_dwmse_mlc_rank_matrix[i, j, k],
+            bias_rank_matrix[i, j, k], near_sfc_bias_rank_matrix[i, j, k],
+            bias_mlc_rank_matrix[i, j, k], near_sfc_bias_mlc_rank_matrix[i, j, k],
             flux_rmse_rank_matrix[i, j, k], net_flux_rmse_rank_matrix[i, j, k],
-            dwmse_mlc_rank_matrix[i, j, k],
-            near_sfc_dwmse_mlc_rank_matrix[i, j, k],
-            flux_rmse_mlc_rank_matrix[i, j, k],
-            net_flux_rmse_mlc_rank_matrix[i, j, k]
+            flux_rmse_mlc_rank_matrix[i, j, k], net_flux_rmse_mlc_rank_matrix[i, j, k],
+            net_flux_bias_rank_matrix[i, j, k], net_flux_bias_mlc_rank_matrix[i, j, k]
         ))
 
 
@@ -417,14 +503,22 @@ def _run(experiment_dir_name, isotonic_flag):
     x_axis_label = 'Spectral complexity'
 
     dimensions = (num_nn_types, num_depth_width_combos, num_channel_counts)
+
     dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
     near_sfc_dwmse_matrix_k3_day03 = numpy.full(dimensions, numpy.nan)
+    bias_matrix_k_day01 = numpy.full(dimensions, numpy.nan)
+    near_sfc_bias_matrix_k_day01 = numpy.full(dimensions, numpy.nan)
     flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
     net_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
+    net_flux_bias_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
+
     dwmse_matrix_mlc_k3_day03 = numpy.full(dimensions, numpy.nan)
     near_sfc_dwmse_matrix_mlc_k3_day03 = numpy.full(dimensions, numpy.nan)
+    bias_matrix_mlc_k_day01 = numpy.full(dimensions, numpy.nan)
+    near_sfc_bias_matrix_mlc_k_day01 = numpy.full(dimensions, numpy.nan)
     flux_rmse_matrix_mlc_w_m02 = numpy.full(dimensions, numpy.nan)
     net_flux_rmse_matrix_mlc_w_m02 = numpy.full(dimensions, numpy.nan)
+    net_flux_bias_matrix_mlc_w_m02 = numpy.full(dimensions, numpy.nan)
 
     for i in range(num_nn_types):
         for j in range(num_depth_width_combos):
@@ -443,8 +537,11 @@ def _run(experiment_dir_name, isotonic_flag):
                 (
                     dwmse_matrix_k3_day03[i, j, k],
                     near_sfc_dwmse_matrix_k3_day03[i, j, k],
+                    bias_matrix_k_day01[i, j, k],
+                    near_sfc_bias_matrix_k_day01[i, j, k],
                     flux_rmse_matrix_w_m02[i, j, k],
-                    net_flux_rmse_matrix_w_m02[i, j, k]
+                    net_flux_rmse_matrix_w_m02[i, j, k],
+                    net_flux_bias_matrix_w_m02[i, j, k]
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     multilayer_cloud_flag=False,
@@ -454,8 +551,11 @@ def _run(experiment_dir_name, isotonic_flag):
                 (
                     dwmse_matrix_mlc_k3_day03[i, j, k],
                     near_sfc_dwmse_matrix_mlc_k3_day03[i, j, k],
+                    bias_matrix_mlc_k_day01[i, j, k],
+                    near_sfc_bias_matrix_mlc_k_day01[i, j, k],
                     flux_rmse_matrix_mlc_w_m02[i, j, k],
-                    net_flux_rmse_matrix_mlc_w_m02[i, j, k]
+                    net_flux_rmse_matrix_mlc_w_m02[i, j, k],
+                    net_flux_bias_matrix_mlc_w_m02[i, j, k]
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     multilayer_cloud_flag=True,
@@ -476,6 +576,18 @@ def _run(experiment_dir_name, isotonic_flag):
     print(SEPARATOR_STRING)
 
     _print_ranking_one_score(
+        score_matrix=numpy.absolute(bias_matrix_k_day01),
+        score_name='absolute HR bias (K day^-1)'
+    )
+    print(SEPARATOR_STRING)
+
+    _print_ranking_one_score(
+        score_matrix=numpy.absolute(near_sfc_bias_matrix_k_day01),
+        score_name='near-surface absolute HR bias (K day^-1)'
+    )
+    print(SEPARATOR_STRING)
+
+    _print_ranking_one_score(
         score_matrix=flux_rmse_matrix_w_m02,
         score_name='all-flux RMSE (W m^-2)'
     )
@@ -484,6 +596,12 @@ def _run(experiment_dir_name, isotonic_flag):
     _print_ranking_one_score(
         score_matrix=net_flux_rmse_matrix_w_m02,
         score_name='net-flux RMSE (W m^-2)'
+    )
+    print(SEPARATOR_STRING)
+
+    _print_ranking_one_score(
+        score_matrix=numpy.absolute(net_flux_bias_matrix_w_m02),
+        score_name='absolute net-flux bias (W m^-2)'
     )
     print(SEPARATOR_STRING)
 
@@ -500,6 +618,18 @@ def _run(experiment_dir_name, isotonic_flag):
     print(SEPARATOR_STRING)
 
     _print_ranking_one_score(
+        score_matrix=numpy.absolute(bias_matrix_mlc_k_day01),
+        score_name='absolute HR bias for MLC (K day^-1)'
+    )
+    print(SEPARATOR_STRING)
+
+    _print_ranking_one_score(
+        score_matrix=numpy.absolute(near_sfc_bias_matrix_mlc_k_day01),
+        score_name='near-surface absolute HR bias for MLC (K day^-1)'
+    )
+    print(SEPARATOR_STRING)
+
+    _print_ranking_one_score(
         score_matrix=flux_rmse_matrix_mlc_w_m02,
         score_name='all-flux RMSE for MLC (W m^-2)'
     )
@@ -511,15 +641,27 @@ def _run(experiment_dir_name, isotonic_flag):
     )
     print(SEPARATOR_STRING)
 
+    _print_ranking_one_score(
+        score_matrix=numpy.absolute(net_flux_bias_matrix_mlc_w_m02),
+        score_name='absolute net-flux bias for MLC (W m^-2)'
+    )
+    print(SEPARATOR_STRING)
+
     _print_ranking_all_scores(
         dwmse_matrix_k3_day03=dwmse_matrix_k3_day03,
         near_sfc_dwmse_matrix_k3_day03=near_sfc_dwmse_matrix_k3_day03,
+        bias_matrix_k_day01=bias_matrix_k_day01,
+        near_sfc_bias_matrix_k_day01=near_sfc_bias_matrix_k_day01,
         flux_rmse_matrix_w_m02=flux_rmse_matrix_w_m02,
         net_flux_rmse_matrix_w_m02=net_flux_rmse_matrix_w_m02,
+        net_flux_bias_matrix_w_m02=net_flux_bias_matrix_w_m02,
         dwmse_matrix_mlc_k3_day03=dwmse_matrix_mlc_k3_day03,
         near_sfc_dwmse_matrix_mlc_k3_day03=near_sfc_dwmse_matrix_mlc_k3_day03,
+        bias_matrix_mlc_k_day01=bias_matrix_mlc_k_day01,
+        near_sfc_bias_matrix_mlc_k_day01=near_sfc_bias_matrix_mlc_k_day01,
         flux_rmse_matrix_mlc_w_m02=flux_rmse_matrix_mlc_w_m02,
-        net_flux_rmse_matrix_mlc_w_m02=net_flux_rmse_matrix_mlc_w_m02
+        net_flux_rmse_matrix_mlc_w_m02=net_flux_rmse_matrix_mlc_w_m02,
+        net_flux_bias_matrix_mlc_w_m02=net_flux_bias_matrix_mlc_w_m02
     )
     print(SEPARATOR_STRING)
 
