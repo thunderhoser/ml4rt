@@ -33,13 +33,21 @@ NN_TYPE_STRINGS_FANCY = [
     'U-net3+ without DS', 'U-net3+ with DS'
 ]
 
+# MODEL_DEPTH_WIDTH_STRINGS = [
+#     '3, 1', '3, 2', '3, 3', '3, 4',
+#     '4, 1', '4, 2', '4, 3', '4, 4',
+#     '5, 1', '5, 2', '5, 3', '5, 4'
+# ]
+#
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+
 MODEL_DEPTH_WIDTH_STRINGS = [
-    '3, 1', '3, 2', '3, 3', '3, 4',
-    '4, 1', '4, 2', '4, 3', '4, 4',
-    '5, 1', '5, 2', '5, 3', '5, 4'
+    '3, 1',
+    '4, 1',
+    '5, 1'
 ]
 
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.15
@@ -48,6 +56,11 @@ MARKER_COLOUR = numpy.full(3, 1.)
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.15
 SELECTED_MARKER_INDICES = numpy.array([3, 8, 4], dtype=int)
+
+MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
+BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
+MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 FONT_SIZE = 26
 pyplot.rc('font', size=FONT_SIZE)
@@ -83,8 +96,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_scores_2d(
         score_matrix, min_colour_value, max_colour_value, x_tick_labels,
-        y_tick_labels, colour_map_object=pyplot.get_cmap('plasma')
-):
+        y_tick_labels):
     """Plots scores on 2-D grid.
 
     M = number of rows in grid
@@ -95,8 +107,6 @@ def _plot_scores_2d(
     :param max_colour_value: Max value in colour scheme.
     :param x_tick_labels: length-N list of tick labels.
     :param y_tick_labels: length-M list of tick labels.
-    :param colour_map_object: Colour scheme (instance of
-        `matplotlib.pyplot.cm`).
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -106,6 +116,12 @@ def _plot_scores_2d(
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
+
+    if min_colour_value is None:
+        colour_map_object = BIAS_COLOUR_MAP_OBJECT
+        min_colour_value = -1 * max_colour_value
+    else:
+        colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
     axes_object.imshow(
         score_matrix, cmap=colour_map_object, origin='lower',
@@ -787,14 +803,12 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot HR bias for all profiles.
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(bias_matrix_k_day01), 95.
-        )
-
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=bias_matrix_k_day01[i, ...],
-            min_colour_value=-1 * max_colour_value,
-            max_colour_value=max_colour_value,
+            min_colour_value=None,
+            max_colour_value=numpy.nanpercentile(
+                numpy.absolute(bias_matrix_k_day01), 95.
+            ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -839,14 +853,12 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot near-surface bias for all profiles.
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(near_sfc_bias_matrix_k_day01), 95.
-        )
-
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_k_day01[i, ...],
-            min_colour_value=-1 * max_colour_value,
-            max_colour_value=max_colour_value,
+            min_colour_value=None,
+            max_colour_value=numpy.nanpercentile(
+                numpy.absolute(near_sfc_bias_matrix_k_day01), 95.
+            ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -993,14 +1005,12 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot net-flux bias for all profiles.
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(net_flux_bias_matrix_w_m02), 95.
-        )
-
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_w_m02[i, ...],
-            min_colour_value=-1 * max_colour_value,
-            max_colour_value=max_colour_value,
+            min_colour_value=None,
+            max_colour_value=numpy.nanpercentile(
+                numpy.absolute(net_flux_bias_matrix_w_m02), 95.
+            ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1149,14 +1159,12 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot HR bias for profiles with multi-layer cloud.
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(bias_matrix_mlc_k_day01), 95.
-        )
-
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=bias_matrix_mlc_k_day01[i, ...],
-            min_colour_value=-1 * max_colour_value,
-            max_colour_value=max_colour_value,
+            min_colour_value=None,
+            max_colour_value=numpy.nanpercentile(
+                numpy.absolute(bias_matrix_mlc_k_day01), 95.
+            ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1203,14 +1211,12 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot near-surface bias for all profiles.
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(near_sfc_bias_matrix_mlc_k_day01), 95.
-        )
-
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_mlc_k_day01[i, ...],
-            min_colour_value=-1 * max_colour_value,
-            max_colour_value=max_colour_value,
+            min_colour_value=None,
+            max_colour_value=numpy.nanpercentile(
+                numpy.absolute(near_sfc_bias_matrix_mlc_k_day01), 95.
+            ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1363,14 +1369,12 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot net-flux bias for profiles with multi-layer cloud.
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(net_flux_bias_matrix_mlc_w_m02), 95.
-        )
-
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_mlc_w_m02[i, ...],
-            min_colour_value=-1 * max_colour_value,
-            max_colour_value=max_colour_value,
+            min_colour_value=None,
+            max_colour_value=numpy.nanpercentile(
+                numpy.absolute(net_flux_bias_matrix_mlc_w_m02), 95.
+            ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
