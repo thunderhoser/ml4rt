@@ -1,32 +1,25 @@
 """Plots error metrics vs. geographic location on a world map."""
 
 import os
-import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import grids
-import number_rounding
-import longitude_conversion as lng_conversion
-import file_system_utils
-import error_checking
-import gg_plotting_utils
-import radar_plotting
-import imagemagick_utils
-import border_io
-import prediction_io
-import example_utils
-import evaluation
-import neural_net
-import plotting_utils
+from gewittergefahr.gg_utils import grids
+from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.gg_utils import error_checking
+from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
+from gewittergefahr.plotting import radar_plotting
+from gewittergefahr.plotting import imagemagick_utils
+from ml4rt.io import border_io
+from ml4rt.io import prediction_io
+from ml4rt.utils import example_utils
+from ml4rt.utils import evaluation
+from ml4rt.machine_learning import neural_net
+from ml4rt.plotting import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 DUMMY_FIELD_NAME = 'reflectivity_column_max_dbz'
@@ -376,10 +369,34 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
         training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
         training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     ]
+
+    if (
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME in available_target_names
+            and example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME in
+            available_target_names
+    ):
+        available_target_names += [
+            SHORTWAVE_ALL_FLUX_NAME, SHORTWAVE_NET_FLUX_NAME
+        ]
+
+    if (
+            example_utils.LONGWAVE_TOA_UP_FLUX_NAME in available_target_names
+            and example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME in
+            available_target_names
+    ):
+        available_target_names += [
+            LONGWAVE_ALL_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
+        ]
+
+    print(available_target_names)
+    print(TARGET_NAME_BY_STATISTIC)
+
     found_data_flags = numpy.array(
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
     )
+    print(found_data_flags)
+
     plot_statistic_indices = numpy.where(found_data_flags)[0]
     num_statistics = len(plot_statistic_indices)
 
