@@ -40,6 +40,15 @@ STATISTIC_NAMES_FANCY = [
     r'RMSE for net flux only (W m$^{-2}$)',
     r'Bias for net flux only (W m$^{-2}$)'
 ]
+STATISTIC_NAMES_FANCY_FRACTIONAL = [
+    r'Relative RMSE$_{hr}$ (%)',
+    r'Relative near-surface RMSE$_{hr}$ (%)',
+    r'Relative bias$_{hr}$ (%)',
+    r'Relative near-surface bias$_{hr}$ (%)',
+    r'Relative RMSE$_{flux}$ (%)',
+    'Relative RMSE for net flux only (%)',
+    'Relative bias for net flux only (%)'
+]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
@@ -65,6 +74,7 @@ BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
+PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -74,6 +84,10 @@ INPUT_FILE_HELP_STRING = (
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for solar zenith angle.'
 NUM_AOD_BINS_HELP_STRING = 'Number of bins for aerosol optical depth (AOD).'
+PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
+    'Boolean flag.  If True (False), will plot fractional (raw) errors for '
+    'each metric -- "fractional" meaning as a fraction of the mean.'
+)
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with example files.  AOD values will be read from here.'
 )
@@ -93,6 +107,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=9,
     help=NUM_AOD_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_FRACTIONAL_ERRORS_ARG_NAME, type=int, required=False, default=0,
+    help=PLOT_FRACTIONAL_ERRORS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=True,
@@ -276,7 +294,7 @@ def _plot_score_2d(
 
 
 def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
-         example_dir_name, output_dir_name):
+         plot_fractional_errors, example_dir_name, output_dir_name):
     """Plots error metrics vs. aerosol optical depth and solar zenith angle.
 
     This is effectively the main method.
@@ -284,6 +302,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
     :param prediction_file_name: See documentation at top of file.
     :param num_zenith_angle_bins: Same.
     :param num_aod_bins: Same.
+    :param plot_fractional_errors: Same.
     :param example_dir_name: Same.
     :param output_dir_name: Same.
     """
@@ -457,6 +476,15 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                     )[0]
 
                     metric_matrix[i, j] = numpy.sqrt(metric_matrix[i, j])
+
+                    if plot_fractional_errors:
+                        metric_matrix[i, j] = (
+                            100 * metric_matrix[i, j] /
+                            numpy.mean(
+                                numpy.absolute(actual_values[these_indices])
+                            )
+                        )
+
                 elif 'dwmse' in STATISTIC_NAMES[k]:
                     these_weights = numpy.maximum(
                         numpy.absolute(actual_values[these_indices]),
@@ -470,11 +498,28 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                     metric_matrix[i, j] = numpy.mean(
                         these_weights * these_squared_errors
                     )
+
+                    if plot_fractional_errors:
+                        metric_matrix[i, j] = (
+                            100 * metric_matrix[i, j] /
+                            numpy.mean(
+                                these_weights * actual_values[these_indices] ** 2
+                            )
+                        )
+
                 else:
                     metric_matrix[i, j] = evaluation._get_bias_one_scalar(
                         target_values=actual_values[these_indices],
                         predicted_values=predicted_values[these_indices]
                     )
+
+                    if plot_fractional_errors:
+                        metric_matrix[i, j] = (
+                            100 * metric_matrix[i, j] /
+                            numpy.mean(
+                                numpy.absolute(actual_values[these_indices])
+                            )
+                        )
 
         if letter_label is None:
             letter_label = 'a'
@@ -505,7 +550,10 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
 
         axes_object.set_xlabel('Aerosol optical depth (unitless)')
         axes_object.set_ylabel('Solar zenith angle (deg)')
-        axes_object.set_title(STATISTIC_NAMES_FANCY[k])
+        axes_object.set_title(
+            STATISTIC_NAMES_FANCY_FRACTIONAL[k] if plot_fractional_errors
+            else STATISTIC_NAMES_FANCY[k]
+        )
         gg_plotting_utils.label_axes(
             axes_object=axes_object, label_string='({0:s})'.format(letter_label)
         )
@@ -551,6 +599,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
         num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
+        plot_fractional_errors=bool(
+            getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
+        ),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
