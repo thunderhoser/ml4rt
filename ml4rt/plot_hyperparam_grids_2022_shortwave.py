@@ -532,6 +532,13 @@ def _run(experiment_dir_name, isotonic_flag):
     flux_rmse_mlc_panel_file_names = [''] * num_nn_types
     net_flux_rmse_mlc_panel_file_names = [''] * num_nn_types
 
+    output_dir_name = '{0:s}/hyperparam_grids{1:s}'.format(
+        experiment_dir_name, '/isotonic_regression' if isotonic_flag else ''
+    )
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
     for i in range(num_nn_types):
 
         # Plot DWMSE for all profiles.
@@ -576,13 +583,8 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_ylabel(y_axis_label)
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-        dwmse_panel_file_names[i] = '{0:s}/{1:s}dwmse_{2:s}.jpg'.format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
-        )
-        file_system_utils.mkdir_recursive_if_necessary(
-            file_name=dwmse_panel_file_names[i]
+        dwmse_panel_file_names[i] = '{0:s}/dwmse_{1:s}.jpg'.format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(dwmse_panel_file_names[i]))
@@ -630,11 +632,9 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
         near_sfc_dwmse_panel_file_names[i] = (
-            '{0:s}/{1:s}near_surface_dwmse_{2:s}.jpg'
+            '{0:s}/near_surface_dwmse_{1:s}.jpg'
         ).format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -681,10 +681,8 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_ylabel(y_axis_label)
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-        flux_rmse_panel_file_names[i] = '{0:s}/{1:s}flux_rmse_{2:s}.jpg'.format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+        flux_rmse_panel_file_names[i] = '{0:s}/flux_rmse_{1:s}.jpg'.format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -732,11 +730,9 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
         net_flux_rmse_panel_file_names[i] = (
-            '{0:s}/{1:s}net_flux_rmse_{2:s}.jpg'
+            '{0:s}/net_flux_rmse_{1:s}.jpg'
         ).format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -783,10 +779,8 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_ylabel(y_axis_label)
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
-        dwmse_mlc_panel_file_names[i] = '{0:s}/{1:s}dwmse_mlc_{2:s}.jpg'.format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+        dwmse_mlc_panel_file_names[i] = '{0:s}/dwmse_mlc_{1:s}.jpg'.format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -836,11 +830,9 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
         near_sfc_dwmse_mlc_panel_file_names[i] = (
-            '{0:s}/{1:s}near_surface_dwmse_mlc_{2:s}.jpg'
+            '{0:s}/near_surface_dwmse_mlc_{1:s}.jpg'
         ).format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -888,11 +880,9 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
         flux_rmse_mlc_panel_file_names[i] = (
-            '{0:s}/{1:s}flux_rmse_mlc_{2:s}.jpg'
+            '{0:s}/flux_rmse_mlc_{1:s}.jpg'
         ).format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -942,11 +932,9 @@ def _run(experiment_dir_name, isotonic_flag):
         axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
 
         net_flux_rmse_mlc_panel_file_names[i] = (
-            '{0:s}/{1:s}net_flux_rmse_mlc_{2:s}.jpg'
+            '{0:s}/net_flux_rmse_mlc_{1:s}.jpg'
         ).format(
-            experiment_dir_name,
-            'isotonic_regression/' if isotonic_flag else '',
-            NN_TYPE_STRINGS[i].replace('_', '-')
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
         )
 
         print('Saving figure to: "{0:s}"...'.format(
@@ -965,10 +953,7 @@ def _run(experiment_dir_name, isotonic_flag):
         float(num_nn_types) / num_panel_rows
     ))
 
-    dwmse_concat_file_name = '{0:s}/{1:s}dwmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+    dwmse_concat_file_name = '{0:s}/dwmse.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(dwmse_concat_file_name))
     imagemagick_utils.concatenate_images(
         input_file_names=dwmse_panel_file_names,
@@ -980,11 +965,8 @@ def _run(experiment_dir_name, isotonic_flag):
         output_file_name=dwmse_concat_file_name, output_size_pixels=int(1e7)
     )
 
-    near_sfc_dwmse_concat_file_name = (
-        '{0:s}/{1:s}near_surface_dwmse.jpg'
-    ).format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
+    near_sfc_dwmse_concat_file_name = '{0:s}/near_surface_dwmse.jpg'.format(
+        output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(
         near_sfc_dwmse_concat_file_name
@@ -1000,10 +982,7 @@ def _run(experiment_dir_name, isotonic_flag):
         output_size_pixels=int(1e7)
     )
 
-    flux_rmse_concat_file_name = '{0:s}/{1:s}flux_rmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+    flux_rmse_concat_file_name = '{0:s}/flux_rmse.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(
         flux_rmse_concat_file_name
     ))
@@ -1017,9 +996,8 @@ def _run(experiment_dir_name, isotonic_flag):
         output_file_name=flux_rmse_concat_file_name, output_size_pixels=int(1e7)
     )
 
-    net_flux_rmse_concat_file_name = '{0:s}/{1:s}net_flux_rmse.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
+    net_flux_rmse_concat_file_name = '{0:s}/net_flux_rmse.jpg'.format(
+        output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(
         net_flux_rmse_concat_file_name
@@ -1035,10 +1013,7 @@ def _run(experiment_dir_name, isotonic_flag):
         output_size_pixels=int(1e7)
     )
 
-    dwmse_mlc_concat_file_name = '{0:s}/{1:s}dwmse_mlc.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
-    )
+    dwmse_mlc_concat_file_name = '{0:s}/dwmse_mlc.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(
         dwmse_mlc_concat_file_name
     ))
@@ -1053,10 +1028,9 @@ def _run(experiment_dir_name, isotonic_flag):
     )
 
     near_sfc_dwmse_mlc_concat_file_name = (
-        '{0:s}/{1:s}near_surface_dwmse_mlc.jpg'
+        '{0:s}/near_surface_dwmse_mlc.jpg'
     ).format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
+        output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(
         near_sfc_dwmse_mlc_concat_file_name
@@ -1072,9 +1046,8 @@ def _run(experiment_dir_name, isotonic_flag):
         output_size_pixels=int(1e7)
     )
 
-    flux_rmse_mlc_concat_file_name = '{0:s}/{1:s}flux_rmse_mlc.jpg'.format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
+    flux_rmse_mlc_concat_file_name = '{0:s}/flux_rmse_mlc.jpg'.format(
+        output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(
         flux_rmse_mlc_concat_file_name
@@ -1090,11 +1063,8 @@ def _run(experiment_dir_name, isotonic_flag):
         output_size_pixels=int(1e7)
     )
 
-    net_flux_rmse_mlc_concat_file_name = (
-        '{0:s}/{1:s}net_flux_rmse_mlc.jpg'
-    ).format(
-        experiment_dir_name,
-        'isotonic_regression/' if isotonic_flag else ''
+    net_flux_rmse_mlc_concat_file_name = '{0:s}/net_flux_rmse_mlc.jpg'.format(
+        output_dir_name
     )
     print('Concatenating panels to: "{0:s}"...'.format(
         net_flux_rmse_mlc_concat_file_name
