@@ -57,8 +57,10 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
-COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis')
-COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
+BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
+MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_SURFACE_TEMP_BINS_ARG_NAME = 'num_surface_temp_bins'
@@ -640,14 +642,23 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
         else:
             letter_label = chr(ord(letter_label) + 1)
 
-        min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
-        max_colour_value = numpy.nanpercentile(metric_matrix, 99.)
+        if 'bias' in STATISTIC_NAMES[k]:
+            max_colour_value = numpy.nanpercentile(
+                numpy.absolute(metric_matrix), 99.
+            )
+            min_colour_value = -1 * max_colour_value
+            colour_map_object = MAIN_COLOUR_MAP_OBJECT
+        else:
+            min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 99.)
+            colour_map_object = BIAS_COLOUR_MAP_OBJECT
+
         colour_norm_object = pyplot.Normalize(
             vmin=min_colour_value, vmax=max_colour_value
         )
 
         figure_object, axes_object = _plot_score_2d(
-            score_matrix=metric_matrix, colour_map_object=COLOUR_MAP_OBJECT,
+            score_matrix=metric_matrix, colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object,
             x_tick_labels=aod_tick_labels,
             y_tick_labels=surface_temp_tick_labels
@@ -677,11 +688,11 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
         )
         pyplot.close(figure_object)
 
-    num_panel_rows = int(numpy.floor(
+    num_panel_columns = int(numpy.floor(
         numpy.sqrt(num_statistics)
     ))
-    num_panel_columns = int(numpy.ceil(
-        float(num_statistics) / num_panel_rows
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / num_panel_columns
     ))
 
     concat_file_name = '{0:s}/errors_by_aod_and_sfc_temp.jpg'.format(

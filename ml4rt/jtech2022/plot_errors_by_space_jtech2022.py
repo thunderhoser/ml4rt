@@ -75,8 +75,10 @@ TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
     [-1, 0, -1, 0, -1, -1, -1, -1, 0, -1, 0, -1, -1, -1], dtype=int
 )
 
-COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
-COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
+BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
+MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 MIN_LATITUDE_DEG_N = -90.
 MAX_LATITUDE_DEG_N = 90.
@@ -198,9 +200,9 @@ def _create_latlng_grid(
 
 
 def _plot_one_score(
-        score_matrix, grid_latitudes_deg_n, grid_longitudes_deg_e,
-        border_latitudes_deg_n, border_longitudes_deg_e, title_string,
-        letter_label, output_file_name):
+        score_matrix, score_is_bias, grid_latitudes_deg_n,
+        grid_longitudes_deg_e, border_latitudes_deg_n, border_longitudes_deg_e,
+        title_string, letter_label, output_file_name):
     """Plots one score on 2-D georeferenced grid.
 
     M = number of rows in grid
@@ -208,6 +210,7 @@ def _plot_one_score(
     P = number of points in border set
 
     :param score_matrix: M-by-N numpy array of scores.
+    :param score_is_bias: Boolean flag.  If True, plotting a bias.
     :param grid_latitudes_deg_n: length-M numpy array of latitudes (deg N).
     :param grid_longitudes_deg_e: length-N numpy array of longitudes (deg E).
     :param border_latitudes_deg_n: length-P numpy array of latitudes (deg N).
@@ -227,10 +230,19 @@ def _plot_one_score(
         axes_object=axes_object
     )
 
-    min_colour_value = numpy.nanpercentile(score_matrix, 0.)
-    max_colour_value = numpy.nanpercentile(score_matrix, 99.)
+    if score_is_bias:
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(score_matrix), 99.
+        )
+        min_colour_value = -1 * max_colour_value
+        colour_map_object = BIAS_COLOUR_MAP_OBJECT
+    else:
+        min_colour_value = numpy.nanpercentile(score_matrix, 0.)
+        max_colour_value = numpy.nanpercentile(score_matrix, 99.)
+        colour_map_object = MAIN_COLOUR_MAP_OBJECT
+
     colour_norm_object = pyplot.Normalize(
-        vmin=min_colour_value, vmax=max_colour_value
+        vmin=-1 * max_colour_value, vmax=max_colour_value
     )
 
     sort_indices = numpy.argsort(grid_longitudes_deg_e)
@@ -244,13 +256,13 @@ def _plot_one_score(
         min_grid_point_longitude_deg=numpy.min(sorted_grid_longitudes_deg_e),
         latitude_spacing_deg=numpy.diff(grid_latitudes_deg_n[:2])[0],
         longitude_spacing_deg=numpy.diff(sorted_grid_longitudes_deg_e[:2])[0],
-        colour_map_object=COLOUR_MAP_OBJECT,
+        colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object
     )
 
     colour_bar_object = gg_plotting_utils.plot_linear_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=score_matrix,
-        colour_map_object=COLOUR_MAP_OBJECT,
+        colour_map_object=colour_map_object,
         min_value=min_colour_value, max_value=max_colour_value,
         orientation_string='vertical', extend_min=True, extend_max=True,
         padding=0.01, font_size=FONT_SIZE
@@ -575,6 +587,7 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
 
         _plot_one_score(
             score_matrix=metric_matrix,
+            score_is_bias='bias' in STATISTIC_NAMES[k],
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -583,11 +596,11 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
             output_file_name=panel_file_names[m]
         )
 
-    num_panel_rows = int(numpy.floor(
+    num_panel_columns = int(numpy.floor(
         numpy.sqrt(num_statistics)
     ))
-    num_panel_columns = int(numpy.ceil(
-        float(num_statistics) / num_panel_rows
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / num_panel_columns
     ))
 
     concat_file_name = '{0:s}/errors_by_space.jpg'.format(output_dir_name)
