@@ -33,21 +33,13 @@ NN_TYPE_STRINGS_FANCY = [
     'U-net3+ without DS', 'U-net3+ with DS'
 ]
 
-# MODEL_DEPTH_WIDTH_STRINGS = [
-#     '3, 1', '3, 2', '3, 3', '3, 4',
-#     '4, 1', '4, 2', '4, 3', '4, 4',
-#     '5, 1', '5, 2', '5, 3', '5, 4'
-# ]
-#
-# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
-
 MODEL_DEPTH_WIDTH_STRINGS = [
-    '3, 1',
-    '4, 1',
-    '5, 1',
+    '3, 1', '3, 2', '3, 3', '3, 4',
+    '4, 1', '4, 2', '4, 3', '4, 4',
+    '5, 1', '5, 2', '5, 3', '5, 4'
 ]
 
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.15
@@ -667,12 +659,18 @@ def _run(experiment_dir_name, isotonic_flag):
 
     dwmse_panel_file_names = [''] * num_nn_types
     near_sfc_dwmse_panel_file_names = [''] * num_nn_types
+    bias_panel_file_names = [''] * num_nn_types
+    near_sfc_bias_panel_file_names = [''] * num_nn_types
     flux_rmse_panel_file_names = [''] * num_nn_types
     net_flux_rmse_panel_file_names = [''] * num_nn_types
+    net_flux_bias_panel_file_names = [''] * num_nn_types
     dwmse_mlc_panel_file_names = [''] * num_nn_types
     near_sfc_dwmse_mlc_panel_file_names = [''] * num_nn_types
+    bias_mlc_panel_file_names = [''] * num_nn_types
+    near_sfc_bias_mlc_panel_file_names = [''] * num_nn_types
     flux_rmse_mlc_panel_file_names = [''] * num_nn_types
     net_flux_rmse_mlc_panel_file_names = [''] * num_nn_types
+    net_flux_bias_mlc_panel_file_names = [''] * num_nn_types
 
     output_dir_name = '{0:s}/hyperparam_grids{1:s}'.format(
         experiment_dir_name, '/isotonic_regression' if isotonic_flag else ''
@@ -788,6 +786,114 @@ def _run(experiment_dir_name, isotonic_flag):
         )
         pyplot.close(figure_object)
 
+        # Plot HR bias for all profiles.
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(bias_matrix_k_day01), 95.
+        )
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=bias_matrix_k_day01[i, ...],
+            min_colour_value=-1 * max_colour_value,
+            max_colour_value=max_colour_value,
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(
+            numpy.absolute(bias_matrix_k_day01)
+        ))
+        best_indices = numpy.unravel_index(
+            this_index, bias_matrix_k_day01.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        bias_panel_file_names[i] = '{0:s}/bias_{1:s}.jpg'.format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(bias_panel_file_names[i]))
+        figure_object.savefig(
+            bias_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        # Plot near-surface bias for all profiles.
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(near_sfc_bias_matrix_k_day01), 95.
+        )
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=near_sfc_bias_matrix_k_day01[i, ...],
+            min_colour_value=-1 * max_colour_value,
+            max_colour_value=max_colour_value,
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(
+            numpy.absolute(near_sfc_bias_matrix_k_day01)
+        ))
+        best_indices = numpy.unravel_index(
+            this_index, near_sfc_bias_matrix_k_day01.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        near_sfc_bias_panel_file_names[i] = (
+            '{0:s}/near_surface_bias_{1:s}.jpg'
+        ).format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            near_sfc_bias_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            near_sfc_bias_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
         # Plot all-flux RMSE for all profiles.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_w_m02[i, ...],
@@ -882,6 +988,62 @@ def _run(experiment_dir_name, isotonic_flag):
         ))
         figure_object.savefig(
             net_flux_rmse_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        # Plot net-flux bias for all profiles.
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(net_flux_bias_matrix_w_m02), 95.
+        )
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=net_flux_bias_matrix_w_m02[i, ...],
+            min_colour_value=-1 * max_colour_value,
+            max_colour_value=max_colour_value,
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(
+            numpy.absolute(net_flux_bias_matrix_w_m02)
+        ))
+        best_indices = numpy.unravel_index(
+            this_index, net_flux_bias_matrix_w_m02.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        net_flux_bias_panel_file_names[i] = (
+            '{0:s}/net_flux_bias_{1:s}.jpg'
+        ).format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            net_flux_bias_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            net_flux_bias_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
             pad_inches=0, bbox_inches='tight'
         )
         pyplot.close(figure_object)
@@ -986,6 +1148,118 @@ def _run(experiment_dir_name, isotonic_flag):
         )
         pyplot.close(figure_object)
 
+        # Plot HR bias for profiles with multi-layer cloud.
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(bias_matrix_mlc_k_day01), 95.
+        )
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=bias_matrix_mlc_k_day01[i, ...],
+            min_colour_value=-1 * max_colour_value,
+            max_colour_value=max_colour_value,
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(
+            numpy.absolute(bias_matrix_mlc_k_day01)
+        ))
+        best_indices = numpy.unravel_index(
+            this_index, bias_matrix_mlc_k_day01.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        bias_mlc_panel_file_names[i] = '{0:s}/bias_mlc_{1:s}.jpg'.format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            bias_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            bias_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        # Plot near-surface bias for all profiles.
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(near_sfc_bias_matrix_mlc_k_day01), 95.
+        )
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=near_sfc_bias_matrix_mlc_k_day01[i, ...],
+            min_colour_value=-1 * max_colour_value,
+            max_colour_value=max_colour_value,
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(
+            numpy.absolute(near_sfc_bias_matrix_mlc_k_day01)
+        ))
+        best_indices = numpy.unravel_index(
+            this_index, near_sfc_bias_matrix_mlc_k_day01.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        near_sfc_bias_mlc_panel_file_names[i] = (
+            '{0:s}/near_surface_bias_mlc_{1:s}.jpg'
+        ).format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            near_sfc_bias_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            near_sfc_bias_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+
+
         # Plot all-flux RMSE for profiles with multi-layer cloud.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_mlc_w_m02[i, ...],
@@ -1088,6 +1362,62 @@ def _run(experiment_dir_name, isotonic_flag):
         )
         pyplot.close(figure_object)
 
+        # Plot net-flux bias for profiles with multi-layer cloud.
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(net_flux_bias_matrix_mlc_w_m02), 95.
+        )
+
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=net_flux_bias_matrix_mlc_w_m02[i, ...],
+            min_colour_value=-1 * max_colour_value,
+            max_colour_value=max_colour_value,
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        this_index = numpy.argmin(numpy.ravel(
+            numpy.absolute(net_flux_bias_matrix_mlc_w_m02)
+        ))
+        best_indices = numpy.unravel_index(
+            this_index, net_flux_bias_matrix_mlc_w_m02.shape
+        )
+
+        if best_indices[0] == i:
+            axes_object.plot(
+                best_indices[2], best_indices[1],
+                linestyle='None', marker=BEST_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        if SELECTED_MARKER_INDICES[0] == i:
+            axes_object.plot(
+                SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
+                linestyle='None', marker=SELECTED_MARKER_TYPE,
+                markersize=marker_size_px, markeredgewidth=0,
+                markerfacecolor=MARKER_COLOUR,
+                markeredgecolor=MARKER_COLOUR
+            )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        net_flux_bias_mlc_panel_file_names[i] = (
+            '{0:s}/net_flux_bias_mlc_{1:s}.jpg'
+        ).format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            net_flux_bias_mlc_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            net_flux_bias_mlc_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
     num_panel_rows = int(numpy.floor(
         numpy.sqrt(num_nn_types)
     ))
@@ -1124,6 +1454,35 @@ def _run(experiment_dir_name, isotonic_flag):
         output_size_pixels=int(1e7)
     )
 
+    bias_concat_file_name = '{0:s}/bias.jpg'.format(output_dir_name)
+    print('Concatenating panels to: "{0:s}"...'.format(bias_concat_file_name))
+    imagemagick_utils.concatenate_images(
+        input_file_names=bias_panel_file_names,
+        output_file_name=bias_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=bias_concat_file_name,
+        output_file_name=bias_concat_file_name, output_size_pixels=int(1e7)
+    )
+
+    near_sfc_bias_concat_file_name = '{0:s}/near_surface_bias.jpg'.format(
+        output_dir_name
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        near_sfc_bias_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=near_sfc_bias_panel_file_names,
+        output_file_name=near_sfc_bias_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=near_sfc_bias_concat_file_name,
+        output_file_name=near_sfc_bias_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
     flux_rmse_concat_file_name = '{0:s}/flux_rmse.jpg'.format(output_dir_name)
     print('Concatenating panels to: "{0:s}"...'.format(
         flux_rmse_concat_file_name
@@ -1152,6 +1511,23 @@ def _run(experiment_dir_name, isotonic_flag):
     imagemagick_utils.resize_image(
         input_file_name=net_flux_rmse_concat_file_name,
         output_file_name=net_flux_rmse_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    net_flux_bias_concat_file_name = '{0:s}/net_flux_bias.jpg'.format(
+        output_dir_name
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        net_flux_bias_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=net_flux_bias_panel_file_names,
+        output_file_name=net_flux_bias_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=net_flux_bias_concat_file_name,
+        output_file_name=net_flux_bias_concat_file_name,
         output_size_pixels=int(1e7)
     )
 
@@ -1188,6 +1564,39 @@ def _run(experiment_dir_name, isotonic_flag):
         output_size_pixels=int(1e7)
     )
 
+    bias_mlc_concat_file_name = '{0:s}/bias_mlc.jpg'.format(output_dir_name)
+    print('Concatenating panels to: "{0:s}"...'.format(
+        bias_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=bias_mlc_panel_file_names,
+        output_file_name=bias_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=bias_mlc_concat_file_name,
+        output_file_name=bias_mlc_concat_file_name, output_size_pixels=int(1e7)
+    )
+
+    near_sfc_bias_mlc_concat_file_name = (
+        '{0:s}/near_surface_bias_mlc.jpg'
+    ).format(
+        output_dir_name
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        near_sfc_bias_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=near_sfc_bias_mlc_panel_file_names,
+        output_file_name=near_sfc_bias_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=near_sfc_bias_mlc_concat_file_name,
+        output_file_name=near_sfc_bias_mlc_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
     flux_rmse_mlc_concat_file_name = '{0:s}/flux_rmse_mlc.jpg'.format(
         output_dir_name
     )
@@ -1219,6 +1628,23 @@ def _run(experiment_dir_name, isotonic_flag):
     imagemagick_utils.resize_image(
         input_file_name=net_flux_rmse_mlc_concat_file_name,
         output_file_name=net_flux_rmse_mlc_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    net_flux_bias_mlc_concat_file_name = '{0:s}/net_flux_bias_mlc.jpg'.format(
+        output_dir_name
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        net_flux_bias_mlc_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=net_flux_bias_mlc_panel_file_names,
+        output_file_name=net_flux_bias_mlc_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=net_flux_bias_mlc_concat_file_name,
+        output_file_name=net_flux_bias_mlc_concat_file_name,
         output_size_pixels=int(1e7)
     )
 
