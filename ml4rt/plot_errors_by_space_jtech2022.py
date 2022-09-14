@@ -377,6 +377,9 @@ def _run(prediction_file_name, grid_spacing_deg, min_num_examples,
         training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     ]
 
+    while isinstance(available_target_names[0], list):
+        available_target_names = available_target_names[0]
+
     if (
             example_utils.SHORTWAVE_TOA_UP_FLUX_NAME in available_target_names
             and example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME in
