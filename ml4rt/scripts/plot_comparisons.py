@@ -12,6 +12,7 @@ from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
 
+TITLE_FONT_SIZE = 25
 FIGURE_RESOLUTION_DPI = 300
 
 SHORTWAVE_VECTOR_TARGET_NAMES = [
@@ -218,7 +219,7 @@ def _plot_comparisons_simple(
                     values=vector_target_matrix[i, :, k],
                     heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
                     line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
-                    line_style='solid', figure_object=None
+                    line_width=3, line_style='solid', figure_object=None
                 )
             )
 
@@ -226,7 +227,8 @@ def _plot_comparisons_simple(
                 values=vector_prediction_matrix[i, :, k],
                 heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
                 line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
-                line_style='dashed', figure_object=this_figure_object
+                line_width=4, line_style='dashed',
+                figure_object=this_figure_object
             )
 
             this_axes_object.set_xlabel('{0:s} ({1:s})'.format(
@@ -234,7 +236,9 @@ def _plot_comparisons_simple(
                 TARGET_NAME_TO_UNITS[target_names[j]]
             ))
 
-            this_axes_object.set_title(title_strings[i])
+            this_axes_object.set_title(
+                title_strings[i], fontsize=TITLE_FONT_SIZE
+            )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
                 output_dir_name, example_id_strings[i].replace('_', '-'),
@@ -276,18 +280,26 @@ def _get_flux_strings(
             else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
         )
 
-        down_flux_strings = [
-            '{0:.1f}, {1:.1f}'.format(a, p) for a, p in zip(
-                scalar_target_matrix[:, down_flux_index],
-                scalar_prediction_matrix[:, down_flux_index]
-            )
+        actual_down_flux_strings = [
+            '{0:.1f}'.format(f)
+            for f in scalar_target_matrix[:, down_flux_index]
         ]
-        down_flux_strings = [
-            r'True and pred $F_{down}^{sfc}$ = ' + s + r' W m$^{-2}$'
-            for s in down_flux_strings
+        actual_down_flux_strings = [
+            r'$F_{down}^{sfc}$ = ' + s + r' W m$^{-2}$'
+            for s in actual_down_flux_strings
+        ]
+
+        predicted_down_flux_strings = [
+            '{0:.1f}'.format(f)
+            for f in scalar_prediction_matrix[:, down_flux_index]
+        ]
+        predicted_down_flux_strings = [
+            r'$F_{down}^{sfc}$ = ' + s + r' W m$^{-2}$'
+            for s in predicted_down_flux_strings
         ]
     except ValueError:
-        down_flux_strings = None
+        actual_down_flux_strings = None
+        predicted_down_flux_strings = None
 
     try:
         up_flux_index = scalar_target_names.index(
@@ -295,31 +307,72 @@ def _get_flux_strings(
             else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
         )
 
-        up_flux_strings = [
-            '{0:.1f}, {1:.1f}'.format(a, p) for a, p in zip(
-                scalar_target_matrix[:, up_flux_index],
-                scalar_prediction_matrix[:, up_flux_index]
-            )
+        actual_up_flux_strings = [
+            '{0:.1f}'.format(f)
+            for f in scalar_target_matrix[:, up_flux_index]
         ]
-        up_flux_strings = [
-            r'True and pred $F_{up}^{TOA}$ = ' + s + r' W m$^{-2}$'
-            for s in up_flux_strings
+        actual_up_flux_strings = [
+            r'$F_{up}^{TOA}$ = ' + s + r' W m$^{-2}$'
+            for s in actual_up_flux_strings
+        ]
+
+        predicted_up_flux_strings = [
+            '{0:.1f}'.format(f)
+            for f in scalar_prediction_matrix[:, up_flux_index]
+        ]
+        predicted_up_flux_strings = [
+            r'$F_{up}^{TOA}$ = ' + s + r' W m$^{-2}$'
+            for s in predicted_up_flux_strings
         ]
     except ValueError:
-        up_flux_strings = None
+        actual_up_flux_strings = None
+        predicted_up_flux_strings = None
 
-    if down_flux_strings is None and up_flux_strings is None:
-        return [' '] * num_examples
+    flux_strings = ['True'] * num_examples
 
-    if down_flux_strings is not None and up_flux_strings is not None:
-        return [
-            d + '\n' + u for d, u in zip(down_flux_strings, up_flux_strings)
+    if actual_down_flux_strings is not None:
+        flux_strings = [
+            '{0:s} ({1:s}'.format(a, b)
+            for a, b in zip(flux_strings, actual_down_flux_strings)
         ]
 
-    if down_flux_strings is not None:
-        return down_flux_strings
+        if actual_up_flux_strings is not None:
+            flux_strings = [
+                '{0:s}, {1:s}'.format(a, b)
+                for a, b in zip(flux_strings, actual_up_flux_strings)
+            ]
 
-    return up_flux_strings
+        flux_strings = ['{0:s})'.format(s) for s in flux_strings]
+
+    elif actual_up_flux_strings is not None:
+        flux_strings = [
+            '{0:s} ({1:s})'.format(a, b)
+            for a, b in zip(flux_strings, actual_up_flux_strings)
+        ]
+
+    flux_strings = ['{0:s} vs.\npred'.format(s) for s in flux_strings]
+
+    if predicted_down_flux_strings is not None:
+        flux_strings = [
+            '{0:s} ({1:s}'.format(a, b)
+            for a, b in zip(flux_strings, predicted_down_flux_strings)
+        ]
+
+        if predicted_up_flux_strings is not None:
+            flux_strings = [
+                '{0:s}, {1:s}'.format(a, b)
+                for a, b in zip(flux_strings, predicted_up_flux_strings)
+            ]
+
+        flux_strings = ['{0:s})'.format(s) for s in flux_strings]
+
+    elif predicted_up_flux_strings is not None:
+        flux_strings = [
+            '{0:s} ({1:s})'.format(a, b)
+            for a, b in zip(flux_strings, predicted_up_flux_strings)
+        ]
+
+    return flux_strings
 
 
 def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
