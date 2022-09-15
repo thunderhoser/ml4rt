@@ -613,9 +613,7 @@ def read_file(
             field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            numpy.absolute(heating_rate_matrix_k_day01)
-            <= max_longwave_heating_k_day01,
-            axis=1
+            heating_rate_matrix_k_day01 <= max_longwave_heating_k_day01, axis=1
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
