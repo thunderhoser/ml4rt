@@ -21,10 +21,13 @@ ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
-VECTOR_TARGET_NAMES = [
-    # example_utils.SHORTWAVE_DOWN_FLUX_NAME,
-    # example_utils.SHORTWAVE_UP_FLUX_NAME,
-    # example_utils.SHORTWAVE_HEATING_RATE_NAME,
+SHORTWAVE_TARGET_NAMES = [
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME
+]
+
+LONGWAVE_TARGET_NAMES = [
     example_utils.LONGWAVE_DOWN_FLUX_NAME,
     example_utils.LONGWAVE_UP_FLUX_NAME,
     example_utils.LONGWAVE_HEATING_RATE_NAME
@@ -80,23 +83,31 @@ FIFTH_PREDICTOR_COLOURS = [
     ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
 ]
 
-SIXTH_PREDICTOR_NAMES = [
+SIXTH_PREDICTOR_NAMES_LONGWAVE = [
     example_utils.ZENITH_ANGLE_NAME,
     example_utils.SURFACE_TEMPERATURE_NAME,
     example_utils.SURFACE_EMISSIVITY_NAME
 ]
-SIXTH_PREDICTOR_COLOURS = [
+SIXTH_PREDICTOR_NAMES_SHORTWAVE = [
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+]
+SIXTH_PREDICTOR_COLOURS_LONGWAVE = [
     ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
 ]
+SIXTH_PREDICTOR_COLOURS_SHORTWAVE = [
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
+]
 
-PREDICTOR_NAMES_BY_SET = [
-    FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES,
-    FOURTH_PREDICTOR_NAMES, FIFTH_PREDICTOR_NAMES, SIXTH_PREDICTOR_NAMES
-]
-PREDICTOR_COLOURS_BY_SET = [
-    FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS,
-    FOURTH_PREDICTOR_COLOURS, FIFTH_PREDICTOR_COLOURS, SIXTH_PREDICTOR_COLOURS
-]
+# PREDICTOR_NAMES_BY_SET = [
+#     FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES,
+#     FOURTH_PREDICTOR_NAMES, FIFTH_PREDICTOR_NAMES, SIXTH_PREDICTOR_NAMES
+# ]
+# PREDICTOR_COLOURS_BY_SET = [
+#     FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS,
+#     FOURTH_PREDICTOR_COLOURS, FIFTH_PREDICTOR_COLOURS, SIXTH_PREDICTOR_COLOURS
+# ]
 
 LINE_WIDTH = 3
 FIGURE_RESOLUTION_DPI = 300
@@ -107,6 +118,7 @@ EXAMPLE_DIR_ARG_NAME = make_saliency_maps.EXAMPLE_DIR_ARG_NAME
 EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 MODEL_FILE_ARG_NAME = 'model_file_name'
+PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
@@ -121,6 +133,9 @@ MODEL_FILE_HELP_STRING = (
     '[optional] Path to model (readable by `neural_net.read_model`).  If '
     'specified, this script will plot only the variables/heights used by the '
     'model.'
+)
+PLOT_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot shortwave (longwave) variables.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
@@ -152,18 +167,24 @@ INPUT_ARG_PARSER.add_argument(
     help=MODEL_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=PLOT_SHORTWAVE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _plot_one_example(
-        example_dict, example_index, use_log_scale, output_dir_name):
+        example_dict, example_index, use_log_scale, plot_shortwave,
+        output_dir_name):
     """Plots data for one example.
 
     :param example_dict: See doc for `example_io.read_file`.
     :param example_index: Will plot results for example with this array index.
     :param use_log_scale: See documentation at top of file.
+    :param plot_shortwave: Same.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     """
@@ -172,17 +193,34 @@ def _plot_one_example(
         example_dict[example_utils.EXAMPLE_IDS_KEY][example_index]
     )
 
-    num_predictor_sets = len(PREDICTOR_NAMES_BY_SET)
+    predictor_names_by_set = [
+        FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES,
+        FOURTH_PREDICTOR_NAMES, FIFTH_PREDICTOR_NAMES
+    ]
+    predictor_colours_by_set = [
+        FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS,
+        THIRD_PREDICTOR_COLOURS,
+        FOURTH_PREDICTOR_COLOURS, FIFTH_PREDICTOR_COLOURS
+    ]
+
+    if plot_shortwave:
+        predictor_names_by_set.append(SIXTH_PREDICTOR_NAMES_SHORTWAVE)
+        predictor_colours_by_set.append(SIXTH_PREDICTOR_COLOURS_SHORTWAVE)
+    else:
+        predictor_names_by_set.append(SIXTH_PREDICTOR_NAMES_LONGWAVE)
+        predictor_colours_by_set.append(SIXTH_PREDICTOR_COLOURS_LONGWAVE)
+
+    num_predictor_sets = len(predictor_names_by_set)
     panel_file_names = []
 
     for k in range(num_predictor_sets):
         handle_dict = profile_plotting.plot_predictors(
             example_dict=example_dict, example_index=example_index,
-            predictor_names=PREDICTOR_NAMES_BY_SET[k],
-            predictor_colours=PREDICTOR_COLOURS_BY_SET[k],
+            predictor_names=predictor_names_by_set[k],
+            predictor_colours=predictor_colours_by_set[k],
             predictor_line_widths=
-            numpy.full(len(PREDICTOR_NAMES_BY_SET[k]), LINE_WIDTH),
-            predictor_line_styles=['solid'] * len(PREDICTOR_NAMES_BY_SET[k]),
+            numpy.full(len(predictor_names_by_set[k]), LINE_WIDTH),
+            predictor_line_styles=['solid'] * len(predictor_names_by_set[k]),
             use_log_scale=use_log_scale
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -199,43 +237,14 @@ def _plot_one_example(
         )
         pyplot.close(figure_object)
 
-        imagemagick_utils.resize_image(
-            input_file_name=this_file_name, output_file_name=this_file_name,
-            output_size_pixels=int(2.5e6)
-        )
-
-    # handle_dict = profile_plotting.plot_targets(
-    #     example_dict=example_dict, example_index=example_index,
-    #     for_shortwave=True, use_log_scale=use_log_scale,
-    #     line_width=LINE_WIDTH, line_style='solid'
-    # )
-    # figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-    #
-    # this_file_name = '{0:s}/{1:s}_shortwave_targets.jpg'.format(
-    #     output_dir_name, example_id_string.replace('_', '-')
-    # )
-    # panel_file_names.append(this_file_name)
-    #
-    # print('Saving figure to: "{0:s}"...'.format(this_file_name))
-    # figure_object.savefig(
-    #     this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-    #     bbox_inches='tight'
-    # )
-    # pyplot.close(figure_object)
-    #
-    # imagemagick_utils.resize_image(
-    #     input_file_name=this_file_name, output_file_name=this_file_name,
-    #     output_size_pixels=int(2.5e6)
-    # )
-
     handle_dict = profile_plotting.plot_targets(
         example_dict=example_dict, example_index=example_index,
-        for_shortwave=False, use_log_scale=use_log_scale,
+        for_shortwave=plot_shortwave, use_log_scale=use_log_scale,
         line_width=LINE_WIDTH, line_style='solid'
     )
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 
-    this_file_name = '{0:s}/{1:s}_longwave_targets.jpg'.format(
+    this_file_name = '{0:s}/{1:s}_targets.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
     )
     panel_file_names.append(this_file_name)
@@ -246,11 +255,6 @@ def _plot_one_example(
         bbox_inches='tight'
     )
     pyplot.close(figure_object)
-
-    imagemagick_utils.resize_image(
-        input_file_name=this_file_name, output_file_name=this_file_name,
-        output_size_pixels=int(2.5e6)
-    )
 
     num_panels = len(panel_file_names)
     num_panel_rows = int(numpy.floor(
@@ -266,8 +270,11 @@ def _plot_one_example(
     print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names, output_file_name=concat_file_name,
-        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns,
-        border_width_pixels=50
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=concat_file_name, output_file_name=concat_file_name,
+        output_size_pixels=int(1e7)
     )
 
     for this_file_name in panel_file_names:
@@ -275,7 +282,8 @@ def _plot_one_example(
 
 
 def _run(example_file_name, num_examples, example_dir_name,
-         example_id_file_name, use_log_scale, model_file_name, output_dir_name):
+         example_id_file_name, use_log_scale, model_file_name, plot_shortwave,
+         output_dir_name):
     """Plots profiles (vector predictor and target variables) for each example.
 
     This is effectively the main method.
@@ -286,6 +294,7 @@ def _run(example_file_name, num_examples, example_dir_name,
     :param example_id_file_name: Same.
     :param use_log_scale: Same.
     :param model_file_name: Same.
+    :param plot_shortwave: Same.
     :param output_dir_name: Same.
     """
 
@@ -325,7 +334,10 @@ def _run(example_file_name, num_examples, example_dir_name,
         vector_predictor_names = (
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY]
         )
-        all_field_names = vector_predictor_names + VECTOR_TARGET_NAMES
+        all_field_names = vector_predictor_names + (
+            SHORTWAVE_TARGET_NAMES if plot_shortwave
+            else LONGWAVE_TARGET_NAMES
+        )
 
         example_dict = example_utils.subset_by_field(
             example_dict=example_dict, field_names=all_field_names
@@ -340,7 +352,8 @@ def _run(example_file_name, num_examples, example_dir_name,
     for i in range(num_examples):
         _plot_one_example(
             example_dict=example_dict, example_index=i,
-            use_log_scale=use_log_scale, output_dir_name=output_dir_name
+            use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
+            output_dir_name=output_dir_name
         )
 
         print(MINOR_SEPARATOR_STRING)
@@ -358,5 +371,6 @@ if __name__ == '__main__':
         ),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
+        plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

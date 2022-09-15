@@ -1689,7 +1689,8 @@ def add_aerosols(example_dict, test_mode=False):
     return example_dict
 
 
-def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False):
+def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False,
+                      fog_only=False):
     """Finds liquid- or ice-cloud layers in each profile.
 
     E = number of examples
@@ -1700,6 +1701,8 @@ def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False):
     :param min_path_kg_m02: Minimum path in each cloud layer (kg m^-2).
     :param for_ice: Boolean flag.  If True, will find ice clouds.  If False,
         will find liquid clouds.
+    :param fog_only: Boolean flag.  If True, will find only clouds that touch
+        surface.  If False, will find clouds at all levels.
     :return: cloud_mask_matrix: E-by-H numpy array of Boolean flags, indicating
         where clouds exist.
     :return: cloud_layer_counts: length-E numpy array with number of cloud
@@ -1708,6 +1711,7 @@ def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False):
 
     error_checking.assert_is_greater(min_path_kg_m02, 0.)
     error_checking.assert_is_boolean(for_ice)
+    error_checking.assert_is_boolean(fog_only)
 
     if for_ice:
         path_matrix_kg_m02 = get_field_from_dict(
@@ -1739,6 +1743,9 @@ def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False):
         this_num_layers = len(these_start_indices)
 
         for j in range(this_num_layers):
+            if fog_only and these_start_indices[j] != 0:
+                continue
+
             this_path_kg_m02 = numpy.sum(
                 path_diff_matrix_kg_m02[
                     i, these_start_indices[j]:(these_end_indices[j] + 1)
