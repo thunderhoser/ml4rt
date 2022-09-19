@@ -45,4 +45,5 @@ python3 -u "${CODE_DIR_NAME}/split_predictions_by_cloud.py" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --for_ice=0 \
 --min_path_kg_m02=0.025 \
+--include_fog=0 \
 --output_prediction_dir_name="${validation_dir_name}/by_cloud_regime"
