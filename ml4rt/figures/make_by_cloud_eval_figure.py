@@ -2,6 +2,7 @@
 
 import os
 import argparse
+import numpy
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 
@@ -33,13 +34,13 @@ CONVERT_EXE_NAME = '/usr/bin/convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
-NUM_PANEL_ROWS = 3
 NUM_PANEL_COLUMNS = 3
 PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
+INCLUDE_FOG_ARG_NAME = 'include_fog'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -50,6 +51,9 @@ INPUT_DIR_HELP_STRING = (
 FOR_SHORTWAVE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will make figure with shortwave (longwave) '
     'errors.'
+)
+INCLUDE_FOG_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will (not) include fog as a cloud regime.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Output images (paneled figure and temporary '
@@ -64,6 +68,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
     help=FOR_SHORTWAVE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + INCLUDE_FOG_ARG_NAME, type=int, required=False, default=0,
+    help=INCLUDE_FOG_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -99,13 +107,14 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, for_shortwave, output_dir_name):
+def _run(input_dir_name, for_shortwave, include_fog, output_dir_name):
     """Creates figure showing overall model evaluation.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
     :param for_shortwave: Same.
+    :param include_fog: Same.
     :param output_dir_name: Same.
     """
 
@@ -117,6 +126,17 @@ def _run(input_dir_name, for_shortwave, output_dir_name):
         PATHLESS_SHORTWAVE_INPUT_FILE_NAMES if for_shortwave
         else PATHLESS_LONGWAVE_INPUT_FILE_NAMES
     )
+
+    if include_fog:
+        if for_shortwave:
+            pathless_input_file_names.append(
+                'shortwave-heating-rate-k-day01_reliability_fog.jpg'
+            )
+        else:
+            pathless_input_file_names.append(
+                'longwave-heating-rate-k-day01_reliability_fog.jpg'
+            )
+
     panel_file_names = [
         '{0:s}/{1:s}'.format(input_dir_name, p)
         for p in pathless_input_file_names
@@ -159,10 +179,14 @@ def _run(input_dir_name, for_shortwave, output_dir_name):
     )
     print('Concatenating panels to: "{0:s}"...'.format(concat_figure_file_name))
 
+    num_panel_rows = int(numpy.ceil(
+        float(len(panel_file_names)) / NUM_PANEL_COLUMNS
+    ))
+
     imagemagick_utils.concatenate_images(
         input_file_names=resized_panel_file_names,
         output_file_name=concat_figure_file_name,
-        num_panel_rows=NUM_PANEL_ROWS, num_panel_columns=NUM_PANEL_COLUMNS
+        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_figure_file_name,
@@ -177,5 +201,6 @@ if __name__ == '__main__':
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
         for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
+        include_fog=bool(getattr(INPUT_ARG_OBJECT, INCLUDE_FOG_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
