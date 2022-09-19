@@ -688,7 +688,7 @@ def _run(experiment_dir_name, isotonic_flag):
     net_flux_rmse_mlc_panel_file_names = [''] * num_nn_types
     net_flux_bias_mlc_panel_file_names = [''] * num_nn_types
 
-    output_dir_name = '{0:s}/hyperparam_grids{1:s}'.format(
+    output_dir_name = '{0:s}/hyperparam_grids/shortwave{1:s}'.format(
         experiment_dir_name, '/isotonic_regression' if isotonic_flag else ''
     )
     file_system_utils.mkdir_recursive_if_necessary(
