@@ -25,7 +25,7 @@ import neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
-MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
+MAX_ZENITH_ANGLE_RAD = numpy.pi
 MIN_SURFACE_TEMP_KELVINS = 190.
 MAX_SURFACE_TEMP_KELVINS = 330.
 
