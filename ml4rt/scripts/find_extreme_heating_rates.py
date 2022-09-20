@@ -152,6 +152,13 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
             ]
         )
 
+        # Take absolute values, in case longwave.
+        training_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
+            numpy.absolute(
+                training_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
+            )
+        )
+
         if prediction_dict[prediction_io.NORMALIZATION_FILE_KEY] is None:
             heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
         else:
@@ -285,10 +292,14 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         return
 
     if average_over_height:
-        mean_targets_k_day01 = numpy.mean(target_matrix_k_day01, axis=1)
+        mean_targets_k_day01 = numpy.mean(
+            numpy.absolute(target_matrix_k_day01), axis=1
+        )
         sort_indices = numpy.argsort(-1 * mean_targets_k_day01)
     else:
-        max_targets_k_day01 = numpy.max(target_matrix_k_day01, axis=1)
+        max_targets_k_day01 = numpy.max(
+            numpy.absolute(target_matrix_k_day01), axis=1
+        )
         sort_indices = numpy.argsort(-1 * max_targets_k_day01)
 
     large_hr_indices = sort_indices[:num_examples_per_set]
@@ -324,7 +335,9 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
     if not average_over_height:
         return
 
-    mean_targets_k_day01 = numpy.mean(target_matrix_k_day01, axis=1)
+    mean_targets_k_day01 = numpy.mean(
+        numpy.absolute(target_matrix_k_day01), axis=1
+    )
     sort_indices = numpy.argsort(mean_targets_k_day01)
     small_hr_indices = sort_indices[:num_examples_per_set]
 
