@@ -246,8 +246,6 @@ def get_raw_examples(
             desired_id_strings=example_id_strings, allow_missing=False
         )
 
-        print(good_indices)
-
         example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
         )

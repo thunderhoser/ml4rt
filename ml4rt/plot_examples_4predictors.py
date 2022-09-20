@@ -226,6 +226,8 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=desired_indices
         )
+    else:
+        num_examples = num_examples_total + 0
 
     for i in range(num_examples):
         _plot_one_example(
