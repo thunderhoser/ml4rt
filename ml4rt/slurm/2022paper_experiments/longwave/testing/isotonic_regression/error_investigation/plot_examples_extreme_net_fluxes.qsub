@@ -26,7 +26,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_lw_plusplusplus/depth=5_num-conv-layers-per-block=1_num-first-layer-channels=064"
-set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_emissivity/orig_heights/isotonic_regression/testing"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_emissivity/orig_heights/testing"
 
 set model_file_names={${TOP_MODEL_DIR_NAME}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
