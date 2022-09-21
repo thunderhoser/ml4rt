@@ -8,6 +8,10 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
 
+TRACE_GAS_DATASET_OBJECT = netCDF4.Dataset(
+    '{0:s}/trace_gases.nc'.format(THIS_DIRECTORY_NAME)
+)
+
 ORIG_HEIGHT_KEY = 'height'
 
 HEIGHTS_KEY = 'heights_m_asl'
@@ -30,14 +34,12 @@ MOLAR_MASS_CH4_GRAMS_MOL01 = 16.04
 MOLAR_MASS_N2O_GRAMS_MOL01 = 44.013
 
 
-def read_profiles(netcdf_file_name=None):
+def read_profiles():
     """Reads mixing-ratio profiles for trace gases.
 
     H = number of heights
     A = number of standard atmospheres
 
-    :param netcdf_file_name: Path to input file.  If None, will use default
-        location.
     :return: mixing_ratio_dict: Dictionary with the following keys.
     mixing_ratio_dict['heights_m_asl']: length-H numpy array of heights
         (metres above sea level).
@@ -66,25 +68,17 @@ def read_profiles(netcdf_file_name=None):
         with concentrations of N2O.
     """
 
-    if netcdf_file_name is None:
-        netcdf_file_name = '{0:s}/trace_gases.nc'.format(THIS_DIRECTORY_NAME)
-
-    print('Reading trace-gas profiles from: "{0:s}"...'.format(
-        netcdf_file_name
-    ))
-    dataset_object = netCDF4.Dataset(netcdf_file_name)
-
     o2_concentration_matrix_ppmv = numpy.transpose(
-        dataset_object.variables['o2'][:]
+        TRACE_GAS_DATASET_OBJECT.variables['o2'][:]
     )
     co2_concentration_matrix_ppmv = numpy.transpose(
-        dataset_object.variables['co2'][:]
+        TRACE_GAS_DATASET_OBJECT.variables['co2'][:]
     )
     ch4_concentration_matrix_ppmv = numpy.transpose(
-        dataset_object.variables['ch4'][:]
+        TRACE_GAS_DATASET_OBJECT.variables['ch4'][:]
     )
     n2o_concentration_matrix_ppmv = numpy.transpose(
-        dataset_object.variables['n2o'][:]
+        TRACE_GAS_DATASET_OBJECT.variables['n2o'][:]
     )
 
     o2_mixing_ratio_matrix_kg_kg01 = (
@@ -104,7 +98,9 @@ def read_profiles(netcdf_file_name=None):
         MOLAR_MASS_N2O_GRAMS_MOL01 / MOLAR_MASS_DRY_AIR_GRAMS_MOL01
     )
 
-    heights_m_asl = KM_TO_METRES * dataset_object.variables[ORIG_HEIGHT_KEY][:]
+    heights_m_asl = (
+        KM_TO_METRES * TRACE_GAS_DATASET_OBJECT.variables[ORIG_HEIGHT_KEY][:]
+    )
     heights_m_asl = heights_m_asl.filled(0.)
 
     num_standard_atmospheres = n2o_mixing_ratio_matrix_kg_kg01.shape[0]
