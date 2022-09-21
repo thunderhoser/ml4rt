@@ -34,6 +34,23 @@ ALL_REGION_NAMES = [
     BIOMASS_BURNING_REGION_NAME, LAND_REGION_NAME, OCEAN_REGION_NAME
 ]
 
+THIS_FILE_HANDLE = open(
+    '{0:s}/aerosol_regions.p'.format(THIS_DIRECTORY_NAME),
+    'rb'
+)
+REGION_TO_COORDS_DICT = pickle.load(THIS_FILE_HANDLE)
+THIS_FILE_HANDLE.close()
+
+for this_region_name in REGION_TO_COORDS_DICT:
+    assert this_region_name in ALL_REGION_NAMES
+
+    these_long_deg_e = lng_conversion.convert_lng_negative_in_west(
+        REGION_TO_COORDS_DICT[this_region_name][1]
+    )
+    REGION_TO_COORDS_DICT[this_region_name] = (
+        REGION_TO_COORDS_DICT[this_region_name][0], these_long_deg_e
+    )
+
 # Mean aerosol optical depth.  This value is unitless.
 REGION_TO_OPTICAL_DEPTH_MEAN = {
     POLAR_REGION_NAME: 0.03,
@@ -144,40 +161,6 @@ REGION_TO_SCALE_HEIGHT_STDEV_METRES = {
 }
 
 
-def _read_region_coords(pickle_file_name=None):
-    """Reads lat-long coordinates for each aerosol region.
-
-    :param pickle_file_name: Path to input file.  This file should contain one
-        dictionary, formatted like the output variable from this method.
-    :return: region_dict: Dictionary, where each key is a region name in
-        `ALL_REGION_NAMES` and the corresponding value is a tuple of two 1-D
-        numpy arrays -- the first containing latitudes in deg N, the second
-        containing longitudes in deg E.
-    """
-
-    if pickle_file_name is None:
-        pickle_file_name = '{0:s}/aerosol_regions.p'.format(THIS_DIRECTORY_NAME)
-
-    error_checking.assert_file_exists(pickle_file_name)
-
-    print('Reading aerosol regions from: "{0:s}"...'.format(pickle_file_name))
-    pickle_file_handle = open(pickle_file_name, 'rb')
-    region_dict = pickle.load(pickle_file_handle)
-    pickle_file_handle.close()
-
-    for this_key in region_dict:
-        assert this_key in ALL_REGION_NAMES
-
-        these_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
-            region_dict[this_key][1]
-        )
-        region_dict[this_key] = (
-            region_dict[this_key][0], these_longitudes_deg_e
-        )
-
-    return region_dict
-
-
 def _split_array_by_nan(input_array):
     """Splits numpy array into list of contiguous subarrays without NaN.
 
@@ -279,8 +262,6 @@ def assign_examples_to_regions(example_latitudes_deg_n,
     :return: region_names: length-E list with names of aerosol regions.
     """
 
-    region_dict = _read_region_coords()
-
     example_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         example_longitudes_deg_e, allow_nan=False
     )
@@ -300,12 +281,12 @@ def assign_examples_to_regions(example_latitudes_deg_n,
     )[0]
     region_name_by_example[polar_indices] = POLAR_REGION_NAME
 
-    for this_region_name in region_dict:
+    for this_region_name in REGION_TO_COORDS_DICT:
         polygon_latitude_arrays_deg_n = _split_array_by_nan(
-            region_dict[this_region_name][0]
+            REGION_TO_COORDS_DICT[this_region_name][0]
         )
         polygon_longitude_arrays_deg_e = _split_array_by_nan(
-            region_dict[this_region_name][1]
+            REGION_TO_COORDS_DICT[this_region_name][1]
         )
         num_polygons = len(polygon_latitude_arrays_deg_n)
 
