@@ -9,6 +9,7 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
+from ml4rt.utils import evaluation
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
 
@@ -55,6 +56,14 @@ TARGET_NAME_TO_COLOUR = {
         profile_plotting.UPWELLING_FLUX_COLOUR,
     example_utils.LONGWAVE_HEATING_RATE_NAME:
         profile_plotting.HEATING_RATE_COLOUR
+}
+
+LEGEND_BOUNDING_BOX_DICT = {
+    'facecolor': 'white',
+    'alpha': 0.7,
+    'edgecolor': 'black',
+    'linewidth': 1,
+    'boxstyle': 'round'
 }
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
@@ -229,6 +238,24 @@ def _plot_comparisons_simple(
                 line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
                 line_width=4, line_style='dashed',
                 figure_object=this_figure_object
+            )
+
+            this_prmse = evaluation._get_prmse_one_variable(
+                target_matrix=
+                numpy.expand_dims(vector_target_matrix[i, :, k], axis=0),
+                prediction_matrix=
+                numpy.expand_dims(vector_prediction_matrix[i, :, k], axis=0)
+            )
+
+            this_legend_string = 'PRMSE = {0:.2f} {1:s}'.format(
+                this_prmse, TARGET_NAME_TO_UNITS[target_names[j]]
+            )
+            this_axes_object.text(
+                0.01, 0.99, this_legend_string,
+                fontsize=TITLE_FONT_SIZE, color='k',
+                bbox=LEGEND_BOUNDING_BOX_DICT,
+                horizontalalignment='left', verticalalignment='top',
+                transform=this_axes_object.transAxes, zorder=1e10
             )
 
             this_axes_object.set_xlabel('{0:s} ({1:s})'.format(
