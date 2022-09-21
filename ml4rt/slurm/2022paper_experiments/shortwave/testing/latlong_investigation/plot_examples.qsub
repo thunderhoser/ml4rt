@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="find_examples"
+#SBATCH --job-name="plot_examples"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=find_examples_%A_%a.out
+#SBATCH --output=plot_examples_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -26,31 +26,20 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_sw_plusplus/depth=5_num-conv-layers-per-block=1_num-first-layer-channels=032"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/testing"
 
 set REGION_NAMES=("south_america_stratocu" "africa_stratocu" "north_america_stratocu" "sahara" "india")
-set MIN_LATITUDES_DEG_N=("-20" "-20" "10" "15" "20")
-set MAX_LATITUDES_DEG_N=("-10" "-10" "20" "25" "30")
-set MIN_LONGITUDES_DEG_E=("-100" "-20" "-140" "-10" "70")
-set MAX_LONGITUDES_DEG_E=("-80" "0" "-120" "20" "80")
-
 set region_name=${REGION_NAMES[$SLURM_ARRAY_TASK_ID]}
-set min_latitude_deg_n=${MIN_LATITUDES_DEG_N[$SLURM_ARRAY_TASK_ID]}
-set max_latitude_deg_n=${MAX_LATITUDES_DEG_N[$SLURM_ARRAY_TASK_ID]}
-set min_longitude_deg_e=${MIN_LONGITUDES_DEG_E[$SLURM_ARRAY_TASK_ID]}
-set max_longitude_deg_e=${MAX_LONGITUDES_DEG_E[$SLURM_ARRAY_TASK_ID]}
 
 set model_file_names={${TOP_MODEL_DIR_NAME}/model*.h5}
 set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
-set input_file_name="${model_dir_name}/isotonic_regression/testing/predictions.nc"
-set output_file_name="${model_dir_name}/isotonic_regression/testing/latlong_case_studies/examples_${region_name}.nc"
+set input_file_name="${model_dir_name}/testing/latlong_case_studies/examples_${region_name}.nc"
+set output_dir_name="${model_dir_name}/testing/latlong_case_studies/${region_name}/full_examples"
 
-python3 -u "${CODE_DIR_NAME}/find_examples_in_bounding_box.py" \
---input_prediction_file_name="${input_file_name}" \
---min_latitude_deg_n=${min_latitude_deg_n} \
---max_latitude_deg_n=${max_latitude_deg_n} \
---min_longitude_deg_e=${min_longitude_deg_e} \
---max_longitude_deg_e=${max_longitude_deg_e} \
---num_examples=100 \
---output_file_name="${output_file_name}"
+python3 -u "${CODE_DIR_NAME}/plot_examples_4predictors.py" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--input_example_id_file_name="${input_file_name}" \
+--plot_shortwave=1 \
+--output_dir_name="${output_dir_name}"
