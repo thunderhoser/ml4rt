@@ -251,7 +251,7 @@ def _plot_one_score(
     """
 
     for p in PERCENTILES_TO_REPORT:
-        print('{0:.1f}th percentile of gridded values = {1:.2g}'.format(
+        print('{0:.1f}th percentile of gridded values = {1:.4f}'.format(
             p, numpy.nanpercentile(score_matrix, p)
         ))
 
@@ -585,15 +585,15 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
                         actual_values[these_indices] -
                         predicted_values[these_indices]
                     )
-                elif 'dwmse' in STATISTIC_NAMES[k]:
-                    these_weights = numpy.maximum(
-                        numpy.absolute(actual_values[these_indices]),
-                        numpy.absolute(predicted_values[these_indices])
-                    )
-                    these_errors = these_weights * (
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    ) ** 2
+                # elif 'dwmse' in STATISTIC_NAMES[k]:
+                #     these_weights = numpy.maximum(
+                #         numpy.absolute(actual_values[these_indices]),
+                #         numpy.absolute(predicted_values[these_indices])
+                #     )
+                #     these_errors = these_weights * (
+                #         actual_values[these_indices] -
+                #         predicted_values[these_indices]
+                #     ) ** 2
 
                 else:
                     these_errors = (
@@ -602,8 +602,9 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
                     )
 
                 if plot_fractional_errors:
-                    metric_matrix[i, j] = 100 * numpy.mean(
-                        these_errors / actual_values[these_indices]
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
                     )
                 else:
                     metric_matrix[i, j] = numpy.mean(these_errors)

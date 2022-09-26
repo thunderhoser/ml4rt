@@ -19,7 +19,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
-MAX_AEROSOL_OPTICAL_DEPTH = 1.8
+MAX_AEROSOL_OPTICAL_DEPTH = 1.5
 
 SHORTWAVE_ALL_FLUX_NAME = 'all_shortwave_flux_w_m02'
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
@@ -104,7 +104,7 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_ANGLE_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=9,
+    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=10,
     help=NUM_AOD_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -364,12 +364,12 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
     ) - 1
 
     aod_tick_labels = [
-        '[{0:.1f}, {1:.1f})'.format(a, b) for a, b in zip(
+        '[{0:.2f}, {1:.2f})'.format(a, b) for a, b in zip(
             edge_aerosol_optical_depths[:-1],
             edge_aerosol_optical_depths[1:]
         )
     ]
-    aod_tick_labels[-1] = '>= {0:.1f}'.format(edge_aerosol_optical_depths[-2])
+    aod_tick_labels[-1] = '>= {0:.2f}'.format(edge_aerosol_optical_depths[-2])
 
     available_target_names = [
         training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
@@ -473,15 +473,15 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                         actual_values[these_indices] -
                         predicted_values[these_indices]
                     )
-                elif 'dwmse' in STATISTIC_NAMES[k]:
-                    these_weights = numpy.maximum(
-                        numpy.absolute(actual_values[these_indices]),
-                        numpy.absolute(predicted_values[these_indices])
-                    )
-                    these_errors = these_weights * (
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    ) ** 2
+                # elif 'dwmse' in STATISTIC_NAMES[k]:
+                #     these_weights = numpy.maximum(
+                #         numpy.absolute(actual_values[these_indices]),
+                #         numpy.absolute(predicted_values[these_indices])
+                #     )
+                #     these_errors = these_weights * (
+                #         actual_values[these_indices] -
+                #         predicted_values[these_indices]
+                #     ) ** 2
 
                 else:
                     these_errors = (
@@ -490,8 +490,9 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                     )
 
                 if plot_fractional_errors:
-                    metric_matrix[i, j] = 100 * numpy.mean(
-                        these_errors / actual_values[these_indices]
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
                     )
                 else:
                     metric_matrix[i, j] = numpy.mean(these_errors)

@@ -523,15 +523,15 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
                         actual_values[these_indices] -
                         predicted_values[these_indices]
                     )
-                elif 'dwmse' in STATISTIC_NAMES[k]:
-                    these_weights = numpy.maximum(
-                        numpy.absolute(actual_values[these_indices]),
-                        numpy.absolute(predicted_values[these_indices])
-                    )
-                    these_errors = these_weights * (
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    ) ** 2
+                # elif 'dwmse' in STATISTIC_NAMES[k]:
+                #     these_weights = numpy.maximum(
+                #         numpy.absolute(actual_values[these_indices]),
+                #         numpy.absolute(predicted_values[these_indices])
+                #     )
+                #     these_errors = these_weights * (
+                #         actual_values[these_indices] -
+                #         predicted_values[these_indices]
+                #     ) ** 2
 
                 else:
                     these_errors = (
@@ -540,8 +540,9 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
                     )
 
                 if plot_fractional_errors:
-                    metric_matrix[i, j] = 100 * numpy.mean(
-                        these_errors / actual_values[these_indices]
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
                     )
                 else:
                     metric_matrix[i, j] = numpy.mean(these_errors)
