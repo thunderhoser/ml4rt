@@ -17,12 +17,16 @@ from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.io import border_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
-from ml4rt.utils import evaluation
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 DUMMY_FIELD_NAME = 'reflectivity_column_max_dbz'
+
+PERCENTILES_TO_REPORT = numpy.array([
+    0, 1, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 50,
+    75, 80, 82.5, 85, 87.5, 90, 92.5, 95, 97.5, 99, 100
+])
 
 SHORTWAVE_ALL_FLUX_NAME = 'all_shortwave_flux_w_m02'
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
@@ -30,46 +34,46 @@ LONGWAVE_ALL_FLUX_NAME = 'all_longwave_flux_w_m02'
 LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
 
 STATISTIC_NAMES = [
-    'shortwave_rmse', 'shortwave_near_sfc_rmse',
+    'shortwave_mae', 'shortwave_near_sfc_mae',
     'shortwave_bias', 'shortwave_near_sfc_bias',
-    'shortwave_all_flux_rmse', 'shortwave_net_flux_rmse',
+    'shortwave_all_flux_mae', 'shortwave_net_flux_mae',
     'shortwave_net_flux_bias',
-    'longwave_rmse', 'longwave_near_sfc_rmse',
+    'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
-    'longwave_all_flux_rmse', 'longwave_net_flux_rmse',
+    'longwave_all_flux_mae', 'longwave_net_flux_mae',
     'longwave_net_flux_bias'
 ]
 STATISTIC_NAMES_FANCY = [
-    r'RMSE$_{hr}$ (K day$^{-1}$)',
-    r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
-    r'Bias$_{hr}$ (K day$^{-1}$)',
-    r'Near-surface bias$_{hr}$ (K day$^{-1}$)',
-    r'RMSE$_{flux}$ (W m$^{-2}$)',
-    r'RMSE for net flux only (W m$^{-2}$)',
-    r'Bias for net flux only (W m$^{-2}$)',
-    r'RMSE$_{hr}$ (K day$^{-1}$)',
-    r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
-    r'Bias$_{hr}$ (K day$^{-1}$)',
-    r'Near-surface bias$_{hr}$ (K day$^{-1}$)',
-    r'RMSE$_{flux}$ (W m$^{-2}$)',
-    r'RMSE for net flux only (W m$^{-2}$)',
-    r'Bias for net flux only (W m$^{-2}$)'
+    r'HR MAE (K day$^{-1}$)',
+    r'Near-surface HR MAE (K day$^{-1}$)',
+    r'HR bias (K day$^{-1}$)',
+    r'Near-surface HR bias (K day$^{-1}$)',
+    r'All-flux MAE (W m$^{-2}$)',
+    r'Net-flux MAE (W m$^{-2}$)',
+    r'Net-flux bias (W m$^{-2}$)',
+    r'HR MAE (K day$^{-1}$)',
+    r'Near-surface HR MAE (K day$^{-1}$)',
+    r'HR bias (K day$^{-1}$)',
+    r'Near-surface HR bias (K day$^{-1}$)',
+    r'All-flux MAE (W m$^{-2}$)',
+    r'Net-flux MAE (W m$^{-2}$)',
+    r'Net-flux bias (W m$^{-2}$)'
 ]
 STATISTIC_NAMES_FANCY_FRACTIONAL = [
-    r'Relative RMSE$_{hr}$ (%)',
-    r'Relative near-surface RMSE$_{hr}$ (%)',
-    r'Relative bias$_{hr}$ (%)',
-    r'Relative near-surface bias$_{hr}$ (%)',
-    r'Relative RMSE$_{flux}$ (%)',
-    'Relative RMSE for net flux only (%)',
-    'Relative bias for net flux only (%)',
-    r'Relative RMSE$_{hr}$ (%)',
-    r'Relative near-surface RMSE$_{hr}$ (%)',
-    r'Relative bias$_{hr}$ (%)',
-    r'Relative near-surface bias$_{hr}$ (%)',
-    r'Relative RMSE$_{flux}$ (%)',
-    'Relative RMSE for net flux only (%)',
-    'Relative bias for net flux only (%)'
+    'Relative HR MAE (%)',
+    'Relative near-surface HR MAE (%)',
+    'Relative HR bias (%)',
+    'Relative near-surface HR bias (%)',
+    'Relative all-flux MAE (%)',
+    'Relative net-flux MAE (%)',
+    'Relative net-flux bias (%)',
+    'Relative HR MAE (%)',
+    'Relative near-surface HR MAE (%)',
+    'Relative HR bias (%)',
+    'Relative near-surface HR bias (%)',
+    'Relative all-flux MAE (%)',
+    'Relative net-flux MAE (%)',
+    'Relative net-flux bias (%)'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
@@ -245,6 +249,11 @@ def _plot_one_score(
         in parentheses).
     :param output_file_name: Path to output file (figure will be saved here).
     """
+
+    for p in PERCENTILES_TO_REPORT:
+        print('{0:.1f}th percentile of gridded values = {1:.2g}'.format(
+            p, numpy.nanpercentile(score_matrix, p)
+        ))
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -571,56 +580,33 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
                 if len(these_indices) < min_num_examples:
                     continue
 
-                if 'rmse' in STATISTIC_NAMES[k]:
-                    metric_matrix[i, j] = evaluation._get_mse_one_scalar(
-                        target_values=actual_values[these_indices],
-                        predicted_values=predicted_values[these_indices]
-                    )[0]
-
-                    metric_matrix[i, j] = numpy.sqrt(metric_matrix[i, j])
-
-                    if plot_fractional_errors:
-                        metric_matrix[i, j] = (
-                            100 * metric_matrix[i, j] /
-                            numpy.mean(
-                                numpy.absolute(actual_values[these_indices])
-                            )
-                        )
-
+                if 'mae' in STATISTIC_NAMES[k]:
+                    these_errors = numpy.absolute(
+                        actual_values[these_indices] -
+                        predicted_values[these_indices]
+                    )
                 elif 'dwmse' in STATISTIC_NAMES[k]:
                     these_weights = numpy.maximum(
                         numpy.absolute(actual_values[these_indices]),
                         numpy.absolute(predicted_values[these_indices])
                     )
-                    these_squared_errors = (
+                    these_errors = these_weights * (
                         actual_values[these_indices] -
                         predicted_values[these_indices]
                     ) ** 2
 
-                    metric_matrix[i, j] = numpy.mean(
-                        these_weights * these_squared_errors
-                    )
-
-                    if plot_fractional_errors:
-                        metric_matrix[i, j] = (
-                            100 * metric_matrix[i, j] /
-                            numpy.mean(
-                                these_weights * actual_values[these_indices] ** 2
-                            )
-                        )
                 else:
-                    metric_matrix[i, j] = evaluation._get_bias_one_scalar(
-                        target_values=actual_values[these_indices],
-                        predicted_values=predicted_values[these_indices]
+                    these_errors = (
+                        predicted_values[these_indices] -
+                        actual_values[these_indices]
                     )
 
-                    if plot_fractional_errors:
-                        metric_matrix[i, j] = (
-                            100 * metric_matrix[i, j] /
-                            numpy.mean(
-                                numpy.absolute(actual_values[these_indices])
-                            )
-                        )
+                if plot_fractional_errors:
+                    metric_matrix[i, j] = 100 * numpy.mean(
+                        these_errors / actual_values[these_indices]
+                    )
+                else:
+                    metric_matrix[i, j] = numpy.mean(these_errors)
 
         print('Have computed {0:s} for all {1:d} grid rows!'.format(
             STATISTIC_NAMES[k], num_grid_rows
