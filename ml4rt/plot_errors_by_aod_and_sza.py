@@ -26,7 +26,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
-MAX_AEROSOL_OPTICAL_DEPTH = 1.8
+MAX_AEROSOL_OPTICAL_DEPTH = 1.5
 
 SHORTWAVE_ALL_FLUX_NAME = 'all_shortwave_flux_w_m02'
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
@@ -111,7 +111,7 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_ANGLE_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=9,
+    '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=10,
     help=NUM_AOD_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
