@@ -18,7 +18,6 @@ import gg_plotting_utils
 import imagemagick_utils
 import example_io
 import prediction_io
-import evaluation
 import example_utils
 import neural_net
 
@@ -33,28 +32,28 @@ LONGWAVE_ALL_FLUX_NAME = 'all_longwave_flux_w_m02'
 LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
 
 STATISTIC_NAMES = [
-    'longwave_rmse', 'longwave_near_sfc_rmse',
+    'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
-    'longwave_all_flux_rmse', 'longwave_net_flux_rmse',
+    'longwave_all_flux_mae', 'longwave_net_flux_mae',
     'longwave_net_flux_bias'
 ]
 STATISTIC_NAMES_FANCY = [
-    r'RMSE$_{hr}$ (K day$^{-1}$)',
-    r'Near-surface RMSE$_{hr}$ (K day$^{-1}$)',
-    r'Bias$_{hr}$ (K day$^{-1}$)',
-    r'Near-surface bias$_{hr}$ (K day$^{-1}$)',
-    r'RMSE$_{flux}$ (W m$^{-2}$)',
-    r'RMSE for net flux only (W m$^{-2}$)',
-    r'Bias for net flux only (W m$^{-2}$)'
+    r'HR MAE (K day$^{-1}$)',
+    r'Near-surface HR MAE (K day$^{-1}$)',
+    r'HR bias (K day$^{-1}$)',
+    r'Near-surface HR bias (K day$^{-1}$)',
+    r'All-flux MAE (W m$^{-2}$)',
+    r'Net-flux MAE (W m$^{-2}$)',
+    r'Net-flux bias (W m$^{-2}$)'
 ]
 STATISTIC_NAMES_FANCY_FRACTIONAL = [
-    r'Relative RMSE$_{hr}$ (%)',
-    r'Relative near-surface RMSE$_{hr}$ (%)',
-    r'Relative bias$_{hr}$ (%)',
-    r'Relative near-surface bias$_{hr}$ (%)',
-    r'Relative RMSE$_{flux}$ (%)',
-    'Relative RMSE for net flux only (%)',
-    'Relative bias for net flux only (%)'
+    'Relative HR MAE (%)',
+    'Relative near-surface HR MAE (%)',
+    'Relative HR bias (%)',
+    'Relative near-surface HR bias (%)',
+    'Relative all-flux MAE (%)',
+    'Relative net-flux MAE (%)',
+    'Relative net-flux bias (%)'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.LONGWAVE_HEATING_RATE_NAME,
@@ -526,57 +525,33 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
                     surface_temp_bin_indices == i, zenith_angle_bin_indices == j
                 ))[0]
 
-                if 'rmse' in STATISTIC_NAMES[k]:
-                    metric_matrix[i, j] = evaluation._get_mse_one_scalar(
-                        target_values=actual_values[these_indices],
-                        predicted_values=predicted_values[these_indices]
-                    )[0]
-
-                    metric_matrix[i, j] = numpy.sqrt(metric_matrix[i, j])
-
-                    if plot_fractional_errors:
-                        metric_matrix[i, j] = (
-                            100 * metric_matrix[i, j] /
-                            numpy.mean(
-                                numpy.absolute(actual_values[these_indices])
-                            )
-                        )
-
+                if 'mae' in STATISTIC_NAMES[k]:
+                    these_errors = numpy.absolute(
+                        actual_values[these_indices] -
+                        predicted_values[these_indices]
+                    )
                 elif 'dwmse' in STATISTIC_NAMES[k]:
                     these_weights = numpy.maximum(
                         numpy.absolute(actual_values[these_indices]),
                         numpy.absolute(predicted_values[these_indices])
                     )
-                    these_squared_errors = (
+                    these_errors = these_weights * (
                         actual_values[these_indices] -
                         predicted_values[these_indices]
                     ) ** 2
 
-                    metric_matrix[i, j] = numpy.mean(
-                        these_weights * these_squared_errors
-                    )
-
-                    if plot_fractional_errors:
-                        metric_matrix[i, j] = (
-                            100 * metric_matrix[i, j] /
-                            numpy.mean(
-                                these_weights * actual_values[these_indices] ** 2
-                            )
-                        )
-
                 else:
-                    metric_matrix[i, j] = evaluation._get_bias_one_scalar(
-                        target_values=actual_values[these_indices],
-                        predicted_values=predicted_values[these_indices]
+                    these_errors = (
+                        predicted_values[these_indices] -
+                        actual_values[these_indices]
                     )
 
-                    if plot_fractional_errors:
-                        metric_matrix[i, j] = (
-                            100 * metric_matrix[i, j] /
-                            numpy.mean(
-                                numpy.absolute(actual_values[these_indices])
-                            )
-                        )
+                if plot_fractional_errors:
+                    metric_matrix[i, j] = 100 * numpy.mean(
+                        these_errors / actual_values[these_indices]
+                    )
+                else:
+                    metric_matrix[i, j] = numpy.mean(these_errors)
 
         if letter_label is None:
             letter_label = 'a'
