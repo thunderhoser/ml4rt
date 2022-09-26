@@ -592,15 +592,15 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
                         actual_values[these_indices] -
                         predicted_values[these_indices]
                     )
-                elif 'dwmse' in STATISTIC_NAMES[k]:
-                    these_weights = numpy.maximum(
-                        numpy.absolute(actual_values[these_indices]),
-                        numpy.absolute(predicted_values[these_indices])
-                    )
-                    these_errors = these_weights * (
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    ) ** 2
+                # elif 'dwmse' in STATISTIC_NAMES[k]:
+                #     these_weights = numpy.maximum(
+                #         numpy.absolute(actual_values[these_indices]),
+                #         numpy.absolute(predicted_values[these_indices])
+                #     )
+                #     these_errors = these_weights * (
+                #         actual_values[these_indices] -
+                #         predicted_values[these_indices]
+                #     ) ** 2
 
                 else:
                     these_errors = (
