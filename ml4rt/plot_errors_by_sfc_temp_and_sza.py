@@ -547,9 +547,9 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
                     )
 
                 if plot_fractional_errors:
-                    metric_matrix[i, j] = 100 * numpy.mean(
-                        these_errors /
-                        numpy.absolute(actual_values[these_indices])
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
                     )
                 else:
                     metric_matrix[i, j] = numpy.mean(these_errors)
