@@ -371,12 +371,12 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
     ) - 1
 
     aod_tick_labels = [
-        '[{0:.1f}, {1:.1f})'.format(a, b) for a, b in zip(
+        '[{0:.2f}, {1:.2f})'.format(a, b) for a, b in zip(
             edge_aerosol_optical_depths[:-1],
             edge_aerosol_optical_depths[1:]
         )
     ]
-    aod_tick_labels[-1] = '>= {0:.1f}'.format(edge_aerosol_optical_depths[-2])
+    aod_tick_labels[-1] = '>= {0:.2f}'.format(edge_aerosol_optical_depths[-2])
 
     available_target_names = [
         training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] +
