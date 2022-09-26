@@ -258,7 +258,7 @@ def _plot_one_score(
     """
 
     for p in PERCENTILES_TO_REPORT:
-        print('{0:.1f}th percentile of gridded values = {1:.2g}'.format(
+        print('{0:.1f}th percentile of gridded values = {1:.4f}'.format(
             p, numpy.nanpercentile(score_matrix, p)
         ))
 
