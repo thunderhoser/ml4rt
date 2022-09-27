@@ -25,6 +25,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_emissivity/orig_heights/testing"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_lw_plusplusplus/depth=5_num-conv-layers-per-block=1_num-first-layer-channels=064"
 
 set REGION_NAMES=("south_america_stratocu" "africa_stratocu" "north_america_stratocu" "sahara" "india")
@@ -42,4 +43,5 @@ python3 -u "${CODE_DIR_NAME}/plot_comparisons.py" \
 --plot_shortwave=0 \
 --num_examples=100 \
 --use_log_scale=1 \
+--input_example_dir_name="${UNNORM_EXAMPLE_DIR_NAME}" \
 --output_dir_name="${output_dir_name}"
