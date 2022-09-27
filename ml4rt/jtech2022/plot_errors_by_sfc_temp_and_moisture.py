@@ -28,7 +28,7 @@ STATISTIC_NAMES = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_all_flux_mae', 'longwave_net_flux_mae',
-    'longwave_net_flux_bias'
+    'longwave_net_flux_bias', 'num_examples'
 ]
 STATISTIC_NAMES_FANCY = [
     r'HR MAE (K day$^{-1}$)',
@@ -37,7 +37,8 @@ STATISTIC_NAMES_FANCY = [
     r'Near-surface HR bias (K day$^{-1}$)',
     r'All-flux MAE (W m$^{-2}$)',
     r'Net-flux MAE (W m$^{-2}$)',
-    r'Net-flux bias (W m$^{-2}$)'
+    r'Net-flux bias (W m$^{-2}$)',
+    'Number of examples'
 ]
 STATISTIC_NAMES_FANCY_FRACTIONAL = [
     'Relative HR MAE (%)',
@@ -46,7 +47,8 @@ STATISTIC_NAMES_FANCY_FRACTIONAL = [
     'Relative near-surface HR bias (%)',
     'Relative all-flux MAE (%)',
     'Relative net-flux MAE (%)',
-    'Relative net-flux bias (%)'
+    'Relative net-flux bias (%)',
+    'Number of examples'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.LONGWAVE_HEATING_RATE_NAME,
@@ -55,10 +57,11 @@ TARGET_NAME_BY_STATISTIC = [
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     LONGWAVE_ALL_FLUX_NAME,
     LONGWAVE_NET_FLUX_NAME,
-    LONGWAVE_NET_FLUX_NAME
+    LONGWAVE_NET_FLUX_NAME,
+    ''
 ]
 TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
-    [-1, 0, -1, 0, -1, -1, -1], dtype=int
+    [-1, 0, -1, 0, -1, -1, -1, -1], dtype=int
 )
 
 FIGURE_WIDTH_INCHES = 15
@@ -67,8 +70,11 @@ FIGURE_RESOLUTION_DPI = 300
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
+NUM_EXAMPLES_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
+
 MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+NUM_EXAMPLES_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 1.))
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_TEMPERATURE_BINS_ARG_NAME = 'num_temperature_bins'
@@ -219,7 +225,7 @@ def _get_temperature_values(prediction_dict, example_dir_name, get_lapse_rates):
         )[:, :2]
 
         these_temp_diffs_kelvins = (
-            -1 * numpy.diff(this_temp_matrix_kelvins, axis=1)
+            -1 * numpy.diff(this_temp_matrix_kelvins, axis=1)[:, 0]
         )
 
         if (
@@ -233,7 +239,7 @@ def _get_temperature_values(prediction_dict, example_dir_name, get_lapse_rates):
 
             these_height_diffs_metres = numpy.diff(
                 this_height_matrix_m_agl, axis=1
-            )
+            )[:, 0]
         else:
             these_height_diffs_metres = numpy.full(
                 len(these_temp_diffs_kelvins),
@@ -314,7 +320,7 @@ def _get_humidity_values(prediction_dict, example_dir_name, get_lapse_rates):
         )[:, :2]
 
         these_humidity_diffs_kg_kg01 = (
-            -1 * numpy.diff(this_humidity_matrix_kg_kg01, axis=1)
+            -1 * numpy.diff(this_humidity_matrix_kg_kg01, axis=1)[:, 0]
         )
 
         if (
@@ -328,7 +334,7 @@ def _get_humidity_values(prediction_dict, example_dir_name, get_lapse_rates):
 
             these_height_diffs_metres = numpy.diff(
                 this_height_matrix_m_agl, axis=1
-            )
+            )[:, 0]
         else:
             these_height_diffs_metres = numpy.full(
                 len(these_humidity_diffs_kg_kg01),
@@ -583,6 +589,11 @@ def _run(prediction_file_name, num_temperature_bins,
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
     )
+    found_data_flags = numpy.array([
+        True if TARGET_NAME_BY_STATISTIC[i] == '' else found_data_flags[i]
+        for i in range(len(found_data_flags))
+    ], dtype=bool)
+
     plot_statistic_indices = numpy.where(found_data_flags)[0]
     num_statistics = len(plot_statistic_indices)
 
@@ -659,6 +670,10 @@ def _run(prediction_file_name, num_temperature_bins,
                     temperature_bin_indices == i, humidity_bin_indices == j
                 ))[0]
 
+                if STATISTIC_NAMES[k] == 'num_examples':
+                    metric_matrix[i, j] = len(these_indices)
+                    continue
+
                 if 'mae' in STATISTIC_NAMES[k]:
                     these_errors = numpy.absolute(
                         actual_values[these_indices] -
@@ -685,13 +700,17 @@ def _run(prediction_file_name, num_temperature_bins,
 
         if 'bias' in STATISTIC_NAMES[k]:
             max_colour_value = numpy.nanpercentile(
-                numpy.absolute(metric_matrix), 99.
+                numpy.absolute(metric_matrix), 95.
             )
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
+        elif STATISTIC_NAMES[k] == 'num_examples':
+            min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 95.)
+            colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
         else:
             min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
-            max_colour_value = numpy.nanpercentile(metric_matrix, 99.)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 95.)
             colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
         colour_norm_object = pyplot.Normalize(
