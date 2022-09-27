@@ -45,7 +45,7 @@ STATISTIC_NAMES_FANCY = [
     r'All-flux MAE (W m$^{-2}$)',
     r'Net-flux MAE (W m$^{-2}$)',
     r'Net-flux bias (W m$^{-2}$)',
-    r'Number of examples (log$_{10}$)'
+    r'Number of profiles (log$_{10}$)'
 ]
 STATISTIC_NAMES_FANCY_FRACTIONAL = [
     'Relative column-averaged HR MAE (%)',
@@ -55,7 +55,7 @@ STATISTIC_NAMES_FANCY_FRACTIONAL = [
     'Relative all-flux MAE (%)',
     'Relative net-flux MAE (%)',
     'Relative net-flux bias (%)',
-    r'Number of examples (log$_{10}$)'
+    r'Number of profiles (log$_{10}$)'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.LONGWAVE_HEATING_RATE_NAME,
@@ -81,7 +81,7 @@ NUM_EXAMPLES_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
 
 MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
-NUM_EXAMPLES_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 1.))
+NUM_EXAMPLES_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_TEMPERATURE_BINS_ARG_NAME = 'num_temperature_bins'
