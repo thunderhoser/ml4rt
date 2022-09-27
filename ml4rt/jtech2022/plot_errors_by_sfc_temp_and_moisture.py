@@ -31,24 +31,24 @@ STATISTIC_NAMES = [
     'longwave_net_flux_bias', 'num_examples'
 ]
 STATISTIC_NAMES_FANCY = [
-    r'HR MAE (K day$^{-1}$)',
+    r'Column-averaged HR MAE (K day$^{-1}$)',
     r'Near-surface HR MAE (K day$^{-1}$)',
-    r'HR bias (K day$^{-1}$)',
+    r'Column-averaged HR bias (K day$^{-1}$)',
     r'Near-surface HR bias (K day$^{-1}$)',
     r'All-flux MAE (W m$^{-2}$)',
     r'Net-flux MAE (W m$^{-2}$)',
     r'Net-flux bias (W m$^{-2}$)',
-    'Number of examples'
+    r'Number of examples (log$_{10}$)'
 ]
 STATISTIC_NAMES_FANCY_FRACTIONAL = [
-    'Relative HR MAE (%)',
+    'Relative column-averaged HR MAE (%)',
     'Relative near-surface HR MAE (%)',
-    'Relative HR bias (%)',
+    'Relative column-averaged HR bias (%)',
     'Relative near-surface HR bias (%)',
     'Relative all-flux MAE (%)',
     'Relative net-flux MAE (%)',
     'Relative net-flux bias (%)',
-    'Number of examples'
+    r'Number of examples (log$_{10}$)'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.LONGWAVE_HEATING_RATE_NAME,
@@ -705,8 +705,9 @@ def _run(prediction_file_name, num_temperature_bins,
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
         elif STATISTIC_NAMES[k] == 'num_examples':
+            metric_matrix = numpy.log10(1. + metric_matrix)
             min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
-            max_colour_value = numpy.nanpercentile(metric_matrix, 95.)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 99.)
             colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
         else:
             min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
@@ -726,14 +727,14 @@ def _run(prediction_file_name, num_temperature_bins,
 
         if plot_temp_lapse_rates:
             axes_object.set_ylabel(
-                r'Near-surface temperature lapse rate (K km$^{-1}$)'
+                r'Temperature lapse rate (K km$^{-1}$)'
             )
         else:
             axes_object.set_ylabel('Surface temperature (K)')
 
         if plot_humidity_lapse_rates:
             axes_object.set_xlabel(
-                r'Near-surface humidity lapse rate (g kg$^{-1}$ km$^{-1}$)'
+                r'Humidity lapse rate (g kg$^{-1}$ km$^{-1}$)'
             )
         else:
             axes_object.set_xlabel(
