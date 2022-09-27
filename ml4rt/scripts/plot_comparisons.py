@@ -49,8 +49,8 @@ TARGET_NAME_TO_UNITS = {
     example_utils.LONGWAVE_HEATING_RATE_NAME: r'K day$^{-1}$'
 }
 
-TARGET_COLOUR = numpy.array([178, 223, 138], dtype=float) / 255
-PREDICTION_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
+TARGET_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
+PREDICTION_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 
 LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
@@ -258,7 +258,7 @@ def _plot_comparisons_simple(
                 this_annotation_string += '\n' + annotation_strings[i]
 
             this_axes_object.text(
-                0.01, 0.5, this_annotation_string,
+                0.01, 0.75, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
                 horizontalalignment='left', verticalalignment='center',
