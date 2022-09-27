@@ -12,9 +12,15 @@ from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
 from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import profile_plotting
+from ml4rt.jtech2022 import plot_errors_by_aod_and_sza as plot_errors_by_aod
+from ml4rt.jtech2022 import plot_errors_by_sfc_temp_and_moisture as \
+    plot_errors_by_lapse_rates
 
 TITLE_FONT_SIZE = 25
 FIGURE_RESOLUTION_DPI = 300
+
+KG_TO_GRAMS = 1000.
+RADIANS_TO_DEGREES = 180. / numpy.pi
 
 SHORTWAVE_VECTOR_TARGET_NAMES = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
@@ -43,20 +49,8 @@ TARGET_NAME_TO_UNITS = {
     example_utils.LONGWAVE_HEATING_RATE_NAME: r'K day$^{-1}$'
 }
 
-TARGET_NAME_TO_COLOUR = {
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME:
-        profile_plotting.DOWNWELLING_FLUX_COLOUR,
-    example_utils.SHORTWAVE_UP_FLUX_NAME:
-        profile_plotting.UPWELLING_FLUX_COLOUR,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME:
-        profile_plotting.HEATING_RATE_COLOUR,
-    example_utils.LONGWAVE_DOWN_FLUX_NAME:
-        profile_plotting.DOWNWELLING_FLUX_COLOUR,
-    example_utils.LONGWAVE_UP_FLUX_NAME:
-        profile_plotting.UPWELLING_FLUX_COLOUR,
-    example_utils.LONGWAVE_HEATING_RATE_NAME:
-        profile_plotting.HEATING_RATE_COLOUR
-}
+TARGET_COLOUR = numpy.array([178, 223, 138], dtype=float) / 255
+PREDICTION_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
 
 LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
@@ -70,6 +64,7 @@ PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
+EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
@@ -87,6 +82,11 @@ NUM_EXAMPLES_HELP_STRING = (
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
     'axis.'
+)
+EXAMPLE_DIR_HELP_STRING = (
+    'Name of directory with full example files.  Will use these files to add '
+    'metadata to legend.  If you do not want metadata in legend, leave this '
+    'argument empty.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -108,6 +108,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
     help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False, default='',
+    help=EXAMPLE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -187,7 +191,7 @@ def _plot_comparisons_fancy(
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
         model_metadata_dict, use_log_scale, plot_shortwave, title_strings,
-        output_dir_name):
+        annotation_strings, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
     :param vector_target_matrix: See doc for `_plot_comparisons_fancy`.
@@ -197,6 +201,7 @@ def _plot_comparisons_simple(
     :param use_log_scale: Same.
     :param plot_shortwave: Same.
     :param title_strings: 1-D list of titles, one per example.
+    :param annotation_strings: 1-D list of annotations, one per example.
     :param output_dir_name: See doc for `_plot_comparisons_fancy`.
     """
 
@@ -227,7 +232,7 @@ def _plot_comparisons_simple(
                 profile_plotting.plot_one_variable(
                     values=vector_target_matrix[i, :, k],
                     heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
-                    line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
+                    line_colour=TARGET_COLOUR,
                     line_width=3, line_style='solid', figure_object=None
                 )
             )
@@ -235,26 +240,28 @@ def _plot_comparisons_simple(
             profile_plotting.plot_one_variable(
                 values=vector_prediction_matrix[i, :, k],
                 heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
-                line_colour=TARGET_NAME_TO_COLOUR[target_names[j]],
+                line_colour=PREDICTION_COLOUR,
                 line_width=4, line_style='dashed',
                 figure_object=this_figure_object
             )
 
-            this_prmse = evaluation._get_prmse_one_variable(
-                target_matrix=
-                numpy.expand_dims(vector_target_matrix[i, :, k], axis=0),
-                prediction_matrix=
-                numpy.expand_dims(vector_prediction_matrix[i, :, k], axis=0)
+            this_mae = evaluation._get_mae_one_scalar(
+                target_values=vector_target_matrix[i, :, k],
+                predicted_values=vector_prediction_matrix[i, :, k]
             )
 
-            this_legend_string = 'PRMSE = {0:.2f} {1:s}'.format(
-                this_prmse, TARGET_NAME_TO_UNITS[target_names[j]]
+            this_annotation_string = 'MAE = {0:.2f} {1:s}'.format(
+                this_mae, TARGET_NAME_TO_UNITS[target_names[j]]
             )
+
+            if annotation_strings[i] is not None:
+                this_annotation_string += '\n' + annotation_strings[i]
+
             this_axes_object.text(
-                0.01, 0.99, this_legend_string,
+                0.01, 0.5, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
-                horizontalalignment='left', verticalalignment='top',
+                horizontalalignment='left', verticalalignment='center',
                 transform=this_axes_object.transAxes, zorder=1e10
             )
 
@@ -403,7 +410,7 @@ def _get_flux_strings(
 
 
 def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
-         output_dir_name):
+         example_dir_name, output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
@@ -412,8 +419,12 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     :param plot_shortwave: Same.
     :param num_examples: Same.
     :param use_log_scale: Same.
+    :param example_dir_name: Same.
     :param output_dir_name: Same.
     """
+
+    if example_dir_name in ['', 'None', 'none']:
+        example_dir_name = None
 
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -437,6 +448,64 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
         prediction_dict = prediction_io.subset_by_index(
             prediction_dict=prediction_dict, desired_indices=desired_indices
         )
+
+    num_examples = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
+
+    if example_dir_name is not None:
+        if plot_shortwave:
+            aod_values = plot_errors_by_aod._get_aerosol_optical_depths(
+                prediction_dict=prediction_dict,
+                example_dir_name=example_dir_name
+            )
+            zenith_angles_rad = example_utils.parse_example_ids(
+                prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
+            )[example_utils.ZENITH_ANGLES_KEY]
+
+            zenith_angles_deg = RADIANS_TO_DEGREES * zenith_angles_rad
+
+            annotation_strings = [
+                'AOD = {0:.2f}\nSZA = {1:.1f}'.format(a, z)
+                for a, z in zip(aod_values, zenith_angles_deg)
+            ]
+        else:
+            temperature_lapse_rates_k_km01 = (
+                plot_errors_by_lapse_rates._get_temperature_values(
+                    prediction_dict=prediction_dict,
+                    example_dir_name=example_dir_name,
+                    get_lapse_rates=True
+                )
+            )
+
+            humidity_lapse_rates_g_kg01_km01 = KG_TO_GRAMS * (
+                plot_errors_by_lapse_rates._get_humidity_values(
+                    prediction_dict=prediction_dict,
+                    example_dir_name=example_dir_name,
+                    get_lapse_rates=True
+                )
+            )
+
+            annotation_strings = [
+                'TT = {0:.2f} KK\nqq = {1:.1f} gg'.format(t, h) for t, h in
+                zip(
+                    temperature_lapse_rates_k_km01,
+                    humidity_lapse_rates_g_kg01_km01
+                )
+            ]
+            annotation_strings = [
+                s.replace('TT', r'$\Gamma_T^{sfc}$') for s in annotation_strings
+            ]
+            annotation_strings = [
+                s.replace('KK', r'K km$^{-1}$') for s in annotation_strings
+            ]
+            annotation_strings = [
+                s.replace('qq', r'$\Gamma_q^{sfc}$') for s in annotation_strings
+            ]
+            annotation_strings = [
+                s.replace('gg', r'g kg$^{-1}$ km$^{-1}$')
+                for s in annotation_strings
+            ]
+    else:
+        annotation_strings = [None] * num_examples
 
     vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
     vector_prediction_matrix = (
@@ -496,7 +565,8 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
             example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
             use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
-            title_strings=title_strings, output_dir_name=output_dir_name
+            title_strings=title_strings, annotation_strings=annotation_strings,
+            output_dir_name=output_dir_name
         )
 
 
@@ -510,5 +580,6 @@ if __name__ == '__main__':
         plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
+        example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
