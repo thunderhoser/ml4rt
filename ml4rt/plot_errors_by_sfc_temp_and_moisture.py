@@ -226,7 +226,7 @@ def _get_temperature_values(prediction_dict, example_dir_name, get_lapse_rates):
         )[:, :2]
 
         these_temp_diffs_kelvins = (
-            -1 * numpy.diff(this_temp_matrix_kelvins, axis=1)
+            -1 * numpy.diff(this_temp_matrix_kelvins, axis=1)[:, 0]
         )
 
         if (
@@ -240,7 +240,7 @@ def _get_temperature_values(prediction_dict, example_dir_name, get_lapse_rates):
 
             these_height_diffs_metres = numpy.diff(
                 this_height_matrix_m_agl, axis=1
-            )
+            )[:, 0]
         else:
             these_height_diffs_metres = numpy.full(
                 len(these_temp_diffs_kelvins),
@@ -321,7 +321,7 @@ def _get_humidity_values(prediction_dict, example_dir_name, get_lapse_rates):
         )[:, :2]
 
         these_humidity_diffs_kg_kg01 = (
-            -1 * numpy.diff(this_humidity_matrix_kg_kg01, axis=1)
+            -1 * numpy.diff(this_humidity_matrix_kg_kg01, axis=1)[:, 0]
         )
 
         if (
@@ -335,7 +335,7 @@ def _get_humidity_values(prediction_dict, example_dir_name, get_lapse_rates):
 
             these_height_diffs_metres = numpy.diff(
                 this_height_matrix_m_agl, axis=1
-            )
+            )[:, 0]
         else:
             these_height_diffs_metres = numpy.full(
                 len(these_humidity_diffs_kg_kg01),
