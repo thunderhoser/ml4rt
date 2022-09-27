@@ -264,7 +264,7 @@ def _plot_comparisons_simple(
                 this_annotation_string += '\n' + annotation_strings[i]
 
             this_axes_object.text(
-                0.01, 0.5, this_annotation_string,
+                0.01, 0.75, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
                 horizontalalignment='left', verticalalignment='center',
