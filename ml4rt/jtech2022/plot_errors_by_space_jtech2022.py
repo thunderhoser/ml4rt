@@ -501,7 +501,11 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
         k = plot_statistic_indices[m]
         metric_matrix = numpy.full((num_grid_rows, num_grid_columns), numpy.nan)
 
-        if TARGET_NAME_BY_STATISTIC[k] in [
+        if TARGET_NAME_BY_STATISTIC[k] == '':
+            actual_values = numpy.array([])
+            predicted_values = numpy.array([])
+
+        elif TARGET_NAME_BY_STATISTIC[k] in [
                 example_utils.SHORTWAVE_HEATING_RATE_NAME,
                 example_utils.LONGWAVE_HEATING_RATE_NAME
         ]:
