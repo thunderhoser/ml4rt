@@ -22,7 +22,7 @@ import profile_plotting
 import plot_errors_by_aod_and_sza as plot_errors_by_aod
 import plot_errors_by_sfc_temp_and_moisture as plot_errors_by_lapse_rates
 
-TITLE_FONT_SIZE = 25
+TITLE_FONT_SIZE = 30
 FIGURE_RESOLUTION_DPI = 300
 
 KG_TO_GRAMS = 1000.
@@ -256,7 +256,7 @@ def _plot_comparisons_simple(
                 predicted_values=vector_prediction_matrix[i, :, k]
             )
 
-            this_annotation_string = 'MAE = {0:.2f} {1:s}'.format(
+            this_annotation_string = 'HR MAE = {0:.2f} {1:s}'.format(
                 this_mae, TARGET_NAME_TO_UNITS[target_names[j]]
             )
 
@@ -455,8 +455,6 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
             prediction_dict=prediction_dict, desired_indices=desired_indices
         )
 
-    num_examples = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
-
     if example_dir_name is not None:
         if plot_shortwave:
             aod_values = plot_errors_by_aod._get_aerosol_optical_depths(
@@ -470,7 +468,7 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
             zenith_angles_deg = RADIANS_TO_DEGREES * zenith_angles_rad
 
             annotation_strings = [
-                'AOD = {0:.2f}\nSZA = {1:.1f}'.format(a, z)
+                'AOD = {0:.2f}\nSZA = {1:.1f} deg'.format(a, z)
                 for a, z in zip(aod_values, zenith_angles_deg)
             ]
         else:
@@ -510,8 +508,6 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
                 s.replace('gg', r'g kg$^{-1}$ km$^{-1}$')
                 for s in annotation_strings
             ]
-    else:
-        annotation_strings = [None] * num_examples
 
     vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
     vector_prediction_matrix = (
@@ -538,6 +534,67 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     vector_target_names = (
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
+    scalar_target_names = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
+        neural_net.SCALAR_TARGET_NAMES_KEY
+    ]
+
+    down_flux_index = scalar_target_names.index(
+        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME if plot_shortwave
+        else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+    )
+    down_flux_strings = [
+        'Fdown bias = {0:.1f}'.format(b) for b in (
+            scalar_prediction_matrix[:, down_flux_index] -
+            scalar_target_matrix[:, down_flux_index]
+        )
+    ]
+    down_flux_strings = [
+        s.replace('Fdown', r'$F_{down}^{sfc}$')
+        for s in down_flux_strings
+    ]
+
+    up_flux_index = scalar_target_names.index(
+        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME if plot_shortwave
+        else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+    )
+    up_flux_strings = [
+        'Fup bias = {0:.1f}'.format(b) for b in (
+            scalar_prediction_matrix[:, up_flux_index] -
+            scalar_target_matrix[:, up_flux_index]
+        )
+    ]
+    up_flux_strings = [
+        s.replace('Fup', r'$F_{up}^{TOA}$') for s in up_flux_strings
+    ]
+
+    actual_net_fluxes_w_m02 = (
+        scalar_target_matrix[:, down_flux_index] -
+        scalar_target_matrix[:, up_flux_index]
+    )
+    predicted_net_fluxes_w_m02 = (
+        scalar_prediction_matrix[:, down_flux_index] -
+        scalar_prediction_matrix[:, up_flux_index]
+    )
+    net_flux_strings = [
+        'Fnet bias = {0:.1f}'.format(b) for b in
+        predicted_net_fluxes_w_m02 - actual_net_fluxes_w_m02
+    ]
+    net_flux_strings = [
+        s.replace('Fnet', r'$F_{net}$') for s in net_flux_strings
+    ]
+
+    flux_strings = [
+        '{0:s}\n{1:s}\n{2:s}'.format(d, u, n) for d, u, n in
+        zip(down_flux_strings, up_flux_strings, net_flux_strings)
+    ]
+
+    if example_dir_name is None:
+        annotation_strings = flux_strings
+    else:
+        annotation_strings = [
+            '{0:s}\n{1:s}'.format(f, a) for f, a in
+            zip(flux_strings, annotation_strings)
+        ]
 
     if plot_shortwave:
         plot_fancy = all([
@@ -558,11 +615,16 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
             output_dir_name=output_dir_name
         )
     else:
-        title_strings = _get_flux_strings(
-            scalar_target_matrix=scalar_target_matrix,
-            scalar_prediction_matrix=scalar_prediction_matrix,
-            model_metadata_dict=model_metadata_dict,
-            plot_shortwave=plot_shortwave
+        # title_strings = _get_flux_strings(
+        #     scalar_target_matrix=scalar_target_matrix,
+        #     scalar_prediction_matrix=scalar_prediction_matrix,
+        #     model_metadata_dict=model_metadata_dict,
+        #     plot_shortwave=plot_shortwave
+        # )
+
+        num_examples = vector_target_matrix.shape[0]
+        title_string = 'Actual and predicted {0:s} RT'.format(
+            'shortwave' if plot_shortwave else 'longwave'
         )
 
         _plot_comparisons_simple(
@@ -571,7 +633,8 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
             example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
             use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
-            title_strings=title_strings, annotation_strings=annotation_strings,
+            title_strings=[title_string] * num_examples,
+            annotation_strings=annotation_strings,
             output_dir_name=output_dir_name
         )
 
