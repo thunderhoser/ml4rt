@@ -543,7 +543,7 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
         else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
     )
     down_flux_strings = [
-        'Fdown bias = {0:.1f}'.format(b) for b in (
+        'Fdown bias = {0:.1f} WW'.format(b) for b in (
             scalar_prediction_matrix[:, down_flux_index] -
             scalar_target_matrix[:, down_flux_index]
         )
@@ -558,7 +558,7 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
         else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
     )
     up_flux_strings = [
-        'Fup bias = {0:.1f}'.format(b) for b in (
+        'Fup bias = {0:.1f} WW'.format(b) for b in (
             scalar_prediction_matrix[:, up_flux_index] -
             scalar_target_matrix[:, up_flux_index]
         )
@@ -576,7 +576,7 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
         scalar_prediction_matrix[:, up_flux_index]
     )
     net_flux_strings = [
-        'Fnet bias = {0:.1f}'.format(b) for b in
+        'Fnet bias = {0:.1f} WW'.format(b) for b in
         predicted_net_fluxes_w_m02 - actual_net_fluxes_w_m02
     ]
     net_flux_strings = [
@@ -586,6 +586,9 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     flux_strings = [
         '{0:s}\n{1:s}\n{2:s}'.format(d, u, n) for d, u, n in
         zip(down_flux_strings, up_flux_strings, net_flux_strings)
+    ]
+    flux_strings = [
+        s.replace('WW', r'W m$^{-2}$') for s in flux_strings
     ]
 
     if example_dir_name is None:
