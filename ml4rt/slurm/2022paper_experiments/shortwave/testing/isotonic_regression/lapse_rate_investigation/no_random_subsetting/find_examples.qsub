@@ -1,0 +1,58 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="find_examples"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-2
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=find_examples_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/testing"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_sw_plusplus/depth=5_num-conv-layers-per-block=1_num-first-layer-channels=032"
+
+set REGIME_NAMES=("low_sza_high_aod" "high_sza")
+set MIN_AEROSOL_OPTICAL_DEPTHS=("0.45" "0")
+set MAX_AEROSOL_OPTICAL_DEPTHS=("1000000000" "1000000000")
+set MIN_ZENITH_ANGLES_DEG=("0" "80")
+set MAX_ZENITH_ANGLES_DEG=("10" "90")
+
+set regime_name=${REGIME_NAMES[$SLURM_ARRAY_TASK_ID]}
+set min_aerosol_optical_depth=${MIN_AEROSOL_OPTICAL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+set max_aerosol_optical_depth=${MAX_AEROSOL_OPTICAL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+set min_zenith_angle_deg=${MIN_ZENITH_ANGLES_DEG[$SLURM_ARRAY_TASK_ID]}
+set max_zenith_angle_deg=${MAX_ZENITH_ANGLES_DEG[$SLURM_ARRAY_TASK_ID]}
+
+set model_file_names={${TOP_MODEL_DIR_NAME}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+
+set input_file_name="${model_dir_name}/isotonic_regression/testing/predictions.nc"
+set output_file_name="${model_dir_name}/isotonic_regression/testing/lapse_rate_case_studies/no_random_subsetting/examples_${regime_name}.nc"
+
+python3 -u "${CODE_DIR_NAME}/find_examples_in_aod_sza_regime.py" \
+--input_prediction_file_name="${input_file_name}" \
+--input_example_dir_name="${UNNORM_EXAMPLE_DIR_NAME}" \
+--min_aerosol_optical_depth=${min_aerosol_optical_depth} \
+--max_aerosol_optical_depth=${max_aerosol_optical_depth} \
+--min_zenith_angle_deg=${min_zenith_angle_deg} \
+--max_zenith_angle_deg=${max_zenith_angle_deg} \
+--num_examples=200000000000 \
+--output_file_name="${output_file_name}"

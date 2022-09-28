@@ -48,7 +48,8 @@ STATISTIC_NAMES = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_all_flux_mae', 'longwave_net_flux_mae',
-    'longwave_net_flux_bias'
+    'longwave_net_flux_bias',
+    'num_examples'
 ]
 STATISTIC_NAMES_FANCY = [
     r'HR MAE (K day$^{-1}$)',
@@ -64,7 +65,8 @@ STATISTIC_NAMES_FANCY = [
     r'Near-surface HR bias (K day$^{-1}$)',
     r'All-flux MAE (W m$^{-2}$)',
     r'Net-flux MAE (W m$^{-2}$)',
-    r'Net-flux bias (W m$^{-2}$)'
+    r'Net-flux bias (W m$^{-2}$)',
+    r'Number of profiles (log$_{10}$)'
 ]
 STATISTIC_NAMES_FANCY_FRACTIONAL = [
     'Relative HR MAE (%)',
@@ -80,7 +82,8 @@ STATISTIC_NAMES_FANCY_FRACTIONAL = [
     'Relative near-surface HR bias (%)',
     'Relative all-flux MAE (%)',
     'Relative net-flux MAE (%)',
-    'Relative net-flux bias (%)'
+    'Relative net-flux bias (%)',
+    r'Number of profiles (log$_{10}$)'
 ]
 TARGET_NAME_BY_STATISTIC = [
     example_utils.SHORTWAVE_HEATING_RATE_NAME,
@@ -96,16 +99,20 @@ TARGET_NAME_BY_STATISTIC = [
     example_utils.LONGWAVE_HEATING_RATE_NAME,
     LONGWAVE_ALL_FLUX_NAME,
     LONGWAVE_NET_FLUX_NAME,
-    LONGWAVE_NET_FLUX_NAME
+    LONGWAVE_NET_FLUX_NAME,
+    ''
 ]
 TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
-    [-1, 0, -1, 0, -1, -1, -1, -1, 0, -1, 0, -1, -1, -1], dtype=int
+    [-1, 0, -1, 0, -1, -1, -1, -1, 0, -1, 0, -1, -1, -1, -1], dtype=int
 )
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
+NUM_EXAMPLES_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
+
 MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+NUM_EXAMPLES_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 MIN_LATITUDE_DEG_N = -90.
 MAX_LATITUDE_DEG_N = 90.
@@ -133,6 +140,7 @@ PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 GRID_SPACING_ARG_NAME = 'grid_spacing_deg'
 PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
 MIN_EXAMPLES_ARG_NAME = 'min_num_examples'
+PLOT_NUM_EXAMPLES_ARG_NAME = 'plot_num_examples'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
@@ -147,6 +155,10 @@ PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
 MIN_EXAMPLES_HELP_STRING = (
     'Minimum number of examples.  For any grid cell with fewer examples, error '
     'metrics will not be plotted.'
+)
+PLOT_NUM_EXAMPLES_HELP_STRING = (
+    'Boolean flag.  If 1, will include one panel with number of examples (i.e.,'
+    ' sample size) at each grid cell.  If 0, will not include this panel.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -168,6 +180,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + MIN_EXAMPLES_ARG_NAME, type=int, required=True,
     help=MIN_EXAMPLES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=0,
+    help=PLOT_NUM_EXAMPLES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -236,8 +252,9 @@ def _create_latlng_grid(
 
 
 def _plot_one_score(
-        score_matrix, score_is_bias, grid_latitudes_deg_n,
-        grid_longitudes_deg_e, border_latitudes_deg_n, border_longitudes_deg_e,
+        score_matrix, score_is_bias, score_is_num_examples,
+        grid_latitudes_deg_n, grid_longitudes_deg_e,
+        border_latitudes_deg_n, border_longitudes_deg_e,
         title_string, letter_label, output_file_name):
     """Plots one score on 2-D georeferenced grid.
 
@@ -247,6 +264,7 @@ def _plot_one_score(
 
     :param score_matrix: M-by-N numpy array of scores.
     :param score_is_bias: Boolean flag.  If True, plotting a bias.
+    :param score_is_num_examples: Boolean flag.  If True, plotting num examples.
     :param grid_latitudes_deg_n: length-M numpy array of latitudes (deg N).
     :param grid_longitudes_deg_e: length-N numpy array of longitudes (deg E).
     :param border_latitudes_deg_n: length-P numpy array of latitudes (deg N).
@@ -277,6 +295,11 @@ def _plot_one_score(
         )
         min_colour_value = -1 * max_colour_value
         colour_map_object = BIAS_COLOUR_MAP_OBJECT
+    elif score_is_num_examples:
+        score_matrix = numpy.log10(1. + score_matrix)
+        min_colour_value = numpy.nanpercentile(score_matrix, 0.)
+        max_colour_value = numpy.nanpercentile(score_matrix, 99.)
+        colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
     else:
         min_colour_value = numpy.nanpercentile(score_matrix, 0.)
         max_colour_value = numpy.nanpercentile(score_matrix, 99.)
@@ -359,7 +382,7 @@ def _plot_one_score(
 
 
 def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
-         min_num_examples, output_dir_name):
+         min_num_examples, plot_num_examples, output_dir_name):
     """Plots error metrics vs. geographic location on a world map.
 
     This is effectively the main method.
@@ -368,6 +391,7 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
     :param grid_spacing_deg: Same.
     :param plot_fractional_errors: Same.
     :param min_num_examples: Same.
+    :param plot_num_examples: Same.
     :param output_dir_name: Same.
     """
 
@@ -465,6 +489,12 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
         [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
         dtype=bool
     )
+    found_data_flags = numpy.array([
+        True if TARGET_NAME_BY_STATISTIC[i] == '' and plot_num_examples
+        else found_data_flags[i]
+        for i in range(len(found_data_flags))
+    ], dtype=bool)
+
     plot_statistic_indices = numpy.where(found_data_flags)[0]
     num_statistics = len(plot_statistic_indices)
 
@@ -584,6 +614,10 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
                     row_index=i, column_index=j, verbose=False
                 )
 
+                if STATISTIC_NAMES[k] == 'num_examples':
+                    metric_matrix[i, j] = len(these_indices)
+                    continue
+
                 if len(these_indices) < min_num_examples:
                     continue
 
@@ -637,6 +671,7 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
         _plot_one_score(
             score_matrix=metric_matrix,
             score_is_bias='bias' in STATISTIC_NAMES[k],
+            score_is_num_examples=STATISTIC_NAMES[k] == 'num_examples',
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -678,5 +713,8 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
         ),
         min_num_examples=getattr(INPUT_ARG_OBJECT, MIN_EXAMPLES_ARG_NAME),
+        plot_num_examples=bool(
+            getattr(INPUT_ARG_OBJECT, PLOT_NUM_EXAMPLES_ARG_NAME)
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
