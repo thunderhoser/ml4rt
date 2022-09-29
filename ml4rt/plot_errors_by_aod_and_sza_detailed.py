@@ -439,7 +439,10 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                 predicted_values = (
                     predicted_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
                 )
-        else:
+
+        elif TARGET_NAME_BY_STATISTIC[k] in [
+                SHORTWAVE_NET_FLUX_NAME, SHORTWAVE_ALL_FLUX_NAME
+        ]:
             down_flux_index = training_option_dict[
                 neural_net.SCALAR_TARGET_NAMES_KEY
             ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
@@ -471,6 +474,18 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                     pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
                     predicted_net_flux_values
                 ))
+
+        else:
+            channel_index = training_option_dict[
+                neural_net.SCALAR_TARGET_NAMES_KEY
+            ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
+
+            actual_values = (
+                pd[prediction_io.SCALAR_TARGETS_KEY][..., channel_index]
+            )
+            predicted_values = (
+                pd[prediction_io.SCALAR_PREDICTIONS_KEY][..., channel_index]
+            )
 
         for i in range(num_zenith_angle_bins):
             for j in range(num_aod_bins):
