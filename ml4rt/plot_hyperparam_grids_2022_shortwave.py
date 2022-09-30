@@ -33,23 +33,23 @@ NN_TYPE_STRINGS_FANCY = [
     'U-net3+ without DS', 'U-net3+ with DS'
 ]
 
-# MODEL_DEPTH_WIDTH_STRINGS = [
-#     '3, 1', '4, 1', '5, 1',
-#     '3, 2', '4, 2', '5, 2',
-#     '3, 3', '4, 3', '5, 3',
-#     '3, 4', '4, 4', '5, 4'
-# ]
-# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
-# SELECTED_MARKER_INDICES = numpy.array([0, 2, 3], dtype=int)
-
 MODEL_DEPTH_WIDTH_STRINGS = [
-    '5, 1',
-    '5, 2',
-    '5, 3',
-    '5, 4'
+    '3, 1', '4, 1', '5, 1',
+    '3, 2', '4, 2', '5, 2',
+    '3, 3', '4, 3', '5, 3',
+    '3, 4', '4, 4', '5, 4'
 ]
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
-SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([0, 2, 3], dtype=int)
+
+# MODEL_DEPTH_WIDTH_STRINGS = [
+#     '5, 1',
+#     '5, 2',
+#     '5, 3',
+#     '5, 4'
+# ]
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
+# SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.175

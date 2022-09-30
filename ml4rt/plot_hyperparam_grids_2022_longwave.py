@@ -824,7 +824,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(dwmse_matrix_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(dwmse_matrix_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, dwmse_matrix_k3_day03.shape
         )
@@ -879,7 +879,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(near_sfc_dwmse_matrix_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, near_sfc_dwmse_matrix_k3_day03.shape
         )
@@ -931,7 +931,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(bias_matrix_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -981,7 +981,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(near_sfc_bias_matrix_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -1033,7 +1033,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(flux_rmse_matrix_w_m02))
         best_indices = numpy.unravel_index(
             this_index, flux_rmse_matrix_w_m02.shape
         )
@@ -1081,7 +1081,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
         best_indices = numpy.unravel_index(
             this_index, net_flux_rmse_matrix_w_m02.shape
         )
@@ -1133,7 +1133,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(net_flux_bias_matrix_w_m02)
         ))
         best_indices = numpy.unravel_index(
@@ -1185,7 +1185,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(dwmse_matrix_mlc_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(dwmse_matrix_mlc_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, dwmse_matrix_mlc_k3_day03.shape
         )
@@ -1235,7 +1235,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_mlc_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(near_sfc_dwmse_matrix_mlc_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, near_sfc_dwmse_matrix_mlc_k3_day03.shape
         )
@@ -1287,7 +1287,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(bias_matrix_mlc_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -1339,7 +1339,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(near_sfc_bias_matrix_mlc_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -1391,7 +1391,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_mlc_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(flux_rmse_matrix_mlc_w_m02))
         best_indices = numpy.unravel_index(
             this_index, flux_rmse_matrix_mlc_w_m02.shape
         )
@@ -1443,7 +1443,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_mlc_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(net_flux_rmse_matrix_mlc_w_m02))
         best_indices = numpy.unravel_index(
             this_index, net_flux_rmse_matrix_mlc_w_m02.shape
         )
@@ -1495,7 +1495,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(net_flux_bias_matrix_mlc_w_m02)
         ))
         best_indices = numpy.unravel_index(
@@ -1549,7 +1549,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_fog_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(near_sfc_dwmse_matrix_fog_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, near_sfc_dwmse_matrix_fog_k3_day03.shape
         )
@@ -1601,7 +1601,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(near_sfc_bias_matrix_fog_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -1653,7 +1653,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_fog_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(flux_rmse_matrix_fog_w_m02))
         best_indices = numpy.unravel_index(
             this_index, flux_rmse_matrix_fog_w_m02.shape
         )
@@ -1705,7 +1705,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_fog_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(net_flux_rmse_matrix_fog_w_m02))
         best_indices = numpy.unravel_index(
             this_index, net_flux_rmse_matrix_fog_w_m02.shape
         )
@@ -1757,7 +1757,7 @@ def _run(experiment_dir_name, isotonic_flag):
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(net_flux_bias_matrix_fog_w_m02)
         ))
         best_indices = numpy.unravel_index(
