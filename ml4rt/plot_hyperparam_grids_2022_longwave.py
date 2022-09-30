@@ -103,6 +103,19 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _finite_percentile(input_array, percentile_level):
+    """Takes percentile of input array, considering only finite values.
+    
+    :param input_array: numpy array.
+    :param percentile_level: Percentile level, ranging from 0...100.
+    :return: output_percentile: Percentile value.
+    """
+    
+    return numpy.percentile(
+        input_array[numpy.isfinite(input_array)], percentile_level
+    )
+
+
 def _plot_scores_2d(
         score_matrix, min_colour_value, max_colour_value, x_tick_labels,
         y_tick_labels):
@@ -824,8 +837,8 @@ def _run(experiment_dir_name, isotonic_flag):
     for i in range(num_nn_types):
 
         print('DWMSE percentiles')
-        print(numpy.nanpercentile(dwmse_matrix_k3_day03, 0))
-        print(numpy.nanpercentile(dwmse_matrix_k3_day03, 95))
+        print(_finite_percentile(dwmse_matrix_k3_day03, 0))
+        print(_finite_percentile(dwmse_matrix_k3_day03, 95))
         print('\n\n')
         for k in numpy.ravel(dwmse_matrix_k3_day03):
             print(k)
@@ -833,8 +846,8 @@ def _run(experiment_dir_name, isotonic_flag):
         # Plot DWMSE for all profiles.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=dwmse_matrix_k3_day03[i, ...],
-            min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
-            max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
+            min_colour_value=_finite_percentile(dwmse_matrix_k3_day03, 0),
+            max_colour_value=_finite_percentile(dwmse_matrix_k3_day03, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -887,9 +900,9 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_dwmse_matrix_k3_day03[i, ...],
             min_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 0),
+            _finite_percentile(near_sfc_dwmse_matrix_k3_day03, 0),
             max_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 95),
+            _finite_percentile(near_sfc_dwmse_matrix_k3_day03, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -939,7 +952,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=bias_matrix_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(bias_matrix_k_day01), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -989,7 +1002,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(near_sfc_bias_matrix_k_day01), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -1042,8 +1055,8 @@ def _run(experiment_dir_name, isotonic_flag):
         # Plot all-flux RMSE for all profiles.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 95),
+            min_colour_value=_finite_percentile(flux_rmse_matrix_w_m02, 0),
+            max_colour_value=_finite_percentile(flux_rmse_matrix_w_m02, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1090,8 +1103,8 @@ def _run(experiment_dir_name, isotonic_flag):
         # Plot net-flux RMSE for all profiles.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_rmse_matrix_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 95),
+            min_colour_value=_finite_percentile(net_flux_rmse_matrix_w_m02, 0),
+            max_colour_value=_finite_percentile(net_flux_rmse_matrix_w_m02, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1141,7 +1154,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_w_m02[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(net_flux_bias_matrix_w_m02), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -1194,8 +1207,8 @@ def _run(experiment_dir_name, isotonic_flag):
         # Plot DWMSE for profiles with multi-layer cloud.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=dwmse_matrix_mlc_k3_day03[i, ...],
-            min_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 0),
-            max_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 95),
+            min_colour_value=_finite_percentile(dwmse_matrix_mlc_k3_day03, 0),
+            max_colour_value=_finite_percentile(dwmse_matrix_mlc_k3_day03, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1243,9 +1256,9 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_dwmse_matrix_mlc_k3_day03[i, ...],
             min_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 0),
+            _finite_percentile(near_sfc_dwmse_matrix_mlc_k3_day03, 0),
             max_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 95),
+            _finite_percentile(near_sfc_dwmse_matrix_mlc_k3_day03, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1295,7 +1308,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=bias_matrix_mlc_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(bias_matrix_mlc_k_day01), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -1347,7 +1360,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_mlc_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(near_sfc_bias_matrix_mlc_k_day01), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -1400,8 +1413,8 @@ def _run(experiment_dir_name, isotonic_flag):
         # Plot all-flux RMSE for profiles with multi-layer cloud.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_mlc_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 95),
+            min_colour_value=_finite_percentile(flux_rmse_matrix_mlc_w_m02, 0),
+            max_colour_value=_finite_percentile(flux_rmse_matrix_mlc_w_m02, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1451,9 +1464,9 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_rmse_matrix_mlc_w_m02[i, ...],
             min_colour_value=
-            numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 0),
+            _finite_percentile(net_flux_rmse_matrix_mlc_w_m02, 0),
             max_colour_value=
-            numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 95),
+            _finite_percentile(net_flux_rmse_matrix_mlc_w_m02, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1503,7 +1516,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_mlc_w_m02[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(net_flux_bias_matrix_mlc_w_m02), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -1557,9 +1570,9 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_dwmse_matrix_fog_k3_day03[i, ...],
             min_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_fog_k3_day03, 0),
+            _finite_percentile(near_sfc_dwmse_matrix_fog_k3_day03, 0),
             max_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_fog_k3_day03, 95),
+            _finite_percentile(near_sfc_dwmse_matrix_fog_k3_day03, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1609,7 +1622,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_fog_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(near_sfc_bias_matrix_fog_k_day01), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
@@ -1662,8 +1675,8 @@ def _run(experiment_dir_name, isotonic_flag):
         # Plot all-flux RMSE for profiles with fog.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_fog_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_fog_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_fog_w_m02, 95),
+            min_colour_value=_finite_percentile(flux_rmse_matrix_fog_w_m02, 0),
+            max_colour_value=_finite_percentile(flux_rmse_matrix_fog_w_m02, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1713,9 +1726,9 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_rmse_matrix_fog_w_m02[i, ...],
             min_colour_value=
-            numpy.nanpercentile(net_flux_rmse_matrix_fog_w_m02, 0),
+            _finite_percentile(net_flux_rmse_matrix_fog_w_m02, 0),
             max_colour_value=
-            numpy.nanpercentile(net_flux_rmse_matrix_fog_w_m02, 95),
+            _finite_percentile(net_flux_rmse_matrix_fog_w_m02, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
@@ -1765,7 +1778,7 @@ def _run(experiment_dir_name, isotonic_flag):
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_fog_w_m02[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
+            max_colour_value=_finite_percentile(
                 numpy.absolute(net_flux_bias_matrix_fog_w_m02), 95.
             ),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
