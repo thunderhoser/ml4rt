@@ -33,21 +33,23 @@ NN_TYPE_STRINGS_FANCY = [
     'U-net3+ without DS', 'U-net3+ with DS'
 ]
 
-MODEL_DEPTH_WIDTH_STRINGS = [
-    '3, 1', '3, 2', '3, 3', '3, 4',
-    '4, 1', '4, 2', '4, 3', '4, 4',
-    '5, 1', '5, 2', '5, 3', '5, 4'
-]
-
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
-
 # MODEL_DEPTH_WIDTH_STRINGS = [
-#     '3, 1',
-#     '4, 1',
-#     '5, 1'
+#     '3, 1', '4, 1', '5, 1',
+#     '3, 2', '4, 2', '5, 2',
+#     '3, 3', '4, 3', '5, 3',
+#     '3, 4', '4, 4', '5, 4'
 # ]
 #
-# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+
+MODEL_DEPTH_WIDTH_STRINGS = [
+    '5, 1',
+    '5, 2',
+    '5, 3',
+    '5, 4'
+]
+
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.175
@@ -56,7 +58,7 @@ BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
-SELECTED_MARKER_INDICES = numpy.array([0, 8, 3], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([0, 2, 3], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
@@ -699,14 +701,18 @@ def _run(experiment_dir_name, isotonic_flag):
     for i in range(num_nn_types):
 
         # Plot DWMSE for all profiles.
+        real_values = dwmse_matrix_k3_day03[
+            numpy.isfinite(dwmse_matrix_k3_day03)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=dwmse_matrix_k3_day03[i, ...],
-            min_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 0),
-            max_colour_value=numpy.nanpercentile(dwmse_matrix_k3_day03, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(dwmse_matrix_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(dwmse_matrix_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, dwmse_matrix_k3_day03.shape
         )
@@ -752,16 +758,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot near-surface DWMSE for all profiles.
+        real_values = near_sfc_dwmse_matrix_k3_day03[
+            numpy.isfinite(near_sfc_dwmse_matrix_k3_day03)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_dwmse_matrix_k3_day03[i, ...],
-            min_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 0),
-            max_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_k3_day03, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(near_sfc_dwmse_matrix_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, near_sfc_dwmse_matrix_k3_day03.shape
         )
@@ -804,16 +812,16 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot HR bias for all profiles.
+        real_values = bias_matrix_k_day01[numpy.isfinite(bias_matrix_k_day01)]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=bias_matrix_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
-                numpy.absolute(bias_matrix_k_day01), 95.
-            ),
+            max_colour_value=numpy.percentile(numpy.absolute(real_values), 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(bias_matrix_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -854,16 +862,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot near-surface bias for all profiles.
+        real_values = near_sfc_bias_matrix_k_day01[
+            numpy.isfinite(near_sfc_bias_matrix_k_day01)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
-                numpy.absolute(near_sfc_bias_matrix_k_day01), 95.
-            ),
+            max_colour_value=numpy.percentile(numpy.absolute(real_values), 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(near_sfc_bias_matrix_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -908,14 +918,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot all-flux RMSE for all profiles.
+        real_values = flux_rmse_matrix_w_m02[
+            numpy.isfinite(flux_rmse_matrix_w_m02)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_w_m02, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(flux_rmse_matrix_w_m02))
         best_indices = numpy.unravel_index(
             this_index, flux_rmse_matrix_w_m02.shape
         )
@@ -956,14 +970,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot net-flux RMSE for all profiles.
+        real_values = net_flux_rmse_matrix_w_m02[
+            numpy.isfinite(net_flux_rmse_matrix_w_m02)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_rmse_matrix_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(net_flux_rmse_matrix_w_m02, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(net_flux_rmse_matrix_w_m02))
         best_indices = numpy.unravel_index(
             this_index, net_flux_rmse_matrix_w_m02.shape
         )
@@ -1006,16 +1024,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot net-flux bias for all profiles.
+        real_values = net_flux_bias_matrix_w_m02[
+            numpy.isfinite(net_flux_bias_matrix_w_m02)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_w_m02[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
-                numpy.absolute(net_flux_bias_matrix_w_m02), 95.
-            ),
+            max_colour_value=numpy.percentile(numpy.absolute(real_values), 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(net_flux_bias_matrix_w_m02)
         ))
         best_indices = numpy.unravel_index(
@@ -1060,14 +1080,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot DWMSE for profiles with multi-layer cloud.
+        real_values = dwmse_matrix_mlc_k3_day03[
+            numpy.isfinite(dwmse_matrix_mlc_k3_day03)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=dwmse_matrix_mlc_k3_day03[i, ...],
-            min_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 0),
-            max_colour_value=numpy.nanpercentile(dwmse_matrix_mlc_k3_day03, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(dwmse_matrix_mlc_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(dwmse_matrix_mlc_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, dwmse_matrix_mlc_k3_day03.shape
         )
@@ -1108,16 +1132,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot near-surface DWMSE for profiles with multi-layer cloud.
+        real_values = near_sfc_dwmse_matrix_mlc_k3_day03[
+            numpy.isfinite(near_sfc_dwmse_matrix_mlc_k3_day03)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_dwmse_matrix_mlc_k3_day03[i, ...],
-            min_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 0),
-            max_colour_value=
-            numpy.nanpercentile(near_sfc_dwmse_matrix_mlc_k3_day03, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(near_sfc_dwmse_matrix_mlc_k3_day03))
+        this_index = numpy.nanargmin(numpy.ravel(near_sfc_dwmse_matrix_mlc_k3_day03))
         best_indices = numpy.unravel_index(
             this_index, near_sfc_dwmse_matrix_mlc_k3_day03.shape
         )
@@ -1160,16 +1186,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot HR bias for profiles with multi-layer cloud.
+        real_values = bias_matrix_mlc_k_day01[
+            numpy.isfinite(bias_matrix_mlc_k_day01)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=bias_matrix_mlc_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
-                numpy.absolute(bias_matrix_mlc_k_day01), 95.
-            ),
+            max_colour_value=numpy.percentile(numpy.absolute(real_values), 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(bias_matrix_mlc_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -1212,16 +1240,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot near-surface bias for all profiles.
+        real_values = near_sfc_bias_matrix_mlc_k_day01[
+            numpy.isfinite(near_sfc_bias_matrix_mlc_k_day01)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=near_sfc_bias_matrix_mlc_k_day01[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
-                numpy.absolute(near_sfc_bias_matrix_mlc_k_day01), 95.
-            ),
+            max_colour_value=numpy.percentile(numpy.absolute(real_values), 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(near_sfc_bias_matrix_mlc_k_day01)
         ))
         best_indices = numpy.unravel_index(
@@ -1266,14 +1296,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot all-flux RMSE for profiles with multi-layer cloud.
+        real_values = flux_rmse_matrix_mlc_w_m02[
+            numpy.isfinite(flux_rmse_matrix_mlc_w_m02)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_mlc_w_m02[i, ...],
-            min_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 0),
-            max_colour_value=numpy.nanpercentile(flux_rmse_matrix_mlc_w_m02, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(flux_rmse_matrix_mlc_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(flux_rmse_matrix_mlc_w_m02))
         best_indices = numpy.unravel_index(
             this_index, flux_rmse_matrix_mlc_w_m02.shape
         )
@@ -1315,17 +1349,19 @@ def _run(experiment_dir_name, isotonic_flag):
         )
         pyplot.close(figure_object)
 
-        # Plot net-flux RMSE for profiles with multi-layer cloud..
+        # Plot net-flux RMSE for profiles with multi-layer cloud.
+        real_values = net_flux_rmse_matrix_mlc_w_m02[
+            numpy.isfinite(net_flux_rmse_matrix_mlc_w_m02)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_rmse_matrix_mlc_w_m02[i, ...],
-            min_colour_value=
-            numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 0),
-            max_colour_value=
-            numpy.nanpercentile(net_flux_rmse_matrix_mlc_w_m02, 95),
+            min_colour_value=numpy.percentile(real_values, 0),
+            max_colour_value=numpy.percentile(real_values, 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(net_flux_rmse_matrix_mlc_w_m02))
+        this_index = numpy.nanargmin(numpy.ravel(net_flux_rmse_matrix_mlc_w_m02))
         best_indices = numpy.unravel_index(
             this_index, net_flux_rmse_matrix_mlc_w_m02.shape
         )
@@ -1368,16 +1404,18 @@ def _run(experiment_dir_name, isotonic_flag):
         pyplot.close(figure_object)
 
         # Plot net-flux bias for profiles with multi-layer cloud.
+        real_values = net_flux_bias_matrix_mlc_w_m02[
+            numpy.isfinite(net_flux_bias_matrix_mlc_w_m02)
+        ]
+
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=net_flux_bias_matrix_mlc_w_m02[i, ...],
             min_colour_value=None,
-            max_colour_value=numpy.nanpercentile(
-                numpy.absolute(net_flux_bias_matrix_mlc_w_m02), 95.
-            ),
+            max_colour_value=numpy.percentile(numpy.absolute(real_values), 95),
             x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
         )
 
-        this_index = numpy.argmin(numpy.ravel(
+        this_index = numpy.nanargmin(numpy.ravel(
             numpy.absolute(net_flux_bias_matrix_mlc_w_m02)
         ))
         best_indices = numpy.unravel_index(
