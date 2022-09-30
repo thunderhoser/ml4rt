@@ -50,12 +50,13 @@ FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
 # FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
 
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.15
-MARKER_COLOUR = numpy.full(3, 1.)
+BEST_MARKER_SIZE_GRID_CELLS = 0.175
+WHITE_COLOUR = numpy.full(3, 1.)
+BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
-SELECTED_MARKER_SIZE_GRID_CELLS = 0.15
-SELECTED_MARKER_INDICES = numpy.array([3, 8, 4], dtype=int)
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
+SELECTED_MARKER_INDICES = numpy.array([0, 8, 3], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
@@ -722,8 +723,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -731,8 +732,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -770,8 +771,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -779,8 +780,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -824,8 +825,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -833,8 +834,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -874,8 +875,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -883,8 +884,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -924,8 +925,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -933,8 +934,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -972,8 +973,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -981,8 +982,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1026,8 +1027,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1035,8 +1036,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1076,8 +1077,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1085,8 +1086,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1126,8 +1127,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1135,8 +1136,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1180,8 +1181,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1189,8 +1190,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1232,8 +1233,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1241,8 +1242,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1264,8 +1265,6 @@ def _run(experiment_dir_name, isotonic_flag):
         )
         pyplot.close(figure_object)
 
-
-
         # Plot all-flux RMSE for profiles with multi-layer cloud.
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=flux_rmse_matrix_mlc_w_m02[i, ...],
@@ -1284,8 +1283,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1293,8 +1292,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1336,8 +1335,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1345,8 +1344,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=WHITE_COLOUR,
+                markeredgecolor=WHITE_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
@@ -1390,8 +1389,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 best_indices[2], best_indices[1],
                 linestyle='None', marker=BEST_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         if SELECTED_MARKER_INDICES[0] == i:
@@ -1399,8 +1398,8 @@ def _run(experiment_dir_name, isotonic_flag):
                 SELECTED_MARKER_INDICES[2], SELECTED_MARKER_INDICES[1],
                 linestyle='None', marker=SELECTED_MARKER_TYPE,
                 markersize=marker_size_px, markeredgewidth=0,
-                markerfacecolor=MARKER_COLOUR,
-                markeredgecolor=MARKER_COLOUR
+                markerfacecolor=BLACK_COLOUR,
+                markeredgecolor=BLACK_COLOUR
             )
 
         axes_object.set_xlabel(x_axis_label)
