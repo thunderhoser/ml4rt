@@ -42,10 +42,17 @@ NN_TYPE_STRINGS_FANCY = [
 # FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
 # SELECTED_MARKER_INDICES = numpy.array([2, 1, 4], dtype=int)
 
+# MODEL_DEPTH_WIDTH_STRINGS = [
+#     '5, 1',
+#     '5, 2',
+#     '5, 3',
+#     '5, 4'
+# ]
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([64, 128], dtype=int)
+# SELECTED_MARKER_INDICES = numpy.array([2, 0, 0], dtype=int)
+
 MODEL_DEPTH_WIDTH_STRINGS = [
     '5, 1',
-    '5, 2',
-    '5, 3',
     '5, 4'
 ]
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([64, 128], dtype=int)
@@ -815,6 +822,13 @@ def _run(experiment_dir_name, isotonic_flag):
     )
 
     for i in range(num_nn_types):
+
+        print('DWMSE percentiles')
+        print(numpy.nanpercentile(dwmse_matrix_k3_day03, 0))
+        print(numpy.nanpercentile(dwmse_matrix_k3_day03, 95))
+        print('\n\n')
+        for k in numpy.ravel(dwmse_matrix_k3_day03):
+            print(k)
 
         # Plot DWMSE for all profiles.
         figure_object, axes_object = _plot_scores_2d(
