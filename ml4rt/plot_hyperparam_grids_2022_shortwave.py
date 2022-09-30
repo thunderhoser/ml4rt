@@ -39,8 +39,8 @@ NN_TYPE_STRINGS_FANCY = [
 #     '3, 3', '4, 3', '5, 3',
 #     '3, 4', '4, 4', '5, 4'
 # ]
-#
 # FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+# SELECTED_MARKER_INDICES = numpy.array([0, 2, 3], dtype=int)
 
 MODEL_DEPTH_WIDTH_STRINGS = [
     '5, 1',
@@ -48,8 +48,8 @@ MODEL_DEPTH_WIDTH_STRINGS = [
     '5, 3',
     '5, 4'
 ]
-
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([64, 128], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.175
@@ -58,7 +58,6 @@ BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
-SELECTED_MARKER_INDICES = numpy.array([0, 2, 3], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
