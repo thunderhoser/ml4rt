@@ -1247,15 +1247,6 @@ def get_scores_all_variables(
     else:
         climo_longwave_net_flux_w_m02 = None
 
-    prediction_dict = {
-        SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-        SCALAR_PREDICTED_VALS_KEY: scalar_prediction_matrix,
-        VECTOR_TARGET_VALS_KEY: vector_target_matrix,
-        VECTOR_PREDICTED_VALS_KEY: vector_prediction_matrix,
-        AUX_TARGET_VALS_KEY: aux_target_matrix,
-        AUX_PREDICTED_VALS_KEY: aux_prediction_matrix
-    }
-
     if not (
             numpy.isinf(min_actual_hr_to_eval_k_day01) and
             numpy.isinf(max_actual_hr_to_eval_k_day01)
@@ -1278,10 +1269,21 @@ def get_scores_all_variables(
             numpy.any(flag_matrix, axis=(1, 2))
         )[0]
 
-        for this_key in prediction_dict:
-            prediction_dict[this_key] = (
-                prediction_dict[this_key][good_indices, ...]
-            )
+        scalar_target_matrix = scalar_target_matrix[good_indices, ...]
+        scalar_prediction_matrix = scalar_prediction_matrix[good_indices, ...]
+        vector_target_matrix = vector_target_matrix[good_indices, ...]
+        vector_prediction_matrix = vector_prediction_matrix[good_indices, ...]
+        aux_target_matrix = aux_target_matrix[good_indices, ...]
+        aux_prediction_matrix = aux_prediction_matrix[good_indices, ...]
+
+    prediction_dict = {
+        SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
+        SCALAR_PREDICTED_VALS_KEY: scalar_prediction_matrix,
+        VECTOR_TARGET_VALS_KEY: vector_target_matrix,
+        VECTOR_PREDICTED_VALS_KEY: vector_prediction_matrix,
+        AUX_TARGET_VALS_KEY: aux_target_matrix,
+        AUX_PREDICTED_VALS_KEY: aux_prediction_matrix
+    }
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
