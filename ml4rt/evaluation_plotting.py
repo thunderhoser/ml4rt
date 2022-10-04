@@ -15,7 +15,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
-import plotting_utils
+import gg_plotting_utils
 import taylor_diagram
 import profile_plotting
 
@@ -931,7 +931,7 @@ def plot_rel_curve_many_heights(
     axes_object.set_xlim(min_value_to_plot, max_value_to_plot)
     axes_object.set_ylim(min_value_to_plot, max_value_to_plot)
 
-    colour_bar_object = plotting_utils.plot_colour_bar(
+    colour_bar_object = gg_plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object, data_matrix=heights_km_agl,
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
@@ -1048,7 +1048,7 @@ def plot_taylor_diagram_many_heights(
     taylor_diagram_object.add_grid()
     taylor_diagram_object._ax.axis[:].major_ticks.set_tick_out(True)
 
-    colour_bar_object = plotting_utils.plot_colour_bar(
+    colour_bar_object = gg_plotting_utils.plot_colour_bar(
         axes_object_or_matrix=figure_object.axes[0], data_matrix=heights_km_agl,
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
