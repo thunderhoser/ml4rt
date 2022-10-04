@@ -314,7 +314,7 @@ def plot_inset_histogram(
     )
     inset_axes_object.set_ylim(bottom=0.)
 
-    this_spacing = int(numpy.floor(
+    this_spacing = int(numpy.ceil(
         0.1 * len(real_indices)
     ))
     tick_indices = real_indices[::this_spacing]
