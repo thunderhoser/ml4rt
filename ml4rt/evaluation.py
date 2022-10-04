@@ -386,6 +386,7 @@ def _get_scores_one_replicate(
         min_raw_flux_w_m02, max_raw_flux_w_m02,
         min_net_flux_w_m02, max_net_flux_w_m02,
         min_flux_percentile, max_flux_percentile,
+        min_actual_hr_to_eval_k_day01, max_actual_hr_to_eval_k_day01,
         climo_shortwave_net_flux_w_m02=None,
         climo_longwave_net_flux_w_m02=None):
     """Computes scores for one bootstrap replicate.
@@ -426,6 +427,8 @@ def _get_scores_one_replicate(
     :param max_net_flux_w_m02: Same.
     :param min_flux_percentile: Same.
     :param max_flux_percentile: Same.
+    :param min_actual_hr_to_eval_k_day01: Same.
+    :param max_actual_hr_to_eval_k_day01: Same.
     :param climo_shortwave_net_flux_w_m02: Average shortwave net flux (W m^-2)
         in training data.  If auxiliary target variables do not include
         shortwave net flux, leave this alone.
@@ -597,19 +600,27 @@ def _get_scores_one_replicate(
                 example_utils.VECTOR_TARGET_VALS_KEY
             ][0, j, k]
 
+            expl_inds = numpy.where(numpy.logical_and(
+                vector_target_matrix[:, j, k] >= min_actual_hr_to_eval_k_day01,
+                vector_target_matrix[:, j, k] <= max_actual_hr_to_eval_k_day01
+            ))[0]
+
+            if len(expl_inds) == 0:
+                continue
+
             t[VECTOR_TARGET_STDEV_KEY].values[j, k, i] = numpy.std(
-                vector_target_matrix[:, j, k], ddof=1
+                vector_target_matrix[expl_inds, j, k], ddof=1
             )
             t[VECTOR_PREDICTION_STDEV_KEY].values[j, k, i] = numpy.std(
-                vector_prediction_matrix[:, j, k], ddof=1
+                vector_prediction_matrix[expl_inds, j, k], ddof=1
             )
             t[VECTOR_MAE_KEY].values[j, k, i] = _get_mae_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k]
             )
             t[VECTOR_MAE_SKILL_KEY].values[j, k, i] = _get_mae_ss_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k],
                 mean_training_target_value=this_climo_value
             )
             (
@@ -617,27 +628,27 @@ def _get_scores_one_replicate(
                 t[VECTOR_MSE_BIAS_KEY].values[j, k, i],
                 t[VECTOR_MSE_VARIANCE_KEY].values[j, k, i]
             ) = _get_mse_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k]
             )
             t[VECTOR_MSE_SKILL_KEY].values[j, k, i] = _get_mse_ss_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k],
                 mean_training_target_value=this_climo_value
             )
             t[VECTOR_BIAS_KEY].values[j, k, i] = _get_bias_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k]
             )
             t[VECTOR_CORRELATION_KEY].values[j, k, i] = (
                 _get_correlation_one_scalar(
-                    target_values=vector_target_matrix[:, j, k],
-                    predicted_values=vector_prediction_matrix[:, j, k]
+                    target_values=vector_target_matrix[expl_inds, j, k],
+                    predicted_values=vector_prediction_matrix[expl_inds, j, k]
                 )
             )
             t[VECTOR_KGE_KEY].values[j, k, i] = _get_kge_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k]
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k]
             )
 
             if num_examples == 0:
@@ -660,20 +671,29 @@ def _get_scores_one_replicate(
                 t[VECTOR_RELIABILITY_X_KEY].values[j, k, :, i],
                 t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i]
             ) = _get_rel_curve_one_scalar(
-                target_values=vector_target_matrix[:, j, k],
-                predicted_values=vector_prediction_matrix[:, j, k],
+                target_values=vector_target_matrix[expl_inds, j, k],
+                predicted_values=vector_prediction_matrix[expl_inds, j, k],
                 num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                 min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                 invert=False
             )[:2]
 
             if i == 0:
+                full_expl_inds = numpy.where(numpy.logical_and(
+                    full_vector_target_matrix[:, j, k] >=
+                    min_actual_hr_to_eval_k_day01,
+                    full_vector_target_matrix[:, j, k] <=
+                    max_actual_hr_to_eval_k_day01
+                ))[0]
+
                 (
                     t[VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, :], _,
                     t[VECTOR_RELIABILITY_COUNT_KEY].values[j, k, :]
                 ) = _get_rel_curve_one_scalar(
-                    target_values=full_vector_target_matrix[:, j, k],
-                    predicted_values=full_vector_prediction_matrix[:, j, k],
+                    target_values=
+                    full_vector_target_matrix[full_expl_inds, j, k],
+                    predicted_values=
+                    full_vector_prediction_matrix[full_expl_inds, j, k],
                     num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                     min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                     invert=False
@@ -684,8 +704,8 @@ def _get_scores_one_replicate(
                         t[VECTOR_KS_STATISTIC_KEY].values[j, k],
                         t[VECTOR_KS_P_VALUE_KEY].values[j, k]
                     ) = ks_2samp(
-                        full_vector_target_matrix[:, j, k],
-                        full_vector_prediction_matrix[:, j, k],
+                        full_vector_target_matrix[full_expl_inds, j, k],
+                        full_vector_prediction_matrix[full_expl_inds, j, k],
                         alternative='two-sided', mode='auto'
                     )
 
@@ -701,8 +721,10 @@ def _get_scores_one_replicate(
                     t[VECTOR_INV_RELIA_BIN_CENTER_KEY].values[j, k, :], _,
                     t[VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, :]
                 ) = _get_rel_curve_one_scalar(
-                    target_values=full_vector_target_matrix[:, j, k],
-                    predicted_values=full_vector_prediction_matrix[:, j, k],
+                    target_values=
+                    full_vector_target_matrix[full_expl_inds, j, k],
+                    predicted_values=
+                    full_vector_prediction_matrix[full_expl_inds, j, k],
                     num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                     min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                     invert=True
@@ -1052,7 +1074,10 @@ def get_scores_all_variables(
         min_heating_rate_percentile, max_heating_rate_percentile,
         num_flux_bins, min_raw_flux_w_m02, max_raw_flux_w_m02,
         min_net_flux_w_m02, max_net_flux_w_m02,
-        min_flux_percentile, max_flux_percentile):
+        min_flux_percentile, max_flux_percentile,
+        min_actual_hr_to_eval_k_day01=-numpy.inf,
+        max_actual_hr_to_eval_k_day01=numpy.inf,
+        apply_minmax_at_each_height=False):
     """Computes desired scores for all target variables.
 
     :param prediction_file_name: Path to file with predictions that will be
@@ -1083,6 +1108,12 @@ def get_scores_all_variables(
         This percentile (ranging from 0...100) will be taken independently for
         each flux variable.
     :param max_flux_percentile: Same as above but for max flux.
+    :param min_actual_hr_to_eval_k_day01: Will evaluate only profiles containing
+        at least one actual heating rate in [min value, max value].
+    :param max_actual_hr_to_eval_k_day01: Same.
+    :param apply_minmax_at_each_height: Boolean flag.  If True, will apply min
+        and max actual heating rate independently to each height in each
+        profile.  If False, will just apply to each profile.
     :return: result_table_xarray: xarray table with results (variable and
         dimension names should make the table self-explanatory).
     """
@@ -1096,6 +1127,10 @@ def get_scores_all_variables(
     error_checking.assert_is_integer(num_flux_bins)
     error_checking.assert_is_geq(num_flux_bins, 10)
     error_checking.assert_is_leq(num_flux_bins, 100)
+    error_checking.assert_is_greater(
+        max_actual_hr_to_eval_k_day01, min_actual_hr_to_eval_k_day01
+    )
+    error_checking.assert_is_boolean(apply_minmax_at_each_height)
 
     if min_heating_rate_k_day01 is None or max_heating_rate_k_day01 is None:
         error_checking.assert_is_leq(min_heating_rate_percentile, 10.)
@@ -1221,6 +1256,33 @@ def get_scores_all_variables(
         AUX_PREDICTED_VALS_KEY: aux_prediction_matrix
     }
 
+    if not (
+            numpy.isinf(min_actual_hr_to_eval_k_day01) and
+            numpy.isinf(max_actual_hr_to_eval_k_day01)
+    ):
+        assert (
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] ==
+            [example_utils.SHORTWAVE_HEATING_RATE_NAME]
+            or generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] ==
+            [example_utils.LONGWAVE_HEATING_RATE_NAME]
+        )
+
+        flag_matrix = numpy.logical_and(
+            prediction_dict[VECTOR_TARGET_VALS_KEY] >=
+            min_actual_hr_to_eval_k_day01,
+            prediction_dict[VECTOR_TARGET_VALS_KEY] <=
+            max_actual_hr_to_eval_k_day01
+        )
+
+        good_indices = numpy.where(
+            numpy.any(flag_matrix, axis=(1, 2))
+        )[0]
+
+        for this_key in prediction_dict:
+            prediction_dict[this_key] = (
+                prediction_dict[this_key][good_indices, ...]
+            )
+
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
     num_scalar_targets = scalar_target_matrix.shape[1]
@@ -1287,13 +1349,13 @@ def get_scores_all_variables(
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         SCALAR_RELIABILITY_COUNT_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            these_dim_keys, numpy.full(these_dimensions, 0, dtype=int)
         ),
         SCALAR_INV_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         SCALAR_INV_RELIABILITY_COUNT_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            these_dim_keys, numpy.full(these_dimensions, 0, dtype=int)
         )
     }
     main_data_dict.update(new_dict)
@@ -1383,13 +1445,13 @@ def get_scores_all_variables(
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_RELIABILITY_COUNT_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            these_dim_keys, numpy.full(these_dimensions, 0, dtype=int)
         ),
         VECTOR_INV_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         VECTOR_INV_RELIABILITY_COUNT_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+            these_dim_keys, numpy.full(these_dimensions, 0, dtype=int)
         )
     }
     main_data_dict.update(new_dict)
@@ -1469,13 +1531,13 @@ def get_scores_all_variables(
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_RELIABILITY_COUNT_KEY: (
-                these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+                these_dim_keys, numpy.full(these_dimensions, 0, dtype=int)
             ),
             AUX_INV_RELIA_BIN_CENTER_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_INV_RELIABILITY_COUNT_KEY: (
-                these_dim_keys, numpy.full(these_dimensions, -1, dtype=int)
+                these_dim_keys, numpy.full(these_dimensions, 0, dtype=int)
             )
         }
         main_data_dict.update(new_dict)
@@ -1545,6 +1607,15 @@ def get_scores_all_variables(
             i + 1, num_bootstrap_reps
         ))
 
+        this_min = (
+            min_actual_hr_to_eval_k_day01 if apply_minmax_at_each_height
+            else -numpy.inf
+        )
+        this_max = (
+            max_actual_hr_to_eval_k_day01 if apply_minmax_at_each_height
+            else numpy.inf
+        )
+
         result_table_xarray = _get_scores_one_replicate(
             result_table_xarray=result_table_xarray,
             prediction_dict=prediction_dict, replicate_index=i,
@@ -1560,6 +1631,8 @@ def get_scores_all_variables(
             max_net_flux_w_m02=max_net_flux_w_m02,
             min_flux_percentile=min_flux_percentile,
             max_flux_percentile=max_flux_percentile,
+            min_actual_hr_to_eval_k_day01=this_min,
+            max_actual_hr_to_eval_k_day01=this_max,
             climo_shortwave_net_flux_w_m02=climo_shortwave_net_flux_w_m02,
             climo_longwave_net_flux_w_m02=climo_longwave_net_flux_w_m02
         )

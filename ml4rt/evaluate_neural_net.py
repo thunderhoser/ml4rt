@@ -30,6 +30,9 @@ MIN_NET_FLUX_ARG_NAME = 'min_net_flux_w_m02'
 MAX_NET_FLUX_ARG_NAME = 'max_net_flux_w_m02'
 MIN_FLUX_PRCTILE_ARG_NAME = 'min_flux_percentile'
 MAX_FLUX_PRCTILE_ARG_NAME = 'max_flux_percentile'
+MIN_HEATING_TO_EVAL_ARG_NAME = 'min_actual_hr_to_eval_k_day01'
+MAX_HEATING_TO_EVAL_ARG_NAME = 'max_actual_hr_to_eval_k_day01'
+APPLY_MINMAX_PER_HEIGHT_ARG_NAME = 'apply_minmax_at_each_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -81,7 +84,18 @@ MIN_FLUX_PRCTILE_HELP_STRING = (
 MAX_FLUX_PRCTILE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
     MIN_FLUX_PRCTILE_ARG_NAME
 )
-
+MIN_HEATING_TO_EVAL_HELP_STRING = (
+    'Will evaluate only profiles containing at least one actual heating rate '
+    'in [min value, max value].'
+)
+MAX_HEATING_TO_EVAL_HELP_STRING = 'See documentation for `{0:s}`.'.format(
+    MIN_HEATING_TO_EVAL_ARG_NAME
+)
+APPLY_MINMAX_PER_HEIGHT_HELP_STRING = (
+    'Boolean flag.  If 1, will apply min and max actual heating rate '
+    'independently to each height in each profile.  If 0, will just apply to '
+    'each profile.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Evaluation scores will be written here by '
     '`evaluation.write_file`, to a file name determined by '
@@ -146,6 +160,18 @@ INPUT_ARG_PARSER.add_argument(
     default=99.5, help=MAX_FLUX_PRCTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + MIN_HEATING_TO_EVAL_ARG_NAME, type=float, required=False,
+    default=-1e10, help=MIN_HEATING_TO_EVAL_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_HEATING_TO_EVAL_ARG_NAME, type=float, required=False,
+    default=1e10, help=MAX_HEATING_TO_EVAL_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + APPLY_MINMAX_PER_HEIGHT_ARG_NAME, type=int, required=False,
+    default=0, help=APPLY_MINMAX_PER_HEIGHT_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -156,7 +182,9 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
          min_heating_rate_percentile, max_heating_rate_percentile,
          num_flux_bins, min_raw_flux_w_m02, max_raw_flux_w_m02,
          min_net_flux_w_m02, max_net_flux_w_m02,
-         min_flux_percentile, max_flux_percentile, output_dir_name):
+         min_flux_percentile, max_flux_percentile,
+         min_actual_hr_to_eval_k_day01, max_actual_hr_to_eval_k_day01,
+         apply_minmax_at_each_height, output_dir_name):
     """Evaluates trained neural net.
 
     This is effectively the main method.
@@ -175,8 +203,16 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
     :param max_net_flux_w_m02: Same.
     :param min_flux_percentile: Same.
     :param max_flux_percentile: Same.
+    :param min_actual_hr_to_eval_k_day01: Same.
+    :param max_actual_hr_to_eval_k_day01: Same.
+    :param apply_minmax_at_each_height: Same.
     :param output_dir_name: Same.
     """
+
+    if min_actual_hr_to_eval_k_day01 < -1e9:
+        min_actual_hr_to_eval_k_day01 = -numpy.inf
+    if max_actual_hr_to_eval_k_day01 > 1e9:
+        max_actual_hr_to_eval_k_day01 = numpy.inf
 
     if min_heating_rate_k_day01 >= max_heating_rate_k_day01:
         min_heating_rate_k_day01 = None
@@ -241,7 +277,10 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
         min_net_flux_w_m02=min_net_flux_w_m02,
         max_net_flux_w_m02=max_net_flux_w_m02,
         min_flux_percentile=min_flux_percentile,
-        max_flux_percentile=max_flux_percentile
+        max_flux_percentile=max_flux_percentile,
+        min_actual_hr_to_eval_k_day01=min_actual_hr_to_eval_k_day01,
+        max_actual_hr_to_eval_k_day01=max_actual_hr_to_eval_k_day01,
+        apply_minmax_at_each_height=apply_minmax_at_each_height
     )
     print(SEPARATOR_STRING)
 
@@ -389,5 +428,14 @@ if __name__ == '__main__':
         max_flux_percentile=getattr(
             INPUT_ARG_OBJECT, MAX_FLUX_PRCTILE_ARG_NAME
         ),
+        min_actual_hr_to_eval_k_day01=getattr(
+            INPUT_ARG_OBJECT, MIN_HEATING_TO_EVAL_ARG_NAME
+        ),
+        max_actual_hr_to_eval_k_day01=getattr(
+            INPUT_ARG_OBJECT, MAX_HEATING_TO_EVAL_ARG_NAME
+        ),
+        apply_minmax_at_each_height=bool(getattr(
+            INPUT_ARG_OBJECT, APPLY_MINMAX_PER_HEIGHT_ARG_NAME
+        )),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
