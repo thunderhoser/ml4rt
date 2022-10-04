@@ -110,6 +110,7 @@ SIMPLE_FONT_SIZE = 50
 SIMPLE_FIGURE_WIDTH_INCHES = 15
 SIMPLE_FIGURE_HEIGHT_INCHES = 15
 
+BLACK_COLOUR = numpy.full(3, 0.)
 HEATING_RATE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 DOWNWELLING_FLUX_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 UPWELLING_FLUX_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
@@ -647,9 +648,9 @@ def plot_actual_and_predicted(
     if add_two_dummy_axes:
         for k in range(2, 4):
             axes_objects[k].set_xlabel(fancy_target_name)
-            axes_objects[k].xaxis.label.set_color(line_colours[k])
+            axes_objects[k].xaxis.label.set_color(BLACK_COLOUR)
             axes_objects[k].tick_params(
-                axis='x', colors=line_colours[k], **tick_mark_dict
+                axis='x', colors=BLACK_COLOUR, **tick_mark_dict
             )
 
     axes_objects[0].set_ylabel('Height (km AGL)')
