@@ -417,6 +417,10 @@ def _plot_attributes_diagram(
         for a in mean_predictions_by_set + mean_observations_by_set
         if a is not None
     ])
+
+    if numpy.all(numpy.isnan(concat_values)):
+        return
+
     max_value_to_plot = numpy.nanpercentile(concat_values, 100.)
     min_value_to_plot = numpy.nanpercentile(concat_values, 0.)
 
