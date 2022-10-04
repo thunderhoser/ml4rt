@@ -317,6 +317,7 @@ def plot_inset_histogram(
     this_spacing = int(numpy.floor(
         0.1 * len(real_indices)
     ))
+    this_spacing = max([this_spacing, 1])
     tick_indices = real_indices[::this_spacing]
 
     # tick_indices = []
