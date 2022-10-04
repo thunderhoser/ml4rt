@@ -70,6 +70,7 @@ PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
+ADD_DUMMY_AXES_ARG_NAME = 'add_two_dummy_axes'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -88,6 +89,11 @@ NUM_EXAMPLES_HELP_STRING = (
 USE_LOG_SCALE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will use logarithmic (linear) scale for height '
     'axis.'
+)
+ADD_DUMMY_AXES_HELP_STRING = (
+    'Boolean flag.  If 1, will add two dummy x-axes that correspond to nothing.'
+    '  The only reason for doing this is to make the vertical scale of the '
+    'figure match another figure with 4 variables plotted.'
 )
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with full example files.  Will use these files to add '
@@ -114,6 +120,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + USE_LOG_SCALE_ARG_NAME, type=int, required=False, default=1,
     help=USE_LOG_SCALE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + ADD_DUMMY_AXES_ARG_NAME, type=int, required=False, default=1,
+    help=ADD_DUMMY_AXES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False, default='',
@@ -196,7 +206,7 @@ def _plot_comparisons_fancy(
 
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
-        model_metadata_dict, use_log_scale, plot_shortwave, title_strings,
+        model_metadata_dict, use_log_scale, add_two_dummy_axes, plot_shortwave,
         annotation_strings, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
@@ -205,8 +215,8 @@ def _plot_comparisons_simple(
     :param example_id_strings: Same.
     :param model_metadata_dict: Same.
     :param use_log_scale: Same.
+    :param add_two_dummy_axes: Same.
     :param plot_shortwave: Same.
-    :param title_strings: 1-D list of titles, one per example.
     :param annotation_strings: 1-D list of annotations, one per example.
     :param output_dir_name: See doc for `_plot_comparisons_fancy`.
     """
@@ -234,50 +244,43 @@ def _plot_comparisons_simple(
                 target_names[j]
             )
 
-            this_figure_object, this_axes_object = (
-                profile_plotting.plot_one_variable(
-                    values=vector_target_matrix[i, :, k],
-                    heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
-                    line_colour=TARGET_COLOUR,
-                    line_width=3, line_style='solid', figure_object=None
-                )
+            fancy_target_name = '{0:s}{1:s} ({2:s})'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[j]][0].lower(),
+                TARGET_NAME_TO_VERBOSE[target_names[j]][1:],
+                TARGET_NAME_TO_UNITS[target_names[j]]
             )
 
-            profile_plotting.plot_one_variable(
-                values=vector_prediction_matrix[i, :, k],
-                heights_m_agl=heights_m_agl, use_log_scale=use_log_scale,
-                line_colour=PREDICTION_COLOUR,
-                line_width=4, line_style='dashed',
-                figure_object=this_figure_object
+            handle_dict = profile_plotting.plot_actual_and_predicted(
+                actual_values=vector_target_matrix[i, :, k],
+                predicted_values=vector_prediction_matrix[i, :, k],
+                heights_m_agl=heights_m_agl,
+                fancy_target_name=fancy_target_name,
+                line_colours=[TARGET_COLOUR, PREDICTION_COLOUR],
+                line_widths=numpy.full(2, 3.),
+                line_styles=['solid', 'dashed'],
+                use_log_scale=use_log_scale,
+                add_two_dummy_axes=add_two_dummy_axes
             )
+
+            this_figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+            this_axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
 
             this_mae = evaluation._get_mae_one_scalar(
                 target_values=vector_target_matrix[i, :, k],
                 predicted_values=vector_prediction_matrix[i, :, k]
             )
-
             this_annotation_string = 'HR MAE = {0:.2f} {1:s}'.format(
                 this_mae, TARGET_NAME_TO_UNITS[target_names[j]]
             )
-
             if annotation_strings[i] is not None:
                 this_annotation_string += '\n' + annotation_strings[i]
 
             this_axes_object.text(
-                0.01, 0.75, this_annotation_string,
+                0.99, 0.8, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
-                horizontalalignment='left', verticalalignment='center',
+                horizontalalignment='right', verticalalignment='top',
                 transform=this_axes_object.transAxes, zorder=1e10
-            )
-
-            this_axes_object.set_xlabel('{0:s} ({1:s})'.format(
-                TARGET_NAME_TO_VERBOSE[target_names[j]],
-                TARGET_NAME_TO_UNITS[target_names[j]]
-            ))
-
-            this_axes_object.set_title(
-                title_strings[i], fontsize=TITLE_FONT_SIZE
             )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
@@ -416,7 +419,7 @@ def _get_flux_strings(
 
 
 def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
-         example_dir_name, output_dir_name):
+         add_two_dummy_axes, example_dir_name, output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
@@ -425,6 +428,7 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     :param plot_shortwave: Same.
     :param num_examples: Same.
     :param use_log_scale: Same.
+    :param add_two_dummy_axes: Same.
     :param example_dir_name: Same.
     :param output_dir_name: Same.
     """
@@ -625,18 +629,13 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
         #     plot_shortwave=plot_shortwave
         # )
 
-        num_examples = vector_target_matrix.shape[0]
-        title_string = 'Actual and predicted {0:s} RT'.format(
-            'shortwave' if plot_shortwave else 'longwave'
-        )
-
         _plot_comparisons_simple(
             vector_target_matrix=vector_target_matrix,
             vector_prediction_matrix=vector_prediction_matrix,
             example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_metadata_dict=model_metadata_dict,
-            use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
-            title_strings=[title_string] * num_examples,
+            use_log_scale=use_log_scale, add_two_dummy_axes=add_two_dummy_axes,
+            plot_shortwave=plot_shortwave,
             annotation_strings=annotation_strings,
             output_dir_name=output_dir_name
         )
@@ -652,6 +651,9 @@ if __name__ == '__main__':
         plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
+        add_two_dummy_axes=bool(
+            getattr(INPUT_ARG_OBJECT, ADD_DUMMY_AXES_ARG_NAME)
+        ),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

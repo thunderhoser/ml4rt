@@ -300,11 +300,6 @@ def plot_predictors(
                 example_dict=example_dict, field_name=predictor_names[k]
             )[example_index, ...]
 
-            print(predictor_names[k])
-            print(these_predictor_values[:5])
-            print(these_predictor_values[-5:])
-            print('\n---------------------\n')
-
         if include_units:
             if predictor_names[k] in [
                     example_utils.TEMPERATURE_NAME,
@@ -541,6 +536,137 @@ def plot_targets(
         HEATING_RATE_HANDLE_KEY: heating_rate_axes_object,
         DOWN_FLUX_HANDLE_KEY: down_flux_axes_object,
         UP_FLUX_HANDLE_KEY: up_flux_axes_object
+    }
+
+
+def plot_actual_and_predicted(
+        actual_values, predicted_values, heights_m_agl, fancy_target_name,
+        line_colours, line_widths, line_styles, use_log_scale,
+        add_two_dummy_axes=False):
+    """Plots actual and predicted values of one target variable.
+
+    H = number of heights
+
+    :param actual_values: length-H numpy array of actual values.
+    :param predicted_values: length-H numpy array of predicted values.
+    :param heights_m_agl: length-H numpy array of heights (metres above ground
+        level).
+    :param fancy_target_name: Fancy name of target variable.
+    :param line_colours: length-2 list of colours -- for actual and then
+        predictions -- each colour in any format accepted by matplotlib.
+    :param line_widths: length-2 numpy array of line widths.
+    :param line_styles: length-2 list of line styles (each style in any format
+        accepted by matplotlib).
+    :param use_log_scale: Boolean flag.  If True, will plot height (y-axis) in
+        logarithmic scale.  If False, will plot height in linear scale.
+    :param add_two_dummy_axes: Boolean flag.  If True, will add two dummy x-axes
+        that correspond to nothing.  The only reason for doing this is to make
+        the vertical scale of the figure match another figure with 4 variables
+        plotted.
+    :return: handle_dict: Dictionary with the following keys.
+    handle_dict['figure_object']: Figure handle (instance of
+        `matplotlib.figure.Figure`).
+    handle_dict['axes_objects']: length-P list of axes handles (each an instance
+        of `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array_without_nan(actual_values)
+    error_checking.assert_is_numpy_array(actual_values, num_dimensions=1)
+
+    num_heights = len(actual_values)
+
+    error_checking.assert_is_numpy_array_without_nan(predicted_values)
+    error_checking.assert_is_numpy_array(
+        predicted_values, exact_dimensions=numpy.array([num_heights], dtype=int)
+    )
+
+    error_checking.assert_is_greater_numpy_array(heights_m_agl, 0.)
+    error_checking.assert_is_greater_numpy_array(numpy.diff(heights_m_agl), 0.)
+    error_checking.assert_is_numpy_array(
+        heights_m_agl, exact_dimensions=numpy.array([num_heights], dtype=int)
+    )
+
+    error_checking.assert_is_string(fancy_target_name)
+    error_checking.assert_is_boolean(use_log_scale)
+
+    assert len(line_colours) == 2
+    assert len(line_widths) == 2
+    assert len(line_styles) == 2
+
+    # Housekeeping.
+    _set_font_size(FANCY_FONT_SIZE)
+
+    figure_object, first_axes_object = pyplot.subplots(
+        1, 1,
+        figsize=(FANCY_FIGURE_WIDTH_INCHES, FANCY_FIGURE_HEIGHT_INCHES)
+    )
+
+    axes_objects = [first_axes_object]
+    figure_object.subplots_adjust(bottom=0.75)
+
+    if use_log_scale:
+        pyplot.yscale('log')
+
+    axes_objects.append(axes_objects[0].twiny())
+
+    if add_two_dummy_axes:
+        for k in range(2, 4):
+            axes_objects.append(axes_objects[0].twiny())
+
+            if k == 2:
+                axes_objects[k].spines['top'].set_position(('axes', 1.15))
+                _make_spines_invisible(axes_objects[k])
+                axes_objects[k].spines['top'].set_visible(True)
+
+            if k == 3:
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
+                _make_spines_invisible(axes_objects[k])
+                axes_objects[k].spines['bottom'].set_visible(True)
+
+    heights_km_agl = METRES_TO_KM * heights_m_agl
+    tick_mark_dict = dict(size=4, width=1.5)
+
+    for k in range(2):
+        axes_objects[k].plot(
+            actual_values if k == 0 else predicted_values,
+            heights_km_agl, color=line_colours[k],
+            linewidth=line_widths[k], linestyle=line_styles[k]
+        )
+
+        axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
+            'Actual' if k == 0 else 'Predicted', fancy_target_name
+        ))
+        axes_objects[k].xaxis.label.set_color(line_colours[k])
+        axes_objects[k].tick_params(
+            axis='x', colors=line_colours[k], **tick_mark_dict
+        )
+
+    if add_two_dummy_axes:
+        for k in range(2, 4):
+            axes_objects[k].set_xlabel(fancy_target_name)
+            axes_objects[k].xaxis.label.set_color(line_colours[k])
+            axes_objects[k].tick_params(
+                axis='x', colors=line_colours[k], **tick_mark_dict
+            )
+
+    axes_objects[0].set_ylabel('Height (km AGL)')
+    axes_objects[0].set_ylim([
+        numpy.min(heights_km_agl), numpy.max(heights_km_agl)
+    ])
+
+    height_strings = create_height_labels(
+        tick_values_km_agl=axes_objects[0].get_yticks(),
+        use_log_scale=use_log_scale
+    )
+    axes_objects[0].set_yticklabels(height_strings)
+    axes_objects[0].tick_params(axis='y', **tick_mark_dict)
+
+    return {
+        FIGURE_HANDLE_KEY: figure_object,
+        AXES_OBJECTS_KEY: axes_objects
     }
 
 
