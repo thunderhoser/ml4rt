@@ -653,6 +653,17 @@ def plot_actual_and_predicted(
                 axis='x', colors=BLACK_COLOUR, **tick_mark_dict
             )
 
+    x_min = min([
+        axes_objects[0].get_xlim()[0],
+        axes_objects[1].get_xlim()[0]
+    ])
+    x_max = max([
+        axes_objects[0].get_xlim()[1],
+        axes_objects[1].get_xlim()[1]
+    ])
+    axes_objects[0].set_xlim([x_min, x_max])
+    axes_objects[1].set_xlim([x_min, x_max])
+
     axes_objects[0].set_ylabel('Height (km AGL)')
     axes_objects[0].set_ylim([
         numpy.min(heights_km_agl), numpy.max(heights_km_agl)

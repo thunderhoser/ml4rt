@@ -22,7 +22,7 @@ import profile_plotting
 import plot_errors_by_aod_and_sza as plot_errors_by_aod
 import plot_errors_by_sfc_temp_and_moisture as plot_errors_by_lapse_rates
 
-TITLE_FONT_SIZE = 30
+TITLE_FONT_SIZE = 12
 FIGURE_RESOLUTION_DPI = 300
 
 KG_TO_GRAMS = 1000.
