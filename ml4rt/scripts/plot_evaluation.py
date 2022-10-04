@@ -772,13 +772,14 @@ def _plot_error_distributions(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
-            these_actual_values = prediction_dicts[i][
-                prediction_io.VECTOR_TARGETS_KEY
-            ][..., k]
-
-            these_predicted_values = prediction_dicts[i][
-                prediction_io.VECTOR_PREDICTIONS_KEY
-            ][..., k]
+            these_actual_values = numpy.ravel(
+                prediction_dicts[i][prediction_io.VECTOR_TARGETS_KEY][..., k]
+            )
+            these_predicted_values = numpy.ravel(
+                prediction_dicts[i][prediction_io.VECTOR_PREDICTIONS_KEY][
+                    ..., k
+                ]
+            )
 
             if 'shortwave' in vector_target_names[k]:
                 evaluation_plotting.plot_error_dist_by_actual_value(
@@ -799,7 +800,7 @@ def _plot_error_distributions(
                     axes_object=axes_object
                 )
 
-                bin_edges = numpy.linspace(-51, 11, num=62, dtype=int)
+                bin_edges = numpy.linspace(-51, 11, num=63, dtype=int)
 
             y_tick_strings = [
                 '[{0:d}, {1:d})'.format(a, b) for a, b in
