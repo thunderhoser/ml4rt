@@ -631,14 +631,17 @@ def _get_scores_one_replicate(
                 min_bin_edge = 0.
                 max_bin_edge = 1.
             else:
-                min_bin_edge = numpy.percentile(
-                    full_vector_prediction_matrix[:, j, k],
-                    100. - max_bin_edge_percentile
-                )
-                max_bin_edge = numpy.percentile(
-                    full_vector_prediction_matrix[:, j, k],
-                    max_bin_edge_percentile
-                )
+                min_bin_edge = -50.
+                max_bin_edge = 10.
+
+                # min_bin_edge = numpy.percentile(
+                #     full_vector_prediction_matrix[:, j, k],
+                #     100. - max_bin_edge_percentile
+                # )
+                # max_bin_edge = numpy.percentile(
+                #     full_vector_prediction_matrix[:, j, k],
+                #     max_bin_edge_percentile
+                # )
 
             (
                 t[VECTOR_RELIABILITY_X_KEY].values[j, k, :, i],

@@ -80,7 +80,7 @@ def _run(prediction_file_name, num_bootstrap_reps, output_dir_name):
     result_table_xarray = evaluation.get_scores_all_variables(
         prediction_file_name=prediction_file_name,
         num_bootstrap_reps=num_bootstrap_reps,
-        num_reliability_bins=100, max_bin_edge_percentile=99.5
+        num_reliability_bins=12, max_bin_edge_percentile=99.5
     )
     print(SEPARATOR_STRING)
 
