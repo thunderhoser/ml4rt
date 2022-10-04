@@ -10,6 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import error_checking
 import prediction_io
 import evaluation
 
@@ -17,6 +18,18 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_BOOTSTRAP_REPS_ARG_NAME = 'num_bootstrap_reps'
+NUM_HEATING_RATE_BINS_ARG_NAME = 'num_heating_rate_bins'
+MIN_HEATING_RATE_ARG_NAME = 'min_heating_rate_k_day01'
+MAX_HEATING_RATE_ARG_NAME = 'max_heating_rate_k_day01'
+MIN_HEATING_RATE_PRCTILE_ARG_NAME = 'min_heating_rate_percentile'
+MAX_HEATING_RATE_PRCTILE_ARG_NAME = 'max_heating_rate_percentile'
+NUM_FLUX_BINS_ARG_NAME = 'num_flux_bins'
+MIN_RAW_FLUX_ARG_NAME = 'min_raw_flux_w_m02'
+MAX_RAW_FLUX_ARG_NAME = 'max_raw_flux_w_m02'
+MIN_NET_FLUX_ARG_NAME = 'min_net_flux_w_m02'
+MAX_NET_FLUX_ARG_NAME = 'max_net_flux_w_m02'
+MIN_FLUX_PRCTILE_ARG_NAME = 'min_flux_percentile'
+MAX_FLUX_PRCTILE_ARG_NAME = 'max_flux_percentile'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -24,6 +37,51 @@ INPUT_FILE_HELP_STRING = (
     'be read by `prediction_io.read_file`.'
 )
 NUM_BOOTSTRAP_REPS_HELP_STRING = 'Number of bootstrap replicates.'
+
+NUM_HEATING_RATE_BINS_HELP_STRING = (
+    'Number of heating-rate bins for reliability curves.'
+)
+MIN_HEATING_RATE_HELP_STRING = (
+    'Minimum heating rate (Kelvins per day) for reliability curves.  If you '
+    'instead want minimum heating rate to be a percentile over the data -- '
+    'chosen independently at each height -- leave this argument alone.'
+)
+MAX_HEATING_RATE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
+    MIN_HEATING_RATE_ARG_NAME
+)
+MIN_HEATING_RATE_PRCTILE_HELP_STRING = (
+    'Determines minimum heating rate for reliability curves.  This percentile '
+    '(ranging from 0...100) will be taken independently at each height.'
+)
+MAX_HEATING_RATE_PRCTILE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
+    MIN_HEATING_RATE_PRCTILE_ARG_NAME
+)
+
+NUM_FLUX_BINS_HELP_STRING = 'Number of flux bins for reliability curves.'
+MIN_RAW_FLUX_HELP_STRING = (
+    'Minimum raw flux (surface downwelling or TOA upwelling) for reliability '
+    'curves.  If you instead want minimum flux to be a percentile over the '
+    'data -- chosen independently for each flux variable -- leave this '
+    'argument alone.'
+)
+MAX_RAW_FLUX_HELP_STRING = 'See documentation for `{0:s}`.'.format(
+    MIN_RAW_FLUX_ARG_NAME
+)
+MIN_NET_FLUX_HELP_STRING = (
+    'Minimum net flux for reliability curves.  If you instead want minimum net '
+    'flux to be a percentile over the data, leave this argument alone.'
+)
+MAX_NET_FLUX_HELP_STRING = 'See documentation for `{0:s}`.'.format(
+    MIN_NET_FLUX_ARG_NAME
+)
+MIN_FLUX_PRCTILE_HELP_STRING = (
+    'Determines minimum flux for reliability curves.  This percentile (ranging '
+    'from 0...100) will be taken independently for each flux variable.'
+)
+MAX_FLUX_PRCTILE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
+    MIN_FLUX_PRCTILE_ARG_NAME
+)
+
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Evaluation scores will be written here by '
     '`evaluation.write_file`, to a file name determined by '
@@ -40,20 +98,112 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_BOOTSTRAP_REPS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_HEATING_RATE_BINS_ARG_NAME, type=int, required=False, default=20,
+    help=NUM_HEATING_RATE_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MIN_HEATING_RATE_ARG_NAME, type=float, required=False, default=1,
+    help=MIN_HEATING_RATE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_HEATING_RATE_ARG_NAME, type=float, required=False, default=-1,
+    help=MAX_HEATING_RATE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MIN_HEATING_RATE_PRCTILE_ARG_NAME, type=float, required=False,
+    default=0.5, help=MIN_HEATING_RATE_PRCTILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_HEATING_RATE_PRCTILE_ARG_NAME, type=float, required=False,
+    default=99.5, help=MAX_HEATING_RATE_PRCTILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_FLUX_BINS_ARG_NAME, type=int, required=False, default=20,
+    help=NUM_FLUX_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MIN_RAW_FLUX_ARG_NAME, type=float, required=False, default=1,
+    help=MIN_RAW_FLUX_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_RAW_FLUX_ARG_NAME, type=float, required=False, default=-1,
+    help=MAX_RAW_FLUX_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MIN_NET_FLUX_ARG_NAME, type=float, required=False, default=1,
+    help=MIN_NET_FLUX_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_NET_FLUX_ARG_NAME, type=float, required=False, default=-1,
+    help=MAX_NET_FLUX_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MIN_FLUX_PRCTILE_ARG_NAME, type=float, required=False,
+    default=0.5, help=MIN_FLUX_PRCTILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_FLUX_PRCTILE_ARG_NAME, type=float, required=False,
+    default=99.5, help=MAX_FLUX_PRCTILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _run(prediction_file_name, num_bootstrap_reps, output_dir_name):
+def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
+         min_heating_rate_k_day01, max_heating_rate_k_day01,
+         min_heating_rate_percentile, max_heating_rate_percentile,
+         num_flux_bins, min_raw_flux_w_m02, max_raw_flux_w_m02,
+         min_net_flux_w_m02, max_net_flux_w_m02,
+         min_flux_percentile, max_flux_percentile, output_dir_name):
     """Evaluates trained neural net.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
     :param num_bootstrap_reps: Same.
+    :param num_heating_rate_bins: Same.
+    :param min_heating_rate_k_day01: Same.
+    :param max_heating_rate_k_day01: Same.
+    :param min_heating_rate_percentile: Same.
+    :param max_heating_rate_percentile: Same.
+    :param num_flux_bins: Same.
+    :param min_raw_flux_w_m02: Same.
+    :param max_raw_flux_w_m02: Same.
+    :param min_net_flux_w_m02: Same.
+    :param max_net_flux_w_m02: Same.
+    :param min_flux_percentile: Same.
+    :param max_flux_percentile: Same.
     :param output_dir_name: Same.
     """
+
+    if min_heating_rate_k_day01 >= max_heating_rate_k_day01:
+        min_heating_rate_k_day01 = None
+        max_heating_rate_k_day01 = None
+
+        error_checking.assert_is_leq(min_heating_rate_percentile, 10.)
+        error_checking.assert_is_geq(max_heating_rate_percentile, 90.)
+    else:
+        min_heating_rate_percentile = None
+        max_heating_rate_percentile = None
+
+    if (
+            min_raw_flux_w_m02 >= max_raw_flux_w_m02 or
+            min_net_flux_w_m02 >= max_net_flux_w_m02
+    ):
+        min_raw_flux_w_m02 = None
+        max_raw_flux_w_m02 = None
+        min_net_flux_w_m02 = None
+        max_net_flux_w_m02 = None
+
+        error_checking.assert_is_leq(min_flux_percentile, 10.)
+        error_checking.assert_is_geq(max_flux_percentile, 90.)
+    else:
+        error_checking.assert_is_geq(min_raw_flux_w_m02, 0.)
+
+        min_flux_percentile = None
+        max_flux_percentile = None
 
     file_metadata_dict = prediction_io.file_name_to_metadata(
         prediction_file_name
@@ -80,7 +230,18 @@ def _run(prediction_file_name, num_bootstrap_reps, output_dir_name):
     result_table_xarray = evaluation.get_scores_all_variables(
         prediction_file_name=prediction_file_name,
         num_bootstrap_reps=num_bootstrap_reps,
-        num_reliability_bins=12, max_bin_edge_percentile=99.5
+        num_heating_rate_bins=num_heating_rate_bins,
+        min_heating_rate_k_day01=min_heating_rate_k_day01,
+        max_heating_rate_k_day01=max_heating_rate_k_day01,
+        min_heating_rate_percentile=min_heating_rate_percentile,
+        max_heating_rate_percentile=max_heating_rate_percentile,
+        num_flux_bins=num_flux_bins,
+        min_raw_flux_w_m02=min_raw_flux_w_m02,
+        max_raw_flux_w_m02=max_raw_flux_w_m02,
+        min_net_flux_w_m02=min_net_flux_w_m02,
+        max_net_flux_w_m02=max_net_flux_w_m02,
+        min_flux_percentile=min_flux_percentile,
+        max_flux_percentile=max_flux_percentile
     )
     print(SEPARATOR_STRING)
 
@@ -201,6 +362,32 @@ if __name__ == '__main__':
         prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
         num_bootstrap_reps=getattr(
             INPUT_ARG_OBJECT, NUM_BOOTSTRAP_REPS_ARG_NAME
+        ),
+        num_heating_rate_bins=getattr(
+            INPUT_ARG_OBJECT, NUM_HEATING_RATE_BINS_ARG_NAME
+        ),
+        min_heating_rate_k_day01=getattr(
+            INPUT_ARG_OBJECT, MIN_HEATING_RATE_ARG_NAME
+        ),
+        max_heating_rate_k_day01=getattr(
+            INPUT_ARG_OBJECT, MAX_HEATING_RATE_ARG_NAME
+        ),
+        min_heating_rate_percentile=getattr(
+            INPUT_ARG_OBJECT, MIN_HEATING_RATE_PRCTILE_ARG_NAME
+        ),
+        max_heating_rate_percentile=getattr(
+            INPUT_ARG_OBJECT, MAX_HEATING_RATE_PRCTILE_ARG_NAME
+        ),
+        num_flux_bins=getattr(INPUT_ARG_OBJECT, NUM_FLUX_BINS_ARG_NAME),
+        min_raw_flux_w_m02=getattr(INPUT_ARG_OBJECT, MIN_RAW_FLUX_ARG_NAME),
+        max_raw_flux_w_m02=getattr(INPUT_ARG_OBJECT, MAX_RAW_FLUX_ARG_NAME),
+        min_net_flux_w_m02=getattr(INPUT_ARG_OBJECT, MIN_NET_FLUX_ARG_NAME),
+        max_net_flux_w_m02=getattr(INPUT_ARG_OBJECT, MAX_NET_FLUX_ARG_NAME),
+        min_flux_percentile=getattr(
+            INPUT_ARG_OBJECT, MIN_FLUX_PRCTILE_ARG_NAME
+        ),
+        max_flux_percentile=getattr(
+            INPUT_ARG_OBJECT, MAX_FLUX_PRCTILE_ARG_NAME
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

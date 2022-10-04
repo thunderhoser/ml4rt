@@ -57,8 +57,6 @@ ZERO_SKILL_LINE_WIDTH = 2.
 POSITIVE_SKILL_AREA_OPACITY = 0.2
 
 HISTOGRAM_FACE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
-HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
-HISTOGRAM_EDGE_WIDTH = 2.
 HISTOGRAM_FONT_SIZE = 24
 
 TAYLOR_TARGET_MARKER_TYPE = '*'
@@ -312,22 +310,26 @@ def plot_inset_histogram(
 
     inset_axes_object.bar(
         fake_bin_centers[real_indices], bin_frequencies[real_indices], 1.,
-        color=bar_colour, edgecolor=HISTOGRAM_EDGE_COLOUR,
-        linewidth=HISTOGRAM_EDGE_WIDTH
+        color=bar_colour, linewidth=0
     )
     inset_axes_object.set_ylim(bottom=0.)
 
-    tick_indices = []
+    this_spacing = int(numpy.floor(
+        0.1 * len(real_indices)
+    ))
+    tick_indices = real_indices[::this_spacing]
 
-    for i in real_indices:
-        if numpy.mod(i, 2) == 0:
-            tick_indices.append(i)
-            continue
-
-        if i - 1 in real_indices or i + 1 in real_indices:
-            continue
-
-        tick_indices.append(i)
+    # tick_indices = []
+    #
+    # for i in real_indices:
+    #     if numpy.mod(i, 2) == 0:
+    #         tick_indices.append(i)
+    #         continue
+    #
+    #     if i - 1 in real_indices or i + 1 in real_indices:
+    #         continue
+    #
+    #     tick_indices.append(i)
 
     x_tick_values = fake_bin_centers[tick_indices]
     x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
