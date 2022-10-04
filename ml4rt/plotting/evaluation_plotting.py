@@ -49,7 +49,7 @@ ZERO_SKILL_LINE_WIDTH = 2.
 POSITIVE_SKILL_AREA_OPACITY = 0.2
 
 HISTOGRAM_FACE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
-HISTOGRAM_FONT_SIZE = 24
+HISTOGRAM_FONT_SIZE = 21
 
 TAYLOR_TARGET_MARKER_TYPE = '*'
 TAYLOR_TARGET_MARKER_SIZE = 24
@@ -306,7 +306,7 @@ def plot_inset_histogram(
     )
     inset_axes_object.set_ylim(bottom=0.)
 
-    this_spacing = int(numpy.ceil(
+    this_spacing = int(numpy.floor(
         0.1 * len(real_indices)
     ))
     tick_indices = real_indices[::this_spacing]
