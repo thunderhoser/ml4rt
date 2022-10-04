@@ -807,7 +807,7 @@ def _plot_error_distributions(
                     axes_object=axes_object
                 )
 
-                bin_edges = numpy.linspace(-51, 11, num=62, dtype=int)
+                bin_edges = numpy.linspace(-51, 11, num=63, dtype=int)
 
             y_tick_strings = [
                 '[{0:d}, {1:d})'.format(a, b) for a, b in
