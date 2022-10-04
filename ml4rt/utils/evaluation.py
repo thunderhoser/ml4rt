@@ -14,7 +14,7 @@ from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
 DEFAULT_NUM_RELIABILITY_BINS = 20
-DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.
+DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.5
 
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
 SHORTWAVE_LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
@@ -504,8 +504,13 @@ def _get_scores_one_replicate(
         )
 
         if num_examples == 0:
+            min_bin_edge = 0.
             max_bin_edge = 1.
         else:
+            min_bin_edge = numpy.percentile(
+                full_scalar_prediction_matrix[:, k],
+                100. - max_bin_edge_percentile
+            )
             max_bin_edge = numpy.percentile(
                 full_scalar_prediction_matrix[:, k], max_bin_edge_percentile
             )
@@ -517,7 +522,7 @@ def _get_scores_one_replicate(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
             num_bins=num_reliability_bins,
-            min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+            min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
         )[:2]
 
         if i == 0:
@@ -528,7 +533,8 @@ def _get_scores_one_replicate(
                 target_values=full_scalar_target_matrix[:, k],
                 predicted_values=full_scalar_prediction_matrix[:, k],
                 num_bins=num_reliability_bins,
-                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+                min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                invert=False
             )
 
             if full_scalar_target_matrix.size > 0:
@@ -556,7 +562,8 @@ def _get_scores_one_replicate(
                 target_values=full_scalar_target_matrix[:, k],
                 predicted_values=full_scalar_prediction_matrix[:, k],
                 num_bins=num_reliability_bins,
-                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
+                min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                invert=True
             )
 
     for k in range(num_vector_targets):
@@ -614,8 +621,13 @@ def _get_scores_one_replicate(
             )
 
             if num_examples == 0:
+                min_bin_edge = 0.
                 max_bin_edge = 1.
             else:
+                min_bin_edge = numpy.percentile(
+                    full_vector_prediction_matrix[:, j, k],
+                    100. - max_bin_edge_percentile
+                )
                 max_bin_edge = numpy.percentile(
                     full_vector_prediction_matrix[:, j, k],
                     max_bin_edge_percentile
@@ -628,7 +640,8 @@ def _get_scores_one_replicate(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
                 num_bins=num_reliability_bins,
-                min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+                min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                invert=False
             )[:2]
 
             if i == 0:
@@ -639,7 +652,8 @@ def _get_scores_one_replicate(
                     target_values=full_vector_target_matrix[:, j, k],
                     predicted_values=full_vector_prediction_matrix[:, j, k],
                     num_bins=num_reliability_bins,
-                    min_bin_edge=0., max_bin_edge=max_bin_edge, invert=False
+                    min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                    invert=False
                 )
 
                 if full_vector_target_matrix.size > 0:
@@ -667,7 +681,8 @@ def _get_scores_one_replicate(
                     target_values=full_vector_target_matrix[:, j, k],
                     predicted_values=full_vector_prediction_matrix[:, j, k],
                     num_bins=num_reliability_bins,
-                    min_bin_edge=0., max_bin_edge=max_bin_edge, invert=True
+                    min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                    invert=True
                 )
 
     for k in range(num_aux_targets):
