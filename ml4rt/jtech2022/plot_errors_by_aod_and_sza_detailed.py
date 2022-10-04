@@ -471,7 +471,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
         else:
             channel_index = training_option_dict[
                 neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
+            ].index(TARGET_NAME_BY_STATISTIC[k])
 
             actual_values = (
                 pd[prediction_io.SCALAR_TARGETS_KEY][..., channel_index]

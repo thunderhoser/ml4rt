@@ -410,6 +410,10 @@ def _plot_attributes_diagram(
         for a in mean_predictions_by_set + mean_observations_by_set
         if a is not None
     ])
+
+    if numpy.all(numpy.isnan(concat_values)):
+        return
+
     max_value_to_plot = numpy.nanpercentile(concat_values, 100.)
     min_value_to_plot = numpy.nanpercentile(concat_values, 0.)
 
@@ -753,6 +757,80 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
+                output_dir_name, vector_target_names[k].replace('_', '-'),
+                set_descriptions_abbrev[i]
+            )
+
+            print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+            figure_object.savefig(
+                figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+                pad_inches=0, bbox_inches='tight'
+            )
+            pyplot.close(figure_object)
+
+            figure_object, axes_object = pyplot.subplots(
+                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+            )
+
+            these_actual_values = prediction_dicts[i][
+                prediction_io.VECTOR_TARGETS_KEY
+            ][..., k]
+
+            these_predicted_values = prediction_dicts[i][
+                prediction_io.VECTOR_PREDICTIONS_KEY
+            ][..., k]
+
+            if 'shortwave' in vector_target_names[k]:
+                evaluation_plotting.plot_error_dist_by_actual_value(
+                    actual_values=these_actual_values,
+                    predicted_values=these_predicted_values,
+                    min_bin_edge=0, max_bin_edge=41, num_bins=41,
+                    min_error_to_plot=-2.5, max_error_to_plot=2.5,
+                    axes_object=axes_object
+                )
+
+                bin_edges = numpy.linspace(0, 41, num=42, dtype=int)
+            else:
+                evaluation_plotting.plot_error_dist_by_actual_value(
+                    actual_values=these_actual_values,
+                    predicted_values=these_predicted_values,
+                    min_bin_edge=-51, max_bin_edge=11, num_bins=62,
+                    min_error_to_plot=-5., max_error_to_plot=10.,
+                    axes_object=axes_object
+                )
+
+                bin_edges = numpy.linspace(-51, 11, num=62, dtype=int)
+
+            y_tick_strings = [
+                '[{0:d}, {1:d})'.format(a, b) for a, b in
+                zip(bin_edges[:-1], bin_edges[1:])
+            ]
+            y_tick_strings[0] = '< {0:d}'.format(bin_edges[1])
+            y_tick_strings[1] = '>= {0:d}'.format(bin_edges[-2])
+
+            for j in range(len(y_tick_strings)):
+                if j == 0 or j == len(y_tick_strings) - 1:
+                    continue
+                if numpy.mod(j, 3) == 0:
+                    continue
+
+                y_tick_strings[j] = ' '
+
+            axes_object.set_yticklabels(y_tick_strings)
+            axes_object.set_ylabel(r'Actual heating rate (K day$^{-1}$)')
+
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[k]],
+                TARGET_NAME_TO_UNITS[vector_target_names[k]]
+            )
+            if num_evaluation_sets > 1:
+                title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
+
+            axes_object.set_title(title_string)
+
+            figure_file_name = (
+                '{0:s}/{1:s}_error-dist-by-actual-value_{2:s}.jpg'
+            ).format(
                 output_dir_name, vector_target_names[k].replace('_', '-'),
                 set_descriptions_abbrev[i]
             )

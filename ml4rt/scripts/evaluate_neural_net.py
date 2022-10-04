@@ -201,6 +201,11 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
     :param output_dir_name: Same.
     """
 
+    if min_actual_hr_to_eval_k_day01 < -1e9:
+        min_actual_hr_to_eval_k_day01 = -numpy.inf
+    if max_actual_hr_to_eval_k_day01 > 1e9:
+        max_actual_hr_to_eval_k_day01 = numpy.inf
+
     if min_heating_rate_k_day01 >= max_heating_rate_k_day01:
         min_heating_rate_k_day01 = None
         max_heating_rate_k_day01 = None

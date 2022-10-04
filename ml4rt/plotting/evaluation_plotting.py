@@ -309,6 +309,7 @@ def plot_inset_histogram(
     this_spacing = int(numpy.floor(
         0.1 * len(real_indices)
     ))
+    this_spacing = max([this_spacing, 1])
     tick_indices = real_indices[::this_spacing]
 
     # tick_indices = []
@@ -860,6 +861,72 @@ def plot_error_dist_many_heights(
 
     axes_object.set_yticklabels(y_tick_strings)
     axes_object.set_ylabel('Height (km AGL)')
+
+
+def plot_error_dist_by_actual_value(
+        actual_values, predicted_values, min_bin_edge, max_bin_edge, num_bins,
+        min_error_to_plot, max_error_to_plot, axes_object):
+    """Plots error distribution by observed value -- many boxplots on same axes.
+
+    E = number of examples
+
+    :param actual_values: length-E numpy array of observed values.
+    :param predicted_values: length-E numpy array of predicted values.
+    :param min_bin_edge: Minimum observed value in lowest bin.
+    :param max_bin_edge: Max observed value in highest bin.
+    :param num_bins: Number of bins.
+    :param min_error_to_plot: Lower limit of x-axis.
+    :param max_error_to_plot: Upper limit of x-axis.
+    :param axes_object: Will plot on these axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array_without_nan(actual_values)
+    error_checking.assert_is_numpy_array(actual_values, num_dimensions=1)
+
+    num_examples = len(actual_values)
+    error_checking.assert_is_numpy_array_without_nan(predicted_values)
+    error_checking.assert_is_numpy_array(
+        predicted_values,
+        exact_dimensions=numpy.array([num_examples], dtype=int)
+    )
+
+    error_checking.assert_is_greater(max_bin_edge, min_bin_edge)
+    error_checking.assert_is_integer(num_bins)
+    error_checking.assert_is_greater(num_bins, 1)
+
+    bin_edges = numpy.linspace(
+        min_bin_edge, max_bin_edge, num=num_bins + 1, dtype=float
+    )
+    bin_edges[0] = -numpy.inf
+    bin_edges[-1] = numpy.inf
+
+    # Do plotting.
+    boxplot_style_dict = {
+        'color': 'k',
+        'linewidth': 2
+    }
+    y_values = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=float)
+
+    for j in range(num_bins):
+        these_indices = numpy.where(numpy.logical_and(
+            actual_values >= bin_edges[j],
+            actual_values < bin_edges[j + 1]
+        ))[0]
+
+        if len(these_indices) == 0:
+            continue
+
+        axes_object.boxplot(
+            predicted_values[these_indices] - actual_values[these_indices],
+            widths=0.9, vert=False, notch=False, sym='o', whis=(5, 95),
+            medianprops=boxplot_style_dict, boxprops=boxplot_style_dict,
+            whiskerprops=boxplot_style_dict, capprops=boxplot_style_dict,
+            positions=y_values[[j]]
+        )
+
+    axes_object.set_xlim(min_error_to_plot, max_error_to_plot)
 
 
 def plot_rel_curve_many_heights(
