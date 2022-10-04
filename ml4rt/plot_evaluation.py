@@ -417,8 +417,8 @@ def _plot_attributes_diagram(
         for a in mean_predictions_by_set + mean_observations_by_set
         if a is not None
     ])
-    max_value_to_plot = numpy.nanpercentile(concat_values, 99.9)
-    min_value_to_plot = numpy.nanpercentile(concat_values, 0.1)
+    max_value_to_plot = numpy.nanpercentile(concat_values, 100.)
+    min_value_to_plot = numpy.nanpercentile(concat_values, 0.)
 
     num_evaluation_sets = len(evaluation_tables_xarray)
 
@@ -943,8 +943,8 @@ def _plot_reliability_by_height(
             concat_matrix = numpy.concatenate(
                 (mean_prediction_matrix, mean_target_matrix), axis=0
             )
-            min_value_to_plot = numpy.nanpercentile(concat_matrix, 0.1)
-            max_value_to_plot = numpy.nanpercentile(concat_matrix, 99.9)
+            min_value_to_plot = numpy.nanpercentile(concat_matrix, 0.)
+            max_value_to_plot = numpy.nanpercentile(concat_matrix, 100.)
 
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
