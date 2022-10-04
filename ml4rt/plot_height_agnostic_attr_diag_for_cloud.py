@@ -146,7 +146,7 @@ def _run(prediction_file_name, min_lwc_kg_m03, example_dir_name, plot_shortwave,
 
     error_checking.assert_is_greater(min_lwc_kg_m03, 0.)
 
-    print('Reading data from: "{0:s}"...'.format(prediction_io))
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
