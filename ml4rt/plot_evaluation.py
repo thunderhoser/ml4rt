@@ -814,7 +814,7 @@ def _plot_error_distributions(
                 zip(bin_edges[:-1], bin_edges[1:])
             ]
             y_tick_strings[0] = '< {0:d}'.format(bin_edges[1])
-            y_tick_strings[1] = '>= {0:d}'.format(bin_edges[-2])
+            y_tick_strings[-1] = '>= {0:d}'.format(bin_edges[-2])
 
             for j in range(len(y_tick_strings)):
                 if j == 0 or j == len(y_tick_strings) - 1:
