@@ -13,9 +13,6 @@ from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 
-DEFAULT_NUM_RELIABILITY_BINS = 20
-DEFAULT_MAX_BIN_EDGE_PERCENTILE = 99.5
-
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
 SHORTWAVE_LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
 SHORTWAVE_HIGHEST_UP_FLUX_NAME = 'highest_shortwave_up_flux_w_m02'
@@ -29,7 +26,8 @@ HEIGHT_DIM = 'height_m_agl'
 VECTOR_FIELD_DIM = 'vector_field'
 AUX_TARGET_FIELD_DIM = 'aux_target_field'
 AUX_PREDICTED_FIELD_DIM = 'aux_predicted_field'
-RELIABILITY_BIN_DIM = 'reliability_bin'
+FLUX_BIN_DIM = 'flux_bin'
+HEATING_RATE_BIN_DIM = 'heating_rate_bin'
 BOOTSTRAP_REP_DIM = 'bootstrap_replicate'
 
 SCALAR_TARGET_STDEV_KEY = 'scalar_target_stdev'
@@ -349,8 +347,8 @@ def _get_rel_curve_one_scalar(
     :return: example_counts: length-B numpy array with num examples in each bin.
     """
 
-    max_bin_edge = max([max_bin_edge, numpy.finfo(float).eps])
-    min_bin_edge = min([min_bin_edge, 0.])
+    # max_bin_edge = max([max_bin_edge, numpy.finfo(float).eps])
+    # min_bin_edge = min([min_bin_edge, 0.])
 
     bin_index_by_example = histograms.create_histogram(
         input_values=target_values if invert else predicted_values,
@@ -376,7 +374,12 @@ def _get_rel_curve_one_scalar(
 def _get_scores_one_replicate(
         result_table_xarray, prediction_dict, replicate_index,
         example_indices_in_replicate, mean_training_example_dict,
-        max_bin_edge_percentile, climo_shortwave_net_flux_w_m02=None,
+        min_heating_rate_k_day01, max_heating_rate_k_day01,
+        min_heating_rate_percentile, max_heating_rate_percentile,
+        min_raw_flux_w_m02, max_raw_flux_w_m02,
+        min_net_flux_w_m02, max_net_flux_w_m02,
+        min_flux_percentile, max_flux_percentile,
+        climo_shortwave_net_flux_w_m02=None,
         climo_longwave_net_flux_w_m02=None):
     """Computes scores for one bootstrap replicate.
 
@@ -406,7 +409,16 @@ def _get_scores_one_replicate(
         examples in this bootstrap replicate.
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
-    :param max_bin_edge_percentile: See doc for `get_scores_all_variables`.
+    :param min_heating_rate_k_day01: See doc for `get_scores_all_variables`.
+    :param max_heating_rate_k_day01: Same.
+    :param min_heating_rate_percentile: Same.
+    :param max_heating_rate_percentile: Same.
+    :param min_raw_flux_w_m02: Same.
+    :param max_raw_flux_w_m02: Same.
+    :param min_net_flux_w_m02: Same.
+    :param max_net_flux_w_m02: Same.
+    :param min_flux_percentile: Same.
+    :param max_flux_percentile: Same.
     :param climo_shortwave_net_flux_w_m02: Average shortwave net flux (W m^-2)
         in training data.  If auxiliary target variables do not include
         shortwave net flux, leave this alone.
@@ -448,7 +460,6 @@ def _get_scores_one_replicate(
     num_scalar_targets = scalar_target_matrix.shape[-1]
     num_heights = vector_target_matrix.shape[-2]
     num_vector_targets = vector_target_matrix.shape[-1]
-    num_reliability_bins = len(t.coords[RELIABILITY_BIN_DIM].values)
 
     if AUX_TARGET_FIELD_DIM in t.coords:
         aux_target_field_names = t.coords[AUX_TARGET_FIELD_DIM].values
@@ -506,13 +517,15 @@ def _get_scores_one_replicate(
         if num_examples == 0:
             min_bin_edge = 0.
             max_bin_edge = 1.
+        elif min_raw_flux_w_m02 is not None:
+            min_bin_edge = min_raw_flux_w_m02 + 0.
+            max_bin_edge = max_raw_flux_w_m02 + 0.
         else:
             min_bin_edge = numpy.percentile(
-                full_scalar_prediction_matrix[:, k],
-                100. - max_bin_edge_percentile
+                full_scalar_prediction_matrix[:, k], min_flux_percentile
             )
             max_bin_edge = numpy.percentile(
-                full_scalar_prediction_matrix[:, k], max_bin_edge_percentile
+                full_scalar_prediction_matrix[:, k], max_flux_percentile
             )
 
         (
@@ -521,7 +534,7 @@ def _get_scores_one_replicate(
         ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
-            num_bins=num_reliability_bins,
+            num_bins=len(t.coords[FLUX_BIN_DIM].values),
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
         )[:2]
 
@@ -532,7 +545,7 @@ def _get_scores_one_replicate(
             ) = _get_rel_curve_one_scalar(
                 target_values=full_scalar_target_matrix[:, k],
                 predicted_values=full_scalar_prediction_matrix[:, k],
-                num_bins=num_reliability_bins,
+                num_bins=len(t.coords[FLUX_BIN_DIM].values),
                 min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                 invert=False
             )
@@ -561,7 +574,7 @@ def _get_scores_one_replicate(
             ) = _get_rel_curve_one_scalar(
                 target_values=full_scalar_target_matrix[:, k],
                 predicted_values=full_scalar_prediction_matrix[:, k],
-                num_bins=num_reliability_bins,
+                num_bins=len(t.coords[FLUX_BIN_DIM].values),
                 min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                 invert=True
             )
@@ -623,14 +636,17 @@ def _get_scores_one_replicate(
             if num_examples == 0:
                 min_bin_edge = 0.
                 max_bin_edge = 1.
+            elif min_heating_rate_k_day01 is not None:
+                min_bin_edge = min_heating_rate_k_day01 + 0.
+                max_bin_edge = max_heating_rate_k_day01 + 0.
             else:
                 min_bin_edge = numpy.percentile(
                     full_vector_prediction_matrix[:, j, k],
-                    100. - max_bin_edge_percentile
+                    min_heating_rate_percentile
                 )
                 max_bin_edge = numpy.percentile(
                     full_vector_prediction_matrix[:, j, k],
-                    max_bin_edge_percentile
+                    max_heating_rate_percentile
                 )
 
             (
@@ -639,7 +655,7 @@ def _get_scores_one_replicate(
             ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[:, j, k],
                 predicted_values=vector_prediction_matrix[:, j, k],
-                num_bins=num_reliability_bins,
+                num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                 min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                 invert=False
             )[:2]
@@ -651,7 +667,7 @@ def _get_scores_one_replicate(
                 ) = _get_rel_curve_one_scalar(
                     target_values=full_vector_target_matrix[:, j, k],
                     predicted_values=full_vector_prediction_matrix[:, j, k],
-                    num_bins=num_reliability_bins,
+                    num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                     min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                     invert=False
                 )
@@ -680,7 +696,7 @@ def _get_scores_one_replicate(
                 ) = _get_rel_curve_one_scalar(
                     target_values=full_vector_target_matrix[:, j, k],
                     predicted_values=full_vector_prediction_matrix[:, j, k],
-                    num_bins=num_reliability_bins,
+                    num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                     min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                     invert=True
                 )
@@ -751,12 +767,15 @@ def _get_scores_one_replicate(
         if num_examples == 0:
             min_bin_edge = 0.
             max_bin_edge = 1.
+        elif min_net_flux_w_m02 is not None:
+            min_bin_edge = min_net_flux_w_m02 + 0.
+            max_bin_edge = max_net_flux_w_m02 + 0.
         else:
             min_bin_edge = numpy.percentile(
-                full_aux_prediction_matrix[:, k], 100. - max_bin_edge_percentile
+                full_aux_prediction_matrix[:, k], min_flux_percentile
             )
             max_bin_edge = numpy.percentile(
-                full_aux_prediction_matrix[:, k], max_bin_edge_percentile
+                full_aux_prediction_matrix[:, k], max_flux_percentile
             )
 
         (
@@ -765,8 +784,8 @@ def _get_scores_one_replicate(
         ) = _get_rel_curve_one_scalar(
             target_values=aux_target_matrix[:, k],
             predicted_values=aux_prediction_matrix[:, k],
-            num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
-            max_bin_edge=max_bin_edge, invert=False
+            num_bins=len(t.coords[FLUX_BIN_DIM].values),
+            min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
         )[:2]
 
         if i == 0:
@@ -776,8 +795,9 @@ def _get_scores_one_replicate(
             ) = _get_rel_curve_one_scalar(
                 target_values=full_aux_target_matrix[:, k],
                 predicted_values=full_aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
-                max_bin_edge=max_bin_edge, invert=False
+                num_bins=len(t.coords[FLUX_BIN_DIM].values),
+                min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                invert=False
             )
 
             if full_aux_target_matrix.size > 0:
@@ -808,8 +828,9 @@ def _get_scores_one_replicate(
             ) = _get_rel_curve_one_scalar(
                 target_values=full_aux_target_matrix[:, k],
                 predicted_values=full_aux_prediction_matrix[:, k],
-                num_bins=num_reliability_bins, min_bin_edge=min_bin_edge,
-                max_bin_edge=max_bin_edge, invert=True
+                num_bins=len(t.coords[FLUX_BIN_DIM].values),
+                min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
+                invert=True
             )
 
     return t
@@ -1019,22 +1040,42 @@ def get_aux_fields(prediction_dict, example_dict):
 
 
 def get_scores_all_variables(
-        prediction_file_name, num_bootstrap_reps,
-        num_reliability_bins=DEFAULT_NUM_RELIABILITY_BINS,
-        max_bin_edge_percentile=DEFAULT_MAX_BIN_EDGE_PERCENTILE):
+        prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
+        min_heating_rate_k_day01, max_heating_rate_k_day01,
+        min_heating_rate_percentile, max_heating_rate_percentile,
+        num_flux_bins, min_raw_flux_w_m02, max_raw_flux_w_m02,
+        min_net_flux_w_m02, max_net_flux_w_m02,
+        min_flux_percentile, max_flux_percentile):
     """Computes desired scores for all target variables.
 
     :param prediction_file_name: Path to file with predictions that will be
         evaluated.  This file will be read by `prediction_io.read_file`.
     :param num_bootstrap_reps: Number of bootstrap replicates.
-    :param num_reliability_bins: [used only if `get_reliability_curve == True`]
-        Number of bins for each reliability curve.
-    :param max_bin_edge_percentile:
-        [used only if `get_reliability_curve == True`]
-        Used to find upper edge of last bin for reliability curves.  For each
-        scalar target variable y, the upper edge of the last bin will be the
-        [q]th percentile of y-values, where q = `max_bin_edge_percentile`.
-
+    :param num_heating_rate_bins: Number of heating-rate bins for reliability
+        curves.
+    :param min_heating_rate_k_day01: Minimum heating rate (Kelvins per day) for
+        reliability curves.  If you instead want minimum heating rate to be a
+        percentile over the data -- chosen independently at each height -- make
+        this argument None.
+    :param max_heating_rate_k_day01: Same as above but max heating rate.
+    :param min_heating_rate_percentile: Determines minimum heating rate for
+        reliability curves.  This percentile (ranging from 0...100) will be
+        taken independently at each height.
+    :param max_heating_rate_percentile: Same as above but max heating rate.
+    :param num_flux_bins: Number of flux bins for reliability curves.
+    :param min_raw_flux_w_m02: Minimum raw flux (surface downwelling or TOA
+        upwelling) for reliability curves.  If you instead want minimum flux to
+        be a percentile over the data -- chosen independently for each flux
+        variable -- leave this argument alone.
+    :param max_raw_flux_w_m02: Same as above but max raw flux.
+    :param min_net_flux_w_m02: Minimum net flux for reliability curves.  If you
+        instead want minimum net flux to be a percentile over the data, leave
+        this argument alone.
+    :param max_net_flux_w_m02: Same as above but max net flux.
+    :param min_flux_percentile: Determines minimum flux for reliability curves.
+        This percentile (ranging from 0...100) will be taken independently for
+        each flux variable.
+    :param max_flux_percentile: Same as above but for max flux.
     :return: result_table_xarray: xarray table with results (variable and
         dimension names should make the table self-explanatory).
     """
@@ -1042,11 +1083,31 @@ def get_scores_all_variables(
     error_checking.assert_is_string(prediction_file_name)
     error_checking.assert_is_integer(num_bootstrap_reps)
     error_checking.assert_is_greater(num_bootstrap_reps, 0)
-    error_checking.assert_is_integer(num_reliability_bins)
-    error_checking.assert_is_geq(num_reliability_bins, 10)
-    error_checking.assert_is_leq(num_reliability_bins, 1000)
-    error_checking.assert_is_geq(max_bin_edge_percentile, 90.)
-    error_checking.assert_is_leq(max_bin_edge_percentile, 100.)
+    error_checking.assert_is_integer(num_heating_rate_bins)
+    error_checking.assert_is_geq(num_heating_rate_bins, 10)
+    error_checking.assert_is_leq(num_heating_rate_bins, 100)
+    error_checking.assert_is_integer(num_flux_bins)
+    error_checking.assert_is_geq(num_flux_bins, 10)
+    error_checking.assert_is_leq(num_flux_bins, 100)
+
+    if min_heating_rate_k_day01 is None or max_heating_rate_k_day01 is None:
+        error_checking.assert_is_leq(min_heating_rate_percentile, 10.)
+        error_checking.assert_is_geq(max_heating_rate_percentile, 90.)
+    else:
+        error_checking.assert_is_greater(
+            max_heating_rate_k_day01, min_heating_rate_k_day01
+        )
+
+    if (
+            min_raw_flux_w_m02 is None or max_raw_flux_w_m02 is None or
+            min_net_flux_w_m02 is None or max_net_flux_w_m02 is None
+    ):
+        error_checking.assert_is_leq(min_flux_percentile, 10.)
+        error_checking.assert_is_geq(max_flux_percentile, 90.)
+    else:
+        error_checking.assert_is_geq(min_raw_flux_w_m02, 0.)
+        error_checking.assert_is_greater(max_raw_flux_w_m02, min_raw_flux_w_m02)
+        error_checking.assert_is_greater(max_net_flux_w_m02, min_net_flux_w_m02)
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
@@ -1197,10 +1258,10 @@ def get_scores_all_variables(
     }
 
     these_dimensions = (
-        num_scalar_targets, num_reliability_bins, num_bootstrap_reps
+        num_scalar_targets, num_flux_bins, num_bootstrap_reps
     )
     these_dim_keys = (
-        SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM, BOOTSTRAP_REP_DIM
+        SCALAR_FIELD_DIM, FLUX_BIN_DIM, BOOTSTRAP_REP_DIM
     )
     new_dict = {
         SCALAR_RELIABILITY_X_KEY: (
@@ -1212,8 +1273,8 @@ def get_scores_all_variables(
     }
     main_data_dict.update(new_dict)
 
-    these_dimensions = (num_scalar_targets, num_reliability_bins)
-    these_dim_keys = (SCALAR_FIELD_DIM, RELIABILITY_BIN_DIM)
+    these_dimensions = (num_scalar_targets, num_flux_bins)
+    these_dim_keys = (SCALAR_FIELD_DIM, FLUX_BIN_DIM)
     new_dict = {
         SCALAR_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1291,11 +1352,11 @@ def get_scores_all_variables(
     main_data_dict.update(new_dict)
 
     these_dimensions = (
-        num_heights, num_vector_targets, num_reliability_bins,
+        num_heights, num_vector_targets, num_heating_rate_bins,
         num_bootstrap_reps
     )
     these_dim_keys = (
-        HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM,
+        HEIGHT_DIM, VECTOR_FIELD_DIM, HEATING_RATE_BIN_DIM,
         BOOTSTRAP_REP_DIM
     )
     new_dict = {
@@ -1308,8 +1369,8 @@ def get_scores_all_variables(
     }
     main_data_dict.update(new_dict)
 
-    these_dimensions = (num_heights, num_vector_targets, num_reliability_bins)
-    these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM, RELIABILITY_BIN_DIM)
+    these_dimensions = (num_heights, num_vector_targets, num_heating_rate_bins)
+    these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM, HEATING_RATE_BIN_DIM)
     new_dict = {
         VECTOR_RELIA_BIN_CENTER_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1379,10 +1440,10 @@ def get_scores_all_variables(
         main_data_dict.update(new_dict)
 
         these_dimensions = (
-            num_aux_targets, num_reliability_bins, num_bootstrap_reps
+            num_aux_targets, num_flux_bins, num_bootstrap_reps
         )
         these_dim_keys = (
-            AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM, BOOTSTRAP_REP_DIM
+            AUX_TARGET_FIELD_DIM, FLUX_BIN_DIM, BOOTSTRAP_REP_DIM
         )
         new_dict = {
             AUX_RELIABILITY_X_KEY: (
@@ -1394,8 +1455,8 @@ def get_scores_all_variables(
         }
         main_data_dict.update(new_dict)
 
-        these_dimensions = (num_aux_targets, num_reliability_bins)
-        these_dim_keys = (AUX_TARGET_FIELD_DIM, RELIABILITY_BIN_DIM)
+        these_dimensions = (num_aux_targets, num_flux_bins)
+        these_dim_keys = (AUX_TARGET_FIELD_DIM, FLUX_BIN_DIM)
         new_dict = {
             AUX_RELIA_BIN_CENTER_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
@@ -1424,8 +1485,11 @@ def get_scores_all_variables(
         }
         main_data_dict.update(new_dict)
 
-    bin_indices = numpy.linspace(
-        0, num_reliability_bins - 1, num=num_reliability_bins, dtype=int
+    flux_bin_indices = numpy.linspace(
+        0, num_flux_bins - 1, num=num_flux_bins, dtype=int
+    )
+    heating_rate_bin_indices = numpy.linspace(
+        0, num_heating_rate_bins - 1, num=num_heating_rate_bins, dtype=int
     )
     bootstrap_indices = numpy.linspace(
         0, num_bootstrap_reps - 1, num=num_bootstrap_reps, dtype=int
@@ -1437,7 +1501,8 @@ def get_scores_all_variables(
         HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM:
             mean_training_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
-        RELIABILITY_BIN_DIM: bin_indices,
+        FLUX_BIN_DIM: flux_bin_indices,
+        HEATING_RATE_BIN_DIM: heating_rate_bin_indices,
         BOOTSTRAP_REP_DIM: bootstrap_indices
     }
 
@@ -1478,7 +1543,16 @@ def get_scores_all_variables(
             prediction_dict=prediction_dict, replicate_index=i,
             example_indices_in_replicate=these_indices,
             mean_training_example_dict=mean_training_example_dict,
-            max_bin_edge_percentile=max_bin_edge_percentile,
+            min_heating_rate_k_day01=min_heating_rate_k_day01,
+            max_heating_rate_k_day01=max_heating_rate_k_day01,
+            min_heating_rate_percentile=min_heating_rate_percentile,
+            max_heating_rate_percentile=max_heating_rate_percentile,
+            min_raw_flux_w_m02=min_raw_flux_w_m02,
+            max_raw_flux_w_m02=max_raw_flux_w_m02,
+            min_net_flux_w_m02=min_net_flux_w_m02,
+            max_net_flux_w_m02=max_net_flux_w_m02,
+            min_flux_percentile=min_flux_percentile,
+            max_flux_percentile=max_flux_percentile,
             climo_shortwave_net_flux_w_m02=climo_shortwave_net_flux_w_m02,
             climo_longwave_net_flux_w_m02=climo_longwave_net_flux_w_m02
         )
