@@ -11,20 +11,16 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_BOOTSTRAP_REPS_ARG_NAME = 'num_bootstrap_reps'
 NUM_HEATING_RATE_BINS_ARG_NAME = 'num_heating_rate_bins'
-MIN_HEATING_RATE_ARG_NAME = 'min_heating_rate_k_day01'
-MAX_HEATING_RATE_ARG_NAME = 'max_heating_rate_k_day01'
-MIN_HEATING_RATE_PRCTILE_ARG_NAME = 'min_heating_rate_percentile'
-MAX_HEATING_RATE_PRCTILE_ARG_NAME = 'max_heating_rate_percentile'
-NUM_FLUX_BINS_ARG_NAME = 'num_flux_bins'
-MIN_RAW_FLUX_ARG_NAME = 'min_raw_flux_w_m02'
-MAX_RAW_FLUX_ARG_NAME = 'max_raw_flux_w_m02'
-MIN_NET_FLUX_ARG_NAME = 'min_net_flux_w_m02'
-MAX_NET_FLUX_ARG_NAME = 'max_net_flux_w_m02'
-MIN_FLUX_PRCTILE_ARG_NAME = 'min_flux_percentile'
-MAX_FLUX_PRCTILE_ARG_NAME = 'max_flux_percentile'
-MIN_HEATING_TO_EVAL_ARG_NAME = 'min_actual_hr_to_eval_k_day01'
-MAX_HEATING_TO_EVAL_ARG_NAME = 'max_actual_hr_to_eval_k_day01'
-APPLY_MINMAX_PER_HEIGHT_ARG_NAME = 'apply_minmax_at_each_height'
+HEATING_RATE_LIMITS_ARG_NAME = 'heating_rate_limits_k_day01'
+HEATING_RATE_LIMITS_PRCTILE_ARG_NAME = 'heating_rate_limits_percentile'
+NUM_RAW_FLUX_BINS_ARG_NAME = 'num_raw_flux_bins'
+RAW_FLUX_LIMITS_ARG_NAME = 'raw_flux_limits_w_m02'
+RAW_FLUX_LIMITS_PRCTILE_ARG_NAME = 'raw_flux_limits_percentile'
+NUM_NET_FLUX_BINS_ARG_NAME = 'num_net_flux_bins'
+NET_FLUX_LIMITS_ARG_NAME = 'net_flux_limits_w_m02'
+NET_FLUX_LIMITS_PRCTILE_ARG_NAME = 'net_flux_limits_percentile'
+HR_LIMITS_TO_EVAL_ARG_NAME = 'heating_rate_limits_to_eval_k_day01'
+APPLY_EVAL_LIMITS_PER_HEIGHT_ARG_NAME = 'apply_eval_limits_per_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -32,62 +28,57 @@ INPUT_FILE_HELP_STRING = (
     'be read by `prediction_io.read_file`.'
 )
 NUM_BOOTSTRAP_REPS_HELP_STRING = 'Number of bootstrap replicates.'
-
 NUM_HEATING_RATE_BINS_HELP_STRING = (
     'Number of heating-rate bins for reliability curves.'
 )
-MIN_HEATING_RATE_HELP_STRING = (
-    'Minimum heating rate (Kelvins per day) for reliability curves.  If you '
-    'instead want minimum heating rate to be a percentile over the data -- '
-    'chosen independently at each height -- leave this argument alone.'
+HEATING_RATE_LIMITS_HELP_STRING = (
+    'Min and max heating rates (list of two values, in Kelvins per day) for '
+    'reliability curves.  If you want to specify min/max by percentiles '
+    'instead -- chosen independently at each height -- leave this argument '
+    'alone.'
 )
-MAX_HEATING_RATE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
-    MIN_HEATING_RATE_ARG_NAME
+HEATING_RATE_LIMITS_PRCTILE_HELP_STRING = (
+    'Min and max heating-rate percentiles -- taken independently at each '
+    'height -- for reliability curves.  If you want to specify min/max by '
+    'physical values instead, leave this argument alone.'
 )
-MIN_HEATING_RATE_PRCTILE_HELP_STRING = (
-    'Determines minimum heating rate for reliability curves.  This percentile '
-    '(ranging from 0...100) will be taken independently at each height.'
+NUM_RAW_FLUX_BINS_HELP_STRING = (
+    'Number of bins for reliability curves on raw flux variables (surface '
+    'downwelling and TOA upwelling).'
 )
-MAX_HEATING_RATE_PRCTILE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
-    MIN_HEATING_RATE_PRCTILE_ARG_NAME
+RAW_FLUX_LIMITS_HELP_STRING = (
+    'Min and max fluxes (list of two values, in Watts per m^2) for reliability '
+    'curves on raw flux variables (surface downwelling and TOA upwelling).  If '
+    'you want to specify min/max by percentiles instead -- chosen '
+    'independently for each variable -- leave this argument alone.'
 )
+RAW_FLUX_LIMITS_PRCTILE_HELP_STRING = (
+    'Min and max flux percentiles -- taken independently for each raw flux '
+    'variable (surface downwelling and TOA upwelling) -- for reliability '
+    'curves.  If you want to specify min/max by physical values instead, leave '
+    'this argument alone.'
+)
+NUM_NET_FLUX_BINS_HELP_STRING = 'Number of net-flux bins for reliability curve.'
+NET_FLUX_LIMITS_HELP_STRING = (
+    'Min and max net flux (list of two values, in Watts per m^2) for '
+    'reliability curve.  If you want to specify min/max by percentiles '
+    'instead, leave this argument alone.'
+)
+NET_FLUX_LIMITS_PRCTILE_HELP_STRING = (
+    'Min and max net-flux percentiles for reliability curve.  If you want to '
+    'specify min/max by physical values instead, leave this argument alone.'
+)
+HR_LIMITS_TO_EVAL_HELP_STRING = (
+    'Min and max heating rates (list of two values, in Kelvins per day) to '
+    'evaluate.  This script will evaluate only profiles containing at least '
+    'one pixel in the given range.'
+)
+APPLY_EVAL_LIMITS_PER_HEIGHT_HELP_STRING = (
+    'Boolean flag.  If 0, `{0:s}` will apply to full profiles.  If 1, `{0:s}` '
+    'will apply to individual pixels, so this script will evaluate only pixels '
+    'with a heating rate in the given range.'
+).format(HR_LIMITS_TO_EVAL_ARG_NAME)
 
-NUM_FLUX_BINS_HELP_STRING = 'Number of flux bins for reliability curves.'
-MIN_RAW_FLUX_HELP_STRING = (
-    'Minimum raw flux (surface downwelling or TOA upwelling) for reliability '
-    'curves.  If you instead want minimum flux to be a percentile over the '
-    'data -- chosen independently for each flux variable -- leave this '
-    'argument alone.'
-)
-MAX_RAW_FLUX_HELP_STRING = 'See documentation for `{0:s}`.'.format(
-    MIN_RAW_FLUX_ARG_NAME
-)
-MIN_NET_FLUX_HELP_STRING = (
-    'Minimum net flux for reliability curves.  If you instead want minimum net '
-    'flux to be a percentile over the data, leave this argument alone.'
-)
-MAX_NET_FLUX_HELP_STRING = 'See documentation for `{0:s}`.'.format(
-    MIN_NET_FLUX_ARG_NAME
-)
-MIN_FLUX_PRCTILE_HELP_STRING = (
-    'Determines minimum flux for reliability curves.  This percentile (ranging '
-    'from 0...100) will be taken independently for each flux variable.'
-)
-MAX_FLUX_PRCTILE_HELP_STRING = 'See documentation for `{0:s}`.'.format(
-    MIN_FLUX_PRCTILE_ARG_NAME
-)
-MIN_HEATING_TO_EVAL_HELP_STRING = (
-    'Will evaluate only profiles containing at least one actual heating rate '
-    'in [min value, max value].'
-)
-MAX_HEATING_TO_EVAL_HELP_STRING = 'See documentation for `{0:s}`.'.format(
-    MIN_HEATING_TO_EVAL_ARG_NAME
-)
-APPLY_MINMAX_PER_HEIGHT_HELP_STRING = (
-    'Boolean flag.  If 1, will apply min and max actual heating rate '
-    'independently to each height in each profile.  If 0, will just apply to '
-    'each profile.'
-)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Evaluation scores will be written here by '
     '`evaluation.write_file`, to a file name determined by '
@@ -108,60 +99,47 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_HEATING_RATE_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_HEATING_RATE_ARG_NAME, type=float, required=False, default=1,
-    help=MIN_HEATING_RATE_HELP_STRING
+    '--' + HEATING_RATE_LIMITS_ARG_NAME, type=float, nargs=2, required=False,
+    default=[1, -1], help=HEATING_RATE_LIMITS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_HEATING_RATE_ARG_NAME, type=float, required=False, default=-1,
-    help=MAX_HEATING_RATE_HELP_STRING
+    '--' + HEATING_RATE_LIMITS_PRCTILE_ARG_NAME, type=float, nargs=2,
+    required=False, default=[0.5, 99.5],
+    help=HEATING_RATE_LIMITS_PRCTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_HEATING_RATE_PRCTILE_ARG_NAME, type=float, required=False,
-    default=0.5, help=MIN_HEATING_RATE_PRCTILE_HELP_STRING
+    '--' + NUM_RAW_FLUX_BINS_ARG_NAME, type=int, required=False, default=20,
+    help=NUM_RAW_FLUX_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_HEATING_RATE_PRCTILE_ARG_NAME, type=float, required=False,
-    default=99.5, help=MAX_HEATING_RATE_PRCTILE_HELP_STRING
+    '--' + RAW_FLUX_LIMITS_ARG_NAME, type=float, nargs=2, required=False,
+    default=[1, -1], help=RAW_FLUX_LIMITS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_FLUX_BINS_ARG_NAME, type=int, required=False, default=20,
-    help=NUM_FLUX_BINS_HELP_STRING
+    '--' + RAW_FLUX_LIMITS_PRCTILE_ARG_NAME, type=float, nargs=2,
+    required=False, default=[0.5, 99.5],
+    help=RAW_FLUX_LIMITS_PRCTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_RAW_FLUX_ARG_NAME, type=float, required=False, default=1,
-    help=MIN_RAW_FLUX_HELP_STRING
+    '--' + NUM_NET_FLUX_BINS_ARG_NAME, type=int, required=False, default=20,
+    help=NUM_NET_FLUX_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_RAW_FLUX_ARG_NAME, type=float, required=False, default=-1,
-    help=MAX_RAW_FLUX_HELP_STRING
+    '--' + NET_FLUX_LIMITS_ARG_NAME, type=float, nargs=2, required=False,
+    default=[1, -1], help=NET_FLUX_LIMITS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_NET_FLUX_ARG_NAME, type=float, required=False, default=1,
-    help=MIN_NET_FLUX_HELP_STRING
+    '--' + NET_FLUX_LIMITS_PRCTILE_ARG_NAME, type=float, nargs=2,
+    required=False, default=[0.5, 99.5],
+    help=NET_FLUX_LIMITS_PRCTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_NET_FLUX_ARG_NAME, type=float, required=False, default=-1,
-    help=MAX_NET_FLUX_HELP_STRING
+    '--' + HR_LIMITS_TO_EVAL_ARG_NAME, type=float, nargs=2, required=False,
+    default=[-1e10, 1e10], help=HR_LIMITS_TO_EVAL_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_FLUX_PRCTILE_ARG_NAME, type=float, required=False,
-    default=0.5, help=MIN_FLUX_PRCTILE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_FLUX_PRCTILE_ARG_NAME, type=float, required=False,
-    default=99.5, help=MAX_FLUX_PRCTILE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_HEATING_TO_EVAL_ARG_NAME, type=float, required=False,
-    default=-1e10, help=MIN_HEATING_TO_EVAL_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_HEATING_TO_EVAL_ARG_NAME, type=float, required=False,
-    default=1e10, help=MAX_HEATING_TO_EVAL_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + APPLY_MINMAX_PER_HEIGHT_ARG_NAME, type=int, required=False,
-    default=0, help=APPLY_MINMAX_PER_HEIGHT_HELP_STRING
+    '--' + APPLY_EVAL_LIMITS_PER_HEIGHT_ARG_NAME, type=int, required=False,
+    default=0, help=APPLY_EVAL_LIMITS_PER_HEIGHT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -170,13 +148,11 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
-         min_heating_rate_k_day01, max_heating_rate_k_day01,
-         min_heating_rate_percentile, max_heating_rate_percentile,
-         num_flux_bins, min_raw_flux_w_m02, max_raw_flux_w_m02,
-         min_net_flux_w_m02, max_net_flux_w_m02,
-         min_flux_percentile, max_flux_percentile,
-         min_actual_hr_to_eval_k_day01, max_actual_hr_to_eval_k_day01,
-         apply_minmax_at_each_height, output_dir_name):
+         heating_rate_limits_k_day01, heating_rate_limits_percentile,
+         num_raw_flux_bins, raw_flux_limits_w_m02, raw_flux_limits_percentile,
+         num_net_flux_bins, net_flux_limits_w_m02, net_flux_limits_percentile,
+         heating_rate_limits_to_eval_k_day01, apply_eval_limits_per_height,
+         output_dir_name):
     """Evaluates trained neural net.
 
     This is effectively the main method.
@@ -184,27 +160,31 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
     :param prediction_file_name: See documentation at top of file.
     :param num_bootstrap_reps: Same.
     :param num_heating_rate_bins: Same.
-    :param min_heating_rate_k_day01: Same.
-    :param max_heating_rate_k_day01: Same.
-    :param min_heating_rate_percentile: Same.
-    :param max_heating_rate_percentile: Same.
-    :param num_flux_bins: Same.
-    :param min_raw_flux_w_m02: Same.
-    :param max_raw_flux_w_m02: Same.
-    :param min_net_flux_w_m02: Same.
-    :param max_net_flux_w_m02: Same.
-    :param min_flux_percentile: Same.
-    :param max_flux_percentile: Same.
-    :param min_actual_hr_to_eval_k_day01: Same.
-    :param max_actual_hr_to_eval_k_day01: Same.
-    :param apply_minmax_at_each_height: Same.
+    :param heating_rate_limits_k_day01: Same.
+    :param heating_rate_limits_percentile: Same.
+    :param num_raw_flux_bins: Same.
+    :param raw_flux_limits_w_m02: Same.
+    :param raw_flux_limits_percentile: Same.
+    :param num_net_flux_bins: Same.
+    :param net_flux_limits_w_m02: Same.
+    :param net_flux_limits_percentile: Same.
+    :param heating_rate_limits_to_eval_k_day01: Same.
+    :param apply_eval_limits_per_height: Same.
     :param output_dir_name: Same.
     """
+
+    min_actual_hr_to_eval_k_day01 = heating_rate_limits_to_eval_k_day01[0]
+    max_actual_hr_to_eval_k_day01 = heating_rate_limits_to_eval_k_day01[1]
 
     if min_actual_hr_to_eval_k_day01 < -1e9:
         min_actual_hr_to_eval_k_day01 = -numpy.inf
     if max_actual_hr_to_eval_k_day01 > 1e9:
         max_actual_hr_to_eval_k_day01 = numpy.inf
+
+    min_heating_rate_k_day01 = heating_rate_limits_k_day01[0]
+    max_heating_rate_k_day01 = heating_rate_limits_k_day01[1]
+    min_heating_rate_percentile = heating_rate_limits_percentile[0]
+    max_heating_rate_percentile = heating_rate_limits_percentile[1]
 
     if min_heating_rate_k_day01 >= max_heating_rate_k_day01:
         min_heating_rate_k_day01 = None
@@ -216,22 +196,35 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
         min_heating_rate_percentile = None
         max_heating_rate_percentile = None
 
-    if (
-            min_raw_flux_w_m02 >= max_raw_flux_w_m02 or
-            min_net_flux_w_m02 >= max_net_flux_w_m02
-    ):
+    min_raw_flux_w_m02 = raw_flux_limits_w_m02[0]
+    max_raw_flux_w_m02 = raw_flux_limits_w_m02[1]
+    min_raw_flux_percentile = raw_flux_limits_percentile[0]
+    max_raw_flux_percentile = raw_flux_limits_percentile[1]
+
+    if min_raw_flux_w_m02 >= max_raw_flux_w_m02:
         min_raw_flux_w_m02 = None
         max_raw_flux_w_m02 = None
+
+        error_checking.assert_is_leq(min_raw_flux_percentile, 10.)
+        error_checking.assert_is_geq(max_raw_flux_percentile, 90.)
+    else:
+        min_raw_flux_percentile = None
+        max_raw_flux_percentile = None
+
+    min_net_flux_w_m02 = net_flux_limits_w_m02[0]
+    max_net_flux_w_m02 = net_flux_limits_w_m02[1]
+    min_net_flux_percentile = net_flux_limits_percentile[0]
+    max_net_flux_percentile = net_flux_limits_percentile[1]
+
+    if min_net_flux_w_m02 >= max_net_flux_w_m02:
         min_net_flux_w_m02 = None
         max_net_flux_w_m02 = None
 
-        error_checking.assert_is_leq(min_flux_percentile, 10.)
-        error_checking.assert_is_geq(max_flux_percentile, 90.)
+        error_checking.assert_is_leq(min_net_flux_percentile, 10.)
+        error_checking.assert_is_geq(max_net_flux_percentile, 90.)
     else:
-        error_checking.assert_is_geq(min_raw_flux_w_m02, 0.)
-
-        min_flux_percentile = None
-        max_flux_percentile = None
+        min_net_flux_percentile = None
+        max_net_flux_percentile = None
 
     file_metadata_dict = prediction_io.file_name_to_metadata(
         prediction_file_name
@@ -263,16 +256,19 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
         max_heating_rate_k_day01=max_heating_rate_k_day01,
         min_heating_rate_percentile=min_heating_rate_percentile,
         max_heating_rate_percentile=max_heating_rate_percentile,
-        num_flux_bins=num_flux_bins,
+        num_raw_flux_bins=num_raw_flux_bins,
         min_raw_flux_w_m02=min_raw_flux_w_m02,
         max_raw_flux_w_m02=max_raw_flux_w_m02,
+        min_raw_flux_percentile=min_raw_flux_percentile,
+        max_raw_flux_percentile=max_raw_flux_percentile,
+        num_net_flux_bins=num_net_flux_bins,
         min_net_flux_w_m02=min_net_flux_w_m02,
         max_net_flux_w_m02=max_net_flux_w_m02,
-        min_flux_percentile=min_flux_percentile,
-        max_flux_percentile=max_flux_percentile,
+        min_net_flux_percentile=min_net_flux_percentile,
+        max_net_flux_percentile=max_net_flux_percentile,
         min_actual_hr_to_eval_k_day01=min_actual_hr_to_eval_k_day01,
         max_actual_hr_to_eval_k_day01=max_actual_hr_to_eval_k_day01,
-        apply_minmax_at_each_height=apply_minmax_at_each_height
+        apply_minmax_at_each_height=apply_eval_limits_per_height
     )
     print(SEPARATOR_STRING)
 
@@ -397,37 +393,38 @@ if __name__ == '__main__':
         num_heating_rate_bins=getattr(
             INPUT_ARG_OBJECT, NUM_HEATING_RATE_BINS_ARG_NAME
         ),
-        min_heating_rate_k_day01=getattr(
-            INPUT_ARG_OBJECT, MIN_HEATING_RATE_ARG_NAME
+        heating_rate_limits_k_day01=numpy.array(
+            getattr(INPUT_ARG_OBJECT, HEATING_RATE_LIMITS_ARG_NAME),
+            dtype=float
         ),
-        max_heating_rate_k_day01=getattr(
-            INPUT_ARG_OBJECT, MAX_HEATING_RATE_ARG_NAME
+        heating_rate_limits_percentile=numpy.array(
+            getattr(INPUT_ARG_OBJECT, HEATING_RATE_LIMITS_PRCTILE_ARG_NAME),
+            dtype=float
         ),
-        min_heating_rate_percentile=getattr(
-            INPUT_ARG_OBJECT, MIN_HEATING_RATE_PRCTILE_ARG_NAME
+        num_raw_flux_bins=getattr(INPUT_ARG_OBJECT, NUM_RAW_FLUX_BINS_ARG_NAME),
+        raw_flux_limits_w_m02=numpy.array(
+            getattr(INPUT_ARG_OBJECT, RAW_FLUX_LIMITS_ARG_NAME),
+            dtype=float
         ),
-        max_heating_rate_percentile=getattr(
-            INPUT_ARG_OBJECT, MAX_HEATING_RATE_PRCTILE_ARG_NAME
+        raw_flux_limits_percentile=numpy.array(
+            getattr(INPUT_ARG_OBJECT, RAW_FLUX_LIMITS_PRCTILE_ARG_NAME),
+            dtype=float
         ),
-        num_flux_bins=getattr(INPUT_ARG_OBJECT, NUM_FLUX_BINS_ARG_NAME),
-        min_raw_flux_w_m02=getattr(INPUT_ARG_OBJECT, MIN_RAW_FLUX_ARG_NAME),
-        max_raw_flux_w_m02=getattr(INPUT_ARG_OBJECT, MAX_RAW_FLUX_ARG_NAME),
-        min_net_flux_w_m02=getattr(INPUT_ARG_OBJECT, MIN_NET_FLUX_ARG_NAME),
-        max_net_flux_w_m02=getattr(INPUT_ARG_OBJECT, MAX_NET_FLUX_ARG_NAME),
-        min_flux_percentile=getattr(
-            INPUT_ARG_OBJECT, MIN_FLUX_PRCTILE_ARG_NAME
+        num_net_flux_bins=getattr(INPUT_ARG_OBJECT, NUM_NET_FLUX_BINS_ARG_NAME),
+        net_flux_limits_w_m02=numpy.array(
+            getattr(INPUT_ARG_OBJECT, NET_FLUX_LIMITS_ARG_NAME),
+            dtype=float
         ),
-        max_flux_percentile=getattr(
-            INPUT_ARG_OBJECT, MAX_FLUX_PRCTILE_ARG_NAME
+        net_flux_limits_percentile=numpy.array(
+            getattr(INPUT_ARG_OBJECT, NET_FLUX_LIMITS_PRCTILE_ARG_NAME),
+            dtype=float
         ),
-        min_actual_hr_to_eval_k_day01=getattr(
-            INPUT_ARG_OBJECT, MIN_HEATING_TO_EVAL_ARG_NAME
+        heating_rate_limits_to_eval_k_day01=numpy.array(
+            getattr(INPUT_ARG_OBJECT, HR_LIMITS_TO_EVAL_ARG_NAME),
+            dtype=float
         ),
-        max_actual_hr_to_eval_k_day01=getattr(
-            INPUT_ARG_OBJECT, MAX_HEATING_TO_EVAL_ARG_NAME
-        ),
-        apply_minmax_at_each_height=bool(getattr(
-            INPUT_ARG_OBJECT, APPLY_MINMAX_PER_HEIGHT_ARG_NAME
+        apply_eval_limits_per_height=bool(getattr(
+            INPUT_ARG_OBJECT, APPLY_EVAL_LIMITS_PER_HEIGHT_ARG_NAME
         )),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
