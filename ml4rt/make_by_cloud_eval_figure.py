@@ -143,11 +143,11 @@ def _run(input_dir_name, for_shortwave, include_fog, output_dir_name):
     if include_fog:
         if for_shortwave:
             pathless_input_file_names.append(
-                'shortwave-heating-rate-k-day01_reliability_fog.jpg'
+                'shortwave-heating-rate-k-day01_attributes_fog.jpg'
             )
         else:
             pathless_input_file_names.append(
-                'longwave-heating-rate-k-day01_reliability_fog.jpg'
+                'longwave-heating-rate-k-day01_attributes_fog.jpg'
             )
 
     panel_file_names = [
