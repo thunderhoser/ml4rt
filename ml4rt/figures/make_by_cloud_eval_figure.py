@@ -13,9 +13,12 @@ PATHLESS_SHORTWAVE_INPUT_FILE_NAMES = [
     'shortwave-heating-rate-k-day01_bias_profile.jpg',
     'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
     'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
-    'shortwave-heating-rate-k-day01_reliability_no-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_single-layer-cloud.jpg',
-    'shortwave-heating-rate-k-day01_reliability_multi-layer-cloud.jpg'
+    # 'shortwave-heating-rate-k-day01_reliability_no-cloud.jpg',
+    # 'shortwave-heating-rate-k-day01_reliability_single-layer-cloud.jpg',
+    # 'shortwave-heating-rate-k-day01_reliability_multi-layer-cloud.jpg'
+    'shortwave-heating-rate-k-day01_attributes_no-cloud.jpg',
+    'shortwave-heating-rate-k-day01_attributes_single-layer-cloud.jpg',
+    'shortwave-heating-rate-k-day01_attributes_multi-layer-cloud.jpg'
 ]
 
 PATHLESS_LONGWAVE_INPUT_FILE_NAMES = [
@@ -25,9 +28,12 @@ PATHLESS_LONGWAVE_INPUT_FILE_NAMES = [
     'longwave-heating-rate-k-day01_bias_profile.jpg',
     'longwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
     'longwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
-    'longwave-heating-rate-k-day01_reliability_no-cloud.jpg',
-    'longwave-heating-rate-k-day01_reliability_single-layer-cloud.jpg',
-    'longwave-heating-rate-k-day01_reliability_multi-layer-cloud.jpg'
+    # 'longwave-heating-rate-k-day01_reliability_no-cloud.jpg',
+    # 'longwave-heating-rate-k-day01_reliability_single-layer-cloud.jpg',
+    # 'longwave-heating-rate-k-day01_reliability_multi-layer-cloud.jpg'
+    'longwave-heating-rate-k-day01_attributes_no-cloud.jpg',
+    'longwave-heating-rate-k-day01_attributes_single-layer-cloud.jpg',
+    'longwave-heating-rate-k-day01_attributes_multi-layer-cloud.jpg'
 ]
 
 CONVERT_EXE_NAME = '/usr/bin/convert'

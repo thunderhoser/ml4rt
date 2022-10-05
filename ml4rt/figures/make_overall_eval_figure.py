@@ -12,8 +12,8 @@ PATHLESS_SHORTWAVE_INPUT_FILE_NAMES = [
     'shortwave-heating-rate-k-day01_bias_profile.jpg',
     'shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
     'shortwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
-    'shortwave-heating-rate-k-day01_reliability_new-model.jpg',
-    # 'shortwave-heating-rate-k-day01_error-dist_new-model.jpg'
+    # 'shortwave-heating-rate-k-day01_reliability_new-model.jpg',
+    'shortwave-heating-rate-k-day01_attributes_new-model.jpg'
 ]
 
 PATHLESS_LONGWAVE_INPUT_FILE_NAMES = [
@@ -23,8 +23,8 @@ PATHLESS_LONGWAVE_INPUT_FILE_NAMES = [
     'longwave-heating-rate-k-day01_bias_profile.jpg',
     'longwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
     'longwave-heating-rate-k-day01_mae-skill-score_profile.jpg',
-    'longwave-heating-rate-k-day01_reliability_new-model.jpg',
-    # 'longwave-heating-rate-k-day01_error-dist_new-model.jpg'
+    # 'longwave-heating-rate-k-day01_reliability_new-model.jpg',
+    'longwave-heating-rate-k-day01_attributes_new-model.jpg'
 ]
 
 CONVERT_EXE_NAME = '/usr/bin/convert'

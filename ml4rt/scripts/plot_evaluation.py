@@ -1292,6 +1292,19 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             output_dir_name=output_dir_name
         )
 
+    for k in range(num_vector_targets):
+        _plot_attributes_diagram(
+            evaluation_tables_xarray=evaluation_tables_xarray,
+            line_styles=line_styles,
+            line_colours=line_colours,
+            set_descriptions_abbrev=set_descriptions_abbrev,
+            set_descriptions_verbose=set_descriptions_verbose,
+            confidence_level=confidence_level,
+            mean_training_example_dict=mean_training_example_dict,
+            height_m_agl=None, target_name=vector_target_names[k],
+            output_dir_name=output_dir_name
+        )
+
     if not plot_by_height:
         return
 
@@ -1311,18 +1324,6 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 target_name=vector_target_names[k],
                 output_dir_name=output_dir_name
             )
-
-        _plot_attributes_diagram(
-            evaluation_tables_xarray=evaluation_tables_xarray,
-            line_styles=line_styles,
-            line_colours=line_colours,
-            set_descriptions_abbrev=set_descriptions_abbrev,
-            set_descriptions_verbose=set_descriptions_verbose,
-            confidence_level=confidence_level,
-            mean_training_example_dict=mean_training_example_dict,
-            height_m_agl=None, target_name=vector_target_names[k],
-            output_dir_name=output_dir_name
-        )
 
         if k != num_vector_targets - 1:
             print(SEPARATOR_STRING)
