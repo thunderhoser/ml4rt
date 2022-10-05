@@ -273,10 +273,6 @@ def _plot_attributes_diagram(
             t[evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
-        inverted_bin_centers_by_set = [
-            t[evaluation.SCALAR_INV_RELIA_BIN_CENTER_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
-        ]
         inverted_example_counts_by_set = [
             t[evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
@@ -312,10 +308,6 @@ def _plot_attributes_diagram(
         ]
         example_counts_by_set = [
             t[evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
-        ]
-        inverted_bin_centers_by_set = [
-            t[evaluation.AUX_INV_RELIA_BIN_CENTER_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
         inverted_example_counts_by_set = [
@@ -363,54 +355,87 @@ def _plot_attributes_diagram(
             for t in evaluation_tables_xarray
         ], dtype=int)
 
-        height_indices = numpy.array([
-            numpy.argmin(numpy.absolute(
-                t.coords[evaluation.HEIGHT_DIM].values - height_m_agl
-            )) for t in evaluation_tables_xarray
-        ], dtype=int)
+        if height_m_agl is None:
+            mean_predictions_by_set = [
+                t[evaluation.VECTOR_FLAT_RELIABILITY_X_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
+            mean_observations_by_set = [
+                t[evaluation.VECTOR_FLAT_RELIABILITY_Y_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
+            bin_centers_by_set = [
+                t[evaluation.VECTOR_FLAT_RELIA_BIN_CENTER_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
+            example_counts_by_set = [
+                t[evaluation.VECTOR_FLAT_RELIABILITY_COUNT_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
+            inverted_example_counts_by_set = [
+                t[evaluation.VECTOR_FLAT_INV_RELIABILITY_COUNT_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
 
-        mean_predictions_by_set = [
-            t[evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, ...]
-            for t, j, k in
-            zip(evaluation_tables_xarray, height_indices, target_indices)
-        ]
-        mean_observations_by_set = [
-            t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, ...]
-            for t, j, k in
-            zip(evaluation_tables_xarray, height_indices, target_indices)
-        ]
-        bin_centers_by_set = [
-            t[evaluation.VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, ...]
-            for t, j, k in
-            zip(evaluation_tables_xarray, height_indices, target_indices)
-        ]
-        example_counts_by_set = [
-            t[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, ...]
-            for t, j, k in
-            zip(evaluation_tables_xarray, height_indices, target_indices)
-        ]
-        inverted_bin_centers_by_set = [
-            t[evaluation.VECTOR_INV_RELIA_BIN_CENTER_KEY].values[j, k, ...]
-            for t, j, k in
-            zip(evaluation_tables_xarray, height_indices, target_indices)
-        ]
-        inverted_example_counts_by_set = [
-            t[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, ...]
-            for t, j, k in
-            zip(evaluation_tables_xarray, height_indices, target_indices)
-        ]
+            k = mean_training_example_dict[
+                example_utils.VECTOR_TARGET_NAMES_KEY
+            ].index(target_name)
 
-        j = numpy.argmin(numpy.absolute(
-            mean_training_example_dict[example_utils.HEIGHTS_KEY] - height_m_agl
-        ))
+            climo_value = numpy.mean(
+                mean_training_example_dict[
+                    example_utils.VECTOR_TARGET_VALS_KEY
+                ][0, :, k]
+            )
+        else:
+            height_indices = numpy.array([
+                numpy.argmin(numpy.absolute(
+                    t.coords[evaluation.HEIGHT_DIM].values - height_m_agl
+                )) for t in evaluation_tables_xarray
+            ], dtype=int)
 
-        k = mean_training_example_dict[
-            example_utils.VECTOR_TARGET_NAMES_KEY
-        ].index(target_name)
+            mean_predictions_by_set = [
+                t[evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
+            mean_observations_by_set = [
+                t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
+            bin_centers_by_set = [
+                t[evaluation.VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
+            example_counts_by_set = [
+                t[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
+            inverted_example_counts_by_set = [
+                t[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
 
-        climo_value = mean_training_example_dict[
-            example_utils.VECTOR_TARGET_VALS_KEY
-        ][0, j, k]
+            j = numpy.argmin(numpy.absolute(
+                mean_training_example_dict[example_utils.HEIGHTS_KEY] -
+                height_m_agl
+            ))
+
+            k = mean_training_example_dict[
+                example_utils.VECTOR_TARGET_NAMES_KEY
+            ].index(target_name)
+
+            climo_value = mean_training_example_dict[
+                example_utils.VECTOR_TARGET_VALS_KEY
+            ][0, j, k]
 
     concat_values = numpy.concatenate([
         numpy.nanmean(a, axis=-1)
@@ -615,7 +640,7 @@ def _plot_score_profile(
 
         if score_key in [
                 evaluation.VECTOR_KS_STATISTIC_KEY,
-            evaluation.VECTOR_KS_P_VALUE_KEY
+                evaluation.VECTOR_KS_P_VALUE_KEY
         ]:
             this_score_matrix = numpy.expand_dims(
                 t[score_key].values[:, k], axis=-1
@@ -1271,6 +1296,19 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             confidence_level=confidence_level,
             mean_training_example_dict=mean_training_example_dict,
             target_name=aux_target_names[k],
+            output_dir_name=output_dir_name
+        )
+
+    for k in range(num_vector_targets):
+        _plot_attributes_diagram(
+            evaluation_tables_xarray=evaluation_tables_xarray,
+            line_styles=line_styles,
+            line_colours=line_colours,
+            set_descriptions_abbrev=set_descriptions_abbrev,
+            set_descriptions_verbose=set_descriptions_verbose,
+            confidence_level=confidence_level,
+            mean_training_example_dict=mean_training_example_dict,
+            height_m_agl=None, target_name=vector_target_names[k],
             output_dir_name=output_dir_name
         )
 
