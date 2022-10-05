@@ -16,7 +16,7 @@ from ml4rt.jtech2022 import plot_errors_by_aod_and_sza as plot_errors_by_aod
 from ml4rt.jtech2022 import plot_errors_by_sfc_temp_and_moisture as \
     plot_errors_by_lapse_rates
 
-TITLE_FONT_SIZE = 12
+TITLE_FONT_SIZE = 15
 FIGURE_RESOLUTION_DPI = 300
 
 KG_TO_GRAMS = 1000.
@@ -250,7 +250,7 @@ def _plot_comparisons_simple(
                 heights_m_agl=heights_m_agl,
                 fancy_target_name=fancy_target_name,
                 line_colours=[TARGET_COLOUR, PREDICTION_COLOUR],
-                line_widths=numpy.full(2, 3.),
+                line_widths=numpy.full(2, 2.),
                 line_styles=['solid', 'dashed'],
                 use_log_scale=use_log_scale,
                 add_two_dummy_axes=add_two_dummy_axes
