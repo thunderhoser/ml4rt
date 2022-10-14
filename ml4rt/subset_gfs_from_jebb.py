@@ -275,6 +275,16 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
         exact_dimensions=numpy.array([num_forecast_hours], dtype=int)
     )
 
+    if not all([
+        os.path.isfile(f) for f in atmosphere_file_names + surface_file_names
+    ]):
+        atmosphere_file_names = [
+            f.replace('/00/', '/00/atmos/') for f in atmosphere_file_names
+        ]
+        surface_file_names = [
+            f.replace('/00/', '/00/atmos/') for f in surface_file_names
+        ]
+
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
     forecast_hours = numpy.array(
