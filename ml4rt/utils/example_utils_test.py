@@ -1338,7 +1338,7 @@ class ExampleUtilsTests(unittest.TestCase):
         this_example_dict = example_utils.add_effective_radii(
             example_dict=copy.deepcopy(EXAMPLE_DICT_NO_RADII),
             ice_profile_noise_stdev_fractional=0.,
-            ice_indiv_noise_stdev_fractional=0., test_mode=True
+            indiv_noise_stdev_fractional=0., test_mode=True
         )
 
         self.assertTrue(_compare_example_dicts(

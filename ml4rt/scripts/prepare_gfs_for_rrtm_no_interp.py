@@ -13,8 +13,8 @@ from ml4rt.utils import example_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-PROFILE_NOISE_STDEV_FRACTIONAL = 0.05
-INDIV_NOISE_STDEV_FRACTIONAL = 0.005
+PROFILE_NOISE_STDEV_FRACTIONAL = 0.5
+INDIV_NOISE_STDEV_FRACTIONAL = 0.05
 
 SECONDS_TO_HOURS = 1. / 3600
 UNITLESS_TO_PERCENT = 100.
@@ -721,7 +721,7 @@ def _run(input_file_name, output_file_name):
     dummy_example_dict = example_utils.add_effective_radii(
         example_dict=dummy_example_dict,
         ice_profile_noise_stdev_fractional=PROFILE_NOISE_STDEV_FRACTIONAL,
-        ice_indiv_noise_stdev_fractional=INDIV_NOISE_STDEV_FRACTIONAL
+        indiv_noise_stdev_fractional=INDIV_NOISE_STDEV_FRACTIONAL
     )
     liquid_eff_radius_matrix_metres = example_utils.get_field_from_dict(
         example_dict=dummy_example_dict,
