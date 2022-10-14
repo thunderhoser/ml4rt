@@ -250,11 +250,10 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
     :param output_file_name: Same.
     """
 
-    if len(site_rows) == 1 and site_rows[0] < 0:
-        site_rows = None
-        site_columns = None
-
-    if len(site_columns) == 1 and site_columns[0] < 0:
+    if (
+            (len(site_rows) == 1 and site_rows[0] < 0) or
+            (len(site_columns) == 1 and site_columns[0] < 0)
+    ):
         site_rows = None
         site_columns = None
 
