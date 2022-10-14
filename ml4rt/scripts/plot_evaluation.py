@@ -240,7 +240,6 @@ def _plot_attributes_diagram(
     t = evaluation_tables_xarray[0]
     is_scalar = target_name in t.coords[evaluation.SCALAR_FIELD_DIM].values
     is_aux = target_name in t.coords[evaluation.AUX_TARGET_FIELD_DIM].values
-    is_vector = target_name in t.coords[evaluation.VECTOR_FIELD_DIM].values
 
     if is_scalar:
         target_indices = numpy.array([
@@ -517,7 +516,7 @@ def _plot_attributes_diagram(
         title_string = 'Attributes diagram for {0:s}'.format(
             TARGET_NAME_TO_VERBOSE[target_name]
         )
-        if is_vector:
+        if height_m_agl is not None:
             title_string += ' at {0:d} m AGL'.format(
                 int(numpy.round(height_m_agl))
             )
@@ -575,7 +574,7 @@ def _plot_attributes_diagram(
             output_dir_name, target_name.replace('_', '-')
         )
 
-        if is_vector:
+        if height_m_agl is not None:
             figure_file_name += '_{0:05d}m-agl'.format(
                 int(numpy.round(height_m_agl))
             )

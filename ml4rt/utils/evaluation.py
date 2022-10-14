@@ -777,7 +777,7 @@ def _get_scores_one_replicate(
                 min_actual_hr_to_eval_k_day01,
                 full_vector_target_matrix[..., k] <=
                 max_actual_hr_to_eval_k_day01
-            ))[0]
+            ))
 
             full_flat_target_values = (
                 full_vector_target_matrix[..., k][full_expl_inds]

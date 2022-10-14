@@ -243,11 +243,10 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
     :param output_file_name: Same.
     """
 
-    if len(site_rows) == 1 and site_rows[0] < 0:
-        site_rows = None
-        site_columns = None
-
-    if len(site_columns) == 1 and site_columns[0] < 0:
+    if (
+            (len(site_rows) == 1 and site_rows[0] < 0) or
+            (len(site_columns) == 1 and site_columns[0] < 0)
+    ):
         site_rows = None
         site_columns = None
 
@@ -267,6 +266,16 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
         numpy.array(surface_file_names),
         exact_dimensions=numpy.array([num_forecast_hours], dtype=int)
     )
+
+    if not all([
+        os.path.isfile(f) for f in atmosphere_file_names + surface_file_names
+    ]):
+        atmosphere_file_names = [
+            f.replace('/00/', '/00/atmos/') for f in atmosphere_file_names
+        ]
+        surface_file_names = [
+            f.replace('/00/', '/00/atmos/') for f in surface_file_names
+        ]
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
