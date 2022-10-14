@@ -35,6 +35,7 @@ ATMOSPHERE_FILES_ARG_NAME = 'input_atmos_file_names'
 SURFACE_FILES_ARG_NAME = 'input_surface_file_names'
 SITE_ROWS_ARG_NAME = 'site_rows'
 SITE_COLUMNS_ARG_NAME = 'site_columns'
+NUM_SITES_ARG_NAME = 'num_sites'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 ATMOSPHERE_FILES_HELP_STRING = (
@@ -46,14 +47,19 @@ SURFACE_FILES_HELP_STRING = (
     'surface at one init time and one forecast time.  Must have same length as '
     '`{0:s}`.'
 ).format(ATMOSPHERE_FILES_ARG_NAME)
+
 SITE_ROWS_HELP_STRING = (
     'List of row indices (one per desired site).  Only data at these sites will'
-    ' be written to the output file.'
-)
+    ' be written to the output file.  If you would rather have the script '
+    'select sites randomly, leave this argument alone and use `{0:s}`.'
+).format(NUM_SITES_ARG_NAME)
+
 SITE_COLUMNS_HELP_STRING = (
-    'List of column indices (one per desired site).  Only data at these sites '
-    'will be written to the output file.'
-)
+    'Same as `{0:s}` but for columns.  If you would rather have the script '
+    'select sites randomly, leave this argument alone and use `{1:s}`.'
+).format(SITE_ROWS_ARG_NAME, NUM_SITES_ARG_NAME)
+
+NUM_SITES_HELP_STRING = 'Number of random sites to be selected by this script.'
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file.  Subset data will be written here in NetCDF format.'
 )
@@ -68,12 +74,16 @@ INPUT_ARG_PARSER.add_argument(
     help=SURFACE_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + SITE_ROWS_ARG_NAME, type=int, nargs='+', required=True,
-    help=SITE_ROWS_HELP_STRING
+    '--' + SITE_ROWS_ARG_NAME, type=int, nargs='+', required=False,
+    default=[-1], help=SITE_ROWS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + SITE_COLUMNS_ARG_NAME, type=int, nargs='+', required=True,
-    help=SITE_COLUMNS_HELP_STRING
+    '--' + SITE_COLUMNS_ARG_NAME, type=int, nargs='+', required=False,
+    default=[-1], help=SITE_COLUMNS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_SITES_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_SITES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -96,13 +106,14 @@ def _file_name_to_forecast_hour(jebb_gfs_file_name):
 
 
 def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
-                                  site_rows, site_columns):
+                                  site_rows, site_columns, num_sites):
     """Subsets GFS data for one forecast hour.
 
     :param atmosphere_file_name: See documentation at top of file.
     :param surface_file_name: Same.
     :param site_rows: Same.
     :param site_columns: Same.
+    :param num_sites: Same.
     :return: subset_gfs_table_xarray: xarray table with subset GFS data.
     """
 
@@ -114,6 +125,20 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
     num_grid_columns = len(
         orig_table_xarray.coords[GRID_COLUMN_DIMENSION].values
     )
+
+    if site_rows is None:
+        grid_rows = numpy.linspace(
+            0, num_grid_rows - 1, num=num_grid_rows, dtype=int
+        )
+        grid_columns = numpy.linspace(
+            0, num_grid_columns - 1, num=num_grid_columns, dtype=int
+        )
+
+        site_rows = numpy.random.choice(grid_rows, size=num_sites, replace=True)
+        site_columns = numpy.random.choice(
+            grid_columns, size=num_sites, replace=True
+        )
+
     error_checking.assert_is_less_than_numpy_array(site_rows, num_grid_rows)
     error_checking.assert_is_less_than_numpy_array(
         site_columns, num_grid_columns
@@ -212,7 +237,7 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
 
 
 def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
-         output_file_name):
+         num_sites, output_file_name):
     """Subsets GFS data from Jebb by site.
 
     This is effectively the main method.
@@ -221,18 +246,28 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
     :param surface_file_names: Same.
     :param site_rows: Same.
     :param site_columns: Same.
+    :param num_sites: Same.
     :param output_file_name: Same.
     """
 
-    # Check input args.
-    error_checking.assert_is_geq_numpy_array(site_rows, 0)
-    error_checking.assert_is_geq_numpy_array(site_columns, 0)
+    if len(site_rows) == 1 and site_rows[0] < 0:
+        site_rows = None
+        site_columns = None
 
-    num_sites = len(site_rows)
-    error_checking.assert_is_numpy_array(
-        site_columns,
-        exact_dimensions=numpy.array([num_sites], dtype=int)
-    )
+    if len(site_columns) == 1 and site_columns[0] < 0:
+        site_rows = None
+        site_columns = None
+
+    if site_rows is None:
+        error_checking.assert_is_greater(num_sites, 0)
+    else:
+        error_checking.assert_is_geq_numpy_array(site_rows, 0)
+        error_checking.assert_is_geq_numpy_array(site_columns, 0)
+
+        error_checking.assert_is_numpy_array(
+            site_columns,
+            exact_dimensions=numpy.array([len(site_rows)], dtype=int)
+        )
 
     num_forecast_hours = len(atmosphere_file_names)
     error_checking.assert_is_numpy_array(
@@ -264,7 +299,7 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
         all_tables_xarray[i] = _subset_gfs_one_forecast_hour(
             atmosphere_file_name=atmosphere_file_names[i],
             surface_file_name=surface_file_names[i],
-            site_rows=site_rows, site_columns=site_columns
+            site_rows=site_rows, site_columns=site_columns, num_sites=num_sites
         )
         print('\n')
 
@@ -292,5 +327,6 @@ if __name__ == '__main__':
         site_columns=numpy.array(
             getattr(INPUT_ARG_OBJECT, SITE_COLUMNS_ARG_NAME), dtype=int
         ),
+        num_sites=getattr(INPUT_ARG_OBJECT, NUM_SITES_ARG_NAME),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
