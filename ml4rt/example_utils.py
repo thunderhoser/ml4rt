@@ -1433,7 +1433,7 @@ def add_trace_gases(example_dict, profile_noise_stdev_fractional,
 
 
 def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
-                        ice_indiv_noise_stdev_fractional, test_mode=False):
+                        indiv_noise_stdev_fractional, test_mode=False):
     """Adds effective-radius profiles (for both ice and liquid) to dict.
 
     For effective radius of liquid water, using approximation of:
@@ -1446,7 +1446,8 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
         `example_io.read_file`).  Must contain temperature profiles.
     :param ice_profile_noise_stdev_fractional: See documentation for
         `_add_noise_to_profiles`.  Used for ice radii only.
-    :param ice_indiv_noise_stdev_fractional: Same.
+    :param indiv_noise_stdev_fractional: See documentation for
+        `_add_noise_to_profiles`.  Used for both liquid and ice radii.
     :param test_mode: Leave this alone.
     :return: example_dict: Same but with effective-radius profiles.
     """
@@ -1466,7 +1467,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
     ice_eff_radius_matrix_metres = _add_noise_to_profiles(
         data_matrix=ice_eff_radius_matrix_metres,
         profile_noise_stdev_fractional=ice_profile_noise_stdev_fractional,
-        indiv_noise_stdev_fractional=ice_indiv_noise_stdev_fractional
+        indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
     )
 
     ice_eff_radius_matrix_metres = numpy.maximum(
@@ -1509,7 +1510,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
                     data_matrix=
                     liquid_eff_radius_matrix_metres[land_indices, :],
                     profile_noise_stdev_fractional=this_stdev,
-                    indiv_noise_stdev_fractional=0.1 * this_stdev
+                    indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
                 )
             )
 
@@ -1529,7 +1530,7 @@ def add_effective_radii(example_dict, ice_profile_noise_stdev_fractional,
                     data_matrix=
                     liquid_eff_radius_matrix_metres[ocean_indices, :],
                     profile_noise_stdev_fractional=this_stdev,
-                    indiv_noise_stdev_fractional=0.1 * this_stdev
+                    indiv_noise_stdev_fractional=indiv_noise_stdev_fractional
                 )
             )
 
