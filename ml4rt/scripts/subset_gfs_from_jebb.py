@@ -108,6 +108,8 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
     :param site_columns: Same.
     :param num_sites: Same.
     :return: subset_gfs_table_xarray: xarray table with subset GFS data.
+    :return: site_rows: See input doc.
+    :return: site_columns: See input doc.
     """
 
     # Read files and check input args.
@@ -223,10 +225,11 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
             surface_table_xarray[this_key].values[..., site_rows, site_columns]
         )
 
-    return xarray.Dataset(
+    subset_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict,
         attrs=orig_table_xarray.attrs
     )
+    return subset_gfs_table_xarray, site_rows, site_columns
 
 
 def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
@@ -298,10 +301,13 @@ def _run(atmosphere_file_names, surface_file_names, site_rows, site_columns,
     all_tables_xarray = [None] * num_forecast_hours
 
     for i in range(num_forecast_hours):
-        all_tables_xarray[i] = _subset_gfs_one_forecast_hour(
-            atmosphere_file_name=atmosphere_file_names[i],
-            surface_file_name=surface_file_names[i],
-            site_rows=site_rows, site_columns=site_columns, num_sites=num_sites
+        all_tables_xarray[i], site_rows, site_columns = (
+            _subset_gfs_one_forecast_hour(
+                atmosphere_file_name=atmosphere_file_names[i],
+                surface_file_name=surface_file_names[i],
+                site_rows=site_rows, site_columns=site_columns,
+                num_sites=num_sites
+            )
         )
         print('\n')
 
