@@ -1,0 +1,1 @@
+Run subset_gfs_from_jebb.py and process_rrtm_no_interp.py in directory preprocessing_shortwave_600days, then run the jobs in this directory.
