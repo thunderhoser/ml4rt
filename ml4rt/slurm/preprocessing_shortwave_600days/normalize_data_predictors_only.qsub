@@ -39,7 +39,7 @@ set output_dir_name="${TOP_OUTPUT_DIR_NAME}/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_A
 python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
 --input_example_file_name="${input_file_name}" \
 --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
---uniformize=0 \
+--uniformize=1 \
 --predictor_norm_type_string="z_score" \
 --vector_target_norm_type_string="" \
 --scalar_target_norm_type_string="" \
