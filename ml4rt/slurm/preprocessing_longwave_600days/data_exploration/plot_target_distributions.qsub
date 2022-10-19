@@ -24,10 +24,11 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing/target_distributions"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/longwave_examples_600days/orig_heights/testing"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/longwave_examples_600days/orig_heights/testing/target_distributions"
 
 python3 -u "${CODE_DIR_NAME}/plot_target_distributions.py" \
 --input_tropical_dir_name="${EXAMPLE_DIR_NAME}" \
 --input_non_tropical_dir_name="${EXAMPLE_DIR_NAME}" \
+--plot_longwave=0 \
 --output_dir_name="${OUTPUT_DIR_NAME}"
