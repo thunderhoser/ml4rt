@@ -28,7 +28,7 @@ set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models
 
 set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/training"
 set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/validation"
-set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20200103-20200313.nc"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc"
 
 set MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
 set DEEPSUP_LAYER_COUNTS=("2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4")
