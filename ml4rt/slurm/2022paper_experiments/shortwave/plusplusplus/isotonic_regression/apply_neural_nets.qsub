@@ -30,8 +30,8 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/training"
 set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training"
 
-set FIRST_TRAINING_TIME_STRING="2019-12-01-000000"
-set LAST_TRAINING_TIME_STRING="2019-12-31-235959"
+set FIRST_TRAINING_TIME_STRING="2019-12-24-000000"
+set LAST_TRAINING_TIME_STRING="2020-12-31-235959"
 
 set MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
 set CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
