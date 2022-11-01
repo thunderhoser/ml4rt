@@ -29,10 +29,10 @@ set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_pr
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_sw_plusplus/depth=3_num-conv-layers-per-block=1_num-first-layer-channels=128"
 
 set REGIME_NAMES=("low_sza_high_aod" "high_sza")
-set MIN_AEROSOL_OPTICAL_DEPTHS=("0.45" "0")
+set MIN_AEROSOL_OPTICAL_DEPTHS=("0.75" "0")
 set MAX_AEROSOL_OPTICAL_DEPTHS=("1000000000" "1000000000")
 set MIN_ZENITH_ANGLES_DEG=("0" "80")
-set MAX_ZENITH_ANGLES_DEG=("10" "90")
+set MAX_ZENITH_ANGLES_DEG=("20" "90")
 
 set regime_name=${REGIME_NAMES[$SLURM_ARRAY_TASK_ID]}
 set min_aerosol_optical_depth=${MIN_AEROSOL_OPTICAL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
