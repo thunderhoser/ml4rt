@@ -40,7 +40,7 @@ MODEL_DEPTH_WIDTH_STRINGS = [
     '3, 4', '4, 4', '5, 4'
 ]
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
-SELECTED_MARKER_INDICES = numpy.array([0, 2, 3], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([0, 0, 5], dtype=int)
 
 # MODEL_DEPTH_WIDTH_STRINGS = [
 #     '5, 1',
