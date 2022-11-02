@@ -503,14 +503,14 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
             letter_label = chr(ord(letter_label) + 1)
 
         if 'bias' in STATISTIC_NAMES[k]:
-            max_colour_value = numpy.nanpercentile(
-                numpy.absolute(metric_matrix), 99.
+            max_colour_value = numpy.nanmax(
+                numpy.absolute(metric_matrix)
             )
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
         else:
-            min_colour_value = numpy.nanpercentile(metric_matrix, 0.)
-            max_colour_value = numpy.nanpercentile(metric_matrix, 99.)
+            min_colour_value = numpy.nanmin(metric_matrix)
+            max_colour_value = numpy.nanmax(metric_matrix)
             colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
         colour_norm_object = pyplot.Normalize(

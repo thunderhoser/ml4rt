@@ -283,19 +283,19 @@ def _plot_one_score(
     )
 
     if score_is_bias:
-        max_colour_value = numpy.nanpercentile(
-            numpy.absolute(score_matrix), 99.
+        max_colour_value = numpy.nanmax(
+            numpy.absolute(score_matrix)
         )
         min_colour_value = -1 * max_colour_value
         colour_map_object = BIAS_COLOUR_MAP_OBJECT
     elif score_is_num_examples:
         score_matrix = numpy.log10(1. + score_matrix)
-        min_colour_value = numpy.nanpercentile(score_matrix, 0.)
-        max_colour_value = numpy.nanpercentile(score_matrix, 99.)
+        min_colour_value = numpy.nanmin(score_matrix)
+        max_colour_value = numpy.nanmax(score_matrix)
         colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
     else:
-        min_colour_value = numpy.nanpercentile(score_matrix, 0.)
-        max_colour_value = numpy.nanpercentile(score_matrix, 99.)
+        min_colour_value = numpy.nanmin(score_matrix)
+        max_colour_value = numpy.nanmax(score_matrix)
         colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
     colour_norm_object = pyplot.Normalize(
