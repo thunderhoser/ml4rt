@@ -212,7 +212,7 @@ def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
         mean_training_example_dict, target_name, output_dir_name,
-        height_m_agl=None):
+        height_m_agl=None, force_plot_legend=False):
     """Plots attributes diagram for each set and each target variable.
 
     S = number of evaluation sets
@@ -235,6 +235,7 @@ def _plot_attributes_diagram(
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     :param height_m_agl: Height (metres above ground level).
+    :param force_plot_legend: Boolean flag.
     """
 
     t = evaluation_tables_xarray[0]
@@ -563,7 +564,7 @@ def _plot_attributes_diagram(
                 )
                 axes_object.add_patch(patch_object)
 
-        if len(legend_handles) > 1:
+        if len(legend_handles) > 1 or force_plot_legend:
             axes_object.legend(
                 legend_handles, legend_strings, loc='center left',
                 bbox_to_anchor=(0, 0.35), fancybox=True, shadow=False,
@@ -1302,7 +1303,8 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 confidence_level=confidence_level,
                 mean_training_example_dict=mean_training_example_dict,
                 height_m_agl=None, target_name=vector_target_names[k],
-                output_dir_name=output_dir_name
+                output_dir_name=output_dir_name,
+                force_plot_legend=num_evaluation_sets > 1
             )
 
     if not plot_by_height:
