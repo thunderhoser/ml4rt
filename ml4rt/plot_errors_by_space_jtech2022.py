@@ -306,7 +306,7 @@ def _plot_one_score(
         colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
     colour_norm_object = pyplot.Normalize(
-        vmin=-1 * max_colour_value, vmax=max_colour_value
+        vmin=min_colour_value, vmax=max_colour_value
     )
 
     sort_indices = numpy.argsort(grid_longitudes_deg_e)

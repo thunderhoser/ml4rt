@@ -29,10 +29,10 @@ set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_pr
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_lw_plusplusplus/depth=5_num-conv-layers-per-block=1_num-first-layer-channels=064"
 
 set REGIME_NAMES=("positive_positive" "negative_negative")
-set MIN_TEMP_LAPSE_RATES_K_KM01=("35" "-1000000000")
-set MAX_TEMP_LAPSE_RATES_K_KM01=("1000000000" "-25")
+set MIN_TEMP_LAPSE_RATES_K_KM01=("40" "-1000000000")
+set MAX_TEMP_LAPSE_RATES_K_KM01=("1000000000" "-30")
 set MIN_HUMIDITY_LAPSE_RATES_KM01=("0.001" "-1000000000")
-set MAX_HUMIDITY_LAPSE_RATES_KM01=("1000000000" "-0.007")
+set MAX_HUMIDITY_LAPSE_RATES_KM01=("1000000000" "-0.013")
 
 set regime_name=${REGIME_NAMES[$SLURM_ARRAY_TASK_ID]}
 set min_temp_lapse_rate_k_km01=${MIN_TEMP_LAPSE_RATES_K_KM01[$SLURM_ARRAY_TASK_ID]}
