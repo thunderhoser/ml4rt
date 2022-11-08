@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.colors
 from matplotlib import pyplot
+from keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -20,6 +21,7 @@ import gg_plotting_utils
 import evaluation
 import example_utils
 import prediction_io
+import neural_net
 import file_system_utils
 import imagemagick_utils
 
@@ -194,6 +196,7 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag, fog_flag,
     :return: flux_rmse_w_m02: All-flux root mean squared error (RMSE).
     :return: net_flux_rmse_w_m02: Net-flux RMSE.
     :return: net_flux_bias_w_m02: Net-flux bias.
+    :return: num_weights: Number of trainable weights.
     """
 
     model_file_pattern = '{0:s}/model*.h5'.format(model_dir_name)
@@ -202,11 +205,16 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag, fog_flag,
     if len(model_file_names) == 0:
         return (
             numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan,
-            numpy.nan
+            numpy.nan, numpy.nan
         )
 
     model_file_names.sort()
     model_file_name = model_file_names[-1]
+
+    model_object = neural_net.read_model(model_file_name)
+    num_weights = int(numpy.round(numpy.sum([
+        K.count_params(p) for p in set(model_object.trainable_weights)
+    ])))
 
     evaluation_file_name = '{0:s}/{1:s}validation/{2:s}evaluation.nc'.format(
         model_file_name[:-3],
@@ -219,7 +227,7 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag, fog_flag,
     if not os.path.isfile(evaluation_file_name):
         return (
             numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan,
-            numpy.nan
+            numpy.nan, numpy.nan
         )
 
     print('Reading data from: "{0:s}"...'.format(evaluation_file_name))
@@ -289,7 +297,8 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag, fog_flag,
     return (
         dwmse_k3_day03, near_sfc_dwmse_k3_day03,
         bias_k_day01, near_sfc_bias_k_day01,
-        flux_rmse_w_m02, net_flux_rmse_w_m02, net_flux_bias_w_m02
+        flux_rmse_w_m02, net_flux_rmse_w_m02, net_flux_bias_w_m02,
+        num_weights
     )
 
 
@@ -591,6 +600,7 @@ def _run(experiment_dir_name, isotonic_flag):
     flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
     net_flux_rmse_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
     net_flux_bias_matrix_w_m02 = numpy.full(dimensions, numpy.nan)
+    num_weights_matrix = numpy.full(dimensions, numpy.nan)
 
     dwmse_matrix_mlc_k3_day03 = numpy.full(dimensions, numpy.nan)
     near_sfc_dwmse_matrix_mlc_k3_day03 = numpy.full(dimensions, numpy.nan)
@@ -627,7 +637,8 @@ def _run(experiment_dir_name, isotonic_flag):
                     near_sfc_bias_matrix_k_day01[i, j, k],
                     flux_rmse_matrix_w_m02[i, j, k],
                     net_flux_rmse_matrix_w_m02[i, j, k],
-                    net_flux_bias_matrix_w_m02[i, j, k]
+                    net_flux_bias_matrix_w_m02[i, j, k],
+                    num_weights_matrix[i, j, k]
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     multilayer_cloud_flag=False, fog_flag=False,
@@ -641,7 +652,8 @@ def _run(experiment_dir_name, isotonic_flag):
                     near_sfc_bias_matrix_mlc_k_day01[i, j, k],
                     flux_rmse_matrix_mlc_w_m02[i, j, k],
                     net_flux_rmse_matrix_mlc_w_m02[i, j, k],
-                    net_flux_bias_matrix_mlc_w_m02[i, j, k]
+                    net_flux_bias_matrix_mlc_w_m02[i, j, k],
+                    num_weights_matrix[i, j, k]
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     multilayer_cloud_flag=True, fog_flag=False,
@@ -655,7 +667,8 @@ def _run(experiment_dir_name, isotonic_flag):
                     near_sfc_bias_matrix_fog_k_day01[i, j, k],
                     flux_rmse_matrix_fog_w_m02[i, j, k],
                     net_flux_rmse_matrix_fog_w_m02[i, j, k],
-                    net_flux_bias_matrix_fog_w_m02[i, j, k]
+                    net_flux_bias_matrix_fog_w_m02[i, j, k],
+                    num_weights_matrix[i, j, k]
                 ) = _read_scores_one_model(
                     model_dir_name=this_model_dir_name,
                     multilayer_cloud_flag=False, fog_flag=True,
@@ -807,6 +820,8 @@ def _run(experiment_dir_name, isotonic_flag):
     flux_rmse_panel_file_names = [''] * num_nn_types
     net_flux_rmse_panel_file_names = [''] * num_nn_types
     net_flux_bias_panel_file_names = [''] * num_nn_types
+    num_weights_panel_file_names = [''] * num_nn_types
+
     dwmse_mlc_panel_file_names = [''] * num_nn_types
     near_sfc_dwmse_mlc_panel_file_names = [''] * num_nn_types
     bias_mlc_panel_file_names = [''] * num_nn_types
@@ -814,6 +829,7 @@ def _run(experiment_dir_name, isotonic_flag):
     flux_rmse_mlc_panel_file_names = [''] * num_nn_types
     net_flux_rmse_mlc_panel_file_names = [''] * num_nn_types
     net_flux_bias_mlc_panel_file_names = [''] * num_nn_types
+
     near_sfc_dwmse_fog_panel_file_names = [''] * num_nn_types
     near_sfc_bias_fog_panel_file_names = [''] * num_nn_types
     flux_rmse_fog_panel_file_names = [''] * num_nn_types
@@ -1193,6 +1209,33 @@ def _run(experiment_dir_name, isotonic_flag):
         ))
         figure_object.savefig(
             net_flux_bias_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        # Plot number of weights.
+        figure_object, axes_object = _plot_scores_2d(
+            score_matrix=numpy.log10(num_weights_matrix[i, ...]),
+            min_colour_value=numpy.nanmin(numpy.log10(num_weights_matrix)),
+            max_colour_value=numpy.nanmax(numpy.log10(num_weights_matrix)),
+            x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+        )
+
+        axes_object.set_xlabel(x_axis_label)
+        axes_object.set_ylabel(y_axis_label)
+        axes_object.set_title(NN_TYPE_STRINGS_FANCY[i])
+
+        num_weights_panel_file_names[i] = (
+            '{0:s}/num_weights_log10_{1:s}.jpg'
+        ).format(
+            output_dir_name, NN_TYPE_STRINGS[i].replace('_', '-')
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(
+            num_weights_panel_file_names[i]
+        ))
+        figure_object.savefig(
+            num_weights_panel_file_names[i], dpi=FIGURE_RESOLUTION_DPI,
             pad_inches=0, bbox_inches='tight'
         )
         pyplot.close(figure_object)
@@ -1931,6 +1974,23 @@ def _run(experiment_dir_name, isotonic_flag):
     imagemagick_utils.resize_image(
         input_file_name=net_flux_bias_concat_file_name,
         output_file_name=net_flux_bias_concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+    num_weights_concat_file_name = '{0:s}/num_weights_log10.jpg'.format(
+        output_dir_name
+    )
+    print('Concatenating panels to: "{0:s}"...'.format(
+        num_weights_concat_file_name
+    ))
+    imagemagick_utils.concatenate_images(
+        input_file_names=num_weights_panel_file_names,
+        output_file_name=num_weights_concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=num_weights_concat_file_name,
+        output_file_name=num_weights_concat_file_name,
         output_size_pixels=int(1e7)
     )
 
