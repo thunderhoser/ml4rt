@@ -678,8 +678,8 @@ def make_cost_function(heating_rate_weight, flux_weight, include_net_flux=False,
     :return: cost_function: Function (see below).
     """
 
-    error_checking.assert_is_geq(heating_rate_weight, 0.)
-    error_checking.assert_is_geq(flux_weight, 0.)
+    heating_rate_weight = max([heating_rate_weight, 0.])
+    flux_weight = max([flux_weight, 0.])
     error_checking.assert_is_greater(heating_rate_weight + flux_weight, 0.)
 
     if flux_weight < TOLERANCE:
