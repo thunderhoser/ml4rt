@@ -1433,7 +1433,7 @@ def create_data_specific_examples(
             numpy.invert(found_example_flags)
         )[0]
 
-        if len(missing_example_indices):
+        if len(missing_example_indices) == 0:
             break
 
         this_example_dict = _read_file_for_generator(
