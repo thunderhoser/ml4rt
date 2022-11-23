@@ -712,8 +712,11 @@ def make_cost_function(heating_rate_weight, flux_weight, include_net_flux=False,
         """
 
         dwmse_for_heating_rates = numpy.mean(
-            numpy.maximum(target_matrices[0], prediction_matrices[0]) *
-            (target_matrices[0] - prediction_matrices[0]) ** 2
+            numpy.maximum(
+                numpy.absolute(target_matrices[0]),
+                numpy.absolute(prediction_matrices[0])
+            )
+            * (target_matrices[0] - prediction_matrices[0]) ** 2
         )
 
         if len(target_matrices) == 1 or flux_weight <= 0:
