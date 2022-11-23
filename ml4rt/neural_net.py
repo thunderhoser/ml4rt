@@ -1511,6 +1511,7 @@ def create_data_specific_examples(
                 prelim_target_list[1]
             )
 
+    print(numpy.sum(found_example_flags))
     assert numpy.all(found_example_flags)
 
     if numpy.max(numpy.absolute(predictor_matrix)) > 2**16 - 1:
