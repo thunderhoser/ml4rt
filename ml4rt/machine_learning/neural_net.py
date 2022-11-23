@@ -1793,6 +1793,31 @@ def train_model_sans_generator(
         net_type_string=net_type_string
     )[:2]
 
+    # TODO(thunderhoser): HACK to deal with out-of-memory errors.
+    num_validation_examples = validation_predictor_matrix.shape[0]
+    if num_validation_examples > int(5e5):
+        random_indices = numpy.linspace(
+            0, num_validation_examples - 1, num=num_validation_examples,
+            dtype=int
+        )
+        random_indices = numpy.random.choice(
+            random_indices, size=int(5e5), replace=False
+        )
+
+        validation_predictor_matrix = validation_predictor_matrix[
+            random_indices, ...
+        ]
+
+        if isinstance(validation_target_array, list):
+            for k in range(len(validation_target_array)):
+                validation_target_array[k] = validation_target_array[k][
+                    random_indices, ...
+                ]
+        else:
+            validation_target_array = validation_target_array[
+                random_indices, ...
+            ]
+
     model_object.fit(
         x=training_predictor_matrix, y=training_target_array,
         batch_size=training_option_dict[BATCH_SIZE_KEY],
