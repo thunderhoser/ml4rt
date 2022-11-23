@@ -122,16 +122,15 @@ def _subset_gfs_one_forecast_hour(atmosphere_file_name, surface_file_name,
     )
 
     if site_rows is None:
-        grid_rows = numpy.linspace(
-            0, num_grid_rows - 1, num=num_grid_rows, dtype=int
+        grid_point_indices_linear = numpy.linspace(
+            0, num_grid_rows * num_grid_columns - 1,
+            num=num_grid_rows * num_grid_columns, dtype=int
         )
-        grid_columns = numpy.linspace(
-            0, num_grid_columns - 1, num=num_grid_columns, dtype=int
+        site_indices_linear = numpy.random.choice(
+            grid_point_indices_linear, size=num_sites, replace=False
         )
-
-        site_rows = numpy.random.choice(grid_rows, size=num_sites, replace=True)
-        site_columns = numpy.random.choice(
-            grid_columns, size=num_sites, replace=True
+        site_rows, site_columns = numpy.unravel_index(
+            site_indices_linear, shape=(num_grid_rows, num_grid_columns)
         )
 
     error_checking.assert_is_less_than_numpy_array(site_rows, num_grid_rows)
