@@ -1511,6 +1511,8 @@ def create_data_specific_examples(
                 prelim_target_list[1]
             )
 
+        found_example_flags[missing_example_indices] = True
+
     print(numpy.sum(found_example_flags))
     assert numpy.all(found_example_flags)
 
