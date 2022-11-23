@@ -73,9 +73,12 @@ pyplot.rc('ytick', labelsize=FONT_SIZE)
 pyplot.rc('legend', fontsize=FONT_SIZE)
 pyplot.rc('figure', titlesize=FONT_SIZE)
 
+# TODO(thunderhoser): I need to get rid of this "tropical" and "non-tropical"
+# bullshit.  I also need to make start/end years input args.
 TROPICAL_DIR_ARG_NAME = 'input_tropical_dir_name'
 NON_TROPICAL_DIR_ARG_NAME = 'input_non_tropical_dir_name'
 NUM_BINS_ARG_NAME = 'num_histogram_bins'
+PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 TROPICAL_DIR_HELP_STRING = (
@@ -86,6 +89,9 @@ NON_TROPICAL_DIR_HELP_STRING = (
     'Same as `{0:s}` but for non-tropical sites.'.format(TROPICAL_DIR_ARG_NAME)
 )
 NUM_BINS_HELP_STRING = 'Number of bins in each histogram.'
+PLOT_SHORTWAVE_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot shortwave (longwave) values.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -102,6 +108,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_BINS_ARG_NAME, type=int, required=False, default=50,
     help=NUM_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_SHORTWAVE_ARG_NAME, type=int, required=True,
+    help=PLOT_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -124,7 +134,7 @@ def _plot_histogram_one_target(
 
     if target_name in [
             SHORTWAVE_NET_FLUX_NAME, LONGWAVE_NET_FLUX_NAME,
-            example_utils.LONGWAVE_HEATING_RATE_NAME
+            example_utils.LONGWAVE_HEATING_RATE_NAME, LONGWAVE_HEAT_FLUX_NAME
     ]:
         min_value = numpy.min(target_values)
     else:
@@ -208,7 +218,7 @@ def _plot_histogram_one_target(
 
 
 def _run(tropical_example_dir_name, non_tropical_example_dir_name,
-         num_histogram_bins, output_dir_name):
+         num_histogram_bins, plot_shortwave, output_dir_name):
     """Plots distribution of each target variable.
 
     This is effectively the main method.
@@ -216,6 +226,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     :param tropical_example_dir_name: See documentation at top of file.
     :param non_tropical_example_dir_name: Same.
     :param num_histogram_bins: Same.
+    :param plot_shortwave: Same.
     :param output_dir_name: Same.
     """
 
@@ -256,10 +267,17 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
             max_longwave_heating_k_day01=numpy.inf
         )
 
-        these_field_names = (
-            SHORTWAVE_TARGET_NAMES_IN_FILE + LONGWAVE_TARGET_NAMES_IN_FILE +
-            [example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME]
-        )
+        if plot_shortwave:
+            these_field_names = (
+                SHORTWAVE_TARGET_NAMES_IN_FILE +
+                [example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME]
+            )
+        else:
+            these_field_names = (
+                LONGWAVE_TARGET_NAMES_IN_FILE +
+                [example_utils.PRESSURE_NAME, example_utils.HEIGHT_NAME]
+            )
+
         this_example_dict = example_utils.subset_by_field(
             example_dict=this_example_dict, field_names=these_field_names
         )
@@ -270,21 +288,36 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
     del example_dicts
 
     letter_label = None
-    shortwave_panel_file_names = []
+    panel_file_names = []
 
-    for this_target_name in SHORTWAVE_TARGET_NAMES:
-        if this_target_name in SHORTWAVE_TARGET_NAMES_IN_FILE:
+    if plot_shortwave:
+        target_names = SHORTWAVE_TARGET_NAMES
+        target_names_in_file = SHORTWAVE_TARGET_NAMES_IN_FILE
+    else:
+        target_names = LONGWAVE_TARGET_NAMES
+        target_names_in_file = LONGWAVE_TARGET_NAMES_IN_FILE
+
+    for this_target_name in target_names:
+        if this_target_name in target_names_in_file:
             these_target_values = example_utils.get_field_from_dict(
                 example_dict=example_dict, field_name=this_target_name
             )
         else:
             down_fluxes_w_m02 = example_utils.get_field_from_dict(
                 example_dict=example_dict,
-                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+                field_name=(
+                    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+                    if plot_shortwave
+                    else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+                )
             )
             up_fluxes_w_m02 = example_utils.get_field_from_dict(
                 example_dict=example_dict,
-                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+                field_name=(
+                    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+                    if plot_shortwave
+                    else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+                )
             )
             these_target_values = down_fluxes_w_m02 - up_fluxes_w_m02
 
@@ -300,12 +333,15 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
             num_bins=num_histogram_bins, letter_label=letter_label,
             output_dir_name=output_dir_name
         )
-        shortwave_panel_file_names.append(this_file_name)
+        panel_file_names.append(this_file_name)
 
     example_dict = example_utils.multiply_hr_by_layer_thickness(example_dict)
     heat_flux_matrix_w_m02 = example_utils.get_field_from_dict(
         example_dict=example_dict,
-        field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
+        field_name=(
+            example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
+            else example_utils.LONGWAVE_HEATING_RATE_NAME
+        )
     )
 
     if letter_label is None:
@@ -315,11 +351,14 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
 
     this_file_name = _plot_histogram_one_target(
         target_values=numpy.ravel(heat_flux_matrix_w_m02),
-        target_name=SHORTWAVE_HEAT_FLUX_NAME,
+        target_name=(
+            SHORTWAVE_HEAT_FLUX_NAME if plot_shortwave
+            else LONGWAVE_HEAT_FLUX_NAME
+        ),
         num_bins=num_histogram_bins, letter_label=letter_label,
         output_dir_name=output_dir_name
     )
-    shortwave_panel_file_names.append(this_file_name)
+    panel_file_names.append(this_file_name)
 
     if (
             example_utils.HEIGHT_NAME in
@@ -342,90 +381,21 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
                 numpy.std(height_diff_matrix_metres[:, j], ddof=1)
             ))
 
-    shortwave_figure_file_name = (
-        '{0:s}/shortwave_target_distributions.jpg'
-    ).format(output_dir_name)
+    concat_figure_file_name = '{0:s}/target_distributions.jpg'.format(
+        output_dir_name
+    )
 
     print('Concatenating panels to: "{0:s}"...'.format(
-        shortwave_figure_file_name
+        concat_figure_file_name
     ))
     imagemagick_utils.concatenate_images(
-        input_file_names=shortwave_panel_file_names,
-        output_file_name=shortwave_figure_file_name,
+        input_file_names=panel_file_names,
+        output_file_name=concat_figure_file_name,
         num_panel_rows=2, num_panel_columns=3, border_width_pixels=25
     )
     imagemagick_utils.trim_whitespace(
-        input_file_name=shortwave_figure_file_name,
-        output_file_name=shortwave_figure_file_name
-    )
-
-    letter_label = None
-    longwave_panel_file_names = []
-
-    for this_target_name in LONGWAVE_TARGET_NAMES:
-        if this_target_name in LONGWAVE_TARGET_NAMES_IN_FILE:
-            these_target_values = example_utils.get_field_from_dict(
-                example_dict=example_dict, field_name=this_target_name
-            )
-        else:
-            down_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=example_dict,
-                field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            up_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=example_dict,
-                field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME
-            )
-            these_target_values = down_fluxes_w_m02 - up_fluxes_w_m02
-
-        these_target_values = numpy.ravel(these_target_values)
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        this_file_name = _plot_histogram_one_target(
-            target_values=these_target_values, target_name=this_target_name,
-            num_bins=num_histogram_bins, letter_label=letter_label,
-            output_dir_name=output_dir_name
-        )
-        longwave_panel_file_names.append(this_file_name)
-
-    example_dict = example_utils.multiply_hr_by_layer_thickness(example_dict)
-    heat_flux_matrix_w_m02 = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
-    )
-
-    if letter_label is None:
-        letter_label = 'a'
-    else:
-        letter_label = chr(ord(letter_label) + 1)
-
-    this_file_name = _plot_histogram_one_target(
-        target_values=numpy.ravel(heat_flux_matrix_w_m02),
-        target_name=LONGWAVE_HEAT_FLUX_NAME,
-        num_bins=num_histogram_bins, letter_label=letter_label,
-        output_dir_name=output_dir_name
-    )
-    longwave_panel_file_names.append(this_file_name)
-
-    longwave_figure_file_name = (
-        '{0:s}/longwave_target_distributions.jpg'
-    ).format(output_dir_name)
-
-    print('Concatenating panels to: "{0:s}"...'.format(
-        longwave_figure_file_name
-    ))
-    imagemagick_utils.concatenate_images(
-        input_file_names=longwave_panel_file_names,
-        output_file_name=longwave_figure_file_name,
-        num_panel_rows=2, num_panel_columns=3, border_width_pixels=25
-    )
-    imagemagick_utils.trim_whitespace(
-        input_file_name=longwave_figure_file_name,
-        output_file_name=longwave_figure_file_name
+        input_file_name=concat_figure_file_name,
+        output_file_name=concat_figure_file_name
     )
 
 
@@ -440,5 +410,6 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NON_TROPICAL_DIR_ARG_NAME
         ),
         num_histogram_bins=getattr(INPUT_ARG_OBJECT, NUM_BINS_ARG_NAME),
+        plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
