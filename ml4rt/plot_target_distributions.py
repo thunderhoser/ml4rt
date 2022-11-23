@@ -274,7 +274,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
             min_longwave_heating_k_day01=-1 * numpy.inf,
             max_longwave_heating_k_day01=numpy.inf
         )
-        
+
         if plot_shortwave:
             these_field_names = (
                 SHORTWAVE_TARGET_NAMES_IN_FILE +
@@ -297,7 +297,7 @@ def _run(tropical_example_dir_name, non_tropical_example_dir_name,
 
     letter_label = None
     panel_file_names = []
-    
+
     if plot_shortwave:
         target_names = SHORTWAVE_TARGET_NAMES
         target_names_in_file = SHORTWAVE_TARGET_NAMES_IN_FILE
