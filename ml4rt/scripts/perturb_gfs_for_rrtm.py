@@ -27,7 +27,6 @@ MAX_TEMPERATURE_EVER_KELVINS = 333.15
 MAX_MIXING_RATIO_EVER_KG_KG01 = 0.04
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
-
 MAX_TEMP_INCREASE_ARG_NAME = 'max_temp_increase_kelvins'
 MAX_WARM_LAYER_THICKNESS_ARG_NAME = 'max_warm_layer_thickness_metres'
 SURFACE_RH_LIMITS_ARG_NAME = 'surface_relative_humidity_limits'
@@ -36,11 +35,13 @@ OZONE_LAYER_THICKNESS_LIMITS_ARG_NAME = 'ozone_layer_thickness_limits_metres'
 OZONE_LAYER_CENTER_LIMITS_ARG_NAME = 'ozone_layer_center_limits_m_agl'
 MAX_OZONE_MIXING_RATIO_ARG_NAME = 'max_ozone_mixing_ratio_kg_kg01'
 OZONE_MIXING_RATIO_NOISE_ARG_NAME = 'ozone_mixing_ratio_noise_stdev_kg_kg01'
+MAX_NUM_LIQUID_CLOUDS_ARG_NAME = 'max_num_liquid_cloud_layers'
+MAX_LIQUID_CLOUD_THICKNESS_ARG_NAME = 'max_liquid_cloud_layer_thickness_metres'
 MAX_LIQUID_WATER_CONTENT_ARG_NAME = 'max_liquid_water_content_kg_m03'
-MAX_LIQUID_CLOUD_THICKNESS_ARG_NAME = 'max_liquid_cloud_thickness_metres'
 LIQUID_WATER_CONTENT_NOISE_ARG_NAME = 'liquid_water_content_noise_stdev_kg_m03'
+MAX_NUM_ICE_CLOUDS_ARG_NAME = 'max_num_ice_cloud_layers'
+MAX_ICE_CLOUD_THICKNESS_ARG_NAME = 'max_ice_cloud_layer_thickness_metres'
 MAX_ICE_WATER_CONTENT_ARG_NAME = 'max_ice_water_content_kg_m03'
-MAX_ICE_CLOUD_THICKNESS_ARG_NAME = 'max_ice_cloud_thickness_metres'
 ICE_WATER_CONTENT_NOISE_ARG_NAME = 'ice_water_content_noise_stdev_kg_m03'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
@@ -48,7 +49,6 @@ INPUT_FILE_HELP_STRING = (
     'Path to input file (created by prepare_gfs_for_rrtm_no_interp.py), '
     'containing GFS data for one init time.'
 )
-
 MAX_TEMP_INCREASE_HELP_STRING = (
     'Max temperature increase.  The max increase will always occur at the '
     'surface.'
@@ -79,15 +79,33 @@ MAX_OZONE_MIXING_RATIO_HELP_STRING = (
 OZONE_MIXING_RATIO_NOISE_HELP_STRING = (
     'Standard deviation of Gaussian noise for ozone mixing ratio.'
 )
-MAX_LIQUID_WATER_CONTENT_HELP_STRING = 'Max liquid-water content.'
-MAX_LIQUID_CLOUD_THICKNESS_HELP_STRING = 'Max liquid-cloud thickness.'
-LIQUID_WATER_CONTENT_NOISE_HELP_STRING = (
-    'Standard deviation of Gaussian noise for liquid-water content.'
+MAX_NUM_LIQUID_CLOUDS_HELP_STRING = (
+    'Max of uniform distribution for number of liquid-cloud layers.  The '
+    'minimum of the distribution is always 0.'
 )
-MAX_ICE_WATER_CONTENT_HELP_STRING = 'Max ice-water content.'
-MAX_ICE_CLOUD_THICKNESS_HELP_STRING = 'Max ice-cloud thickness.'
-ICE_WATER_CONTENT_NOISE_HELP_STRING = (
-    'Standard deviation of Gaussian noise for ice-water content.'
+MAX_LIQUID_CLOUD_THICKNESS_HELP_STRING = (
+    'Max of uniform distribution for thickness of liquid-cloud layer.  The '
+    'minimum of the distribution is always 0.'
+)
+MAX_LIQUID_WATER_CONTENT_HELP_STRING = (
+    'Max of uniform distribution for max LWC in a given cloud layer.  The '
+    'minimum of the distribution is always 0.'
+)
+LIQUID_WATER_CONTENT_NOISE_HELP_STRING = (
+    'Standard deviation of Gaussian noise for LWC, applied to each level with '
+    'LWC > 0.'
+)
+MAX_NUM_ICE_CLOUDS_HELP_STRING = 'Same as `{0:s}` but for ice.'.format(
+    MAX_NUM_LIQUID_CLOUDS_ARG_NAME
+)
+MAX_ICE_CLOUD_THICKNESS_HELP_STRING = 'Same as `{0:s}` but for ice.'.format(
+    MAX_LIQUID_CLOUD_THICKNESS_ARG_NAME
+)
+MAX_ICE_WATER_CONTENT_HELP_STRING = 'Same as `{0:s}` but for ice.'.format(
+    MAX_LIQUID_WATER_CONTENT_ARG_NAME
+)
+ICE_WATER_CONTENT_NOISE_HELP_STRING = 'Same as `{0:s}` but for ice.'.format(
+    LIQUID_WATER_CONTENT_NOISE_ARG_NAME
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output (NetCDF) file.  Format will be same as input file, but '
@@ -132,24 +150,32 @@ INPUT_ARG_PARSER.add_argument(
     help=OZONE_MIXING_RATIO_NOISE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_LIQUID_WATER_CONTENT_ARG_NAME, type=float, required=True,
-    help=MAX_LIQUID_WATER_CONTENT_HELP_STRING
+    '--' + MAX_NUM_LIQUID_CLOUDS_ARG_NAME, type=int, required=True,
+    help=MAX_NUM_LIQUID_CLOUDS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MAX_LIQUID_CLOUD_THICKNESS_ARG_NAME, type=float, required=True,
     help=MAX_LIQUID_CLOUD_THICKNESS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_LIQUID_WATER_CONTENT_ARG_NAME, type=float, required=True,
+    help=MAX_LIQUID_WATER_CONTENT_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + LIQUID_WATER_CONTENT_NOISE_ARG_NAME, type=float, required=True,
     help=LIQUID_WATER_CONTENT_NOISE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_ICE_WATER_CONTENT_ARG_NAME, type=float, required=True,
-    help=MAX_ICE_WATER_CONTENT_HELP_STRING
+    '--' + MAX_NUM_ICE_CLOUDS_ARG_NAME, type=int, required=True,
+    help=MAX_NUM_ICE_CLOUDS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MAX_ICE_CLOUD_THICKNESS_ARG_NAME, type=float, required=True,
     help=MAX_ICE_CLOUD_THICKNESS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_ICE_WATER_CONTENT_ARG_NAME, type=float, required=True,
+    help=MAX_ICE_WATER_CONTENT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + ICE_WATER_CONTENT_NOISE_ARG_NAME, type=float, required=True,
@@ -176,7 +202,7 @@ def _heights_to_grid_indices(
     min_index = numpy.argmin(
         numpy.absolute(min_height_m_agl - sorted_grid_heights_m_agl)
     )
-    max_index = numpy.argmax(
+    max_index = numpy.argmin(
         numpy.absolute(max_height_m_agl - sorted_grid_heights_m_agl)
     )
     return numpy.linspace(
@@ -247,7 +273,7 @@ def _find_tropopause(temperatures_kelvins, sorted_heights_m_agl):
     return None, None
 
 
-def _create_cloud(
+def _create_cloud_old(
         gfs_table_xarray, time_index, site_index, max_cloud_thickness_metres,
         max_water_content_kg_m03, water_content_noise_stdev_kg_m03,
         liquid_flag):
@@ -281,10 +307,10 @@ def _create_cloud(
 
     cloud_top_height_m_agl = numpy.random.uniform(
         low=0., high=tropopause_height_m_agl + 2000, size=1
-    )
+    )[0]
     cloud_thickness_metres = numpy.random.uniform(
         low=0., high=max_cloud_thickness_metres, size=1
-    )
+    )[0]
     cloud_bottom_height_m_agl = max([
         cloud_top_height_m_agl - cloud_thickness_metres,
         0.
@@ -312,7 +338,7 @@ def _create_cloud(
 
     cloud_height_indices = cloud_height_indices[good_temperature_flags]
 
-    if len(cloud_height_indices) == 0:
+    if len(cloud_height_indices) < 2:
         return gfs_table_xarray
 
     cloud_water_contents_kg_m03 = numpy.random.uniform(
@@ -352,6 +378,193 @@ def _create_cloud(
     return gfs_table_xarray
 
 
+def _create_cloud(
+        gfs_table_xarray, time_index, site_index, max_num_cloud_layers,
+        max_layer_thickness_metres, max_water_content_kg_m03,
+        water_content_noise_stdev_kg_m03, liquid_flag):
+    """Creates fictitious liquid or ice cloud.
+
+    Allowing cloud up to 2 km above tropopause is motivated by:
+    https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021JD034808
+
+    :param gfs_table_xarray: xarray table with GFS data.
+    :param time_index: Will create fictitious warm layer for this time.
+    :param site_index: Will create fictitious warm layer for this site.
+    :param max_num_cloud_layers: See documentation at top of file.
+    :param max_layer_thickness_metres: Same.
+    :param max_water_content_kg_m03: Same.
+    :param water_content_noise_stdev_kg_m03: Same.
+    :param liquid_flag: Boolean flag.  If True (False), will create liquid (ice)
+        cloud.
+    :return: gfs_table_xarray: Same as input but with fictitious liquid cloud
+        for the given time step and site.
+    """
+
+    i = time_index
+    j = site_index
+    t = gfs_table_xarray
+
+    num_cloud_layers = numpy.random.random_integers(
+        low=0, high=max_num_cloud_layers, size=1
+    )[0]
+
+    if num_cloud_layers == 0:
+        return gfs_table_xarray
+
+    tropopause_height_m_agl, _ = _find_tropopause(
+        temperatures_kelvins=
+        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, :],
+        sorted_heights_m_agl=
+        t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
+    )
+
+    height_indices_by_layer = [numpy.array([], dtype=int)] * num_cloud_layers
+
+    # if liquid_flag:
+    #     water_path_key = prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02
+    # else:
+    #     water_path_key = prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02
+    #
+    # changed_water_paths = False
+
+    num_heights = t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values.shape[2]
+    new_water_contents_kg_m03 = numpy.full(num_heights, 0.)
+
+    for k in range(num_cloud_layers):
+        this_top_height_m_agl = numpy.random.uniform(
+            low=0., high=tropopause_height_m_agl + 2000, size=1
+        )[0]
+        this_thickness_metres = numpy.random.uniform(
+            low=0., high=max_layer_thickness_metres, size=1
+        )[0]
+        this_bottom_height_m_agl = max([
+            this_top_height_m_agl - this_thickness_metres,
+            0.
+        ])
+
+        height_indices_by_layer[k] = _heights_to_grid_indices(
+            min_height_m_agl=this_bottom_height_m_agl,
+            max_height_m_agl=this_top_height_m_agl,
+            sorted_grid_heights_m_agl=
+            t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
+        )
+
+        if liquid_flag:
+            good_temperature_flags = (
+                t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[
+                    i, j, height_indices_by_layer[k]
+                ] >= MIN_TEMP_FOR_LIQUID_CLOUD_KELVINS
+            )
+        else:
+            good_temperature_flags = (
+                t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[
+                    i, j, height_indices_by_layer[k]
+                ] < 273.15
+            )
+
+        height_indices_by_layer[k] = (
+            height_indices_by_layer[k][good_temperature_flags]
+        )
+
+        if k == 0:
+            continue
+
+        test_indices = numpy.array([], dtype=int)
+
+        for m in range(k):
+            if len(height_indices_by_layer[m]) == 0:
+                continue
+
+            test_indices = numpy.concatenate((
+                test_indices,
+                height_indices_by_layer[m][[0]] - 1,
+                height_indices_by_layer[m],
+                height_indices_by_layer[m][[-1]] + 1
+            ))
+
+        height_indices_by_layer[k] = height_indices_by_layer[k][
+            numpy.invert(numpy.isin(height_indices_by_layer[k], test_indices))
+        ]
+
+        if len(height_indices_by_layer[k]) < 2:
+            height_indices_by_layer[k] = numpy.array([], dtype=int)
+            continue
+
+        # if not changed_water_paths:
+        #     t[water_path_key].values[i, j, :] = 0.
+        #     changed_water_paths = True
+
+        enhanced_height_indices = numpy.concatenate((
+            height_indices_by_layer[k][[0]] - 1,
+            height_indices_by_layer[k],
+            height_indices_by_layer[k][[-1]] + 1
+        ))
+
+        enhanced_layer_heights_m_agl = (
+            t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[
+                i, j, enhanced_height_indices
+            ]
+        )
+
+        layer_heights_m_agl = (
+            t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[
+                i, j, height_indices_by_layer[k]
+            ]
+        )
+
+        layer_center_m_agl = numpy.mean(layer_heights_m_agl)
+        max_height_diff_metres = numpy.max(
+            numpy.absolute(layer_center_m_agl - enhanced_layer_heights_m_agl)
+        )
+
+        layer_height_diffs_metres = numpy.absolute(
+            layer_center_m_agl - layer_heights_m_agl
+        )
+        layer_height_diffs_relative = (
+            layer_height_diffs_metres / max_height_diff_metres
+        )
+
+        layer_max_water_content_kg_m03 = numpy.random.uniform(
+            low=0., high=max_water_content_kg_m03, size=1
+        )[0]
+        layer_water_contents_kg_m03 = (
+            (1. - layer_height_diffs_relative) * layer_max_water_content_kg_m03
+        )
+        layer_water_contents_kg_m03 += numpy.random.normal(
+            loc=0., scale=water_content_noise_stdev_kg_m03,
+            size=len(layer_water_contents_kg_m03)
+        )
+        layer_water_contents_kg_m03 = numpy.maximum(
+            layer_water_contents_kg_m03, 0.
+        )
+        layer_water_contents_kg_m03 = numpy.minimum(
+            layer_water_contents_kg_m03, layer_max_water_content_kg_m03
+        )
+
+        new_water_contents_kg_m03[height_indices_by_layer[k]] = (
+            layer_water_contents_kg_m03
+        )
+
+    new_cloud_water_paths_kg_m02 = rrtm_io._water_content_to_layerwise_path(
+        water_content_matrix_kg_m03=numpy.expand_dims(
+            new_water_contents_kg_m03, axis=0
+        ),
+        heights_m_agl=t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
+    )[0, :]
+
+    if liquid_flag:
+        t[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02].values[
+            i, j, :
+        ] = new_cloud_water_paths_kg_m02
+    else:
+        t[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02].values[
+            i, j, :
+        ] = new_cloud_water_paths_kg_m02
+
+    gfs_table_xarray = t
+    return gfs_table_xarray
+
+
 def _create_surface_based_moist_layer(
         gfs_table_xarray, time_index, site_index, max_layer_thickness_metres,
         surface_relative_humidity_limits):
@@ -373,13 +586,13 @@ def _create_surface_based_moist_layer(
     surface_relative_humidity = numpy.random.uniform(
         low=surface_relative_humidity_limits[0],
         high=surface_relative_humidity_limits[1], size=1
-    )
+    )[0]
     surface_relative_humidity = max([surface_relative_humidity, 0.])
     surface_relative_humidity = min([surface_relative_humidity, 1.])
 
     layer_thickness_metres = numpy.random.uniform(
         low=0., high=max_layer_thickness_metres, size=1
-    )
+    )[0]
     layer_height_indices = _heights_to_grid_indices(
         min_height_m_agl=0.,
         max_height_m_agl=layer_thickness_metres,
@@ -401,36 +614,36 @@ def _create_surface_based_moist_layer(
         return gfs_table_xarray
 
     (
-        surface_dewpoint_kelvins
+        surface_dewpoint_kelvins_as_array
     ) = moisture_conv.relative_humidity_to_dewpoint(
-        relative_humidities=surface_relative_humidity,
+        relative_humidities=numpy.array([surface_relative_humidity]),
         temperatures_kelvins=
-        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, 0],
+        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, [0]],
         total_pressures_pascals=
-        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, 0]
+        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, [0]]
     )
 
     (
-        surface_specific_humidity_kg_kg01
+        surface_specific_humidity_kg_kg01_as_array
     ) = moisture_conv.dewpoint_to_specific_humidity(
-        dewpoints_kelvins=surface_dewpoint_kelvins,
+        dewpoints_kelvins=surface_dewpoint_kelvins_as_array,
         temperatures_kelvins=
-        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, 0],
+        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, [0]],
         total_pressures_pascals=
-        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, 0]
+        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, [0]]
     )
 
     surface_mixing_ratio_kg_kg01 = (
         moisture_conv.specific_humidity_to_mixing_ratio(
-            surface_specific_humidity_kg_kg01
-        )
+            surface_specific_humidity_kg_kg01_as_array
+        )[0]
     )
     surface_mixing_ratio_kg_kg01 = min([
         surface_mixing_ratio_kg_kg01, MAX_MIXING_RATIO_EVER_KG_KG01
     ])
     surface_mixr_increase_kg_kg01 = (
         surface_mixing_ratio_kg_kg01 -
-        t[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01].values[i, j, :]
+        t[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01].values[i, j, 0]
     )
 
     if surface_mixr_increase_kg_kg01 <= 0:
@@ -517,9 +730,10 @@ def _create_surface_based_warm_layer(
 
     layer_thickness_metres = numpy.random.uniform(
         low=0., high=max_layer_thickness_metres, size=1
-    )
+    )[0]
     layer_height_indices = _heights_to_grid_indices(
-        min_height_m_agl=0., max_height_m_agl=layer_thickness_metres,
+        min_height_m_agl=0.,
+        max_height_m_agl=layer_thickness_metres,
         sorted_grid_heights_m_agl=
         t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
     )
@@ -544,7 +758,7 @@ def _create_surface_based_warm_layer(
 
     surface_temp_increase_kelvins = numpy.random.uniform(
         low=0., high=max_temp_increase_kelvins, size=1
-    )
+    )[0]
     t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[
         i, j, layer_height_indices
     ] += (1. - height_diffs_relative) * surface_temp_increase_kelvins
@@ -595,10 +809,10 @@ def _create_ozone_layer(
 
     layer_thickness_metres = numpy.random.uniform(
         low=thickness_limits_metres[0], high=thickness_limits_metres[1], size=1
-    )
+    )[0]
     layer_center_m_agl = numpy.random.uniform(
         low=center_limits_metres[0], high=center_limits_metres[1], size=1
-    )
+    )[0]
     layer_bottom_m_agl = layer_center_m_agl - layer_thickness_metres / 2
     layer_top_m_agl = layer_center_m_agl + layer_thickness_metres / 2
 
@@ -658,7 +872,7 @@ def _create_ozone_layer(
 
     this_max_mixing_ratio_kg_kg01 = numpy.random.uniform(
         low=0., high=max_mixing_ratio_kg_kg01, size=1
-    )
+    )[0]
     t[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01].values[
         i, j, layer_height_indices
     ] = (1. - height_diffs_relative) * this_max_mixing_ratio_kg_kg01
@@ -697,10 +911,12 @@ def _run(input_file_name, max_temp_increase_kelvins,
          surface_relative_humidity_limits, max_moist_layer_thickness_metres,
          ozone_layer_thickness_limits_metres, ozone_layer_center_limits_metres,
          max_ozone_mixing_ratio_kg_kg01, ozone_mixing_ratio_noise_stdev_kg_kg01,
-         max_liquid_water_content_kg_m03, max_liquid_cloud_thickness_metres,
+         max_num_liquid_cloud_layers, max_liquid_cloud_layer_thickness_metres,
+         max_liquid_water_content_kg_m03,
          liquid_water_content_noise_stdev_kg_m03,
-         max_ice_water_content_kg_m03, max_ice_cloud_thickness_metres,
-         ice_water_content_noise_stdev_kg_m03, output_file_name):
+         max_num_ice_cloud_layers, max_ice_cloud_layer_thickness_metres,
+         max_ice_water_content_kg_m03, ice_water_content_noise_stdev_kg_m03,
+         output_file_name):
     """Perturbs GFS data before input to the RRTM.
 
     This is effectively the main method.
@@ -714,11 +930,13 @@ def _run(input_file_name, max_temp_increase_kelvins,
     :param ozone_layer_center_limits_metres: Same.
     :param max_ozone_mixing_ratio_kg_kg01: Same.
     :param ozone_mixing_ratio_noise_stdev_kg_kg01: Same.
+    :param max_num_liquid_cloud_layers: Same.
+    :param max_liquid_cloud_layer_thickness_metres: Same.
     :param max_liquid_water_content_kg_m03: Same.
-    :param max_liquid_cloud_thickness_metres: Same.
     :param liquid_water_content_noise_stdev_kg_m03: Same.
+    :param max_num_ice_cloud_layers: Same.
+    :param max_ice_cloud_layer_thickness_metres: Same.
     :param max_ice_water_content_kg_m03: Same.
-    :param max_ice_cloud_thickness_metres: Same.
     :param ice_water_content_noise_stdev_kg_m03: Same.
     :param output_file_name: Same.
     """
@@ -755,13 +973,19 @@ def _run(input_file_name, max_temp_increase_kelvins,
 
     error_checking.assert_is_greater(max_ozone_mixing_ratio_kg_kg01, 0.)
     error_checking.assert_is_greater(ozone_mixing_ratio_noise_stdev_kg_kg01, 0.)
+    error_checking.assert_is_greater(max_num_liquid_cloud_layers, 0)
+    error_checking.assert_is_leq(max_num_liquid_cloud_layers, 10)
+    error_checking.assert_is_greater(
+        max_liquid_cloud_layer_thickness_metres, 0.
+    )
     error_checking.assert_is_greater(max_liquid_water_content_kg_m03, 0.)
-    error_checking.assert_is_greater(max_liquid_cloud_thickness_metres, 0.)
     error_checking.assert_is_greater(
         liquid_water_content_noise_stdev_kg_m03, 0.
     )
+    error_checking.assert_is_greater(max_num_ice_cloud_layers, 0)
+    error_checking.assert_is_leq(max_num_ice_cloud_layers, 10)
+    error_checking.assert_is_greater(max_ice_cloud_layer_thickness_metres, 0.)
     error_checking.assert_is_greater(max_ice_water_content_kg_m03, 0.)
-    error_checking.assert_is_greater(max_ice_cloud_thickness_metres, 0.)
     error_checking.assert_is_greater(ice_water_content_noise_stdev_kg_m03, 0.)
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
@@ -810,7 +1034,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 ))
 
             # Create fictitious ozone layer.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_ozone_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -822,7 +1046,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious surface-based warm layer.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_surface_based_warm_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -831,7 +1055,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious surface-based moist layer.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_surface_based_moist_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -841,12 +1065,13 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious liquid cloud.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
-                    max_cloud_thickness_metres=
-                    max_liquid_cloud_thickness_metres,
+                    max_num_cloud_layers=max_num_liquid_cloud_layers,
+                    max_layer_thickness_metres=
+                    max_liquid_cloud_layer_thickness_metres,
                     max_water_content_kg_m03=max_liquid_water_content_kg_m03,
                     water_content_noise_stdev_kg_m03=
                     liquid_water_content_noise_stdev_kg_m03,
@@ -854,14 +1079,16 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious ice cloud.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
-                    max_cloud_thickness_metres=max_ice_cloud_thickness_metres,
-                    max_water_content_kg_m03=max_ice_water_content_kg_m03,
+                    max_num_cloud_layers=max_num_liquid_cloud_layers,
+                    max_layer_thickness_metres=
+                    max_liquid_cloud_layer_thickness_metres,
+                    max_water_content_kg_m03=max_liquid_water_content_kg_m03,
                     water_content_noise_stdev_kg_m03=
-                    ice_water_content_noise_stdev_kg_m03,
+                    liquid_water_content_noise_stdev_kg_m03,
                     liquid_flag=False
                 )
 
@@ -910,20 +1137,26 @@ if __name__ == '__main__':
         ozone_mixing_ratio_noise_stdev_kg_kg01=getattr(
             INPUT_ARG_OBJECT, OZONE_MIXING_RATIO_NOISE_ARG_NAME
         ),
+        max_num_liquid_cloud_layers=getattr(
+            INPUT_ARG_OBJECT, MAX_NUM_LIQUID_CLOUDS_ARG_NAME
+        ),
+        max_liquid_cloud_layer_thickness_metres=getattr(
+            INPUT_ARG_OBJECT, MAX_LIQUID_CLOUD_THICKNESS_ARG_NAME
+        ),
         max_liquid_water_content_kg_m03=getattr(
             INPUT_ARG_OBJECT, MAX_LIQUID_WATER_CONTENT_ARG_NAME
-        ),
-        max_liquid_cloud_thickness_metres=getattr(
-            INPUT_ARG_OBJECT, MAX_LIQUID_CLOUD_THICKNESS_ARG_NAME
         ),
         liquid_water_content_noise_stdev_kg_m03=getattr(
             INPUT_ARG_OBJECT, LIQUID_WATER_CONTENT_NOISE_ARG_NAME
         ),
+        max_num_ice_cloud_layers=getattr(
+            INPUT_ARG_OBJECT, MAX_NUM_ICE_CLOUDS_ARG_NAME
+        ),
+        max_ice_cloud_layer_thickness_metres=getattr(
+            INPUT_ARG_OBJECT, MAX_ICE_CLOUD_THICKNESS_ARG_NAME
+        ),
         max_ice_water_content_kg_m03=getattr(
             INPUT_ARG_OBJECT, MAX_ICE_WATER_CONTENT_ARG_NAME
-        ),
-        max_ice_cloud_thickness_metres=getattr(
-            INPUT_ARG_OBJECT, MAX_ICE_CLOUD_THICKNESS_ARG_NAME
         ),
         ice_water_content_noise_stdev_kg_m03=getattr(
             INPUT_ARG_OBJECT, ICE_WATER_CONTENT_NOISE_ARG_NAME
