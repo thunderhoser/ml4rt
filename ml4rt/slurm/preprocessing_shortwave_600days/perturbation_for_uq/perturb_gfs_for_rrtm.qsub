@@ -36,7 +36,7 @@ set output_date_string=${OUTPUT_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
 set input_file_name="${INPUT_DIR_NAME}/profiler_sitesF.ncep_rap.${output_date_string}.0000.nc"
 set output_file_name="${OUTPUT_DIR_NAME}/profiler_sitesF.ncep_rap.${output_date_string}.0000.nc"
 
-python3 -u "${CODE_DIR_NAME}/prepare_gfs_for_rrtm_no_interp.py" \
+python3 -u "${CODE_DIR_NAME}/perturb_gfs_for_rrtm.py" \
 --input_file_name="${input_file_name}" \
 --max_temp_increase_kelvins=8 \
 --max_warm_layer_thickness_metres=5000 \
