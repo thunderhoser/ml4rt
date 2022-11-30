@@ -179,10 +179,6 @@ def _heights_to_grid_indices(
     :return: grid_point_indices: 1-D numpy array of indices in layer.
     """
 
-    print(min_height_m_agl)
-    print(max_height_m_agl)
-    print(sorted_grid_heights_m_agl)
-
     min_index = numpy.argmin(
         numpy.absolute(min_height_m_agl - sorted_grid_heights_m_agl)
     )
@@ -291,10 +287,10 @@ def _create_cloud(
 
     cloud_top_height_m_agl = numpy.random.uniform(
         low=0., high=tropopause_height_m_agl + 2000, size=1
-    )
+    )[0]
     cloud_thickness_metres = numpy.random.uniform(
         low=0., high=max_cloud_thickness_metres, size=1
-    )
+    )[0]
     cloud_bottom_height_m_agl = max([
         cloud_top_height_m_agl - cloud_thickness_metres,
         0.
@@ -383,13 +379,13 @@ def _create_surface_based_moist_layer(
     surface_relative_humidity = numpy.random.uniform(
         low=surface_relative_humidity_limits[0],
         high=surface_relative_humidity_limits[1], size=1
-    )
+    )[0]
     surface_relative_humidity = max([surface_relative_humidity, 0.])
     surface_relative_humidity = min([surface_relative_humidity, 1.])
 
     layer_thickness_metres = numpy.random.uniform(
         low=0., high=max_layer_thickness_metres, size=1
-    )
+    )[0]
     layer_height_indices = _heights_to_grid_indices(
         min_height_m_agl=0.,
         max_height_m_agl=layer_thickness_metres,
@@ -527,7 +523,7 @@ def _create_surface_based_warm_layer(
 
     layer_thickness_metres = numpy.random.uniform(
         low=0., high=max_layer_thickness_metres, size=1
-    )
+    )[0]
     layer_height_indices = _heights_to_grid_indices(
         min_height_m_agl=0., max_height_m_agl=layer_thickness_metres,
         sorted_grid_heights_m_agl=
@@ -554,7 +550,7 @@ def _create_surface_based_warm_layer(
 
     surface_temp_increase_kelvins = numpy.random.uniform(
         low=0., high=max_temp_increase_kelvins, size=1
-    )
+    )[0]
     t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[
         i, j, layer_height_indices
     ] += (1. - height_diffs_relative) * surface_temp_increase_kelvins
@@ -605,10 +601,10 @@ def _create_ozone_layer(
 
     layer_thickness_metres = numpy.random.uniform(
         low=thickness_limits_metres[0], high=thickness_limits_metres[1], size=1
-    )
+    )[0]
     layer_center_m_agl = numpy.random.uniform(
         low=center_limits_metres[0], high=center_limits_metres[1], size=1
-    )
+    )[0]
     layer_bottom_m_agl = layer_center_m_agl - layer_thickness_metres / 2
     layer_top_m_agl = layer_center_m_agl + layer_thickness_metres / 2
 
@@ -668,7 +664,7 @@ def _create_ozone_layer(
 
     this_max_mixing_ratio_kg_kg01 = numpy.random.uniform(
         low=0., high=max_mixing_ratio_kg_kg01, size=1
-    )
+    )[0]
     t[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01].values[
         i, j, layer_height_indices
     ] = (1. - height_diffs_relative) * this_max_mixing_ratio_kg_kg01
@@ -820,7 +816,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 ))
 
             # Create fictitious ozone layer.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_ozone_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -832,7 +828,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious surface-based warm layer.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_surface_based_warm_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -841,7 +837,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious surface-based moist layer.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_surface_based_moist_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -851,7 +847,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious liquid cloud.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -864,7 +860,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious ice cloud.
-            if numpy.random.uniform(low=0., high=1., size=1) > 0.5:
+            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
