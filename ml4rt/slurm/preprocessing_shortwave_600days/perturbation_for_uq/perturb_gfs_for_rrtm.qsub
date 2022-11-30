@@ -42,7 +42,7 @@ python3 -u "${CODE_DIR_NAME}/perturb_gfs_for_rrtm.py" \
 --max_warm_layer_thickness_metres=5000 \
 --surface_relative_humidity_limits 0.5 1 \
 --max_moist_layer_thickness_metres=5000 \
---ozone_layer_thickness_limits_metres 0 60000 \
+--ozone_layer_thickness_limits_metres 100 60000 \
 --ozone_layer_center_limits_m_agl 20000 50000 \
 --max_ozone_mixing_ratio_kg_kg01=0.00005 \
 --ozone_mixing_ratio_noise_stdev_kg_kg01=0.00001 \
