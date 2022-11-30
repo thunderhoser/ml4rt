@@ -45,11 +45,13 @@ python3 -u "${CODE_DIR_NAME}/perturb_gfs_for_rrtm.py" \
 --ozone_layer_thickness_limits_metres 100 60000 \
 --ozone_layer_center_limits_m_agl 20000 50000 \
 --max_ozone_mixing_ratio_kg_kg01=0.00005 \
---ozone_mixing_ratio_noise_stdev_kg_kg01=0.00001 \
+--ozone_mixing_ratio_noise_stdev_kg_kg01=0.000001 \
+--max_num_liquid_cloud_layers=5 \
+--max_liquid_cloud_layer_thickness_metres=5000 \
 --max_liquid_water_content_kg_m03=0.005 \
---max_liquid_cloud_thickness_metres=15000 \
 --liquid_water_content_noise_stdev_kg_m03=0.001 \
+--max_num_ice_cloud_layers=5 \
+--max_ice_cloud_layer_thickness_metres=5000 \
 --max_ice_water_content_kg_m03=0.005 \
---max_ice_cloud_thickness_metres=15000 \
 --ice_water_content_noise_stdev_kg_m03=0.001 \
 --output_file_name="${output_file_name}"
