@@ -273,111 +273,6 @@ def _find_tropopause(temperatures_kelvins, sorted_heights_m_agl):
     return None, None
 
 
-def _create_cloud_old(
-        gfs_table_xarray, time_index, site_index, max_cloud_thickness_metres,
-        max_water_content_kg_m03, water_content_noise_stdev_kg_m03,
-        liquid_flag):
-    """Creates fictitious liquid or ice cloud.
-
-    Allowing cloud up to 2 km above tropopause is motivated by:
-    https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021JD034808
-
-    :param gfs_table_xarray: xarray table with GFS data.
-    :param time_index: Will create fictitious warm layer for this time.
-    :param site_index: Will create fictitious warm layer for this site.
-    :param max_cloud_thickness_metres: See documentation at top of file.
-    :param max_water_content_kg_m03: Same.
-    :param water_content_noise_stdev_kg_m03: Same.
-    :param liquid_flag: Boolean flag.  If True (False), will create liquid (ice)
-        cloud.
-    :return: gfs_table_xarray: Same as input but with fictitious liquid cloud
-        for the given time step and site.
-    """
-
-    i = time_index
-    j = site_index
-    t = gfs_table_xarray
-
-    tropopause_height_m_agl, _ = _find_tropopause(
-        temperatures_kelvins=
-        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, :],
-        sorted_heights_m_agl=
-        t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
-    )
-
-    cloud_top_height_m_agl = numpy.random.uniform(
-        low=0., high=tropopause_height_m_agl + 2000, size=1
-    )[0]
-    cloud_thickness_metres = numpy.random.uniform(
-        low=0., high=max_cloud_thickness_metres, size=1
-    )[0]
-    cloud_bottom_height_m_agl = max([
-        cloud_top_height_m_agl - cloud_thickness_metres,
-        0.
-    ])
-
-    cloud_height_indices = _heights_to_grid_indices(
-        min_height_m_agl=cloud_bottom_height_m_agl,
-        max_height_m_agl=cloud_top_height_m_agl,
-        sorted_grid_heights_m_agl=
-        t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
-    )
-
-    if liquid_flag:
-        good_temperature_flags = (
-            t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[
-                i, j, cloud_height_indices
-            ] >= MIN_TEMP_FOR_LIQUID_CLOUD_KELVINS
-        )
-    else:
-        good_temperature_flags = (
-            t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[
-                i, j, cloud_height_indices
-            ] < 273.15
-        )
-
-    cloud_height_indices = cloud_height_indices[good_temperature_flags]
-
-    if len(cloud_height_indices) < 2:
-        return gfs_table_xarray
-
-    cloud_water_contents_kg_m03 = numpy.random.uniform(
-        low=0., high=max_water_content_kg_m03,
-        size=len(cloud_height_indices)
-    )
-    cloud_water_contents_kg_m03 += numpy.random.normal(
-        loc=0., scale=water_content_noise_stdev_kg_m03,
-        size=len(cloud_height_indices)
-    )
-    cloud_water_contents_kg_m03 = numpy.maximum(cloud_water_contents_kg_m03, 0.)
-    cloud_water_contents_kg_m03 = numpy.minimum(
-        cloud_water_contents_kg_m03, max_water_content_kg_m03
-    )
-
-    (
-        layerwise_cloud_water_paths_kg_m02
-    ) = rrtm_io._water_content_to_layerwise_path(
-        water_content_matrix_kg_m03=numpy.expand_dims(
-            cloud_water_contents_kg_m03, axis=0
-        ),
-        heights_m_agl=t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[
-            i, j, cloud_height_indices
-        ]
-    )[0, :]
-
-    if liquid_flag:
-        t[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02].values[
-            i, j, cloud_height_indices
-        ] = layerwise_cloud_water_paths_kg_m02
-    else:
-        t[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02].values[
-            i, j, cloud_height_indices
-        ] = layerwise_cloud_water_paths_kg_m02
-
-    gfs_table_xarray = t
-    return gfs_table_xarray
-
-
 def _create_cloud(
         gfs_table_xarray, time_index, site_index, max_num_cloud_layers,
         max_layer_thickness_metres, max_water_content_kg_m03,
@@ -417,6 +312,8 @@ def _create_cloud(
         sorted_heights_m_agl=
         t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
     )
+    if tropopause_height_m_agl is None:
+        tropopause_height_m_agl = MIN_TROPOPAUSE_HEIGHT_EVER_M_AGL
 
     height_indices_by_layer = [numpy.array([], dtype=int)] * num_cloud_layers
 
@@ -606,6 +503,12 @@ def _create_surface_based_moist_layer(
         sorted_heights_m_agl=
         t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
     )
+    if tropopause_height_index is None:
+        tropopause_height_index = numpy.argmin(numpy.absolute(
+            t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :] -
+            MIN_TROPOPAUSE_HEIGHT_EVER_M_AGL
+        ))
+
     layer_height_indices = layer_height_indices[
         layer_height_indices < tropopause_height_index
     ]
@@ -744,6 +647,12 @@ def _create_surface_based_warm_layer(
         sorted_heights_m_agl=
         t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
     )
+    if tropopause_height_index is None:
+        tropopause_height_index = numpy.argmin(numpy.absolute(
+            t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :] -
+            MIN_TROPOPAUSE_HEIGHT_EVER_M_AGL
+        ))
+
     layer_height_indices = layer_height_indices[
         layer_height_indices < tropopause_height_index
     ]
@@ -829,6 +738,12 @@ def _create_ozone_layer(
         sorted_heights_m_agl=
         t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :]
     )
+    if tropopause_height_index is None:
+        tropopause_height_index = numpy.argmin(numpy.absolute(
+            t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[i, j, :] -
+            MAX_TROPOPAUSE_HEIGHT_EVER_M_AGL
+        ))
+
     layer_height_indices = layer_height_indices[
         layer_height_indices > tropopause_height_index
     ]
