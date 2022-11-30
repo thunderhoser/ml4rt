@@ -436,7 +436,7 @@ def _create_surface_based_moist_layer(
     ])
     surface_mixr_increase_kg_kg01 = (
         surface_mixing_ratio_kg_kg01 -
-        t[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01].values[i, j, :]
+        t[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01].values[i, j, 0]
     )
 
     if surface_mixr_increase_kg_kg01 <= 0:
