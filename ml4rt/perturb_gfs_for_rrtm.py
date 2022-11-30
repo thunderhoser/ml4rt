@@ -35,7 +35,6 @@ MAX_TEMPERATURE_EVER_KELVINS = 333.15
 MAX_MIXING_RATIO_EVER_KG_KG01 = 0.04
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
-
 MAX_TEMP_INCREASE_ARG_NAME = 'max_temp_increase_kelvins'
 MAX_WARM_LAYER_THICKNESS_ARG_NAME = 'max_warm_layer_thickness_metres'
 SURFACE_RH_LIMITS_ARG_NAME = 'surface_relative_humidity_limits'
@@ -56,7 +55,6 @@ INPUT_FILE_HELP_STRING = (
     'Path to input file (created by prepare_gfs_for_rrtm_no_interp.py), '
     'containing GFS data for one init time.'
 )
-
 MAX_TEMP_INCREASE_HELP_STRING = (
     'Max temperature increase.  The max increase will always occur at the '
     'surface.'
@@ -409,29 +407,29 @@ def _create_surface_based_moist_layer(
         return gfs_table_xarray
 
     (
-        surface_dewpoint_kelvins
+        surface_dewpoint_kelvins_as_array
     ) = moisture_conv.relative_humidity_to_dewpoint(
-        relative_humidities=surface_relative_humidity,
+        relative_humidities=numpy.array([surface_relative_humidity]),
         temperatures_kelvins=
-        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, 0],
+        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, [0]],
         total_pressures_pascals=
-        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, 0]
+        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, [0]]
     )
 
     (
-        surface_specific_humidity_kg_kg01
+        surface_specific_humidity_kg_kg01_as_array
     ) = moisture_conv.dewpoint_to_specific_humidity(
-        dewpoints_kelvins=surface_dewpoint_kelvins,
+        dewpoints_kelvins=surface_dewpoint_kelvins_as_array,
         temperatures_kelvins=
-        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, 0],
+        t[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[i, j, [0]],
         total_pressures_pascals=
-        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, 0]
+        t[prepare_gfs_for_rrtm.PRESSURE_KEY_PASCALS].values[i, j, [0]]
     )
 
     surface_mixing_ratio_kg_kg01 = (
         moisture_conv.specific_humidity_to_mixing_ratio(
-            surface_specific_humidity_kg_kg01
-        )
+            surface_specific_humidity_kg_kg01_as_array
+        )[0]
     )
     surface_mixing_ratio_kg_kg01 = min([
         surface_mixing_ratio_kg_kg01, MAX_MIXING_RATIO_EVER_KG_KG01
