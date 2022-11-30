@@ -334,6 +334,27 @@ def _create_cloud(
         cloud_water_contents_kg_m03, max_water_content_kg_m03
     )
 
+    print(numpy.expand_dims(
+        cloud_water_contents_kg_m03, axis=0
+    ).shape)
+
+    print(
+        t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[
+            i, j, cloud_height_indices
+        ].shape
+    )
+
+    print(
+        rrtm_io._water_content_to_layerwise_path(
+            water_content_matrix_kg_m03=numpy.expand_dims(
+                cloud_water_contents_kg_m03, axis=0
+            ),
+            heights_m_agl=t[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[
+                i, j, cloud_height_indices
+            ]
+        ).shape
+    )
+
     (
         layerwise_cloud_water_paths_kg_m02
     ) = rrtm_io._water_content_to_layerwise_path(
