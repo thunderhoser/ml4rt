@@ -179,14 +179,10 @@ def _heights_to_grid_indices(
     :return: grid_point_indices: 1-D numpy array of indices in layer.
     """
 
-    print(min_height_m_agl)
-    print(max_height_m_agl)
-    print(sorted_grid_heights_m_agl)
-
     min_index = numpy.argmin(
         numpy.absolute(min_height_m_agl - sorted_grid_heights_m_agl)
     )
-    max_index = numpy.argmax(
+    max_index = numpy.argmin(
         numpy.absolute(max_height_m_agl - sorted_grid_heights_m_agl)
     )
     return numpy.linspace(
