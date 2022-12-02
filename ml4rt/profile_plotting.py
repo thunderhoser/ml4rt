@@ -67,7 +67,9 @@ PREDICTOR_NAME_TO_VERBOSE = {
         r'Column liquid-water path (g m$^{-2}$)',
     example_utils.COLUMN_ICE_WATER_PATH_NAME:
         r'Column ice-water path (mg m$^{-2}$)',
-    example_utils.AEROSOL_EXTINCTION_NAME: r'Aerosol extinction (km$^{-1}$)'
+    example_utils.AEROSOL_EXTINCTION_NAME: r'Aerosol extinction (km$^{-1}$)',
+    example_utils.AEROSOL_ALBEDO_NAME: 'Aerosol single-scattering albedo',
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME: 'Aerosol asymmetry param'
 }
 
 PREDICTOR_NAME_TO_CONV_FACTOR = {
