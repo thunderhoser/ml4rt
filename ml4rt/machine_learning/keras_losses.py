@@ -184,6 +184,105 @@ def dual_weighted_mse(
     return loss
 
 
+def dual_weighted_crps():
+    """Dual-weighted CRPS (continuous ranked probability score) for htng rates.
+
+    Weight = max(magnitude of target value, magnitude of predicted value).
+
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (dual-weighted CRPS).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Dual-weighted CRPS.
+        """
+
+        weight_tensor = K.maximum(
+            K.abs(K.expand_dims(target_tensor, axis=-1)),
+            K.abs(prediction_tensor)
+        )
+        absolute_error_tensor = K.abs(
+            prediction_tensor - K.expand_dims(target_tensor, axis=-1)
+        )
+        mean_prediction_error_tensor = K.mean(
+            weight_tensor * absolute_error_tensor, axis=-1
+        )
+
+        weight_tensor = K.maximum(
+            K.abs(K.expand_dims(prediction_tensor, axis=-1)),
+            K.abs(K.expand_dims(prediction_tensor, axis=-2))
+        )
+        prediction_diff_tensor = K.abs(
+            K.expand_dims(prediction_tensor, axis=-1) -
+            K.expand_dims(prediction_tensor, axis=-2)
+        )
+        mean_prediction_diff_tensor = K.mean(
+            weight_tensor * prediction_diff_tensor, axis=(-2, -1)
+        )
+
+        return K.mean(
+            mean_prediction_error_tensor - 0.5 * mean_prediction_diff_tensor
+        )
+
+    return loss
+
+
+def unscaled_crps_for_net_flux():
+    """Unscaled CRPS (continuous ranked probability score) for net flux.
+
+    This method expects two channels: surface downwelling flux and
+    top-of-atmosphere (TOA) upwelling flux.  This method penalizes only errors
+    in the net flux, which is surface downwelling minus TOA upwelling.
+
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (unscaled CRPS for net flux).
+
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Unscaled CRPS for net flux.
+        """
+
+        target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
+        full_target_tensor = K.concatenate((
+            target_tensor, K.expand_dims(target_net_flux_tensor, axis=-1)
+        ), axis=-1)
+
+        predicted_net_flux_tensor = (
+            prediction_tensor[..., 0, :] - prediction_tensor[..., 1, :]
+        )
+        full_prediction_tensor = K.concatenate((
+            prediction_tensor, K.expand_dims(predicted_net_flux_tensor, axis=-2)
+        ), axis=-2)
+
+        mean_prediction_error_tensor = K.mean(
+            K.abs(
+                full_prediction_tensor -
+                K.expand_dims(full_target_tensor, axis=-1)
+            ),
+            axis=-1
+        )
+
+        prediction_diff_tensor = K.abs(
+            K.expand_dims(full_prediction_tensor, axis=-1) -
+            K.expand_dims(full_prediction_tensor, axis=-2)
+        )
+        mean_prediction_diff_tensor = K.mean(
+            prediction_diff_tensor, axis=(-2, -1)
+        )
+
+        return K.mean(
+            mean_prediction_error_tensor - 0.5 * mean_prediction_diff_tensor
+        )
+
+    return loss
+
+
 def joined_output_loss(num_heights, flux_scaling_factor):
     """Loss function for joined output.
 
