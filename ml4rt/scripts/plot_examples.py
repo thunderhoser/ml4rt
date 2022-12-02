@@ -371,6 +371,6 @@ if __name__ == '__main__':
         ),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
-        plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME)),
+        plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
