@@ -107,15 +107,6 @@ SIXTH_PREDICTOR_COLOURS_SHORTWAVE = [
     ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
 ]
 
-# PREDICTOR_NAMES_BY_SET = [
-#     FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES,
-#     FOURTH_PREDICTOR_NAMES, FIFTH_PREDICTOR_NAMES, SIXTH_PREDICTOR_NAMES
-# ]
-# PREDICTOR_COLOURS_BY_SET = [
-#     FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS,
-#     FOURTH_PREDICTOR_COLOURS, FIFTH_PREDICTOR_COLOURS, SIXTH_PREDICTOR_COLOURS
-# ]
-
 LINE_WIDTH = 3
 FIGURE_RESOLUTION_DPI = 300
 
@@ -221,6 +212,9 @@ def _plot_one_example(
     panel_file_names = []
 
     for k in range(num_predictor_sets):
+        print(predictor_names_by_set)
+        print('\n\n\n')
+
         handle_dict = profile_plotting.plot_predictors(
             example_dict=example_dict, example_index=example_index,
             predictor_names=predictor_names_by_set[k],
