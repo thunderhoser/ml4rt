@@ -187,6 +187,8 @@ def _plot_one_example(
         here.
     """
 
+    print('PLOT SHORTWAVE? {0:d}'.format(int(plot_shortwave)))
+
     example_id_string = (
         example_dict[example_utils.EXAMPLE_IDS_KEY][example_index]
     )
@@ -212,9 +214,6 @@ def _plot_one_example(
     panel_file_names = []
 
     for k in range(num_predictor_sets):
-        print(predictor_names_by_set)
-        print('\n\n\n')
-
         handle_dict = profile_plotting.plot_predictors(
             example_dict=example_dict, example_index=example_index,
             predictor_names=predictor_names_by_set[k],
