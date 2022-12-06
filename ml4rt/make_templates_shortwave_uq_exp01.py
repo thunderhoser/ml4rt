@@ -23,7 +23,7 @@ OUTPUT_DIR_NAME = (
     '{0:s}/ml4rt_models/shortwave_uq_experiment01/templates'
 ).format(HOME_DIR_NAME)
 
-ENSEMBLE_SIZE = 100
+ENSEMBLE_SIZE = 50
 
 MODEL_DEPTH = 5
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 96], dtype=int)
