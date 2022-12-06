@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=08:00:00
-#SBATCH --array=1-72
+#SBATCH --array=1-63
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -30,9 +30,9 @@ set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/
 set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/validation"
 set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc"
 
-set FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128")
-set UQ_METHOD_STRINGS=("mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps")
-set DENSE_LAYER_DROPOUT_RATES=("0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50")
+set FIRST_LAYER_CHANNEL_COUNTS=("032" "032" "032" "032" "032" "032" "032" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "032" "032" "032" "032" "032" "032" "032" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "032" "032" "032" "032" "032" "032" "032" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128")
+set UQ_METHOD_STRINGS=("mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps")
+set DENSE_LAYER_DROPOUT_RATES=("0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50" "0.01" "0.05" "0.10" "0.20" "0.30" "0.40" "0.50")
 
 set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set uq_method_string=${UQ_METHOD_STRINGS[$SLURM_ARRAY_TASK_ID]}

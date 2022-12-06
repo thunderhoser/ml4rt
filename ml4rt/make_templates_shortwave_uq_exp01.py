@@ -26,7 +26,7 @@ OUTPUT_DIR_NAME = (
 ENSEMBLE_SIZE = 100
 
 MODEL_DEPTH = 5
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([64, 128], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 128], dtype=int)
 UQ_METHOD_STRINGS = ['mc-dropout', 'crps', 'mc-crps']
 DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
 
