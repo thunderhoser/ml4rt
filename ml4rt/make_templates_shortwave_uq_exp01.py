@@ -177,7 +177,7 @@ def _run():
 
                 this_model_file_name = (
                     '{0:s}/{1:s}_num-first-layer-channels={2:03d}_'
-                    'dense-layer-dropout-rate={3:.1f}/model.h5'
+                    'dense-layer-dropout-rate={3:.2f}/model.h5'
                 ).format(
                     OUTPUT_DIR_NAME, UQ_METHOD_STRINGS[j],
                     FIRST_LAYER_CHANNEL_COUNTS[i], DENSE_LAYER_DROPOUT_RATES[k]
