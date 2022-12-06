@@ -555,7 +555,8 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
 
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
-            target_shape=(num_output_channels, ensemble_size)
+            target_shape=
+            (input_dimensions[0], num_output_channels, ensemble_size)
         )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
