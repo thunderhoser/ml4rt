@@ -336,3 +336,23 @@ def joined_output_loss(num_heights, flux_scaling_factor):
         return first_term + second_term
 
     return loss
+
+
+def dual_weighted_mse_simple():
+    """Dual-weighted MSE (mean squared error).
+    Weight = max(magnitude of target value, magnitude of predicted value).
+    :return: loss: Loss function (defined below).
+    """
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (dual-weighted MSE).
+        :param target_tensor: Tensor of target (actual) values.
+        :param prediction_tensor: Tensor of predicted values.
+        :return: loss: Dual-weighted MSE.
+        """
+
+        weight_tensor = K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+        error_tensor = weight_tensor * (prediction_tensor - target_tensor) ** 2
+        return K.mean(error_tensor)
+
+    return loss
