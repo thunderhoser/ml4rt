@@ -39,20 +39,6 @@ VALID_NET_TYPE_STRINGS = [
     CNN_TYPE_STRING, DENSE_NET_TYPE_STRING, U_NET_TYPE_STRING
 ]
 
-USE_MSE_SKILL_KEY = 'use_mse_skill_score'
-USE_WEIGHTED_MSE_KEY = 'use_weighted_mse'
-USE_DUAL_WEIGHTED_MSE_KEY = 'use_dual_weighted_mse'
-
-TOA_UP_FLUX_INDEX_KEY = 'toa_up_flux_index'
-TOA_UP_FLUX_WEIGHT_KEY = 'toa_up_flux_weight'
-SURFACE_DOWN_FLUX_INDEX_KEY = 'surface_down_flux_index'
-SURFACE_DOWN_FLUX_WEIGHT_KEY = 'surface_down_flux_weight'
-UP_FLUX_CHANNEL_INDEX_KEY = 'up_flux_channel_index'
-DOWN_FLUX_CHANNEL_INDEX_KEY = 'down_flux_channel_index'
-HIGHEST_UP_FLUX_INDEX_KEY = 'highest_up_flux_index'
-LOWEST_DOWN_FLUX_INDEX_KEY = 'lowest_down_flux_index'
-NET_FLUX_WEIGHT_KEY = 'net_flux_weight'
-
 EXAMPLE_DIRECTORY_KEY = 'example_dir_name'
 BATCH_SIZE_KEY = 'num_examples_per_batch'
 SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
@@ -743,6 +729,8 @@ def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string,
         variable.  If target variable is scalar, this will be None.
     """
 
+    # TODO(thunderhoser): This won't work for NNs that output an ensemble.
+
     error_checking.assert_is_integer_numpy_array(neuron_indices)
     error_checking.assert_is_geq_numpy_array(neuron_indices, 0)
     check_net_type(net_type_string)
@@ -849,6 +837,8 @@ def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
     :param height_m_agl: Same.
     :return: neuron_indices: Same.
     """
+
+    # TODO(thunderhoser): This won't work for NNs that output an ensemble.
 
     check_net_type(net_type_string)
     error_checking.assert_is_string(target_name)
@@ -1994,7 +1984,7 @@ def read_metafile(dill_file_name):
 
 def apply_model(
         model_object, predictor_matrix, num_examples_per_batch, net_type_string,
-        verbose=False):
+        use_dropout=False, verbose=False):
     """Applies trained neural net (of any kind) to new data.
 
     E = number of examples
@@ -2009,6 +1999,9 @@ def apply_model(
     :param num_examples_per_batch: Batch size.
     :param net_type_string: Type of neural net (must be accepted by
         `check_net_type`).
+    :param use_dropout: Boolean flag.  If True, will keep dropout in all layers
+        turned on.  Using dropout at inference time is called "Monte Carlo
+        dropout".
     :param verbose: Boolean flag.  If True, will print progress messages.
 
     :return: prediction_list: See below.
@@ -2024,6 +2017,15 @@ def apply_model(
         predictor_matrix=predictor_matrix,
         num_examples_per_batch=num_examples_per_batch, verbose=verbose
     )
+
+    error_checking.assert_is_boolean(use_dropout)
+    if use_dropout:
+        for layer_object in model_object.layers:
+            if 'batch' in layer_object.name.lower():
+                print('Layer "{0:s}" set to NON-TRAINABLE!'.format(
+                    layer_object.name
+                ))
+                layer_object.trainable = False
 
     vector_prediction_matrix = None
     scalar_prediction_matrix = None
@@ -2047,9 +2049,14 @@ def apply_model(
                 this_first_index + 1, this_last_index + 1, num_examples
             ))
 
-        this_output = model_object.predict(
-            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
-        )
+        if use_dropout:
+            this_output = model_object(
+                predictor_matrix[these_indices, ...], training=True
+            ).numpy()
+        else:
+            this_output = model_object.predict_on_batch(
+                predictor_matrix[these_indices, ...]
+            )
 
         if not isinstance(this_output, list):
             this_output = [this_output]
