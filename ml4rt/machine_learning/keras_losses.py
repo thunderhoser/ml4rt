@@ -211,17 +211,26 @@ def dual_weighted_crps():
             weight_tensor * absolute_error_tensor, axis=-1
         )
 
-        weight_tensor = K.maximum(
-            K.abs(K.expand_dims(prediction_tensor, axis=-1)),
-            K.abs(K.expand_dims(prediction_tensor, axis=-2))
+        mean_prediction_diff_tensor = K.map_fn(
+            fn=lambda p: K.mean(
+                K.maximum(K.expand_dims(p, axis=-1), K.expand_dims(p, axis=-2))
+                * K.abs(K.expand_dims(p, axis=-1) - K.expand_dims(p, axis=-2)),
+                axis=(-2, -1)
+            ),
+            elems=prediction_tensor
         )
-        prediction_diff_tensor = K.abs(
-            K.expand_dims(prediction_tensor, axis=-1) -
-            K.expand_dims(prediction_tensor, axis=-2)
-        )
-        mean_prediction_diff_tensor = K.mean(
-            weight_tensor * prediction_diff_tensor, axis=(-2, -1)
-        )
+
+        # weight_tensor = K.maximum(
+        #     K.abs(K.expand_dims(prediction_tensor, axis=-1)),
+        #     K.abs(K.expand_dims(prediction_tensor, axis=-2))
+        # )
+        # prediction_diff_tensor = K.abs(
+        #     K.expand_dims(prediction_tensor, axis=-1) -
+        #     K.expand_dims(prediction_tensor, axis=-2)
+        # )
+        # mean_prediction_diff_tensor = K.mean(
+        #     weight_tensor * prediction_diff_tensor, axis=(-2, -1)
+        # )
 
         return K.mean(
             mean_prediction_error_tensor - 0.5 * mean_prediction_diff_tensor
@@ -268,13 +277,21 @@ def unscaled_crps_for_net_flux():
             axis=-1
         )
 
-        prediction_diff_tensor = K.abs(
-            K.expand_dims(full_prediction_tensor, axis=-1) -
-            K.expand_dims(full_prediction_tensor, axis=-2)
+        mean_prediction_diff_tensor = K.map_fn(
+            fn=lambda p: K.mean(
+                K.abs(K.expand_dims(p, axis=-1) - K.expand_dims(p, axis=-2)),
+                axis=(-2, -1)
+            ),
+            elems=prediction_tensor
         )
-        mean_prediction_diff_tensor = K.mean(
-            prediction_diff_tensor, axis=(-2, -1)
-        )
+
+        # prediction_diff_tensor = K.abs(
+        #     K.expand_dims(full_prediction_tensor, axis=-1) -
+        #     K.expand_dims(full_prediction_tensor, axis=-2)
+        # )
+        # mean_prediction_diff_tensor = K.mean(
+        #     prediction_diff_tensor, axis=(-2, -1)
+        # )
 
         return K.mean(
             mean_prediction_error_tensor - 0.5 * mean_prediction_diff_tensor
