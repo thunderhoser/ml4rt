@@ -1,6 +1,9 @@
 """Averages predicted and target values over many examples."""
 
 import argparse
+
+import numpy
+
 from ml4rt.utils import example_utils
 from ml4rt.io import prediction_io
 
@@ -68,7 +71,7 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
     num_examples = prediction_dict[prediction_io.VECTOR_TARGETS_KEY].shape[0]
 
     print('Averaging {0:d} examples...'.format(num_examples))
-    mean_prediction_dict = prediction_io.average_predictions(
+    mean_prediction_dict = prediction_io.average_predictions_many_examples(
         prediction_dict=prediction_dict, use_pmm=use_pmm,
         max_pmm_percentile_level=max_pmm_percentile_level
     )
@@ -83,10 +86,12 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
         mean_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=
         mean_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        mean_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_prediction_matrix=
-        mean_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        scalar_prediction_matrix=numpy.expand_dims(
+            mean_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY], axis=-1
+        ),
+        vector_prediction_matrix=numpy.expand_dims(
+            mean_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
+        ),
         heights_m_agl=mean_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=example_id_strings,
         model_file_name=mean_prediction_dict[prediction_io.MODEL_FILE_KEY],

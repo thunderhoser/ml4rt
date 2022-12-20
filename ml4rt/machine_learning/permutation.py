@@ -300,11 +300,19 @@ def _make_prediction_function(model_object, model_metadata_dict):
         else:
             this_predictor_matrix = predictor_matrix
 
-        return neural_net.apply_model(
+        prediction_matrices = neural_net.apply_model(
             model_object=model_object, predictor_matrix=this_predictor_matrix,
             num_examples_per_batch=1000, net_type_string=net_type_string,
             verbose=False
         )
+
+        prediction_matrices[0] = prediction_utils.get_mean_predictions(
+            prediction_matrix=prediction_matrices[0]
+        )
+        if len(prediction_matrices) > 1:
+            prediction_matrices[1] = prediction_utils.get_mean_predictions(
+                prediction_matrix=prediction_matrices[1]
+            )
 
     return prediction_function
 

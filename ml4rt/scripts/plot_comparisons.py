@@ -443,6 +443,7 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     ))
 
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
     num_examples_orig = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
 
     if num_examples is not None and num_examples < num_examples_orig:

@@ -211,7 +211,7 @@ PREDICTION_DICT_SUBSET_BY_MONTH = {
     ]
 }
 
-# The following constants are used to test average_predictions.
+# The following constants are used to test average_predictions_many_examples.
 MEAN_SCALAR_TARGET_MATRIX = numpy.array([[165, 250]], dtype=float)
 MEAN_SCALAR_PREDICTION_MATRIX = numpy.array([[255, 325]], dtype=float)
 
@@ -366,10 +366,10 @@ def _compare_prediction_dicts(first_prediction_dict, second_prediction_dict):
 class PredictionIoTests(unittest.TestCase):
     """Each method is a unit test for prediction_io.py."""
 
-    def test_average_predictions(self):
-        """Ensures correct output from average_predictions."""
+    def test_average_predictions_many_examples(self):
+        """Ensures correct output from average_predictions_many_examples."""
 
-        this_prediction_dict = prediction_io.average_predictions(
+        this_prediction_dict = prediction_io.average_predictions_many_examples(
             prediction_dict=copy.deepcopy(PREDICTION_DICT), use_pmm=False
         )
         self.assertTrue(_compare_prediction_dicts(

@@ -321,6 +321,7 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(

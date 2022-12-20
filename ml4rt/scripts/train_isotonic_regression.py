@@ -60,6 +60,9 @@ def _run(prediction_file_names, separate_by_height, output_dir_name):
             prediction_file_names[i]
         ))
         prediction_dicts[i] = prediction_io.read_file(prediction_file_names[i])
+        prediction_dicts[i] = prediction_io.get_ensemble_mean(
+            prediction_dicts[i]
+        )
 
     prediction_dict = prediction_io.concat_predictions(prediction_dicts)
 
