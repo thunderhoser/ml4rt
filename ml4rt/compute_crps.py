@@ -79,7 +79,7 @@ def _run(prediction_file_name, num_integration_levels, output_file_name):
         for j in range(len(heights_m_agl)):
             print('Variable = {0:s} at {1:d} m AGL ... CRPS = {2:f}'.format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                t[uq_evaluation.VECTOR_CRPS_KEY].values[j, k]
+                t[uq_evaluation.VECTOR_CRPS_KEY].values[k, j]
             ))
 
         print(SEPARATOR_STRING)
