@@ -43,6 +43,7 @@ set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set num_dropout_iterations=${DROPOUT_ITER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
 set model_dir_name="${TOP_MODEL_DIR_NAME}/${uq_method_string}_num-first-layer-channels=${num_first_layer_channels}_dense-layer-dropout-rate=${dense_layer_dropout_rate}/model"
+set model_file_name="${TOP_MODEL_DIR_NAME}/${uq_method_string}_num-first-layer-channels=${num_first_layer_channels}_dense-layer-dropout-rate=${dense_layer_dropout_rate}/model.h5"
 set prediction_file_name="${model_dir_name}/testing_perturbed_for_uq/predictions.nc"
     
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
