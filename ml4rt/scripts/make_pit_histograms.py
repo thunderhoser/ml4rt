@@ -76,8 +76,8 @@ def _run(prediction_file_name, num_bins, output_file_name):
     for k in range(len(vector_target_names)):
         for j in range(len(heights_m_agl)):
             this_skill_score = (
-                (1. - t[uq_evaluation.VECTOR_PITD_KEY].values[j, k]) /
-                (1. - t[uq_evaluation.VECTOR_PERFECT_PITD_KEY].values[j, k])
+                (1. - t[uq_evaluation.VECTOR_PITD_KEY].values[k, j]) /
+                (1. - t[uq_evaluation.VECTOR_PERFECT_PITD_KEY].values[k, j])
             )
 
             print((
@@ -85,8 +85,8 @@ def _run(prediction_file_name, num_bins, output_file_name):
                 'perfect PITD = {3:f} ... PITD "skill" score = {4:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                t[uq_evaluation.VECTOR_PITD_KEY].values[j, k],
-                t[uq_evaluation.VECTOR_PERFECT_PITD_KEY].values[j, k],
+                t[uq_evaluation.VECTOR_PITD_KEY].values[k, j],
+                t[uq_evaluation.VECTOR_PERFECT_PITD_KEY].values[k, j],
                 this_skill_score
             ))
 

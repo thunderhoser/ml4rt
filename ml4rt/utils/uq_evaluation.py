@@ -596,6 +596,8 @@ def _get_pit_histogram_one_var(target_values, prediction_matrix, num_bins):
     indices_example_to_bin = numpy.digitize(
         x=pit_values, bins=bin_edges, right=False
     ) - 1
+    indices_example_to_bin[indices_example_to_bin < 0] = 0
+    indices_example_to_bin[indices_example_to_bin >= num_bins] = num_bins - 1
 
     used_bin_indices, used_bin_counts = numpy.unique(
         indices_example_to_bin, return_counts=True
