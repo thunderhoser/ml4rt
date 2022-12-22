@@ -122,9 +122,10 @@ def _run():
                 )
 
                 if 'crps' in UQ_METHOD_STRINGS[j]:
-                    these_neuron_counts[-1] = ENSEMBLE_SIZE + 0
-                else:
-                    these_neuron_counts[-1] = 1
+                    these_neuron_counts[-1] = 2 * ENSEMBLE_SIZE
+                    these_neuron_counts[-2] = max([
+                        these_neuron_counts[-2], these_neuron_counts[-1]
+                    ])
 
                 these_dropout_rates = numpy.array([
                     DENSE_LAYER_DROPOUT_RATES[k], DENSE_LAYER_DROPOUT_RATES[k],
