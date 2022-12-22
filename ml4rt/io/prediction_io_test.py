@@ -370,7 +370,8 @@ class PredictionIoTests(unittest.TestCase):
         """Ensures correct output from average_predictions_many_examples."""
 
         this_prediction_dict = prediction_io.average_predictions_many_examples(
-            prediction_dict=copy.deepcopy(PREDICTION_DICT), use_pmm=False
+            prediction_dict=copy.deepcopy(PREDICTION_DICT), use_pmm=False,
+            test_mode=True
         )
         self.assertTrue(_compare_prediction_dicts(
             this_prediction_dict, MEAN_PREDICTION_DICT

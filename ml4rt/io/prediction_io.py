@@ -414,7 +414,7 @@ def write_file(
             dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
         )
         dataset_object.variables[SCALAR_TARGETS_KEY][:] = scalar_target_matrix
-        
+
         these_dim = (
             EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY,
             ENSEMBLE_MEMBER_DIM_KEY
@@ -476,7 +476,7 @@ def read_file(netcdf_file_name):
         ],
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
-    
+
     if len(prediction_dict[VECTOR_PREDICTIONS_KEY].shape) == 3:
         prediction_dict[VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
             prediction_dict[VECTOR_PREDICTIONS_KEY], axis=-1
@@ -644,7 +644,8 @@ def read_grid_metafile(netcdf_file_name):
 
 def average_predictions_many_examples(
         prediction_dict, use_pmm,
-        max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL):
+        max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL,
+        test_mode=False):
     """Averages predicted and target values over many examples.
 
     H = number of heights
@@ -657,6 +658,7 @@ def average_predictions_many_examples(
         means for vector fields.
     :param max_pmm_percentile_level: [used only if `use_pmm == True`]
         Max percentile level for probability-matched means.
+    :param test_mode: Leave this alone.
     :return: mean_prediction_dict: Dictionary with the following keys.
     mean_prediction_dict['scalar_target_matrix']: numpy array (1 x T_s) with
         mean target (actual) values for scalar variables.
@@ -680,7 +682,9 @@ def average_predictions_many_examples(
         model-training, leave this as None.
     """
 
-    prediction_dict = get_ensemble_mean(prediction_dict)
+    error_checking.assert_is_boolean(test_mode)
+    if not test_mode:
+        prediction_dict = get_ensemble_mean(prediction_dict)
 
     error_checking.assert_is_boolean(use_pmm)
     error_checking.assert_is_geq(max_pmm_percentile_level, 90.)
