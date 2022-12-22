@@ -196,6 +196,8 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
     vector_prediction_matrix = prediction_array[0]
     if len(prediction_array) > 1:
         scalar_prediction_matrix = prediction_array[1]
+        print('FOO1')
+        print(scalar_prediction_matrix.shape)
     else:
         scalar_prediction_matrix = None
 
@@ -316,6 +318,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
 
+        if scalar_prediction_matrix is not None:
+            print('FOO2')
+            print(scalar_prediction_matrix.shape)
+
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
         ensemble_indices = numpy.linspace(
@@ -333,6 +339,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             scalar_prediction_matrix = scalar_prediction_matrix[
                 ..., ensemble_indices
             ]
+            print('FOO3')
+            print(scalar_prediction_matrix.shape)
 
     vector_target_matrix = target_array[0]
     if len(target_array) > 1:
@@ -484,6 +492,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         d[example_utils.SCALAR_TARGET_VALS_KEY]
         for d in prediction_example_dict_by_member
     ], axis=-1)
+
+    print('FOO4')
+    print(scalar_prediction_matrix.shape)
 
     vector_prediction_matrix = numpy.stack([
         d[example_utils.VECTOR_TARGET_VALS_KEY]
