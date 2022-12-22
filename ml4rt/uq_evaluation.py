@@ -1496,7 +1496,7 @@ def get_spread_vs_skill_all_vars(
         these_dim_keys_no_edge = (AUX_FIELD_DIM, NET_FLUX_BIN_DIM)
         these_dim_keys_with_edge = (AUX_FIELD_DIM, NET_FLUX_BIN_EDGE_DIM)
 
-        main_data_dict = {
+        main_data_dict.update({
             AUX_MEAN_STDEV_KEY: (
                 these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
             ),
@@ -1523,7 +1523,7 @@ def get_spread_vs_skill_all_vars(
             AUX_MEAN_TARGET_KEY: (
                 these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
             )
-        }
+        })
 
     raw_flux_bin_indices = numpy.linspace(
         0, num_raw_flux_bins - 1, num=num_raw_flux_bins, dtype=int
