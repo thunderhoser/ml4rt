@@ -173,7 +173,9 @@ def _run():
                     vector_loss_function=vector_loss_function,
                     use_deep_supervision=False, num_output_channels=1,
                     scalar_loss_function=scalar_loss_function,
-                    ensemble_size=these_neuron_counts[-1]
+                    ensemble_size=(
+                        ENSEMBLE_SIZE if 'crps' in UQ_METHOD_STRINGS[j] else 1
+                    )
                 )
 
                 this_model_file_name = (
