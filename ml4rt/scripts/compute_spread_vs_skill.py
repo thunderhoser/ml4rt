@@ -230,8 +230,8 @@ def _run(prediction_file_name, num_heating_rate_bins,
                 'SSRAT = {3:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                t[uq_evaluation.VECTOR_SSREL_KEY].values[j, k],
-                t[uq_evaluation.VECTOR_SSRAT_KEY].values[j, k]
+                t[uq_evaluation.VECTOR_SSREL_KEY].values[k, j],
+                t[uq_evaluation.VECTOR_SSRAT_KEY].values[k, j]
             ))
 
         print(SEPARATOR_STRING)

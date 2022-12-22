@@ -145,8 +145,8 @@ def _get_aux_fields(prediction_dict, example_dict):
         prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
     )
 
-    num_examples = scalar_target_matrix.shape[0]
-    num_ensemble_members = scalar_target_matrix.shape[-1]
+    num_examples = scalar_prediction_matrix.shape[0]
+    num_ensemble_members = scalar_prediction_matrix.shape[-1]
 
     aux_target_matrix = numpy.full((num_examples, 0), numpy.nan)
     aux_prediction_matrix = numpy.full(
@@ -722,7 +722,7 @@ def make_flux_stdev_function():
 
             predicted_flux_matrix_w_m02 = numpy.concatenate((
                 predicted_flux_matrix_w_m02,
-                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, j, :]
+                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, [j], :]
             ), axis=1)
 
         if all([n in scalar_target_names for n in SHORTWAVE_RAW_FLUX_NAMES]):
@@ -736,7 +736,7 @@ def make_flux_stdev_function():
 
             predicted_flux_matrix_w_m02 = numpy.concatenate((
                 predicted_flux_matrix_w_m02,
-                this_matrix[:, down_index, :] - this_matrix[:, up_index, :]
+                this_matrix[:, [down_index], :] - this_matrix[:, [up_index], :]
             ), axis=1)
 
         elementwise_stdev_matrix_k_day01 = numpy.std(
@@ -1489,7 +1489,7 @@ def get_spread_vs_skill_all_vars(
         these_dim_keys_no_edge = (AUX_FIELD_DIM, NET_FLUX_BIN_DIM)
         these_dim_keys_with_edge = (AUX_FIELD_DIM, NET_FLUX_BIN_EDGE_DIM)
 
-        main_data_dict = {
+        main_data_dict.update({
             AUX_MEAN_STDEV_KEY: (
                 these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
             ),
@@ -1516,7 +1516,7 @@ def get_spread_vs_skill_all_vars(
             AUX_MEAN_TARGET_KEY: (
                 these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
             )
-        }
+        })
 
     raw_flux_bin_indices = numpy.linspace(
         0, num_raw_flux_bins - 1, num=num_raw_flux_bins, dtype=int
@@ -1668,10 +1668,14 @@ def get_spread_vs_skill_all_vars(
                 these_stdevs = numpy.std(
                     vector_prediction_matrix[:, k, j, :], ddof=1, axis=-1
                 )
+                this_max_value = numpy.percentile(
+                    these_stdevs, max_heating_rate_percentile
+                )
+                this_max_value = max([this_max_value, 1.])
 
                 these_bin_edges = numpy.linspace(
                     numpy.percentile(these_stdevs, min_heating_rate_percentile),
-                    numpy.percentile(these_stdevs, max_heating_rate_percentile),
+                    this_max_value,
                     num=num_heating_rate_bins + 1, dtype=float
                 )[1:-1]
             else:
