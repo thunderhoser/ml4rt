@@ -30,7 +30,7 @@ set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set uq_method_string=${UQ_METHOD_STRINGS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 
-set model_dir_name="${TOP_OUTPUT_DIR_NAME}/${uq_method_string}_num-first-layer-channels=${num_first_layer_channels}_dense-layer-dropout-rate=${dense_layer_dropout_rate}/model"
+set model_dir_name="${TOP_MODEL_DIR_NAME}/${uq_method_string}_num-first-layer-channels=${num_first_layer_channels}_dense-layer-dropout-rate=${dense_layer_dropout_rate}/model"
 echo $model_dir_name
 
 set prediction_file_name="${model_dir_name}/testing_perturbed_for_uq/predictions.nc"
