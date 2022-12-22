@@ -2040,6 +2040,9 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
+        print('AHHH STOP THE MADNESS')
+        print(this_output[1].shape)
+
         if len(this_output[0].shape) == 3:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
 
