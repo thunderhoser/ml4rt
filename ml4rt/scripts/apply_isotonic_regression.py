@@ -2,9 +2,7 @@
 
 import os
 import argparse
-
 import numpy
-
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.machine_learning import isotonic_regression

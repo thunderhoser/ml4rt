@@ -25,6 +25,8 @@ MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
 LAST_TIME_ARG_NAME = 'last_time_string'
+NUM_DROPOUT_ITERS_ARG_NAME = 'num_dropout_iterations'
+MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_ensemble_size'
 EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
@@ -40,6 +42,15 @@ TIME_HELP_STRING = (
     ' examples from `{0:s}` to `{1:s}`.'
 ).format(FIRST_TIME_ARG_NAME, LAST_TIME_ARG_NAME)
 
+NUM_DROPOUT_ITERS_HELP_STRING = (
+    'Number of iterations for Monte Carlo dropout.  If you do not want to use '
+    'MC dropout, make this argument <= 0.'
+)
+MAX_ENSEMBLE_SIZE_HELP_STRING = (
+    'Max ensemble size.  If the NN does uncertainty quantification and yields '
+    'more ensemble members, the desired number of members will be randomly '
+    'selected.'
+)
 EXCLUDE_SUMMIT_HELP_STRING = (
     'Boolean flag.  If 1, will not apply to examples from Summit.'
 )
@@ -61,6 +72,14 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + LAST_TIME_ARG_NAME, type=str, required=True, help=TIME_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_DROPOUT_ITERS_ARG_NAME, type=int, required=False, default=0,
+    help=NUM_DROPOUT_ITERS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_ENSEMBLE_SIZE_ARG_NAME, type=int, required=False, default=1e10,
+    help=MAX_ENSEMBLE_SIZE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXCLUDE_SUMMIT_ARG_NAME, type=int, required=False, default=0,
@@ -115,8 +134,68 @@ def _targets_numpy_to_dict(
     return example_dict
 
 
+def _apply_model_once(model_object, model_metadata_dict, predictor_matrix):
+    """Applies model once.
+
+    :param model_object: Trained instance of `keras.models.Model` or
+        `keras.models.Sequential`.
+    :param model_metadata_dict: Dictionary returned by
+        `neural_net.read_metafile`.
+    :param predictor_matrix: numpy array of predictors.
+    :return: vector_prediction_matrix: numpy array of predictions for profile-
+        based target variables.
+    :return: scalar_prediction_matrix: numpy array of predictions for scalar
+        target variables.  If the model does not predict scalar target
+        variables, this will be None.
+    """
+
+    generator_option_dict = copy.deepcopy(
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    )
+    joined_output_layer = copy.deepcopy(
+        generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]
+    )
+    net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
+
+    exec_start_time_unix_sec = time.time()
+    prediction_array = neural_net.apply_model(
+        model_object=model_object, predictor_matrix=predictor_matrix,
+        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+        net_type_string=net_type_string, use_dropout=True, verbose=True
+    )
+
+    print(SEPARATOR_STRING)
+    print('Time to apply neural net = {0:.4f} seconds'.format(
+        time.time() - exec_start_time_unix_sec
+    ))
+
+    if joined_output_layer:
+        num_scalar_targets = len(
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+        )
+
+        vector_prediction_matrix = numpy.expand_dims(
+            prediction_array[0][..., :-num_scalar_targets, :], axis=-2
+        )
+        scalar_prediction_matrix = (
+            prediction_array[0][..., -num_scalar_targets:, :]
+        )
+        prediction_array = [
+            vector_prediction_matrix, scalar_prediction_matrix
+        ]
+
+    vector_prediction_matrix = prediction_array[0]
+    if len(prediction_array) > 1:
+        scalar_prediction_matrix = prediction_array[1]
+    else:
+        scalar_prediction_matrix = None
+
+    return vector_prediction_matrix, scalar_prediction_matrix
+
+
 def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
-         exclude_summit_greenland, output_file_name):
+         num_dropout_iterations, max_ensemble_size, exclude_summit_greenland,
+         output_file_name):
     """Applies trained neural net in inference mode.
 
     This is effectively the main method.
@@ -125,9 +204,13 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     :param example_dir_name: Same.
     :param first_time_string: Same.
     :param last_time_string: Same.
+    :param num_dropout_iterations: Same.
+    :param max_ensemble_size: Same.
     :param exclude_summit_greenland: Same.
     :param output_file_name: Same.
     """
+
+    max_ensemble_size = max([max_ensemble_size, 1])
 
     first_time_unix_sec = time_conversion.string_to_unix_sec(
         first_time_string, TIME_FORMAT
@@ -149,9 +232,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     generator_option_dict = copy.deepcopy(
         metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    )
-    joined_output_layer = copy.deepcopy(
-        generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]
     )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
@@ -180,40 +260,76 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     else:
         target_array = target_array[unique_indices, ...]
 
-    exec_start_time_unix_sec = time.time()
-    prediction_array = neural_net.apply_model(
-        model_object=model_object, predictor_matrix=predictor_matrix,
-        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-        net_type_string=net_type_string, verbose=True
-    )
+    if num_dropout_iterations > 1:
+        vector_prediction_matrix = None
+        scalar_prediction_matrix = None
+        ensemble_size = -1
 
-    print(SEPARATOR_STRING)
-    print('Time to apply neural net = {0:.4f} seconds'.format(
-        time.time() - exec_start_time_unix_sec
-    ))
+        for k in range(num_dropout_iterations):
+            this_vector_prediction_matrix, this_scalar_prediction_matrix = (
+                _apply_model_once(
+                    model_object=model_object,
+                    model_metadata_dict=metadata_dict,
+                    predictor_matrix=predictor_matrix
+                )
+            )
 
-    if joined_output_layer:
-        num_scalar_targets = len(
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+            if k == 0:
+                ensemble_size = this_vector_prediction_matrix.shape[-1]
+
+                vector_prediction_matrix = numpy.full(
+                    this_vector_prediction_matrix.shape[:-1] +
+                    (ensemble_size * num_dropout_iterations,),
+                    numpy.nan
+                )
+
+                if this_scalar_prediction_matrix is not None:
+                    scalar_prediction_matrix = numpy.full(
+                        this_scalar_prediction_matrix.shape[:-1] +
+                        (ensemble_size * num_dropout_iterations,),
+                        numpy.nan
+                    )
+
+            first_index = k * ensemble_size
+            last_index = first_index + ensemble_size
+            vector_prediction_matrix[..., first_index:last_index] = (
+                this_vector_prediction_matrix + 0.
+            )
+
+            if this_scalar_prediction_matrix is not None:
+                scalar_prediction_matrix[..., first_index:last_index] = (
+                    this_scalar_prediction_matrix + 0.
+                )
+    else:
+        vector_prediction_matrix, scalar_prediction_matrix = _apply_model_once(
+            model_object=model_object,
+            model_metadata_dict=metadata_dict,
+            predictor_matrix=predictor_matrix
         )
 
-        vector_prediction_matrix = numpy.expand_dims(
-            prediction_array[0][..., :-num_scalar_targets, :], axis=-2
+    ensemble_size = vector_prediction_matrix.shape[-1]
+    if max_ensemble_size < ensemble_size:
+        ensemble_indices = numpy.linspace(
+            0, ensemble_size - 1, num=ensemble_size, dtype=int
         )
-        scalar_prediction_matrix = (
-            prediction_array[0][..., -num_scalar_targets:, :]
+        ensemble_indices = numpy.random.choice(
+            ensemble_indices, size=max_ensemble_size, replace=False
         )
-        prediction_array = [vector_prediction_matrix, scalar_prediction_matrix]
+
+        vector_prediction_matrix = vector_prediction_matrix[
+            ..., ensemble_indices
+        ]
+
+        if scalar_prediction_matrix is not None:
+            scalar_prediction_matrix = scalar_prediction_matrix[
+                ..., ensemble_indices
+            ]
 
     vector_target_matrix = target_array[0]
-    vector_prediction_matrix = prediction_array[0]
-
-    if len(target_array) == 2:
+    if len(target_array) > 1:
         scalar_target_matrix = target_array[1]
-        scalar_prediction_matrix = prediction_array[1]
     else:
         scalar_target_matrix = None
-        scalar_prediction_matrix = None
 
     target_example_dict = _targets_numpy_to_dict(
         scalar_target_matrix=scalar_target_matrix,
@@ -248,10 +364,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     }
     target_example_dict.update(this_dict)
 
-    num_ensemble_members = vector_prediction_matrix.shape[-1]
-    prediction_example_dict_by_member = [dict()] * num_ensemble_members
+    ensemble_size = vector_prediction_matrix.shape[-1]
+    prediction_example_dict_by_member = [dict()] * ensemble_size
 
-    for k in range(num_ensemble_members):
+    for k in range(ensemble_size):
         prediction_example_dict_by_member[k] = _targets_numpy_to_dict(
             scalar_target_matrix=scalar_prediction_matrix[..., k],
             vector_target_matrix=vector_prediction_matrix[..., k],
@@ -279,7 +395,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_vector_targets=True, apply_to_scalar_targets=False
         )
 
-        for k in range(num_ensemble_members):
+        for k in range(ensemble_size):
             (
                 prediction_example_dict_by_member[k]
             ) = normalization.denormalize_data(
@@ -317,7 +433,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_vector_targets=False, apply_to_scalar_targets=True
         )
 
-        for k in range(num_ensemble_members):
+        for k in range(ensemble_size):
             (
                 prediction_example_dict_by_member[k]
             ) = normalization.denormalize_data(
@@ -350,7 +466,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
         target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, j] = 0.
 
-        for k in range(num_ensemble_members):
+        for k in range(ensemble_size):
             prediction_example_dict_by_member[k][
                 example_utils.VECTOR_TARGET_VALS_KEY
             ][:, -1, j] = 0.
@@ -389,6 +505,10 @@ if __name__ == '__main__':
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         first_time_string=getattr(INPUT_ARG_OBJECT, FIRST_TIME_ARG_NAME),
         last_time_string=getattr(INPUT_ARG_OBJECT, LAST_TIME_ARG_NAME),
+        num_dropout_iterations=getattr(
+            INPUT_ARG_OBJECT, NUM_DROPOUT_ITERS_ARG_NAME
+        ),
+        max_ensemble_size=getattr(INPUT_ARG_OBJECT, MAX_ENSEMBLE_SIZE_ARG_NAME),
         exclude_summit_greenland=bool(getattr(
             INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME
         )),

@@ -1,9 +1,7 @@
 """Averages predicted and target values over many examples."""
 
 import argparse
-
 import numpy
-
 from ml4rt.utils import example_utils
 from ml4rt.io import prediction_io
 
