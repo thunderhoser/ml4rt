@@ -2021,11 +2021,11 @@ def apply_model(
             this_output = model_object(
                 predictor_matrix[these_indices, ...], training=True
             )
-            print(this_output)
 
-            this_output = [a.numpy() for a in this_output]
-            print(len(this_output))
-            print(this_output[0])
+            if isinstance(this_output, list):
+                this_output = [a.numpy() for a in this_output]
+            else:
+                this_output = this_output.numpy()
         else:
             this_output = model_object.predict_on_batch(
                 predictor_matrix[these_indices, ...]

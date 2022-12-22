@@ -265,6 +265,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     if num_dropout_iterations > 1:
         vector_prediction_matrix = None
         scalar_prediction_matrix = None
+        ensemble_size_per_iter = -1
         ensemble_size = -1
 
         for k in range(num_dropout_iterations):
@@ -277,23 +278,46 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             )
 
             if k == 0:
-                ensemble_size = this_vector_prediction_matrix.shape[-1]
+                max_ensemble_size_per_iter = int(numpy.ceil(
+                    float(max_ensemble_size) / num_dropout_iterations
+                ))
+                ensemble_size_per_iter = min([
+                    this_vector_prediction_matrix.shape[-1],
+                    max_ensemble_size_per_iter
+                ])
+                ensemble_size = ensemble_size_per_iter * num_dropout_iterations
 
                 vector_prediction_matrix = numpy.full(
-                    this_vector_prediction_matrix.shape[:-1] +
-                    (ensemble_size * num_dropout_iterations,),
+                    this_vector_prediction_matrix.shape[:-1] + (ensemble_size,),
                     numpy.nan
                 )
 
                 if this_scalar_prediction_matrix is not None:
                     scalar_prediction_matrix = numpy.full(
                         this_scalar_prediction_matrix.shape[:-1] +
-                        (ensemble_size * num_dropout_iterations,),
+                        (ensemble_size,),
                         numpy.nan
                     )
 
-            first_index = k * ensemble_size
-            last_index = first_index + ensemble_size
+            if this_vector_prediction_matrix.shape[-1] > ensemble_size_per_iter:
+                ensemble_indices = numpy.linspace(
+                    0, this_vector_prediction_matrix.shape[-1] - 1,
+                    num=this_vector_prediction_matrix.shape[-1], dtype=int
+                )
+                ensemble_indices = numpy.random.choice(
+                    ensemble_indices, size=ensemble_size_per_iter, replace=False
+                )
+
+                this_vector_prediction_matrix = (
+                    this_vector_prediction_matrix[..., ensemble_indices]
+                )
+                if this_scalar_prediction_matrix is not None:
+                    this_scalar_prediction_matrix = (
+                        this_scalar_prediction_matrix[..., ensemble_indices]
+                    )
+
+            first_index = k * ensemble_size_per_iter
+            last_index = first_index + ensemble_size_per_iter
             vector_prediction_matrix[..., first_index:last_index] = (
                 this_vector_prediction_matrix + 0.
             )
