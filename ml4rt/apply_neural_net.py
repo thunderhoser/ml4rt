@@ -141,7 +141,8 @@ def _targets_numpy_to_dict(
     return example_dict
 
 
-def _apply_model_once(model_object, model_metadata_dict, predictor_matrix):
+def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
+                      use_dropout):
     """Applies model once.
 
     :param model_object: Trained instance of `keras.models.Model` or
@@ -149,6 +150,7 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix):
     :param model_metadata_dict: Dictionary returned by
         `neural_net.read_metafile`.
     :param predictor_matrix: numpy array of predictors.
+    :param use_dropout: Boolean flag.
     :return: vector_prediction_matrix: numpy array of predictions for profile-
         based target variables.
     :return: scalar_prediction_matrix: numpy array of predictions for scalar
@@ -168,7 +170,7 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix):
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-        net_type_string=net_type_string, use_dropout=True, verbose=True
+        net_type_string=net_type_string, use_dropout=use_dropout, verbose=True
     )
 
     print(SEPARATOR_STRING)
@@ -277,7 +279,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 _apply_model_once(
                     model_object=model_object,
                     model_metadata_dict=metadata_dict,
-                    predictor_matrix=predictor_matrix
+                    predictor_matrix=predictor_matrix, use_dropout=True
                 )
             )
 
@@ -311,7 +313,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         vector_prediction_matrix, scalar_prediction_matrix = _apply_model_once(
             model_object=model_object,
             model_metadata_dict=metadata_dict,
-            predictor_matrix=predictor_matrix
+            predictor_matrix=predictor_matrix, use_dropout=False
         )
 
     ensemble_size = vector_prediction_matrix.shape[-1]

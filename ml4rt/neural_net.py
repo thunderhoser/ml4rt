@@ -2026,7 +2026,12 @@ def apply_model(
         if use_dropout:
             this_output = model_object(
                 predictor_matrix[these_indices, ...], training=True
-            ).numpy()
+            )
+            print(this_output)
+
+            this_output = [a.numpy() for a in this_output]
+            print(len(this_output))
+            print(this_output[0])
         else:
             this_output = model_object.predict_on_batch(
                 predictor_matrix[these_indices, ...]
