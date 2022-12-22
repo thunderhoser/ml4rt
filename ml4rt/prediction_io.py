@@ -25,6 +25,7 @@ EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
 VECTOR_TARGET_DIMENSION_KEY = 'vector_target'
 SCALAR_TARGET_DIMENSION_KEY = 'scalar_target'
+ENSEMBLE_MEMBER_DIM_KEY = 'ensemble_member'
 EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 
 MODEL_FILE_KEY = 'model_file_name'
@@ -279,16 +280,17 @@ def write_file(
     H = number of heights
     T_s = number of scalar targets
     T_v = number of vector targets
+    S = number of ensemble members
 
     :param netcdf_file_name: Path to output file.
     :param scalar_target_matrix: numpy array (E x T_s) with actual values of
         scalar targets.
     :param vector_target_matrix: numpy array (E x H x T_v) with actual values of
         vector targets.
-    :param scalar_prediction_matrix: Same as `scalar_target_matrix` but with
-        predicted values.
-    :param vector_prediction_matrix: Same as `vector_target_matrix` but with
-        predicted values.
+    :param scalar_prediction_matrix: numpy array (E x T_s x S) with predicted
+        values of scalar targets.
+    :param vector_prediction_matrix: numpy array (E x H x T_v x S) with
+        predicted values of vector targets.
     :param heights_m_agl: length-H numpy array of heights (metres above ground
         level).
     :param example_id_strings: length-E list of IDs created by
@@ -308,15 +310,17 @@ def write_file(
     # Check input args.
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
     error_checking.assert_is_numpy_array(scalar_target_matrix, num_dimensions=2)
-
     error_checking.assert_is_numpy_array_without_nan(scalar_prediction_matrix)
-    error_checking.assert_is_numpy_array(
-        scalar_prediction_matrix,
-        exact_dimensions=numpy.array(scalar_target_matrix.shape, dtype=int)
-    )
-
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-    error_checking.assert_is_numpy_array(vector_target_matrix, num_dimensions=3)
+    error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
+
+    num_ensemble_members = scalar_prediction_matrix.shape[-1]
+    these_dim = numpy.array(
+        scalar_target_matrix.shape + (num_ensemble_members,), dtype=int
+    )
+    error_checking.assert_is_numpy_array(
+        scalar_prediction_matrix, exact_dimensions=these_dim
+    )
 
     num_examples = scalar_target_matrix.shape[0]
     expected_dim = numpy.array(
@@ -326,10 +330,11 @@ def write_file(
         vector_target_matrix, exact_dimensions=expected_dim
     )
 
-    error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
+    these_dim = numpy.array(
+        vector_target_matrix.shape + (num_ensemble_members,), dtype=int
+    )
     error_checking.assert_is_numpy_array(
-        vector_prediction_matrix,
-        exact_dimensions=numpy.array(vector_target_matrix.shape, dtype=int)
+        vector_prediction_matrix, exact_dimensions=these_dim
     )
 
     num_heights = vector_target_matrix.shape[1]
@@ -373,6 +378,9 @@ def write_file(
     dataset_object.createDimension(
         VECTOR_TARGET_DIMENSION_KEY, vector_target_matrix.shape[2]
     )
+    dataset_object.createDimension(
+        ENSEMBLE_MEMBER_DIM_KEY, num_ensemble_members
+    )
 
     num_scalar_targets = scalar_target_matrix.shape[1]
     if num_scalar_targets > 0:
@@ -414,26 +422,32 @@ def write_file(
         )
         dataset_object.variables[SCALAR_TARGETS_KEY][:] = scalar_target_matrix
 
+        these_dim = (
+            EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY,
+            ENSEMBLE_MEMBER_DIM_KEY
+        )
         dataset_object.createVariable(
-            SCALAR_PREDICTIONS_KEY, datatype=numpy.float32,
-            dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
+            SCALAR_PREDICTIONS_KEY, datatype=numpy.float32, dimensions=these_dim
         )
         dataset_object.variables[SCALAR_PREDICTIONS_KEY][:] = (
             scalar_prediction_matrix
         )
 
-    these_dimensions = (
+    these_dim = (
         EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY
     )
-
     dataset_object.createVariable(
-        VECTOR_TARGETS_KEY, datatype=numpy.float32, dimensions=these_dimensions
+        VECTOR_TARGETS_KEY, datatype=numpy.float32, dimensions=these_dim
     )
     dataset_object.variables[VECTOR_TARGETS_KEY][:] = vector_target_matrix
 
+    these_dim = (
+        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+        VECTOR_TARGET_DIMENSION_KEY, ENSEMBLE_MEMBER_DIM_KEY
+    )
     dataset_object.createVariable(
         VECTOR_PREDICTIONS_KEY, datatype=numpy.float32,
-        dimensions=these_dimensions
+        dimensions=these_dim
     )
     dataset_object.variables[VECTOR_PREDICTIONS_KEY][:] = (
         vector_prediction_matrix
@@ -469,6 +483,11 @@ def read_file(netcdf_file_name):
         ],
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
+
+    if len(prediction_dict[VECTOR_PREDICTIONS_KEY].shape) == 3:
+        prediction_dict[VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
+            prediction_dict[VECTOR_PREDICTIONS_KEY], axis=-1
+        )
 
     try:
         prediction_dict[ISOTONIC_MODEL_FILE_KEY] = str(
@@ -517,7 +536,12 @@ def read_file(netcdf_file_name):
         num_examples = prediction_dict[VECTOR_TARGETS_KEY].shape[0]
         prediction_dict[SCALAR_TARGETS_KEY] = numpy.full((num_examples, 0), 0.)
         prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.full(
-            (num_examples, 0), 0.
+            (num_examples, 0, 1), 0.
+        )
+
+    if len(prediction_dict[SCALAR_PREDICTIONS_KEY].shape) == 2:
+        prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.expand_dims(
+            prediction_dict[SCALAR_PREDICTIONS_KEY], axis=-1
         )
 
     dataset_object.close()
@@ -625,9 +649,10 @@ def read_grid_metafile(netcdf_file_name):
     return grid_point_latitudes_deg, grid_point_longitudes_deg
 
 
-def average_predictions(
+def average_predictions_many_examples(
         prediction_dict, use_pmm,
-        max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL):
+        max_pmm_percentile_level=DEFAULT_MAX_PMM_PERCENTILE_LEVEL,
+        test_mode=False):
     """Averages predicted and target values over many examples.
 
     H = number of heights
@@ -640,6 +665,7 @@ def average_predictions(
         means for vector fields.
     :param max_pmm_percentile_level: [used only if `use_pmm == True`]
         Max percentile level for probability-matched means.
+    :param test_mode: Leave this alone.
     :return: mean_prediction_dict: Dictionary with the following keys.
     mean_prediction_dict['scalar_target_matrix']: numpy array (1 x T_s) with
         mean target (actual) values for scalar variables.
@@ -662,6 +688,10 @@ def average_predictions(
         predictions were created with the same normalization params as used for
         model-training, leave this as None.
     """
+
+    error_checking.assert_is_boolean(test_mode)
+    if not test_mode:
+        prediction_dict = get_ensemble_mean(prediction_dict)
 
     error_checking.assert_is_boolean(use_pmm)
     error_checking.assert_is_geq(max_pmm_percentile_level, 90.)
@@ -719,6 +749,24 @@ def average_predictions(
         ISOTONIC_MODEL_FILE_KEY: prediction_dict[ISOTONIC_MODEL_FILE_KEY],
         NORMALIZATION_FILE_KEY: prediction_dict[NORMALIZATION_FILE_KEY]
     }
+
+
+def get_ensemble_mean(prediction_dict):
+    """Computes ensemble-mean prediction for each example and each target var.
+
+    :param prediction_dict: See doc for `write_file`.
+    :return: prediction_dict: Same but without last axis for the keys
+        "scalar_prediction_matrix" and "vector_prediction_matrix".
+    """
+
+    prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.mean(
+        prediction_dict[SCALAR_PREDICTIONS_KEY], axis=-1
+    )
+    prediction_dict[VECTOR_PREDICTIONS_KEY] = numpy.mean(
+        prediction_dict[VECTOR_PREDICTIONS_KEY], axis=-1
+    )
+
+    return prediction_dict
 
 
 def subset_by_standard_atmo(prediction_dict, standard_atmo_enum):

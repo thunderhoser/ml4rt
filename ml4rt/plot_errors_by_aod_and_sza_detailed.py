@@ -322,6 +322,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(

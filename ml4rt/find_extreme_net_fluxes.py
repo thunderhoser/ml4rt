@@ -74,6 +74,7 @@ def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
 
     print('Reading data from: "{0:s}"...'.format(input_prediction_file_name))
     prediction_dict = prediction_io.read_file(input_prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
@@ -135,10 +136,14 @@ def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
         high_bias_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=
         high_bias_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        high_bias_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_prediction_matrix=
-        high_bias_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        scalar_prediction_matrix=numpy.expand_dims(
+            high_bias_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+            axis=-1
+        ),
+        vector_prediction_matrix=numpy.expand_dims(
+            high_bias_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            axis=-1
+        ),
         heights_m_agl=high_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         high_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
@@ -164,10 +169,14 @@ def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
         low_bias_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=
         low_bias_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        low_bias_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_prediction_matrix=
-        low_bias_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        scalar_prediction_matrix=numpy.expand_dims(
+            low_bias_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+            axis=-1
+        ),
+        vector_prediction_matrix=numpy.expand_dims(
+            low_bias_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            axis=-1
+        ),
         heights_m_agl=low_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         low_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
@@ -193,10 +202,14 @@ def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
         low_abs_error_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=
         low_abs_error_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        low_abs_error_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_prediction_matrix=
-        low_abs_error_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        scalar_prediction_matrix=numpy.expand_dims(
+            low_abs_error_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+            axis=-1
+        ),
+        vector_prediction_matrix=numpy.expand_dims(
+            low_abs_error_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            axis=-1
+        ),
         heights_m_agl=low_abs_error_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         low_abs_error_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
@@ -226,10 +239,14 @@ def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
         large_net_flux_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=
         large_net_flux_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        large_net_flux_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_prediction_matrix=
-        large_net_flux_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        scalar_prediction_matrix=numpy.expand_dims(
+            large_net_flux_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+            axis=-1
+        ),
+        vector_prediction_matrix=numpy.expand_dims(
+            large_net_flux_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            axis=-1
+        ),
         heights_m_agl=large_net_flux_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         large_net_flux_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
@@ -259,10 +276,14 @@ def _run(input_prediction_file_name, for_shortwave, num_examples_per_set,
         small_net_flux_prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=
         small_net_flux_prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        small_net_flux_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
-        vector_prediction_matrix=
-        small_net_flux_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+        scalar_prediction_matrix=numpy.expand_dims(
+            small_net_flux_prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY],
+            axis=-1
+        ),
+        vector_prediction_matrix=numpy.expand_dims(
+            small_net_flux_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
+            axis=-1
+        ),
         heights_m_agl=small_net_flux_prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=
         small_net_flux_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],

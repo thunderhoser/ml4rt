@@ -47,7 +47,6 @@ SCALAR_TARGET_NAMES_KEY = 'scalar_target_names'
 VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 HEIGHTS_KEY = 'heights_m_agl'
 MULTIPLY_PREDS_BY_THICKNESS_KEY = 'multiply_preds_by_layer_thickness'
-MULTIPLY_HR_BY_THICKNESS_KEY = 'multiply_hr_by_layer_thickness'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
@@ -71,7 +70,6 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
     HEIGHTS_KEY: example_utils.DEFAULT_HEIGHTS_M_AGL,
     MULTIPLY_PREDS_BY_THICKNESS_KEY: False,
-    MULTIPLY_HR_BY_THICKNESS_KEY: False,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -151,7 +149,6 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_boolean(
         option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
     )
-    error_checking.assert_is_boolean(option_dict[MULTIPLY_HR_BY_THICKNESS_KEY])
 
     if option_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
         error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
@@ -196,7 +193,7 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
         heights_m_agl, multiply_preds_by_layer_thickness,
-        multiply_hr_by_layer_thickness, normalization_file_name, uniformize,
+        normalization_file_name, uniformize,
         predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, vector_target_norm_type_string,
         vector_target_min_norm_value, vector_target_max_norm_value,
@@ -212,7 +209,6 @@ def _read_file_for_generator(
     :param heights_m_agl: 1-D numpy array of heights to keep (metres above
         ground level).
     :param multiply_preds_by_layer_thickness: See doc for `data_generator`.
-    :param multiply_hr_by_layer_thickness: Same.
     :param normalization_file_name: Same.
     :param uniformize: Same.
     :param predictor_norm_type_string: Same.
@@ -284,10 +280,6 @@ def _read_file_for_generator(
         example_dict = example_utils.multiply_preds_by_layer_thickness(
             example_dict
         )
-    if multiply_hr_by_layer_thickness:
-        example_dict = example_utils.multiply_hr_by_layer_thickness(
-            example_dict
-        )
 
     if normalization_file_name is None:
         return example_dict
@@ -304,10 +296,6 @@ def _read_file_for_generator(
 
     if multiply_preds_by_layer_thickness:
         training_example_dict = example_utils.multiply_preds_by_layer_thickness(
-            training_example_dict
-        )
-    if multiply_hr_by_layer_thickness:
-        training_example_dict = example_utils.multiply_hr_by_layer_thickness(
             training_example_dict
         )
 
@@ -929,8 +917,6 @@ def data_generator(option_dict, for_inference, net_type_string):
         after this time).
     option_dict['multiply_preds_by_layer_thickness']: Boolean flag.  If True,
         will multiply relevant predictors by layer thickness.
-    option_dict['multiply_hr_by_layer_thickness']: Boolean flag.  If True,
-        will multiply heating rates by layer thickness.
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['uniformize']: Boolean flag, used only for z-score
@@ -996,7 +982,6 @@ def data_generator(option_dict, for_inference, net_type_string):
     multiply_preds_by_layer_thickness = (
         option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
     )
-    multiply_hr_by_layer_thickness = option_dict[MULTIPLY_HR_BY_THICKNESS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
@@ -1034,7 +1019,6 @@ def data_generator(option_dict, for_inference, net_type_string):
         last_time_unix_sec=last_time_unix_sec,
         field_names=all_field_names, heights_m_agl=heights_m_agl,
         multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
-        multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
         normalization_file_name=normalization_file_name,
         uniformize=uniformize,
         predictor_norm_type_string=predictor_norm_type_string,
@@ -1095,8 +1079,6 @@ def data_generator(option_dict, for_inference, net_type_string):
                     field_names=all_field_names, heights_m_agl=heights_m_agl,
                     multiply_preds_by_layer_thickness=
                     multiply_preds_by_layer_thickness,
-                    multiply_hr_by_layer_thickness=
-                    multiply_hr_by_layer_thickness,
                     normalization_file_name=normalization_file_name,
                     uniformize=uniformize,
                     predictor_norm_type_string=predictor_norm_type_string,
@@ -1254,7 +1236,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     multiply_preds_by_layer_thickness = (
         option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
     )
-    multiply_hr_by_layer_thickness = option_dict[MULTIPLY_HR_BY_THICKNESS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
@@ -1295,7 +1276,6 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             last_time_unix_sec=last_time_unix_sec,
             field_names=all_field_names, heights_m_agl=heights_m_agl,
             multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
-            multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
             normalization_file_name=normalization_file_name,
             uniformize=uniformize,
             predictor_norm_type_string=predictor_norm_type_string,
@@ -1385,7 +1365,6 @@ def create_data_specific_examples(
     multiply_preds_by_layer_thickness = (
         option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
     )
-    multiply_hr_by_layer_thickness = option_dict[MULTIPLY_HR_BY_THICKNESS_KEY]
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
@@ -1432,7 +1411,6 @@ def create_data_specific_examples(
             last_time_unix_sec=numpy.max(example_times_unix_sec),
             field_names=all_field_names, heights_m_agl=heights_m_agl,
             multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
-            multiply_hr_by_layer_thickness=multiply_hr_by_layer_thickness,
             normalization_file_name=normalization_file_name,
             uniformize=uniformize,
             predictor_norm_type_string=predictor_norm_type_string,
@@ -1952,10 +1930,6 @@ def read_metafile(dill_file_name):
         t[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
         v[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
 
-    if MULTIPLY_HR_BY_THICKNESS_KEY not in t:
-        t[MULTIPLY_HR_BY_THICKNESS_KEY] = False
-        v[MULTIPLY_HR_BY_THICKNESS_KEY] = False
-
     metadata_dict[TRAINING_OPTIONS_KEY] = t
     metadata_dict[VALIDATION_OPTIONS_KEY] = v
 
@@ -1991,7 +1965,7 @@ def apply_model(
     H = number of heights
     T_v = number of vector target variables (channels)
     T_s = number of scalar target variables
-    T = number of target variables
+    S = ensemble size
 
     :param model_object: Trained neural net (instance of `keras.models.Model` or
         `keras.models.Sequential`).
@@ -2005,9 +1979,9 @@ def apply_model(
     :param verbose: Boolean flag.  If True, will print progress messages.
 
     :return: prediction_list: See below.
-    prediction_list[0] = vector_prediction_matrix: numpy array (E x H x T_v) of
-        predicted values.
-    prediction_list[1] = scalar_prediction_matrix: numpy array (E x T_s) of
+    prediction_list[0] = vector_prediction_matrix: numpy array (E x H x T_v x S)
+        of predicted values.
+    prediction_list[1] = scalar_prediction_matrix: numpy array (E x T_s x S) of
         predicted values.
     """
 
@@ -2061,6 +2035,12 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
+        if len(this_output[0].shape) == 3:
+            this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
+
+        if len(this_output) > 1 and len(this_output[1].shape) == 2:
+            this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
+
         if vector_prediction_matrix is None:
             vector_prediction_matrix = this_output[0] + 0.
 
@@ -2082,8 +2062,12 @@ def apply_model(
         ))
 
     if scalar_prediction_matrix is None:
-        scalar_prediction_matrix = numpy.full(
-            (vector_prediction_matrix.shape[0], 0), 0.
+        dimensions = (
+            vector_prediction_matrix.shape[0],
+            0,
+            vector_prediction_matrix.shape[-1]
         )
+
+        scalar_prediction_matrix = numpy.full(dimensions, 0.)
 
     return [vector_prediction_matrix, scalar_prediction_matrix]

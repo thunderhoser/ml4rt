@@ -1163,6 +1163,9 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
 
         print('Reading data from: "{0:s}"...'.format(this_prediction_file_name))
         prediction_dicts[i] = prediction_io.read_file(this_prediction_file_name)
+        prediction_dicts[i] = prediction_io.get_ensemble_mean(
+            prediction_dicts[i]
+        )
 
     model_file_name = (
         evaluation_tables_xarray[0].attrs[evaluation.MODEL_FILE_KEY]

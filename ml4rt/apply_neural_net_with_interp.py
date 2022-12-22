@@ -217,6 +217,9 @@ def _get_data_on_orig_grid(
         verbose=True
     )
 
+    for i in range(len(prediction_array)):
+        prediction_array[i] = numpy.mean(prediction_array[i], axis=-1)
+
     this_example_dict = apply_nn._targets_numpy_to_dict(
         scalar_target_matrix=(
             None if len(prediction_array) == 1 else prediction_array[1]
@@ -477,7 +480,6 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY] ==
         [example_utils.SHORTWAVE_HEATING_RATE_NAME]
     )
-    assert not generator_option_dict[neural_net.MULTIPLY_HR_BY_THICKNESS_KEY]
 
     print(SEPARATOR_STRING)
 
@@ -588,6 +590,10 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
     print(numpy.mean(new_actual_hr_matrix_k_day01, axis=0))
     print('\n\n\n***********************\n\n\n')
 
+    new_predicted_hr_matrix_k_day01 = numpy.expand_dims(
+        new_predicted_hr_matrix_k_day01, axis=-1
+    )
+
     print('Writing target (actual) and predicted values to: "{0:s}"...'.format(
         output_file_name
     ))
@@ -596,7 +602,8 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         scalar_target_matrix=new_scalar_target_matrix,
         vector_target_matrix=
         numpy.expand_dims(new_actual_hr_matrix_k_day01, axis=-1),
-        scalar_prediction_matrix=orig_scalar_prediction_matrix,
+        scalar_prediction_matrix=
+        numpy.expand_dims(orig_scalar_prediction_matrix, axis=-1),
         vector_prediction_matrix=
         numpy.expand_dims(new_predicted_hr_matrix_k_day01, axis=-1),
         heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],

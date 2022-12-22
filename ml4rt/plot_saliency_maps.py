@@ -188,6 +188,7 @@ def _get_target_values(
         prediction_file_name
     ))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     example_indices = numpy.array([
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY].index(id)

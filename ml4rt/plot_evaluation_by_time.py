@@ -216,6 +216,7 @@ def _augment_eval_table(result_table_xarray):
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     num_examples = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
     result_table_xarray.attrs[NUM_EXAMPLES_KEY] = num_examples

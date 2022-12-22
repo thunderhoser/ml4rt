@@ -456,6 +456,7 @@ def _run(prediction_file_name, num_temperature_bins,
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
@@ -706,8 +707,8 @@ def _run(prediction_file_name, num_temperature_bins,
             letter_label = chr(ord(letter_label) + 1)
 
         if 'bias' in STATISTIC_NAMES[k]:
-            max_colour_value = numpy.nanpercentile(
-                numpy.absolute(metric_matrix), 99.5
+            max_colour_value = numpy.nanmax(
+                numpy.absolute(metric_matrix)
             )
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
@@ -716,11 +717,11 @@ def _run(prediction_file_name, num_temperature_bins,
             metric_matrix[numpy.isinf(metric_matrix)] = numpy.nan
 
             min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanpercentile(metric_matrix, 99.5)
+            max_colour_value = numpy.nanmax(metric_matrix)
             colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
         else:
             min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanpercentile(metric_matrix, 99.5)
+            max_colour_value = numpy.nanmax(metric_matrix)
             colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
         colour_norm_object = pyplot.Normalize(
