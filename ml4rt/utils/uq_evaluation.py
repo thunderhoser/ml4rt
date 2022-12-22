@@ -4,6 +4,7 @@ import os
 import numpy
 import xarray
 from scipy.integrate import simps
+from scipy.stats import percentileofscore
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
@@ -32,14 +33,6 @@ SPREAD_SKILL_RATIO_KEY = 'spread_skill_ratio'
 EXAMPLE_COUNTS_KEY = 'example_counts'
 MEAN_MEAN_PREDICTIONS_KEY = 'mean_mean_predictions'
 MEAN_TARGET_VALUES_KEY = 'mean_target_values'
-
-DISCARD_FRACTIONS_KEY = 'discard_fractions'
-POST_DISCARD_ERRORS_KEY = 'post_discard_error_values'
-EXAMPLE_FRACTIONS_KEY = 'example_fractions'
-MEAN_CENTRAL_PREDICTIONS_KEY = 'mean_central_predictions'
-# MEAN_TARGET_VALUES_KEY = 'mean_target_values'
-MONOTONICITY_FRACTION_KEY = 'monotonicity_fraction'
-MEAN_DISCARD_IMPROVEMENT_KEY = 'mean_discard_improvement'
 
 AUX_TARGET_NAMES_KEY = 'aux_target_field_names'
 AUX_PREDICTED_NAMES_KEY = 'aux_predicted_field_names'
@@ -90,6 +83,29 @@ AUX_MEAN_TARGET_KEY = 'aux_mean_target_value'
 
 MODEL_FILE_KEY = 'model_file_name'
 PREDICTION_FILE_KEY = 'prediction_file_name'
+
+DISCARD_FRACTION_DIM = 'discard_fraction'
+POST_DISCARD_ERROR_KEY = 'post_discard_error'
+EXAMPLE_FRACTION_KEY = 'example_fraction'
+MONOTONICITY_FRACTION_KEY = 'monotonicity_fraction'
+MEAN_DISCARD_IMPROVEMENT_KEY = 'mean_discard_improvement'
+
+SCALAR_CRPS_KEY = 'scalar_crps'
+VECTOR_CRPS_KEY = 'vector_crps'
+AUX_CRPS_KEY = 'aux_crps'
+
+PIT_HISTOGRAM_BIN_DIM = 'pit_histogram_bin_center'
+PIT_HISTOGRAM_BIN_EDGE_DIM = 'pit_histogram_bin_edge'
+
+SCALAR_PITD_KEY = 'scalar_pitd'
+SCALAR_PERFECT_PITD_KEY = 'scalar_perfect_pitd'
+SCALAR_PIT_BIN_COUNT_KEY = 'scalar_pit_hist_bin_count'
+VECTOR_PITD_KEY = 'vector_pitd'
+VECTOR_PERFECT_PITD_KEY = 'vector_perfect_pitd'
+VECTOR_PIT_BIN_COUNT_KEY = 'vector_pit_hist_bin_count'
+AUX_PITD_KEY = 'aux_pitd'
+AUX_PERFECT_PITD_KEY = 'aux_perfect_pitd'
+AUX_PIT_BIN_COUNT_KEY = 'aux_pit_hist_bin_count'
 
 
 def _get_aux_fields(prediction_dict, example_dict):
@@ -540,14 +556,64 @@ def _run_discard_test_one_var(
         )
 
     return {
-        DISCARD_FRACTIONS_KEY: discard_fractions,
-        POST_DISCARD_ERRORS_KEY: post_discard_error_values,
-        EXAMPLE_FRACTIONS_KEY: example_fractions,
-        MEAN_CENTRAL_PREDICTIONS_KEY: mean_central_predictions,
+        'discard_fractions': discard_fractions,
+        'post_discard_error_values': post_discard_error_values,
+        'example_fractions': example_fractions,
+        'mean_central_predictions': mean_central_predictions,
         MEAN_TARGET_VALUES_KEY: mean_target_values,
         MONOTONICITY_FRACTION_KEY: monotonicity_fraction,
         MEAN_DISCARD_IMPROVEMENT_KEY: mean_discard_improvement
     }
+
+
+def _get_pit_histogram_one_var(target_values, prediction_matrix, num_bins):
+    """Computes PIT (probability integral transform) histogram for one variable.
+
+    E = number of examples
+    S = number of ensemble members
+    B = number of bins in histogram
+
+    :param target_values: length-E numpy array of actual values.
+    :param prediction_matrix: E-by-S numpy array of predicted values.
+    :param num_bins: Number of bins in histogram.
+    :return: bin_edges: length-(B + 1) numpy array of bin edges (ranging from
+        0...1, because PIT ranges from 0...1).
+    :return: bin_counts: length-B numpy array with number of examples in each
+        bin.
+    :return: pitd_value: Value of the calibration-deviation metric (PITD).
+    :return: perfect_pitd_value: Minimum expected PITD value.
+    """
+
+    num_examples = len(target_values)
+    pit_values = numpy.full(num_examples, numpy.nan)
+
+    for i in range(num_examples):
+        pit_values[i] = 0.01 * percentileofscore(
+            a=prediction_matrix[i, :], score=target_values[i], kind='mean'
+        )
+
+    bin_edges = numpy.linspace(0, 1, num=num_bins + 1, dtype=float)
+    indices_example_to_bin = numpy.digitize(
+        x=pit_values, bins=bin_edges, right=False
+    ) - 1
+
+    used_bin_indices, used_bin_counts = numpy.unique(
+        indices_example_to_bin, return_counts=True
+    )
+    bin_counts = numpy.full(num_bins, 0, dtype=int)
+    bin_counts[used_bin_indices] = used_bin_counts
+
+    bin_frequencies = bin_counts.astype(float) / num_examples
+    perfect_bin_frequency = 1. / num_bins
+
+    pitd_value = numpy.sqrt(
+        numpy.mean((bin_frequencies - perfect_bin_frequency) ** 2)
+    )
+    perfect_pitd_value = numpy.sqrt(
+        (1. - perfect_bin_frequency) / (num_examples * num_bins)
+    )
+
+    return bin_edges, bin_counts, pitd_value, perfect_pitd_value
 
 
 def make_heating_rate_stdev_function():
@@ -683,16 +749,414 @@ def make_flux_stdev_function():
     return uncertainty_function
 
 
+def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
+                                            scaling_factor_for_flux_mse):
+    """Makes function to compute total error.
+
+    Total error = (scaling_factor_for_dwmse * DWMSE) +
+                  (scaling_factor_for_flux_mse * MSE_flux)
+
+    DWMSE = dual-weighted MSE for heating rates
+
+    :param scaling_factor_for_dwmse: See above.
+    :param scaling_factor_for_flux_mse: See above.
+    :return: error_function: Function handle.
+    """
+
+    error_checking.assert_is_geq(scaling_factor_for_dwmse, 0.)
+    error_checking.assert_is_geq(scaling_factor_for_flux_mse, 0.)
+
+    def error_function(prediction_dict, use_example_flags):
+        """Computes total error.
+
+        E = number of examples
+
+        :param prediction_dict: Dictionary in format returned by
+            `prediction_io.read_file`.
+        :param use_example_flags: length-E numpy array of Boolean flags,
+            indicating which examples to use.
+        :return: total_error: Scalar error value.
+        """
+
+        predicted_flux_matrix_w_m02 = numpy.mean(
+            prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][
+                use_example_flags, ...
+            ],
+            axis=-1
+        )
+        actual_flux_matrix_w_m02 = prediction_dict[
+            prediction_io.SCALAR_TARGETS_KEY
+        ][use_example_flags, :]
+
+        predicted_net_flux_matrix_w_m02 = (
+            predicted_flux_matrix_w_m02[:, 0] -
+            predicted_flux_matrix_w_m02[:, 1]
+        )
+        actual_net_flux_matrix_w_m02 = (
+            actual_flux_matrix_w_m02[:, 0] -
+            actual_flux_matrix_w_m02[:, 1]
+        )
+
+        net_flux_sse_w2_m04 = numpy.sum(
+            (predicted_net_flux_matrix_w_m02 - actual_net_flux_matrix_w_m02)
+            ** 2
+        )
+        raw_flux_sse_w2_m04 = numpy.sum(
+            (predicted_flux_matrix_w_m02 - actual_flux_matrix_w_m02) ** 2
+        )
+
+        num_examples = actual_flux_matrix_w_m02.shape[0]
+        flux_mse_w_m02 = (
+            (net_flux_sse_w2_m04 + raw_flux_sse_w2_m04) / (3 * num_examples)
+        )
+
+        predicted_hr_matrix_k_day01 = numpy.mean(
+            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][
+                use_example_flags, ...
+            ],
+            axis=-1
+        )
+        actual_hr_matrix_k_day01 = prediction_dict[
+            prediction_io.VECTOR_TARGETS_KEY
+        ][use_example_flags, ...]
+
+        weight_matrix_k_day01 = numpy.maximum(
+            numpy.absolute(predicted_hr_matrix_k_day01),
+            numpy.absolute(actual_hr_matrix_k_day01)
+        )
+        heating_rate_dwmse_k3_day03 = numpy.mean(
+            weight_matrix_k_day01 *
+            (predicted_hr_matrix_k_day01 - actual_hr_matrix_k_day01) ** 2
+        )
+
+        return (
+            scaling_factor_for_dwmse * heating_rate_dwmse_k3_day03 +
+            scaling_factor_for_flux_mse * flux_mse_w_m02
+        )
+
+    return error_function
+
+
+def get_crps_all_vars(prediction_file_name, num_integration_levels):
+    """Computes continuous ranked probability (CRPS) for all target variables.
+
+    :param prediction_file_name: Path to input file (will be read by
+        `prediction_io.read_file`).
+    :param num_integration_levels: See doc for `_get_crps_one_var`.
+    :return: result_table_xarray: xarray table with results (variable and
+        dimension names should make the table self-explanatory).
+    """
+
+    error_checking.assert_is_integer(num_integration_levels)
+    error_checking.assert_is_geq(num_integration_levels, 100)
+    error_checking.assert_is_leq(num_integration_levels, 100000)
+
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+
+    example_dict = {
+        example_utils.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_utils.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_utils.HEIGHTS_KEY: heights_m_agl
+    }
+
+    aux_prediction_dict = _get_aux_fields(
+        prediction_dict=prediction_dict, example_dict=example_dict
+    )
+    aux_target_field_names = aux_prediction_dict[AUX_TARGET_NAMES_KEY]
+    aux_predicted_field_names = aux_prediction_dict[AUX_PREDICTED_NAMES_KEY]
+    aux_target_matrix = aux_prediction_dict[AUX_TARGET_VALS_KEY]
+    aux_prediction_matrix = aux_prediction_dict[AUX_PREDICTED_VALS_KEY]
+
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    scalar_prediction_matrix = (
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+    )
+    vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
+    vector_prediction_matrix = (
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
+    )
+
+    num_heights = vector_target_matrix.shape[1]
+    num_vector_targets = vector_target_matrix.shape[2]
+    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_aux_targets = len(aux_target_field_names)
+
+    main_data_dict = {
+        SCALAR_CRPS_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
+        VECTOR_CRPS_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        )
+    }
+
+    if num_aux_targets > 0:
+        main_data_dict.update({
+            AUX_CRPS_KEY: (
+                (AUX_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+        })
+
+    metadata_dict = {
+        SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    }
+
+    if num_aux_targets > 0:
+        metadata_dict[AUX_TARGET_FIELD_DIM] = aux_target_field_names
+        metadata_dict[AUX_PREDICTED_FIELD_DIM] = aux_predicted_field_names
+
+    result_table_xarray = xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
+    result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
+    result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+
+    for j in range(num_scalar_targets):
+        print('Computing CRPS for {0:s}...'.format(
+            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
+        ))
+
+        result_table_xarray[SCALAR_CRPS_KEY].values[j] = _get_crps_one_var(
+            target_values=scalar_target_matrix[:, j],
+            prediction_matrix=scalar_prediction_matrix[:, j, :],
+            num_integration_levels=num_integration_levels
+        )
+
+    for j in range(num_vector_targets):
+        for k in range(num_heights):
+            print('Computing CRPS for {0:s} at {1:d} m AGL...'.format(
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
+                int(numpy.round(heights_m_agl[k]))
+            ))
+
+            result_table_xarray[VECTOR_CRPS_KEY].values[j, k] = (
+                _get_crps_one_var(
+                    target_values=vector_target_matrix[:, k, j],
+                    prediction_matrix=vector_prediction_matrix[:, k, j, :],
+                    num_integration_levels=num_integration_levels
+                )
+            )
+
+    for j in range(num_aux_targets):
+        print('Computing CRPS for {0:s}...'.format(aux_target_field_names[j]))
+
+        result_table_xarray[AUX_CRPS_KEY].values[j] = _get_crps_one_var(
+            target_values=aux_target_matrix[:, j],
+            prediction_matrix=aux_prediction_matrix[:, j, :],
+            num_integration_levels=num_integration_levels
+        )
+
+    return result_table_xarray
+
+
+def get_pit_histogram_all_vars(prediction_file_name, num_bins):
+    """Computes PIT (prob integral transform) histo for all target variables.
+
+    :param prediction_file_name: Path to input file (will be read by
+        `prediction_io.read_file`).
+    :param num_bins: Number of bins per histogram.
+    :return: result_table_xarray: xarray table with results (variable and
+        dimension names should make the table self-explanatory).
+    """
+
+    error_checking.assert_is_integer(num_bins)
+    error_checking.assert_is_geq(num_bins, 10)
+    error_checking.assert_is_leq(num_bins, 1000)
+
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+
+    example_dict = {
+        example_utils.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_utils.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_utils.HEIGHTS_KEY: heights_m_agl
+    }
+
+    aux_prediction_dict = _get_aux_fields(
+        prediction_dict=prediction_dict, example_dict=example_dict
+    )
+    aux_target_field_names = aux_prediction_dict[AUX_TARGET_NAMES_KEY]
+    aux_predicted_field_names = aux_prediction_dict[AUX_PREDICTED_NAMES_KEY]
+    aux_target_matrix = aux_prediction_dict[AUX_TARGET_VALS_KEY]
+    aux_prediction_matrix = aux_prediction_dict[AUX_PREDICTED_VALS_KEY]
+
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    scalar_prediction_matrix = (
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+    )
+    vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
+    vector_prediction_matrix = (
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
+    )
+
+    num_heights = vector_target_matrix.shape[1]
+    num_vector_targets = vector_target_matrix.shape[2]
+    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_aux_targets = len(aux_target_field_names)
+
+    main_data_dict = {
+        SCALAR_PITD_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
+        SCALAR_PERFECT_PITD_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
+        SCALAR_PIT_BIN_COUNT_KEY: (
+            (SCALAR_FIELD_DIM, PIT_HISTOGRAM_BIN_DIM),
+            numpy.full((num_scalar_targets, num_bins), -1, dtype=int)
+        ),
+        VECTOR_PITD_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
+        VECTOR_PERFECT_PITD_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
+        VECTOR_PIT_BIN_COUNT_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, PIT_HISTOGRAM_BIN_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_bins), -1, dtype=int
+            )
+        ),
+    }
+
+    if num_aux_targets > 0:
+        main_data_dict.update({
+            AUX_PITD_KEY: (
+                (AUX_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+            AUX_PERFECT_PITD_KEY: (
+                (AUX_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+            AUX_PIT_BIN_COUNT_KEY: (
+                (AUX_FIELD_DIM, PIT_HISTOGRAM_BIN_DIM),
+                numpy.full((num_aux_targets, num_bins), -1, dtype=int)
+            )
+        })
+
+    bin_edges = numpy.linspace(0, 1, num=num_bins + 1, dtype=float)
+    bin_centers = bin_edges[:-1] + numpy.diff(bin_edges) / 2
+
+    metadata_dict = {
+        SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
+        PIT_HISTOGRAM_BIN_DIM: bin_centers,
+        PIT_HISTOGRAM_BIN_EDGE_DIM: bin_edges
+    }
+
+    if num_aux_targets > 0:
+        metadata_dict[AUX_TARGET_FIELD_DIM] = aux_target_field_names
+        metadata_dict[AUX_PREDICTED_FIELD_DIM] = aux_predicted_field_names
+
+    result_table_xarray = xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
+    result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
+    result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+
+    for j in range(num_scalar_targets):
+        print('Computing PIT histogram for {0:s}...'.format(
+            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
+        ))
+
+        (
+            _,
+            result_table_xarray[SCALAR_PIT_BIN_COUNT_KEY].values[j, :],
+            result_table_xarray[SCALAR_PITD_KEY].values[j],
+            result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[j]
+        ) = _get_pit_histogram_one_var(
+            target_values=scalar_target_matrix[:, j],
+            prediction_matrix=scalar_prediction_matrix[:, j, :],
+            num_bins=num_bins
+        )
+
+    for j in range(num_vector_targets):
+        for k in range(num_heights):
+            print('Computing PIT histogram for {0:s} at {1:d} m AGL...'.format(
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
+                int(numpy.round(heights_m_agl[k]))
+            ))
+
+            (
+                _,
+                result_table_xarray[VECTOR_PIT_BIN_COUNT_KEY].values[j, k, :],
+                result_table_xarray[VECTOR_PITD_KEY].values[j, k],
+                result_table_xarray[VECTOR_PERFECT_PITD_KEY].values[j, k]
+            ) = _get_pit_histogram_one_var(
+                target_values=vector_target_matrix[:, k, j],
+                prediction_matrix=vector_prediction_matrix[:, k, j, :],
+                num_bins=num_bins
+            )
+
+    for j in range(num_aux_targets):
+        print('Computing PIT histogram for {0:s}...'.format(
+            aux_target_field_names[j]
+        ))
+
+        (
+            _,
+            result_table_xarray[AUX_PIT_BIN_COUNT_KEY].values[j, :],
+            result_table_xarray[AUX_PITD_KEY].values[j],
+            result_table_xarray[AUX_PERFECT_PITD_KEY].values[j]
+        ) = _get_pit_histogram_one_var(
+            target_values=aux_target_matrix[:, j],
+            prediction_matrix=aux_prediction_matrix[:, j, :],
+            num_bins=num_bins
+        )
+
+    return result_table_xarray
+
+
 def run_discard_test_all_vars(
-        prediction_dict, discard_fractions, error_function,
+        prediction_file_name, discard_fractions, error_function,
         uncertainty_function, is_error_pos_oriented):
     """Runs discard test for all target variables.
 
     E = number of examples
     F = number of discard fractions
 
-    :param prediction_dict: Dictionary in format returned by
-        `prediction_io.read_file`.
+    :param prediction_file_name: Path to input file (will be read by
+        `prediction_io.read_file`).
     :param discard_fractions: length-(F - 1) numpy array of discard fractions,
         ranging from (0, 1).  This method will use 0 as the lowest discard
         fraction.
@@ -712,19 +1176,8 @@ def run_discard_test_all_vars(
 
     :param is_error_pos_oriented: Boolean flag.  If True (False), error function
         is positively (negatively) oriented.
-
-    :return: result_dict: Dictionary with the following keys.
-    result_dict['discard_fractions']: length-F numpy array of discard fractions,
-        sorted in increasing order.
-    result_dict['post_discard_error_values']: length-F numpy array of
-        corresponding error values.
-    result_dict['example_fractions']: length-F numpy array with fraction of
-        examples left after each discard.
-    result_dict['monotonicity_fraction']: Monotonicity fraction.  This is the
-        fraction of times that the error function improves when discard
-        fraction is increased.
-    result_dict['mean_discard_improvement']: Mean decrease in error per increase
-        in discard fraction.
+    :return: result_table_xarray: xarray table with results (variable and
+        dimension names should make the table self-explanatory).
     """
 
     # TODO(thunderhoser): This method does not return keys
@@ -734,13 +1187,6 @@ def run_discard_test_all_vars(
     # insets in a plot of the discard test.  If you want to see IN DETAIL for
     # how model error changes with discard fraction, I suggest adding a
     # discard_fraction input arg to evaluate_neural_net.py.
-
-    # TODO(thunderhoser): Make this method return an xarray table.  The only
-    # dimension would be discard fraction, and the only bare attributes would be
-    # model_file_name and prediction_file_name.
-
-    # TODO(thunderhoser): Still need to create an appropriate error function for
-    # this method, then appropriate IO, and then TEST!
 
     # Check input args.
     error_checking.assert_is_boolean(is_error_pos_oriented)
@@ -759,10 +1205,31 @@ def run_discard_test_all_vars(
     assert num_fractions >= 2
 
     # Do actual stuff.
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     uncertainty_values = uncertainty_function(prediction_dict)
 
-    post_discard_error_values = numpy.full(num_fractions, numpy.nan)
-    example_fractions = numpy.full(num_fractions, numpy.nan)
+    these_dim_keys = (DISCARD_FRACTION_DIM,)
+    main_data_dict = {
+        POST_DISCARD_ERROR_KEY: (
+            these_dim_keys, numpy.full(num_fractions, numpy.nan)
+        ),
+        EXAMPLE_FRACTION_KEY: (
+            these_dim_keys, numpy.full(num_fractions, -1, dtype=int)
+        )
+    }
+
+    metadata_dict = {
+        DISCARD_FRACTION_DIM: discard_fractions
+    }
+
+    result_table_xarray = xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
+    result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
+    result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+
     use_example_flags = numpy.full(len(uncertainty_values), 1, dtype=bool)
 
     for k in range(num_fractions):
@@ -773,35 +1240,35 @@ def run_discard_test_all_vars(
         )
         use_example_flags[this_inverted_mask] = False
 
-        example_fractions[k] = numpy.mean(use_example_flags)
-        post_discard_error_values[k] = error_function(
+        result_table_xarray[EXAMPLE_FRACTION_KEY].values[k] = numpy.mean(
+            use_example_flags
+        )
+        result_table_xarray[POST_DISCARD_ERROR_KEY].values[k] = error_function(
             prediction_dict, use_example_flags
         )
 
     if is_error_pos_oriented:
         monotonicity_fraction = numpy.mean(
-            numpy.diff(post_discard_error_values) > 0
+            numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values) > 0
         )
         mean_discard_improvement = numpy.mean(
-            numpy.diff(post_discard_error_values) /
+            numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values) /
             numpy.diff(discard_fractions)
         )
     else:
         monotonicity_fraction = numpy.mean(
-            numpy.diff(post_discard_error_values) < 0
+            numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values) < 0
         )
         mean_discard_improvement = numpy.mean(
-            -1 * numpy.diff(post_discard_error_values) /
-            numpy.diff(discard_fractions)
+            -1 * numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values)
+            / numpy.diff(discard_fractions)
         )
 
-    return {
-        DISCARD_FRACTIONS_KEY: discard_fractions,
-        POST_DISCARD_ERRORS_KEY: post_discard_error_values,
-        EXAMPLE_FRACTIONS_KEY: example_fractions,
-        MONOTONICITY_FRACTION_KEY: monotonicity_fraction,
-        MEAN_DISCARD_IMPROVEMENT_KEY: mean_discard_improvement
-    }
+    result_table_xarray.attrs[MONOTONICITY_FRACTION_KEY] = monotonicity_fraction
+    result_table_xarray.attrs[MEAN_DISCARD_IMPROVEMENT_KEY] = (
+        mean_discard_improvement
+    )
+    return result_table_xarray
 
 
 def get_spread_vs_skill_all_vars(
@@ -1246,3 +1713,107 @@ def get_spread_vs_skill_all_vars(
             )
 
     return result_table_xarray
+
+
+def write_spread_vs_skill(spread_skill_table_xarray, netcdf_file_name):
+    """Writes spread-vs.-skill results to NetCDF file.
+
+    :param spread_skill_table_xarray: xarray table in format returned by
+        `get_spread_vs_skill_all_vars`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+
+    spread_skill_table_xarray.to_netcdf(
+        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    )
+
+
+def read_spread_vs_skill(netcdf_file_name):
+    """Reads spread-vs.-skill results from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: spread_skill_table_xarray: xarray table.  Documentation in the
+        xarray table should make values self-explanatory.
+    """
+
+    return xarray.open_dataset(netcdf_file_name)
+
+
+def write_discard_results(discard_test_table_xarray, netcdf_file_name):
+    """Writes discard-test results to NetCDF file.
+
+    :param discard_test_table_xarray: xarray table in format returned by
+        `run_discard_test_all_vars`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+
+    discard_test_table_xarray.to_netcdf(
+        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    )
+
+
+def read_discard_results(netcdf_file_name):
+    """Reads discard-test results from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: discard_test_table_xarray: xarray table.  Documentation in the
+        xarray table should make values self-explanatory.
+    """
+
+    return xarray.open_dataset(netcdf_file_name)
+
+
+def write_crps(crps_table_xarray, netcdf_file_name):
+    """Writes CRPS for all target variables to NetCDF file.
+
+    :param crps_table_xarray: xarray table in format returned by
+        `get_crps_all_vars`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+
+    crps_table_xarray.to_netcdf(
+        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    )
+
+
+def read_crps(netcdf_file_name):
+    """Reads CRPS for all target variables from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: crps_table_xarray: xarray table.  Documentation in the
+        xarray table should make values self-explanatory.
+    """
+
+    return xarray.open_dataset(netcdf_file_name)
+
+
+def write_pit_histograms(pit_histogram_table_xarray, netcdf_file_name):
+    """Writes PIT histogram for all target variables to NetCDF file.
+
+    :param pit_histogram_table_xarray: xarray table in format returned by
+        `get_pit_histogram_all_vars`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+
+    pit_histogram_table_xarray.to_netcdf(
+        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    )
+
+
+def read_pit_histograms(netcdf_file_name):
+    """Reads PIT histograms for all target variables from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: pit_histogram_table_xarray: xarray table.  Documentation in the
+        xarray table should make values self-explanatory.
+    """
+
+    return xarray.open_dataset(netcdf_file_name)
