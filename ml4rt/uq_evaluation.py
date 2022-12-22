@@ -1676,9 +1676,16 @@ def get_spread_vs_skill_all_vars(
                     vector_prediction_matrix[:, k, j, :], ddof=1, axis=-1
                 )
 
+                this_max_value = numpy.percentile(
+                    these_stdevs, max_heating_rate_percentile
+                )
+
+                if k == num_heights - 1:
+                    this_max_value = max([this_max_value, 1.])
+
                 these_bin_edges = numpy.linspace(
                     numpy.percentile(these_stdevs, min_heating_rate_percentile),
-                    numpy.percentile(these_stdevs, max_heating_rate_percentile),
+                    this_max_value,
                     num=num_heating_rate_bins + 1, dtype=float
                 )[1:-1]
             else:
