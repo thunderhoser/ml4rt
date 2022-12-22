@@ -729,7 +729,7 @@ def make_flux_stdev_function():
 
             predicted_flux_matrix_w_m02 = numpy.concatenate((
                 predicted_flux_matrix_w_m02,
-                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, j, :]
+                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, [j], :]
             ), axis=1)
 
         if all([n in scalar_target_names for n in SHORTWAVE_RAW_FLUX_NAMES]):
@@ -743,7 +743,7 @@ def make_flux_stdev_function():
 
             predicted_flux_matrix_w_m02 = numpy.concatenate((
                 predicted_flux_matrix_w_m02,
-                this_matrix[:, down_index, :] - this_matrix[:, up_index, :]
+                this_matrix[:, [down_index], :] - this_matrix[:, [up_index], :]
             ), axis=1)
 
         elementwise_stdev_matrix_k_day01 = numpy.std(
