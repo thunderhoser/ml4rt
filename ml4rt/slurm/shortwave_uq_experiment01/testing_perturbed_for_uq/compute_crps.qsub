@@ -38,5 +38,5 @@ set output_file_name="${model_dir_name}/testing_perturbed_for_uq/crps.nc"
 
 python3 -u "${CODE_DIR_NAME}/compute_crps.py" \
 --input_prediction_file_name="${prediction_file_name}" \
---num_integration_levels=5000 \
+--num_integration_levels=1000 \
 --output_file_name="${output_file_name}"
