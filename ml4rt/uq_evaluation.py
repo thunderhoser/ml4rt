@@ -152,8 +152,8 @@ def _get_aux_fields(prediction_dict, example_dict):
         prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
     )
 
-    num_examples = scalar_target_matrix.shape[0]
-    num_ensemble_members = scalar_target_matrix.shape[-1]
+    num_examples = scalar_prediction_matrix.shape[0]
+    num_ensemble_members = scalar_prediction_matrix.shape[-1]
 
     aux_target_matrix = numpy.full((num_examples, 0), numpy.nan)
     aux_prediction_matrix = numpy.full(
