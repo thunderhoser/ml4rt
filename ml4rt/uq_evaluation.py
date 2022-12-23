@@ -270,7 +270,7 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
         prediction_matrix, percentile_levels
     )
 
-    print(numpy.mean(numpy.diff(prediction_by_integ_level > 0)))
+    print(prediction_by_integ_level)
 
     for i in range(0, num_examples, NUM_EXAMPLES_PER_BATCH):
         first_index = i
