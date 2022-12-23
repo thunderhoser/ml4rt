@@ -283,22 +283,40 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
             for l in prediction_by_integ_level
         ], axis=-1)
 
+        if numpy.any(numpy.isnan(cdf_matrix)):
+            print('Found NaN''s in cdf_matrix')
+
         this_prediction_matrix = numpy.repeat(
             numpy.expand_dims(prediction_by_integ_level, axis=0),
             axis=0, repeats=last_index - first_index
         )
+
+        if numpy.any(numpy.isnan(this_prediction_matrix)):
+            print('Found NaN''s in this_prediction_matrix')
+
         this_target_matrix = numpy.repeat(
             numpy.expand_dims(target_values[first_index:last_index], axis=-1),
             axis=1, repeats=num_integration_levels
         )
+
+        if numpy.any(numpy.isnan(this_target_matrix)):
+            print('Found NaN''s in this_target_matrix')
+
         heaviside_matrix = (
             (this_prediction_matrix >= this_target_matrix).astype(int)
         )
+
+        if numpy.any(numpy.isnan(heaviside_matrix)):
+            print('Found NaN''s in heaviside_matrix')
 
         integrated_cdf_matrix = simps(
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
+
+        if numpy.any(numpy.isnan(integrated_cdf_matrix)):
+            print('Found NaN''s in integrated_cdf_matrix')
+        
         crps_numerator += numpy.sum(integrated_cdf_matrix)
         crps_denominator += integrated_cdf_matrix.size
 
