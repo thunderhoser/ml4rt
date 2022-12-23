@@ -1,4 +1,4 @@
-"""Plots CRPS (cont ranked prob score) histogram for each target variable."""
+"""Plots CRPS (continuous ranked probability score) for each target variable."""
 
 import argparse
 import numpy
@@ -9,7 +9,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.utils import uq_evaluation
 from ml4rt.plotting import evaluation_plotting
 
-LINE_COLOUR = numpy.array([217, 95, 2], dtype=float)
+LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
 LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
@@ -45,7 +45,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(input_file_name, output_dir_name):
-    """Plots CRPS (cont ranked prob score) histogram for each target variable.
+    """Plots CRPS (continuous ranked probability score) for each target var.
 
     This is effectively the main method.
 
@@ -65,14 +65,20 @@ def _run(input_file_name, output_dir_name):
         t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist()
     )
     scalar_crps_values = t[uq_evaluation.SCALAR_CRPS_KEY].values
+    scalar_crpss_values = t[uq_evaluation.SCALAR_CRPSS_KEY].values
+
     aux_target_names = (
         t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values.tolist()
     )
 
-    if len(aux_target_names) > 1:
+    if len(aux_target_names) > 0:
         scalar_target_names += aux_target_names
         scalar_crps_values = numpy.concatenate(
             (scalar_crps_values, t[uq_evaluation.AUX_CRPS_KEY].values),
+            axis=0
+        )
+        scalar_crpss_values = numpy.concatenate(
+            (scalar_crpss_values, t[uq_evaluation.AUX_CRPSS_KEY].values),
             axis=0
         )
 
@@ -91,7 +97,7 @@ def _run(input_file_name, output_dir_name):
             are_axes_new=True
         )
 
-        axes_object.set_xlabel('CRPS')
+        axes_object.set_xlabel('Continuous ranked probability score (CRPS)')
         axes_object.set_title(
             'CRPS for {0:s}'.format(vector_target_names[k])
         )
@@ -99,20 +105,65 @@ def _run(input_file_name, output_dir_name):
         annotation_string = 'CRPS for {0:s} = {1:.3f}'.format(
             scalar_target_names[0], scalar_crps_values[0]
         )
-        for k in range(1, len(scalar_target_names)):
-            annotation_string += '\n{0:s} = {1:.3f}'.format(
-                scalar_target_names[k], scalar_crps_values[k]
+        for j in range(1, len(scalar_target_names)):
+            annotation_string += '\nCRPS for{0:s} = {1:.3f}'.format(
+                scalar_target_names[j], scalar_crps_values[j]
             )
 
         axes_object.text(
-            0.05, 0.5, annotation_string,
-            fontsize=16, color='k',
+            0.99, 0.3, annotation_string,
+            fontsize=20, color='k',
             bbox=LEGEND_BOUNDING_BOX_DICT,
-            horizontalalignment='left', verticalalignment='middle',
+            horizontalalignment='right', verticalalignment='center',
             transform=axes_object.transAxes, zorder=1e10
         )
 
         figure_file_name = '{0:s}/crps_{1:s}.jpg'.format(
+            output_dir_name, vector_target_names[k].replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
+            score_values=t[uq_evaluation.VECTOR_CRPSS_KEY].values[k, :],
+            score_name=evaluation_plotting.CRPSS_NAME,
+            line_colour=LINE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        axes_object.set_xlabel(
+            'Continuous ranked probability skill score (CRPSS)'
+        )
+        axes_object.set_title(
+            'CRPSS for {0:s}'.format(vector_target_names[k])
+        )
+
+        annotation_string = 'CRPSS for {0:s} = {1:.3f}'.format(
+            scalar_target_names[0], scalar_crpss_values[0]
+        )
+        for j in range(1, len(scalar_target_names)):
+            annotation_string += '\nCRPSS for{0:s} = {1:.3f}'.format(
+                scalar_target_names[j], scalar_crpss_values[j]
+            )
+
+        axes_object.text(
+            0.99, 0.3, annotation_string,
+            fontsize=20, color='k',
+            bbox=LEGEND_BOUNDING_BOX_DICT,
+            horizontalalignment='right', verticalalignment='center',
+            transform=axes_object.transAxes, zorder=1e10
+        )
+
+        figure_file_name = '{0:s}/crpss_{1:s}.jpg'.format(
             output_dir_name, vector_target_names[k].replace('_', '-')
         )
         print('Saving figure to file: "{0:s}"...'.format(figure_file_name))

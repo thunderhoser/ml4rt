@@ -29,11 +29,12 @@ MSE_VARIANCE_NAME = 'mse_variance'
 KS_STATISTIC_NAME = 'ks_statistic'
 KS_P_VALUE_NAME = 'ks_p_value'
 CRPS_NAME = 'crps'
+CRPSS_NAME = 'crpss'
 
 VALID_SCORE_NAMES = [
     MSE_NAME, MSE_SKILL_SCORE_NAME, MAE_NAME, MAE_SKILL_SCORE_NAME,
     BIAS_NAME, CORRELATION_NAME, KGE_NAME, MSE_BIAS_NAME, MSE_VARIANCE_NAME,
-    KS_STATISTIC_NAME, KS_P_VALUE_NAME, CRPS_NAME
+    KS_STATISTIC_NAME, KS_P_VALUE_NAME, CRPS_NAME, CRPSS_NAME
 ]
 
 RELIABILITY_LINE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -551,7 +552,7 @@ def plot_score_profile(
         min_height_km_agl = numpy.minimum(min_height_km_agl, orig_y_limits[0])
         max_height_km_agl = numpy.maximum(max_height_km_agl, orig_y_limits[1])
 
-    skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
+    skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME, CRPSS_NAME]
     possibly_negative_score_names = (
         skill_score_names + [BIAS_NAME, CORRELATION_NAME, KGE_NAME]
     )
@@ -657,7 +658,7 @@ def plot_score_profile_by_pressure(
         min_pressure_mb = numpy.minimum(min_pressure_mb, orig_y_limits[0])
         max_pressure_mb = numpy.maximum(max_pressure_mb, orig_y_limits[1])
 
-    skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME]
+    skill_score_names = [MAE_SKILL_SCORE_NAME, MSE_SKILL_SCORE_NAME, CRPSS_NAME]
     possibly_negative_score_names = (
         skill_score_names + [BIAS_NAME, CORRELATION_NAME, KGE_NAME]
     )

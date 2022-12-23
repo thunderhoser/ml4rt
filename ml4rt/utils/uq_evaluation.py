@@ -7,6 +7,7 @@ from scipy.integrate import simps
 from scipy.stats import percentileofscore
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
@@ -92,6 +93,9 @@ MEAN_DISCARD_IMPROVEMENT_KEY = 'mean_discard_improvement'
 SCALAR_CRPS_KEY = 'scalar_crps'
 VECTOR_CRPS_KEY = 'vector_crps'
 AUX_CRPS_KEY = 'aux_crps'
+SCALAR_CRPSS_KEY = 'scalar_crpss'
+VECTOR_CRPSS_KEY = 'vector_crpss'
+AUX_CRPSS_KEY = 'aux_crpss'
 
 PIT_HISTOGRAM_BIN_DIM = 'pit_histogram_bin_center'
 PIT_HISTOGRAM_BIN_EDGE_DIM = 'pit_histogram_bin_edge'
@@ -284,6 +288,81 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
         )
         heaviside_matrix = (
             (this_prediction_matrix >= this_target_matrix).astype(int)
+        )
+
+        integrated_cdf_matrix = simps(
+            y=(cdf_matrix - heaviside_matrix) ** 2,
+            x=prediction_by_integ_level, axis=-1
+        )
+        crps_numerator += numpy.sum(integrated_cdf_matrix)
+        crps_denominator += integrated_cdf_matrix.size
+
+    return crps_numerator / crps_denominator
+
+
+def _get_climo_crps_one_var(
+        new_target_values, training_target_values, num_integration_levels,
+        max_ensemble_size):
+    """Computes CRPS of climatological model for one variable.
+
+    CRPS = continuous ranked probability score
+
+    E_n = number of examples in new (evaluation) dataset
+    E_t = number of examples in training dataset
+
+    :param new_target_values: numpy array (length E_n) of target values.
+    :param training_target_values: numpy array (length E_t) of target values.
+    :param num_integration_levels: Will use this many integration levels to
+        compute CRPS.
+    :param max_ensemble_size: Will use this max ensemble size to compute CRPS.
+    :return: climo_crps: Climo CRPS (scalar).
+    """
+
+    num_new_examples = len(new_target_values)
+    num_training_examples = len(training_target_values)
+    ensemble_size = min([num_training_examples, max_ensemble_size])
+
+    crps_numerator = 0.
+    crps_denominator = 0.
+
+    prediction_by_integ_level = numpy.linspace(
+        numpy.min(training_target_values), numpy.max(training_target_values),
+        num=num_integration_levels, dtype=float
+    )
+
+    for i in range(0, num_new_examples, NUM_EXAMPLES_PER_BATCH):
+        first_index = i
+        last_index = min([
+            i + NUM_EXAMPLES_PER_BATCH, num_new_examples
+        ])
+
+        this_num_examples = last_index - first_index
+        this_actual_prediction_matrix = numpy.full(
+            (this_num_examples, ensemble_size), numpy.nan
+        )
+
+        for j in range(this_num_examples):
+            this_actual_prediction_matrix[j, :] = numpy.random.choice(
+                training_target_values, size=ensemble_size, replace=False
+            )
+
+        cdf_matrix = numpy.stack([
+            numpy.mean(this_actual_prediction_matrix <= l, axis=-1)
+            for l in prediction_by_integ_level
+        ], axis=-1)
+
+        this_integrand_prediction_matrix = numpy.repeat(
+            numpy.expand_dims(prediction_by_integ_level, axis=0),
+            axis=0, repeats=last_index - first_index
+        )
+        this_target_matrix = numpy.repeat(
+            numpy.expand_dims(
+                new_target_values[first_index:last_index], axis=-1
+            ),
+            axis=1, repeats=num_integration_levels
+        )
+        heaviside_matrix = (
+            (this_integrand_prediction_matrix >= this_target_matrix).astype(int)
         )
 
         integrated_cdf_matrix = simps(
@@ -836,12 +915,15 @@ def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
     return error_function
 
 
-def get_crps_all_vars(prediction_file_name, num_integration_levels):
+def get_crps_all_vars(prediction_file_name, num_integration_levels,
+                      ensemble_size_for_climo):
     """Computes continuous ranked probability (CRPS) for all target variables.
 
     :param prediction_file_name: Path to input file (will be read by
         `prediction_io.read_file`).
     :param num_integration_levels: See doc for `_get_crps_one_var`.
+    :param ensemble_size_for_climo: Ensemble size used to compute CRPS of
+        climatological model.
     :return: result_table_xarray: xarray table with results (variable and
         dimension names should make the table self-explanatory).
     """
@@ -849,6 +931,10 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
     error_checking.assert_is_integer(num_integration_levels)
     error_checking.assert_is_geq(num_integration_levels, 100)
     error_checking.assert_is_leq(num_integration_levels, 100000)
+
+    error_checking.assert_is_integer(ensemble_size_for_climo)
+    error_checking.assert_is_geq(ensemble_size_for_climo, 100)
+    error_checking.assert_is_leq(ensemble_size_for_climo, 10000)
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
@@ -862,8 +948,14 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    normalization_file_name = (
+        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+    )
 
+    print('Reading data from: "{0:s}"...'.format(normalization_file_name))
+    training_example_dict = example_io.read_file(normalization_file_name)
+
+    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
@@ -902,7 +994,14 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
         SCALAR_CRPS_KEY: (
             (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
         ),
+        SCALAR_CRPSS_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
         VECTOR_CRPS_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
+        VECTOR_CRPSS_KEY: (
             (VECTOR_FIELD_DIM, HEIGHT_DIM),
             numpy.full((num_vector_targets, num_heights), numpy.nan)
         )
@@ -913,6 +1012,9 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
             AUX_CRPS_KEY: (
                 (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             ),
+            AUX_CRPSS_KEY: (
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            )
         })
 
     metadata_dict = {
@@ -942,6 +1044,27 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
             num_integration_levels=num_integration_levels
         )
 
+        print('Computing CRPSS for {0:s}...'.format(
+            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
+        ))
+
+        these_training_values = example_utils.get_field_from_dict(
+            example_dict=training_example_dict,
+            field_name=example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
+        )
+        this_climo_crps = _get_climo_crps_one_var(
+            new_target_values=scalar_target_matrix[:, j],
+            training_target_values=these_training_values,
+            num_integration_levels=num_integration_levels,
+            max_ensemble_size=ensemble_size_for_climo
+        )
+        this_climo_crps = max([this_climo_crps, 1e-9])
+
+        result_table_xarray[SCALAR_CRPSS_KEY].values[j] = (
+            1. - result_table_xarray[SCALAR_CRPS_KEY].values[j] /
+            this_climo_crps
+        )
+
     for j in range(num_vector_targets):
         for k in range(num_heights):
             print('Computing CRPS for {0:s} at {1:d} m AGL...'.format(
@@ -957,6 +1080,30 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
                 )
             )
 
+            print('Computing CRPSS for {0:s} at {1:d} m AGL...'.format(
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
+                int(numpy.round(heights_m_agl[k]))
+            ))
+
+            these_training_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
+                height_m_agl=heights_m_agl[k]
+            )
+            this_climo_crps = _get_climo_crps_one_var(
+                new_target_values=vector_target_matrix[:, k, j],
+                training_target_values=these_training_values,
+                num_integration_levels=num_integration_levels,
+                max_ensemble_size=ensemble_size_for_climo
+            )
+            this_climo_crps = max([this_climo_crps, 1e-9])
+
+            result_table_xarray[VECTOR_CRPSS_KEY].values[j, k] = (
+                1. - result_table_xarray[VECTOR_CRPS_KEY].values[j, k] /
+                this_climo_crps
+            )
+
     for j in range(num_aux_targets):
         print('Computing CRPS for {0:s}...'.format(aux_target_field_names[j]))
 
@@ -964,6 +1111,45 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
             target_values=aux_target_matrix[:, j],
             prediction_matrix=aux_prediction_matrix[:, j, :],
             num_integration_levels=num_integration_levels
+        )
+
+        print('Computing CRPSS for {0:s}...'.format(aux_target_field_names[j]))
+
+        if aux_target_field_names[j] == SHORTWAVE_NET_FLUX_NAME:
+            these_down_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            these_up_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+            these_training_values = (
+                these_down_fluxes_w_m02 - these_up_fluxes_w_m02
+            )
+        elif aux_target_field_names[j] == LONGWAVE_NET_FLUX_NAME:
+            these_down_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            these_up_fluxes_w_m02 = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+            )
+            these_training_values = (
+                these_down_fluxes_w_m02 - these_up_fluxes_w_m02
+            )
+
+        this_climo_crps = _get_climo_crps_one_var(
+            new_target_values=aux_target_matrix[:, j],
+            training_target_values=these_training_values,
+            num_integration_levels=num_integration_levels,
+            max_ensemble_size=ensemble_size_for_climo
+        )
+        this_climo_crps = max([this_climo_crps, 1e-9])
+
+        result_table_xarray[AUX_CRPSS_KEY].values[j] = (
+            1. - result_table_xarray[AUX_CRPS_KEY].values[j] / this_climo_crps
         )
 
     return result_table_xarray
