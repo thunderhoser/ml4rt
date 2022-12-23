@@ -297,7 +297,6 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
-
         crps_numerator += numpy.sum(integrated_cdf_matrix)
         crps_denominator += integrated_cdf_matrix.size
 

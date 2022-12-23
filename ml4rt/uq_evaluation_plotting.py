@@ -22,9 +22,13 @@ REFERENCE_LINE_WIDTH = 2.
 DEFAULT_LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 DEFAULT_LINE_WIDTH = 3.
 
-HISTOGRAM_FACE_COLOUR = numpy.full(3, 152. / 255)
-HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
-HISTOGRAM_EDGE_WIDTH = 2.
+INSET_HISTO_FACE_COLOUR = numpy.full(3, 152. / 255)
+INSET_HISTO_EDGE_COLOUR = numpy.full(3, 0.)
+INSET_HISTO_EDGE_WIDTH = 1.
+
+DEFAULT_HISTOGRAM_FACE_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
+DEFAULT_HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
+DEFAULT_HISTOGRAM_EDGE_WIDTH = 2.
 
 MEAN_PREDICTION_LINE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 MEAN_PREDICTION_COLOUR_STRING = 'purple'
@@ -77,21 +81,20 @@ def _plot_means_as_inset(
     elif plotting_corner_string == 'top_left':
         inset_axes_object = figure_object.add_axes([0.2, 0.55, 0.25, 0.25])
 
-    # TODO(thunderhoser): Might want to get rid of markers in this module.
     target_handle = inset_axes_object.plot(
         bin_centers, bin_mean_target_values, color=MEAN_TARGET_LINE_COLOUR,
         linestyle='solid', linewidth=2,
-        marker='o', markersize=8, markeredgewidth=0,
-        markerfacecolor=MEAN_TARGET_LINE_COLOUR,
-        markeredgecolor=MEAN_TARGET_LINE_COLOUR
+        # marker='o', markersize=8, markeredgewidth=0,
+        # markerfacecolor=MEAN_TARGET_LINE_COLOUR,
+        # markeredgecolor=MEAN_TARGET_LINE_COLOUR
     )[0]
 
     prediction_handle = inset_axes_object.plot(
         bin_centers, bin_mean_predictions, color=MEAN_PREDICTION_LINE_COLOUR,
         linestyle='dashed', linewidth=2,
-        marker='o', markersize=8, markeredgewidth=0,
-        markerfacecolor=MEAN_PREDICTION_LINE_COLOUR,
-        markeredgecolor=MEAN_PREDICTION_LINE_COLOUR
+        # marker='o', markersize=8, markeredgewidth=0,
+        # markerfacecolor=MEAN_PREDICTION_LINE_COLOUR,
+        # markeredgecolor=MEAN_PREDICTION_LINE_COLOUR
     )[0]
 
     y_max = max([
@@ -143,8 +146,8 @@ def _plot_histogram(axes_object, bin_edges, bin_frequencies):
 
     histogram_axes_object.bar(
         x=bin_edges[:-1], height=bin_frequencies, width=numpy.diff(bin_edges),
-        color=HISTOGRAM_FACE_COLOUR, edgecolor=HISTOGRAM_EDGE_COLOUR,
-        linewidth=HISTOGRAM_EDGE_WIDTH, align='edge'
+        color=INSET_HISTO_FACE_COLOUR, edgecolor=INSET_HISTO_EDGE_COLOUR,
+        linewidth=INSET_HISTO_EDGE_WIDTH, align='edge'
     )
 
     return histogram_axes_object
@@ -247,7 +250,6 @@ def plot_spread_vs_skill(
     )
     assert not numpy.all(nan_flags)
 
-    # Do actual stuff.
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
@@ -371,6 +373,108 @@ def plot_discard_test(
         100 * t.attrs[uq_evaluation.MONOTONICITY_FRACTION_KEY],
         t.attrs[uq_evaluation.MEAN_DISCARD_IMPROVEMENT_KEY]
     )
+    axes_object.set_title(title_string)
+
+    return figure_object, axes_object
+
+
+def plot_pit_histogram(
+        result_table_xarray, target_var_name, target_height_m_agl=None,
+        face_colour=DEFAULT_HISTOGRAM_FACE_COLOUR,
+        edge_colour=DEFAULT_HISTOGRAM_EDGE_COLOUR,
+        edge_width=DEFAULT_HISTOGRAM_EDGE_WIDTH):
+    """Plots PIT (prob integral transform) histogram for one target variable.
+
+    :param result_table_xarray: xarray table in format returned by
+        `uq_evaluation.get_pit_histogram_all_vars`.
+    :param target_var_name: Will plot PIT histogram for this target variable.
+    :param target_height_m_agl: Will plot PIT histogram for given target
+        variable at this height (metres above ground).  If `target_var_name`
+        does not correspond to a vector target variable, make this None.
+    :param face_colour: Face colour (in any format accepted by matplotlib).
+    :param edge_colour: Edge colour (in any format accepted by matplotlib).
+    :param edge_width: Edge width (in any format accepted by matplotlib).
+    :return: figure_object: Figure handle (instance of
+        `matplotlib.figure.Figure`).
+    :return: axes_object: Axes handle (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    # Find values for the chosen target variable.
+    t = result_table_xarray
+
+    try:
+        k = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist().index(
+            target_var_name
+        )
+
+        bin_counts = t[uq_evaluation.SCALAR_PIT_BIN_COUNT_KEY].values[k]
+        pitd_value = t[uq_evaluation.SCALAR_PITD_KEY].values[k]
+        perfect_pitd_value = t[uq_evaluation.SCALAR_PERFECT_PITD_KEY].values[k]
+    except ValueError:
+        try:
+            k = t.coords[
+                uq_evaluation.AUX_TARGET_FIELD_DIM
+            ].values.tolist().index(target_var_name)
+
+            bin_counts = t[uq_evaluation.AUX_PIT_BIN_COUNT_KEY].values[k]
+            pitd_value = t[uq_evaluation.AUX_PITD_KEY].values[k]
+            perfect_pitd_value = t[uq_evaluation.AUX_PERFECT_PITD_KEY].values[k]
+        except ValueError:
+            height_diffs_metres = numpy.absolute(
+                t.coords[uq_evaluation.HEIGHT_DIM].values -
+                target_height_m_agl
+            )
+
+            k = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values.tolist().index(
+                target_var_name
+            )
+            j = numpy.where(height_diffs_metres <= TOLERANCE)[0][0]
+
+            bin_counts = (
+                t[uq_evaluation.VECTOR_PIT_BIN_COUNT_KEY].values[k, j]
+            )
+            pitd_value = t[uq_evaluation.VECTOR_PITD_KEY].values[k, j]
+            perfect_pitd_value = (
+                t[uq_evaluation.VECTOR_PERFECT_PITD_KEY].values[k, j]
+            )
+
+    bin_edges = t.coords[uq_evaluation.PIT_HISTOGRAM_BIN_EDGE_DIM].values
+    bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    axes_object.bar(
+        x=bin_edges[:-1], height=bin_frequencies, width=numpy.diff(bin_edges),
+        color=face_colour, edgecolor=edge_colour, linewidth=edge_width,
+        align='edge'
+    )
+
+    num_bins = len(bin_edges) - 1
+    perfect_x_coords = numpy.array([0, 1], dtype=float)
+    perfect_y_coords = numpy.array([1. / num_bins, 1. / num_bins])
+    axes_object.plot(
+        perfect_x_coords, perfect_y_coords, color=REFERENCE_LINE_COLOUR,
+        linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
+    )
+
+    axes_object.set_xlabel('PIT value')
+    axes_object.set_ylabel('Frequency')
+    axes_object.set_xlim(0., 1.)
+    axes_object.set_ylim(bottom=0.)
+
+    title_string = (
+        'PIT histogram for {0:s}{1:s}\n'
+        'PITD = {2:.3g}; lowest possible PITD = {3:.3g}'
+    ).format(
+        target_var_name,
+        '' if target_height_m_agl is None
+        else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
+        pitd_value,
+        perfect_pitd_value
+    )
+
     axes_object.set_title(title_string)
 
     return figure_object, axes_object
