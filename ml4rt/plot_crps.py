@@ -17,7 +17,7 @@ import file_system_utils
 import uq_evaluation
 import evaluation_plotting
 
-LINE_COLOUR = numpy.array([217, 95, 2], dtype=float)
+LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
 LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
