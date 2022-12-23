@@ -107,9 +107,9 @@ def _run(input_file_name, output_dir_name):
         annotation_string = 'CRPS for {0:s} = {1:.3f}'.format(
             scalar_target_names[0], scalar_crps_values[0]
         )
-        for k in range(1, len(scalar_target_names)):
+        for j in range(1, len(scalar_target_names)):
             annotation_string += '\n{0:s} = {1:.3f}'.format(
-                scalar_target_names[k], scalar_crps_values[k]
+                scalar_target_names[j], scalar_crps_values[j]
             )
 
         axes_object.text(
