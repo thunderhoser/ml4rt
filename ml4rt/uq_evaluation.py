@@ -263,14 +263,10 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
     crps_numerator = 0.
     crps_denominator = 0.
 
-    percentile_levels = numpy.linspace(
-        0, 100, num=num_integration_levels, dtype=float
+    prediction_by_integ_level = numpy.linspace(
+        numpy.min(prediction_matrix), numpy.max(prediction_matrix),
+        num=num_integration_levels, dtype=float
     )
-    prediction_by_integ_level = numpy.percentile(
-        prediction_matrix, percentile_levels
-    )
-
-    print(prediction_by_integ_level)
 
     for i in range(0, num_examples, NUM_EXAMPLES_PER_BATCH):
         first_index = i
@@ -301,9 +297,6 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
-
-        if numpy.any(numpy.isnan(integrated_cdf_matrix)):
-            print('Found NaN''s in integrated_cdf_matrix')
 
         crps_numerator += numpy.sum(integrated_cdf_matrix)
         crps_denominator += integrated_cdf_matrix.size
