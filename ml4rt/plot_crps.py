@@ -116,7 +116,7 @@ def _run(input_file_name, output_dir_name):
             0.05, 0.5, annotation_string,
             fontsize=16, color='k',
             bbox=LEGEND_BOUNDING_BOX_DICT,
-            horizontalalignment='left', verticalalignment='middle',
+            horizontalalignment='left', verticalalignment='center',
             transform=axes_object.transAxes, zorder=1e10
         )
 
