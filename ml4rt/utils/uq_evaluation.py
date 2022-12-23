@@ -45,7 +45,6 @@ LONGWAVE_TOA_UP_FLUX_INDEX_KEY = 'longwave_toa_up_flux_index'
 
 SCALAR_FIELD_DIM = 'scalar_field'
 VECTOR_FIELD_DIM = 'vector_field'
-AUX_FIELD_DIM = 'aux_field'
 HEIGHT_DIM = 'height_m_agl'
 AUX_TARGET_FIELD_DIM = 'aux_target_field'
 AUX_PREDICTED_FIELD_DIM = 'aux_predicted_field'
@@ -257,11 +256,9 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
     crps_numerator = 0.
     crps_denominator = 0.
 
-    percentile_levels = numpy.linspace(
-        0, 100, num=num_integration_levels, dtype=float
-    )
-    prediction_by_integ_level = numpy.percentile(
-        prediction_matrix, percentile_levels
+    prediction_by_integ_level = numpy.linspace(
+        numpy.min(prediction_matrix), numpy.max(prediction_matrix),
+        num=num_integration_levels, dtype=float
     )
 
     for i in range(0, num_examples, NUM_EXAMPLES_PER_BATCH):
@@ -914,7 +911,7 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels):
     if num_aux_targets > 0:
         main_data_dict.update({
             AUX_CRPS_KEY: (
-                (AUX_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             ),
         })
 
@@ -1064,13 +1061,13 @@ def get_pit_histogram_all_vars(prediction_file_name, num_bins):
     if num_aux_targets > 0:
         main_data_dict.update({
             AUX_PITD_KEY: (
-                (AUX_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             ),
             AUX_PERFECT_PITD_KEY: (
-                (AUX_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             ),
             AUX_PIT_BIN_COUNT_KEY: (
-                (AUX_FIELD_DIM, PIT_HISTOGRAM_BIN_DIM),
+                (AUX_TARGET_FIELD_DIM, PIT_HISTOGRAM_BIN_DIM),
                 numpy.full((num_aux_targets, num_bins), -1, dtype=int)
             )
         })
@@ -1487,9 +1484,9 @@ def get_spread_vs_skill_all_vars(
         these_dim_no_edge = (num_aux_targets, num_raw_flux_bins)
         these_dim_with_edge = (num_aux_targets, num_raw_flux_bins + 1)
 
-        these_dim_keys_no_bins = (AUX_FIELD_DIM,)
-        these_dim_keys_no_edge = (AUX_FIELD_DIM, NET_FLUX_BIN_DIM)
-        these_dim_keys_with_edge = (AUX_FIELD_DIM, NET_FLUX_BIN_EDGE_DIM)
+        these_dim_keys_no_bins = (AUX_TARGET_FIELD_DIM,)
+        these_dim_keys_no_edge = (AUX_TARGET_FIELD_DIM, NET_FLUX_BIN_DIM)
+        these_dim_keys_with_edge = (AUX_TARGET_FIELD_DIM, NET_FLUX_BIN_EDGE_DIM)
 
         main_data_dict.update({
             AUX_MEAN_STDEV_KEY: (

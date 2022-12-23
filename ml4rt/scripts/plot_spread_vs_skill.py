@@ -65,7 +65,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-    for this_var_name in t.coords[uq_evaluation.AUX_FIELD_DIM].values:
+    for this_var_name in t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_spread_vs_skill(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
