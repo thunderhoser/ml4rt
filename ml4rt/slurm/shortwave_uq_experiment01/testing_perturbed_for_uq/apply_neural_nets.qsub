@@ -52,5 +52,5 @@ python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --first_time_string="${FIRST_TESTING_TIME_STRING}" \
 --last_time_string="${LAST_TESTING_TIME_STRING}" \
 --num_dropout_iterations=${num_dropout_iterations} \
---max_ensemble_size=1000 \
+--max_ensemble_size=333 \
 --output_file_name="${prediction_file_name}"
