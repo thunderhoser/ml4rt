@@ -95,7 +95,11 @@ def _run(prediction_file_name, discard_fractions, scaling_factor_for_dwmse,
         prediction_file_name=prediction_file_name,
         discard_fractions=discard_fractions,
         error_function=error_function,
-        uncertainty_function=uncertainty_function, is_error_pos_oriented=False
+        uncertainty_function=uncertainty_function, is_error_pos_oriented=False,
+        error_function_for_hr_1height=
+        uq_evaluation.make_error_function_dwmse_1height(),
+        error_function_for_flux_1var=
+        uq_evaluation.make_error_function_flux_mse_1var()
     )
     print(SEPARATOR_STRING)
 
@@ -117,8 +121,60 @@ def _run(prediction_file_name, discard_fractions, scaling_factor_for_dwmse,
     print('Mean discard improvement = {0:.4f}'.format(
         result_table_xarray.attrs[uq_evaluation.MEAN_DISCARD_IMPROVEMENT_KEY]
     ))
+    print(SEPARATOR_STRING)
 
-    print('\nWriting results to: "{0:s}"...'.format(output_file_name))
+    t = result_table_xarray
+    scalar_target_names = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values
+
+    for k in range(len(scalar_target_names)):
+        print('Variable = {0:s} ... MF = {1:f} ... DI = {2:f}'.format(
+            scalar_target_names[k],
+            t[uq_evaluation.SCALAR_MONOTONICITY_FRACTION_KEY].values[k],
+            t[uq_evaluation.SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
+        ))
+
+    print(SEPARATOR_STRING)
+    vector_target_names = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values
+    heights_m_agl = t.coords[uq_evaluation.HEIGHT_DIM].values
+
+    for k in range(len(vector_target_names)):
+        for j in range(len(heights_m_agl)):
+            print((
+                'Variable = {0:s} at {1:d} m AGL ... MF = {2:f} ... DI = {3:f}'
+            ).format(
+                vector_target_names[k], int(numpy.round(heights_m_agl[j])),
+                t[uq_evaluation.VECTOR_MONOTONICITY_FRACTION_KEY].values[k, j],
+                t[uq_evaluation.VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY].values[
+                    k, j
+                ]
+            ))
+
+        print(SEPARATOR_STRING)
+
+    try:
+        aux_target_field_names = (
+            t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values
+        )
+        aux_predicted_field_names = (
+            t.coords[uq_evaluation.AUX_PREDICTED_FIELD_DIM].values
+        )
+    except:
+        aux_target_field_names = []
+        aux_predicted_field_names = []
+
+    for k in range(len(aux_target_field_names)):
+        print((
+            'Target variable = {0:s} ... predicted variable = "{1:s}" ... '
+            'MF = {2:f} ... DI = {3:f}'
+        ).format(
+            aux_target_field_names[k], aux_predicted_field_names[k],
+            t[uq_evaluation.AUX_MONOTONICITY_FRACTION_KEY].values[k],
+            t[uq_evaluation.AUX_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
+        ))
+
+    print(SEPARATOR_STRING)
+
+    print('Writing results to: "{0:s}"...'.format(output_file_name))
     uq_evaluation.write_discard_results(
         discard_test_table_xarray=result_table_xarray,
         netcdf_file_name=output_file_name

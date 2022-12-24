@@ -89,6 +89,15 @@ POST_DISCARD_ERROR_KEY = 'post_discard_error'
 EXAMPLE_FRACTION_KEY = 'example_fraction'
 MONOTONICITY_FRACTION_KEY = 'monotonicity_fraction'
 MEAN_DISCARD_IMPROVEMENT_KEY = 'mean_discard_improvement'
+SCALAR_POST_DISCARD_ERROR_KEY = 'scalar_post_discard_error'
+SCALAR_MONOTONICITY_FRACTION_KEY = 'scalar_monotonicity_fraction'
+SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY = 'scalar_mean_discard_improvement'
+VECTOR_POST_DISCARD_ERROR_KEY = 'vector_post_discard_error'
+VECTOR_MONOTONICITY_FRACTION_KEY = 'vector_monotonicity_fraction'
+VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY = 'vector_mean_discard_improvement'
+AUX_POST_DISCARD_ERROR_KEY = 'aux_post_discard_error'
+AUX_MONOTONICITY_FRACTION_KEY = 'aux_monotonicity_fraction'
+AUX_MEAN_DISCARD_IMPROVEMENT_KEY = 'aux_mean_discard_improvement'
 
 SCALAR_CRPS_KEY = 'scalar_crps'
 VECTOR_CRPS_KEY = 'vector_crps'
@@ -491,157 +500,6 @@ def _get_spread_vs_skill_one_var(
     }
 
 
-def _run_discard_test_one_var(
-        target_values, prediction_matrix, discard_fractions, error_function,
-        uncertainty_function, use_median, is_error_pos_oriented):
-    """Runs discard test for one target variable.
-
-    E = number of examples
-    S = number of ensemble members
-    F = number of discard fractions
-
-    :param target_values: length-E numpy array of actual values.
-    :param prediction_matrix: E-by-S numpy array of predicted values.
-    :param discard_fractions: length-(F - 1) numpy array of discard fractions,
-        ranging from (0, 1).  This method will use 0 as the lowest discard
-        fraction.
-
-    :param error_function: Function with the following inputs and outputs...
-    Input: target_values: See above.
-    Input: prediction_matrix: See above.
-    Output: error_value: Scalar value of error metric.
-
-    :param uncertainty_function: Function with the following inputs and
-        outputs...
-    Input: prediction_matrix: See above.
-    Output: uncertainty_values: length-E numpy array with values of uncertainty
-        metric.  The metric must be oriented so that higher value = more
-        uncertainty.
-
-    :param use_median: Boolean flag.  If True (False), central predictions will
-        be medians (means).
-    :param is_error_pos_oriented: Boolean flag.  If True (False), error function
-        is positively (negatively) oriented.
-
-    :return: result_dict: Dictionary with the following keys.
-    result_dict['discard_fractions']: length-F numpy array of discard fractions,
-        sorted in increasing order.
-    result_dict['post_discard_error_values']: length-F numpy array of
-        corresponding error values.
-    result_dict['example_fractions']: length-F numpy array with fraction of
-        examples left after each discard.
-    result_dict['mean_central_predictions']: length-F numpy array, where the
-        [i]th entry is the mean central (mean or median) prediction for the
-        [i]th discard fraction.
-    result_dict['mean_target_values']: length-F numpy array, where the [i]th
-        entry is the mean target value for the [i]th discard fraction.
-    result_dict['monotonicity_fraction']: Monotonicity fraction.  This is the
-        fraction of times that the error function improves when discard
-        fraction is increased.
-    result_dict['mean_discard_improvement']: Mean decrease in error per increase
-        in discard fraction.
-    """
-
-    # TODO(thunderhoser): I will probably never use this method, since it does
-    # not make sense to run the discard test independently for each target
-    # variable.  You cannot choose to ignore the model for each pair of
-    # (example, target variable).  You can make this choice only on a
-    # per-example basis.
-
-    # Check input args.
-    error_checking.assert_is_numpy_array_without_nan(target_values)
-    error_checking.assert_is_numpy_array(target_values, num_dimensions=1)
-
-    error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
-    error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=2)
-
-    num_examples = len(target_values)
-    num_ensemble_members = prediction_matrix.shape[1]
-    error_checking.assert_is_greater(num_ensemble_members, 1)
-
-    these_dim = numpy.array([num_examples, num_ensemble_members], dtype=int)
-    error_checking.assert_is_numpy_array(
-        prediction_matrix, exact_dimensions=these_dim
-    )
-
-    error_checking.assert_is_boolean(use_median)
-    error_checking.assert_is_boolean(is_error_pos_oriented)
-
-    error_checking.assert_is_numpy_array(discard_fractions, num_dimensions=1)
-    error_checking.assert_is_greater_numpy_array(discard_fractions, 0.)
-    error_checking.assert_is_less_than_numpy_array(discard_fractions, 1.)
-
-    discard_fractions = numpy.concatenate((
-        numpy.array([0.]),
-        discard_fractions
-    ))
-    discard_fractions = numpy.sort(discard_fractions)
-
-    num_fractions = len(discard_fractions)
-    assert num_fractions >= 2
-
-    # Do actual stuff.
-    uncertainty_values = uncertainty_function(prediction_matrix)
-
-    if use_median:
-        central_predictions = numpy.median(prediction_matrix, axis=-1)
-    else:
-        central_predictions = numpy.mean(prediction_matrix, axis=-1)
-
-    post_discard_error_values = numpy.full(num_fractions, numpy.nan)
-    example_fractions = numpy.full(num_fractions, numpy.nan)
-    mean_central_predictions = numpy.full(num_fractions, numpy.nan)
-    mean_target_values = numpy.full(num_fractions, numpy.nan)
-    use_example_flags = numpy.full(len(uncertainty_values), 1, dtype=bool)
-
-    for k in range(num_fractions):
-        this_percentile_level = 100 * (1 - discard_fractions[k])
-        this_inverted_mask = (
-            uncertainty_values >
-            numpy.percentile(uncertainty_values, this_percentile_level)
-        )
-        use_example_flags[this_inverted_mask] = False
-
-        example_fractions[k] = numpy.mean(use_example_flags)
-        post_discard_error_values[k] = error_function(
-            target_values[use_example_flags],
-            prediction_matrix[use_example_flags, :]
-        )
-        mean_central_predictions[k] = numpy.mean(
-            central_predictions[use_example_flags]
-        )
-        mean_target_values[k] = numpy.mean(
-            target_values[use_example_flags]
-        )
-
-    if is_error_pos_oriented:
-        monotonicity_fraction = numpy.mean(
-            numpy.diff(post_discard_error_values) > 0
-        )
-        mean_discard_improvement = numpy.mean(
-            numpy.diff(post_discard_error_values) /
-            numpy.diff(discard_fractions)
-        )
-    else:
-        monotonicity_fraction = numpy.mean(
-            numpy.diff(post_discard_error_values) < 0
-        )
-        mean_discard_improvement = numpy.mean(
-            -1 * numpy.diff(post_discard_error_values) /
-            numpy.diff(discard_fractions)
-        )
-
-    return {
-        'discard_fractions': discard_fractions,
-        'post_discard_error_values': post_discard_error_values,
-        'example_fractions': example_fractions,
-        'mean_central_predictions': mean_central_predictions,
-        MEAN_TARGET_VALUES_KEY: mean_target_values,
-        MONOTONICITY_FRACTION_KEY: monotonicity_fraction,
-        MEAN_DISCARD_IMPROVEMENT_KEY: mean_discard_improvement
-    }
-
-
 def _get_pit_histogram_one_var(target_values, prediction_matrix, num_bins):
     """Computes PIT (probability integral transform) histogram for one variable.
 
@@ -827,6 +685,82 @@ def make_flux_stdev_function():
     return uncertainty_function
 
 
+def make_error_function_dwmse_1height():
+    """Makes function to compute DWMSE for heating rate at one height.
+
+    DWMSE = dual-weighted mean squared error
+
+    :return: error_function: Function handle.
+    """
+
+    def error_function(
+            actual_heating_rates_k_day01, predicted_hr_matrix_k_day01,
+            use_example_flags):
+        """Computes DWMSE.
+
+        E = number of examples
+        S = ensemble size
+
+        :param actual_heating_rates_k_day01: length-E numpy array of actual
+            heating rates at one height.
+        :param predicted_hr_matrix_k_day01: E-by-S numpy array of predicted
+            heating rates at the same height.
+        :param use_example_flags: length-E numpy array of Boolean flags,
+            indicating which examples to use.
+        :return: dwmse_k3_day03: Scalar DWMSE value.
+        """
+
+        mean_pred_heating_rates_k_day01 = numpy.mean(
+            predicted_hr_matrix_k_day01[use_example_flags, :], axis=-1
+        )
+
+        weights_k_day01 = numpy.maximum(
+            numpy.absolute(mean_pred_heating_rates_k_day01),
+            numpy.absolute(actual_heating_rates_k_day01[use_example_flags])
+        )
+        squared_errors = (
+            mean_pred_heating_rates_k_day01 -
+            actual_heating_rates_k_day01[use_example_flags]
+        ) ** 2
+
+        return numpy.mean(weights_k_day01 * squared_errors)
+
+    return error_function
+
+
+def make_error_function_flux_mse_1var():
+    """Makes function to compute MSE for one flux variable.
+
+    :return: error_function: Function handle.
+    """
+
+    def error_function(actual_fluxes_w_m02, predicted_flux_matrix_w_m02,
+                       use_example_flags):
+        """Computes MSE.
+
+        E = number of examples
+        S = ensemble size
+
+        :param actual_fluxes_w_m02: length-E numpy array of actual values for
+            one flux variable.
+        :param predicted_flux_matrix_w_m02: E-by-S numpy array of predicted
+            values for the same flux variable.
+        :param use_example_flags: length-E numpy array of Boolean flags,
+            indicating which examples to use.
+        :return: mse_w2_m04: Scalar MSE value.
+        """
+
+        mean_pred_fluxes_w_m02 = numpy.mean(
+            predicted_flux_matrix_w_m02[use_example_flags, :], axis=-1
+        )
+        return numpy.mean(
+            (mean_pred_fluxes_w_m02 - actual_fluxes_w_m02[use_example_flags])
+            ** 2
+        )
+
+    return error_function
+
+
 def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
                                             scaling_factor_for_flux_mse):
     """Makes function to compute total error.
@@ -834,7 +768,7 @@ def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
     Total error = (scaling_factor_for_dwmse * DWMSE) +
                   (scaling_factor_for_flux_mse * MSE_flux)
 
-    DWMSE = dual-weighted MSE for heating rates
+    DWMSE = dual-weighted mean squared error for heating rates
 
     :param scaling_factor_for_dwmse: See above.
     :param scaling_factor_for_flux_mse: See above.
@@ -1334,11 +1268,13 @@ def get_pit_histogram_all_vars(prediction_file_name, num_bins):
 
 def run_discard_test_all_vars(
         prediction_file_name, discard_fractions, error_function,
-        uncertainty_function, is_error_pos_oriented):
+        uncertainty_function, is_error_pos_oriented,
+        error_function_for_hr_1height, error_function_for_flux_1var):
     """Runs discard test for all target variables.
 
     E = number of examples
     F = number of discard fractions
+    S = ensemble size
 
     :param prediction_file_name: Path to input file (will be read by
         `prediction_io.read_file`).
@@ -1361,17 +1297,30 @@ def run_discard_test_all_vars(
 
     :param is_error_pos_oriented: Boolean flag.  If True (False), error function
         is positively (negatively) oriented.
+
+    :param error_function_for_hr_1height: Function with the following inputs and
+        outputs...
+    Input: actual_heating_rates_k_day01: length-E numpy array of actual heating
+        rates at one height.
+    Input: predicted_hr_matrix_k_day01: E-by-S numpy array of predicted heating
+        rates at the same height.
+    Input: use_example_flags: length-E numpy array of Boolean flags,
+        indicating which examples to use.
+    Output: error_value: Scalar value of error metric.
+
+    :param error_function_for_flux_1var: Function with the following inputs and
+        outputs...
+    Input: actual_fluxes_w_m02: length-E numpy array of actual values for one
+        flux variable.
+    Input: predicted_fluxes_w_m02: E-by-S numpy array of predicted values for
+        one flux variable.
+    Input: use_example_flags: length-E numpy array of Boolean flags,
+        indicating which examples to use.
+    Output: error_value: Scalar value of error metric.
+
     :return: result_table_xarray: xarray table with results (variable and
         dimension names should make the table self-explanatory).
     """
-
-    # TODO(thunderhoser): This method does not return keys
-    # "mean_central_predictions" and "mean_target_values", since there would be
-    # one of these for every pair of (target variable, discard fraction).  It
-    # would be impossible to display all these "mean target vs. mean prediction"
-    # insets in a plot of the discard test.  If you want to see IN DETAIL for
-    # how model error changes with discard fraction, I suggest adding a
-    # discard_fraction input arg to evaluate_neural_net.py.
 
     # Check input args.
     error_checking.assert_is_boolean(is_error_pos_oriented)
@@ -1392,22 +1341,142 @@ def run_discard_test_all_vars(
     # Do actual stuff.
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
-    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
-    uncertainty_values = uncertainty_function(prediction_dict)
 
-    these_dim_keys = (DISCARD_FRACTION_DIM,)
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+
+    example_dict = {
+        example_utils.SCALAR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
+        example_utils.VECTOR_TARGET_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY:
+            generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
+        example_utils.HEIGHTS_KEY: heights_m_agl
+    }
+
+    aux_prediction_dict = _get_aux_fields(
+        prediction_dict=prediction_dict, example_dict=example_dict
+    )
+    aux_target_field_names = aux_prediction_dict[AUX_TARGET_NAMES_KEY]
+    aux_predicted_field_names = aux_prediction_dict[AUX_PREDICTED_NAMES_KEY]
+    aux_target_matrix = aux_prediction_dict[AUX_TARGET_VALS_KEY]
+    aux_prediction_matrix = aux_prediction_dict[AUX_PREDICTED_VALS_KEY]
+
+    scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
+    scalar_prediction_matrix = (
+        prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+    )
+    vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
+    vector_prediction_matrix = (
+        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
+    )
+
+    num_heights = vector_target_matrix.shape[1]
+    num_vector_targets = vector_target_matrix.shape[2]
+    num_scalar_targets = scalar_target_matrix.shape[1]
+
     main_data_dict = {
         POST_DISCARD_ERROR_KEY: (
-            these_dim_keys, numpy.full(num_fractions, numpy.nan)
+            (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, numpy.nan)
         ),
         EXAMPLE_FRACTION_KEY: (
-            these_dim_keys, numpy.full(num_fractions, -1, dtype=int)
+            (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, -1, dtype=int)
         )
     }
 
+    these_dim_keys_1d = (SCALAR_FIELD_DIM,)
+    these_dim_keys_2d = (SCALAR_FIELD_DIM, DISCARD_FRACTION_DIM)
+    these_dim_1d = num_scalar_targets
+    these_dim_2d = (num_scalar_targets, num_fractions)
+
+    main_data_dict.update({
+        SCALAR_POST_DISCARD_ERROR_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        ),
+        SCALAR_MEAN_MEAN_PREDICTION_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        ),
+        SCALAR_MEAN_TARGET_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        ),
+        SCALAR_MONOTONICITY_FRACTION_KEY: (
+            these_dim_keys_1d, numpy.full(these_dim_1d, numpy.nan)
+        ),
+        SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY: (
+            these_dim_keys_1d, numpy.full(these_dim_1d, numpy.nan)
+        )
+    })
+
+    these_dim_keys_2d = (VECTOR_FIELD_DIM, HEIGHT_DIM)
+    these_dim_keys_3d = (VECTOR_FIELD_DIM, HEIGHT_DIM, DISCARD_FRACTION_DIM)
+    these_dim_2d = (num_vector_targets, num_heights)
+    these_dim_3d = (num_vector_targets, num_heights, num_fractions)
+
+    main_data_dict.update({
+        VECTOR_POST_DISCARD_ERROR_KEY: (
+            these_dim_keys_3d, numpy.full(these_dim_3d, numpy.nan)
+        ),
+        VECTOR_MEAN_MEAN_PREDICTION_KEY: (
+            these_dim_keys_3d, numpy.full(these_dim_3d, numpy.nan)
+        ),
+        VECTOR_MEAN_TARGET_KEY: (
+            these_dim_keys_3d, numpy.full(these_dim_3d, numpy.nan)
+        ),
+        VECTOR_MONOTONICITY_FRACTION_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        ),
+        VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        )
+    })
+
+    num_aux_targets = len(aux_target_field_names)
+
+    if num_aux_targets > 0:
+        these_dim_keys_1d = (AUX_TARGET_FIELD_DIM,)
+        these_dim_keys_2d = (AUX_TARGET_FIELD_DIM, DISCARD_FRACTION_DIM)
+        these_dim_1d = num_aux_targets
+        these_dim_2d = (num_aux_targets, num_fractions)
+
+        main_data_dict.update({
+            AUX_POST_DISCARD_ERROR_KEY: (
+                these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+            ),
+            AUX_MEAN_MEAN_PREDICTION_KEY: (
+                these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+            ),
+            AUX_MEAN_TARGET_KEY: (
+                these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+            ),
+            AUX_MONOTONICITY_FRACTION_KEY: (
+                these_dim_keys_1d, numpy.full(these_dim_1d, numpy.nan)
+            ),
+            AUX_MEAN_DISCARD_IMPROVEMENT_KEY: (
+                these_dim_keys_1d, numpy.full(these_dim_1d, numpy.nan)
+            )
+        })
+
     metadata_dict = {
+        SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
         DISCARD_FRACTION_DIM: discard_fractions
     }
+
+    if num_aux_targets > 0:
+        metadata_dict[AUX_TARGET_FIELD_DIM] = aux_target_field_names
+        metadata_dict[AUX_PREDICTED_FIELD_DIM] = aux_predicted_field_names
 
     result_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict
@@ -1415,44 +1484,177 @@ def run_discard_test_all_vars(
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
 
+    uncertainty_values = uncertainty_function(prediction_dict)
     use_example_flags = numpy.full(len(uncertainty_values), 1, dtype=bool)
 
-    for k in range(num_fractions):
-        this_percentile_level = 100 * (1 - discard_fractions[k])
+    for i in range(num_fractions):
+        this_percentile_level = 100 * (1 - discard_fractions[i])
         this_inverted_mask = (
             uncertainty_values >
             numpy.percentile(uncertainty_values, this_percentile_level)
         )
         use_example_flags[this_inverted_mask] = False
 
-        result_table_xarray[EXAMPLE_FRACTION_KEY].values[k] = numpy.mean(
+        result_table_xarray[EXAMPLE_FRACTION_KEY].values[i] = numpy.mean(
             use_example_flags
         )
-        result_table_xarray[POST_DISCARD_ERROR_KEY].values[k] = error_function(
+        result_table_xarray[POST_DISCARD_ERROR_KEY].values[i] = error_function(
             prediction_dict, use_example_flags
         )
 
+        t = result_table_xarray
+
+        for k in range(num_scalar_targets):
+            t[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, i] = numpy.mean(
+                numpy.mean(
+                    scalar_prediction_matrix[:, k, :][use_example_flags, :],
+                    axis=-1
+                )
+            )
+
+            t[SCALAR_MEAN_TARGET_KEY].values[k, i] = numpy.mean(
+                scalar_target_matrix[:, k][use_example_flags]
+            )
+
+            t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, i] = (
+                error_function_for_flux_1var(
+                    scalar_target_matrix[:, k],
+                    scalar_prediction_matrix[:, k, :],
+                    use_example_flags
+                )
+            )
+
+        for k in range(num_aux_targets):
+            t[AUX_MEAN_MEAN_PREDICTION_KEY].values[k, i] = numpy.mean(
+                numpy.mean(
+                    aux_prediction_matrix[:, k, :][use_example_flags, :],
+                    axis=-1
+                )
+            )
+
+            t[AUX_MEAN_TARGET_KEY].values[k, i] = numpy.mean(
+                aux_target_matrix[:, k][use_example_flags]
+            )
+
+            t[AUX_POST_DISCARD_ERROR_KEY].values[k, i] = (
+                error_function_for_flux_1var(
+                    aux_target_matrix[:, k],
+                    aux_prediction_matrix[:, k, :],
+                    use_example_flags
+                )
+            )
+
+        for k in range(num_vector_targets):
+            for j in range(num_heights):
+                this_mean_pred_by_example = numpy.mean(
+                    vector_prediction_matrix[:, j, k, :][use_example_flags, :],
+                    axis=-1
+                )
+
+                t[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[k, j, i] = numpy.mean(
+                    this_mean_pred_by_example
+                )
+
+                t[VECTOR_MEAN_TARGET_KEY].values[k, j, i] = numpy.mean(
+                    vector_target_matrix[:, j, k][use_example_flags]
+                )
+
+                t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, i] = (
+                    error_function_for_hr_1height(
+                        vector_target_matrix[:, j, k],
+                        vector_prediction_matrix[:, j, k, :],
+                        use_example_flags
+                    )
+                )
+
+        result_table_xarray = t
+
+    t = result_table_xarray
+
+    for k in range(num_scalar_targets):
+        if is_error_pos_oriented:
+            t[SCALAR_MONOTONICITY_FRACTION_KEY].values[k] = numpy.mean(
+                numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) > 0
+            )
+            t[SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k] = numpy.mean(
+                numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) /
+                numpy.diff(discard_fractions)
+            )
+        else:
+            t[SCALAR_MONOTONICITY_FRACTION_KEY].values[k] = numpy.mean(
+                numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) < 0
+            )
+            t[SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k] = numpy.mean(
+                -1 * numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) /
+                numpy.diff(discard_fractions)
+            )
+
+    for k in range(num_aux_targets):
+        if is_error_pos_oriented:
+            t[AUX_MONOTONICITY_FRACTION_KEY].values[k] = numpy.mean(
+                numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) > 0
+            )
+            t[AUX_MEAN_DISCARD_IMPROVEMENT_KEY].values[k] = numpy.mean(
+                numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) /
+                numpy.diff(discard_fractions)
+            )
+        else:
+            t[AUX_MONOTONICITY_FRACTION_KEY].values[k] = numpy.mean(
+                numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) < 0
+            )
+            t[AUX_MEAN_DISCARD_IMPROVEMENT_KEY].values[k] = numpy.mean(
+                -1 * numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) /
+                numpy.diff(discard_fractions)
+            )
+
+    for k in range(num_vector_targets):
+        for j in range(num_heights):
+            if is_error_pos_oriented:
+                t[VECTOR_MONOTONICITY_FRACTION_KEY].values[k, j] = numpy.mean(
+                    numpy.diff(
+                        t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :]
+                    ) > 0
+                )
+
+                (
+                    t[VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k, j]
+                ) = numpy.mean(
+                    numpy.diff(t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :])
+                    / numpy.diff(discard_fractions)
+                )
+            else:
+                t[VECTOR_MONOTONICITY_FRACTION_KEY].values[k, j] = numpy.mean(
+                    numpy.diff(
+                        t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :]
+                    ) < 0
+                )
+
+                (
+                    t[VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k, j]
+                ) = numpy.mean(
+                    -1 *
+                    numpy.diff(t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :])
+                    / numpy.diff(discard_fractions)
+                )
+
     if is_error_pos_oriented:
-        monotonicity_fraction = numpy.mean(
-            numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values) > 0
+        t.attrs[MONOTONICITY_FRACTION_KEY] = numpy.mean(
+            numpy.diff(t[POST_DISCARD_ERROR_KEY].values) > 0
         )
-        mean_discard_improvement = numpy.mean(
-            numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values) /
+        t.attrs[MEAN_DISCARD_IMPROVEMENT_KEY] = numpy.mean(
+            numpy.diff(t[POST_DISCARD_ERROR_KEY].values) /
             numpy.diff(discard_fractions)
         )
     else:
-        monotonicity_fraction = numpy.mean(
-            numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values) < 0
+        t.attrs[MONOTONICITY_FRACTION_KEY] = numpy.mean(
+            numpy.diff(t[POST_DISCARD_ERROR_KEY].values) < 0
         )
-        mean_discard_improvement = numpy.mean(
-            -1 * numpy.diff(result_table_xarray[POST_DISCARD_ERROR_KEY].values)
+        t.attrs[MEAN_DISCARD_IMPROVEMENT_KEY] = numpy.mean(
+            -1 * numpy.diff(t[POST_DISCARD_ERROR_KEY].values)
             / numpy.diff(discard_fractions)
         )
 
-    result_table_xarray.attrs[MONOTONICITY_FRACTION_KEY] = monotonicity_fraction
-    result_table_xarray.attrs[MEAN_DISCARD_IMPROVEMENT_KEY] = (
-        mean_discard_improvement
-    )
+    result_table_xarray = t
     return result_table_xarray
 
 
