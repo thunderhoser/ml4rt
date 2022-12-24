@@ -20,7 +20,7 @@ import uq_evaluation_plotting as uq_eval_plotting
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
-OUTPUT_DIR_ARG_NAME = 'output_DIR_name'
+OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file.  Will be read by `uq_evaluation.read_discard_results`.'
