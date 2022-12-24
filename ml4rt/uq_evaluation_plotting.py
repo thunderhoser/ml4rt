@@ -333,12 +333,17 @@ def plot_spread_vs_skill(
 
 
 def plot_discard_test(
-        result_table_xarray, line_colour=DEFAULT_LINE_COLOUR,
-        line_style='solid', line_width=DEFAULT_LINE_WIDTH):
+        result_table_xarray, target_var_name, target_height_m_agl=None,
+        line_colour=DEFAULT_LINE_COLOUR, line_style='solid',
+        line_width=DEFAULT_LINE_WIDTH):
     """Plots results of discard test.
 
     :param result_table_xarray: xarray table in format returned by
         `uq_evaluation.run_discard_test_all_vars`.
+    :param target_var_name: Will plot discard test for this target variable.
+    :param target_height_m_agl: Will plot discard test for given target variable
+        at this height (metres above ground).  If `target_var_name` does not
+        correspond to a vector target variable, make this None.
     :param line_colour: See doc for `plot_spread_vs_skill`.
     :param line_style: Same.
     :param line_width: Same.
@@ -346,12 +351,83 @@ def plot_discard_test(
     :return: axes_object: Same.
     """
 
+    # Find values for the chosen target variable.
+    t = result_table_xarray
+
+    try:
+        k = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist().index(
+            target_var_name
+        )
+
+        error_values = (
+            t[uq_evaluation.SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]
+        )
+        mean_mean_predictions = (
+            t[uq_evaluation.SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, :]
+        )
+        mean_target_values = (
+            t[uq_evaluation.SCALAR_MEAN_TARGET_KEY].values[k, :]
+        )
+        monotonicity_fraction = (
+            t[uq_evaluation.SCALAR_MONOTONICITY_FRACTION_KEY].values[k]
+        )
+        mean_discard_improvement = (
+            t[uq_evaluation.SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
+        )
+    except ValueError:
+        try:
+            k = t.coords[
+                uq_evaluation.AUX_TARGET_FIELD_DIM
+            ].values.tolist().index(target_var_name)
+
+            error_values = (
+                t[uq_evaluation.AUX_POST_DISCARD_ERROR_KEY].values[k, :]
+            )
+            mean_mean_predictions = (
+                t[uq_evaluation.AUX_MEAN_MEAN_PREDICTION_KEY].values[k, :]
+            )
+            mean_target_values = (
+                t[uq_evaluation.AUX_MEAN_TARGET_KEY].values[k, :]
+            )
+            monotonicity_fraction = (
+                t[uq_evaluation.AUX_MONOTONICITY_FRACTION_KEY].values[k]
+            )
+            mean_discard_improvement = (
+                t[uq_evaluation.AUX_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
+            )
+        except ValueError:
+            height_diffs_metres = numpy.absolute(
+                t.coords[uq_evaluation.HEIGHT_DIM].values -
+                target_height_m_agl
+            )
+
+            k = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values.tolist().index(
+                target_var_name
+            )
+            j = numpy.where(height_diffs_metres <= TOLERANCE)[0][0]
+
+            error_values = (
+                t[uq_evaluation.VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :]
+            )
+            mean_mean_predictions = (
+                t[uq_evaluation.VECTOR_MEAN_MEAN_PREDICTION_KEY].values[k, j, :]
+            )
+            mean_target_values = (
+                t[uq_evaluation.VECTOR_MEAN_TARGET_KEY].values[k, j, :]
+            )
+            monotonicity_fraction = (
+                t[uq_evaluation.VECTOR_MONOTONICITY_FRACTION_KEY].values[k, j]
+            )
+            mean_discard_improvement = t[
+                uq_evaluation.VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY
+            ].values[k, j]
+
     discard_fractions = (
         result_table_xarray.coords[uq_evaluation.DISCARD_FRACTION_DIM].values
     )
-    error_values = (
-        result_table_xarray[uq_evaluation.POST_DISCARD_ERROR_KEY].values
-    )
+    # error_values = (
+    #     result_table_xarray[uq_evaluation.POST_DISCARD_ERROR_KEY].values
+    # )
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -367,12 +443,27 @@ def plot_discard_test(
     axes_object.set_ylabel('Model error')
     axes_object.set_xlim(left=0.)
 
-    t = result_table_xarray
-
-    title_string = 'Discard test (MF = {0:.1f}%; DI = {1:.3f})'.format(
-        100 * t.attrs[uq_evaluation.MONOTONICITY_FRACTION_KEY],
-        t.attrs[uq_evaluation.MEAN_DISCARD_IMPROVEMENT_KEY]
+    inset_axes_object = _plot_means_as_inset(
+        figure_object=figure_object, bin_centers=discard_fractions,
+        bin_mean_predictions=mean_mean_predictions,
+        bin_mean_target_values=mean_target_values,
+        plotting_corner_string='bottom_left'
     )
+
+    inset_axes_object.set_xticks(axes_object.get_xticks())
+    inset_axes_object.set_xlim(axes_object.get_xlim())
+
+    title_string = (
+        'Discard test for {0:s}{1:s}\n'
+        'MF = {2:.1f}%; DI = {3:.3f}'
+    ).format(
+        target_var_name,
+        '' if target_height_m_agl is None
+        else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
+        monotonicity_fraction,
+        mean_discard_improvement
+    )
+
     axes_object.set_title(title_string)
 
     return figure_object, axes_object
