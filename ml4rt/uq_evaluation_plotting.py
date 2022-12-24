@@ -453,6 +453,11 @@ def plot_discard_test(
     inset_axes_object.set_xticks(axes_object.get_xticks())
     inset_axes_object.set_xlim(axes_object.get_xlim())
 
+    inset_axes_object.set_title(
+        'Mean target and prediction\nin each bin', fontsize=INSET_FONT_SIZE
+    )
+    inset_axes_object.set_xlabel('Discard fraction', fontsize=INSET_FONT_SIZE)
+
     title_string = (
         'Discard test for {0:s}{1:s}\n'
         'MF = {2:.1f}%; DI = {3:.3f}'
@@ -460,7 +465,7 @@ def plot_discard_test(
         target_var_name,
         '' if target_height_m_agl is None
         else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
-        monotonicity_fraction,
+        100 * monotonicity_fraction,
         mean_discard_improvement
     )
 
