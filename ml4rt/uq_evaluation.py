@@ -357,10 +357,15 @@ def _get_climo_crps_one_var(
             (this_num_examples, ensemble_size), numpy.nan
         )
 
+        import time
+        start_time_unix_sec = time.time()
+
         for j in range(this_num_examples):
             this_actual_prediction_matrix[j, :] = numpy.random.choice(
                 training_target_values, size=ensemble_size, replace=False
             )
+
+        print('{0:.2f} SECONDS'.format(time.time() - start_time_unix_sec))
 
         cdf_matrix = numpy.stack([
             numpy.mean(this_actual_prediction_matrix <= l, axis=-1)
