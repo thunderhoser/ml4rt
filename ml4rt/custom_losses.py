@@ -10,7 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-from gewittergefahr.gg_utils import error_checking
+import error_checking
 
 
 def scaled_mse(scaling_factor):
