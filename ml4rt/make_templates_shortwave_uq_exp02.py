@@ -37,7 +37,7 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.CONV_LAYER_COUNTS_KEY:
         numpy.full(MODEL_DEPTH + 1, 1, dtype=int),
     u_net_pp_architecture.CHANNEL_COUNTS_KEY: numpy.round(
-        numpy.logspace(6, 6 + MODEL_DEPTH, num=MODEL_DEPTH + 1, base=2.)
+        numpy.logspace(5, 5 + MODEL_DEPTH, num=MODEL_DEPTH + 1, base=2.)
     ).astype(int),
 
     u_net_pp_architecture.ENCODER_DROPOUT_RATES_KEY:
