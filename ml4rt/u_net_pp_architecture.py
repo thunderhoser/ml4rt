@@ -326,7 +326,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
 
     if ensemble_size > 1:
-        include_penultimate_conv = False
+        # include_penultimate_conv = False
         use_deep_supervision = False
 
     has_dense_layers = dense_layer_neuron_nums is not None
@@ -522,7 +522,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     if include_penultimate_conv:
         last_conv_layer_matrix[0, -1] = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=2 * num_output_channels,
+            num_filters=2 * num_output_channels * ensemble_size,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object, layer_name='penultimate_conv'
         )(last_conv_layer_matrix[0, -1])
