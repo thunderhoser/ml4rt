@@ -38,8 +38,8 @@ set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set conv_layer_dropout_rate=${CONV_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set num_conv_layers_with_dropout=${CONV_LAYERS_WITH_DROPOUT_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
-set template_file_name="${TEMPLATE_DIR_NAME}/dense-layer-dropout-rate=${dense_layer_dropout_rate}_conv-layer-dropout-rate=${coonv_layer_dropout_rate}_num-conv-layers-with-dropout=${num_conv_layers_with_dropout}/model.h5"
-set output_dir_name="${TOP_OUTPUT_DIR_NAME}/dense-layer-dropout-rate=${dense_layer_dropout_rate}_conv-layer-dropout-rate=${coonv_layer_dropout_rate}_num-conv-layers-with-dropout=${num_conv_layers_with_dropout}"
+set template_file_name="${TEMPLATE_DIR_NAME}/dense-layer-dropout-rate=${dense_layer_dropout_rate}_conv-layer-dropout-rate=${conv_layer_dropout_rate}_num-conv-layers-with-dropout=${num_conv_layers_with_dropout}/model.h5"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/dense-layer-dropout-rate=${dense_layer_dropout_rate}_conv-layer-dropout-rate=${conv_layer_dropout_rate}_num-conv-layers-with-dropout=${num_conv_layers_with_dropout}"
 echo $output_dir_name
 
 python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
