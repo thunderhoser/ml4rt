@@ -871,7 +871,7 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
     error_checking.assert_is_leq(num_integration_levels, 100000)
 
     error_checking.assert_is_integer(ensemble_size_for_climo)
-    error_checking.assert_is_geq(ensemble_size_for_climo, 100)
+    error_checking.assert_is_geq(ensemble_size_for_climo, 10)
     error_checking.assert_is_leq(ensemble_size_for_climo, 10000)
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
