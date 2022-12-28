@@ -10,7 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import error_checking
+from gewittergefahr.gg_utils import error_checking
 
 
 def scaled_mse(scaling_factor):
@@ -221,8 +221,14 @@ def dual_weighted_crps():
 
         mean_prediction_diff_tensor = K.map_fn(
             fn=lambda p: K.mean(
-                K.maximum(K.expand_dims(p, axis=-1), K.expand_dims(p, axis=-2))
-                * K.abs(K.expand_dims(p, axis=-1) - K.expand_dims(p, axis=-2)),
+                K.maximum(
+                    K.abs(K.expand_dims(p, axis=-1)),
+                    K.abs(K.expand_dims(p, axis=-2))
+                ) *
+                K.abs(
+                    K.expand_dims(p, axis=-1) -
+                    K.expand_dims(p, axis=-2)
+                ),
                 axis=(-2, -1)
             ),
             elems=prediction_tensor

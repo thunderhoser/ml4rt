@@ -14,9 +14,21 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
+import example_utils
 import uq_evaluation
 import evaluation_plotting
 import uq_evaluation_plotting as uq_eval_plotting
+
+TARGET_NAME_TO_CUBED_UNITS = {
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K$^{3}$ day$^{-3}$',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{3}$ m$^{-6}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W$^{3}$ m$^{-6}$',
+    uq_evaluation.SHORTWAVE_NET_FLUX_NAME: r'W$^{3}$ m$^{-6}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K$^{3}$ day$^{-3}$',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'W$^{3}$ m$^{-6}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'W$^{3}$ m$^{-6}$',
+    uq_evaluation.LONGWAVE_NET_FLUX_NAME: r'W$^{3}$ m$^{-6}$'
+}
 
 LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
@@ -75,6 +87,7 @@ def _run(input_file_name, output_dir_name):
     )
     scalar_crps_values = t[uq_evaluation.SCALAR_CRPS_KEY].values
     scalar_crpss_values = t[uq_evaluation.SCALAR_CRPSS_KEY].values
+    scalar_dwcrps_values = t[uq_evaluation.SCALAR_DWCRPS_KEY].values
 
     aux_target_names = (
         t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values.tolist()
@@ -88,6 +101,10 @@ def _run(input_file_name, output_dir_name):
         )
         scalar_crpss_values = numpy.concatenate(
             (scalar_crpss_values, t[uq_evaluation.AUX_CRPSS_KEY].values),
+            axis=0
+        )
+        scalar_dwcrps_values = numpy.concatenate(
+            (scalar_dwcrps_values, t[uq_evaluation.AUX_DWCRPS_KEY].values),
             axis=0
         )
 
@@ -175,7 +192,7 @@ def _run(input_file_name, output_dir_name):
             scalar_crpss_values[0]
         )
         for j in range(1, len(scalar_target_names)):
-            annotation_string += '\nCRPSS for{0:s} = {1:.3f}'.format(
+            annotation_string += '\nCRPSS for {0:s} = {1:.3f}'.format(
                 uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
                     scalar_target_names[j]
                 ],
@@ -191,6 +208,59 @@ def _run(input_file_name, output_dir_name):
         )
 
         figure_file_name = '{0:s}/crpss_{1:s}.jpg'.format(
+            output_dir_name, vector_target_names[k].replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
+            score_values=t[uq_evaluation.VECTOR_DWCRPS_KEY].values[k, :],
+            score_name=evaluation_plotting.CRPS_NAME,
+            line_colour=LINE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        axes_object.set_xlabel('Dual-weighted CRPS ({0:s})'.format(
+            TARGET_NAME_TO_CUBED_UNITS[vector_target_names[k]]
+        ))
+        axes_object.set_title('Dual-weighted CRPS for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[vector_target_names[k]]
+        ))
+
+        annotation_string = 'DWCRPS for {0:s} = {1:.3g} {2:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
+                scalar_target_names[0]
+            ],
+            scalar_dwcrps_values[0],
+            TARGET_NAME_TO_CUBED_UNITS[scalar_target_names[0]]
+        )
+        for j in range(1, len(scalar_target_names)):
+            annotation_string += '\nDWCRPS for {0:s} = {1:.3g} {2:s}'.format(
+                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
+                    scalar_target_names[j]
+                ],
+                scalar_dwcrps_values[j],
+                TARGET_NAME_TO_CUBED_UNITS[scalar_target_names[j]]
+            )
+
+        axes_object.text(
+            0.99, 0.3, annotation_string,
+            fontsize=20, color='k',
+            bbox=LEGEND_BOUNDING_BOX_DICT,
+            horizontalalignment='right', verticalalignment='center',
+            transform=axes_object.transAxes, zorder=1e10
+        )
+
+        figure_file_name = '{0:s}/dwcrps_{1:s}.jpg'.format(
             output_dir_name, vector_target_names[k].replace('_', '-')
         )
         print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
