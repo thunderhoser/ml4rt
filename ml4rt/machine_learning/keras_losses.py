@@ -213,8 +213,14 @@ def dual_weighted_crps():
 
         mean_prediction_diff_tensor = K.map_fn(
             fn=lambda p: K.mean(
-                K.maximum(K.expand_dims(p, axis=-1), K.expand_dims(p, axis=-2))
-                * K.abs(K.expand_dims(p, axis=-1) - K.expand_dims(p, axis=-2)),
+                K.maximum(
+                    K.abs(K.expand_dims(p, axis=-1)),
+                    K.abs(K.expand_dims(p, axis=-2))
+                ) *
+                K.abs(
+                    K.expand_dims(p, axis=-1) -
+                    K.expand_dims(p, axis=-2)
+                ),
                 axis=(-2, -1)
             ),
             elems=prediction_tensor

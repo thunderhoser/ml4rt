@@ -103,6 +103,9 @@ AUX_MEAN_DISCARD_IMPROVEMENT_KEY = 'aux_mean_discard_improvement'
 SCALAR_CRPS_KEY = 'scalar_crps'
 VECTOR_CRPS_KEY = 'vector_crps'
 AUX_CRPS_KEY = 'aux_crps'
+SCALAR_DWCRPS_KEY = 'scalar_dwcrps'
+VECTOR_DWCRPS_KEY = 'vector_dwcrps'
+AUX_DWCRPS_KEY = 'aux_dwcrps'
 SCALAR_CRPSS_KEY = 'scalar_crpss'
 VECTOR_CRPSS_KEY = 'vector_crpss'
 AUX_CRPSS_KEY = 'aux_crpss'
@@ -264,10 +267,12 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
     :param num_integration_levels: Will use this many integration levels to
         compute CRPS.
     :return: crps_value: CRPS (scalar).
+    :return: dwcrps_value: Dual-weighted CRPS (scalar).
     """
 
     num_examples = len(target_values)
     crps_numerator = 0.
+    dwcrps_numerator = 0.
     crps_denominator = 0.
 
     prediction_by_integ_level = numpy.linspace(
@@ -299,6 +304,10 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
         heaviside_matrix = (
             (this_prediction_matrix >= this_target_matrix).astype(int)
         )
+        weight_matrix = numpy.maximum(
+            numpy.absolute(this_prediction_matrix),
+            numpy.absolute(this_target_matrix)
+        )
 
         integrated_cdf_matrix = simps(
             y=(cdf_matrix - heaviside_matrix) ** 2,
@@ -307,7 +316,95 @@ def _get_crps_one_var(target_values, prediction_matrix, num_integration_levels):
         crps_numerator += numpy.sum(integrated_cdf_matrix)
         crps_denominator += integrated_cdf_matrix.size
 
-    return crps_numerator / crps_denominator
+        integrated_cdf_matrix = simps(
+            y=weight_matrix * (cdf_matrix - heaviside_matrix) ** 2,
+            x=prediction_by_integ_level, axis=-1
+        )
+        dwcrps_numerator += numpy.sum(integrated_cdf_matrix)
+
+    return (
+        crps_numerator / crps_denominator,
+        dwcrps_numerator / crps_denominator
+    )
+
+
+def _get_approx_crps_one_var(target_values, prediction_matrix):
+    """Computes approx (ensemble formulation of) CRPS for one variable.
+
+    E = number of examples
+    S = number of ensemble members
+
+    :param target_values: length-E numpy array of actual values.
+    :param prediction_matrix: E-by-S numpy array of predicted values.
+    :return: approx_crps_value: Approx CRPS (scalar).
+    """
+
+    # TODO(thunderhoser): I am not really using this method.
+
+    abs_error_matrix = numpy.absolute(
+        prediction_matrix - numpy.expand_dims(target_values, axis=-1)
+    )
+    mae_by_example = numpy.mean(abs_error_matrix, axis=-1)
+
+    num_examples = len(target_values)
+    mean_pairwise_diff_by_example = numpy.full(num_examples, numpy.nan)
+
+    for i in range(num_examples):
+        mean_pairwise_diff_by_example[i] = numpy.mean(numpy.absolute(
+            numpy.expand_dims(prediction_matrix[i, :], axis=-1) -
+            numpy.expand_dims(prediction_matrix[i, :], axis=-2)
+        ))
+
+    return numpy.mean(mae_by_example - 0.5 * mean_pairwise_diff_by_example)
+
+
+def _get_approx_dwcrps_one_var(target_values, prediction_matrix):
+    """Computes approx (ensemble formulation of) DWCRPS for one variable.
+
+    DWCRPS = dual-weighted continuous ranked probability score
+
+    E = number of examples
+    S = number of ensemble members
+
+    :param target_values: length-E numpy array of actual values.
+    :param prediction_matrix: E-by-S numpy array of predicted values.
+    :return: approx_dwcrps_value: Approx DWCRPS (scalar).
+    """
+
+    # TODO(thunderhoser): I am not really using this method.
+
+    weight_matrix = numpy.maximum(
+        numpy.absolute(prediction_matrix),
+        numpy.absolute(numpy.expand_dims(target_values, axis=-1))
+    )
+    abs_error_matrix = numpy.absolute(
+        prediction_matrix - numpy.expand_dims(target_values, axis=-1)
+    )
+    mae_by_example = numpy.mean(weight_matrix * abs_error_matrix, axis=-1)
+
+    num_examples = len(target_values)
+    mean_pairwise_diff_by_example = numpy.full(num_examples, numpy.nan)
+
+    for i in range(num_examples):
+        first_prediction_matrix = numpy.expand_dims(
+            prediction_matrix[i, :], axis=-1
+        )
+        second_prediction_matrix = numpy.expand_dims(
+            prediction_matrix[i, :], axis=-2
+        )
+
+        mean_pairwise_diff_by_example[i] = numpy.mean(
+            numpy.maximum(
+                numpy.absolute(first_prediction_matrix),
+                numpy.absolute(second_prediction_matrix)
+            )
+            * numpy.absolute(
+                first_prediction_matrix -
+                second_prediction_matrix
+            )
+        )
+
+    return numpy.mean(mae_by_example - 0.5 * mean_pairwise_diff_by_example)
 
 
 def _get_climo_crps_one_var(
@@ -864,7 +961,7 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
     error_checking.assert_is_leq(num_integration_levels, 100000)
 
     error_checking.assert_is_integer(ensemble_size_for_climo)
-    error_checking.assert_is_geq(ensemble_size_for_climo, 100)
+    error_checking.assert_is_geq(ensemble_size_for_climo, 10)
     error_checking.assert_is_leq(ensemble_size_for_climo, 10000)
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
@@ -943,11 +1040,18 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
         SCALAR_CRPSS_KEY: (
             (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
         ),
+        SCALAR_DWCRPS_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
         VECTOR_CRPS_KEY: (
             (VECTOR_FIELD_DIM, HEIGHT_DIM),
             numpy.full((num_vector_targets, num_heights), numpy.nan)
         ),
         VECTOR_CRPSS_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
+        VECTOR_DWCRPS_KEY: (
             (VECTOR_FIELD_DIM, HEIGHT_DIM),
             numpy.full((num_vector_targets, num_heights), numpy.nan)
         )
@@ -959,6 +1063,9 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
                 (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             ),
             AUX_CRPSS_KEY: (
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+            AUX_DWCRPS_KEY: (
                 (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             )
         })
@@ -980,11 +1087,14 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
 
     for j in range(num_scalar_targets):
-        print('Computing CRPS for {0:s}...'.format(
+        print('Computing CRPS and DWCRPSfor {0:s}...'.format(
             example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
         ))
 
-        result_table_xarray[SCALAR_CRPS_KEY].values[j] = _get_crps_one_var(
+        (
+            result_table_xarray[SCALAR_CRPS_KEY].values[j],
+            result_table_xarray[SCALAR_DWCRPS_KEY].values[j]
+        ) = _get_crps_one_var(
             target_values=scalar_target_matrix[:, j],
             prediction_matrix=scalar_prediction_matrix[:, j, :],
             num_integration_levels=num_integration_levels
@@ -1013,17 +1123,20 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
 
     for j in range(num_vector_targets):
         for k in range(num_heights):
-            print('Computing CRPS for {0:s} at {1:d} m AGL...'.format(
+            print((
+                'Computing CRPS and DWCRPS for {0:s} at {1:d} m AGL...'
+            ).format(
                 example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
                 int(numpy.round(heights_m_agl[k]))
             ))
 
-            result_table_xarray[VECTOR_CRPS_KEY].values[j, k] = (
-                _get_crps_one_var(
-                    target_values=vector_target_matrix[:, k, j],
-                    prediction_matrix=vector_prediction_matrix[:, k, j, :],
-                    num_integration_levels=num_integration_levels
-                )
+            (
+                result_table_xarray[VECTOR_CRPS_KEY].values[j, k],
+                result_table_xarray[VECTOR_DWCRPS_KEY].values[j, k]
+            ) = _get_crps_one_var(
+                target_values=vector_target_matrix[:, k, j],
+                prediction_matrix=vector_prediction_matrix[:, k, j, :],
+                num_integration_levels=num_integration_levels
             )
 
             print('Computing CRPSS for {0:s} at {1:d} m AGL...'.format(
@@ -1051,9 +1164,14 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
             )
 
     for j in range(num_aux_targets):
-        print('Computing CRPS for {0:s}...'.format(aux_target_field_names[j]))
+        print('Computing CRPS and DWCRPS for {0:s}...'.format(
+            aux_target_field_names[j]
+        ))
 
-        result_table_xarray[AUX_CRPS_KEY].values[j] = _get_crps_one_var(
+        (
+            result_table_xarray[AUX_CRPS_KEY].values[j],
+            result_table_xarray[AUX_DWCRPS_KEY].values[j]
+        ) = _get_crps_one_var(
             target_values=aux_target_matrix[:, j],
             prediction_matrix=aux_prediction_matrix[:, j, :],
             num_integration_levels=num_integration_levels
