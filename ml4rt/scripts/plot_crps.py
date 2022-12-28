@@ -8,6 +8,7 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.utils import uq_evaluation
 from ml4rt.plotting import evaluation_plotting
+from ml4rt.plotting import uq_evaluation_plotting as uq_eval_plotting
 
 LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
@@ -97,17 +98,29 @@ def _run(input_file_name, output_dir_name):
             are_axes_new=True
         )
 
-        axes_object.set_xlabel('Continuous ranked probability score (CRPS)')
-        axes_object.set_title(
-            'CRPS for {0:s}'.format(vector_target_names[k])
+        axes_object.set_xlabel(
+            'Continuous ranked probability score (CRPS; {0:s})'.format(
+                uq_eval_plotting.TARGET_NAME_TO_UNITS[vector_target_names[k]]
+            )
         )
+        axes_object.set_title('CRPS for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[vector_target_names[k]]
+        ))
 
-        annotation_string = 'CRPS for {0:s} = {1:.3f}'.format(
-            scalar_target_names[0], scalar_crps_values[0]
+        annotation_string = 'CRPS for {0:s} = {1:.3g} {2:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
+                scalar_target_names[0]
+            ],
+            scalar_crps_values[0],
+            uq_eval_plotting.TARGET_NAME_TO_UNITS[scalar_target_names[0]]
         )
         for j in range(1, len(scalar_target_names)):
-            annotation_string += '\nCRPS for{0:s} = {1:.3f}'.format(
-                scalar_target_names[j], scalar_crps_values[j]
+            annotation_string += '\nCRPS for {0:s} = {1:.3g} {2:s}'.format(
+                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
+                    scalar_target_names[j]
+                ],
+                scalar_crps_values[j],
+                uq_eval_plotting.TARGET_NAME_TO_UNITS[scalar_target_names[j]]
             )
 
         axes_object.text(
@@ -143,16 +156,22 @@ def _run(input_file_name, output_dir_name):
         axes_object.set_xlabel(
             'Continuous ranked probability skill score (CRPSS)'
         )
-        axes_object.set_title(
-            'CRPSS for {0:s}'.format(vector_target_names[k])
-        )
+        axes_object.set_title('CRPSS for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[vector_target_names[k]]
+        ))
 
         annotation_string = 'CRPSS for {0:s} = {1:.3f}'.format(
-            scalar_target_names[0], scalar_crpss_values[0]
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
+                scalar_target_names[0]
+            ],
+            scalar_crpss_values[0]
         )
         for j in range(1, len(scalar_target_names)):
             annotation_string += '\nCRPSS for{0:s} = {1:.3f}'.format(
-                scalar_target_names[j], scalar_crpss_values[j]
+                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[
+                    scalar_target_names[j]
+                ],
+                scalar_crpss_values[j]
             )
 
         axes_object.text(
