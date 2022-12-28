@@ -12,9 +12,32 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import example_utils
 import uq_evaluation
 
 TOLERANCE = 1e-6
+
+TARGET_NAME_ABBREV_TO_FANCY = {
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: 'SW heating rate',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'SW $F_{down}^{sfc}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'SW $F_{up}^{TOA}$',
+    uq_evaluation.SHORTWAVE_NET_FLUX_NAME: r'SW $F_{net}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: 'LW heating rate',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'LW $F_{down}^{sfc}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'LW $F_{up}^{TOA}$',
+    uq_evaluation.LONGWAVE_NET_FLUX_NAME: r'LW $F_{net}$'
+}
+
+TARGET_NAME_TO_UNITS = {
+    example_utils.SHORTWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    uq_evaluation.SHORTWAVE_NET_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_HEATING_RATE_NAME: r'K day$^{-1}$',
+    example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME: r'W m$^{-2}$',
+    example_utils.LONGWAVE_TOA_UP_FLUX_NAME: r'W m$^{-2}$',
+    uq_evaluation.LONGWAVE_NET_FLUX_NAME: r'W m$^{-2}$'
+}
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
 REFERENCE_LINE_WIDTH = 2.
@@ -83,18 +106,12 @@ def _plot_means_as_inset(
 
     target_handle = inset_axes_object.plot(
         bin_centers, bin_mean_target_values, color=MEAN_TARGET_LINE_COLOUR,
-        linestyle='solid', linewidth=2,
-        # marker='o', markersize=8, markeredgewidth=0,
-        # markerfacecolor=MEAN_TARGET_LINE_COLOUR,
-        # markeredgecolor=MEAN_TARGET_LINE_COLOUR
+        linestyle='solid', linewidth=2
     )[0]
 
     prediction_handle = inset_axes_object.plot(
         bin_centers, bin_mean_predictions, color=MEAN_PREDICTION_LINE_COLOUR,
-        linestyle='dashed', linewidth=2,
-        # marker='o', markersize=8, markeredgewidth=0,
-        # markerfacecolor=MEAN_PREDICTION_LINE_COLOUR,
-        # markeredgecolor=MEAN_PREDICTION_LINE_COLOUR
+        linestyle='dashed', linewidth=2
     )[0]
 
     y_max = max([
@@ -269,15 +286,16 @@ def plot_spread_vs_skill(
     axes_object.plot(
         mean_prediction_stdevs[real_indices],
         rmse_values[real_indices],
-        color=line_colour, linestyle=line_style, linewidth=line_width,
-        marker='o', markersize=12, markeredgewidth=0,
-        markerfacecolor=line_colour, markeredgecolor=line_colour
+        color=line_colour, linestyle=line_style, linewidth=line_width
     )
 
-    axes_object.set_xlabel('Spread (stdev of predictive distribution)')
-    axes_object.set_ylabel('Skill (RMSE of mean prediction)')
-    axes_object.set_xlim(0, max_value_to_plot)
-    axes_object.set_ylim(0, max_value_to_plot)
+    unit_string = TARGET_NAME_TO_UNITS[target_var_name]
+    axes_object.set_xlabel(
+        'Spread (stdev of predictive distribution; {0:s})'.format(unit_string)
+    )
+    axes_object.set_ylabel(
+        'Skill (RMSE of mean prediction; {0:s})'.format(unit_string)
+    )
 
     bin_frequencies = example_counts.astype(float) / numpy.sum(example_counts)
 
@@ -293,6 +311,9 @@ def plot_spread_vs_skill(
         bin_frequencies=bin_frequencies * 100
     )
     histogram_axes_object.set_ylabel('% examples in each bin')
+
+    axes_object.set_xlim(min([bin_edges[0], 0]), bin_edges[-1])
+    axes_object.set_ylim(0, 1.01 * numpy.nanmax(rmse_values))
 
     overspread_flags = (
         mean_prediction_stdevs[real_indices] > rmse_values[real_indices]
@@ -310,17 +331,24 @@ def plot_spread_vs_skill(
 
     inset_axes_object.set_xticks(axes_object.get_xticks())
     inset_axes_object.set_xlim(axes_object.get_xlim())
-
-    inset_axes_object.set_title(
-        'Mean target and prediction\nin each bin', fontsize=INSET_FONT_SIZE
+    inset_axes_object.set_xlabel(
+        'Spread ({0:s})'.format(unit_string),
+        fontsize=INSET_FONT_SIZE
     )
-    inset_axes_object.set_xlabel('Spread', fontsize=INSET_FONT_SIZE)
+    inset_axes_object.set_ylabel(
+        'Mean target or pred ({0:s})'.format(unit_string),
+        fontsize=INSET_FONT_SIZE
+    )
+    inset_axes_object.set_title(
+        'Mean target and prediction\nby model spread',
+        fontsize=INSET_FONT_SIZE
+    )
 
     title_string = (
         'Spread vs. skill for {0:s}{1:s}\n'
         'SSREL = {2:.3f}; SSRAT = {3:.2f}'
     ).format(
-        target_var_name,
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None
         else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
         spread_skill_reliability,
@@ -452,17 +480,25 @@ def plot_discard_test(
 
     inset_axes_object.set_xticks(axes_object.get_xticks())
     inset_axes_object.set_xlim(axes_object.get_xlim())
-
-    inset_axes_object.set_title(
-        'Mean target and prediction\nin each bin', fontsize=INSET_FONT_SIZE
+    inset_axes_object.set_xlabel(
+        'Discard fraction',
+        fontsize=INSET_FONT_SIZE
     )
-    inset_axes_object.set_xlabel('Discard fraction', fontsize=INSET_FONT_SIZE)
+    unit_string = TARGET_NAME_TO_UNITS[target_var_name]
+    inset_axes_object.set_ylabel(
+        'Mean target or pred ({0:s})'.format(unit_string),
+        fontsize=INSET_FONT_SIZE
+    )
+    inset_axes_object.set_title(
+        'Mean target and prediction\nby discard fraction',
+        fontsize=INSET_FONT_SIZE
+    )
 
     title_string = (
         'Discard test for {0:s}{1:s}\n'
         'MF = {2:.1f}%; DI = {3:.3f}'
     ).format(
-        target_var_name,
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None
         else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
         100 * monotonicity_fraction,
@@ -564,7 +600,7 @@ def plot_pit_histogram(
         'PIT histogram for {0:s}{1:s}\n'
         'PITD = {2:.3g}; lowest possible PITD = {3:.3g}'
     ).format(
-        target_var_name,
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None
         else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
         pitd_value,
