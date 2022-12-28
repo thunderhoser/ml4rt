@@ -1087,7 +1087,7 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
 
     for j in range(num_scalar_targets):
-        print('Computing CRPS and DWCRPSfor {0:s}...'.format(
+        print('Computing CRPS and DWCRPS for {0:s}...'.format(
             example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
         ))
 

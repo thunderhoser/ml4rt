@@ -481,7 +481,10 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                     )(last_conv_layer_matrix[i_new, j])
                 )
 
-                if skip_dropout_rate_by_level[i_new] > 0:
+                if (
+                        skip_dropout_rate_by_level[i_new] > 0
+                        and i_new + j == num_levels
+                ):
                     this_name = 'block{0:d}-{1:d}_skipconv{2:d}_dropout'.format(
                         i_new, j, k
                     )
@@ -914,7 +917,10 @@ def create_model_1output_layer(
                     )(last_conv_layer_matrix[i_new, j])
                 )
 
-                if skip_dropout_rate_by_level[i_new] > 0:
+                if (
+                        skip_dropout_rate_by_level[i_new] > 0
+                        and i_new + j == num_levels
+                ):
                     this_name = 'block{0:d}-{1:d}_skipconv{2:d}_dropout'.format(
                         i_new, j, k
                     )
