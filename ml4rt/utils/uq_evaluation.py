@@ -12,7 +12,7 @@ from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.machine_learning import neural_net
 
-MAX_NUM_CLIMO_EXAMPLES = 10000
+# MAX_NUM_CLIMO_EXAMPLES = 10000
 NUM_EXAMPLES_PER_BATCH = 1000
 
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
@@ -347,14 +347,10 @@ def _get_climo_crps_one_var(
         ])
 
         this_num_examples = last_index - first_index
-        this_actual_prediction_matrix = numpy.full(
-            (this_num_examples, ensemble_size), numpy.nan
+        this_actual_prediction_matrix = numpy.random.choice(
+            training_target_values, size=(this_num_examples, ensemble_size),
+            replace=True
         )
-
-        for j in range(this_num_examples):
-            this_actual_prediction_matrix[j, :] = numpy.random.choice(
-                training_target_values, size=ensemble_size, replace=False
-            )
 
         cdf_matrix = numpy.stack([
             numpy.mean(this_actual_prediction_matrix <= l, axis=-1)
@@ -890,20 +886,20 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
     print('Reading data from: "{0:s}"...'.format(normalization_file_name))
     training_example_dict = example_io.read_file(normalization_file_name)
 
-    num_training_examples = len(
-        training_example_dict[example_utils.EXAMPLE_IDS_KEY]
-    )
-
-    if num_training_examples > MAX_NUM_CLIMO_EXAMPLES:
-        these_indices = numpy.linspace(
-            0, num_training_examples - 1, num=num_training_examples, dtype=int
-        )
-        these_indices = numpy.random.choice(
-            these_indices, size=MAX_NUM_CLIMO_EXAMPLES, replace=False
-        )
-        training_example_dict = example_utils.subset_by_index(
-            example_dict=training_example_dict, desired_indices=these_indices
-        )
+    # num_training_examples = len(
+    #     training_example_dict[example_utils.EXAMPLE_IDS_KEY]
+    # )
+    #
+    # if num_training_examples > MAX_NUM_CLIMO_EXAMPLES:
+    #     these_indices = numpy.linspace(
+    #         0, num_training_examples - 1, num=num_training_examples, dtype=int
+    #     )
+    #     these_indices = numpy.random.choice(
+    #         these_indices, size=MAX_NUM_CLIMO_EXAMPLES, replace=False
+    #     )
+    #     training_example_dict = example_utils.subset_by_index(
+    #         example_dict=training_example_dict, desired_indices=these_indices
+    #     )
 
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
     example_dict = {
