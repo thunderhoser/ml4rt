@@ -26,20 +26,19 @@ import imagemagick_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-# UQ_METHOD_STRINGS = ['mc-dropout', 'crps', 'mc-crps']
-# UQ_METHOD_STRINGS_FANCY = [
-#     'Monte Carlo dropout', 'CRPS-LF', 'Combined approach'
-# ]
-# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 96], dtype=int)
-# DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
-
-
-UQ_METHOD_STRINGS = ['mc-dropout', 'crps']
+UQ_METHOD_STRINGS = ['mc-dropout', 'crps', 'mc-crps']
 UQ_METHOD_STRINGS_FANCY = [
-    'Monte Carlo dropout', 'CRPS-LF'
+    'Monte Carlo dropout', 'CRPS-LF', 'Combined approach'
 ]
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 96], dtype=int)
-DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.5])
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 96], dtype=int)
+DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
+
+# UQ_METHOD_STRINGS = ['mc-dropout', 'crps']
+# UQ_METHOD_STRINGS_FANCY = [
+#     'Monte Carlo dropout', 'CRPS-LF'
+# ]
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 96], dtype=int)
+# DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.5])
 
 COLUMN_AVG_HR_DWMSE_NAME = 'column_avg_hr_dwmse'
 NEAR_SFC_HR_DWMSE_NAME = 'near_sfc_hr_dwmse'
