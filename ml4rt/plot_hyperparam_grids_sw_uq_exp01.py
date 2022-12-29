@@ -345,17 +345,17 @@ def _read_metrics_one_model(model_dir_name, isotonic_flag):
         print('Reading data from: "{0:s}"...'.format(prediction_file_name))
         prediction_dict = prediction_io.read_file(prediction_file_name)
         vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
-        vector_prediction_matrix = (
-            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
+        mean_vector_prediction_matrix = numpy.mean(
+            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
         )
 
         weight_matrix = numpy.maximum(
             numpy.absolute(vector_target_matrix),
-            numpy.absolute(vector_prediction_matrix)
+            numpy.absolute(mean_vector_prediction_matrix)
         )
         this_error_matrix = (
             weight_matrix *
-            (vector_prediction_matrix - vector_target_matrix) ** 2
+            (mean_vector_prediction_matrix - vector_target_matrix) ** 2
         )
 
         metric_dict['column_avg_hr_dwmse' + metric_name_suffixes[i]] = (
@@ -366,11 +366,12 @@ def _read_metrics_one_model(model_dir_name, isotonic_flag):
         )
         metric_dict['column_avg_hr_bias' + metric_name_suffixes[i]] = (
             numpy.mean(
-                vector_prediction_matrix - vector_target_matrix
+                mean_vector_prediction_matrix - vector_target_matrix
             )
         )
         metric_dict['near_sfc_hr_bias' + metric_name_suffixes[i]] = numpy.mean(
-            vector_prediction_matrix[:, 0, :] - vector_target_matrix[:, 0, :]
+            mean_vector_prediction_matrix[:, 0, :] -
+            vector_target_matrix[:, 0, :]
         )
 
     eval_file_name_overall = (
