@@ -1,19 +1,19 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="evaluate_neural_nets"
+#SBATCH --job-name="plot_pit_histograms"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
-#SBATCH --time=12:00:00
+#SBATCH --time=30:00:00
 #SBATCH --array=1-63
+#SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=evaluate_neural_nets_%A_%a.out
+#SBATCH --output=plot_pit_histograms_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -31,16 +31,25 @@ set uq_method_string=${UQ_METHOD_STRINGS[$SLURM_ARRAY_TASK_ID]}
 set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 
 set model_dir_name="${TOP_MODEL_DIR_NAME}/${uq_method_string}_num-first-layer-channels=${num_first_layer_channels}_dense-layer-dropout-rate=${dense_layer_dropout_rate}/model"
-set prediction_file_name="${model_dir_name}/testing_perturbed_for_uq/predictions.nc"
-set evaluation_dir_name="${model_dir_name}/testing_perturbed_for_uq"
+echo $model_dir_name
 
-python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
---input_prediction_file_name="${prediction_file_name}" \
---num_bootstrap_reps=1 \
---num_heating_rate_bins=41 \
---heating_rate_limits_k_day01 0 41 \
---num_raw_flux_bins=50 \
---raw_flux_limits_w_m02 0 1250 \
---num_net_flux_bins=41 \
---net_flux_limits_w_m02 -1050 1000 \
---output_dir_name="${evaluation_dir_name}"
+set evaluation_dir_name="${model_dir_name}/validation"
+
+set REGIME_STRINGS_DASHED=("no-cloud" "single-layer-cloud" "multi-layer-cloud")
+set REGIME_STRINGS_UNDERSCORED=("no_cloud" "single_layer_cloud" "multi_layer_cloud")
+
+set i=1
+
+while ($i <= ${#REGIME_STRINGS_DASHED})
+    set regime_string_dashed=${REGIME_STRINGS_DASHED[$i]}
+    set regime_string_underscored=${REGIME_STRINGS_UNDERSCORED[$i]}
+    
+    set input_file_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}/pit_histograms.nc"
+    set output_dir_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}/pit_histograms"
+    
+    python3 -u "${CODE_DIR_NAME}/plot_pit_histograms.py" \
+    --input_file_name="${input_file_name}" \
+    --output_dir_name="${output_dir_name}"
+    
+    @ i = $i + 1
+end

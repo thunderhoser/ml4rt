@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_eval_by_cloud_regime_not_height"
+#SBATCH --job-name="plot_evaluation_not_by_height"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -13,7 +13,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_eval_by_cloud_regime_not_height_%A_%a.out
+#SBATCH --output=plot_evaluation_not_by_height_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -33,9 +33,9 @@ set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
 set model_dir_name="${TOP_MODEL_DIR_NAME}/${uq_method_string}_num-first-layer-channels=${num_first_layer_channels}_dense-layer-dropout-rate=${dense_layer_dropout_rate}/model"
 echo $model_dir_name
 
-set testing_dir_name="${model_dir_name}/testing_perturbed_for_uq"
-set evaluation_file_names=("${testing_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
-set evaluation_dir_name="${testing_dir_name}/by_cloud_regime/evaluation"
+set evaluation_dir_name="${model_dir_name}/validation"
+set evaluation_file_names=("${evaluation_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${evaluation_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${evaluation_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
+set evaluation_dir_name="${evaluation_dir_name}/by_cloud_regime/evaluation"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" \

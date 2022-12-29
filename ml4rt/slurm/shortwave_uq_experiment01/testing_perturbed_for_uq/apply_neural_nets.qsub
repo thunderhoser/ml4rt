@@ -29,8 +29,8 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/testing_perturbed_for_uq"
 
-set FIRST_TESTING_TIME_STRING="2019-12-24-000000"
-set LAST_TESTING_TIME_STRING="2020-12-31-235959"
+set FIRST_EVAL_TIME_STRING="2019-12-24-000000"
+set LAST_EVAL_TIME_STRING="2020-12-31-235959"
 
 set FIRST_LAYER_CHANNEL_COUNTS=("032" "032" "032" "032" "032" "032" "032" "064" "064" "064" "064" "064" "064" "064" "096" "096" "096" "096" "096" "096" "096" "032" "032" "032" "032" "032" "032" "032" "064" "064" "064" "064" "064" "064" "064" "096" "096" "096" "096" "096" "096" "096" "032" "032" "032" "032" "032" "032" "032" "064" "064" "064" "064" "064" "064" "064" "096" "096" "096" "096" "096" "096" "096")
 set UQ_METHOD_STRINGS=("mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "mc-dropout" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps" "mc-crps")
@@ -49,8 +49,8 @@ set prediction_file_name="${model_dir_name}/testing_perturbed_for_uq/predictions
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_file_name}" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
---first_time_string="${FIRST_TESTING_TIME_STRING}" \
---last_time_string="${LAST_TESTING_TIME_STRING}" \
+--first_time_string="${FIRST_EVAL_TIME_STRING}" \
+--last_time_string="${LAST_EVAL_TIME_STRING}" \
 --num_dropout_iterations=${num_dropout_iterations} \
 --max_ensemble_size=200 \
 --output_file_name="${prediction_file_name}"
