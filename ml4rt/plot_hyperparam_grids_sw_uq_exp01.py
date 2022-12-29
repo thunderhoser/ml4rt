@@ -18,6 +18,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import gg_plotting_utils
 import evaluation
+import uq_evaluation
 import example_utils
 import prediction_io
 import file_system_utils
@@ -38,7 +39,23 @@ METRIC_NAMES_ABBREV = [
     'all_flux_rmse', 'net_flux_rmse', 'net_flux_bias',
     'column_avg_hr_dwmse_mlc', 'near_sfc_hr_dwmse_mlc',
     'column_avg_hr_bias_mlc', 'near_sfc_hr_bias_mlc',
-    'all_flux_rmse_mlc', 'net_flux_rmse_mlc', 'net_flux_bias_mlc'
+    'all_flux_rmse_mlc', 'net_flux_rmse_mlc', 'net_flux_bias_mlc',
+    'column_avg_hr_ssrel', 'near_sfc_hr_ssrel',
+    'all_flux_ssrel', 'net_flux_ssrel',
+    'column_avg_hr_ssrat', 'near_sfc_hr_ssrat',
+    'all_flux_ssrat', 'net_flux_ssrat',
+    'column_avg_hr_mono_fraction', 'near_sfc_hr_mono_fraction',
+    'all_flux_mono_fraction', 'net_flux_mono_fraction',
+    'column_avg_hr_pitd', 'near_sfc_hr_pitd',
+    'all_flux_pitd', 'net_flux_pitd',
+    'column_avg_hr_ssrel_mlc', 'near_sfc_hr_ssrel_mlc',
+    'all_flux_ssrel_mlc', 'net_flux_ssrel_mlc',
+    'column_avg_hr_ssrat_mlc', 'near_sfc_hr_ssrat_mlc',
+    'all_flux_ssrat_mlc', 'net_flux_ssrat_mlc',
+    'column_avg_hr_mono_fraction_mlc', 'near_sfc_hr_mono_fraction_mlc',
+    'all_flux_mono_fraction_mlc', 'net_flux_mono_fraction_mlc',
+    'column_avg_hr_pitd_mlc', 'near_sfc_hr_pitd_mlc',
+    'all_flux_pitd_mlc', 'net_flux_pitd_mlc'
 ]
 
 METRIC_NAMES_FANCY = [
@@ -47,7 +64,23 @@ METRIC_NAMES_FANCY = [
     'all-flux RMSE', 'net-flux RMSE', 'net-flux bias',
     'column-averaged HR DWMSE for MLC', 'near-surface HR DWMSE for MLC',
     'column-averaged HR bias for MLC', 'near-surface HR bias for MLC',
-    'all-flux RMSE for MLC', 'net-flux RMSE for MLC', 'net-flux bias for MLC'
+    'all-flux RMSE for MLC', 'net-flux RMSE for MLC', 'net-flux bias for MLC',
+    'column-averaged HR SSREL', 'near-surface HR SSREL',
+    'all-flux SSREL', 'net-flux SSREL',
+    'column-averaged HR SSRAT', 'near-surface HR SSRAT',
+    'all-flux SSRAT', 'net-flux SSRAT',
+    'column-averaged HR MF', 'near-surface HR MF',
+    'all-flux MF', 'net-flux MF',
+    'column-averaged HR PITD', 'near-surface HR PITD',
+    'all-flux PITD', 'net-flux PITD',
+    'column-averaged HR SSREL for MLC', 'near-surface HR SSREL for MLC',
+    'all-flux SSREL for MLC', 'net-flux SSREL for MLC',
+    'column-averaged HR SSRAT for MLC', 'near-surface HR SSRAT for MLC',
+    'all-flux SSRAT for MLC', 'net-flux SSRAT for MLC',
+    'column-averaged HR MF for MLC', 'near-surface HR MF for MLC',
+    'all-flux MF for MLC', 'net-flux MF for MLC',
+    'column-averaged HR PITD for MLC', 'near-surface HR PITD for MLC',
+    'all-flux PITD for MLC', 'net-flux PITD for MLC'
 ]
 
 METRIC_UNITS = [
@@ -56,12 +89,44 @@ METRIC_UNITS = [
     r'W m$^{-2}$', r'W m$^{-2}$', r'W m$^{-2}$',
     r'K$^{3}$ day$^{-3}$', r'K$^{3}$ day$^{-3}$',
     r'K day$^{-1}$', r'K day$^{-1}$',
-    r'W m$^{-2}$', r'W m$^{-2}$', r'W m$^{-2}$'
+    r'W m$^{-2}$', r'W m$^{-2}$', r'W m$^{-2}$',
+    r'K day$^{-1}$', r'K day$^{-1}$',
+    r'W m$^{-2}$', r'W m$^{-2}$',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    r'K day$^{-1}$', r'K day$^{-1}$',
+    r'W m$^{-2}$', r'W m$^{-2}$',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless',
+    'unitless', 'unitless'
 ]
 
 METRIC_IS_BIAS_FLAGS = numpy.array(
     [0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1], dtype=bool
 )
+METRIC_IS_BIAS_FLAGS = numpy.concatenate((
+    METRIC_IS_BIAS_FLAGS,
+    numpy.full(32, False, dtype=bool)
+))
+
+METRIC_IS_POS_ORIENTED_FLAGS = numpy.array([
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0
+], dtype=bool)
+
+METRIC_IS_SSRAT_FLAGS = numpy.array([
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0
+], dtype=bool)
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.175
@@ -71,6 +136,9 @@ BLACK_COLOUR = numpy.full(3, 0.)
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
 SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
+
+# TODO(thunderhoser): Plot SSRAT like freq bias.
+# TODO(thunderhoser): Make eval set (perturbed testing or whatever) an input arg.
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 BIAS_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='seismic', lut=20)
@@ -211,13 +279,16 @@ def _read_metrics_one_model(model_dir_name, isotonic_flag):
     model_file_names.sort()
     model_file_name = model_file_names[-1]
 
-    eval_file_name_overall = '{0:s}/{1:s}validation/evaluation.nc'.format(
+    eval_file_name_overall = (
+        '{0:s}/{1:s}testing_perturbed_for_uq/evaluation.nc'
+    ).format(
         model_file_name[:-3],
         'isotonic_regression/' if isotonic_flag else ''
     )
 
     eval_file_name_mlc = (
-        '{0:s}/{1:s}validation/by_cloud_regime/multi_layer_cloud/evaluation.nc'
+        '{0:s}/{1:s}testing_perturbed_for_uq/by_cloud_regime/multi_layer_cloud/'
+        'evaluation.nc'
     ).format(
         model_file_name[:-3],
         'isotonic_regression/' if isotonic_flag else ''
@@ -301,6 +372,83 @@ def _read_metrics_one_model(model_dir_name, isotonic_flag):
         metric_dict['near_sfc_hr_bias' + metric_name_suffixes[i]] = numpy.mean(
             vector_prediction_matrix[:, 0, :] - vector_target_matrix[:, 0, :]
         )
+
+    eval_file_name_overall = (
+        '{0:s}/{1:s}testing_perturbed_for_uq/pit_histograms.nc'
+    ).format(
+        model_file_name[:-3],
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+
+    eval_file_name_mlc = (
+        '{0:s}/{1:s}testing_perturbed_for_uq/by_cloud_regime/multi_layer_cloud/'
+        'pit_histograms.nc'
+    ).format(
+        model_file_name[:-3],
+        'isotonic_regression/' if isotonic_flag else ''
+    )
+
+    evaluation_file_names = [eval_file_name_overall, eval_file_name_mlc]
+    metric_name_suffixes = ['', '_mlc']
+
+    for i in range(len(evaluation_file_names)):
+        if not os.path.isfile(evaluation_file_names[i]):
+            continue
+
+        print('Reading data from: "{0:s}"...'.format(evaluation_file_names[i]))
+        pit_table_xarray = uq_evaluation.read_pit_histograms(
+            evaluation_file_names[i]
+        )
+
+        scalar_target_names = pit_table_xarray.coords[
+            uq_evaluation.SCALAR_FIELD_DIM
+        ].values.tolist()
+
+        aux_target_names = pit_table_xarray.coords[
+            uq_evaluation.AUX_TARGET_FIELD_DIM
+        ].values.tolist()
+
+        j = scalar_target_names.index(
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+        )
+        down_flux_pitd = (
+            pit_table_xarray[uq_evaluation.SCALAR_PITD_KEY].values[j]
+        )
+
+        j = scalar_target_names.index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+        up_flux_pitd = (
+            pit_table_xarray[uq_evaluation.SCALAR_PITD_KEY].values[j]
+        )
+
+        j = aux_target_names.index(uq_evaluation.SHORTWAVE_NET_FLUX_NAME)
+        net_flux_pitd = (
+            pit_table_xarray[uq_evaluation.AUX_PITD_KEY].values[j]
+        )
+        metric_dict['net_flux_pitd' + metric_name_suffixes[i]] = (
+            net_flux_pitd + 0.
+        )
+        metric_dict['all_flux_pitd' + metric_name_suffixes[i]] = (
+            down_flux_pitd + up_flux_pitd + net_flux_pitd
+        ) / 3
+
+        vector_target_names = pit_table_xarray.coords[
+            uq_evaluation.VECTOR_FIELD_DIM
+        ].values.tolist()
+
+        j = vector_target_names.index(example_utils.SHORTWAVE_HEATING_RATE_NAME)
+
+        metric_dict[
+            'column_avg_hr_pitd' + metric_name_suffixes[i]
+        ] = numpy.nanmean(
+            pit_table_xarray[uq_evaluation.VECTOR_PITD_KEY].values[j, :]
+        )
+
+        metric_dict[
+            'near_sfc_hr_pitd' + metric_name_suffixes[i]
+        ] = pit_table_xarray[uq_evaluation.VECTOR_PITD_KEY].values[j, 0]
+
+    # TODO(thunderhoser): Keep adding UQ metrics to script.  Left off here.
+    # TODO(thunderhoser): Turn all metric names into constants (defined).
 
     return metric_dict
 
@@ -431,7 +579,10 @@ def _run(experiment_dir_name, isotonic_flag):
     num_uq_methods = len(UQ_METHOD_STRINGS)
     num_dropout_rates = len(DENSE_LAYER_DROPOUT_RATES)
     num_channel_counts = len(FIRST_LAYER_CHANNEL_COUNTS)
-    num_metrics = len(METRIC_NAMES_ABBREV)
+
+    # TODO(thunderhoser): HACK.
+    # num_metrics = len(METRIC_NAMES_ABBREV)
+    num_metrics = 14
 
     y_tick_labels = [
         '{0:.2f}'.format(d) for d in DENSE_LAYER_DROPOUT_RATES
