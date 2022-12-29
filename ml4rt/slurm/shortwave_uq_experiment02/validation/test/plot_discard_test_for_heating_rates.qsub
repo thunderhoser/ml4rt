@@ -1,0 +1,41 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_discard_test_for_heating_rates"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-70
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_discard_test_for_heating_rates_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_experiment02"
+
+set DENSE_LAYER_DROPOUT_RATES=("0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20" "0.30" "0.30" "0.30" "0.30" "0.30" "0.40" "0.40" "0.40" "0.40" "0.40" "0.50" "0.50" "0.50" "0.50" "0.50" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20" "0.30" "0.30" "0.30" "0.30" "0.30" "0.40" "0.40" "0.40" "0.40" "0.40" "0.50" "0.50" "0.50" "0.50" "0.50" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20" "0.30" "0.30" "0.30" "0.30" "0.30" "0.40" "0.40" "0.40" "0.40" "0.40" "0.50" "0.50" "0.50" "0.50" "0.50" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20" "0.30" "0.30" "0.30" "0.30" "0.30" "0.40" "0.40" "0.40" "0.40" "0.40" "0.50" "0.50" "0.50" "0.50" "0.50" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20" "0.30" "0.30" "0.30" "0.30" "0.30" "0.40" "0.40" "0.40" "0.40" "0.40" "0.50" "0.50" "0.50" "0.50" "0.50")
+set CONV_LAYER_DROPOUT_RATES=("0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.20" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.30" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.40" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50" "0.50")
+set CONV_LAYERS_WITH_DROPOUT_COUNTS=("1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5" "1" "2" "3" "4" "5")
+
+set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set conv_layer_dropout_rate=${CONV_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set num_conv_layers_with_dropout=${CONV_LAYERS_WITH_DROPOUT_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/dense-layer-dropout-rate=${dense_layer_dropout_rate}_conv-layer-dropout-rate=${conv_layer_dropout_rate}_num-conv-layers-with-dropout=${num_conv_layers_with_dropout}/model"
+echo $model_dir_name
+
+set input_file_name="${model_dir_name}/validation_20200102-20200115/discard_test_for_heating_rates.nc"
+set output_dir_name="${model_dir_name}/validation_20200102-20200115/discard_test_for_heating_rates"
+
+python3 -u "${CODE_DIR_NAME}/plot_discard_test.py" \
+--input_file_name="${input_file_name}" \
+--output_dir_name="${output_dir_name}"
