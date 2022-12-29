@@ -26,13 +26,18 @@ import imagemagick_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-UQ_METHOD_STRINGS = ['mc-dropout', 'crps', 'mc-crps']
-UQ_METHOD_STRINGS_FANCY = [
-    'Monte Carlo dropout', 'CRPS-LF', 'Combined approach'
-]
+# UQ_METHOD_STRINGS = ['mc-dropout', 'crps', 'mc-crps']
+# UQ_METHOD_STRINGS_FANCY = [
+#     'Monte Carlo dropout', 'CRPS-LF', 'Combined approach'
+# ]
 # FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 64, 96], dtype=int)
 # DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
 
+
+UQ_METHOD_STRINGS = ['mc-dropout', 'crps']
+UQ_METHOD_STRINGS_FANCY = [
+    'Monte Carlo dropout', 'CRPS-LF'
+]
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([32, 96], dtype=int)
 DENSE_LAYER_DROPOUT_RATES = numpy.array([0.01, 0.5])
 
@@ -736,15 +741,31 @@ def _print_ranking_all_metrics(metric_matrix, main_metric_name):
         k = k_sort_indices[m]
 
         print((
-            '{0:s} ... dropout rate = {1:.2f} ... spectral cplxity = {2:d} ... '
+            '{0:s} ... dropout rate = {1:.2f} ... spectral complexity = {2:d}\n'
             'DWMSE ranks (all, sfc, MLC, MLC sfc) = '
             '{3:.1f}, {4:.1f}, {5:.1f}, {6:.1f} ... '
             'HR-bias ranks (all, sfc, MLC, MLC sfc) = '
-            '{7:.1f}, {8:.1f}, {9:.1f}, {10:.1f} ... '
+            '{7:.1f}, {8:.1f}, {9:.1f}, {10:.1f}\n'
             'flux-RMSE ranks (all, net, MLC, MLC net) = '
             '{11:.1f}, {12:.1f}, {13:.1f}, {14:.1f} ... '
             'net-flux-bias ranks (all, MLC) = '
-            '{15:.1f}, {16:.1f}'
+            '{15:.1f}, {16:.1f}\n'
+            'HR-SSREL ranks (all, sfc, MLC, MLC sfc) = '
+            '{17:.1f}, {18:.1f}, {19:.1f}, {20:.1f} ... '
+            'flux-SSREL ranks (all, net, MLC, MLC net) = '
+            '{21:.1f}, {22:.1f}, {23:.1f}, {24:.1f}\n'
+            'HR-SSRAT ranks (all, sfc, MLC, MLC sfc) = '
+            '{25:.1f}, {26:.1f}, {27:.1f}, {28:.1f} ... '
+            'flux-SSRAT ranks (all, net, MLC, MLC net) = '
+            '{29:.1f}, {30:.1f}, {31:.1f}, {32:.1f}\n'
+            'HR-MF ranks (all, sfc, MLC, MLC sfc) = '
+            '{33:.1f}, {34:.1f}, {35:.1f}, {36:.1f} ... '
+            'flux-MF ranks (all, net, MLC, MLC net) = '
+            '{37:.1f}, {38:.1f}, {39:.1f}, {40:.1f}\n'
+            'HR-PITD ranks (all, sfc, MLC, MLC sfc) = '
+            '{41:.1f}, {42:.1f}, {43:.1f}, {44:.1f} ... '
+            'flux-PITD ranks (all, net, MLC, MLC net) = '
+            '{45:.1f}, {46:.1f}, {47:.1f}, {48:.1f}\n\n'
         ).format(
             UQ_METHOD_STRINGS[i],
             DENSE_LAYER_DROPOUT_RATES[j],
@@ -762,7 +783,39 @@ def _print_ranking_all_metrics(metric_matrix, main_metric_name):
             mrm[i, j, k, names.index(ALL_FLUX_RMSE_NAME + '_mlc')],
             mrm[i, j, k, names.index(NET_FLUX_RMSE_NAME + '_mlc')],
             mrm[i, j, k, names.index(NET_FLUX_BIAS_NAME)],
-            mrm[i, j, k, names.index(NET_FLUX_BIAS_NAME + '_mlc')]
+            mrm[i, j, k, names.index(NET_FLUX_BIAS_NAME + '_mlc')],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_SSREL_NAME)],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_SSREL_NAME)],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_SSREL_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_SSREL_NAME + '_mlc')],
+            mrm[i, j, k, names.index(ALL_FLUX_SSREL_NAME)],
+            mrm[i, j, k, names.index(NET_FLUX_SSREL_NAME)],
+            mrm[i, j, k, names.index(ALL_FLUX_SSREL_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NET_FLUX_SSREL_NAME + '_mlc')],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_SSRAT_NAME)],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_SSRAT_NAME)],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_SSRAT_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_SSRAT_NAME + '_mlc')],
+            mrm[i, j, k, names.index(ALL_FLUX_SSRAT_NAME)],
+            mrm[i, j, k, names.index(NET_FLUX_SSRAT_NAME)],
+            mrm[i, j, k, names.index(ALL_FLUX_SSRAT_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NET_FLUX_SSRAT_NAME + '_mlc')],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_MONO_FRACTION_NAME)],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_MONO_FRACTION_NAME)],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_MONO_FRACTION_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_MONO_FRACTION_NAME + '_mlc')],
+            mrm[i, j, k, names.index(ALL_FLUX_MONO_FRACTION_NAME)],
+            mrm[i, j, k, names.index(NET_FLUX_MONO_FRACTION_NAME)],
+            mrm[i, j, k, names.index(ALL_FLUX_MONO_FRACTION_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NET_FLUX_MONO_FRACTION_NAME + '_mlc')],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_PITD_NAME)],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_PITD_NAME)],
+            mrm[i, j, k, names.index(COLUMN_AVG_HR_PITD_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NEAR_SFC_HR_PITD_NAME + '_mlc')],
+            mrm[i, j, k, names.index(ALL_FLUX_PITD_NAME)],
+            mrm[i, j, k, names.index(NET_FLUX_PITD_NAME)],
+            mrm[i, j, k, names.index(ALL_FLUX_PITD_NAME + '_mlc')],
+            mrm[i, j, k, names.index(NET_FLUX_PITD_NAME + '_mlc')]
         ))
 
 
@@ -811,7 +864,7 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
             'spectral complexity = {6:d}'
         ).format(
             m + 1, METRIC_NAMES_FANCY[metric_index],
-            metric_matrix[i, j, k], METRIC_UNITS[metric_index],
+            metric_matrix[i, j, k, metric_index], METRIC_UNITS[metric_index],
             UQ_METHOD_STRINGS[i],
             DENSE_LAYER_DROPOUT_RATES[j],
             FIRST_LAYER_CHANNEL_COUNTS[k]
