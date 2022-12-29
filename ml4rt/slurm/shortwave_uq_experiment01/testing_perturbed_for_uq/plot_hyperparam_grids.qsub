@@ -22,4 +22,5 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 
 python3 -u "${CODE_DIR_NAME}/plot_hyperparam_grids_sw_uq_exp01.py" \
 --experiment_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_experiment01" \
+--eval_dataset_name="testing_perturbed_for_uq" \
 --isotonic_flag=0
