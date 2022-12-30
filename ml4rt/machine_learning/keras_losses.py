@@ -288,7 +288,7 @@ def unscaled_crps_for_net_flux():
                 K.abs(K.expand_dims(p, axis=-1) - K.expand_dims(p, axis=-2)),
                 axis=(-2, -1)
             ),
-            elems=prediction_tensor
+            elems=full_prediction_tensor
         )
 
         # prediction_diff_tensor = K.abs(

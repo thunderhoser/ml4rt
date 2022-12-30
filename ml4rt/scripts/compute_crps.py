@@ -69,10 +69,14 @@ def _run(prediction_file_name, num_integration_levels, ensemble_size_for_climo,
     scalar_target_names = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values
 
     for k in range(len(scalar_target_names)):
-        print('Variable = {0:s} ... CRPS = {1:f} ... CRPSS = {2:f}'.format(
+        print((
+            'Variable = {0:s} ... CRPS = {1:f} ... CRPSS = {2:f} ... '
+            'DWCRPS = {3:f}'
+        ).format(
             scalar_target_names[k],
             t[uq_evaluation.SCALAR_CRPS_KEY].values[k],
-            t[uq_evaluation.SCALAR_CRPSS_KEY].values[k]
+            t[uq_evaluation.SCALAR_CRPSS_KEY].values[k],
+            t[uq_evaluation.SCALAR_DWCRPS_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
@@ -83,11 +87,12 @@ def _run(prediction_file_name, num_integration_levels, ensemble_size_for_climo,
         for j in range(len(heights_m_agl)):
             print((
                 'Variable = {0:s} at {1:d} m AGL ... CRPS = {2:f} ... '
-                'CRPSS = {3:f}'
+                'CRPSS = {3:f} ... DWCRPS = {4:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
                 t[uq_evaluation.VECTOR_CRPS_KEY].values[k, j],
-                t[uq_evaluation.VECTOR_CRPSS_KEY].values[k, j]
+                t[uq_evaluation.VECTOR_CRPSS_KEY].values[k, j],
+                t[uq_evaluation.VECTOR_DWCRPS_KEY].values[k, j]
             ))
 
         print(SEPARATOR_STRING)
@@ -106,11 +111,12 @@ def _run(prediction_file_name, num_integration_levels, ensemble_size_for_climo,
     for k in range(len(aux_target_field_names)):
         print((
             'Target variable = {0:s} ... predicted variable = {1:s} ... '
-            'CRPS = {2:f} ... CRPSS = {3:f}'
+            'CRPS = {2:f} ... CRPSS = {3:f} ... DWCRPS = {4:f}'
         ).format(
             aux_target_field_names[k], aux_predicted_field_names[k],
             t[uq_evaluation.AUX_CRPS_KEY].values[k],
-            t[uq_evaluation.AUX_CRPSS_KEY].values[k]
+            t[uq_evaluation.AUX_CRPSS_KEY].values[k],
+            t[uq_evaluation.AUX_DWCRPS_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
