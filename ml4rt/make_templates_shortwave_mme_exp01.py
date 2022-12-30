@@ -114,7 +114,7 @@ def _run():
         )
 
         print(K.eval(
-            this_model_object.get_layer(name='block0-3_skip').weights[0]
+            this_model_object.get_layer(name='block0-3_skipconv0').weights[0]
         ))
 
         this_model_file_name = '{0:s}/ensemble-member={1:03d}/model.h5'.format(
