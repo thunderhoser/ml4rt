@@ -232,6 +232,14 @@ def _run(prediction_file_name, num_heating_rate_bins,
     heights_m_agl = t.coords[uq_evaluation.HEIGHT_DIM].values
 
     for k in range(len(vector_target_names)):
+        print((
+            'Variable = "{0:s}" ... SSREL = {1:f} ... SSRAT = {2:f}'
+        ).format(
+            vector_target_names[k],
+            t[uq_evaluation.VECTOR_FLAT_SSREL_KEY].values[k],
+            t[uq_evaluation.VECTOR_FLAT_SSRAT_KEY].values[k]
+        ))
+
         for j in range(len(heights_m_agl)):
             print((
                 'Variable = "{0:s}" at {1:d} m AGL ... SSREL = {2:f} ... '

@@ -146,6 +146,12 @@ def _run(prediction_file_name, discard_fractions, scaling_factor_for_dwmse,
     heights_m_agl = t.coords[uq_evaluation.HEIGHT_DIM].values
 
     for k in range(len(vector_target_names)):
+        print('Variable = {0:s} ... MF = {1:f} ... DI = {2:f}'.format(
+            vector_target_names[k],
+            t[uq_evaluation.VECTOR_FLAT_MONOTONICITY_FRACTION_KEY].values[k],
+            t[uq_evaluation.VECTOR_FLAT_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
+        ))
+
         for j in range(len(heights_m_agl)):
             print((
                 'Variable = {0:s} at {1:d} m AGL ... MF = {2:f} ... DI = {3:f}'

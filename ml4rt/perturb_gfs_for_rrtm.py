@@ -956,8 +956,15 @@ def _run(input_file_name, max_temp_increase_kelvins,
                     j, num_sites, i + 1, num_times
                 ))
 
+            perturbation_flags = numpy.random.uniform(low=0., high=1., size=5)
+            perturbation_flags = numpy.round(perturbation_flags).astype(bool)
+            
+            if not numpy.any(perturbation_flags):
+                this_index = numpy.random.random_integers(low=0, high=4, size=1)
+                perturbation_flags[this_index] = True
+
             # Create fictitious ozone layer.
-            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
+            if perturbation_flags[0]:
                 gfs_table_xarray = _create_ozone_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -969,7 +976,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious surface-based warm layer.
-            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
+            if perturbation_flags[1]:
                 gfs_table_xarray = _create_surface_based_warm_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -978,7 +985,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious surface-based moist layer.
-            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
+            if perturbation_flags[2]:
                 gfs_table_xarray = _create_surface_based_moist_layer(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -988,7 +995,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious liquid cloud.
-            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
+            if perturbation_flags[3]:
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
@@ -1002,7 +1009,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 )
 
             # Create fictitious ice cloud.
-            if numpy.random.uniform(low=0., high=1., size=1)[0] > 0.5:
+            if perturbation_flags[4]:
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,

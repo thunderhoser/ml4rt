@@ -15,8 +15,13 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
 import uq_evaluation
+import evaluation_plotting
 import uq_evaluation_plotting as uq_eval_plotting
 
+ERROR_PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+
+FIGURE_WIDTH_INCHES = 15
+FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
@@ -90,6 +95,21 @@ def _run(input_file_name, output_dir_name):
         pyplot.close(figure_object)
 
     for this_var_name in t.coords[uq_evaluation.VECTOR_FIELD_DIM].values:
+        figure_object, _ = uq_eval_plotting.plot_spread_vs_skill(
+            result_table_xarray=result_table_xarray,
+            target_var_name=this_var_name
+        )
+
+        this_figure_file_name = '{0:s}/spread_vs_skill_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(this_figure_file_name))
+        figure_object.savefig(
+            this_figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
         for this_height_m_agl in t.coords[uq_evaluation.HEIGHT_DIM].values:
             figure_object, _ = uq_eval_plotting.plot_spread_vs_skill(
                 result_table_xarray=result_table_xarray,
@@ -111,6 +131,67 @@ def _run(input_file_name, output_dir_name):
                 pad_inches=0, bbox_inches='tight'
             )
             pyplot.close(figure_object)
+
+    for j in range(len(t.coords[uq_evaluation.VECTOR_FIELD_DIM].values)):
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
+            score_values=t[uq_evaluation.VECTOR_SSREL_KEY].values[j, :],
+            score_name=evaluation_plotting.SSREL_NAME,
+            line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        this_var_name = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values[j]
+        axes_object.set_xlabel(
+            'Spread-skill reliability (SSREL; {0:s})'.format(
+                uq_eval_plotting.TARGET_NAME_TO_UNITS[this_var_name]
+            )
+        )
+        axes_object.set_title('SSREL for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        ))
+
+        figure_file_name = '{0:s}/ssrel_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
+            score_values=t[uq_evaluation.VECTOR_SSRAT_KEY].values[j, :],
+            score_name=evaluation_plotting.SSRAT_NAME,
+            line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        this_var_name = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values[j]
+        axes_object.set_xlabel('Spread-skill ratio (SSRAT)')
+        axes_object.set_title('SSRAT for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        ))
+
+        figure_file_name = '{0:s}/ssrat_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
 
 if __name__ == '__main__':
