@@ -1,7 +1,7 @@
 """Methods for building, training, and applying isotonic-regression models."""
 
+import os
 import sys
-import os.path
 import pickle
 import numpy
 from sklearn.isotonic import IsotonicRegression
@@ -24,10 +24,11 @@ def train_models(
     H = number of heights
     T_v = number of vector target variables
     T_s = number of scalar target variables
+    S = number of ensemble members
 
-    :param orig_vector_prediction_matrix: numpy array (E x H x T_v) of predicted
-        values for vector target variables.
-    :param orig_scalar_prediction_matrix: numpy array (E x T_s) of predicted
+    :param orig_vector_prediction_matrix: numpy array (E x H x T_v x S) of
+        predicted values for vector target variables.
+    :param orig_scalar_prediction_matrix: numpy array (E x T_s x S) of predicted
         values for scalar target variables.
     :param vector_target_matrix: numpy array (E x H x T_v) of actual values
         for vector target variables.
@@ -38,10 +39,10 @@ def train_models(
         pair of target variable and height.
     :return: scalar_model_objects: List (length T_s) of models (instances of
         `sklearn.isotonic.IsotonicRegression`) for scalar target variables.
-    :return: vector_model_object_matrix: numpy array (H x T_v) of models
+    :return: vector_model_object_matrix: numpy array of models
         (instances of `sklearn.isotonic.IsotonicRegression`) for vector target
         variables.  If `separate_by_height == True`, this array is H x T_v.
-        If `separate_by_height == False`, this array has length T_v.
+        If `separate_by_height == False`, this array has is 1 x T_v.
     """
 
     # Check input args.
@@ -49,6 +50,7 @@ def train_models(
     num_heights = 0
     num_vector_targets = 0
     num_scalar_targets = 0
+    ensemble_size = None
 
     have_vectors = (
         orig_vector_prediction_matrix is not None
@@ -57,7 +59,7 @@ def train_models(
 
     if have_vectors:
         error_checking.assert_is_numpy_array(
-            orig_vector_prediction_matrix, num_dimensions=3
+            orig_vector_prediction_matrix, num_dimensions=4
         )
         error_checking.assert_is_numpy_array_without_nan(
             orig_vector_prediction_matrix
@@ -66,7 +68,7 @@ def train_models(
         error_checking.assert_is_numpy_array(
             vector_target_matrix,
             exact_dimensions=numpy.array(
-                orig_vector_prediction_matrix.shape, dtype=int
+                orig_vector_prediction_matrix.shape[:-1], dtype=int
             )
         )
         error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
@@ -74,6 +76,7 @@ def train_models(
         num_examples = vector_target_matrix.shape[0]
         num_heights = vector_target_matrix.shape[1]
         num_vector_targets = vector_target_matrix.shape[2]
+        ensemble_size = orig_vector_prediction_matrix.shape[3]
 
     have_scalars = (
         orig_scalar_prediction_matrix is not None
@@ -82,15 +85,18 @@ def train_models(
 
     if have_scalars:
         error_checking.assert_is_numpy_array(
-            orig_scalar_prediction_matrix, num_dimensions=2
+            orig_scalar_prediction_matrix, num_dimensions=3
         )
 
         if num_examples is None:
             num_examples = orig_scalar_prediction_matrix.shape[0]
+        if ensemble_size is None:
+            ensemble_size = orig_scalar_prediction_matrix.shape[2]
 
-        expected_dim = numpy.array(
-            [num_examples, orig_scalar_prediction_matrix.shape[1]], dtype=int
-        )
+        expected_dim = numpy.array([
+            num_examples, orig_scalar_prediction_matrix.shape[1], ensemble_size
+        ], dtype=int)
+
         error_checking.assert_is_numpy_array(
             orig_scalar_prediction_matrix, exact_dimensions=expected_dim
         )
@@ -101,7 +107,7 @@ def train_models(
         error_checking.assert_is_numpy_array(
             scalar_target_matrix,
             exact_dimensions=numpy.array(
-                orig_scalar_prediction_matrix.shape, dtype=int
+                orig_scalar_prediction_matrix.shape[:-1], dtype=int
             )
         )
         error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
@@ -125,12 +131,20 @@ def train_models(
             k + 1, num_scalar_targets
         ))
 
+        this_prediction_matrix = orig_scalar_prediction_matrix[:, k, :] + 0.
+        this_target_matrix = numpy.expand_dims(
+            scalar_target_matrix[:, k], axis=-1
+        )
+        this_target_matrix = numpy.repeat(
+            this_target_matrix, axis=-1, repeats=ensemble_size
+        )
+
         scalar_model_objects[k] = IsotonicRegression(
             increasing=True, out_of_bounds='clip'
         )
         scalar_model_objects[k].fit(
-            X=orig_scalar_prediction_matrix[:, k],
-            y=scalar_target_matrix[:, k]
+            X=numpy.ravel(this_prediction_matrix),
+            y=numpy.ravel(this_target_matrix)
         )
 
     if num_scalar_targets > 0:
@@ -150,15 +164,30 @@ def train_models(
             )
 
             if separate_by_height:
-                vector_model_object_matrix[j, k].fit(
-                    X=orig_vector_prediction_matrix[:, j, k],
-                    y=vector_target_matrix[:, j, k]
+                this_prediction_matrix = (
+                    orig_vector_prediction_matrix[:, j, k, :] + 0.
+                )
+                this_target_matrix = numpy.expand_dims(
+                    vector_target_matrix[:, j, k], axis=-1
+                )
+                this_target_matrix = numpy.repeat(
+                    this_target_matrix, axis=-1, repeats=ensemble_size
                 )
             else:
-                vector_model_object_matrix[j, k].fit(
-                    X=numpy.ravel(orig_vector_prediction_matrix[..., k]),
-                    y=numpy.ravel(vector_target_matrix[..., k])
+                this_prediction_matrix = (
+                    orig_vector_prediction_matrix[:, :, k, :] + 0.
                 )
+                this_target_matrix = numpy.expand_dims(
+                    vector_target_matrix[:, :, k], axis=-1
+                )
+                this_target_matrix = numpy.repeat(
+                    this_target_matrix, axis=-1, repeats=ensemble_size
+                )
+
+            vector_model_object_matrix[j, k].fit(
+                X=numpy.ravel(this_prediction_matrix),
+                y=numpy.ravel(this_target_matrix)
+            )
 
         if k != num_vector_targets - 1:
             print('\n')
@@ -186,6 +215,7 @@ def apply_models(
     num_modeling_heights = 0
     num_vector_targets = 0
     num_scalar_targets = 0
+    ensemble_size = None
 
     have_vectors = (
         orig_vector_prediction_matrix is not None
@@ -194,7 +224,7 @@ def apply_models(
 
     if have_vectors:
         error_checking.assert_is_numpy_array(
-            orig_vector_prediction_matrix, num_dimensions=3
+            orig_vector_prediction_matrix, num_dimensions=4
         )
         error_checking.assert_is_numpy_array_without_nan(
             orig_vector_prediction_matrix
@@ -214,6 +244,7 @@ def apply_models(
         )
 
         num_examples = orig_vector_prediction_matrix.shape[0]
+        ensemble_size = orig_vector_prediction_matrix.shape[3]
 
     have_scalars = (
         orig_scalar_prediction_matrix is not None
@@ -222,15 +253,17 @@ def apply_models(
 
     if have_scalars:
         error_checking.assert_is_numpy_array(
-            orig_scalar_prediction_matrix, num_dimensions=2
+            orig_scalar_prediction_matrix, num_dimensions=3
         )
 
         if num_examples is None:
             num_examples = orig_scalar_prediction_matrix.shape[0]
+        if ensemble_size is None:
+            ensemble_size = orig_scalar_prediction_matrix.shape[2]
 
         num_scalar_targets = orig_scalar_prediction_matrix.shape[1]
         expected_dim = numpy.array(
-            [num_examples, num_scalar_targets], dtype=int
+            [num_examples, num_scalar_targets, ensemble_size], dtype=int
         )
 
         error_checking.assert_is_numpy_array(
@@ -251,7 +284,7 @@ def apply_models(
         )
     else:
         new_vector_prediction_matrix = numpy.full(
-            (num_examples, 0, 0), numpy.nan
+            (num_examples, 0, 0, ensemble_size), numpy.nan
         )
 
     if have_scalars:
@@ -259,7 +292,9 @@ def apply_models(
             orig_scalar_prediction_matrix.shape, numpy.nan
         )
     else:
-        new_scalar_prediction_matrix = numpy.full((num_examples, 0), numpy.nan)
+        new_scalar_prediction_matrix = numpy.full(
+            (num_examples, 0, ensemble_size), numpy.nan
+        )
 
     for k in range(num_scalar_targets):
         print((
@@ -269,9 +304,12 @@ def apply_models(
             k + 1, num_scalar_targets
         ))
 
-        new_scalar_prediction_matrix[:, k] = scalar_model_objects[k].predict(
-            orig_scalar_prediction_matrix[:, k]
-        )
+        for m in range(ensemble_size):
+            new_scalar_prediction_matrix[:, k, m] = (
+                scalar_model_objects[k].predict(
+                    orig_scalar_prediction_matrix[:, k, m]
+                )
+            )
 
     if num_scalar_targets > 0:
         print('\n')
@@ -285,19 +323,21 @@ def apply_models(
                 k + 1, num_vector_targets, j + 1, num_modeling_heights
             ))
 
-            if num_modeling_heights == 1:
-                these_predictions = vector_model_object_matrix[j, k].predict(
-                    numpy.ravel(orig_vector_prediction_matrix[..., k])
-                )
-                new_vector_prediction_matrix[..., k] = numpy.reshape(
-                    these_predictions, orig_vector_prediction_matrix.shape[:2]
-                )
-            else:
-                new_vector_prediction_matrix[:, j, k] = (
-                    vector_model_object_matrix[j, k].predict(
-                        orig_vector_prediction_matrix[:, j, k]
+            for m in range(ensemble_size):
+                if num_modeling_heights == 1:
+                    these_predictions = vector_model_object_matrix[j, k].predict(
+                        numpy.ravel(orig_vector_prediction_matrix[..., k, m])
                     )
-                )
+                    new_vector_prediction_matrix[..., k, m] = numpy.reshape(
+                        these_predictions,
+                        orig_vector_prediction_matrix.shape[:2]
+                    )
+                else:
+                    new_vector_prediction_matrix[:, j, k, m] = (
+                        vector_model_object_matrix[j, k].predict(
+                            orig_vector_prediction_matrix[:, j, k, m]
+                        )
+                    )
 
         if k != num_vector_targets - 1:
             print('\n')
