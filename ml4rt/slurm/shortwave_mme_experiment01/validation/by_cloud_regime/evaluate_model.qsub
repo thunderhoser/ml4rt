@@ -1,18 +1,18 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_discard_test_for_heating_rates"
+#SBATCH --job-name="evaluate_model"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --time=30:00:00
-#SBATCH --exclude=h28n12
+#SBATCH --cpus-per-task=1
+#SBATCH --time=18:00:00
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_discard_test_for_heating_rates_%A.out
+#SBATCH --output=evaluate_model_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -32,12 +32,19 @@ while ($i <= ${#REGIME_STRINGS_DASHED})
     set regime_string_dashed=${REGIME_STRINGS_DASHED[$i]}
     set regime_string_underscored=${REGIME_STRINGS_UNDERSCORED[$i]}
     
-    set input_file_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}/discard_test_for_heating_rates.nc"
-    set output_dir_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}/discard_test_for_heating_rates"
+    set prediction_file_name="${evaluation_dir_name}/by_cloud_regime/predictions_${regime_string_dashed}.nc"
+    set evaluation_dir_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}"
     
-    python3 -u "${CODE_DIR_NAME}/plot_discard_test.py" \
-    --input_file_name="${input_file_name}" \
-    --output_dir_name="${output_dir_name}"
+    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+    --input_prediction_file_name="${prediction_file_name}" \
+    --num_bootstrap_reps=1 \
+    --num_heating_rate_bins=41 \
+    --heating_rate_limits_k_day01 0 41 \
+    --num_raw_flux_bins=50 \
+    --raw_flux_limits_w_m02 0 1250 \
+    --num_net_flux_bins=41 \
+    --net_flux_limits_w_m02 -1050 1000 \
+    --output_dir_name="${evaluation_dir_name}"
     
     @ i = $i + 1
 end

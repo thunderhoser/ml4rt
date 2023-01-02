@@ -31,7 +31,7 @@ set ENSEMBLE_MEMBER_INDICES=("001" "002" "003" "004" "005" "006" "007" "008" "00
 set input_file_names_string=""
 set i=1
 
-while ($i <= ${#dense_layer_count_strings})
+while ($i <= ${#ENSEMBLE_MEMBER_INDICES})
     set this_index=${ENSEMBLE_MEMBER_INDICES[$i]}
     set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/ensemble-member=${this_index}/model/validation/predictions.nc"
     
