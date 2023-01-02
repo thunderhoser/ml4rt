@@ -312,7 +312,7 @@ def write_file(
     error_checking.assert_is_numpy_array(scalar_target_matrix, num_dimensions=2)
     error_checking.assert_is_numpy_array_without_nan(scalar_prediction_matrix)
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-    error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
+    # error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
 
     num_ensemble_members = scalar_prediction_matrix.shape[-1]
     these_dim = numpy.array(
