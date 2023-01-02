@@ -1044,6 +1044,8 @@ def get_crps_all_vars(prediction_file_name, num_integration_levels,
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
 
+    del prediction_dict
+
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
     num_scalar_targets = scalar_target_matrix.shape[1]
@@ -1291,6 +1293,8 @@ def get_pit_histogram_all_vars(prediction_file_name, num_bins):
     vector_prediction_matrix = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
+
+    del prediction_dict
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
@@ -2028,6 +2032,8 @@ def get_spread_vs_skill_all_vars(
     vector_prediction_matrix = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
     )
+
+    del prediction_dict
 
     num_heights = vector_target_matrix.shape[1]
     num_vector_targets = vector_target_matrix.shape[2]
