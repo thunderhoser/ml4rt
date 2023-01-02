@@ -2,7 +2,6 @@
 
 import os
 import argparse
-import numpy
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.machine_learning import isotonic_regression
@@ -59,7 +58,6 @@ def _run(input_prediction_file_name, model_file_name,
         input_prediction_file_name
     ))
     prediction_dict = prediction_io.read_file(input_prediction_file_name)
-    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
 
     if prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY] is not None:
         raise ValueError(
@@ -125,10 +123,8 @@ def _run(input_prediction_file_name, model_file_name,
         netcdf_file_name=output_prediction_file_name,
         scalar_target_matrix=prediction_dict[prediction_io.SCALAR_TARGETS_KEY],
         vector_target_matrix=prediction_dict[prediction_io.VECTOR_TARGETS_KEY],
-        scalar_prediction_matrix=
-        numpy.expand_dims(new_scalar_prediction_matrix, axis=-1),
-        vector_prediction_matrix=
-        numpy.expand_dims(new_vector_prediction_matrix, axis=-1),
+        scalar_prediction_matrix=new_scalar_prediction_matrix,
+        vector_prediction_matrix=new_vector_prediction_matrix,
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
