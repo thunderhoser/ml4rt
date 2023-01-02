@@ -2,7 +2,7 @@
 
 import os
 import sys
-import dill
+import pickle
 import numpy
 from sklearn.isotonic import IsotonicRegression
 
@@ -397,8 +397,8 @@ def write_file(dill_file_name, scalar_model_objects,
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    dill.dump(scalar_model_objects, dill_file_handle)
-    dill.dump(vector_model_object_matrix, dill_file_handle)
+    pickle.dump(scalar_model_objects, dill_file_handle)
+    pickle.dump(vector_model_object_matrix, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -413,8 +413,8 @@ def read_file(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    scalar_model_objects = dill.load(dill_file_handle)
-    vector_model_object_matrix = dill.load(dill_file_handle)
+    scalar_model_objects = pickle.load(dill_file_handle)
+    vector_model_object_matrix = pickle.load(dill_file_handle)
     dill_file_handle.close()
 
     return scalar_model_objects, vector_model_object_matrix
