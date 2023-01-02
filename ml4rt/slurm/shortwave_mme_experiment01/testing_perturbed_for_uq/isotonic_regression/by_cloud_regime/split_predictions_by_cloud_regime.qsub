@@ -1,0 +1,34 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="split_predictions_by_cloud_regime"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=split_predictions_by_cloud_regime_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing_perturbed_for_uq"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01"
+
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/testing_perturbed_for_uq"
+set main_prediction_file_name="${evaluation_dir_name}/predictions.nc"
+
+python3 -u "${CODE_DIR_NAME}/split_predictions_by_cloud.py" \
+--input_prediction_file_name="${main_prediction_file_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--for_ice=0 \
+--min_path_kg_m02=0.025 \
+--include_fog=0 \
+--output_prediction_dir_name="${evaluation_dir_name}/by_cloud_regime"
