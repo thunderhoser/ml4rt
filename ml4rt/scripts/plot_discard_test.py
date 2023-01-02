@@ -7,8 +7,13 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from ml4rt.utils import uq_evaluation
+from ml4rt.plotting import evaluation_plotting
 from ml4rt.plotting import uq_evaluation_plotting as uq_eval_plotting
 
+ERROR_PROFILE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+
+FIGURE_WIDTH_INCHES = 15
+FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
@@ -82,6 +87,21 @@ def _run(input_file_name, output_dir_name):
         pyplot.close(figure_object)
 
     for this_var_name in t.coords[uq_evaluation.VECTOR_FIELD_DIM].values:
+        figure_object, _ = uq_eval_plotting.plot_discard_test(
+            result_table_xarray=result_table_xarray,
+            target_var_name=this_var_name
+        )
+
+        this_figure_file_name = '{0:s}/discard_test_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(this_figure_file_name))
+        figure_object.savefig(
+            this_figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
         for this_height_m_agl in t.coords[uq_evaluation.HEIGHT_DIM].values:
             figure_object, _ = uq_eval_plotting.plot_discard_test(
                 result_table_xarray=result_table_xarray,
@@ -103,6 +123,36 @@ def _run(input_file_name, output_dir_name):
                 pad_inches=0, bbox_inches='tight'
             )
             pyplot.close(figure_object)
+
+    for j in range(len(t.coords[uq_evaluation.VECTOR_FIELD_DIM].values)):
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
+            score_values=
+            t[uq_evaluation.VECTOR_MONOTONICITY_FRACTION_KEY].values[j, :],
+            score_name=evaluation_plotting.MONO_FRACTION_NAME,
+            line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        this_var_name = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values[j]
+        axes_object.set_xlabel('Monotonicity fraction in discard test (MF)')
+        axes_object.set_title('MF for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        ))
+
+        figure_file_name = '{0:s}/mono_fraction_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
 
 if __name__ == '__main__':

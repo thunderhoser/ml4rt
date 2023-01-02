@@ -30,11 +30,16 @@ KS_STATISTIC_NAME = 'ks_statistic'
 KS_P_VALUE_NAME = 'ks_p_value'
 CRPS_NAME = 'crps'
 CRPSS_NAME = 'crpss'
+SSREL_NAME = 'ssrel'
+SSRAT_NAME = 'ssrat'
+PITD_NAME = 'pitd'
+MONO_FRACTION_NAME = 'monotonicity_fraction'
 
 VALID_SCORE_NAMES = [
     MSE_NAME, MSE_SKILL_SCORE_NAME, MAE_NAME, MAE_SKILL_SCORE_NAME,
     BIAS_NAME, CORRELATION_NAME, KGE_NAME, MSE_BIAS_NAME, MSE_VARIANCE_NAME,
-    KS_STATISTIC_NAME, KS_P_VALUE_NAME, CRPS_NAME, CRPSS_NAME
+    KS_STATISTIC_NAME, KS_P_VALUE_NAME, CRPS_NAME, CRPSS_NAME,
+    SSREL_NAME, SSRAT_NAME, PITD_NAME, MONO_FRACTION_NAME
 ]
 
 RELIABILITY_LINE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -556,9 +561,19 @@ def plot_score_profile(
     possibly_negative_score_names = (
         skill_score_names + [BIAS_NAME, CORRELATION_NAME, KGE_NAME]
     )
+    one_is_optimal_score_names = [SSRAT_NAME]
 
     if score_name in possibly_negative_score_names:
         reference_x_coords = numpy.full(2, 0.)
+        reference_y_coords = numpy.array([0, max_height_km_agl], dtype=float)
+
+        axes_object.plot(
+            reference_x_coords, reference_y_coords, color=REFERENCE_LINE_COLOUR,
+            linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
+        )
+
+    if score_name in one_is_optimal_score_names:
+        reference_x_coords = numpy.full(2, 1.)
         reference_y_coords = numpy.array([0, max_height_km_agl], dtype=float)
 
         axes_object.plot(
@@ -662,9 +677,21 @@ def plot_score_profile_by_pressure(
     possibly_negative_score_names = (
         skill_score_names + [BIAS_NAME, CORRELATION_NAME, KGE_NAME]
     )
+    one_is_optimal_score_names = [SSRAT_NAME]
 
     if score_name in possibly_negative_score_names:
         reference_x_coords = numpy.full(2, 0.)
+        reference_y_coords = numpy.array(
+            [min_pressure_mb, max_pressure_mb], dtype=float
+        )
+
+        axes_object.plot(
+            reference_x_coords, reference_y_coords, color=REFERENCE_LINE_COLOUR,
+            linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
+        )
+
+    if score_name in one_is_optimal_score_names:
+        reference_x_coords = numpy.full(2, 1.)
         reference_y_coords = numpy.array(
             [min_pressure_mb, max_pressure_mb], dtype=float
         )

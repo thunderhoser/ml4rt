@@ -73,6 +73,14 @@ VECTOR_SSRAT_KEY = 'vector_spread_skill_ratio'
 VECTOR_EXAMPLE_COUNT_KEY = 'vector_example_count'
 VECTOR_MEAN_MEAN_PREDICTION_KEY = 'vector_mean_mean_prediction'
 VECTOR_MEAN_TARGET_KEY = 'vector_mean_target_value'
+VECTOR_FLAT_MEAN_STDEV_KEY = 'vector_flat_mean_prediction_stdev'
+VECTOR_FLAT_BIN_EDGE_KEY = 'vector_flat_bin_edge_prediction_stdev'
+VECTOR_FLAT_RMSE_KEY = 'vector_flat_rmse'
+VECTOR_FLAT_SSREL_KEY = 'vector_flat_spread_skill_reliability'
+VECTOR_FLAT_SSRAT_KEY = 'vector_flat_spread_skill_ratio'
+VECTOR_FLAT_EXAMPLE_COUNT_KEY = 'vector_flat_example_count'
+VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY = 'vector_flat_mean_mean_prediction'
+VECTOR_FLAT_MEAN_TARGET_KEY = 'vector_flat_mean_target_value'
 AUX_MEAN_STDEV_KEY = 'aux_mean_prediction_stdev'
 AUX_BIN_EDGE_KEY = 'aux_bin_edge_prediction_stdev'
 AUX_RMSE_KEY = 'aux_rmse'
@@ -96,6 +104,11 @@ SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY = 'scalar_mean_discard_improvement'
 VECTOR_POST_DISCARD_ERROR_KEY = 'vector_post_discard_error'
 VECTOR_MONOTONICITY_FRACTION_KEY = 'vector_monotonicity_fraction'
 VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY = 'vector_mean_discard_improvement'
+VECTOR_FLAT_POST_DISCARD_ERROR_KEY = 'vector_flat_post_discard_error'
+VECTOR_FLAT_MONOTONICITY_FRACTION_KEY = 'vector_flat_monotonicity_fraction'
+VECTOR_FLAT_MEAN_DISCARD_IMPROVEMENT_KEY = (
+    'vector_flat_mean_discard_improvement'
+)
 AUX_POST_DISCARD_ERROR_KEY = 'aux_post_discard_error'
 AUX_MONOTONICITY_FRACTION_KEY = 'aux_monotonicity_fraction'
 AUX_MEAN_DISCARD_IMPROVEMENT_KEY = 'aux_mean_discard_improvement'
@@ -119,6 +132,9 @@ SCALAR_PIT_BIN_COUNT_KEY = 'scalar_pit_hist_bin_count'
 VECTOR_PITD_KEY = 'vector_pitd'
 VECTOR_PERFECT_PITD_KEY = 'vector_perfect_pitd'
 VECTOR_PIT_BIN_COUNT_KEY = 'vector_pit_hist_bin_count'
+VECTOR_FLAT_PITD_KEY = 'vector_flat_pitd'
+VECTOR_FLAT_PERFECT_PITD_KEY = 'vector_flat_perfect_pitd'
+VECTOR_FLAT_PIT_BIN_COUNT_KEY = 'vector_flat_pit_hist_bin_count'
 AUX_PITD_KEY = 'aux_pitd'
 AUX_PERFECT_PITD_KEY = 'aux_perfect_pitd'
 AUX_PIT_BIN_COUNT_KEY = 'aux_pit_hist_bin_count'
@@ -1306,6 +1322,16 @@ def get_pit_histogram_all_vars(prediction_file_name, num_bins):
                 (num_vector_targets, num_heights, num_bins), -1, dtype=int
             )
         ),
+        VECTOR_FLAT_PITD_KEY: (
+            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+        ),
+        VECTOR_FLAT_PERFECT_PITD_KEY: (
+            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+        ),
+        VECTOR_FLAT_PIT_BIN_COUNT_KEY: (
+            (VECTOR_FIELD_DIM, PIT_HISTOGRAM_BIN_DIM),
+            numpy.full((num_vector_targets, num_bins), -1, dtype=int)
+        )
     }
 
     if num_aux_targets > 0:
@@ -1360,6 +1386,26 @@ def get_pit_histogram_all_vars(prediction_file_name, num_bins):
         )
 
     for j in range(num_vector_targets):
+        print('Computing PIT histogram for {0:s}...'.format(
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j]
+        ))
+
+        these_targets = numpy.ravel(vector_target_matrix[:, :, j])
+        this_prediction_matrix = numpy.reshape(
+            vector_prediction_matrix[:, :, j, :],
+            (len(these_targets), vector_prediction_matrix.shape[-1])
+        )
+
+        (
+            _,
+            result_table_xarray[VECTOR_FLAT_PIT_BIN_COUNT_KEY].values[j, :],
+            result_table_xarray[VECTOR_FLAT_PITD_KEY].values[j],
+            result_table_xarray[VECTOR_FLAT_PERFECT_PITD_KEY].values[j]
+        ) = _get_pit_histogram_one_var(
+            target_values=these_targets,
+            prediction_matrix=this_prediction_matrix, num_bins=num_bins
+        )
+
         for k in range(num_heights):
             print('Computing PIT histogram for {0:s} at {1:d} m AGL...'.format(
                 example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
@@ -1571,6 +1617,29 @@ def run_discard_test_all_vars(
         )
     })
 
+    these_dim_keys_2d = (VECTOR_FIELD_DIM,)
+    these_dim_keys_3d = (VECTOR_FIELD_DIM, DISCARD_FRACTION_DIM)
+    these_dim_2d = num_vector_targets
+    these_dim_3d = (num_vector_targets, num_fractions)
+
+    main_data_dict.update({
+        VECTOR_FLAT_POST_DISCARD_ERROR_KEY: (
+            these_dim_keys_3d, numpy.full(these_dim_3d, numpy.nan)
+        ),
+        VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY: (
+            these_dim_keys_3d, numpy.full(these_dim_3d, numpy.nan)
+        ),
+        VECTOR_FLAT_MEAN_TARGET_KEY: (
+            these_dim_keys_3d, numpy.full(these_dim_3d, numpy.nan)
+        ),
+        VECTOR_FLAT_MONOTONICITY_FRACTION_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        ),
+        VECTOR_FLAT_MEAN_DISCARD_IMPROVEMENT_KEY: (
+            these_dim_keys_2d, numpy.full(these_dim_2d, numpy.nan)
+        )
+    })
+
     num_aux_targets = len(aux_target_field_names)
 
     if num_aux_targets > 0:
@@ -1675,6 +1744,31 @@ def run_discard_test_all_vars(
             )
 
         for k in range(num_vector_targets):
+            this_mean_pred_by_example = numpy.mean(
+                vector_prediction_matrix[:, :, k, :][use_example_flags, ...],
+                axis=-1
+            )
+
+            t[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[k, i] = numpy.mean(
+                this_mean_pred_by_example
+            )
+
+            t[VECTOR_FLAT_MEAN_TARGET_KEY].values[k, i] = numpy.mean(
+                vector_target_matrix[:, :, k][use_example_flags, :]
+            )
+
+            these_targets = numpy.ravel(vector_target_matrix[:, :, k])
+            this_prediction_matrix = numpy.reshape(
+                vector_prediction_matrix[:, :, k, :],
+                (len(these_targets), vector_prediction_matrix.shape[-1])
+            )
+
+            t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, i] = (
+                error_function_for_hr_1height(
+                    these_targets, this_prediction_matrix, use_example_flags
+                )
+            )
+
             for j in range(num_heights):
                 this_mean_pred_by_example = numpy.mean(
                     vector_prediction_matrix[:, j, k, :][use_example_flags, :],
@@ -1738,6 +1832,26 @@ def run_discard_test_all_vars(
             )
 
     for k in range(num_vector_targets):
+        if is_error_pos_oriented:
+            t[VECTOR_FLAT_MONOTONICITY_FRACTION_KEY].values[k] = numpy.mean(
+                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :])
+                > 0
+            )
+            t[VECTOR_FLAT_MEAN_DISCARD_IMPROVEMENT_KEY].values[k] = numpy.mean(
+                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :]) /
+                numpy.diff(discard_fractions)
+            )
+        else:
+            t[VECTOR_FLAT_MONOTONICITY_FRACTION_KEY].values[k] = numpy.mean(
+                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :])
+                < 0
+            )
+            t[VECTOR_FLAT_MEAN_DISCARD_IMPROVEMENT_KEY].values[k] = numpy.mean(
+                -1 *
+                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :]) /
+                numpy.diff(discard_fractions)
+            )
+
         for j in range(num_heights):
             if is_error_pos_oriented:
                 t[VECTOR_MONOTONICITY_FRACTION_KEY].values[k, j] = numpy.mean(
@@ -1995,6 +2109,41 @@ def get_spread_vs_skill_all_vars(
         )
     })
 
+    these_dim_no_bins = num_vector_targets
+    these_dim_no_edge = (num_vector_targets, num_raw_flux_bins)
+    these_dim_with_edge = (num_vector_targets, num_raw_flux_bins + 1)
+
+    these_dim_keys_no_bins = (VECTOR_FIELD_DIM,)
+    these_dim_keys_no_edge = (VECTOR_FIELD_DIM, HEATING_RATE_BIN_DIM)
+    these_dim_keys_with_edge = (VECTOR_FIELD_DIM, HEATING_RATE_BIN_EDGE_DIM)
+
+    main_data_dict.update({
+        VECTOR_FLAT_MEAN_STDEV_KEY: (
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
+        ),
+        VECTOR_FLAT_BIN_EDGE_KEY: (
+            these_dim_keys_with_edge, numpy.full(these_dim_with_edge, numpy.nan)
+        ),
+        VECTOR_FLAT_RMSE_KEY: (
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
+        ),
+        VECTOR_FLAT_SSREL_KEY: (
+            these_dim_keys_no_bins, numpy.full(these_dim_no_bins, numpy.nan)
+        ),
+        VECTOR_FLAT_SSRAT_KEY: (
+            these_dim_keys_no_bins, numpy.full(these_dim_no_bins, numpy.nan)
+        ),
+        VECTOR_FLAT_EXAMPLE_COUNT_KEY: (
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, -1, dtype=int)
+        ),
+        VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY: (
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
+        ),
+        VECTOR_FLAT_MEAN_TARGET_KEY: (
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
+        )
+    })
+
     num_aux_targets = len(aux_target_field_names)
 
     if num_aux_targets > 0:
@@ -2169,6 +2318,63 @@ def get_spread_vs_skill_all_vars(
         )
 
     for j in range(num_vector_targets):
+        print('Computing spread-skill relationship for {0:s}...'.format(
+            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j]
+        ))
+
+        if (
+                min_heating_rate_k_day01 is None or
+                max_heating_rate_k_day01 is None
+        ):
+            these_stdevs = numpy.std(
+                vector_prediction_matrix[:, :, j, :], ddof=1, axis=-1
+            )
+            this_max_value = numpy.percentile(
+                these_stdevs, max_heating_rate_percentile
+            )
+
+            these_bin_edges = numpy.linspace(
+                numpy.percentile(these_stdevs, min_heating_rate_percentile),
+                this_max_value,
+                num=num_heating_rate_bins + 1, dtype=float
+            )[1:-1]
+        else:
+            these_bin_edges = numpy.linspace(
+                min_heating_rate_k_day01, max_heating_rate_k_day01,
+                num=num_heating_rate_bins + 1, dtype=float
+            )[1:-1]
+
+        this_result_dict = _get_spread_vs_skill_one_var(
+            target_values=vector_target_matrix[..., j],
+            prediction_matrix=vector_prediction_matrix[:, :, j, :],
+            bin_edge_prediction_stdevs=these_bin_edges
+        )
+
+        result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, :] = (
+            this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_BIN_EDGE_KEY].values[j, :] = (
+            this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, :] = (
+            this_result_dict[RMSE_VALUES_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_SSREL_KEY].values[j] = (
+            this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_SSRAT_KEY].values[j] = (
+            this_result_dict[SPREAD_SKILL_RATIO_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, :] = (
+            this_result_dict[EXAMPLE_COUNTS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, :] = (
+            this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, :] = (
+            this_result_dict[MEAN_TARGET_VALUES_KEY]
+        )
+
         for k in range(num_heights):
             print((
                 'Computing spread-skill relationship for {0:s} at {1:d} '
@@ -2188,7 +2394,6 @@ def get_spread_vs_skill_all_vars(
                 this_max_value = numpy.percentile(
                     these_stdevs, max_heating_rate_percentile
                 )
-                this_max_value = max([this_max_value, 1.])
 
                 these_bin_edges = numpy.linspace(
                     numpy.percentile(these_stdevs, min_heating_rate_percentile),
