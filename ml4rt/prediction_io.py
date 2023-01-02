@@ -474,9 +474,14 @@ def read_file(netcdf_file_name):
     dataset_object = netCDF4.Dataset(netcdf_file_name)
 
     prediction_dict = {
-        VECTOR_TARGETS_KEY: dataset_object.variables[VECTOR_TARGETS_KEY][:],
+        VECTOR_TARGETS_KEY:
+            dataset_object.variables[VECTOR_TARGETS_KEY][:].astype(
+                numpy.float16
+            ),
         VECTOR_PREDICTIONS_KEY:
-            dataset_object.variables[VECTOR_PREDICTIONS_KEY][:],
+            dataset_object.variables[VECTOR_PREDICTIONS_KEY][:].astype(
+                numpy.float16
+            ),
         EXAMPLE_IDS_KEY: [
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
