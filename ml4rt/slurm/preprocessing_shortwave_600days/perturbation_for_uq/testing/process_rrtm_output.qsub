@@ -26,7 +26,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing_perturbed_for_uq"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing_all_perturbed_for_uq"
 
 set FIRST_DATE_STRINGS=("20200118" "20200228" "20200409" "20200522" "20200702" "20200812" "20200922" "20201105" "20201216")
 set LAST_DATE_STRINGS=("20200131" "20200312" "20200422" "20200604" "20200715" "20200825" "20201007" "20201118" "20201223")
