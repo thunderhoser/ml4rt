@@ -6,6 +6,9 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from ml4rt.utils import example_utils
 from ml4rt.utils import uq_evaluation
+from ml4rt.utils import pit_utils
+from ml4rt.utils import spread_skill_utils as ss_utils
+from ml4rt.utils import discard_test_utils as dt_utils
 
 TOLERANCE = 1e-6
 
@@ -175,7 +178,7 @@ def plot_spread_vs_skill(
     """Creates spread-skill plot for one target variable.
 
     :param result_table_xarray: xarray table in format returned by
-        `uq_evaluation.get_spread_vs_skill_all_vars`.
+        `spread_skill_utils.get_results_all_vars`.
     :param target_var_name: Will create spread-skill plot for this target
         variable.
     :param target_height_m_agl: Will create spread-skill plot for given target
@@ -194,98 +197,85 @@ def plot_spread_vs_skill(
     t = result_table_xarray
 
     try:
-        k = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist().index(
+        k = t.coords[ss_utils.SCALAR_FIELD_DIM].values.tolist().index(
             target_var_name
         )
 
-        spread_skill_reliability = t[uq_evaluation.SCALAR_SSREL_KEY].values[k]
-        spread_skill_ratio = t[uq_evaluation.SCALAR_SSRAT_KEY].values[k]
-        mean_prediction_stdevs = (
-            t[uq_evaluation.SCALAR_MEAN_STDEV_KEY].values[k, :]
-        )
-        rmse_values = t[uq_evaluation.SCALAR_RMSE_KEY].values[k, :]
-        bin_edges = t[uq_evaluation.SCALAR_BIN_EDGE_KEY].values[k, :]
-        example_counts = t[uq_evaluation.SCALAR_EXAMPLE_COUNT_KEY].values[k, :]
+        spread_skill_reliability = t[ss_utils.SCALAR_SSREL_KEY].values[k]
+        spread_skill_ratio = t[ss_utils.SCALAR_SSRAT_KEY].values[k]
+        mean_prediction_stdevs = t[ss_utils.SCALAR_MEAN_STDEV_KEY].values[k, :]
+        rmse_values = t[ss_utils.SCALAR_RMSE_KEY].values[k, :]
+        bin_edges = t[ss_utils.SCALAR_BIN_EDGE_KEY].values[k, :]
+        example_counts = t[ss_utils.SCALAR_EXAMPLE_COUNT_KEY].values[k, :]
         mean_mean_predictions = (
-            t[uq_evaluation.SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, :]
+            t[ss_utils.SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, :]
         )
-        mean_target_values = (
-            t[uq_evaluation.SCALAR_MEAN_TARGET_KEY].values[k, :]
-        )
+        mean_target_values = t[ss_utils.SCALAR_MEAN_TARGET_KEY].values[k, :]
     except ValueError:
         try:
-            k = t.coords[
-                uq_evaluation.AUX_TARGET_FIELD_DIM
-            ].values.tolist().index(target_var_name)
+            k = t.coords[ss_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
+                target_var_name
+            )
 
-            spread_skill_reliability = t[uq_evaluation.AUX_SSREL_KEY].values[k]
-            spread_skill_ratio = t[uq_evaluation.AUX_SSRAT_KEY].values[k]
-            mean_prediction_stdevs = (
-                t[uq_evaluation.AUX_MEAN_STDEV_KEY].values[k, :]
-            )
-            rmse_values = t[uq_evaluation.AUX_RMSE_KEY].values[k, :]
-            bin_edges = t[uq_evaluation.AUX_BIN_EDGE_KEY].values[k, :]
-            example_counts = t[uq_evaluation.AUX_EXAMPLE_COUNT_KEY].values[k, :]
+            spread_skill_reliability = t[ss_utils.AUX_SSREL_KEY].values[k]
+            spread_skill_ratio = t[ss_utils.AUX_SSRAT_KEY].values[k]
+            mean_prediction_stdevs = t[ss_utils.AUX_MEAN_STDEV_KEY].values[k, :]
+            rmse_values = t[ss_utils.AUX_RMSE_KEY].values[k, :]
+            bin_edges = t[ss_utils.AUX_BIN_EDGE_KEY].values[k, :]
+            example_counts = t[ss_utils.AUX_EXAMPLE_COUNT_KEY].values[k, :]
             mean_mean_predictions = (
-                t[uq_evaluation.AUX_MEAN_MEAN_PREDICTION_KEY].values[k, :]
+                t[ss_utils.AUX_MEAN_MEAN_PREDICTION_KEY].values[k, :]
             )
-            mean_target_values = (
-                t[uq_evaluation.AUX_MEAN_TARGET_KEY].values[k, :]
-            )
+            mean_target_values = t[ss_utils.AUX_MEAN_TARGET_KEY].values[k, :]
         except ValueError:
-            k = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values.tolist().index(
+            k = t.coords[ss_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
             )
 
             if target_height_m_agl is None:
                 spread_skill_reliability = (
-                    t[uq_evaluation.VECTOR_FLAT_SSREL_KEY].values[k]
+                    t[ss_utils.VECTOR_FLAT_SSREL_KEY].values[k]
                 )
                 spread_skill_ratio = (
-                    t[uq_evaluation.VECTOR_FLAT_SSRAT_KEY].values[k]
+                    t[ss_utils.VECTOR_FLAT_SSRAT_KEY].values[k]
                 )
                 mean_prediction_stdevs = (
-                    t[uq_evaluation.VECTOR_FLAT_MEAN_STDEV_KEY].values[k, :]
+                    t[ss_utils.VECTOR_FLAT_MEAN_STDEV_KEY].values[k, :]
                 )
-                rmse_values = t[uq_evaluation.VECTOR_FLAT_RMSE_KEY].values[k, :]
-                bin_edges = (
-                    t[uq_evaluation.VECTOR_FLAT_BIN_EDGE_KEY].values[k, :]
-                )
+                rmse_values = t[ss_utils.VECTOR_FLAT_RMSE_KEY].values[k, :]
+                bin_edges = t[ss_utils.VECTOR_FLAT_BIN_EDGE_KEY].values[k, :]
                 example_counts = (
-                    t[uq_evaluation.VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[k, :]
+                    t[ss_utils.VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[k, :]
                 )
                 mean_target_values = (
-                    t[uq_evaluation.VECTOR_FLAT_MEAN_TARGET_KEY].values[k, :]
+                    t[ss_utils.VECTOR_FLAT_MEAN_TARGET_KEY].values[k, :]
                 )
                 mean_mean_predictions = t[
-                    uq_evaluation.VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY
+                    ss_utils.VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY
                 ].values[k, :]
             else:
                 height_diffs_metres = numpy.absolute(
-                    t.coords[uq_evaluation.HEIGHT_DIM].values -
-                    target_height_m_agl
+                    t.coords[ss_utils.HEIGHT_DIM].values - target_height_m_agl
                 )
                 j = numpy.where(height_diffs_metres <= TOLERANCE)[0][0]
 
                 spread_skill_reliability = (
-                    t[uq_evaluation.VECTOR_SSREL_KEY].values[k, j]
+                    t[ss_utils.VECTOR_SSREL_KEY].values[k, j]
                 )
-                spread_skill_ratio = (
-                    t[uq_evaluation.VECTOR_SSRAT_KEY].values[k, j]
-                )
+                spread_skill_ratio = t[ss_utils.VECTOR_SSRAT_KEY].values[k, j]
                 mean_prediction_stdevs = (
-                    t[uq_evaluation.VECTOR_MEAN_STDEV_KEY].values[k, j, :]
+                    t[ss_utils.VECTOR_MEAN_STDEV_KEY].values[k, j, :]
                 )
-                rmse_values = t[uq_evaluation.VECTOR_RMSE_KEY].values[k, j, :]
-                bin_edges = t[uq_evaluation.VECTOR_BIN_EDGE_KEY].values[k, j, :]
+                rmse_values = t[ss_utils.VECTOR_RMSE_KEY].values[k, j, :]
+                bin_edges = t[ss_utils.VECTOR_BIN_EDGE_KEY].values[k, j, :]
                 example_counts = (
-                    t[uq_evaluation.VECTOR_EXAMPLE_COUNT_KEY].values[k, j, :]
+                    t[ss_utils.VECTOR_EXAMPLE_COUNT_KEY].values[k, j, :]
                 )
                 mean_target_values = (
-                    t[uq_evaluation.VECTOR_MEAN_TARGET_KEY].values[k, j, :]
+                    t[ss_utils.VECTOR_MEAN_TARGET_KEY].values[k, j, :]
                 )
                 mean_mean_predictions = t[
-                    uq_evaluation.VECTOR_MEAN_MEAN_PREDICTION_KEY
+                    ss_utils.VECTOR_MEAN_MEAN_PREDICTION_KEY
                 ].values[k, j, :]
 
     # Do actual stuff.
@@ -390,7 +380,7 @@ def plot_discard_test(
     """Plots results of discard test.
 
     :param result_table_xarray: xarray table in format returned by
-        `uq_evaluation.run_discard_test_all_vars`.
+        `discard_test_utils.run_discard_test`.
     :param target_var_name: Will plot discard test for this target variable.
     :param target_height_m_agl: Will plot discard test for given target variable
         at this height (metres above ground).  If `target_var_name` does not
@@ -406,95 +396,74 @@ def plot_discard_test(
     t = result_table_xarray
 
     try:
-        k = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist().index(
+        k = t.coords[dt_utils.SCALAR_FIELD_DIM].values.tolist().index(
             target_var_name
         )
 
-        error_values = (
-            t[uq_evaluation.SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]
-        )
+        error_values = t[dt_utils.SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]
         mean_mean_predictions = (
-            t[uq_evaluation.SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, :]
+            t[dt_utils.SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, :]
         )
-        mean_target_values = (
-            t[uq_evaluation.SCALAR_MEAN_TARGET_KEY].values[k, :]
-        )
-        monotonicity_fraction = (
-            t[uq_evaluation.SCALAR_MONOTONICITY_FRACTION_KEY].values[k]
-        )
-        mean_discard_improvement = (
-            t[uq_evaluation.SCALAR_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
-        )
+        mean_target_values = t[dt_utils.SCALAR_MEAN_TARGET_KEY].values[k, :]
+        mono_fraction = t[dt_utils.SCALAR_MONO_FRACTION_KEY].values[k]
+        mean_di = t[dt_utils.SCALAR_MEAN_DI_KEY].values[k]
     except ValueError:
         try:
-            k = t.coords[
-                uq_evaluation.AUX_TARGET_FIELD_DIM
-            ].values.tolist().index(target_var_name)
+            k = t.coords[dt_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
+                target_var_name
+            )
 
-            error_values = (
-                t[uq_evaluation.AUX_POST_DISCARD_ERROR_KEY].values[k, :]
-            )
+            error_values = t[dt_utils.AUX_POST_DISCARD_ERROR_KEY].values[k, :]
             mean_mean_predictions = (
-                t[uq_evaluation.AUX_MEAN_MEAN_PREDICTION_KEY].values[k, :]
+                t[dt_utils.AUX_MEAN_MEAN_PREDICTION_KEY].values[k, :]
             )
-            mean_target_values = (
-                t[uq_evaluation.AUX_MEAN_TARGET_KEY].values[k, :]
-            )
-            monotonicity_fraction = (
-                t[uq_evaluation.AUX_MONOTONICITY_FRACTION_KEY].values[k]
-            )
-            mean_discard_improvement = (
-                t[uq_evaluation.AUX_MEAN_DISCARD_IMPROVEMENT_KEY].values[k]
-            )
+            mean_target_values = t[dt_utils.AUX_MEAN_TARGET_KEY].values[k, :]
+            mono_fraction = t[dt_utils.AUX_MONO_FRACTION_KEY].values[k]
+            mean_di = t[dt_utils.AUX_MEAN_DI_KEY].values[k]
         except ValueError:
-            k = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values.tolist().index(
+            k = t.coords[dt_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
             )
 
             if target_height_m_agl is None:
-                error_values = t[
-                    uq_evaluation.VECTOR_FLAT_POST_DISCARD_ERROR_KEY
-                ].values[k, :]
+                error_values = (
+                    t[dt_utils.VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :]
+                )
                 mean_mean_predictions = t[
-                    uq_evaluation.VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY
+                    dt_utils.VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY
                 ].values[k, :]
                 mean_target_values = (
-                    t[uq_evaluation.VECTOR_FLAT_MEAN_TARGET_KEY].values[k, :]
+                    t[dt_utils.VECTOR_FLAT_MEAN_TARGET_KEY].values[k, :]
                 )
-                monotonicity_fraction = t[
-                    uq_evaluation.VECTOR_FLAT_MONOTONICITY_FRACTION_KEY
-                ].values[k]
-                mean_discard_improvement = t[
-                    uq_evaluation.VECTOR_FLAT_MEAN_DISCARD_IMPROVEMENT_KEY
-                ].values[k]
+                mono_fraction = (
+                    t[dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY].values[k]
+                )
+                mean_di = t[dt_utils.VECTOR_FLAT_MEAN_DI_KEY].values[k]
             else:
                 height_diffs_metres = numpy.absolute(
-                    t.coords[uq_evaluation.HEIGHT_DIM].values -
-                    target_height_m_agl
+                    t.coords[dt_utils.HEIGHT_DIM].values - target_height_m_agl
                 )
                 j = numpy.where(height_diffs_metres <= TOLERANCE)[0][0]
 
-                error_values = t[
-                    uq_evaluation.VECTOR_POST_DISCARD_ERROR_KEY
-                ].values[k, j, :]
+                error_values = (
+                    t[dt_utils.VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :]
+                )
                 mean_mean_predictions = t[
-                    uq_evaluation.VECTOR_MEAN_MEAN_PREDICTION_KEY
+                    dt_utils.VECTOR_MEAN_MEAN_PREDICTION_KEY
                 ].values[k, j, :]
                 mean_target_values = (
-                    t[uq_evaluation.VECTOR_MEAN_TARGET_KEY].values[k, j, :]
+                    t[dt_utils.VECTOR_MEAN_TARGET_KEY].values[k, j, :]
                 )
-                monotonicity_fraction = t[
-                    uq_evaluation.VECTOR_MONOTONICITY_FRACTION_KEY
-                ].values[k, j]
-                mean_discard_improvement = t[
-                    uq_evaluation.VECTOR_MEAN_DISCARD_IMPROVEMENT_KEY
-                ].values[k, j]
+                mono_fraction = (
+                    t[dt_utils.VECTOR_MONO_FRACTION_KEY].values[k, j]
+                )
+                mean_di = t[dt_utils.VECTOR_MEAN_DI_KEY].values[k, j]
 
     discard_fractions = (
-        result_table_xarray.coords[uq_evaluation.DISCARD_FRACTION_DIM].values
+        result_table_xarray.coords[dt_utils.DISCARD_FRACTION_DIM].values
     )
     # error_values = (
-    #     result_table_xarray[uq_evaluation.POST_DISCARD_ERROR_KEY].values
+    #     result_table_xarray[dt_utils.POST_DISCARD_ERROR_KEY].values
     # )
 
     figure_object, axes_object = pyplot.subplots(
@@ -542,8 +511,8 @@ def plot_discard_test(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None
         else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
-        100 * monotonicity_fraction,
-        mean_discard_improvement
+        100 * mono_fraction,
+        mean_di
     )
 
     axes_object.set_title(title_string)
@@ -559,7 +528,7 @@ def plot_pit_histogram(
     """Plots PIT (prob integral transform) histogram for one target variable.
 
     :param result_table_xarray: xarray table in format returned by
-        `uq_evaluation.get_pit_histogram_all_vars`.
+        `pit_utils.get_histogram_all_vars`.
     :param target_var_name: Will plot PIT histogram for this target variable.
     :param target_height_m_agl: Will plot PIT histogram for given target
         variable at this height (metres above ground).  If `target_var_name`
@@ -577,43 +546,38 @@ def plot_pit_histogram(
     t = result_table_xarray
 
     try:
-        k = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist().index(
+        k = t.coords[pit_utils.SCALAR_FIELD_DIM].values.tolist().index(
             target_var_name
         )
 
-        bin_counts = t[uq_evaluation.SCALAR_PIT_BIN_COUNT_KEY].values[k, :]
-        pitd_value = t[uq_evaluation.SCALAR_PITD_KEY].values[k]
+        bin_counts = t[pit_utils.SCALAR_BIN_COUNT_KEY].values[k, :]
+        pitd_value = t[pit_utils.SCALAR_PITD_KEY].values[k]
     except ValueError:
         try:
-            k = t.coords[
-                uq_evaluation.AUX_TARGET_FIELD_DIM
-            ].values.tolist().index(target_var_name)
+            k = t.coords[pit_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
+                target_var_name
+            )
 
-            bin_counts = t[uq_evaluation.AUX_PIT_BIN_COUNT_KEY].values[k, :]
-            pitd_value = t[uq_evaluation.AUX_PITD_KEY].values[k]
+            bin_counts = t[pit_utils.AUX_BIN_COUNT_KEY].values[k, :]
+            pitd_value = t[pit_utils.AUX_PITD_KEY].values[k]
         except ValueError:
-            k = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values.tolist().index(
+            k = t.coords[pit_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
             )
 
             if target_height_m_agl is None:
-                bin_counts = (
-                    t[uq_evaluation.VECTOR_FLAT_PIT_BIN_COUNT_KEY].values[k, :]
-                )
-                pitd_value = t[uq_evaluation.VECTOR_FLAT_PITD_KEY].values[k]
+                bin_counts = t[pit_utils.VECTOR_FLAT_BIN_COUNT_KEY].values[k, :]
+                pitd_value = t[pit_utils.VECTOR_FLAT_PITD_KEY].values[k]
             else:
                 height_diffs_metres = numpy.absolute(
-                    t.coords[uq_evaluation.HEIGHT_DIM].values -
-                    target_height_m_agl
+                    t.coords[pit_utils.HEIGHT_DIM].values - target_height_m_agl
                 )
                 j = numpy.where(height_diffs_metres <= TOLERANCE)[0][0]
 
-                bin_counts = (
-                    t[uq_evaluation.VECTOR_PIT_BIN_COUNT_KEY].values[k, j, :]
-                )
-                pitd_value = t[uq_evaluation.VECTOR_PITD_KEY].values[k, j]
+                bin_counts = t[pit_utils.VECTOR_BIN_COUNT_KEY].values[k, j, :]
+                pitd_value = t[pit_utils.VECTOR_PITD_KEY].values[k, j]
 
-    bin_edges = t.coords[uq_evaluation.PIT_HISTOGRAM_BIN_EDGE_DIM].values
+    bin_edges = t.coords[pit_utils.BIN_EDGE_DIM].values
     bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
 
     figure_object, axes_object = pyplot.subplots(

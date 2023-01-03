@@ -1,4 +1,7 @@
-"""Creates PIT (prob integ transform) histogram for each target variable."""
+"""Merges PIT histograms based on different example sets.
+
+i.e., PIT histograms created from different prediction files
+"""
 
 import argparse
 import numpy
@@ -6,28 +9,22 @@ from ml4rt.utils import pit_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
-NUM_BINS_ARG_NAME = 'num_bins'
+INPUT_FILES_ARG_NAME = 'input_file_names'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
-INPUT_FILE_HELP_STRING = (
-    'Path to input file, containing predictions and target values.  Will be '
-    'read by `prediction_io.read_file`.'
+INPUT_FILES_HELP_STRING = (
+    'List of paths to input files.  Each will be read by '
+    '`pit_utils.read_results`.'
 )
-NUM_BINS_HELP_STRING = 'Number of bins in each histogram.'
 OUTPUT_FILE_HELP_STRING = (
-    'Path to output (NetCDF) file.  Results will be written here by '
+    'Path to output (merged) file.  Will be written here by '
     '`pit_utils.write_results`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + INPUT_FILE_ARG_NAME, type=str, required=True,
-    help=INPUT_FILE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_BINS_ARG_NAME, type=int, required=True,
-    help=NUM_BINS_HELP_STRING
+    '--' + INPUT_FILES_ARG_NAME, type=str, nargs='+', required=True,
+    help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -35,22 +32,29 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(prediction_file_name, num_bins, output_file_name):
-    """Creates PIT (prob integ transform) histogram for each target variable.
+def _run(input_file_names, output_file_name):
+    """Merges PIT histograms based on different example sets.
 
     This is effectively the main method.
 
-    :param prediction_file_name: See documentation at top of file.
-    :param num_bins: Same.
+    :param input_file_names: See documentation at top of file.
     :param output_file_name: Same.
     """
 
-    result_table_xarray = pit_utils.get_histogram_all_vars(
-        prediction_file_name=prediction_file_name, num_bins=num_bins
+    num_input_files = len(input_file_names)
+    input_tables_xarray = [None] * num_input_files
+
+    for i in range(num_input_files):
+        print('Reading data from: "{0:s}"...'.format(input_file_names[i]))
+        input_tables_xarray[i] = pit_utils.read_results(input_file_names[i])
+
+    output_table_xarray = pit_utils.merge_results_over_examples(
+        input_tables_xarray
     )
+    del input_tables_xarray
     print(SEPARATOR_STRING)
 
-    t = result_table_xarray
+    t = output_table_xarray
     scalar_target_names = t.coords[pit_utils.SCALAR_FIELD_DIM].values
 
     for k in range(len(scalar_target_names)):
@@ -139,7 +143,7 @@ def _run(prediction_file_name, num_bins, output_file_name):
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
     pit_utils.write_results(
-        result_table_xarray=result_table_xarray,
+        result_table_xarray=output_table_xarray,
         netcdf_file_name=output_file_name
     )
 
@@ -148,7 +152,6 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
-        num_bins=getattr(INPUT_ARG_OBJECT, NUM_BINS_ARG_NAME),
+        input_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

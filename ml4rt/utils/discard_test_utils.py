@@ -551,13 +551,12 @@ def run_discard_test(
     )
 
 
-def merge_results_over_examples(result_tables_xarray, is_error_pos_oriented):
+def merge_results_over_examples(result_tables_xarray):
     """Merges discard-test results over many examples.
 
     :param result_tables_xarray: List of xarray tables, each created by
         `run_discard_test`, each containing results for a different
         set of examples.
-    :param is_error_pos_oriented: Boolean flag.
     :return: result_table_xarray: Single xarray table with results for all
         examples (variable and dimension names should make the table
         self-explanatory).
@@ -590,6 +589,26 @@ def merge_results_over_examples(result_tables_xarray, is_error_pos_oriented):
         )
     except:
         aux_predicted_field_names = []
+
+    this_result_table_xarray = _compute_mf_and_di(
+        result_table_xarray=copy.deepcopy(result_tables_xarray[0]),
+        is_error_pos_oriented=True
+    )
+    is_error_pos_oriented = True
+
+    these_keys = [
+        SCALAR_MONO_FRACTION_KEY, VECTOR_FLAT_MONO_FRACTION_KEY,
+        VECTOR_MONO_FRACTION_KEY
+    ]
+    if len(aux_predicted_field_names) > 0:
+        these_keys.append(AUX_MONO_FRACTION_KEY)
+
+    for this_key in these_keys:
+        is_error_pos_oriented &= numpy.allclose(
+            this_result_table_xarray[this_key].values,
+            result_tables_xarray[0][this_key].values,
+            atol=TOLERANCE
+        )
 
     result_table_xarray = copy.deepcopy(result_tables_xarray[0])
     num_discard_fractions = len(

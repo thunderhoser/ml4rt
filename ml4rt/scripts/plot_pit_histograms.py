@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
-from ml4rt.utils import uq_evaluation
+from ml4rt.utils import pit_utils
 from ml4rt.plotting import evaluation_plotting
 from ml4rt.plotting import uq_evaluation_plotting as uq_eval_plotting
 
@@ -20,7 +20,7 @@ INPUT_FILE_ARG_NAME = 'input_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
-    'Path to input file.  Will be read by `uq_evaluation.read_pit_histograms`.'
+    'Path to input file.  Will be read by `pit_utils.read_results`.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -51,10 +51,10 @@ def _run(input_file_name, output_dir_name):
     )
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
-    result_table_xarray = uq_evaluation.read_pit_histograms(input_file_name)
+    result_table_xarray = pit_utils.read_results(input_file_name)
     t = result_table_xarray
 
-    for this_var_name in t.coords[uq_evaluation.SCALAR_FIELD_DIM].values:
+    for this_var_name in t.coords[pit_utils.SCALAR_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_pit_histogram(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
@@ -70,7 +70,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-    for this_var_name in t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values:
+    for this_var_name in t.coords[pit_utils.AUX_TARGET_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_pit_histogram(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
@@ -86,7 +86,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-    for this_var_name in t.coords[uq_evaluation.VECTOR_FIELD_DIM].values:
+    for this_var_name in t.coords[pit_utils.VECTOR_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_pit_histogram(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
@@ -102,7 +102,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-        for this_height_m_agl in t.coords[uq_evaluation.HEIGHT_DIM].values:
+        for this_height_m_agl in t.coords[pit_utils.HEIGHT_DIM].values:
             figure_object, _ = uq_eval_plotting.plot_pit_histogram(
                 result_table_xarray=result_table_xarray,
                 target_var_name=this_var_name,
@@ -124,20 +124,20 @@ def _run(input_file_name, output_dir_name):
             )
             pyplot.close(figure_object)
 
-    for j in range(len(t.coords[uq_evaluation.VECTOR_FIELD_DIM].values)):
+    for j in range(len(t.coords[pit_utils.VECTOR_FIELD_DIM].values)):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
         evaluation_plotting.plot_score_profile(
-            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
-            score_values=t[uq_evaluation.VECTOR_PITD_KEY].values[j, :],
+            heights_m_agl=t.coords[pit_utils.HEIGHT_DIM].values,
+            score_values=t[pit_utils.VECTOR_PITD_KEY].values[j, :],
             score_name=evaluation_plotting.PITD_NAME,
             line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
             use_log_scale=True, axes_object=axes_object,
             are_axes_new=True
         )
 
-        this_var_name = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values[j]
+        this_var_name = t.coords[pit_utils.VECTOR_FIELD_DIM].values[j]
         axes_object.set_xlabel(
             'Mean deviation from uniform PIT histogram (PITD)'
         )
