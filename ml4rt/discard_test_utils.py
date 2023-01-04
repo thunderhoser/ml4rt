@@ -631,9 +631,12 @@ def merge_results_over_examples(result_tables_xarray):
         example_fraction_by_table_this_bin = numpy.array([
             t[EXAMPLE_FRACTION_KEY].values[i] for t in result_tables_xarray
         ])
+        print(example_fraction_by_table_this_bin)
+
         num_examples_by_table_this_bin = (
             example_fraction_by_table_this_bin * num_examples_by_table
         )
+        print(num_examples_by_table_this_bin)
 
         result_table_xarray[EXAMPLE_FRACTION_KEY].values[i] = (
             float(numpy.sum(num_examples_by_table_this_bin)) /
