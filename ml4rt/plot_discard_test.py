@@ -14,7 +14,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
-import uq_evaluation
+import discard_test_utils as dt_utils
 import evaluation_plotting
 import uq_evaluation_plotting as uq_eval_plotting
 
@@ -28,7 +28,7 @@ INPUT_FILE_ARG_NAME = 'input_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
-    'Path to input file.  Will be read by `uq_evaluation.read_discard_results`.'
+    'Path to input file.  Will be read by `dt_utils.read_results`.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -59,10 +59,10 @@ def _run(input_file_name, output_dir_name):
     )
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
-    result_table_xarray = uq_evaluation.read_discard_results(input_file_name)
+    result_table_xarray = dt_utils.read_results(input_file_name)
     t = result_table_xarray
 
-    for this_var_name in t.coords[uq_evaluation.SCALAR_FIELD_DIM].values:
+    for this_var_name in t.coords[dt_utils.SCALAR_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_discard_test(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
@@ -78,7 +78,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-    for this_var_name in t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values:
+    for this_var_name in t.coords[dt_utils.AUX_TARGET_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_discard_test(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
@@ -94,7 +94,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-    for this_var_name in t.coords[uq_evaluation.VECTOR_FIELD_DIM].values:
+    for this_var_name in t.coords[dt_utils.VECTOR_FIELD_DIM].values:
         figure_object, _ = uq_eval_plotting.plot_discard_test(
             result_table_xarray=result_table_xarray,
             target_var_name=this_var_name
@@ -110,7 +110,7 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
-        for this_height_m_agl in t.coords[uq_evaluation.HEIGHT_DIM].values:
+        for this_height_m_agl in t.coords[dt_utils.HEIGHT_DIM].values:
             figure_object, _ = uq_eval_plotting.plot_discard_test(
                 result_table_xarray=result_table_xarray,
                 target_var_name=this_var_name,
@@ -132,21 +132,20 @@ def _run(input_file_name, output_dir_name):
             )
             pyplot.close(figure_object)
 
-    for j in range(len(t.coords[uq_evaluation.VECTOR_FIELD_DIM].values)):
+    for j in range(len(t.coords[dt_utils.VECTOR_FIELD_DIM].values)):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
         evaluation_plotting.plot_score_profile(
-            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
-            score_values=
-            t[uq_evaluation.VECTOR_MONOTONICITY_FRACTION_KEY].values[j, :],
+            heights_m_agl=t.coords[dt_utils.HEIGHT_DIM].values,
+            score_values=t[dt_utils.VECTOR_MONO_FRACTION_KEY].values[j, :],
             score_name=evaluation_plotting.MONO_FRACTION_NAME,
             line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
             use_log_scale=True, axes_object=axes_object,
             are_axes_new=True
         )
 
-        this_var_name = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values[j]
+        this_var_name = t.coords[dt_utils.VECTOR_FIELD_DIM].values[j]
         axes_object.set_xlabel('Monotonicity fraction in discard test (MF)')
         axes_object.set_title('MF for {0:s}'.format(
             uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]

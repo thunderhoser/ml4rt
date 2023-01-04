@@ -11,7 +11,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
-import uq_evaluation
+import spread_skill_utils as ss_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -74,7 +74,7 @@ NET_FLUX_LIMITS_PRCTILE_HELP_STRING = (
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output (NetCDF) file.  Results will be written here by '
-    '`uq_evaluation.write_spread_vs_skill`.'
+    '`spread_skill_utils.write_results`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -194,7 +194,7 @@ def _run(prediction_file_name, num_heating_rate_bins,
         min_net_flux_percentile = None
         max_net_flux_percentile = None
 
-    result_table_xarray = uq_evaluation.get_spread_vs_skill_all_vars(
+    result_table_xarray = ss_utils.get_results_all_vars(
         prediction_file_name=prediction_file_name,
         num_heating_rate_bins=num_heating_rate_bins,
         min_heating_rate_k_day01=min_heating_rate_k_day01,
@@ -215,29 +215,29 @@ def _run(prediction_file_name, num_heating_rate_bins,
     print(SEPARATOR_STRING)
 
     t = result_table_xarray
-    scalar_target_names = t.coords[uq_evaluation.SCALAR_FIELD_DIM].values
+    scalar_target_names = t.coords[ss_utils.SCALAR_FIELD_DIM].values
 
     for k in range(len(scalar_target_names)):
         print((
             'Variable = "{0:s}" ... SSREL = {1:f} ... SSRAT = {2:f}'
         ).format(
             scalar_target_names[k],
-            t[uq_evaluation.SCALAR_SSREL_KEY].values[k],
-            t[uq_evaluation.SCALAR_SSRAT_KEY].values[k]
+            t[ss_utils.SCALAR_SSREL_KEY].values[k],
+            t[ss_utils.SCALAR_SSRAT_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
 
-    vector_target_names = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values
-    heights_m_agl = t.coords[uq_evaluation.HEIGHT_DIM].values
+    vector_target_names = t.coords[ss_utils.VECTOR_FIELD_DIM].values
+    heights_m_agl = t.coords[ss_utils.HEIGHT_DIM].values
 
     for k in range(len(vector_target_names)):
         print((
             'Variable = "{0:s}" ... SSREL = {1:f} ... SSRAT = {2:f}'
         ).format(
             vector_target_names[k],
-            t[uq_evaluation.VECTOR_FLAT_SSREL_KEY].values[k],
-            t[uq_evaluation.VECTOR_FLAT_SSRAT_KEY].values[k]
+            t[ss_utils.VECTOR_FLAT_SSREL_KEY].values[k],
+            t[ss_utils.VECTOR_FLAT_SSRAT_KEY].values[k]
         ))
 
         for j in range(len(heights_m_agl)):
@@ -246,18 +246,18 @@ def _run(prediction_file_name, num_heating_rate_bins,
                 'SSRAT = {3:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                t[uq_evaluation.VECTOR_SSREL_KEY].values[k, j],
-                t[uq_evaluation.VECTOR_SSRAT_KEY].values[k, j]
+                t[ss_utils.VECTOR_SSREL_KEY].values[k, j],
+                t[ss_utils.VECTOR_SSRAT_KEY].values[k, j]
             ))
 
         print(SEPARATOR_STRING)
 
     try:
         aux_target_field_names = (
-            t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values
+            t.coords[ss_utils.AUX_TARGET_FIELD_DIM].values
         )
         aux_predicted_field_names = (
-            t.coords[uq_evaluation.AUX_PREDICTED_FIELD_DIM].values
+            t.coords[ss_utils.AUX_PREDICTED_FIELD_DIM].values
         )
     except:
         aux_target_field_names = []
@@ -269,15 +269,15 @@ def _run(prediction_file_name, num_heating_rate_bins,
             'SSREL = {2:f} ... SSRAT = {3:f}'
         ).format(
             aux_target_field_names[k], aux_predicted_field_names[k],
-            t[uq_evaluation.AUX_SSREL_KEY].values[k],
-            t[uq_evaluation.AUX_SSRAT_KEY].values[k]
+            t[ss_utils.AUX_SSREL_KEY].values[k],
+            t[ss_utils.AUX_SSRAT_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
-    uq_evaluation.write_spread_vs_skill(
-        spread_skill_table_xarray=result_table_xarray,
+    ss_utils.write_results(
+        result_table_xarray=result_table_xarray,
         netcdf_file_name=output_file_name
     )
 

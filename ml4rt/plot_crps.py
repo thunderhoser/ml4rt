@@ -16,6 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import example_utils
 import uq_evaluation
+import crps_utils
 import evaluation_plotting
 import uq_evaluation_plotting as uq_eval_plotting
 
@@ -48,7 +49,7 @@ INPUT_FILE_ARG_NAME = 'input_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
-    'Path to input file.  Will be read by `uq_evaluation.read_crps`.'
+    'Path to input file.  Will be read by `crps_utils.read_results`.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -79,44 +80,42 @@ def _run(input_file_name, output_dir_name):
     )
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
-    result_table_xarray = uq_evaluation.read_crps(input_file_name)
+    result_table_xarray = crps_utils.read_results(input_file_name)
     t = result_table_xarray
 
-    scalar_target_names = (
-        t.coords[uq_evaluation.SCALAR_FIELD_DIM].values.tolist()
-    )
-    scalar_crps_values = t[uq_evaluation.SCALAR_CRPS_KEY].values
-    scalar_crpss_values = t[uq_evaluation.SCALAR_CRPSS_KEY].values
-    scalar_dwcrps_values = t[uq_evaluation.SCALAR_DWCRPS_KEY].values
+    scalar_target_names = t.coords[crps_utils.SCALAR_FIELD_DIM].values.tolist()
+    scalar_crps_values = t[crps_utils.SCALAR_CRPS_KEY].values
+    scalar_crpss_values = t[crps_utils.SCALAR_CRPSS_KEY].values
+    scalar_dwcrps_values = t[crps_utils.SCALAR_DWCRPS_KEY].values
 
     aux_target_names = (
-        t.coords[uq_evaluation.AUX_TARGET_FIELD_DIM].values.tolist()
+        t.coords[crps_utils.AUX_TARGET_FIELD_DIM].values.tolist()
     )
 
     if len(aux_target_names) > 0:
         scalar_target_names += aux_target_names
         scalar_crps_values = numpy.concatenate(
-            (scalar_crps_values, t[uq_evaluation.AUX_CRPS_KEY].values),
+            (scalar_crps_values, t[crps_utils.AUX_CRPS_KEY].values),
             axis=0
         )
         scalar_crpss_values = numpy.concatenate(
-            (scalar_crpss_values, t[uq_evaluation.AUX_CRPSS_KEY].values),
+            (scalar_crpss_values, t[crps_utils.AUX_CRPSS_KEY].values),
             axis=0
         )
         scalar_dwcrps_values = numpy.concatenate(
-            (scalar_dwcrps_values, t[uq_evaluation.AUX_DWCRPS_KEY].values),
+            (scalar_dwcrps_values, t[crps_utils.AUX_DWCRPS_KEY].values),
             axis=0
         )
 
-    vector_target_names = t.coords[uq_evaluation.VECTOR_FIELD_DIM].values
+    vector_target_names = t.coords[crps_utils.VECTOR_FIELD_DIM].values
 
     for k in range(len(vector_target_names)):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
         evaluation_plotting.plot_score_profile(
-            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
-            score_values=t[uq_evaluation.VECTOR_CRPS_KEY].values[k, :],
+            heights_m_agl=t.coords[crps_utils.HEIGHT_DIM].values,
+            score_values=t[crps_utils.VECTOR_CRPS_KEY].values[k, :],
             score_name=evaluation_plotting.CRPS_NAME,
             line_colour=LINE_COLOUR, line_width=4, line_style='solid',
             use_log_scale=True, axes_object=axes_object,
@@ -170,8 +169,8 @@ def _run(input_file_name, output_dir_name):
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
         evaluation_plotting.plot_score_profile(
-            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
-            score_values=t[uq_evaluation.VECTOR_CRPSS_KEY].values[k, :],
+            heights_m_agl=t.coords[crps_utils.HEIGHT_DIM].values,
+            score_values=t[crps_utils.VECTOR_CRPSS_KEY].values[k, :],
             score_name=evaluation_plotting.CRPSS_NAME,
             line_colour=LINE_COLOUR, line_width=4, line_style='solid',
             use_log_scale=True, axes_object=axes_object,
@@ -221,8 +220,8 @@ def _run(input_file_name, output_dir_name):
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
         evaluation_plotting.plot_score_profile(
-            heights_m_agl=t.coords[uq_evaluation.HEIGHT_DIM].values,
-            score_values=t[uq_evaluation.VECTOR_DWCRPS_KEY].values[k, :],
+            heights_m_agl=t.coords[crps_utils.HEIGHT_DIM].values,
+            score_values=t[crps_utils.VECTOR_DWCRPS_KEY].values[k, :],
             score_name=evaluation_plotting.CRPS_NAME,
             line_colour=LINE_COLOUR, line_width=4, line_style='solid',
             use_log_scale=True, axes_object=axes_object,
