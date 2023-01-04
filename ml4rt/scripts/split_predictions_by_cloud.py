@@ -8,6 +8,7 @@ This script allows for four different cloud regimes:
 - fog (cloud reaching surface)
 """
 
+import os
 import copy
 import argparse
 import numpy
@@ -21,7 +22,7 @@ KG_TO_GRAMS = 1e3
 
 MIN_LAYERS_BY_FILE = numpy.array([0, 1, 2], dtype=int)
 MAX_LAYERS_BY_FILE = numpy.array([0, 1, 1e12], dtype=int)
-FILE_SUFFIXES = ['no-cloud', 'single-layer-cloud', 'multi-layer-cloud']
+SUBDIR_NAMES = ['no_cloud', 'single_layer_cloud', 'multi_layer_cloud']
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
@@ -136,8 +137,8 @@ def _run(input_file_name, example_dir_name, for_ice, min_path_kg_m02,
             desired_indices=these_indices
         )
 
-        this_output_file_name = '{0:s}/predictions_{1:s}.nc'.format(
-            output_dir_name, FILE_SUFFIXES[k]
+        this_output_file_name = '{0:s}/{1:s}/{2:s}'.format(
+            output_dir_name, SUBDIR_NAMES[k], os.path.split(input_file_name)[1]
         )
         print('Writing {0:d} examples to: "{1:s}"...'.format(
             len(this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]),
