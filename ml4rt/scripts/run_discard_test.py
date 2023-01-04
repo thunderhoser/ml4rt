@@ -2,6 +2,8 @@
 
 import argparse
 import numpy
+from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import prediction_io
 from ml4rt.utils import uq_evaluation
 from ml4rt.utils import discard_test_utils as dt_utils
 
@@ -9,6 +11,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 DISCARD_FRACTIONS_ARG_NAME = 'discard_fractions'
+PRED_FILES_FOR_UNC_THRES_ARG_NAME = 'prediction_file_names_for_unc_thres'
 DWMSE_SCALING_ARG_NAME = 'scaling_factor_for_dwmse'
 FLUX_MSE_SCALING_ARG_NAME = 'scaling_factor_for_flux_mse'
 USE_HR_FOR_UNCERTAINTY_ARG_NAME = 'use_hr_for_uncertainty'
@@ -21,6 +24,11 @@ INPUT_FILE_HELP_STRING = (
 DISCARD_FRACTIONS_HELP_STRING = (
     'List of discard fractions, ranging from (0, 1).  This script will '
     'automatically use 0 as the lowest discard fraction.'
+)
+PRED_FILES_FOR_UNC_THRES_HELP_STRING = (
+    'List of paths to prediction files.  These files (read by `prediction_io.'
+    'read_file`) will be used to convert discard fractions to uncertainty '
+    'thresholds.'
 )
 DWMSE_SCALING_HELP_STRING = (
     'This script will use error function returned by '
@@ -51,6 +59,10 @@ INPUT_ARG_PARSER.add_argument(
     help=DISCARD_FRACTIONS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PRED_FILES_FOR_UNC_THRES_ARG_NAME, type=str, nargs='+',
+    required=True, help=PRED_FILES_FOR_UNC_THRES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + DWMSE_SCALING_ARG_NAME, type=float, required=True,
     help=DWMSE_SCALING_HELP_STRING
 )
@@ -68,7 +80,8 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(prediction_file_name, discard_fractions, scaling_factor_for_dwmse,
+def _run(prediction_file_name, discard_fractions,
+         prediction_file_names_for_unc_thres, scaling_factor_for_dwmse,
          scaling_factor_for_flux_mse, use_hr_for_uncertainty, output_file_name):
     """Runs discard test to determine quality of uncertainty estimates.
 
@@ -76,25 +89,67 @@ def _run(prediction_file_name, discard_fractions, scaling_factor_for_dwmse,
 
     :param prediction_file_name: See documentation at top of file.
     :param discard_fractions: Same.
+    :param prediction_file_names_for_unc_thres: Same.
     :param scaling_factor_for_dwmse: Same.
     :param scaling_factor_for_flux_mse: Same.
     :param use_hr_for_uncertainty: Same.
     :param output_file_name: Same.
     """
 
-    error_function = uq_evaluation.make_error_function_dwmse_plus_flux_mse(
-        scaling_factor_for_dwmse=scaling_factor_for_dwmse,
-        scaling_factor_for_flux_mse=scaling_factor_for_flux_mse
-    )
+    # Check discard fractions.
+    error_checking.assert_is_greater_numpy_array(discard_fractions, 0.)
+    error_checking.assert_is_less_than_numpy_array(discard_fractions, 1.)
 
+    discard_fractions = numpy.concatenate((
+        numpy.array([0.]),
+        discard_fractions
+    ))
+    discard_fractions = numpy.sort(discard_fractions)
+
+    num_fractions = len(discard_fractions)
+    assert num_fractions >= 2
+
+    # Convert discard fractions to uncertainty thresholds.
     if use_hr_for_uncertainty:
         uncertainty_function = uq_evaluation.make_heating_rate_stdev_function()
     else:
         uncertainty_function = uq_evaluation.make_flux_stdev_function()
 
+    uncertainty_values = numpy.array([])
+
+    for this_file_name in prediction_file_names_for_unc_thres:
+        print('Reading data from: "{0:s}"...'.format(this_file_name))
+        this_prediction_dict = prediction_io.read_file(this_file_name)
+        uncertainty_values = numpy.concatenate((
+            uncertainty_values,
+            uncertainty_function(this_prediction_dict)
+        ))
+
+    print(SEPARATOR_STRING)
+
+    percentile_levels = 100 * (1. - discard_fractions)
+    uncertainty_thresholds = numpy.percentile(
+        uncertainty_values, percentile_levels
+    )
+
+    for i in range(len(discard_fractions)):
+        print((
+            'Uncertainty threshold for discard fraction of {0:.4f} = {1:.4g}'
+        ).format(
+            discard_fractions[i], uncertainty_thresholds[i]
+        ))
+
+    print(SEPARATOR_STRING)
+
+    # Do actual stuff.
+    error_function = uq_evaluation.make_error_function_dwmse_plus_flux_mse(
+        scaling_factor_for_dwmse=scaling_factor_for_dwmse,
+        scaling_factor_for_flux_mse=scaling_factor_for_flux_mse
+    )
+
     result_table_xarray = dt_utils.run_discard_test(
         prediction_file_name=prediction_file_name,
-        discard_fractions=discard_fractions,
+        uncertainty_thresholds=uncertainty_thresholds,
         error_function=error_function,
         uncertainty_function=uncertainty_function, is_error_pos_oriented=False,
         error_function_for_hr_1height=
@@ -105,7 +160,7 @@ def _run(prediction_file_name, discard_fractions, scaling_factor_for_dwmse,
     print(SEPARATOR_STRING)
 
     discard_fractions = (
-        result_table_xarray.coords[dt_utils.DISCARD_FRACTION_DIM].values
+        1. - result_table_xarray[dt_utils.EXAMPLE_FRACTION_KEY].values
     )
     post_discard_errors = (
         result_table_xarray[dt_utils.POST_DISCARD_ERROR_KEY].values
@@ -193,6 +248,9 @@ if __name__ == '__main__':
         prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
         discard_fractions=numpy.array(
             getattr(INPUT_ARG_OBJECT, DISCARD_FRACTIONS_ARG_NAME), dtype=float
+        ),
+        prediction_file_names_for_unc_thres=getattr(
+            INPUT_ARG_OBJECT, PRED_FILES_FOR_UNC_THRES_ARG_NAME
         ),
         scaling_factor_for_dwmse=getattr(
             INPUT_ARG_OBJECT, DWMSE_SCALING_ARG_NAME

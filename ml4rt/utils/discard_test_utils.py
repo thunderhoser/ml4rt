@@ -13,7 +13,7 @@ from ml4rt.machine_learning import neural_net
 
 TOLERANCE = 1e-6
 
-DISCARD_FRACTION_DIM = 'discard_fraction'
+UNCERTAINTY_THRESHOLD_DIM = 'uncertainty_threshold'
 POST_DISCARD_ERROR_KEY = 'post_discard_error'
 EXAMPLE_FRACTION_KEY = 'example_fraction'
 MONO_FRACTION_KEY = 'mono_fraction'
@@ -83,7 +83,7 @@ def _compute_mf_and_di(result_table_xarray, is_error_pos_oriented):
     except:
         num_aux_targets = 0
 
-    discard_fractions = result_table_xarray.coords[DISCARD_FRACTION_DIM].values
+    discard_fractions = 1. - result_table_xarray[EXAMPLE_FRACTION_KEY].values
     t = result_table_xarray
 
     for k in range(num_scalar_targets):
@@ -189,7 +189,7 @@ def _compute_mf_and_di(result_table_xarray, is_error_pos_oriented):
 
 
 def run_discard_test(
-        prediction_file_name, discard_fractions, error_function,
+        prediction_file_name, uncertainty_thresholds, error_function,
         uncertainty_function, is_error_pos_oriented,
         error_function_for_hr_1height, error_function_for_flux_1var):
     """Runs the discard test.
@@ -200,9 +200,8 @@ def run_discard_test(
 
     :param prediction_file_name: Path to input file (will be read by
         `prediction_io.read_file`).
-    :param discard_fractions: length-(F - 1) numpy array of discard fractions,
-        ranging from (0, 1).  This method will use 0 as the lowest discard
-        fraction.
+    :param uncertainty_thresholds: length-F numpy array of uncertainty
+        thresholds, one for each discard fraction.
 
     :param error_function: Function with the following inputs and outputs...
     Input: prediction_dict: See above.
@@ -246,19 +245,14 @@ def run_discard_test(
 
     # Check input args.
     error_checking.assert_is_boolean(is_error_pos_oriented)
+    error_checking.assert_is_numpy_array_without_nan(uncertainty_thresholds)
+    error_checking.assert_is_numpy_array(
+        uncertainty_thresholds, num_dimensions=1
+    )
 
-    error_checking.assert_is_numpy_array(discard_fractions, num_dimensions=1)
-    error_checking.assert_is_greater_numpy_array(discard_fractions, 0.)
-    error_checking.assert_is_less_than_numpy_array(discard_fractions, 1.)
-
-    discard_fractions = numpy.concatenate((
-        numpy.array([0.]),
-        discard_fractions
-    ))
-    discard_fractions = numpy.sort(discard_fractions)
-
-    num_fractions = len(discard_fractions)
-    assert num_fractions >= 2
+    uncertainty_thresholds = numpy.sort(uncertainty_thresholds)[::-1]
+    num_thresholds = len(uncertainty_thresholds)
+    assert num_thresholds >= 2
 
     # Do actual stuff.
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
@@ -316,17 +310,17 @@ def run_discard_test(
 
     main_data_dict = {
         POST_DISCARD_ERROR_KEY: (
-            (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, numpy.nan)
+            (UNCERTAINTY_THRESHOLD_DIM,), numpy.full(num_thresholds, numpy.nan)
         ),
         EXAMPLE_FRACTION_KEY: (
-            (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, numpy.nan)
+            (UNCERTAINTY_THRESHOLD_DIM,), numpy.full(num_thresholds, numpy.nan)
         )
     }
 
     these_dim_keys_1d = (SCALAR_FIELD_DIM,)
-    these_dim_keys_2d = (SCALAR_FIELD_DIM, DISCARD_FRACTION_DIM)
+    these_dim_keys_2d = (SCALAR_FIELD_DIM, UNCERTAINTY_THRESHOLD_DIM)
     these_dim_1d = num_scalar_targets
-    these_dim_2d = (num_scalar_targets, num_fractions)
+    these_dim_2d = (num_scalar_targets, num_thresholds)
 
     main_data_dict.update({
         SCALAR_POST_DISCARD_ERROR_KEY: (
@@ -347,9 +341,11 @@ def run_discard_test(
     })
 
     these_dim_keys_2d = (VECTOR_FIELD_DIM, HEIGHT_DIM)
-    these_dim_keys_3d = (VECTOR_FIELD_DIM, HEIGHT_DIM, DISCARD_FRACTION_DIM)
+    these_dim_keys_3d = (
+        VECTOR_FIELD_DIM, HEIGHT_DIM, UNCERTAINTY_THRESHOLD_DIM
+    )
     these_dim_2d = (num_vector_targets, num_heights)
-    these_dim_3d = (num_vector_targets, num_heights, num_fractions)
+    these_dim_3d = (num_vector_targets, num_heights, num_thresholds)
 
     main_data_dict.update({
         VECTOR_POST_DISCARD_ERROR_KEY: (
@@ -370,9 +366,9 @@ def run_discard_test(
     })
 
     these_dim_keys_2d = (VECTOR_FIELD_DIM,)
-    these_dim_keys_3d = (VECTOR_FIELD_DIM, DISCARD_FRACTION_DIM)
+    these_dim_keys_3d = (VECTOR_FIELD_DIM, UNCERTAINTY_THRESHOLD_DIM)
     these_dim_2d = num_vector_targets
-    these_dim_3d = (num_vector_targets, num_fractions)
+    these_dim_3d = (num_vector_targets, num_thresholds)
 
     main_data_dict.update({
         VECTOR_FLAT_POST_DISCARD_ERROR_KEY: (
@@ -396,9 +392,9 @@ def run_discard_test(
 
     if num_aux_targets > 0:
         these_dim_keys_1d = (AUX_TARGET_FIELD_DIM,)
-        these_dim_keys_2d = (AUX_TARGET_FIELD_DIM, DISCARD_FRACTION_DIM)
+        these_dim_keys_2d = (AUX_TARGET_FIELD_DIM, UNCERTAINTY_THRESHOLD_DIM)
         these_dim_1d = num_aux_targets
-        these_dim_2d = (num_aux_targets, num_fractions)
+        these_dim_2d = (num_aux_targets, num_thresholds)
 
         main_data_dict.update({
             AUX_POST_DISCARD_ERROR_KEY: (
@@ -422,7 +418,7 @@ def run_discard_test(
         SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
         HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
-        DISCARD_FRACTION_DIM: discard_fractions
+        UNCERTAINTY_THRESHOLD_DIM: uncertainty_thresholds
     }
 
     if num_aux_targets > 0:
@@ -438,12 +434,8 @@ def run_discard_test(
     uncertainty_values = uncertainty_function(prediction_dict)
     use_example_flags = numpy.full(len(uncertainty_values), 1, dtype=bool)
 
-    for i in range(num_fractions):
-        this_percentile_level = 100 * (1 - discard_fractions[i])
-        this_inverted_mask = (
-            uncertainty_values >
-            numpy.percentile(uncertainty_values, this_percentile_level)
-        )
+    for i in range(num_thresholds):
+        this_inverted_mask = uncertainty_values > uncertainty_thresholds[i]
         use_example_flags[this_inverted_mask] = False
 
         result_table_xarray[EXAMPLE_FRACTION_KEY].values[i] = numpy.mean(
@@ -575,8 +567,8 @@ def merge_results_over_examples(result_tables_xarray):
 
     for i in range(1, num_tables):
         assert numpy.allclose(
-            result_tables_xarray[i].coords[DISCARD_FRACTION_DIM].values,
-            result_tables_xarray[0].coords[DISCARD_FRACTION_DIM].values,
+            result_tables_xarray[i].coords[UNCERTAINTY_THRESHOLD_DIM].values,
+            result_tables_xarray[0].coords[UNCERTAINTY_THRESHOLD_DIM].values,
             atol=TOLERANCE
         )
 
@@ -616,11 +608,11 @@ def merge_results_over_examples(result_tables_xarray):
         )
 
     result_table_xarray = copy.deepcopy(result_tables_xarray[0])
-    num_discard_fractions = len(
-        result_table_xarray.coords[DISCARD_FRACTION_DIM].values
+    num_thresholds = len(
+        result_table_xarray.coords[UNCERTAINTY_THRESHOLD_DIM].values
     )
 
-    for i in range(num_discard_fractions):
+    for i in range(num_thresholds):
         example_fraction_by_table_this_bin = numpy.array([
             t[EXAMPLE_FRACTION_KEY].values[i] for t in result_tables_xarray
         ])
