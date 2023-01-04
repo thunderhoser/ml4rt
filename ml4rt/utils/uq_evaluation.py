@@ -186,20 +186,20 @@ def check_results_before_merging(result_tables_xarray):
     """
 
     scalar_target_names = (
-        result_tables_xarray[0].coords[SCALAR_FIELD_DIM].values
+        result_tables_xarray[0].coords[SCALAR_FIELD_DIM].values.tolist()
     )
     vector_target_names = (
-        result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values
+        result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values.tolist()
     )
     heights_m_agl = result_tables_xarray[0].coords[HEIGHT_DIM].values
 
     try:
         aux_target_field_names = (
-            result_tables_xarray[0].coords[AUX_TARGET_FIELD_DIM].values
+            result_tables_xarray[0].coords[AUX_TARGET_FIELD_DIM].values.tolist()
         )
-        aux_predicted_field_names = (
-            result_tables_xarray[0].coords[AUX_PREDICTED_FIELD_DIM].values
-        )
+        aux_predicted_field_names = result_tables_xarray[0].coords[
+            AUX_PREDICTED_FIELD_DIM
+        ].values.tolist()
     except:
         aux_target_field_names = []
         aux_predicted_field_names = []
@@ -208,11 +208,11 @@ def check_results_before_merging(result_tables_xarray):
 
     for i in range(1, num_tables):
         assert (
-            result_tables_xarray[i].coords[SCALAR_FIELD_DIM].values ==
+            result_tables_xarray[i].coords[SCALAR_FIELD_DIM].values.tolist() ==
             scalar_target_names
         )
         assert (
-            result_tables_xarray[i].coords[VECTOR_FIELD_DIM].values ==
+            result_tables_xarray[i].coords[VECTOR_FIELD_DIM].values.tolist() ==
             vector_target_names
         )
         assert numpy.allclose(
@@ -221,12 +221,13 @@ def check_results_before_merging(result_tables_xarray):
         )
 
         try:
-            these_target_field_names = (
-                result_tables_xarray[i].coords[AUX_TARGET_FIELD_DIM].values
-            )
-            these_predicted_field_names = (
-                result_tables_xarray[i].coords[AUX_PREDICTED_FIELD_DIM].values
-            )
+            these_target_field_names = result_tables_xarray[i].coords[
+                AUX_TARGET_FIELD_DIM
+            ].values.tolist()
+
+            these_predicted_field_names = result_tables_xarray[i].coords[
+                AUX_PREDICTED_FIELD_DIM
+            ].values.tolist()
         except:
             these_target_field_names = []
             these_predicted_field_names = []

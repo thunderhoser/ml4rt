@@ -469,11 +469,11 @@ def read_file(netcdf_file_name):
     prediction_dict = {
         VECTOR_TARGETS_KEY:
             dataset_object.variables[VECTOR_TARGETS_KEY][:].astype(
-                numpy.float16
+                numpy.float32
             ),
         VECTOR_PREDICTIONS_KEY:
             dataset_object.variables[VECTOR_PREDICTIONS_KEY][:].astype(
-                numpy.float16
+                numpy.float32
             ),
         EXAMPLE_IDS_KEY: [
             str(id) for id in

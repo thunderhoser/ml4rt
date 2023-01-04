@@ -626,13 +626,10 @@ def get_results_all_vars(
             these_stdevs = numpy.std(
                 vector_prediction_matrix[:, :, j, :], ddof=1, axis=-1
             )
-            this_max_value = numpy.percentile(
-                these_stdevs, max_heating_rate_percentile
-            )
 
             these_bin_edges = numpy.linspace(
                 numpy.percentile(these_stdevs, min_heating_rate_percentile),
-                this_max_value,
+                numpy.percentile(these_stdevs, max_heating_rate_percentile),
                 num=num_heating_rate_bins + 1, dtype=float
             )[1:-1]
         else:
@@ -641,9 +638,15 @@ def get_results_all_vars(
                 num=num_heating_rate_bins + 1, dtype=float
             )[1:-1]
 
+        these_targets = numpy.ravel(vector_target_matrix[..., j])
+        this_prediction_matrix = numpy.reshape(
+            vector_prediction_matrix[:, :, j, :],
+            (len(these_targets), vector_prediction_matrix.shape[-1])
+        )
+
         this_result_dict = _get_results_one_var(
-            target_values=vector_target_matrix[..., j],
-            prediction_matrix=vector_prediction_matrix[:, :, j, :],
+            target_values=these_targets,
+            prediction_matrix=this_prediction_matrix,
             bin_edge_prediction_stdevs=these_bin_edges
         )
 
@@ -665,12 +668,12 @@ def get_results_all_vars(
         result_table_xarray[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, :] = (
             this_result_dict[EXAMPLE_COUNTS_KEY]
         )
-        result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, :] = (
-            this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
-        )
         result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, :] = (
             this_result_dict[MEAN_TARGET_VALUES_KEY]
         )
+        result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[
+            j, :
+        ] = this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
 
         for k in range(num_heights):
             print((

@@ -515,9 +515,14 @@ def run_discard_test(
                 (len(these_targets), vector_prediction_matrix.shape[-1])
             )
 
+            num_heights = vector_prediction_matrix.shape[1]
+            these_flags = numpy.repeat(
+                use_example_flags, axis=0, repeats=num_heights
+            )
+
             t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, i] = (
                 error_function_for_hr_1height(
-                    these_targets, this_prediction_matrix, use_example_flags
+                    these_targets, this_prediction_matrix, these_flags
                 )
             )
 
