@@ -27,7 +27,7 @@ set input_file_names_string=""
 set i=1
 
 while ($i <= ${#PATHLESS_INPUT_FILE_NAMES})
-    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_20200102-20200225/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_20200102-20200225/${PATHLESS_INPUT_FILE_NAMES[$i]}"
     
     @ i = $i + 1
 end
