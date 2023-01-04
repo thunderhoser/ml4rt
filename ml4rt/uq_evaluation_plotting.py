@@ -108,14 +108,21 @@ def _plot_means_as_inset(
     elif plotting_corner_string == 'top_left':
         inset_axes_object = figure_object.add_axes([0.2, 0.55, 0.25, 0.25])
 
+    nan_flags = numpy.logical_or(
+        numpy.isnan(bin_mean_target_values),
+        numpy.isnan(bin_mean_predictions)
+    )
+    assert not numpy.all(nan_flags)
+    real_indices = numpy.where(numpy.invert(nan_flags))[0]
+
     target_handle = inset_axes_object.plot(
-        bin_centers, bin_mean_target_values, color=MEAN_TARGET_LINE_COLOUR,
-        linestyle='solid', linewidth=2
+        bin_centers[real_indices], bin_mean_target_values[real_indices],
+        color=MEAN_TARGET_LINE_COLOUR, linestyle='solid', linewidth=2
     )[0]
 
     prediction_handle = inset_axes_object.plot(
-        bin_centers, bin_mean_predictions, color=MEAN_PREDICTION_LINE_COLOUR,
-        linestyle='dashed', linewidth=2
+        bin_centers[real_indices], bin_mean_predictions[real_indices],
+        color=MEAN_PREDICTION_LINE_COLOUR, linestyle='dashed', linewidth=2
     )[0]
 
     y_max = max([
@@ -468,7 +475,7 @@ def plot_discard_test(
                 mean_di = t[dt_utils.VECTOR_MEAN_DI_KEY].values[k, j]
 
     discard_fractions = (
-        result_table_xarray.coords[dt_utils.DISCARD_FRACTION_DIM].values
+        1. - result_table_xarray[dt_utils.EXAMPLE_FRACTION_KEY].values
     )
     # error_values = (
     #     result_table_xarray[dt_utils.POST_DISCARD_ERROR_KEY].values

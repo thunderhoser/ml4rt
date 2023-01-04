@@ -428,12 +428,10 @@ def merge_results_over_examples(result_tables_xarray):
                 for t in result_tables_xarray
             ])
 
-        these_frequencies = (
-            result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :].astype(
-                float
-            )
-            / num_examples_total
+        these_counts = (
+            result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :]
         )
+        these_frequencies = these_counts.astype(float) / numpy.sum(these_counts)
 
         result_table_xarray[VECTOR_FLAT_PITD_KEY].values[j] = numpy.sqrt(
             numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)

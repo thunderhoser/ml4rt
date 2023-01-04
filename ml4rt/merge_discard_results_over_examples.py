@@ -63,7 +63,7 @@ def _run(input_file_names, output_file_name):
     print(SEPARATOR_STRING)
 
     discard_fractions = (
-        output_table_xarray.coords[dt_utils.DISCARD_FRACTION_DIM].values
+        1. - output_table_xarray[dt_utils.EXAMPLE_FRACTION_KEY].values
     )
     post_discard_errors = (
         output_table_xarray[dt_utils.POST_DISCARD_ERROR_KEY].values
