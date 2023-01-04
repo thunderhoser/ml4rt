@@ -23,17 +23,24 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 
 set PATHLESS_INPUT_FILE_NAMES=("discard_test_for_heating_rates_part01.nc" "discard_test_for_heating_rates_part02.nc" "discard_test_for_heating_rates_part03.nc" "discard_test_for_heating_rates_part04.nc" "discard_test_for_heating_rates_part05.nc" "discard_test_for_heating_rates_part06.nc" "discard_test_for_heating_rates_part07.nc" "discard_test_for_heating_rates_part08.nc" "discard_test_for_heating_rates_part09.nc")
 
-set input_file_names_string=""
+set REGIME_STRINGS=("no_cloud" "single_layer_cloud" "multi_layer_cloud")
 set i=1
 
-while ($i <= ${#PATHLESS_INPUT_FILE_NAMES})
-    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
+while ($i <= ${#REGIME_STRINGS})
+    set input_file_names_string=""
+    set j=1
+    
+    while ($j <= ${#PATHLESS_INPUT_FILE_NAMES})
+        set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/by_cloud_regime/${REGIME_STRINGS[$i]}/${PATHLESS_INPUT_FILE_NAMES[$j]}"
+        
+        @ j = $j + 1
+    end
+
+    set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/by_cloud_regime/${REGIME_STRINGS[$i]}/discard_test_for_heating_rates.nc"
+    
+    python3 -u "${CODE_DIR_NAME}/merge_discard_results_over_examples.py" \
+    --input_file_names ${input_file_names_string} \
+    --output_file_name="${output_file_name}"
     
     @ i = $i + 1
 end
-
-set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/discard_test_for_heating_rates.nc"
-
-python3 -u "${CODE_DIR_NAME}/merge_discard_results_over_examples.py" \
---input_file_names ${input_file_names_string} \
---output_file_name="${output_file_name}"

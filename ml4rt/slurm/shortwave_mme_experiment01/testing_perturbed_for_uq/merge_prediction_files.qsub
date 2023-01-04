@@ -32,11 +32,11 @@ set input_file_names_string=""
 set i=1
 
 while ($i <= ${#PATHLESS_INPUT_FILE_NAMES})
-    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation/${PATHLESS_INPUT_FILE_NAMES[$i]}"
+    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
     
     @ i = $i + 1
 end
 
 python3 -u "${CODE_DIR_NAME}/merge_prediction_files_over_examples.py" \
 --input_file_names ${input_file_names_string} \
---output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation/predictions.nc"
+--output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/predictions.nc"
