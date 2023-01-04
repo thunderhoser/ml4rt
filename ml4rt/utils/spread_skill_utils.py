@@ -191,6 +191,89 @@ def _get_results_one_var(
     }
 
 
+def _merge_basic_quantities_1bin_1var(
+        num_examples_by_table, mean_stdev_by_table, rmse_by_table,
+        mean_mean_prediction_by_table, mean_target_by_table):
+    """Merges basic quantities for one spread bin and one target variable...
+
+    over many examples.
+
+    "Basic quantities" = mean stdev, RMSE, mean mean prediction, mean target
+
+    T = number of tables
+
+    :param num_examples_by_table: length-T numpy array of example counts.
+    :param mean_stdev_by_table: length-T numpy array of mean stdevs.
+    :param rmse_by_table: length-T numpy array of RMSE values.
+    :param mean_mean_prediction_by_table: length-T numpy array of mean mean
+        predictions.
+    :param mean_target_by_table: length-T numpy array of mean target values.
+    :return: mean_stdev_overall: Overall mean stdev.
+    :return: rmse_overall: Overall RMSE value.
+    :return: mean_mean_prediction_overall: Overall mean mean prediction.
+    :return: mean_target_overall: Overall mean target.
+    """
+
+    if numpy.sum(num_examples_by_table) == 0:
+        return numpy.nan, numpy.nan, numpy.nan, numpy.nan
+
+    non_zero_indices = numpy.where(num_examples_by_table > 0)[0]
+
+    mean_stdev_overall = numpy.sqrt(numpy.average(
+        mean_stdev_by_table[non_zero_indices] ** 2,
+        weights=num_examples_by_table[non_zero_indices]
+    ))
+    rmse_overall = numpy.sqrt(numpy.average(
+        rmse_by_table[non_zero_indices] ** 2,
+        weights=num_examples_by_table[non_zero_indices]
+    ))
+    mean_mean_prediction_overall = numpy.average(
+        mean_mean_prediction_by_table[non_zero_indices],
+        weights=num_examples_by_table[non_zero_indices]
+    )
+    mean_target_overall = numpy.average(
+        mean_target_by_table[non_zero_indices],
+        weights=num_examples_by_table[non_zero_indices]
+    )
+
+    return (
+        mean_stdev_overall, rmse_overall,
+        mean_mean_prediction_overall, mean_target_overall
+    )
+
+
+def _get_ssrel_ssrat_1var(mean_stdev_by_bin, rmse_by_bin, num_examples_by_bin):
+    """Computes SSREL and SSRAT for one target variable.
+
+    B = number of spread bins
+
+    :param mean_stdev_by_bin: length-B numpy array of mean stdevs.
+    :param rmse_by_bin: length-B numpy array of RMSE values.
+    :param num_examples_by_bin: length-B numpy array of example counts.
+    :return: ssrel_value: Spread-skill reliability.
+    :return: ssrat_value: Spread-skill ratio.
+    """
+
+    non_zero_indices = numpy.where(num_examples_by_bin > 0)[0]
+
+    ssrel_value = numpy.average(
+        numpy.absolute(mean_stdev_by_bin - rmse_by_bin)[non_zero_indices],
+        weights=num_examples_by_bin[non_zero_indices]
+    )
+
+    this_numer = numpy.sqrt(numpy.average(
+        mean_stdev_by_bin[non_zero_indices] ** 2,
+        weights=num_examples_by_bin[non_zero_indices]
+    ))
+    this_denom = numpy.sqrt(numpy.average(
+        rmse_by_bin[non_zero_indices] ** 2,
+        weights=num_examples_by_bin[non_zero_indices]
+    ))
+    ssrat_value = this_numer / this_denom
+
+    return ssrel_value, ssrat_value
+
+
 def get_results_all_vars(
         prediction_file_name, num_heating_rate_bins,
         min_heating_rate_k_day01, max_heating_rate_k_day01,
@@ -812,72 +895,40 @@ def merge_results_over_examples(result_tables_xarray):
                 t[SCALAR_MEAN_STDEV_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_stdevs[numpy.isfinite(these_mean_stdevs) == False] = 0.
-
-            result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[
-                j, i
-            ] = numpy.sqrt(numpy.average(
-                these_mean_stdevs ** 2, weights=these_example_counts
-            ))
-
             these_rmse = numpy.array([
                 t[SCALAR_RMSE_KEY].values[j, i] for t in result_tables_xarray
             ])
-            these_rmse[numpy.isfinite(these_rmse) == False] = 0.
-
-            result_table_xarray[SCALAR_RMSE_KEY].values[
-                j, i
-            ] = numpy.sqrt(numpy.average(
-                these_rmse ** 2, weights=these_example_counts
-            ))
-
             these_mean_mean_predictions = numpy.array([
                 t[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_mean_predictions[
-                numpy.isfinite(these_mean_mean_predictions) == False
-            ] = 0.
-
-            result_table_xarray[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_mean_predictions, weights=these_example_counts
-            )
-
             these_mean_targets = numpy.array([
                 t[SCALAR_MEAN_TARGET_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_targets[numpy.isfinite(these_mean_targets) == False] = 0.
 
-            result_table_xarray[SCALAR_MEAN_TARGET_KEY].values[
-                j, i
-            ] = numpy.average(these_mean_targets, weights=these_example_counts)
+            (
+                result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[j, i],
+                result_table_xarray[SCALAR_RMSE_KEY].values[j, i],
+                result_table_xarray[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[j, i],
+                result_table_xarray[SCALAR_MEAN_TARGET_KEY].values[j, i]
+            ) = _merge_basic_quantities_1bin_1var(
+                num_examples_by_table=these_example_counts,
+                mean_stdev_by_table=these_mean_stdevs,
+                rmse_by_table=these_rmse,
+                mean_mean_prediction_by_table=these_mean_mean_predictions,
+                mean_target_by_table=these_mean_targets
+            )
 
-        mean_stdev_by_bin = (
-            result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[j, :] + 0.
-        )
-        rmse_by_bin = result_table_xarray[SCALAR_RMSE_KEY].values[j, :] + 0.
-        num_examples_by_bin = (
-            result_table_xarray[SCALAR_EXAMPLE_COUNT_KEY].values[j, :] + 0
-        )
-        mean_stdev_by_bin[numpy.isfinite(mean_stdev_by_bin) == False] = 0.
-        rmse_by_bin[numpy.isfinite(rmse_by_bin) == False] = 0.
-
-        result_table_xarray[SCALAR_SSREL_KEY].values[j] = numpy.average(
-            numpy.absolute(mean_stdev_by_bin - rmse_by_bin),
-            weights=num_examples_by_bin
-        )
-
-        this_numer = numpy.sqrt(numpy.average(
-            mean_stdev_by_bin ** 2, weights=num_examples_by_bin
-        ))
-        this_denom = numpy.sqrt(numpy.average(
-            rmse_by_bin ** 2, weights=num_examples_by_bin
-        ))
-        result_table_xarray[SCALAR_SSRAT_KEY].values[j] = (
-            this_numer / this_denom
+        (
+            result_table_xarray[SCALAR_SSREL_KEY].values[j],
+            result_table_xarray[SCALAR_SSRAT_KEY].values[j]
+        ) = _get_ssrel_ssrat_1var(
+            mean_stdev_by_bin=
+            result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[j, :],
+            rmse_by_bin=result_table_xarray[SCALAR_RMSE_KEY].values[j, :],
+            num_examples_by_bin=
+            result_table_xarray[SCALAR_EXAMPLE_COUNT_KEY].values[j, :]
         )
 
     num_net_flux_bins = len(result_table_xarray.coords[NET_FLUX_BIN_DIM].values)
@@ -897,71 +948,41 @@ def merge_results_over_examples(result_tables_xarray):
                 t[AUX_MEAN_STDEV_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_stdevs[numpy.isfinite(these_mean_stdevs) == False] = 0.
-
-            result_table_xarray[AUX_MEAN_STDEV_KEY].values[
-                j, i
-            ] = numpy.sqrt(numpy.average(
-                these_mean_stdevs ** 2, weights=these_example_counts
-            ))
-
             these_rmse = numpy.array([
                 t[AUX_RMSE_KEY].values[j, i] for t in result_tables_xarray
             ])
-            these_rmse[numpy.isfinite(these_rmse) == False] = 0.
-
-            result_table_xarray[AUX_RMSE_KEY].values[
-                j, i
-            ] = numpy.sqrt(numpy.average(
-                these_rmse ** 2, weights=these_example_counts
-            ))
-
             these_mean_mean_predictions = numpy.array([
                 t[AUX_MEAN_MEAN_PREDICTION_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_mean_predictions[
-                numpy.isfinite(these_mean_mean_predictions) == False
-            ] = 0.
-
-            result_table_xarray[AUX_MEAN_MEAN_PREDICTION_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_mean_predictions, weights=these_example_counts
-            )
-
             these_mean_targets = numpy.array([
                 t[AUX_MEAN_TARGET_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_targets[numpy.isfinite(these_mean_targets) == False] = 0.
 
-            result_table_xarray[AUX_MEAN_TARGET_KEY].values[
-                j, i
-            ] = numpy.average(these_mean_targets, weights=these_example_counts)
+            (
+                result_table_xarray[AUX_MEAN_STDEV_KEY].values[j, i],
+                result_table_xarray[AUX_RMSE_KEY].values[j, i],
+                result_table_xarray[AUX_MEAN_MEAN_PREDICTION_KEY].values[j, i],
+                result_table_xarray[AUX_MEAN_TARGET_KEY].values[j, i]
+            ) = _merge_basic_quantities_1bin_1var(
+                num_examples_by_table=these_example_counts,
+                mean_stdev_by_table=these_mean_stdevs,
+                rmse_by_table=these_rmse,
+                mean_mean_prediction_by_table=these_mean_mean_predictions,
+                mean_target_by_table=these_mean_targets
+            )
 
-        mean_stdev_by_bin = (
-            result_table_xarray[AUX_MEAN_STDEV_KEY].values[j, :]
-        )
-        rmse_by_bin = result_table_xarray[AUX_RMSE_KEY].values[j, :]
-        num_examples_by_bin = (
+        (
+            result_table_xarray[AUX_SSREL_KEY].values[j],
+            result_table_xarray[AUX_SSRAT_KEY].values[j]
+        ) = _get_ssrel_ssrat_1var(
+            mean_stdev_by_bin=
+            result_table_xarray[AUX_MEAN_STDEV_KEY].values[j, :],
+            rmse_by_bin=result_table_xarray[AUX_RMSE_KEY].values[j, :],
+            num_examples_by_bin=
             result_table_xarray[AUX_EXAMPLE_COUNT_KEY].values[j, :]
         )
-        mean_stdev_by_bin[numpy.isfinite(mean_stdev_by_bin) == False] = 0.
-        rmse_by_bin[numpy.isfinite(rmse_by_bin) == False] = 0.
-
-        result_table_xarray[AUX_SSREL_KEY].values[j] = numpy.average(
-            numpy.absolute(mean_stdev_by_bin - rmse_by_bin),
-            weights=num_examples_by_bin
-        )
-
-        this_numer = numpy.sqrt(numpy.average(
-            mean_stdev_by_bin ** 2, weights=num_examples_by_bin
-        ))
-        this_denom = numpy.sqrt(numpy.average(
-            rmse_by_bin ** 2, weights=num_examples_by_bin
-        ))
-        result_table_xarray[AUX_SSRAT_KEY].values[j] = this_numer / this_denom
 
     num_heating_rate_bins = len(
         result_table_xarray.coords[HEATING_RATE_BIN_DIM].values
@@ -982,73 +1003,41 @@ def merge_results_over_examples(result_tables_xarray):
                 t[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_stdevs[numpy.isfinite(these_mean_stdevs) == False] = 0.
-
-            result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[
-                j, i
-            ] = numpy.sqrt(numpy.average(
-                these_mean_stdevs ** 2, weights=these_example_counts
-            ))
-
             these_rmse = numpy.array([
                 t[VECTOR_FLAT_RMSE_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_rmse[numpy.isfinite(these_rmse) == False] = 0.
-
-            result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[
-                j, i
-            ] = numpy.sqrt(numpy.average(
-                these_rmse ** 2, weights=these_example_counts
-            ))
-
             these_mean_mean_predictions = numpy.array([
                 t[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_mean_predictions[
-                numpy.isfinite(these_mean_mean_predictions) == False
-            ] = 0.
-
-            result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_mean_predictions, weights=these_example_counts
-            )
-
             these_mean_targets = numpy.array([
                 t[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-            these_mean_targets[numpy.isfinite(these_mean_targets) == False] = 0.
 
-            result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[
-                j, i
-            ] = numpy.average(these_mean_targets, weights=these_example_counts)
+            (
+                result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, i],
+                result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, i],
+                result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, i],
+                result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, i]
+            ) = _merge_basic_quantities_1bin_1var(
+                num_examples_by_table=these_example_counts,
+                mean_stdev_by_table=these_mean_stdevs,
+                rmse_by_table=these_rmse,
+                mean_mean_prediction_by_table=these_mean_mean_predictions,
+                mean_target_by_table=these_mean_targets
+            )
 
-        mean_stdev_by_bin = (
-            result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, :]
-        )
-        rmse_by_bin = result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, :]
-        num_examples_by_bin = (
+        (
+            result_table_xarray[VECTOR_FLAT_SSREL_KEY].values[j],
+            result_table_xarray[VECTOR_FLAT_SSRAT_KEY].values[j]
+        ) = _get_ssrel_ssrat_1var(
+            mean_stdev_by_bin=
+            result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, :],
+            rmse_by_bin=result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, :],
+            num_examples_by_bin=
             result_table_xarray[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, :]
-        )
-        mean_stdev_by_bin[numpy.isfinite(mean_stdev_by_bin) == False] = 0.
-        rmse_by_bin[numpy.isfinite(rmse_by_bin) == False] = 0.
-
-        result_table_xarray[VECTOR_FLAT_SSREL_KEY].values[j] = numpy.average(
-            numpy.absolute(mean_stdev_by_bin - rmse_by_bin),
-            weights=num_examples_by_bin
-        )
-
-        this_numer = numpy.sqrt(numpy.average(
-            mean_stdev_by_bin ** 2, weights=num_examples_by_bin
-        ))
-        this_denom = numpy.sqrt(numpy.average(
-            rmse_by_bin ** 2, weights=num_examples_by_bin
-        ))
-        result_table_xarray[VECTOR_FLAT_SSRAT_KEY].values[j] = (
-            this_numer / this_denom
         )
 
     for j in range(len(vector_target_names)):
@@ -1067,79 +1056,41 @@ def merge_results_over_examples(result_tables_xarray):
                     t[VECTOR_MEAN_STDEV_KEY].values[j, k, i]
                     for t in result_tables_xarray
                 ])
-                these_mean_stdevs[
-                    numpy.isfinite(these_mean_stdevs) == False
-                ] = 0.
-
-                result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[
-                    j, k, i
-                ] = numpy.sqrt(numpy.average(
-                    these_mean_stdevs ** 2, weights=these_example_counts
-                ))
-
                 these_rmse = numpy.array([
                     t[VECTOR_RMSE_KEY].values[j, k, i]
                     for t in result_tables_xarray
                 ])
-                these_rmse[numpy.isfinite(these_rmse) == False] = 0.
-
-                result_table_xarray[VECTOR_RMSE_KEY].values[
-                    j, k, i
-                ] = numpy.sqrt(numpy.average(
-                    these_rmse ** 2, weights=these_example_counts
-                ))
-
                 these_mean_mean_predictions = numpy.array([
                     t[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[j, k, i]
                     for t in result_tables_xarray
                 ])
-                these_mean_mean_predictions[
-                    numpy.isfinite(these_mean_mean_predictions) == False
-                ] = 0.
-
-                result_table_xarray[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[
-                    j, k, i
-                ] = numpy.average(
-                    these_mean_mean_predictions, weights=these_example_counts
-                )
-
                 these_mean_targets = numpy.array([
                     t[VECTOR_MEAN_TARGET_KEY].values[j, k, i]
                     for t in result_tables_xarray
                 ])
-                these_mean_targets[
-                    numpy.isfinite(these_mean_targets) == False
-                ] = 0.
 
-                result_table_xarray[VECTOR_MEAN_TARGET_KEY].values[
-                    j, k, i
-                ] = numpy.average(
-                    these_mean_targets, weights=these_example_counts
+                (
+                    result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[j, k, i],
+                    result_table_xarray[VECTOR_RMSE_KEY].values[j, k, i],
+                    result_table_xarray[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[j, k, i],
+                    result_table_xarray[VECTOR_MEAN_TARGET_KEY].values[j, k, i]
+                ) = _merge_basic_quantities_1bin_1var(
+                    num_examples_by_table=these_example_counts,
+                    mean_stdev_by_table=these_mean_stdevs,
+                    rmse_by_table=these_rmse,
+                    mean_mean_prediction_by_table=these_mean_mean_predictions,
+                    mean_target_by_table=these_mean_targets
                 )
 
-            mean_stdev_by_bin = (
-                result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[j, k, :]
-            )
-            rmse_by_bin = result_table_xarray[VECTOR_RMSE_KEY].values[j, k, :]
-            num_examples_by_bin = (
+            (
+                result_table_xarray[VECTOR_SSREL_KEY].values[j, k],
+                result_table_xarray[VECTOR_SSRAT_KEY].values[j, k]
+            ) = _get_ssrel_ssrat_1var(
+                mean_stdev_by_bin=
+                result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[j, k, :],
+                rmse_by_bin=result_table_xarray[VECTOR_RMSE_KEY].values[j, k, :],
+                num_examples_by_bin=
                 result_table_xarray[VECTOR_EXAMPLE_COUNT_KEY].values[j, k, :]
-            )
-            mean_stdev_by_bin[numpy.isfinite(mean_stdev_by_bin) == False] = 0.
-            rmse_by_bin[numpy.isfinite(rmse_by_bin) == False] = 0.
-
-            result_table_xarray[VECTOR_SSREL_KEY].values[j, k] = numpy.average(
-                numpy.absolute(mean_stdev_by_bin - rmse_by_bin),
-                weights=num_examples_by_bin
-            )
-
-            this_numer = numpy.sqrt(numpy.average(
-                mean_stdev_by_bin ** 2, weights=num_examples_by_bin
-            ))
-            this_denom = numpy.sqrt(numpy.average(
-                rmse_by_bin ** 2, weights=num_examples_by_bin
-            ))
-            result_table_xarray[VECTOR_SSRAT_KEY].values[j, k] = (
-                this_numer / this_denom
             )
 
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([

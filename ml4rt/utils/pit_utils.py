@@ -369,8 +369,8 @@ def merge_results_over_examples(result_tables_xarray):
                 for t in result_tables_xarray
             ])
 
-        assert (
-            num_examples_total ==
+        error_checking.assert_equals(
+            num_examples_total,
             numpy.sum(result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :])
         )
 
@@ -395,8 +395,8 @@ def merge_results_over_examples(result_tables_xarray):
                 for t in result_tables_xarray
             ])
 
-        assert (
-            num_examples_total ==
+        error_checking.assert_equals(
+            num_examples_total,
             numpy.sum(result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :])
         )
 
@@ -420,13 +420,6 @@ def merge_results_over_examples(result_tables_xarray):
                 t[VECTOR_FLAT_BIN_COUNT_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
-
-        assert (
-            num_examples_total ==
-            numpy.sum(
-                result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :]
-            )
-        )
 
         these_frequencies = (
             result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :].astype(
@@ -453,8 +446,8 @@ def merge_results_over_examples(result_tables_xarray):
                     for t in result_tables_xarray
                 ])
 
-            assert (
-                num_examples_total ==
+            error_checking.assert_equals(
+                num_examples_total,
                 numpy.sum(
                     result_table_xarray[VECTOR_BIN_COUNT_KEY].values[j, k, :]
                 )

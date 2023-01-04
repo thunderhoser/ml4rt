@@ -319,7 +319,7 @@ def run_discard_test(
             (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, numpy.nan)
         ),
         EXAMPLE_FRACTION_KEY: (
-            (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, -1, dtype=int)
+            (DISCARD_FRACTION_DIM,), numpy.full(num_fractions, numpy.nan)
         )
     }
 
