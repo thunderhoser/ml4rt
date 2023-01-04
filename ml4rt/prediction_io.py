@@ -1108,4 +1108,15 @@ def concat_predictions(prediction_dicts):
                     prediction_dict[this_key], prediction_dicts[i][this_key]
                 ), axis=0)
 
-    return prediction_dict
+    num_examples = len(prediction_dict[EXAMPLE_IDS_KEY])
+    num_unique_examples = len(set(prediction_dict[EXAMPLE_IDS_KEY]))
+
+    if num_examples == num_unique_examples:
+        return prediction_dict
+
+    error_string = (
+        'Number of unique examples ({0:d}) is less than number of total '
+        'examples ({1:d}).'
+    ).format(num_unique_examples, num_examples)
+
+    raise ValueError(error_string)

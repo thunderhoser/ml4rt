@@ -21,8 +21,8 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01"
 
-set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_20200102-20200115/discard_test_for_heating_rates.nc"
-set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_20200102-20200115/discard_test_for_heating_rates"
+set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_20200102-20200225/discard_test_for_heating_rates.nc"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_20200102-20200225/discard_test_for_heating_rates"
 
 python3 -u "${CODE_DIR_NAME}/plot_discard_test.py" \
 --input_file_name="${input_file_name}" \
