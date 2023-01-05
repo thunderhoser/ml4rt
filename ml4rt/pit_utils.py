@@ -24,21 +24,47 @@ import neural_net
 
 TOLERANCE = 1e-6
 
+MAX_PIT_FOR_LOW_BINS = 0.3
+MIN_PIT_FOR_HIGH_BINS = 0.7
+
+BIN_EDGES_KEY = 'bin_edges'
+BIN_COUNTS_KEY = 'bin_counts'
+PITD_KEY = 'pitd_value'
+PERFECT_PITD_KEY = 'perfect_pitd_value'
+LOW_BIN_BIAS_KEY = 'low_bin_pit_bias'
+MIDDLE_BIN_BIAS_KEY = 'middle_bin_pit_bias'
+HIGH_BIN_BIAS_KEY = 'high_bin_pit_bias'
+
 BIN_CENTER_DIM = 'bin_center'
 BIN_EDGE_DIM = 'bin_edge'
 
 SCALAR_PITD_KEY = 'scalar_pitd'
 SCALAR_PERFECT_PITD_KEY = 'scalar_perfect_pitd'
 SCALAR_BIN_COUNT_KEY = 'scalar_bin_count'
+SCALAR_LOW_BIN_BIAS_KEY = 'scalar_low_bin_pit_bias'
+SCALAR_MIDDLE_BIN_BIAS_KEY = 'scalar_middle_bin_pit_bias'
+SCALAR_HIGH_BIN_BIAS_KEY = 'scalar_high_bin_pit_bias'
+
 VECTOR_PITD_KEY = 'vector_pitd'
 VECTOR_PERFECT_PITD_KEY = 'vector_perfect_pitd'
 VECTOR_BIN_COUNT_KEY = 'vector_bin_count'
+VECTOR_LOW_BIN_BIAS_KEY = 'vector_low_bin_pit_bias'
+VECTOR_MIDDLE_BIN_BIAS_KEY = 'vector_middle_bin_pit_bias'
+VECTOR_HIGH_BIN_BIAS_KEY = 'vector_high_bin_pit_bias'
+
 VECTOR_FLAT_PITD_KEY = 'vector_flat_pitd'
 VECTOR_FLAT_PERFECT_PITD_KEY = 'vector_flat_perfect_pitd'
 VECTOR_FLAT_BIN_COUNT_KEY = 'vector_flat_bin_count'
+VECTOR_FLAT_LOW_BIN_BIAS_KEY = 'vector_flat_low_bin_pit_bias'
+VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY = 'vector_flat_middle_bin_pit_bias'
+VECTOR_FLAT_HIGH_BIN_BIAS_KEY = 'vector_flat_high_bin_pit_bias'
+
 AUX_PITD_KEY = 'aux_pitd'
 AUX_PERFECT_PITD_KEY = 'aux_perfect_pitd'
 AUX_BIN_COUNT_KEY = 'aux_bin_count'
+AUX_LOW_BIN_BIAS_KEY = 'aux_low_bin_pit_bias'
+AUX_MIDDLE_BIN_BIAS_KEY = 'aux_middle_bin_pit_bias'
+AUX_HIGH_BIN_BIAS_KEY = 'aux_high_bin_pit_bias'
 
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
@@ -48,6 +74,54 @@ AUX_PREDICTED_FIELD_DIM = uq_evaluation.AUX_PREDICTED_FIELD_DIM
 
 MODEL_FILE_KEY = uq_evaluation.MODEL_FILE_KEY
 PREDICTION_FILE_KEY = uq_evaluation.PREDICTION_FILE_KEY
+
+
+def _get_low_mid_hi_bins(bin_edges):
+    """Returns indices for low-PIT, medium-PIT, and high-PIT bins.
+
+    B = number of bins
+
+    :param bin_edges: length-(B + 1) numpy array of bin edges, sorted in
+        ascending order.
+    :return: low_bin_indices: 1-D numpy array with array indices for low-PIT
+        bins.
+    :return: middle_bin_indices: 1-D numpy array with array indices for
+        medium-PIT bins.
+    :return: high_bin_indices: 1-D numpy array with array indices for high-PIT
+        bins.
+    """
+
+    num_bins = len(bin_edges) - 1
+
+    these_diffs = bin_edges - MAX_PIT_FOR_LOW_BINS
+    these_diffs[these_diffs > TOLERANCE] = numpy.inf
+    max_index_for_low_bins = numpy.argmin(numpy.absolute(these_diffs)) - 1
+    max_index_for_low_bins = max([max_index_for_low_bins, 0])
+
+    low_bin_indices = numpy.linspace(
+        0, max_index_for_low_bins, num=max_index_for_low_bins + 1, dtype=int
+    )
+
+    these_diffs = MIN_PIT_FOR_HIGH_BINS - bin_edges
+    these_diffs[these_diffs > TOLERANCE] = numpy.inf
+    min_index_for_high_bins = numpy.argmin(numpy.absolute(these_diffs))
+    min_index_for_high_bins = min([min_index_for_high_bins, num_bins - 1])
+
+    high_bin_indices = numpy.linspace(
+        min_index_for_high_bins, num_bins - 1,
+        num=num_bins - min_index_for_high_bins, dtype=int
+    )
+
+    middle_bin_indices = numpy.linspace(
+        0, num_bins - 1, num=num_bins, dtype=int
+    )
+    middle_bin_indices = numpy.array(list(
+        set(middle_bin_indices.tolist())
+        - set(low_bin_indices.tolist())
+        - set(high_bin_indices.tolist())
+    ))
+
+    return low_bin_indices, middle_bin_indices, high_bin_indices
 
 
 def _get_histogram_one_var(target_values, prediction_matrix, num_bins):
@@ -60,12 +134,19 @@ def _get_histogram_one_var(target_values, prediction_matrix, num_bins):
     :param target_values: length-E numpy array of actual values.
     :param prediction_matrix: E-by-S numpy array of predicted values.
     :param num_bins: Number of bins in histogram.
-    :return: bin_edges: length-(B + 1) numpy array of bin edges (ranging from
-        0...1, because PIT ranges from 0...1).
-    :return: bin_counts: length-B numpy array with number of examples in each
-        bin.
-    :return: pitd_value: Value of the calibration-deviation metric (PITD).
-    :return: perfect_pitd_value: Minimum expected PITD value.
+    :return: result_dict: Dictionary with the following keys.
+    result_dict["bin_edges"]: length-(B + 1) numpy array of bin edges (ranging
+        from 0...1, because PIT ranges from 0...1).
+    result_dict["bin_counts"]: length-B numpy array with number of examples in
+        each bin.
+    result_dict["pitd_value"]: Value of the calibration-deviation metric (PITD).
+    result_dict["perfect_pitd_value"]: Minimum expected PITD value.
+    result_dict["low_bin_pit_bias"]: PIT bias for low bins, i.e., PIT values of
+        [0, 0.3).
+    result_dict["middle_bin_pit_bias"]: PIT bias for middle bins, i.e., PIT
+        values of [0.3, 0.7).
+    result_dict["high_bin_pit_bias"]: PIT bias for high bins, i.e., PIT values
+        of [0.7, 1.0].
     """
 
     num_examples = len(target_values)
@@ -99,7 +180,29 @@ def _get_histogram_one_var(target_values, prediction_matrix, num_bins):
         (1. - perfect_bin_frequency) / (num_examples * num_bins)
     )
 
-    return bin_edges, bin_counts, pitd_value, perfect_pitd_value
+    low_bin_indices, middle_bin_indices, high_bin_indices = (
+        _get_low_mid_hi_bins(bin_edges)
+    )
+
+    low_bin_pit_bias = numpy.mean(
+        bin_frequencies[low_bin_indices] - perfect_bin_frequency
+    )
+    middle_bin_pit_bias = numpy.mean(
+        bin_frequencies[middle_bin_indices] - perfect_bin_frequency
+    )
+    high_bin_pit_bias = numpy.mean(
+        bin_frequencies[high_bin_indices] - perfect_bin_frequency
+    )
+
+    return {
+        BIN_EDGES_KEY: bin_edges,
+        BIN_COUNTS_KEY: bin_counts,
+        PITD_KEY: pitd_value,
+        PERFECT_PITD_KEY: perfect_pitd_value,
+        LOW_BIN_BIAS_KEY: low_bin_pit_bias,
+        MIDDLE_BIN_BIAS_KEY: middle_bin_pit_bias,
+        HIGH_BIN_BIAS_KEY: high_bin_pit_bias
+    }
 
 
 def get_histogram_all_vars(prediction_file_name, num_bins):
@@ -183,6 +286,15 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             (SCALAR_FIELD_DIM, BIN_CENTER_DIM),
             numpy.full((num_scalar_targets, num_bins), -1, dtype=int)
         ),
+        SCALAR_LOW_BIN_BIAS_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
+        SCALAR_MIDDLE_BIN_BIAS_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
+        SCALAR_HIGH_BIN_BIAS_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
         VECTOR_PITD_KEY: (
             (VECTOR_FIELD_DIM, HEIGHT_DIM),
             numpy.full((num_vector_targets, num_heights), numpy.nan)
@@ -197,6 +309,18 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
                 (num_vector_targets, num_heights, num_bins), -1, dtype=int
             )
         ),
+        VECTOR_LOW_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
+        VECTOR_MIDDLE_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
+        VECTOR_HIGH_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
         VECTOR_FLAT_PITD_KEY: (
             (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
         ),
@@ -206,6 +330,15 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
         VECTOR_FLAT_BIN_COUNT_KEY: (
             (VECTOR_FIELD_DIM, BIN_CENTER_DIM),
             numpy.full((num_vector_targets, num_bins), -1, dtype=int)
+        ),
+        VECTOR_FLAT_LOW_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+        ),
+        VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+        ),
+        VECTOR_FLAT_HIGH_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
         )
     }
 
@@ -220,6 +353,15 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             AUX_BIN_COUNT_KEY: (
                 (AUX_TARGET_FIELD_DIM, BIN_CENTER_DIM),
                 numpy.full((num_aux_targets, num_bins), -1, dtype=int)
+            ),
+            AUX_LOW_BIN_BIAS_KEY: (
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+            AUX_MIDDLE_BIN_BIAS_KEY: (
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+            AUX_HIGH_BIN_BIAS_KEY: (
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             )
         })
 
@@ -249,15 +391,28 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
         ))
 
-        (
-            _,
-            result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :],
-            result_table_xarray[SCALAR_PITD_KEY].values[j],
-            result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[j]
-        ) = _get_histogram_one_var(
+        this_result_dict = _get_histogram_one_var(
             target_values=scalar_target_matrix[:, j],
             prediction_matrix=scalar_prediction_matrix[:, j, :],
             num_bins=num_bins
+        )
+        result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :] = (
+            this_result_dict[BIN_COUNTS_KEY]
+        )
+        result_table_xarray[SCALAR_PITD_KEY].values[j] = (
+            this_result_dict[PITD_KEY]
+        )
+        result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[j] = (
+            this_result_dict[PERFECT_PITD_KEY]
+        )
+        result_table_xarray[SCALAR_LOW_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[LOW_BIN_BIAS_KEY]
+        )
+        result_table_xarray[SCALAR_MIDDLE_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[MIDDLE_BIN_BIAS_KEY]
+        )
+        result_table_xarray[SCALAR_HIGH_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[HIGH_BIN_BIAS_KEY]
         )
 
     for j in range(num_vector_targets):
@@ -271,14 +426,27 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             (len(these_targets), vector_prediction_matrix.shape[-1])
         )
 
-        (
-            _,
-            result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :],
-            result_table_xarray[VECTOR_FLAT_PITD_KEY].values[j],
-            result_table_xarray[VECTOR_FLAT_PERFECT_PITD_KEY].values[j]
-        ) = _get_histogram_one_var(
+        this_result_dict = _get_histogram_one_var(
             target_values=these_targets,
             prediction_matrix=this_prediction_matrix, num_bins=num_bins
+        )
+        result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :] = (
+            this_result_dict[BIN_COUNTS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_PITD_KEY].values[j] = (
+            this_result_dict[PITD_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_PERFECT_PITD_KEY].values[j] = (
+            this_result_dict[PERFECT_PITD_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[LOW_BIN_BIAS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[MIDDLE_BIN_BIAS_KEY]
+        )
+        result_table_xarray[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[HIGH_BIN_BIAS_KEY]
         )
 
         for k in range(num_heights):
@@ -287,15 +455,28 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
                 int(numpy.round(heights_m_agl[k]))
             ))
 
-            (
-                _,
-                result_table_xarray[VECTOR_BIN_COUNT_KEY].values[j, k, :],
-                result_table_xarray[VECTOR_PITD_KEY].values[j, k],
-                result_table_xarray[VECTOR_PERFECT_PITD_KEY].values[j, k]
-            ) = _get_histogram_one_var(
+            this_result_dict = _get_histogram_one_var(
                 target_values=vector_target_matrix[:, k, j],
                 prediction_matrix=vector_prediction_matrix[:, k, j, :],
                 num_bins=num_bins
+            )
+            result_table_xarray[VECTOR_BIN_COUNT_KEY].values[j, k, :] = (
+                this_result_dict[BIN_COUNTS_KEY]
+            )
+            result_table_xarray[VECTOR_PITD_KEY].values[j, k] = (
+                this_result_dict[PITD_KEY]
+            )
+            result_table_xarray[VECTOR_PERFECT_PITD_KEY].values[j, k] = (
+                this_result_dict[PERFECT_PITD_KEY]
+            )
+            result_table_xarray[VECTOR_LOW_BIN_BIAS_KEY].values[j, k] = (
+                this_result_dict[LOW_BIN_BIAS_KEY]
+            )
+            result_table_xarray[VECTOR_MIDDLE_BIN_BIAS_KEY].values[j, k] = (
+                this_result_dict[MIDDLE_BIN_BIAS_KEY]
+            )
+            result_table_xarray[VECTOR_HIGH_BIN_BIAS_KEY].values[j, k] = (
+                this_result_dict[HIGH_BIN_BIAS_KEY]
             )
 
     for j in range(num_aux_targets):
@@ -303,15 +484,28 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             aux_target_field_names[j]
         ))
 
-        (
-            _,
-            result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :],
-            result_table_xarray[AUX_PITD_KEY].values[j],
-            result_table_xarray[AUX_PERFECT_PITD_KEY].values[j]
-        ) = _get_histogram_one_var(
+        this_result_dict = _get_histogram_one_var(
             target_values=aux_target_matrix[:, j],
             prediction_matrix=aux_prediction_matrix[:, j, :],
             num_bins=num_bins
+        )
+        result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :] = (
+            this_result_dict[BIN_COUNTS_KEY]
+        )
+        result_table_xarray[AUX_PITD_KEY].values[j] = (
+            this_result_dict[PITD_KEY]
+        )
+        result_table_xarray[AUX_PERFECT_PITD_KEY].values[j] = (
+            this_result_dict[PERFECT_PITD_KEY]
+        )
+        result_table_xarray[AUX_LOW_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[LOW_BIN_BIAS_KEY]
+        )
+        result_table_xarray[AUX_MIDDLE_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[MIDDLE_BIN_BIAS_KEY]
+        )
+        result_table_xarray[AUX_HIGH_BIN_BIAS_KEY].values[j] = (
+            this_result_dict[HIGH_BIN_BIAS_KEY]
         )
 
     return result_table_xarray
@@ -367,6 +561,10 @@ def merge_results_over_examples(result_tables_xarray):
     num_bins = len(result_table_xarray.coords[BIN_CENTER_DIM].values)
     perfect_bin_frequency = 1. / num_bins
 
+    low_bin_indices, middle_bin_indices, high_bin_indices = (
+        _get_low_mid_hi_bins(result_table_xarray.coords[BIN_EDGE_DIM].values)
+    )
+
     for j in range(len(scalar_target_names)):
         for i in range(num_bins):
             result_table_xarray[SCALAR_BIN_COUNT_KEY].values[
@@ -391,6 +589,15 @@ def merge_results_over_examples(result_tables_xarray):
         )
         result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[j] = numpy.sqrt(
             (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
+        )
+        result_table_xarray[SCALAR_LOW_BIN_BIAS_KEY].values[j] = numpy.mean(
+            these_frequencies[low_bin_indices] - perfect_bin_frequency
+        )
+        result_table_xarray[SCALAR_MIDDLE_BIN_BIAS_KEY].values[j] = numpy.mean(
+            these_frequencies[middle_bin_indices] - perfect_bin_frequency
+        )
+        result_table_xarray[SCALAR_HIGH_BIN_BIAS_KEY].values[j] = numpy.mean(
+            these_frequencies[high_bin_indices] - perfect_bin_frequency
         )
 
     for j in range(len(aux_predicted_field_names)):
@@ -418,6 +625,15 @@ def merge_results_over_examples(result_tables_xarray):
         result_table_xarray[AUX_PERFECT_PITD_KEY].values[j] = numpy.sqrt(
             (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
         )
+        result_table_xarray[AUX_LOW_BIN_BIAS_KEY].values[j] = numpy.mean(
+            these_frequencies[low_bin_indices] - perfect_bin_frequency
+        )
+        result_table_xarray[AUX_MIDDLE_BIN_BIAS_KEY].values[j] = numpy.mean(
+            these_frequencies[middle_bin_indices] - perfect_bin_frequency
+        )
+        result_table_xarray[AUX_HIGH_BIN_BIAS_KEY].values[j] = numpy.mean(
+            these_frequencies[high_bin_indices] - perfect_bin_frequency
+        )
 
     for j in range(len(vector_target_names)):
         for i in range(num_bins):
@@ -440,6 +656,22 @@ def merge_results_over_examples(result_tables_xarray):
             j
         ] = numpy.sqrt(
             (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
+        )
+
+        result_table_xarray[VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[j] = (
+            numpy.mean(
+                these_frequencies[low_bin_indices] - perfect_bin_frequency
+            )
+        )
+        result_table_xarray[VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[j] = (
+            numpy.mean(
+                these_frequencies[middle_bin_indices] - perfect_bin_frequency
+            )
+        )
+        result_table_xarray[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[j] = (
+            numpy.mean(
+                these_frequencies[high_bin_indices] - perfect_bin_frequency
+            )
         )
 
         for k in range(len(heights_m_agl)):
@@ -472,6 +704,23 @@ def merge_results_over_examples(result_tables_xarray):
                 j, k
             ] = numpy.sqrt(
                 (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
+            )
+
+            result_table_xarray[VECTOR_LOW_BIN_BIAS_KEY].values[j, k] = (
+                numpy.mean(
+                    these_frequencies[low_bin_indices] - perfect_bin_frequency
+                )
+            )
+            result_table_xarray[VECTOR_MIDDLE_BIN_BIAS_KEY].values[j, k] = (
+                numpy.mean(
+                    these_frequencies[middle_bin_indices] -
+                    perfect_bin_frequency
+                )
+            )
+            result_table_xarray[VECTOR_HIGH_BIN_BIAS_KEY].values[j, k] = (
+                numpy.mean(
+                    these_frequencies[high_bin_indices] - perfect_bin_frequency
+                )
             )
 
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([
