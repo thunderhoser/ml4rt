@@ -597,17 +597,13 @@ def merge_results_over_examples(result_tables_xarray):
         these_crpss_values = numpy.array([
             t[SCALAR_CRPSS_KEY].values[j] for t in result_tables_xarray
         ])
-        these_climo_crps_values = these_crps_values / (1. - these_crpss_values)
-
-        this_climo_crps_range = (
-            numpy.max(these_climo_crps_values) -
-            numpy.min(these_climo_crps_values)
+        this_climo_crps = numpy.average(
+            these_crps_values / (1. - these_crpss_values),
+            weights=num_examples_by_table
         )
-        assert this_climo_crps_range <= TOLERANCE
-
         result_table_xarray[SCALAR_CRPSS_KEY].values[j] = (
             1. - result_table_xarray[SCALAR_CRPS_KEY].values[j] /
-            these_climo_crps_values[0]
+            this_climo_crps
         )
 
     for j in range(len(aux_predicted_field_names)):
@@ -628,17 +624,12 @@ def merge_results_over_examples(result_tables_xarray):
         these_crpss_values = numpy.array([
             t[AUX_CRPSS_KEY].values[j] for t in result_tables_xarray
         ])
-        these_climo_crps_values = these_crps_values / (1. - these_crpss_values)
-
-        this_climo_crps_range = (
-            numpy.max(these_climo_crps_values) -
-            numpy.min(these_climo_crps_values)
+        this_climo_crps = numpy.average(
+            these_crps_values / (1. - these_crpss_values),
+            weights=num_examples_by_table
         )
-        assert this_climo_crps_range <= TOLERANCE
-
         result_table_xarray[AUX_CRPSS_KEY].values[j] = (
-            1. - result_table_xarray[AUX_CRPS_KEY].values[j] /
-            these_climo_crps_values[0]
+            1. - result_table_xarray[AUX_CRPS_KEY].values[j] / this_climo_crps
         )
 
     for j in range(len(vector_target_names)):
@@ -660,19 +651,13 @@ def merge_results_over_examples(result_tables_xarray):
             these_crpss_values = numpy.array([
                 t[VECTOR_CRPSS_KEY].values[j, k] for t in result_tables_xarray
             ])
-            these_climo_crps_values = (
-                these_crps_values / (1. - these_crpss_values)
+            this_climo_crps = numpy.average(
+                these_crps_values / (1. - these_crpss_values),
+                weights=num_examples_by_table
             )
-
-            this_climo_crps_range = (
-                numpy.max(these_climo_crps_values) -
-                numpy.min(these_climo_crps_values)
-            )
-            assert this_climo_crps_range <= TOLERANCE
-
             result_table_xarray[VECTOR_CRPSS_KEY].values[j, k] = (
                 1. - result_table_xarray[VECTOR_CRPS_KEY].values[j, k] /
-                these_climo_crps_values[0]
+                this_climo_crps
             )
 
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([
