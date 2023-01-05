@@ -1,17 +1,24 @@
 """Helper methods for computing continuous ranked probability score (CRPS)."""
 
 import os
+import sys
 import copy
 import numpy
 import xarray
 from scipy.integrate import simps
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
-from ml4rt.io import prediction_io
-from ml4rt.utils import example_utils
-from ml4rt.utils import uq_evaluation
-from ml4rt.machine_learning import neural_net
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import error_checking
+import example_io
+import prediction_io
+import example_utils
+import uq_evaluation
+import neural_net
 
 TOLERANCE = 1e-6
 NUM_EXAMPLES_PER_BATCH = 1000
