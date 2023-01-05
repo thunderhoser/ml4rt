@@ -155,6 +155,99 @@ def _run(input_file_name, output_dir_name):
         )
         pyplot.close(figure_object)
 
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[pit_utils.HEIGHT_DIM].values,
+            score_values=t[pit_utils.VECTOR_LOW_BIN_BIAS_KEY].values[j, :],
+            score_name=evaluation_plotting.BIAS_NAME,
+            line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        this_var_name = t.coords[pit_utils.VECTOR_FIELD_DIM].values[j]
+        axes_object.set_xlabel('Frequency bias for PIT < {0:.2f}'.format(
+            pit_utils.MAX_PIT_FOR_LOW_BINS
+        ))
+        axes_object.set_title('Low-PIT bias for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        ))
+
+        figure_file_name = '{0:s}/low_pit_bias_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[pit_utils.HEIGHT_DIM].values,
+            score_values=t[pit_utils.VECTOR_MIDDLE_BIN_BIAS_KEY].values[j, :],
+            score_name=evaluation_plotting.BIAS_NAME,
+            line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        this_var_name = t.coords[pit_utils.VECTOR_FIELD_DIM].values[j]
+        axes_object.set_xlabel(
+            'Frequency bias for PIT in [{0:.2f}, {1:.2f})'.format(
+                pit_utils.MAX_PIT_FOR_LOW_BINS,
+                pit_utils.MIN_PIT_FOR_HIGH_BINS
+            )
+        )
+        axes_object.set_title('Medium-PIT bias for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        ))
+
+        figure_file_name = '{0:s}/medium_pit_bias_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+        figure_object, axes_object = pyplot.subplots(
+            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+        )
+        evaluation_plotting.plot_score_profile(
+            heights_m_agl=t.coords[pit_utils.HEIGHT_DIM].values,
+            score_values=t[pit_utils.VECTOR_HIGH_BIN_BIAS_KEY].values[j, :],
+            score_name=evaluation_plotting.BIAS_NAME,
+            line_colour=ERROR_PROFILE_COLOUR, line_width=4, line_style='solid',
+            use_log_scale=True, axes_object=axes_object,
+            are_axes_new=True
+        )
+
+        this_var_name = t.coords[pit_utils.VECTOR_FIELD_DIM].values[j]
+        axes_object.set_xlabel('Frequency bias for PIT >= {0:.2f}'.format(
+            pit_utils.MIN_PIT_FOR_HIGH_BINS
+        ))
+        axes_object.set_title('High-PIT bias for {0:s}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        ))
+
+        figure_file_name = '{0:s}/high_pit_bias_{1:s}.jpg'.format(
+            output_dir_name, this_var_name.replace('_', '-')
+        )
+        print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+        figure_object.savefig(
+            figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
 
 if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()

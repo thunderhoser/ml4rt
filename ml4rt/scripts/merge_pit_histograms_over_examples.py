@@ -58,19 +58,15 @@ def _run(input_file_names, output_file_name):
     scalar_target_names = t.coords[pit_utils.SCALAR_FIELD_DIM].values
 
     for k in range(len(scalar_target_names)):
-        this_skill_score = (
-            (1. - t[pit_utils.SCALAR_PITD_KEY].values[k]) /
-            (1. - t[pit_utils.SCALAR_PERFECT_PITD_KEY].values[k])
-        )
-
         print((
-            'Variable = {0:s} ... PITD = {1:f} ... perfect PITD = {2:f} ... '
-            'PITD "skill" score = {3:f}'
+            'Variable = {0:s} ... PITD = {1:f} ... low-PIT bias = {2:f} ... '
+            'medium-PIT bias = {3:f} ... high-PIT bias = {4:f}'
         ).format(
             scalar_target_names[k],
             t[pit_utils.SCALAR_PITD_KEY].values[k],
-            t[pit_utils.SCALAR_PERFECT_PITD_KEY].values[k],
-            this_skill_score
+            t[pit_utils.SCALAR_LOW_BIN_BIAS_KEY].values[k],
+            t[pit_utils.SCALAR_MIDDLE_BIN_BIAS_KEY].values[k],
+            t[pit_utils.SCALAR_HIGH_BIN_BIAS_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
@@ -78,35 +74,28 @@ def _run(input_file_names, output_file_name):
     heights_m_agl = t.coords[pit_utils.HEIGHT_DIM].values
 
     for k in range(len(vector_target_names)):
-        this_skill_score = (
-            (1. - t[pit_utils.VECTOR_FLAT_PITD_KEY].values[k]) /
-            (1. - t[pit_utils.VECTOR_FLAT_PERFECT_PITD_KEY].values[k])
-        )
-
         print((
-            'Variable = {0:s} ... PITD = {1:f} ... perfect PITD = {2:f} ... '
-            'PITD "skill" score = {3:f}'
+            'Variable = {0:s} ... PITD = {1:f} ... low-PIT bias = {2:f} ... '
+            'medium-PIT bias = {3:f} ... high-PIT bias = {4:f}'
         ).format(
             vector_target_names[k],
             t[pit_utils.VECTOR_FLAT_PITD_KEY].values[k],
-            t[pit_utils.VECTOR_FLAT_PERFECT_PITD_KEY].values[k],
-            this_skill_score
+            t[pit_utils.VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[k],
+            t[pit_utils.VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[k],
+            t[pit_utils.VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[k]
         ))
 
         for j in range(len(heights_m_agl)):
-            this_skill_score = (
-                (1. - t[pit_utils.VECTOR_PITD_KEY].values[k, j]) /
-                (1. - t[pit_utils.VECTOR_PERFECT_PITD_KEY].values[k, j])
-            )
-
             print((
                 'Variable = {0:s} at {1:d} m AGL ... PITD = {2:f} ... '
-                'perfect PITD = {3:f} ... PITD "skill" score = {4:f}'
+                'low-PIT bias = {3:f} ... '
+                'medium-PIT bias = {4:f} ... high-PIT bias = {5:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
                 t[pit_utils.VECTOR_PITD_KEY].values[k, j],
-                t[pit_utils.VECTOR_PERFECT_PITD_KEY].values[k, j],
-                this_skill_score
+                t[pit_utils.VECTOR_LOW_BIN_BIAS_KEY].values[k, j],
+                t[pit_utils.VECTOR_MIDDLE_BIN_BIAS_KEY].values[k, j],
+                t[pit_utils.VECTOR_HIGH_BIN_BIAS_KEY].values[k, j]
             ))
 
         print(SEPARATOR_STRING)
@@ -123,20 +112,16 @@ def _run(input_file_names, output_file_name):
         aux_predicted_field_names = []
 
     for k in range(len(aux_target_field_names)):
-        this_skill_score = (
-            (1. - t[pit_utils.AUX_PITD_KEY].values[k]) /
-            (1. - t[pit_utils.AUX_PERFECT_PITD_KEY].values[k])
-        )
-
         print((
             'Target variable = {0:s} ... predicted variable = {1:s} ... '
-            'PITD = {2:f} ... perfect PITD = {3:f} ... '
-            'PITD "skill" score = {4:f}'
+            'PITD = {2:f} ... low-PIT bias = {3:f} ... '
+            'medium-PIT bias = {4:f} ... high-PIT bias = {5:f}'
         ).format(
             aux_target_field_names[k], aux_predicted_field_names[k],
             t[pit_utils.AUX_PITD_KEY].values[k],
-            t[pit_utils.AUX_PERFECT_PITD_KEY].values[k],
-            this_skill_score
+            t[pit_utils.AUX_LOW_BIN_BIAS_KEY].values[k],
+            t[pit_utils.AUX_MIDDLE_BIN_BIAS_KEY].values[k],
+            t[pit_utils.AUX_HIGH_BIN_BIAS_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
