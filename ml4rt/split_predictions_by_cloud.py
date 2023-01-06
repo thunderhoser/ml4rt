@@ -191,7 +191,7 @@ def _run(input_file_name, example_dir_name, for_ice, min_path_kg_m02,
         desired_indices=fog_indices
     )
 
-    this_output_file_name = '{0:s}/predictions_fog.nc'.format(output_dir_name)
+    this_output_file_name = '{0:s}/fog/predictions.nc'.format(output_dir_name)
     print('Writing {0:d} examples to: "{1:s}"...'.format(
         len(this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]),
         this_output_file_name
