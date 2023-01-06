@@ -333,6 +333,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
 
+        while len(vector_prediction_matrix.shape) < 3:
+            vector_prediction_matrix = numpy.expand_dims(
+                vector_prediction_matrix, axis=-1
+            )
+
+        while len(scalar_prediction_matrix.shape) < 3:
+            scalar_prediction_matrix = numpy.expand_dims(
+                scalar_prediction_matrix, axis=-1
+            )
+
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
         ensemble_indices = numpy.linspace(
