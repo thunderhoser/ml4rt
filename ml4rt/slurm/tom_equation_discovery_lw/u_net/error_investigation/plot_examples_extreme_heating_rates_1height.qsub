@@ -1,0 +1,55 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_examples_extreme_heating_rates_1height"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=1-4
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_examples_extreme_heating_rates_1height_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/tom_experiment_lw/u_net"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights/validation"
+
+set MODEL_DEPTHS=(3 3 3 3 3 3 4 4 4 4 4 4 5 5 5 5 5 5)
+set FIRST_LAYER_CHANNEL_COUNTS=(2 4 8 16 32 64 2 4 8 16 32 64 2 4 8 16 32 64)
+set BEST_MODEL_INDEX=17
+
+set model_depth=${MODEL_DEPTHS[$BEST_MODEL_INDEX]}
+set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}
+
+set model_depth=`printf "%1d" $model_depth`
+set num_first_layer_channels=`printf "%02d" $num_first_layer_channels`
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/num-levels=${model_depth}_num-first-layer-channels=${num_first_layer_channels}"
+
+set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+
+set PATHLESS_PREDICTION_FILE_NAMES=("predictions_high-bias.nc" "predictions_low-bias.nc" "predictions_low-absolute-error.nc" "predictions_large-heating-rate.nc")
+set input_file_name="${model_dir_name}/validation/extreme_heating_rates_1height/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set output_dir_name=`echo $input_file_name | rev | cut -c 4- | rev`
+set output_dir_name="${output_dir_name}/full_examples"
+
+python3 -u "${CODE_DIR_NAME}/plot_examples_4predictors.py" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--input_example_id_file_name="${input_file_name}" \
+--plot_shortwave=0 \
+--output_dir_name="${output_dir_name}"
