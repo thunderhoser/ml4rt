@@ -31,7 +31,7 @@ LOSS_DICT = {
 }
 
 DEFAULT_OPTION_DICT = {
-    dense_net_architecture.NUM_INPUTS_KEY: 127 * 19 + 4,
+    dense_net_architecture.NUM_INPUTS_KEY: 127 * 21 + 2,
     dense_net_architecture.NUM_HEIGHTS_KEY: 127,
     dense_net_architecture.NUM_FLUX_COMPONENTS_KEY: 2,
     dense_net_architecture.HIDDEN_LAYER_NEURON_NUMS_KEY:
