@@ -660,6 +660,9 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     check_net_type(net_type_string)
 
     vector_target_matrix = target_matrices[0]
+    print(vector_target_matrix.shape)
+
+
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
     error_checking.assert_is_numpy_array(
         vector_target_matrix,
