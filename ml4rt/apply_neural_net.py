@@ -407,12 +407,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     }
     target_example_dict.update(this_dict)
 
-    print('SIZE OF VECTOR_PREDICTION_MATRIX')
-    print(vector_prediction_matrix.shape)
-
-    print('SIZE OF SCALAR_PREDICTION_MATRIX')
-    print(scalar_prediction_matrix.shape)
-
     ensemble_size = vector_prediction_matrix.shape[-1]
     prediction_example_dict_by_member = [dict()] * ensemble_size
 

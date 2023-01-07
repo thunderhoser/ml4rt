@@ -275,13 +275,13 @@ def _plot_comparisons_simple(
             if annotation_strings[i] is not None:
                 this_annotation_string += '\n' + annotation_strings[i]
 
-            this_axes_object.text(
-                0.99, 0.8, this_annotation_string,
-                fontsize=TITLE_FONT_SIZE, color='k',
-                bbox=LEGEND_BOUNDING_BOX_DICT,
-                horizontalalignment='right', verticalalignment='top',
-                transform=this_axes_object.transAxes, zorder=1e10
-            )
+            # this_axes_object.text(
+            #     0.99, 0.8, this_annotation_string,
+            #     fontsize=TITLE_FONT_SIZE, color='k',
+            #     bbox=LEGEND_BOUNDING_BOX_DICT,
+            #     horizontalalignment='right', verticalalignment='top',
+            #     transform=this_axes_object.transAxes, zorder=1e10
+            # )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
                 output_dir_name, example_id_strings[i].replace('_', '-'),
