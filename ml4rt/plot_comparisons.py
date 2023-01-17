@@ -68,6 +68,8 @@ LEGEND_BOUNDING_BOX_DICT = {
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
+PLOT_UNCERTAINTY_ARG_NAME = 'plot_uncertainty'
+CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 ADD_DUMMY_AXES_ARG_NAME = 'add_two_dummy_axes'
@@ -80,6 +82,12 @@ PREDICTION_FILE_HELP_STRING = (
 )
 PLOT_SHORTWAVE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot shortwave (longwave) values.'
+)
+PLOT_UNCERTAINTY_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot uncertainty in predictions.'
+)
+CONFIDENCE_LEVEL_HELP_STRING = (
+    'Confidence level (in range 0...1) for prediction uncertainty.'
 )
 NUM_EXAMPLES_HELP_STRING = (
     'Will plot the first N examples, where N = `{0:s}`.  If you want to plot '
@@ -114,6 +122,14 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_UNCERTAINTY_ARG_NAME, type=int, required=True,
+    help=PLOT_UNCERTAINTY_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=0.95,
+    help=CONFIDENCE_LEVEL_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + NUM_EXAMPLES_ARG_NAME, type=int, required=False, default=-1,
     help=NUM_EXAMPLES_HELP_STRING
 )
@@ -143,10 +159,11 @@ def _plot_comparisons_fancy(
     E = number of examples
     H = number of heights
     T = number of target variables
+    S = ensemble size
 
     :param vector_target_matrix: E-by-H-by-T numpy array of target (actual)
         values.
-    :param vector_prediction_matrix: E-by-H-by-T numpy array of predicted
+    :param vector_prediction_matrix: E-by-H-by-T-by-S numpy array of predicted
         values.
     :param example_id_strings: length-E list of example IDs.
     :param model_metadata_dict: Dictionary returned by
@@ -172,7 +189,8 @@ def _plot_comparisons_fancy(
             generator_option_dict[neural_net.HEIGHTS_KEY],
         example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
-        example_utils.VECTOR_TARGET_VALS_KEY: vector_prediction_matrix
+        example_utils.VECTOR_TARGET_VALS_KEY:
+            numpy.mean(vector_prediction_matrix, axis=-1)
     }
 
     num_examples = vector_target_matrix.shape[0]
@@ -207,6 +225,7 @@ def _plot_comparisons_fancy(
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
         model_metadata_dict, use_log_scale, add_two_dummy_axes, plot_shortwave,
+        plot_uncertainty, confidence_level,
         annotation_strings, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
@@ -217,6 +236,8 @@ def _plot_comparisons_simple(
     :param use_log_scale: Same.
     :param add_two_dummy_axes: Same.
     :param plot_shortwave: Same.
+    :param plot_uncertainty: Same.
+    :param confidence_level: Same.
     :param annotation_strings: 1-D list of annotations, one per example.
     :param output_dir_name: See doc for `_plot_comparisons_fancy`.
     """
@@ -252,14 +273,16 @@ def _plot_comparisons_simple(
 
             handle_dict = profile_plotting.plot_actual_and_predicted(
                 actual_values=vector_target_matrix[i, :, k],
-                predicted_values=vector_prediction_matrix[i, :, k],
+                prediction_matrix=vector_prediction_matrix[i, :, k, :],
                 heights_m_agl=heights_m_agl,
                 fancy_target_name=fancy_target_name,
                 line_colours=[TARGET_COLOUR, PREDICTION_COLOUR],
                 line_widths=numpy.full(2, 2.),
                 line_styles=['solid', 'dashed'],
                 use_log_scale=use_log_scale,
-                add_two_dummy_axes=add_two_dummy_axes
+                add_two_dummy_axes=add_two_dummy_axes,
+                plot_uncertainty_with_shading=plot_uncertainty,
+                confidence_level=confidence_level
             )
 
             this_figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -275,13 +298,13 @@ def _plot_comparisons_simple(
             if annotation_strings[i] is not None:
                 this_annotation_string += '\n' + annotation_strings[i]
 
-            # this_axes_object.text(
-            #     0.99, 0.8, this_annotation_string,
-            #     fontsize=TITLE_FONT_SIZE, color='k',
-            #     bbox=LEGEND_BOUNDING_BOX_DICT,
-            #     horizontalalignment='right', verticalalignment='top',
-            #     transform=this_axes_object.transAxes, zorder=1e10
-            # )
+            this_axes_object.text(
+                0.99, 0.8, this_annotation_string,
+                fontsize=TITLE_FONT_SIZE, color='k',
+                bbox=LEGEND_BOUNDING_BOX_DICT,
+                horizontalalignment='right', verticalalignment='top',
+                transform=this_axes_object.transAxes, zorder=1e10
+            )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
                 output_dir_name, example_id_strings[i].replace('_', '-'),
@@ -418,14 +441,17 @@ def _get_flux_strings(
     return flux_strings
 
 
-def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
-         add_two_dummy_axes, example_dir_name, output_dir_name):
+def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
+         confidence_level, num_examples, use_log_scale, add_two_dummy_axes,
+         example_dir_name, output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
     :param plot_shortwave: Same.
+    :param plot_uncertainty: Same.
+    :param confidence_level: Same.
     :param num_examples: Same.
     :param use_log_scale: Same.
     :param add_two_dummy_axes: Same.
@@ -449,7 +475,6 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     ))
 
     prediction_dict = prediction_io.read_file(prediction_file_name)
-    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
     num_examples_orig = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
 
     if num_examples is not None and num_examples < num_examples_orig:
@@ -549,8 +574,8 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     )
     down_flux_strings = [
         'Fdown bias = {0:.1f} WW'.format(b) for b in (
-            scalar_prediction_matrix[:, down_flux_index] -
-            scalar_target_matrix[:, down_flux_index]
+            numpy.mean(scalar_prediction_matrix[:, down_flux_index, :], axis=1)
+            - scalar_target_matrix[:, down_flux_index]
         )
     ]
     down_flux_strings = [
@@ -564,8 +589,8 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
     )
     up_flux_strings = [
         'Fup bias = {0:.1f} WW'.format(b) for b in (
-            scalar_prediction_matrix[:, up_flux_index] -
-            scalar_target_matrix[:, up_flux_index]
+            numpy.mean(scalar_prediction_matrix[:, up_flux_index, :], axis=1)
+            - scalar_target_matrix[:, up_flux_index]
         )
     ]
     up_flux_strings = [
@@ -577,8 +602,8 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
         scalar_target_matrix[:, up_flux_index]
     )
     predicted_net_fluxes_w_m02 = (
-        scalar_prediction_matrix[:, down_flux_index] -
-        scalar_prediction_matrix[:, up_flux_index]
+        numpy.mean(scalar_prediction_matrix[:, down_flux_index, :], axis=1) -
+        numpy.mean(scalar_prediction_matrix[:, up_flux_index, :], axis=1)
     )
     net_flux_strings = [
         'Fnet bias = {0:.1f} WW'.format(b) for b in
@@ -637,6 +662,8 @@ def _run(prediction_file_name, plot_shortwave, num_examples, use_log_scale,
             model_metadata_dict=model_metadata_dict,
             use_log_scale=use_log_scale, add_two_dummy_axes=add_two_dummy_axes,
             plot_shortwave=plot_shortwave,
+            plot_uncertainty=plot_uncertainty,
+            confidence_level=confidence_level,
             annotation_strings=annotation_strings,
             output_dir_name=output_dir_name
         )
@@ -650,6 +677,10 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
         plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
+        plot_uncertainty=bool(
+            getattr(INPUT_ARG_OBJECT, PLOT_UNCERTAINTY_ARG_NAME)
+        ),
+        confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         num_examples=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         add_two_dummy_axes=bool(

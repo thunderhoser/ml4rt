@@ -6,6 +6,8 @@ import copy
 import numpy
 import matplotlib
 matplotlib.use('agg')
+import matplotlib.colors
+import matplotlib.patches
 from matplotlib import pyplot
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -16,6 +18,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import temperature_conversions as temperature_conv
 import error_checking
 import example_utils
+import evaluation
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
@@ -23,6 +26,8 @@ PASCALS_TO_MB = 0.01
 KG_TO_MILLIGRAMS = 1e6
 RADIANS_TO_DEGREES = 180. / numpy.pi
 METRES_TO_MICRONS = 1e6
+
+OPACITY_FOR_UNCERTAINTY = 0.6
 
 FIGURE_HANDLE_KEY = 'figure_object'
 AXES_OBJECTS_KEY = 'axes_objects'
@@ -545,15 +550,19 @@ def plot_targets(
 
 
 def plot_actual_and_predicted(
-        actual_values, predicted_values, heights_m_agl, fancy_target_name,
+        actual_values, prediction_matrix, heights_m_agl, fancy_target_name,
         line_colours, line_widths, line_styles, use_log_scale,
-        add_two_dummy_axes=False):
+        add_two_dummy_axes=False,
+        plot_uncertainty_with_violin=False,
+        plot_uncertainty_with_shading=False,
+        plot_uncertainty_with_error_bars=False, confidence_level=None):
     """Plots actual and predicted values of one target variable.
 
     H = number of heights
+    S = number of ensemble members
 
     :param actual_values: length-H numpy array of actual values.
-    :param predicted_values: length-H numpy array of predicted values.
+    :param prediction_matrix: H-by-S numpy array of predicted values.
     :param heights_m_agl: length-H numpy array of heights (metres above ground
         level).
     :param fancy_target_name: Fancy name of target variable.
@@ -568,6 +577,17 @@ def plot_actual_and_predicted(
         that correspond to nothing.  The only reason for doing this is to make
         the vertical scale of the figure match another figure with 4 variables
         plotted.
+    :param plot_uncertainty_with_violin: Boolean flag.  If True, will plot
+        uncertainty in predictions with violin plot at each height.
+    :param plot_uncertainty_with_shading: Boolean flag.  If True, will plot
+        uncertainty in predictions with shaded envelope.
+    :param plot_uncertainty_with_error_bars: Boolean flag.  If True, will plot
+        uncertainty in predictions with error bars at each height.
+    :param confidence_level:
+        [used only if plot_uncertainty_with_shading == True or
+        plot_uncertainty_with_error_bars == True]
+        Confidence level to display, ranging from 0...1.
+
     :return: handle_dict: Dictionary with the following keys.
     handle_dict['figure_object']: Figure handle (instance of
         `matplotlib.figure.Figure`).
@@ -579,11 +599,14 @@ def plot_actual_and_predicted(
     error_checking.assert_is_numpy_array_without_nan(actual_values)
     error_checking.assert_is_numpy_array(actual_values, num_dimensions=1)
 
-    num_heights = len(actual_values)
+    error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
+    error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=2)
 
-    error_checking.assert_is_numpy_array_without_nan(predicted_values)
+    num_heights = len(actual_values)
+    ensemble_size = prediction_matrix.shape[1]
     error_checking.assert_is_numpy_array(
-        predicted_values, exact_dimensions=numpy.array([num_heights], dtype=int)
+        prediction_matrix,
+        exact_dimensions=numpy.array([num_heights, ensemble_size], dtype=int)
     )
 
     error_checking.assert_is_greater_numpy_array(heights_m_agl, 0.)
@@ -598,6 +621,19 @@ def plot_actual_and_predicted(
     assert len(line_colours) == 2
     assert len(line_widths) == 2
     assert len(line_styles) == 2
+
+    error_checking.assert_is_boolean(plot_uncertainty_with_violin)
+    error_checking.assert_is_boolean(plot_uncertainty_with_shading)
+    error_checking.assert_is_boolean(plot_uncertainty_with_error_bars)
+
+    if plot_uncertainty_with_violin:
+        plot_uncertainty_with_shading = False
+        plot_uncertainty_with_error_bars = False
+    if plot_uncertainty_with_shading:
+        plot_uncertainty_with_error_bars = False
+    if plot_uncertainty_with_shading or plot_uncertainty_with_error_bars:
+        error_checking.assert_is_leq(confidence_level, 1.)
+        error_checking.assert_is_geq(confidence_level, 0.9)
 
     # Housekeeping.
     _set_font_size(FANCY_FONT_SIZE)
@@ -636,7 +672,7 @@ def plot_actual_and_predicted(
 
     for k in range(2):
         axes_objects[k].plot(
-            actual_values if k == 0 else predicted_values,
+            actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
             heights_km_agl, color=line_colours[k],
             linewidth=line_widths[k], linestyle=line_styles[k]
         )
@@ -647,6 +683,78 @@ def plot_actual_and_predicted(
         axes_objects[k].xaxis.label.set_color(line_colours[k])
         axes_objects[k].tick_params(
             axis='x', colors=line_colours[k], **tick_mark_dict
+        )
+
+    if plot_uncertainty_with_violin:
+        pixel_widths_km = METRES_TO_KM * example_utils.get_grid_cell_widths(
+            example_utils.get_grid_cell_edges(heights_m_agl)
+        )
+
+        violin_handles = axes_objects[1].violinplot(
+            numpy.transpose(prediction_matrix),
+            positions=heights_km_agl,
+            vert=False, widths=pixel_widths_km, showmeans=False,
+            showmedians=False, showextrema=True
+        )
+
+        for part_name in ['cbars', 'cmins', 'cmaxes', 'cmeans', 'cmedians']:
+            try:
+                this_handle = violin_handles[part_name]
+            except:
+                continue
+
+            this_handle.set_edgecolor(line_colours[1])
+            this_handle.set_linewidth(0)
+
+        for this_handle in violin_handles['bodies']:
+            this_handle.set_facecolor(
+                matplotlib.colors.to_rgba(
+                    c=line_colours[1], alpha=OPACITY_FOR_UNCERTAINTY
+                )
+            )
+            this_handle.set_edgecolor(
+                matplotlib.colors.to_rgba(
+                    c=line_colours[1], alpha=OPACITY_FOR_UNCERTAINTY
+                )
+            )
+            this_handle.set_linewidth(0)
+            this_handle.set_alpha(0.5)
+
+    if plot_uncertainty_with_shading:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=prediction_matrix,
+            y_value_matrix=numpy.repeat(
+                numpy.expand_dims(heights_km_agl, axis=1),
+                repeats=ensemble_size, axis=1
+            ),
+            confidence_level=confidence_level, same_order=True
+        )
+
+        polygon_colour = matplotlib.colors.to_rgba(
+            line_colours[1], OPACITY_FOR_UNCERTAINTY
+        )
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+        )
+        axes_objects[1].add_patch(patch_object)
+
+    if plot_uncertainty_with_error_bars:
+        min_prediction_by_height = numpy.percentile(
+            prediction_matrix, 50 * (1. - confidence_level), axis=1
+        )
+        max_prediction_by_height = numpy.percentile(
+            prediction_matrix, 50 * (1. + confidence_level), axis=1
+        )
+        mean_prediction_by_height = numpy.mean(prediction_matrix, axis=1)
+        error_matrix = numpy.vstack((
+            mean_prediction_by_height - min_prediction_by_height,
+            max_prediction_by_height - mean_prediction_by_height
+        ))
+
+        axes_objects[1].errorbar(
+            x=mean_prediction_by_height, y=heights_km_agl, xerr=error_matrix,
+            linewidth=0, ecolor=line_colours[1], elinewidth=line_widths[1],
+            capsize=6, capthick=3
         )
 
     if add_two_dummy_axes:
