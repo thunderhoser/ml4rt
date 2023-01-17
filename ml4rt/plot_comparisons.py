@@ -290,7 +290,8 @@ def _plot_comparisons_simple(
 
             this_mae = evaluation._get_mae_one_scalar(
                 target_values=vector_target_matrix[i, :, k],
-                predicted_values=vector_prediction_matrix[i, :, k]
+                predicted_values=
+                numpy.mean(vector_prediction_matrix[i, :, k, :])
             )
             this_annotation_string = 'HR MAE = {0:.2f} {1:s}'.format(
                 this_mae, TARGET_NAME_TO_UNITS[target_names[j]]
