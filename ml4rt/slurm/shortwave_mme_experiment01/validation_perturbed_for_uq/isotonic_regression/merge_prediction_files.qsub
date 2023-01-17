@@ -39,4 +39,5 @@ end
 
 python3 -u "${CODE_DIR_NAME}/merge_prediction_files_over_examples.py" \
 --input_file_names ${input_file_names_string} \
+--take_ensemble_mean=1 \
 --output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/validation_perturbed_for_uq/predictions.nc"

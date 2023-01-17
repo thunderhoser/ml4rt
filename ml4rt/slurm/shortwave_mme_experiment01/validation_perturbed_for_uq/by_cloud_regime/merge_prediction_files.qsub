@@ -45,6 +45,7 @@ while ($i <= ${#REGIME_STRINGS})
     
     python3 -u "${CODE_DIR_NAME}/merge_prediction_files_over_examples.py" \
     --input_file_names ${input_file_names_string} \
+    --take_ensemble_mean=1 \
     --output_file_name="${output_file_name}"
     
     @ i = $i + 1

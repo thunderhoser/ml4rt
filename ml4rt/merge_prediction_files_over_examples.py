@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -14,11 +15,16 @@ import prediction_io
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILES_ARG_NAME = 'input_file_names'
+TAKE_ENSEMBLE_MEAN_ARG_NAME = 'take_ensemble_mean'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 INPUT_FILES_HELP_STRING = (
     'List of paths to input files.  Each will be read by '
     '`prediction_io.read_file`.'
+)
+TAKE_ENSEMBLE_MEAN_HELP_STRING = (
+    'Boolean flag.  If 1, will take ensemble mean.  If 0, will keep all '
+    'ensemble members.'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output (merged) file.  Will be written here by '
@@ -31,29 +37,48 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + TAKE_ENSEMBLE_MEAN_ARG_NAME, type=int, required=True,
+    help=TAKE_ENSEMBLE_MEAN_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
 
 
-def _run(input_file_names, output_file_name):
+def _run(input_file_names, take_ensemble_mean, output_file_name):
     """Merges prediction files for different example sets.
 
     This is effectively the main method.
 
     :param input_file_names: See documentation at top of file.
+    :param take_ensemble_mean: Same.
     :param output_file_name: Same.
     """
 
     num_input_files = len(input_file_names)
-    prediction_dicts = [None] * num_input_files
+    prediction_dicts = [dict()] * num_input_files
 
     for i in range(num_input_files):
         print('Reading data from: "{0:s}"...'.format(input_file_names[i]))
         prediction_dicts[i] = prediction_io.read_file(input_file_names[i])
-        # prediction_dicts[i] = prediction_io.get_ensemble_mean(
-        #     prediction_dicts[i]
-        # )
+
+        if take_ensemble_mean:
+            prediction_dicts[i] = prediction_io.get_ensemble_mean(
+                prediction_dicts[i]
+            )
+            prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY] = (
+                numpy.expand_dims(
+                    prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY],
+                    axis=-1
+                )
+            )
+            prediction_dicts[i][prediction_io.VECTOR_PREDICTIONS_KEY] = (
+                numpy.expand_dims(
+                    prediction_dicts[i][prediction_io.VECTOR_PREDICTIONS_KEY],
+                    axis=-1
+                )
+            )
 
     prediction_dict = prediction_io.concat_predictions(prediction_dicts)
     del prediction_dicts
@@ -82,5 +107,8 @@ if __name__ == '__main__':
 
     _run(
         input_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        take_ensemble_mean=bool(
+            getattr(INPUT_ARG_OBJECT, TAKE_ENSEMBLE_MEAN_ARG_NAME)
+        ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
