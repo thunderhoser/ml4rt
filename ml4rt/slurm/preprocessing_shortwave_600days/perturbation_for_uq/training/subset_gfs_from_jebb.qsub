@@ -1,0 +1,42 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="subset_gfs_from_jebb"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=12:00:00
+#SBATCH --array=1-237%42
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=subset_gfs_from_jebb_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/archive/ml_rt_fv3"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data"
+
+set DATE_STRINGS=("20180901" "20180902" "20180903" "20180904" "20180905" "20180906" "20180908" "20180909" "20180910" "20180911" "20180912" "20180913" "20180914" "20180915" "20180916" "20180917" "20180918" "20180919" "20180920" "20180921" "20180922" "20180923" "20180924" "20180925" "20180926" "20180927" "20180928" "20180929" "20180930" "20181001" "20181002" "20181003" "20181004" "20181005" "20181006" "20181007" "20181008" "20181009" "20181010" "20181011" "20181012" "20181013" "20190505" "20190506" "20190507" "20190508" "20190509" "20190510" "20190511" "20190512" "20190601" "20190602" "20190603" "20190604" "20190605" "20190606" "20190607" "20190608" "20190609" "20190610" "20190611" "20190612" "20190613" "20190614" "20190615" "20190616" "20190617" "20190618" "20190619" "20190620" "20190621" "20190622" "20190623" "20190624" "20190626" "20190627" "20190628" "20190629" "20190630" "20190701" "20190702" "20190703" "20190704" "20190705" "20190706" "20190707" "20190708" "20190709" "20190710" "20190711" "20190712" "20190713" "20190714" "20190715" "20190716" "20190717" "20190718" "20190719" "20190720" "20190721" "20190722" "20190723" "20190724" "20190725" "20190726" "20190727" "20190728" "20190730" "20190731" "20190801" "20190802" "20190803" "20190804" "20190805" "20190806" "20190807" "20190808" "20190809" "20190810" "20190811" "20190812" "20190813" "20190814" "20190815" "20190816" "20190817" "20190818" "20190819" "20190820" "20190821" "20190822" "20190823" "20190824" "20190825" "20190826" "20190827" "20190828" "20190829" "20190830" "20190831" "20190901" "20190902" "20190903" "20190904" "20190905" "20190906" "20190907" "20190908" "20190909" "20190910" "20190911" "20190912" "20190913" "20190914" "20190915" "20190916" "20190917" "20190918" "20190919" "20190920" "20190921" "20190922" "20190923" "20190924" "20190925" "20190926" "20190927" "20190928" "20190929" "20190930" "20191001" "20191002" "20191003" "20191004" "20191005" "20191006" "20191007" "20191008" "20191009" "20191010" "20191011" "20191012" "20191013" "20191014" "20191015" "20191016" "20191017" "20191018" "20191019" "20191020" "20191021" "20191022" "20191023" "20191024" "20191025" "20191026" "20191027" "20191028" "20191029" "20191030" "20191031" "20191101" "20191102" "20191103" "20191104" "20191105" "20191106" "20191107" "20191108" "20191109" "20191110" "20191111" "20191112" "20191113" "20191114" "20191115" "20191201" "20191202" "20191203" "20191204" "20191205" "20191206" "20191207" "20191208" "20191209" "20191210" "20191211" "20191212" "20191213" "20191214" "20191215" "20191216" "20191217" "20191218" "20191219" "20191220" "20191221")
+set date_string=${DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+set atmosphere_file_names_string="${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.atmf006.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.atmf012.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.atmf018.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.atmf024.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.atmf030.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.atmf036.nc"
+set surface_file_names_string="${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.sfcf006.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.sfcf012.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.sfcf018.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.sfcf024.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.sfcf030.nc ${INPUT_DIR_NAME}/${date_string}/gfs.${date_string}/00/gfs.t00z.sfcf036.nc"
+set output_file_name="${OUTPUT_DIR_NAME}/gfs_${date_string}.nc"
+
+python3 -u "${CODE_DIR_NAME}/subset_gfs_from_jebb.py" \
+--input_atmos_file_names ${atmosphere_file_names_string} \
+--input_surface_file_names ${surface_file_names_string} \
+--num_sites=4000 \
+--output_file_name="${output_file_name}"
