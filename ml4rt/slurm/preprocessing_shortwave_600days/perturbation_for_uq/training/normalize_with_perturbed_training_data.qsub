@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="normalize_data_predictors_only"
+#SBATCH --job-name="normalize_with_perturbed_training_data"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -18,17 +18,17 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=normalize_data_predictors_only_%A_%a.out
+#SBATCH --output=normalize_with_perturbed_training_data_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_perturbed_for_uq/learning_examples_for_norm_20180901-20191221.nc"
 
 set TOP_INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights"
-set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_with_perturbed_training_data"
 
 set PATHLESS_INPUT_FILE_NAMES=("training_perturbed_for_uq/learning_examples_2018_part01.nc" "training_perturbed_for_uq/learning_examples_2018_part02.nc" "training_perturbed_for_uq/learning_examples_2018_part03.nc" "training_perturbed_for_uq/learning_examples_2019_part01.nc" "training_perturbed_for_uq/learning_examples_2019_part02.nc" "training_perturbed_for_uq/learning_examples_2019_part03.nc" "training_perturbed_for_uq/learning_examples_2019_part04.nc" "training_perturbed_for_uq/learning_examples_2019_part05.nc" "training_perturbed_for_uq/learning_examples_2019_part06.nc" "training_perturbed_for_uq/learning_examples_2019_part07.nc" "training_perturbed_for_uq/learning_examples_2019_part08.nc" "training_perturbed_for_uq/learning_examples_2019_part09.nc" "training_perturbed_for_uq/learning_examples_2019_part10.nc" "training_perturbed_for_uq/learning_examples_2019_part11.nc" "training_perturbed_for_uq/learning_examples_2019_part12.nc" "training_perturbed_for_uq/learning_examples_2019_part13.nc" "training_perturbed_for_uq/learning_examples_2019_part14.nc")
 set PATHLESS_OUTPUT_DIR_NAMES=("training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq" "training_perturbed_for_uq")

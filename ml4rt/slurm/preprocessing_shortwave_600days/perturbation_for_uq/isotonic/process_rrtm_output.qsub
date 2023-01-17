@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=06:00:00
-#SBATCH --array=1-17
+#SBATCH --array=1-9
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -26,11 +26,11 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_perturbed_for_uq"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/isotonic_perturbed_for_uq"
 
-set FIRST_DATE_STRINGS=("20180901" "20180916" "20180930" "20190505" "20190607" "20190621" "20190706" "20190720" "20190804" "20190818" "20190901" "20190915" "20190929" "20191013" "20191027" "20191110" "20191209")
-set LAST_DATE_STRINGS=("20180915" "20180929" "20181013" "20190606" "20190620" "20190705" "20190719" "20190803" "20190817" "20190831" "20190914" "20190928" "20191012" "20191026" "20191109" "20191208" "20191221")
-set PATHLESS_OUTPUT_FILE_NAMES=("learning_examples_2018_part01.nc" "learning_examples_2018_part02.nc" "learning_examples_2018_part03.nc" "learning_examples_2019_part01.nc" "learning_examples_2019_part02.nc" "learning_examples_2019_part03.nc" "learning_examples_2019_part04.nc" "learning_examples_2019_part05.nc" "learning_examples_2019_part06.nc" "learning_examples_2019_part07.nc" "learning_examples_2019_part08.nc" "learning_examples_2019_part09.nc" "learning_examples_2019_part10.nc" "learning_examples_2019_part11.nc" "learning_examples_2019_part12.nc" "learning_examples_2019_part13.nc" "learning_examples_2019_part14.nc")
+set FIRST_DATE_STRINGS=("20191224" "20200203" "20200315" "20200426" "20200607" "20200718" "20200828" "20201010" "20201121")
+set LAST_DATE_STRINGS=("20191230" "20200209" "20200321" "20200502" "20200613" "20200724" "20200903" "20201016" "20201127")
+set PATHLESS_OUTPUT_FILE_NAMES=("learning_examples_2019.nc" "learning_examples_2020_part01.nc" "learning_examples_2020_part02.nc" "learning_examples_2020_part03.nc" "learning_examples_2020_part04.nc" "learning_examples_2020_part05.nc" "learning_examples_2020_part06.nc" "learning_examples_2020_part07.nc" "learning_examples_2020_part08.nc")
 
 set first_date_string=${FIRST_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
 set last_date_string=${LAST_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}

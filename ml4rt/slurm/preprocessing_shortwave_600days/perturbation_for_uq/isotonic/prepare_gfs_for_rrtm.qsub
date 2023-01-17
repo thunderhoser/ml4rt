@@ -1,0 +1,41 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="prepare_gfs_for_rrtm"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=12:00:00
+#SBATCH --array=1-63%43
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=prepare_gfs_for_rrtm_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data"
+set OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/processed/orig_heights/unperturbed"
+
+set INPUT_DATE_STRINGS=("20191224" "20191225" "20191226" "20191227" "20191228" "20191229" "20191230" "20200203" "20200204" "20200205" "20200206" "20200207" "20200208" "20200209" "20200315" "20200316" "20200317" "20200318" "20200319" "20200320" "20200321" "20200426" "20200427" "20200428" "20200429" "20200430" "20200501" "20200502" "20200607" "20200608" "20200609" "20200610" "20200611" "20200612" "20200613" "20200718" "20200719" "20200720" "20200721" "20200722" "20200723" "20200724" "20200828" "20200829" "20200830" "20200831" "20200901" "20200902" "20200903" "20201010" "20201011" "20201012" "20201013" "20201014" "20201015" "20201016" "20201121" "20201122" "20201123" "20201124" "20201125" "20201126" "20201127")
+set OUTPUT_DATE_STRINGS=("2019358" "2019359" "2019360" "2019361" "2019362" "2019363" "2019364" "2020034" "2020035" "2020036" "2020037" "2020038" "2020039" "2020040" "2020075" "2020076" "2020077" "2020078" "2020079" "2020080" "2020081" "2020117" "2020118" "2020119" "2020120" "2020121" "2020122" "2020123" "2020159" "2020160" "2020161" "2020162" "2020163" "2020164" "2020165" "2020200" "2020201" "2020202" "2020203" "2020204" "2020205" "2020206" "2020241" "2020242" "2020243" "2020244" "2020245" "2020246" "2020247" "2020284" "2020285" "2020286" "2020287" "2020288" "2020289" "2020290" "2020326" "2020327" "2020328" "2020329" "2020330" "2020331" "2020332")
+set input_date_string=${INPUT_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+set output_date_string=${OUTPUT_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+set input_file_name="${INPUT_DIR_NAME}/gfs_${input_date_string}.nc"
+set output_file_name="${OUTPUT_DIR_NAME}/profiler_sitesF.ncep_rap.${output_date_string}.0000.nc"
+
+python3 -u "${CODE_DIR_NAME}/prepare_gfs_for_rrtm_no_interp.py" \
+--input_file_name="${input_file_name}" \
+--output_file_name="${output_file_name}"
