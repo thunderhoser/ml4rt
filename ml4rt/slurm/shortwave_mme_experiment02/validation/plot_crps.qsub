@@ -1,0 +1,29 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_crps"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_crps_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
+
+set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_perturbed_for_uq/crps.nc"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_perturbed_for_uq/crps_plots"
+
+python3 -u "${CODE_DIR_NAME}/plot_crps.py" \
+--input_file_name="${input_file_name}" \
+--output_dir_name="${output_dir_name}"

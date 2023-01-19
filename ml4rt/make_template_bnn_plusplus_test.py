@@ -3,7 +3,6 @@
 import os
 import sys
 import numpy
-from keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -18,7 +17,8 @@ import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
+# HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
+HOME_DIR_NAME = '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
     '{0:s}/ml4rt_models/bnn_plusplus_test/template'
 ).format(HOME_DIR_NAME)
@@ -59,14 +59,20 @@ OPTION_DICT = {
         numpy.array([128, 256, 512, 1024], dtype=int),
     u_net_pp_architecture.ENCODER_DROPOUT_RATES_KEY:
         numpy.full(MODEL_DEPTH + 1, 0.),
+    u_net_pp_architecture.ENCODER_MC_DROPOUT_FLAGS_KEY:
+        numpy.full(MODEL_DEPTH + 1, False, dtype=bool),
     u_net_pp_architecture.UPCONV_DROPOUT_RATES_KEY:
         numpy.full(MODEL_DEPTH, 0.),
+    u_net_pp_architecture.UPCONV_MC_DROPOUT_FLAGS_KEY:
+        numpy.full(MODEL_DEPTH, False, dtype=bool),
     u_net_pp_architecture.UPCONV_BNN_LAYER_TYPES_KEY: [
         POINT_ESTIMATE_TYPE_STRING, POINT_ESTIMATE_TYPE_STRING,
         FLIPOUT_TYPE_STRING
     ],
     u_net_pp_architecture.SKIP_DROPOUT_RATES_KEY:
         numpy.full(MODEL_DEPTH, 0.),
+    u_net_pp_architecture.SKIP_MC_DROPOUT_FLAGS_KEY:
+        numpy.full(MODEL_DEPTH, False, dtype=bool),
     u_net_pp_architecture.SKIP_BNN_LAYER_TYPES_KEY: [
         POINT_ESTIMATE_TYPE_STRING, POINT_ESTIMATE_TYPE_STRING,
         FLIPOUT_TYPE_STRING
@@ -87,6 +93,8 @@ OPTION_DICT = {
     u_net_pp_architecture.DENSE_LAYER_NEURON_NUMS_KEY:
         DENSE_LAYER_NEURON_COUNTS,
     u_net_pp_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.),
+    u_net_pp_architecture.DENSE_LAYER_MC_DROPOUT_FLAGS_KEY:
+        numpy.full(4, False, dtype=bool),
     u_net_pp_architecture.DENSE_BNN_LAYER_TYPES_KEY: [
         POINT_ESTIMATE_TYPE_STRING, POINT_ESTIMATE_TYPE_STRING,
         FLIPOUT_TYPE_STRING, FLIPOUT_TYPE_STRING
