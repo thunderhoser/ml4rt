@@ -175,11 +175,13 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
     first_norm_file_name = first_metadata_dict[NORMALIZATION_FILE_KEY].replace(
-        '/examples_lwsw_with2019/', '/examples_lwsw/'
+        '/training_perturbed_for_uq/', '/training_all_perturbed_for_uq/'
     )
     second_norm_file_name = second_metadata_dict[
         NORMALIZATION_FILE_KEY
-    ].replace('/examples_lwsw_with2019/', '/examples_lwsw/')
+    ].replace(
+        '/training_perturbed_for_uq/', '/training_all_perturbed_for_uq/'
+    )
 
     if first_norm_file_name != second_norm_file_name:
         return False
