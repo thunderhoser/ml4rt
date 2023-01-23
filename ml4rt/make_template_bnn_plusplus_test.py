@@ -9,7 +9,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import u_net_pp_architecture
+import u_net_pp_architecture_bayesian as u_net_pp_architecture
 import architecture_utils
 import custom_losses
 import file_system_utils
@@ -17,8 +17,7 @@ import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-# HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-HOME_DIR_NAME = '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
+HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
     '{0:s}/ml4rt_models/bnn_plusplus_test/template'
 ).format(HOME_DIR_NAME)
