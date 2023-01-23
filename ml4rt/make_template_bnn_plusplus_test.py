@@ -66,7 +66,7 @@ OPTION_DICT = {
         numpy.full(MODEL_DEPTH, False, dtype=bool),
     u_net_pp_architecture.UPCONV_BNN_LAYER_TYPES_KEY: [
         POINT_ESTIMATE_TYPE_STRING, POINT_ESTIMATE_TYPE_STRING,
-        FLIPOUT_TYPE_STRING
+        REPARAMETERIZATION_TYPE_STRING
     ],
     u_net_pp_architecture.SKIP_DROPOUT_RATES_KEY:
         numpy.full(MODEL_DEPTH, 0.),
@@ -74,7 +74,7 @@ OPTION_DICT = {
         numpy.full(MODEL_DEPTH, False, dtype=bool),
     u_net_pp_architecture.SKIP_BNN_LAYER_TYPES_KEY: [
         POINT_ESTIMATE_TYPE_STRING, POINT_ESTIMATE_TYPE_STRING,
-        FLIPOUT_TYPE_STRING
+        REPARAMETERIZATION_TYPE_STRING
     ],
     u_net_pp_architecture.INCLUDE_PENULTIMATE_KEY: False,
     u_net_pp_architecture.INNER_ACTIV_FUNCTION_KEY:
@@ -96,9 +96,10 @@ OPTION_DICT = {
         numpy.full(4, False, dtype=bool),
     u_net_pp_architecture.DENSE_BNN_LAYER_TYPES_KEY: [
         POINT_ESTIMATE_TYPE_STRING, POINT_ESTIMATE_TYPE_STRING,
-        FLIPOUT_TYPE_STRING, FLIPOUT_TYPE_STRING
+        REPARAMETERIZATION_TYPE_STRING, REPARAMETERIZATION_TYPE_STRING
     ],
-    u_net_pp_architecture.CONV_OUTPUT_BNN_LAYER_TYPE_KEY: FLIPOUT_TYPE_STRING
+    u_net_pp_architecture.CONV_OUTPUT_BNN_LAYER_TYPE_KEY:
+        REPARAMETERIZATION_TYPE_STRING
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
