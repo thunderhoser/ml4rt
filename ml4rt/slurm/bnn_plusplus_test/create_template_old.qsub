@@ -14,4 +14,10 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=create_templates_%A.out
 
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg ./create_template.csh
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+python3 -u "${CODE_DIR_NAME}/make_template_bnn_plusplus_test.py"
