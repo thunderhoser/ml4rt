@@ -19,7 +19,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment01"
 
 set PATHLESS_INPUT_FILE_NAMES=("spread_vs_skill_part01.nc" "spread_vs_skill_part02.nc" "spread_vs_skill_part03.nc" "spread_vs_skill_part04.nc" "spread_vs_skill_part05.nc" "spread_vs_skill_part06.nc" "spread_vs_skill_part07.nc" "spread_vs_skill_part08.nc" "spread_vs_skill_part09.nc")
 
@@ -27,12 +27,12 @@ set input_file_names_string=""
 set i=1
 
 while ($i <= ${#PATHLESS_INPUT_FILE_NAMES})
-    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
+    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/model/isotonic_regression/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
     
     @ i = $i + 1
 end
 
-set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/testing_perturbed_for_uq/spread_vs_skill.nc"
+set output_file_name="${TOP_MODEL_DIR_NAME}/model/isotonic_regression/testing_perturbed_for_uq/spread_vs_skill.nc"
 
 python3 -u "${CODE_DIR_NAME}/merge_spread_skill_results_over_examples.py" \
 --input_file_names ${input_file_names_string} \

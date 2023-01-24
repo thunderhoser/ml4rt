@@ -19,7 +19,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment01"
 
 set PATHLESS_INPUT_FILE_NAMES=("discard_test_for_fluxes_part01.nc" "discard_test_for_fluxes_part02.nc" "discard_test_for_fluxes_part03.nc" "discard_test_for_fluxes_part04.nc" "discard_test_for_fluxes_part05.nc" "discard_test_for_fluxes_part06.nc" "discard_test_for_fluxes_part07.nc" "discard_test_for_fluxes_part08.nc" "discard_test_for_fluxes_part09.nc")
 
@@ -27,12 +27,12 @@ set input_file_names_string=""
 set i=1
 
 while ($i <= ${#PATHLESS_INPUT_FILE_NAMES})
-    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
+    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/model/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
     
     @ i = $i + 1
 end
 
-set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/discard_test_for_fluxes.nc"
+set output_file_name="${TOP_MODEL_DIR_NAME}/model/testing_perturbed_for_uq/discard_test_for_fluxes.nc"
 
 python3 -u "${CODE_DIR_NAME}/merge_discard_results_over_examples.py" \
 --input_file_names ${input_file_names_string} \

@@ -25,8 +25,8 @@ set REGIME_STRINGS=("no_cloud" "single_layer_cloud" "multi_layer_cloud")
 set i=1
 
 while ($i <= ${#REGIME_STRINGS})
-    set prediction_file_name="${TOP_MODEL_DIR_NAME}/model/validation_perturbed_for_uq/by_cloud_regime/${REGIME_STRINGS[$i]}/predictions.nc"
-    set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/model/validation_perturbed_for_uq/by_cloud_regime/${REGIME_STRINGS[$i]}"
+    set prediction_file_name="${TOP_MODEL_DIR_NAME}/model/testing_perturbed_for_uq/by_cloud_regime/${REGIME_STRINGS[$i]}/predictions.nc"
+    set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/model/testing_perturbed_for_uq/by_cloud_regime/${REGIME_STRINGS[$i]}"
     
     python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
     --input_prediction_file_name="${prediction_file_name}" \
