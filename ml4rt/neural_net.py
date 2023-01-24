@@ -7,7 +7,7 @@ import pickle
 import numpy
 import keras
 import tensorflow.keras as tf_keras
-import tensorflow_probability as tf_prob
+# import tensorflow_probability as tf_prob
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -1849,14 +1849,14 @@ def read_model(hdf5_file_name):
     except:
         pass
 
-    custom_object_dict['Conv1DFlipout'] = tf_prob.layers.Convolution1DFlipout()
-    custom_object_dict['Convolution1DReparameterization'] = (
-        tf_prob.layers.Convolution1DReparameterization()
-    )
-    custom_object_dict['DenseFlipout'] = tf_prob.layers.DenseFlipout()
-    custom_object_dict['DenseReparameterization'] = (
-        tf_prob.layers.DenseReparameterization()
-    )
+    # custom_object_dict['Conv1DFlipout'] = tf_prob.layers.Convolution1DFlipout()
+    # custom_object_dict['Convolution1DReparameterization'] = (
+    #     tf_prob.layers.Convolution1DReparameterization()
+    # )
+    # custom_object_dict['DenseFlipout'] = tf_prob.layers.DenseFlipout()
+    # custom_object_dict['DenseReparameterization'] = (
+    #     tf_prob.layers.DenseReparameterization()
+    # )
 
     return tf_keras.models.load_model(
         hdf5_file_name, custom_objects=custom_object_dict
