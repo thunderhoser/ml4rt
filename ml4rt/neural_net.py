@@ -1849,13 +1849,13 @@ def read_model(hdf5_file_name):
     except:
         pass
 
-    custom_object_dict['Conv1DFlipout'] = tf_prob.layers.Convolution1DFlipout
+    custom_object_dict['Conv1DFlipout'] = tf_prob.layers.Convolution1DFlipout()
     custom_object_dict['Convolution1DReparameterization'] = (
-        tf_prob.layers.Convolution1DReparameterization
+        tf_prob.layers.Convolution1DReparameterization()
     )
-    custom_object_dict['DenseFlipout'] = tf_prob.layers.DenseFlipout
+    custom_object_dict['DenseFlipout'] = tf_prob.layers.DenseFlipout()
     custom_object_dict['DenseReparameterization'] = (
-        tf_prob.layers.DenseReparameterization
+        tf_prob.layers.DenseReparameterization()
     )
 
     return tf_keras.models.load_model(
