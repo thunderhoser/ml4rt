@@ -114,10 +114,10 @@ def _run(prediction_file_names, separate_by_height, output_dir_name):
                 scalar_model_objects, this_matrix = (
                     isotonic_regression.train_models(
                         orig_vector_prediction_matrix=
-                        orig_vector_prediction_matrix[..., [k], :],
+                        orig_vector_prediction_matrix[:, [k], ...],
                         orig_scalar_prediction_matrix=
                         orig_scalar_prediction_matrix,
-                        vector_target_matrix=vector_target_matrix[..., [k]],
+                        vector_target_matrix=vector_target_matrix[:, [k], :],
                         scalar_target_matrix=scalar_target_matrix,
                         separate_by_height=separate_by_height
                     )
@@ -125,9 +125,9 @@ def _run(prediction_file_names, separate_by_height, output_dir_name):
             else:
                 _, this_matrix = isotonic_regression.train_models(
                     orig_vector_prediction_matrix=
-                    orig_vector_prediction_matrix[..., [k], :],
+                    orig_vector_prediction_matrix[:, [k], ...],
                     orig_scalar_prediction_matrix=None,
-                    vector_target_matrix=vector_target_matrix[..., [k]],
+                    vector_target_matrix=vector_target_matrix[:, [k], :],
                     scalar_target_matrix=None,
                     separate_by_height=separate_by_height
                 )
