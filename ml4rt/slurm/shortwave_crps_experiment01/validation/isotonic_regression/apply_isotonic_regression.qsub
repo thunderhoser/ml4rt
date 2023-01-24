@@ -33,7 +33,7 @@ set PATHLESS_OUTPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" 
 set isotonic_model_dir_name="${TOP_MODEL_DIR_NAME}/model/isotonic_regression"
 set isotonic_model_file_name="${isotonic_model_dir_name}/isotonic_regression.dill"
 
-set orig_prediction_file_name="${TOP_MODEL_DIR_NAME}/model/isotonic_regression/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set orig_prediction_file_name="${TOP_MODEL_DIR_NAME}/model/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
 set new_prediction_file_name="${TOP_MODEL_DIR_NAME}/model/isotonic_regression/validation_perturbed_for_uq/${PATHLESS_OUTPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
 
 python3 -u "${CODE_DIR_NAME}/apply_isotonic_regression.py" \
