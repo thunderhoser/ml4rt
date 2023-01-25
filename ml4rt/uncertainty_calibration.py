@@ -200,27 +200,31 @@ def train_models_all_vars(
     num_vector_targets = vector_target_matrix.shape[2]
     num_scalar_targets = scalar_target_matrix.shape[1]
 
-    these_dim = (num_scalar_targets, num_spread_bins)
-    these_dim_keys = (SCALAR_FIELD_DIM, BIN_EDGE_DIM)
+    these_dim_no_edge = (num_scalar_targets, num_spread_bins)
+    these_dim_keys_no_edge = (SCALAR_FIELD_DIM, BIN_DIM)
+    these_dim_with_edge = (num_scalar_targets, num_spread_bins + 1)
+    these_dim_keys_with_edge = (SCALAR_FIELD_DIM, BIN_EDGE_DIM)
 
     main_data_dict = {
         SCALAR_BIN_EDGE_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_with_edge, numpy.full(these_dim_with_edge, numpy.nan)
         ),
         SCALAR_STDEV_INFLATION_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
         )
     }
 
-    these_dim = (num_vector_targets, num_heights, num_spread_bins)
-    these_dim_keys = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_EDGE_DIM)
+    these_dim_no_edge = (num_vector_targets, num_heights, num_spread_bins)
+    these_dim_keys_no_edge = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_DIM)
+    these_dim_with_edge = (num_vector_targets, num_heights, num_spread_bins + 1)
+    these_dim_keys_with_edge = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_EDGE_DIM)
 
     main_data_dict.update({
         VECTOR_BIN_EDGE_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_with_edge, numpy.full(these_dim_with_edge, numpy.nan)
         ),
         VECTOR_STDEV_INFLATION_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
         )
     })
 
