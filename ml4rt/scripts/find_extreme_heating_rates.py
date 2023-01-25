@@ -226,6 +226,11 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         example_id_strings=
         high_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=high_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=
+        high_bias_prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=high_bias_prediction_dict[
+            prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ],
         normalization_file_name=
         high_bias_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
@@ -255,6 +260,11 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         example_id_strings=
         low_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=low_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=
+        low_bias_prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=low_bias_prediction_dict[
+            prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ],
         normalization_file_name=
         low_bias_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
@@ -285,6 +295,11 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         low_abs_error_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
         low_abs_error_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=
+        low_abs_error_prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=low_abs_error_prediction_dict[
+            prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ],
         normalization_file_name=
         low_abs_error_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
@@ -329,6 +344,11 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         example_id_strings=
         large_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=large_hr_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=
+        large_hr_prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=large_hr_prediction_dict[
+            prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ],
         normalization_file_name=
         large_hr_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )
@@ -367,6 +387,11 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         example_id_strings=
         small_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=small_hr_prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=
+        small_hr_prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=small_hr_prediction_dict[
+            prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ],
         normalization_file_name=
         small_hr_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )

@@ -162,6 +162,10 @@ def _run(input_prediction_file_name, min_latitude_deg_n, max_latitude_deg_n,
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
+        isotonic_model_file_name=
+        prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=
+        prediction_dict[prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY],
         normalization_file_name=
         prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
     )

@@ -529,7 +529,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         scalar_prediction_matrix=scalar_prediction_matrix,
         vector_prediction_matrix=vector_prediction_matrix,
         heights_m_agl=target_example_dict[example_utils.HEIGHTS_KEY],
-        example_id_strings=example_id_strings, model_file_name=model_file_name
+        example_id_strings=example_id_strings,
+        model_file_name=model_file_name,
+        isotonic_model_file_name=None, uncertainty_calib_model_file_name=None,
+        normalization_file_name=None
     )
 
 

@@ -602,6 +602,7 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],
         example_id_strings=new_example_dict[example_utils.EXAMPLE_IDS_KEY],
         model_file_name=model_file_name,
+        isotonic_model_file_name=None, uncertainty_calib_model_file_name=None,
         normalization_file_name=new_norm_file_name
     )
 
