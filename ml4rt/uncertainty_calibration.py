@@ -260,11 +260,10 @@ def train_models_all_vars(
             num=num_spread_bins + 1, dtype=float
         )[1:-1]
 
-        these_bin_edges = numpy.maximum(these_bin_edges, TOLERANCE)
-        these_bin_edges[1:] = (
-            these_bin_edges[1:] +
-            numpy.maximum(numpy.diff(these_bin_edges), TOLERANCE)
+        these_fudge_factors = TOLERANCE * numpy.linspace(
+            1, len(these_bin_edges), num=len(these_bin_edges), dtype=float
         )
+        these_bin_edges = these_bin_edges + these_fudge_factors
 
         (
             t[SCALAR_BIN_EDGE_KEY].values[k, :],
@@ -293,11 +292,10 @@ def train_models_all_vars(
                 num=num_spread_bins + 1, dtype=float
             )[1:-1]
 
-            these_bin_edges = numpy.maximum(these_bin_edges, TOLERANCE)
-            these_bin_edges[1:] = (
-                these_bin_edges[1:] +
-                numpy.maximum(numpy.diff(these_bin_edges), TOLERANCE)
+            these_fudge_factors = TOLERANCE * numpy.linspace(
+                1, len(these_bin_edges), num=len(these_bin_edges), dtype=float
             )
+            these_bin_edges = these_bin_edges + these_fudge_factors
 
             (
                 t[VECTOR_BIN_EDGE_KEY].values[k, j, :],
