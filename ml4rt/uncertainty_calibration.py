@@ -67,6 +67,7 @@ def _train_model_one_variable(
         spread_skill_result_dict[ss_utils.RMSE_VALUES_KEY] /
         spread_skill_result_dict[ss_utils.MEAN_PREDICTION_STDEVS_KEY]
     )
+    stdev_inflation_factors[numpy.isinf(stdev_inflation_factors)] = numpy.nan
 
     nan_flags = numpy.isnan(stdev_inflation_factors)
     if not numpy.any(nan_flags):
