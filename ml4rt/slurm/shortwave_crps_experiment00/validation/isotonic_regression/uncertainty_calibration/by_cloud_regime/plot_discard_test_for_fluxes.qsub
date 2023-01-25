@@ -1,0 +1,43 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_discard_test_for_fluxes"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_discard_test_for_fluxes_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment00"
+
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/model/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq"
+
+set REGIME_STRINGS_DASHED=("no-cloud" "single-layer-cloud" "multi-layer-cloud")
+set REGIME_STRINGS_UNDERSCORED=("no_cloud" "single_layer_cloud" "multi_layer_cloud")
+
+set i=1
+
+while ($i <= ${#REGIME_STRINGS_DASHED})
+    set regime_string_dashed=${REGIME_STRINGS_DASHED[$i]}
+    set regime_string_underscored=${REGIME_STRINGS_UNDERSCORED[$i]}
+    
+    set input_file_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}/discard_test_for_fluxes.nc"
+    set output_dir_name="${evaluation_dir_name}/by_cloud_regime/${regime_string_underscored}/discard_test_for_fluxes"
+    
+    python3 -u "${CODE_DIR_NAME}/plot_discard_test.py" \
+    --input_file_name="${input_file_name}" \
+    --output_dir_name="${output_dir_name}"
+    
+    @ i = $i + 1
+end
