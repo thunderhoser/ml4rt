@@ -260,6 +260,12 @@ def train_models_all_vars(
             num=num_spread_bins + 1, dtype=float
         )[1:-1]
 
+        these_bin_edges = numpy.maximum(these_bin_edges, TOLERANCE)
+        these_bin_edges[1:] = (
+            these_bin_edges[1:] +
+            numpy.maximum(numpy.diff(these_bin_edges), TOLERANCE)
+        )
+
         (
             t[SCALAR_BIN_EDGE_KEY].values[k, :],
             t[SCALAR_STDEV_INFLATION_KEY].values[k, :]
@@ -286,6 +292,12 @@ def train_models_all_vars(
                 numpy.percentile(these_stdevs, max_spread_percentile),
                 num=num_spread_bins + 1, dtype=float
             )[1:-1]
+
+            these_bin_edges = numpy.maximum(these_bin_edges, TOLERANCE)
+            these_bin_edges[1:] = (
+                these_bin_edges[1:] +
+                numpy.maximum(numpy.diff(these_bin_edges), TOLERANCE)
+            )
 
             (
                 t[VECTOR_BIN_EDGE_KEY].values[k, j, :],
