@@ -72,6 +72,12 @@ def _train_model_one_variable(
     if not numpy.any(nan_flags):
         return bin_edge_prediction_stdevs, stdev_inflation_factors
 
+    if numpy.all(nan_flags):
+        return (
+            bin_edge_prediction_stdevs,
+            numpy.full(len(stdev_inflation_factors), 1.)
+        )
+
     nan_indices = numpy.where(nan_flags)[0]
     real_indices = numpy.where(numpy.invert(nan_flags))[0]
     bin_center_prediction_stdevs = 0.5 * (
