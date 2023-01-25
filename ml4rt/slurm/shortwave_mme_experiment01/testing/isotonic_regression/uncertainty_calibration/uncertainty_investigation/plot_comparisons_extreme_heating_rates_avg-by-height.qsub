@@ -1,0 +1,46 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_comparisons_extreme_heating_rates_avg-by-height"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=1-45
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_comparisons_extreme_heating_rates_avg-by-height_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing_all_perturbed_for_uq"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01"
+
+set PATHLESS_PREDICTION_FILE_NAMES=("part01/predictions_high-bias.nc" "part01/predictions_low-bias.nc" "part01/predictions_low-absolute-error.nc" "part01/predictions_high-uncertainty.nc" "part01/predictions_low-uncertainty.nc" "part02/predictions_high-bias.nc" "part02/predictions_low-bias.nc" "part02/predictions_low-absolute-error.nc" "part02/predictions_high-uncertainty.nc" "part02/predictions_low-uncertainty.nc" "part03/predictions_high-bias.nc" "part03/predictions_low-bias.nc" "part03/predictions_low-absolute-error.nc" "part03/predictions_high-uncertainty.nc" "part03/predictions_low-uncertainty.nc" "part04/predictions_high-bias.nc" "part04/predictions_low-bias.nc" "part04/predictions_low-absolute-error.nc" "part04/predictions_high-uncertainty.nc" "part04/predictions_low-uncertainty.nc" "part05/predictions_high-bias.nc" "part05/predictions_low-bias.nc" "part05/predictions_low-absolute-error.nc" "part05/predictions_high-uncertainty.nc" "part05/predictions_low-uncertainty.nc" "part06/predictions_high-bias.nc" "part06/predictions_low-bias.nc" "part06/predictions_low-absolute-error.nc" "part06/predictions_high-uncertainty.nc" "part06/predictions_low-uncertainty.nc" "part07/predictions_high-bias.nc" "part07/predictions_low-bias.nc" "part07/predictions_low-absolute-error.nc" "part07/predictions_high-uncertainty.nc" "part07/predictions_low-uncertainty.nc" "part08/predictions_high-bias.nc" "part08/predictions_low-bias.nc" "part08/predictions_low-absolute-error.nc" "part08/predictions_high-uncertainty.nc" "part08/predictions_low-uncertainty.nc" "part09/predictions_high-bias.nc" "part09/predictions_low-bias.nc" "part09/predictions_low-absolute-error.nc" "part09/predictions_high-uncertainty.nc" "part09/predictions_low-uncertainty.nc")
+set PATHLESS_OUTPUT_DIR_NAMES=("predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty" "predictions_high-bias" "predictions_low-bias" "predictions_low-absolute-error" "predictions_high-uncertainty" "predictions_low-uncertainty")
+
+set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq/extreme_hr_uncertainties_avg-by-height/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq/extreme_hr_uncertainties_avg-by-height/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
+
+python3 -u "${CODE_DIR_NAME}/plot_comparisons.py" \
+--input_prediction_file_name="${input_file_name}" \
+--plot_shortwave=1 \
+--num_examples=25 \
+--use_log_scale=1 \
+--plot_uncertainty=1 \
+--confidence_level=0.95 \
+--add_two_dummy_axes=0 \
+--input_example_dir_name="${UNNORM_EXAMPLE_DIR_NAME}" \
+--output_dir_name="${output_dir_name}"
