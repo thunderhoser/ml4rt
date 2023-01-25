@@ -361,10 +361,10 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
             scalar_target_names[k]
         )
 
-        pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :] = (
+        pd[prediction_io.SCALAR_PREDICTIONS_KEY].values[:, k, :] = (
             _apply_model_one_variable(
                 prediction_matrix=
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :],
+                pd[prediction_io.SCALAR_PREDICTIONS_KEY].values[:, k, :],
                 bin_edge_prediction_stdevs=
                 uct[SCALAR_BIN_EDGE_KEY].values[var_idx, :],
                 stdev_inflation_factors=
@@ -372,8 +372,8 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
             )
         )
 
-        pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :] = numpy.maximum(
-            pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :],
+        pd[prediction_io.SCALAR_PREDICTIONS_KEY].values[:, k, :] = numpy.maximum(
+            pd[prediction_io.SCALAR_PREDICTIONS_KEY].values[:, k, :],
             0.
         )
 
@@ -394,10 +394,10 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
                 < TOLERANCE
             )[0][0]
 
-            pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :] = (
+            pd[prediction_io.VECTOR_PREDICTIONS_KEY].values[:, j, k, :] = (
                 _apply_model_one_variable(
                     prediction_matrix=
-                    pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :],
+                    pd[prediction_io.VECTOR_PREDICTIONS_KEY].values[:, j, k, :],
                     bin_edge_prediction_stdevs=
                     uct[SCALAR_BIN_EDGE_KEY].values[var_idx, hgt_idx, :],
                     stdev_inflation_factors=
@@ -411,9 +411,9 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
             ):
                 continue
 
-            pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :] = (
+            pd[prediction_io.VECTOR_PREDICTIONS_KEY].values[:, j, k, :] = (
                 numpy.maximum(
-                    pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :],
+                    pd[prediction_io.VECTOR_PREDICTIONS_KEY].values[:, j, k, :],
                     0.
                 )
             )
