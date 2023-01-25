@@ -82,7 +82,90 @@ MODEL_FILE_KEY = uq_evaluation.MODEL_FILE_KEY
 PREDICTION_FILE_KEY = uq_evaluation.PREDICTION_FILE_KEY
 
 
-def _get_results_one_var(
+def _merge_basic_quantities_1bin_1var(
+        num_examples_by_table, mean_stdev_by_table, rmse_by_table,
+        mean_mean_prediction_by_table, mean_target_by_table):
+    """Merges basic quantities for one spread bin and one target variable...
+
+    over many examples.
+
+    "Basic quantities" = mean stdev, RMSE, mean mean prediction, mean target
+
+    T = number of tables
+
+    :param num_examples_by_table: length-T numpy array of example counts.
+    :param mean_stdev_by_table: length-T numpy array of mean stdevs.
+    :param rmse_by_table: length-T numpy array of RMSE values.
+    :param mean_mean_prediction_by_table: length-T numpy array of mean mean
+        predictions.
+    :param mean_target_by_table: length-T numpy array of mean target values.
+    :return: mean_stdev_overall: Overall mean stdev.
+    :return: rmse_overall: Overall RMSE value.
+    :return: mean_mean_prediction_overall: Overall mean mean prediction.
+    :return: mean_target_overall: Overall mean target.
+    """
+
+    if numpy.sum(num_examples_by_table) == 0:
+        return numpy.nan, numpy.nan, numpy.nan, numpy.nan
+
+    non_zero_indices = numpy.where(num_examples_by_table > 0)[0]
+
+    mean_stdev_overall = numpy.sqrt(numpy.average(
+        mean_stdev_by_table[non_zero_indices] ** 2,
+        weights=num_examples_by_table[non_zero_indices]
+    ))
+    rmse_overall = numpy.sqrt(numpy.average(
+        rmse_by_table[non_zero_indices] ** 2,
+        weights=num_examples_by_table[non_zero_indices]
+    ))
+    mean_mean_prediction_overall = numpy.average(
+        mean_mean_prediction_by_table[non_zero_indices],
+        weights=num_examples_by_table[non_zero_indices]
+    )
+    mean_target_overall = numpy.average(
+        mean_target_by_table[non_zero_indices],
+        weights=num_examples_by_table[non_zero_indices]
+    )
+
+    return (
+        mean_stdev_overall, rmse_overall,
+        mean_mean_prediction_overall, mean_target_overall
+    )
+
+
+def _get_ssrel_ssrat_1var(mean_stdev_by_bin, rmse_by_bin, num_examples_by_bin):
+    """Computes SSREL and SSRAT for one target variable.
+
+    B = number of spread bins
+
+    :param mean_stdev_by_bin: length-B numpy array of mean stdevs.
+    :param rmse_by_bin: length-B numpy array of RMSE values.
+    :param num_examples_by_bin: length-B numpy array of example counts.
+    :return: ssrel_value: Spread-skill reliability.
+    :return: ssrat_value: Spread-skill ratio.
+    """
+
+    non_zero_indices = numpy.where(num_examples_by_bin > 0)[0]
+
+    ssrel_value = numpy.average(
+        numpy.absolute(mean_stdev_by_bin - rmse_by_bin)[non_zero_indices],
+        weights=num_examples_by_bin[non_zero_indices]
+    )
+
+    this_numer = numpy.sqrt(numpy.average(
+        mean_stdev_by_bin[non_zero_indices] ** 2,
+        weights=num_examples_by_bin[non_zero_indices]
+    ))
+    this_denom = numpy.sqrt(numpy.average(
+        rmse_by_bin[non_zero_indices] ** 2,
+        weights=num_examples_by_bin[non_zero_indices]
+    ))
+    ssrat_value = this_numer / this_denom
+
+    return ssrel_value, ssrat_value
+
+
+def get_results_one_var(
         target_values, prediction_matrix, bin_edge_prediction_stdevs):
     """Computes spread-skill relationship for one target variable.
 
@@ -196,89 +279,6 @@ def _get_results_one_var(
         MEAN_MEAN_PREDICTIONS_KEY: mean_mean_predictions,
         MEAN_TARGET_VALUES_KEY: mean_target_values
     }
-
-
-def _merge_basic_quantities_1bin_1var(
-        num_examples_by_table, mean_stdev_by_table, rmse_by_table,
-        mean_mean_prediction_by_table, mean_target_by_table):
-    """Merges basic quantities for one spread bin and one target variable...
-
-    over many examples.
-
-    "Basic quantities" = mean stdev, RMSE, mean mean prediction, mean target
-
-    T = number of tables
-
-    :param num_examples_by_table: length-T numpy array of example counts.
-    :param mean_stdev_by_table: length-T numpy array of mean stdevs.
-    :param rmse_by_table: length-T numpy array of RMSE values.
-    :param mean_mean_prediction_by_table: length-T numpy array of mean mean
-        predictions.
-    :param mean_target_by_table: length-T numpy array of mean target values.
-    :return: mean_stdev_overall: Overall mean stdev.
-    :return: rmse_overall: Overall RMSE value.
-    :return: mean_mean_prediction_overall: Overall mean mean prediction.
-    :return: mean_target_overall: Overall mean target.
-    """
-
-    if numpy.sum(num_examples_by_table) == 0:
-        return numpy.nan, numpy.nan, numpy.nan, numpy.nan
-
-    non_zero_indices = numpy.where(num_examples_by_table > 0)[0]
-
-    mean_stdev_overall = numpy.sqrt(numpy.average(
-        mean_stdev_by_table[non_zero_indices] ** 2,
-        weights=num_examples_by_table[non_zero_indices]
-    ))
-    rmse_overall = numpy.sqrt(numpy.average(
-        rmse_by_table[non_zero_indices] ** 2,
-        weights=num_examples_by_table[non_zero_indices]
-    ))
-    mean_mean_prediction_overall = numpy.average(
-        mean_mean_prediction_by_table[non_zero_indices],
-        weights=num_examples_by_table[non_zero_indices]
-    )
-    mean_target_overall = numpy.average(
-        mean_target_by_table[non_zero_indices],
-        weights=num_examples_by_table[non_zero_indices]
-    )
-
-    return (
-        mean_stdev_overall, rmse_overall,
-        mean_mean_prediction_overall, mean_target_overall
-    )
-
-
-def _get_ssrel_ssrat_1var(mean_stdev_by_bin, rmse_by_bin, num_examples_by_bin):
-    """Computes SSREL and SSRAT for one target variable.
-
-    B = number of spread bins
-
-    :param mean_stdev_by_bin: length-B numpy array of mean stdevs.
-    :param rmse_by_bin: length-B numpy array of RMSE values.
-    :param num_examples_by_bin: length-B numpy array of example counts.
-    :return: ssrel_value: Spread-skill reliability.
-    :return: ssrat_value: Spread-skill ratio.
-    """
-
-    non_zero_indices = numpy.where(num_examples_by_bin > 0)[0]
-
-    ssrel_value = numpy.average(
-        numpy.absolute(mean_stdev_by_bin - rmse_by_bin)[non_zero_indices],
-        weights=num_examples_by_bin[non_zero_indices]
-    )
-
-    this_numer = numpy.sqrt(numpy.average(
-        mean_stdev_by_bin[non_zero_indices] ** 2,
-        weights=num_examples_by_bin[non_zero_indices]
-    ))
-    this_denom = numpy.sqrt(numpy.average(
-        rmse_by_bin[non_zero_indices] ** 2,
-        weights=num_examples_by_bin[non_zero_indices]
-    ))
-    ssrat_value = this_numer / this_denom
-
-    return ssrel_value, ssrat_value
 
 
 def get_results_all_vars(
@@ -621,7 +621,7 @@ def get_results_all_vars(
                 num=num_raw_flux_bins + 1, dtype=float
             )[1:-1]
 
-        this_result_dict = _get_results_one_var(
+        this_result_dict = get_results_one_var(
             target_values=scalar_target_matrix[:, j],
             prediction_matrix=scalar_prediction_matrix[:, j, :],
             bin_edge_prediction_stdevs=these_bin_edges
@@ -673,7 +673,7 @@ def get_results_all_vars(
                 num=num_net_flux_bins + 1, dtype=float
             )[1:-1]
 
-        this_result_dict = _get_results_one_var(
+        this_result_dict = get_results_one_var(
             target_values=aux_target_matrix[:, j],
             prediction_matrix=aux_prediction_matrix[:, j, :],
             bin_edge_prediction_stdevs=these_bin_edges
@@ -734,7 +734,7 @@ def get_results_all_vars(
             (len(these_targets), vector_prediction_matrix.shape[-1])
         )
 
-        this_result_dict = _get_results_one_var(
+        this_result_dict = get_results_one_var(
             target_values=these_targets,
             prediction_matrix=this_prediction_matrix,
             bin_edge_prediction_stdevs=these_bin_edges
@@ -796,7 +796,7 @@ def get_results_all_vars(
                     num=num_heating_rate_bins + 1, dtype=float
                 )[1:-1]
 
-            this_result_dict = _get_results_one_var(
+            this_result_dict = get_results_one_var(
                 target_values=vector_target_matrix[:, k, j],
                 prediction_matrix=vector_prediction_matrix[:, k, j, :],
                 bin_edge_prediction_stdevs=these_bin_edges

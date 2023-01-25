@@ -161,6 +161,11 @@ def _run(input_file_name, top_output_dir_name):
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],
+            isotonic_model_file_name=
+            this_prediction_dict[prediction_io.ISOTONIC_MODEL_FILE_KEY],
+            uncertainty_calib_model_file_name=this_prediction_dict[
+                prediction_io.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+            ],
             normalization_file_name=
             this_prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
         )
