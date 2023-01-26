@@ -24,10 +24,10 @@ OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/bnn_plusplus_test/template'.format(
 )
 
 MODEL_DEPTH = 3
-VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_crps()
-SCALAR_LOSS_FUNCTION = custom_losses.unscaled_crps_for_net_flux()
-VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_crps()'
-SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.unscaled_crps_for_net_flux()'
+VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
+SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux(1.)
+VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_mse()'
+SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.scaled_mse_for_net_flux(1.)'
 
 LOSS_DICT = {
     'conv_output': VECTOR_LOSS_FUNCTION_STRING,
