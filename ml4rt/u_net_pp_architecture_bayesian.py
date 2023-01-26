@@ -864,7 +864,7 @@ def create_bayesian_model(option_dict):
     )
     model_object.compile(
         loss=loss_dict, optimizer=keras.optimizers.Adam(),
-        metrics=METRIC_FUNCTION_LIST
+        # metrics=METRIC_FUNCTION_LIST
     )
 
     model_object.summary()
