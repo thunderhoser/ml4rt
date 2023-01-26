@@ -34,7 +34,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --scalar_target_norm_type_string="" \
 --num_examples_per_batch=724 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=1000 \
---num_validn_batches_per_epoch=1000 \
+--num_training_batches_per_epoch=75 \
+--num_validn_batches_per_epoch=75 \
 --plateau_lr_multiplier=0.6 \
 --num_deep_supervision_layers=0
