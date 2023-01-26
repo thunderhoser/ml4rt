@@ -124,7 +124,7 @@ def _run():
                             numpy.log2(FIRST_LAYER_CHANNEL_COUNTS[i])
                         ))
                         these_channel_counts = numpy.logspace(
-                            this_log, this_log + MODEL_DEPTH,
+                            this_log, this_log + MODEL_DEPTH, base=2,
                             num=MODEL_DEPTH + 1, dtype=int
                         )
 
