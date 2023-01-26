@@ -1831,8 +1831,10 @@ def read_model(hdf5_file_name):
     )
 
     metadata_dict = read_metafile(metafile_name)
-    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
     loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
+
+    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
+    custom_object_dict['K'] = K
 
     if isinstance(loss_function_or_dict, dict):
         for this_key in loss_function_or_dict:
