@@ -19,7 +19,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
 import architecture_utils
-import neural_net
+import bayesian_neural_net
 import u_net_architecture
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
@@ -339,8 +339,7 @@ def _get_1d_conv_layer(
             bias_divergence_fn=(
                 lambda q, p, ignore:
                 kl_divergence_scaling_factor * kl_lib.kl_divergence(q, p)
-            ),
-            # dtype=tensorflow.float32
+            )
         )(previous_layer_object)
 
     return tf_prob.layers.Convolution1DReparameterization(
@@ -391,8 +390,7 @@ def _get_dense_layer(
             bias_divergence_fn=(
                 lambda q, p, ignore:
                 kl_divergence_scaling_factor * kl_lib.kl_divergence(q, p)
-            ),
-            # dtype=tensorflow.float32
+            )
         )(previous_layer_object)
 
     return tf_prob.layers.DenseReparameterization(
@@ -850,7 +848,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     if ensemble_size > 1:
         metric_function_list = []
     else:
-        metric_function_list = neural_net.METRIC_FUNCTION_LIST
+        metric_function_list = bayesian_neural_net.METRIC_FUNCTION_LIST
 
     if has_dense_layers:
         output_layer_objects.insert(1, dense_output_layer_object)
@@ -1241,7 +1239,7 @@ def create_model_1output_layer(
 
     model_object.compile(
         loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
+        metrics=bayesian_neural_net.METRIC_FUNCTION_LIST
     )
 
     model_object.summary()
@@ -1277,6 +1275,9 @@ def create_bayesian_model(
     skip_layer_type_string_by_level = option_dict[SKIP_BNN_LAYER_TYPES_KEY]
     include_penultimate_conv = option_dict[INCLUDE_PENULTIMATE_KEY]
     penultimate_conv_dropout_rate = option_dict[PENULTIMATE_DROPOUT_RATE_KEY]
+    penultimate_conv_layer_type_string = (
+        option_dict[PENULTIMATE_BNN_LAYER_TYPE_KEY]
+    )
     dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
     dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
     dense_layer_type_strings = option_dict[DENSE_BNN_LAYER_TYPES_KEY]
@@ -1292,13 +1293,6 @@ def create_bayesian_model(
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
-
-    if include_penultimate_conv:
-        penultimate_conv_layer_type_string = (
-            option_dict[PENULTIMATE_BNN_LAYER_TYPE_KEY]
-        )
-    else:
-        penultimate_conv_layer_type_string = POINT_ESTIMATE_TYPE_STRING
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
@@ -1663,7 +1657,7 @@ def create_bayesian_model(
     )
     model_object.compile(
         loss=loss_dict, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
+        metrics=bayesian_neural_net.METRIC_FUNCTION_LIST
     )
 
     model_object.summary()

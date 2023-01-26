@@ -8,7 +8,7 @@ TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_
 VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_with_perturbed_training_data/validation_all_perturbed_for_uq"
 NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_all_perturbed_for_uq/learning_examples_for_norm_20180901-20191221.nc"
 
-template_file_name="${TEMPLATE_DIR_NAME}/model.h5"
+template_file_name="${TEMPLATE_DIR_NAME}/model"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}"
 echo $output_dir_name
 

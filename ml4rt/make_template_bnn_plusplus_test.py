@@ -13,7 +13,7 @@ import u_net_pp_architecture_bayesian as u_net_pp_architecture
 import architecture_utils
 import custom_losses
 import file_system_utils
-import neural_net
+import bayesian_neural_net as neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -121,7 +121,7 @@ def _run():
         scalar_loss_function=SCALAR_LOSS_FUNCTION
     )
 
-    this_model_file_name = '{0:s}/model.h5'.format(OUTPUT_DIR_NAME)
+    this_model_file_name = '{0:s}/model'.format(OUTPUT_DIR_NAME)
     file_system_utils.mkdir_recursive_if_necessary(
         file_name=this_model_file_name
     )
