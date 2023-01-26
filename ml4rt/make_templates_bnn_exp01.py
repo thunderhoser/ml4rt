@@ -128,6 +128,8 @@ def _run():
                             num=MODEL_DEPTH + 1, dtype=int
                         )
 
+                        print(these_channel_counts)
+
                         upconv_layer_type_strings = (
                             [POINT_ESTIMATE_TYPE_STRING] * MODEL_DEPTH
                             + [BAYESIAN_LAYER_TYPE_STRINGS[m]] *
