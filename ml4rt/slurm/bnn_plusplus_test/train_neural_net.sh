@@ -12,7 +12,7 @@ template_file_name="${TEMPLATE_DIR_NAME}/model"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}"
 echo $output_dir_name
 
-python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
+python3 -u "${CODE_DIR_NAME}/train_bayesian_neural_net.py" \
 --net_type_string="u_net" \
 --input_training_dir_name="${TRAINING_DIR_NAME}" \
 --input_validation_dir_name="${VALIDATION_DIR_NAME}" \
