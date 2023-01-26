@@ -8,6 +8,7 @@ import numpy
 import keras
 import tensorflow.keras as tf_keras
 import tensorflow_probability
+from keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
