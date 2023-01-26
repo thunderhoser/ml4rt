@@ -14,7 +14,7 @@ import u_net_pp_architecture_bayesian as u_net_pp_architecture
 import architecture_utils
 import custom_losses
 import file_system_utils
-import bayesian_neural_net as neural_net
+import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
