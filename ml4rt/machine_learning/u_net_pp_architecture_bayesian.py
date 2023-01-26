@@ -11,7 +11,7 @@ from tensorflow_probability.python.distributions import \
     kullback_leibler as kl_lib
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
-from ml4rt.machine_learning import neural_net
+from ml4rt.machine_learning import bayesian_neural_net
 from ml4rt.machine_learning import u_net_architecture
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
@@ -840,7 +840,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     if ensemble_size > 1:
         metric_function_list = []
     else:
-        metric_function_list = neural_net.METRIC_FUNCTION_LIST
+        metric_function_list = bayesian_neural_net.METRIC_FUNCTION_LIST
 
     if has_dense_layers:
         output_layer_objects.insert(1, dense_output_layer_object)
@@ -1231,7 +1231,7 @@ def create_model_1output_layer(
 
     model_object.compile(
         loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
+        metrics=bayesian_neural_net.METRIC_FUNCTION_LIST
     )
 
     model_object.summary()
@@ -1649,7 +1649,7 @@ def create_bayesian_model(
     )
     model_object.compile(
         loss=loss_dict, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
+        metrics=bayesian_neural_net.METRIC_FUNCTION_LIST
     )
 
     model_object.summary()
