@@ -101,11 +101,13 @@ NET_TYPE_KEY = 'net_type_string'
 LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
+BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
-    LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY
+    LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
+    BNN_ARCHITECTURE_KEY
 ]
 
 
@@ -345,7 +347,7 @@ def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        do_early_stopping, plateau_lr_multiplier):
+        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -358,6 +360,7 @@ def _write_metafile(
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
     :param plateau_lr_multiplier: Same.
+    :param bnn_architecture_dict: Same.
     """
 
     metadata_dict = {
@@ -369,7 +372,8 @@ def _write_metafile(
         NET_TYPE_KEY: net_type_string,
         LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
         EARLY_STOPPING_KEY: do_early_stopping,
-        PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier
+        PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
+        BNN_ARCHITECTURE_KEY: bnn_architecture_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
@@ -1495,7 +1499,8 @@ def train_model_with_generator(
         validation_option_dict, net_type_string, loss_function_or_dict,
         use_generator_for_validn=False, num_validation_batches_per_epoch=None,
         do_early_stopping=True,
-        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER):
+        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER,
+        bnn_architecture_dict=None):
     """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1532,6 +1537,9 @@ def train_model_with_generator(
     :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
         rate will be multiplied by this factor upon plateau in validation
         performance.
+    :param bnn_architecture_dict: Dictionary with architecture options for
+        Bayesian neural network (BNN).  If the model being trained is not
+        Bayesian, make this None.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1617,7 +1625,8 @@ def train_model_with_generator(
         net_type_string=net_type_string,
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
-        plateau_lr_multiplier=plateau_lr_multiplier
+        plateau_lr_multiplier=plateau_lr_multiplier,
+        bnn_architecture_dict=bnn_architecture_dict
     )
 
     training_generator = data_generator(
@@ -1658,7 +1667,8 @@ def train_model_sans_generator(
         validation_option_dict, net_type_string, loss_function_or_dict,
         do_early_stopping=True, num_training_batches_per_epoch=None,
         num_validation_batches_per_epoch=None,
-        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER):
+        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER,
+        bnn_architecture_dict=None):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1673,7 +1683,8 @@ def train_model_sans_generator(
         If None, each training example will be used once per epoch.
     :param num_validation_batches_per_epoch: Number of validation batches per
         epoch.  If None, each validation example will be used once per epoch.
-    :param plateau_lr_multiplier: Same.
+    :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
+    :param bnn_architecture_dict: Same.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1750,7 +1761,8 @@ def train_model_sans_generator(
         net_type_string=net_type_string,
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
-        plateau_lr_multiplier=plateau_lr_multiplier
+        plateau_lr_multiplier=plateau_lr_multiplier,
+        bnn_architecture_dict=bnn_architecture_dict
     )
 
     training_predictor_matrix, training_target_array = create_data(
@@ -1809,6 +1821,30 @@ def read_model(hdf5_file_name):
 
     error_checking.assert_file_exists(hdf5_file_name)
 
+    metafile_name = find_metafile(
+        model_dir_name=os.path.split(hdf5_file_name)[0],
+        raise_error_if_missing=True
+    )
+    metadata_dict = read_metafile(metafile_name)
+    bnn_architecture_dict = metadata_dict[BNN_ARCHITECTURE_KEY]
+
+    if bnn_architecture_dict is not None:
+        from ml4rt.machine_learning import u_net_pp_architecture_bayesian
+
+        for this_key in [
+            u_net_pp_architecture_bayesian.VECTOR_LOSS_FUNCTION_KEY,
+            u_net_pp_architecture_bayesian.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            bnn_architecture_dict[this_key] = eval(
+                bnn_architecture_dict[this_key]
+            )
+
+        model_object = u_net_pp_architecture_bayesian.create_bayesian_model(
+            bnn_architecture_dict
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
     try:
         return tf_keras.models.load_model(
             hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
@@ -1816,12 +1852,6 @@ def read_model(hdf5_file_name):
     except ValueError:
         pass
 
-    metafile_name = find_metafile(
-        model_dir_name=os.path.split(hdf5_file_name)[0],
-        raise_error_if_missing=True
-    )
-
-    metadata_dict = read_metafile(metafile_name)
     custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
     loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
 
@@ -1876,6 +1906,7 @@ def read_metafile(dill_file_name):
     metadata_dict['validation_option_dict']: Same.
     metadata_dict['net_type_string']: Same.
     metadata_dict['loss_function_or_dict']: Same.
+    metadata_dict['bnn_architecture_dict']: Same.
 
     :raises: ValueError: if any expected key is not found in dictionary.
     """
@@ -1937,6 +1968,9 @@ def read_metafile(dill_file_name):
         metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] = (
             metadata_dict['loss_function']
         )
+
+    if BNN_ARCHITECTURE_KEY in metadata_dict:
+        metadata_dict[BNN_ARCHITECTURE_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
