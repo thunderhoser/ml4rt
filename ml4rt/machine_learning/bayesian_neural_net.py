@@ -1808,21 +1808,18 @@ def read_model(hdf5_file_name):
         `keras.models.Sequential`.
     """
 
-    # TODO(thunderhoser): This part is a HACK.
-    assert hdf5_file_name.endswith('.h5')
-    extensionless_file_name = os.path.splitext(hdf5_file_name)[0]
-
-    error_checking.assert_file_exists(extensionless_file_name)
+    # TODO(thunderhoser): Need to fuck with this.
+    # error_checking.assert_file_exists(hdf5_file_name)
 
     try:
         return tf_keras.models.load_model(
-            extensionless_file_name, custom_objects=METRIC_FUNCTION_DICT
+            hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
         )
     except ValueError:
         pass
 
     metafile_name = find_metafile(
-        model_dir_name=os.path.split(extensionless_file_name)[0],
+        model_dir_name='/'.join(hdf5_file_name.split('/')[:-1]),
         raise_error_if_missing=True
     )
 
@@ -1841,7 +1838,7 @@ def read_model(hdf5_file_name):
         custom_object_dict['loss'] = eval(loss_function_or_dict)
 
     return tf_keras.models.load_model(
-        extensionless_file_name, custom_objects=custom_object_dict
+        hdf5_file_name, custom_objects=custom_object_dict
     )
 
 

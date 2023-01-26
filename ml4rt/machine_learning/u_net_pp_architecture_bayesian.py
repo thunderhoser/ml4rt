@@ -1267,9 +1267,6 @@ def create_bayesian_model(
     skip_layer_type_string_by_level = option_dict[SKIP_BNN_LAYER_TYPES_KEY]
     include_penultimate_conv = option_dict[INCLUDE_PENULTIMATE_KEY]
     penultimate_conv_dropout_rate = option_dict[PENULTIMATE_DROPOUT_RATE_KEY]
-    penultimate_conv_layer_type_string = (
-        option_dict[PENULTIMATE_BNN_LAYER_TYPE_KEY]
-    )
     dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
     dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
     dense_layer_type_strings = option_dict[DENSE_BNN_LAYER_TYPES_KEY]
@@ -1285,6 +1282,13 @@ def create_bayesian_model(
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+
+    if include_penultimate_conv:
+        penultimate_conv_layer_type_string = (
+            option_dict[PENULTIMATE_BNN_LAYER_TYPE_KEY]
+        )
+    else:
+        penultimate_conv_layer_type_string = POINT_ESTIMATE_TYPE_STRING
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
