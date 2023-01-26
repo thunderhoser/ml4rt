@@ -60,10 +60,17 @@ def _train_model_one_variable(
         spread_skill_result_dict[ss_utils.RMSE_VALUES_KEY] /
         spread_skill_result_dict[ss_utils.MEAN_PREDICTION_STDEVS_KEY]
     )
+    stdev_inflation_factors[numpy.isinf(stdev_inflation_factors)] = numpy.nan
 
     nan_flags = numpy.isnan(stdev_inflation_factors)
     if not numpy.any(nan_flags):
         return bin_edge_prediction_stdevs, stdev_inflation_factors
+
+    if numpy.all(nan_flags):
+        return (
+            bin_edge_prediction_stdevs,
+            numpy.full(len(stdev_inflation_factors), 1.)
+        )
 
     nan_indices = numpy.where(nan_flags)[0]
     real_indices = numpy.where(numpy.invert(nan_flags))[0]
@@ -193,27 +200,31 @@ def train_models_all_vars(
     num_vector_targets = vector_target_matrix.shape[2]
     num_scalar_targets = scalar_target_matrix.shape[1]
 
-    these_dim = (num_scalar_targets, num_spread_bins)
-    these_dim_keys = (SCALAR_FIELD_DIM, BIN_EDGE_DIM)
+    these_dim_no_edge = (num_scalar_targets, num_spread_bins)
+    these_dim_keys_no_edge = (SCALAR_FIELD_DIM, BIN_DIM)
+    these_dim_with_edge = (num_scalar_targets, num_spread_bins + 1)
+    these_dim_keys_with_edge = (SCALAR_FIELD_DIM, BIN_EDGE_DIM)
 
     main_data_dict = {
         SCALAR_BIN_EDGE_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_with_edge, numpy.full(these_dim_with_edge, numpy.nan)
         ),
         SCALAR_STDEV_INFLATION_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
         )
     }
 
-    these_dim = (num_vector_targets, num_heights, num_spread_bins)
-    these_dim_keys = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_EDGE_DIM)
+    these_dim_no_edge = (num_vector_targets, num_heights, num_spread_bins)
+    these_dim_keys_no_edge = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_DIM)
+    these_dim_with_edge = (num_vector_targets, num_heights, num_spread_bins + 1)
+    these_dim_keys_with_edge = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_EDGE_DIM)
 
     main_data_dict.update({
         VECTOR_BIN_EDGE_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_with_edge, numpy.full(these_dim_with_edge, numpy.nan)
         ),
         VECTOR_STDEV_INFLATION_KEY: (
-            these_dim_keys, numpy.full(these_dim, numpy.nan)
+            these_dim_keys_no_edge, numpy.full(these_dim_no_edge, numpy.nan)
         )
     })
 
@@ -249,6 +260,11 @@ def train_models_all_vars(
             num=num_spread_bins + 1, dtype=float
         )[1:-1]
 
+        these_fudge_factors = TOLERANCE * numpy.linspace(
+            1, len(these_bin_edges), num=len(these_bin_edges), dtype=float
+        )
+        these_bin_edges = these_bin_edges + these_fudge_factors
+
         (
             t[SCALAR_BIN_EDGE_KEY].values[k, :],
             t[SCALAR_STDEV_INFLATION_KEY].values[k, :]
@@ -275,6 +291,11 @@ def train_models_all_vars(
                 numpy.percentile(these_stdevs, max_spread_percentile),
                 num=num_spread_bins + 1, dtype=float
             )[1:-1]
+
+            these_fudge_factors = TOLERANCE * numpy.linspace(
+                1, len(these_bin_edges), num=len(these_bin_edges), dtype=float
+            )
+            these_bin_edges = these_bin_edges + these_fudge_factors
 
             (
                 t[VECTOR_BIN_EDGE_KEY].values[k, j, :],
@@ -372,9 +393,9 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
                     prediction_matrix=
                     pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :],
                     bin_edge_prediction_stdevs=
-                    uct[SCALAR_BIN_EDGE_KEY].values[var_idx, hgt_idx, :],
+                    uct[VECTOR_BIN_EDGE_KEY].values[var_idx, hgt_idx, :],
                     stdev_inflation_factors=
-                    uct[SCALAR_STDEV_INFLATION_KEY].values[var_idx, hgt_idx, :]
+                    uct[VECTOR_STDEV_INFLATION_KEY].values[var_idx, hgt_idx, :]
                 )
             )
 
