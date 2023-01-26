@@ -11,8 +11,14 @@ from tensorflow_probability.python.distributions import \
     kullback_leibler as kl_lib
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
-from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import u_net_architecture
+from ml4rt.machine_learning import keras_metrics as custom_metrics
+
+METRIC_FUNCTION_LIST = [
+    custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
+    custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
+    custom_metrics.mse_skill_score, custom_metrics.correlation
+]
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
 FLIPOUT_TYPE_STRING = 'flipout'
@@ -850,7 +856,7 @@ def create_bayesian_model(option_dict):
     )
     model_object.compile(
         loss=loss_dict, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
+        # metrics=METRIC_FUNCTION_LIST
     )
 
     model_object.summary()

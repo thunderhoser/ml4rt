@@ -1969,7 +1969,7 @@ def read_metafile(dill_file_name):
             metadata_dict['loss_function']
         )
 
-    if BNN_ARCHITECTURE_KEY in metadata_dict:
+    if BNN_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[BNN_ARCHITECTURE_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
