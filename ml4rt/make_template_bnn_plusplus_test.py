@@ -2,6 +2,7 @@
 
 import os
 import sys
+import copy
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -18,20 +19,23 @@ import bayesian_neural_net as neural_net
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/bnn_plusplus_test/template'
-).format(HOME_DIR_NAME)
+OUTPUT_DIR_NAME = '{0:s}/ml4rt_models/bnn_plusplus_test/template'.format(
+    HOME_DIR_NAME
+)
 
 MODEL_DEPTH = 3
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_crps()
 SCALAR_LOSS_FUNCTION = custom_losses.unscaled_crps_for_net_flux()
+VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_crps()'
+SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.unscaled_crps_for_net_flux()'
+
 LOSS_DICT = {
-    'conv_output': 'custom_losses.dual_weighted_crps()',
-    'dense_output': 'custom_losses.unscaled_crps_for_net_flux()'
+    'conv_output': VECTOR_LOSS_FUNCTION_STRING,
+    'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
 NUM_HEIGHTS_AT_DEEPEST_LAYER = 15
-NUM_CHANNELS_AT_DEEPEST_LAYER = 1024
+NUM_CHANNELS_AT_DEEPEST_LAYER = 512
 DUMMY_TRAINING_SIZE = int(1e5)
 
 DENSE_LAYER_NEURON_COUNTS = architecture_utils.get_dense_layer_dimensions(
@@ -55,7 +59,7 @@ OPTION_DICT = {
     u_net_pp_architecture.CONV_LAYER_COUNTS_KEY:
         numpy.full(MODEL_DEPTH + 1, 1, dtype=int),
     u_net_pp_architecture.CHANNEL_COUNTS_KEY:
-        numpy.array([128, 256, 512, 1024], dtype=int),
+        numpy.array([64, 128, 256, 512], dtype=int),
     u_net_pp_architecture.ENCODER_DROPOUT_RATES_KEY:
         numpy.full(MODEL_DEPTH + 1, 0.),
     u_net_pp_architecture.ENCODER_MC_DROPOUT_FLAGS_KEY:
@@ -99,7 +103,10 @@ OPTION_DICT = {
         FLIPOUT_TYPE_STRING, FLIPOUT_TYPE_STRING
     ],
     u_net_pp_architecture.CONV_OUTPUT_BNN_LAYER_TYPE_KEY:
-        FLIPOUT_TYPE_STRING
+        FLIPOUT_TYPE_STRING,
+    u_net_pp_architecture.NUM_OUTPUT_CHANNELS_KEY: 1,
+    u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
+    u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -114,14 +121,9 @@ def _run():
     This is effectively the main method.
     """
 
-    this_model_object = u_net_pp_architecture.create_bayesian_model(
-        option_dict=OPTION_DICT,
-        vector_loss_function=VECTOR_LOSS_FUNCTION,
-        num_output_channels=1,
-        scalar_loss_function=SCALAR_LOSS_FUNCTION
-    )
+    this_model_object = u_net_pp_architecture.create_bayesian_model(OPTION_DICT)
 
-    this_model_file_name = '{0:s}/model'.format(OUTPUT_DIR_NAME)
+    this_model_file_name = '{0:s}/model.h5'.format(OUTPUT_DIR_NAME)
     file_system_utils.mkdir_recursive_if_necessary(
         file_name=this_model_file_name
     )
@@ -137,6 +139,13 @@ def _run():
         raise_error_if_missing=False
     )
 
+    OPTION_DICT[u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY] = (
+        VECTOR_LOSS_FUNCTION_STRING
+    )
+    OPTION_DICT[u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY] = (
+        SCALAR_LOSS_FUNCTION_STRING
+    )
+
     print('Writing metadata to: "{0:s}"...'.format(this_metafile_name))
     neural_net._write_metafile(
         dill_file_name=this_metafile_name, num_epochs=100,
@@ -146,7 +155,8 @@ def _run():
         validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
         net_type_string=neural_net.U_NET_TYPE_STRING,
         loss_function_or_dict=LOSS_DICT,
-        do_early_stopping=True, plateau_lr_multiplier=0.6
+        do_early_stopping=True, plateau_lr_multiplier=0.6,
+        bnn_architecture_dict=OPTION_DICT
     )
 
 
