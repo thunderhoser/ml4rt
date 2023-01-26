@@ -1822,7 +1822,7 @@ def read_model(hdf5_file_name):
         return tf_keras.models.load_model(
             hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
         )
-    except ValueError:
+    except:
         pass
 
     metafile_name = find_metafile(
