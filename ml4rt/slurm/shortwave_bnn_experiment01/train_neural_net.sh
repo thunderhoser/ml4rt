@@ -1,6 +1,7 @@
 #!/bin/sh
 
 SLURM_ARRAY_TASK_ID=$1
+echo $SLURM_ARRAY_TASK_ID
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_experiment01/templates"
