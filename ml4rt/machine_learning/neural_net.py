@@ -1776,29 +1776,53 @@ def train_model_sans_generator(
     )[:2]
 
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
-    # num_validation_examples = validation_predictor_matrix.shape[0]
-    # if num_validation_examples > int(5e5):
-    #     random_indices = numpy.linspace(
-    #         0, num_validation_examples - 1, num=num_validation_examples,
-    #         dtype=int
-    #     )
-    #     random_indices = numpy.random.choice(
-    #         random_indices, size=int(5e5), replace=False
-    #     )
-    #
-    #     validation_predictor_matrix = validation_predictor_matrix[
-    #         random_indices, ...
-    #     ]
-    #
-    #     if isinstance(validation_target_array, list):
-    #         for k in range(len(validation_target_array)):
-    #             validation_target_array[k] = validation_target_array[k][
-    #                 random_indices, ...
-    #             ]
-    #     else:
-    #         validation_target_array = validation_target_array[
-    #             random_indices, ...
-    #         ]
+    num_validation_examples = validation_predictor_matrix.shape[0]
+    if num_validation_examples > int(2.5e5):
+        random_indices = numpy.linspace(
+            0, num_validation_examples - 1, num=num_validation_examples,
+            dtype=int
+        )
+        random_indices = numpy.random.choice(
+            random_indices, size=int(2.5e5), replace=False
+        )
+
+        validation_predictor_matrix = validation_predictor_matrix[
+            random_indices, ...
+        ]
+
+        if isinstance(validation_target_array, list):
+            for k in range(len(validation_target_array)):
+                validation_target_array[k] = validation_target_array[k][
+                    random_indices, ...
+                ]
+        else:
+            validation_target_array = validation_target_array[
+                random_indices, ...
+            ]
+
+    num_training_examples = training_predictor_matrix.shape[0]
+    if num_training_examples > int(5e5):
+        random_indices = numpy.linspace(
+            0, num_training_examples - 1, num=num_training_examples,
+            dtype=int
+        )
+        random_indices = numpy.random.choice(
+            random_indices, size=int(5e5), replace=False
+        )
+
+        training_predictor_matrix = training_predictor_matrix[
+            random_indices, ...
+        ]
+
+        if isinstance(training_target_array, list):
+            for k in range(len(training_target_array)):
+                training_target_array[k] = training_target_array[k][
+                    random_indices, ...
+                ]
+        else:
+            training_target_array = training_target_array[
+                random_indices, ...
+            ]
 
     model_object.fit(
         x=training_predictor_matrix, y=training_target_array,
@@ -2067,9 +2091,6 @@ def apply_model(
 
         if not isinstance(this_output, list):
             this_output = [this_output]
-
-        print('AHHH STOP THE MADNESS')
-        print(this_output[1].shape)
 
         if len(this_output[0].shape) == 3:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
