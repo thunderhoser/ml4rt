@@ -1789,7 +1789,7 @@ def train_model_sans_generator(
             dtype=int
         )
         random_indices = numpy.random.choice(
-            random_indices, size=int(5e5), replace=False
+            random_indices, size=int(2.5e5), replace=False
         )
 
         validation_predictor_matrix = validation_predictor_matrix[
