@@ -1,16 +1,23 @@
 """Applies trained neural net in inference mode."""
 
+import os
+import sys
 import copy
 import time
-import os.path
 import argparse
 import numpy
-from gewittergefahr.gg_utils import time_conversion
-from ml4rt.io import prediction_io
-from ml4rt.io import example_io
-from ml4rt.utils import example_utils
-from ml4rt.utils import normalization
-from ml4rt.machine_learning import neural_net
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import time_conversion
+import prediction_io
+import example_io
+import example_utils
+import normalization
+import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
