@@ -1497,10 +1497,8 @@ def train_model_with_generator(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        use_generator_for_validn=False, num_validation_batches_per_epoch=None,
-        do_early_stopping=True,
-        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER,
-        bnn_architecture_dict=None):
+        use_generator_for_validn, num_validation_batches_per_epoch,
+        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict):
     """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1665,10 +1663,9 @@ def train_model_with_generator(
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        do_early_stopping=True, num_training_batches_per_epoch=None,
-        num_validation_batches_per_epoch=None,
-        plateau_lr_multiplier=DEFAULT_LEARNING_RATE_MULTIPLIER,
-        bnn_architecture_dict=None):
+        do_early_stopping, num_training_batches_per_epoch,
+        num_validation_batches_per_epoch, plateau_lr_multiplier,
+        bnn_architecture_dict):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1995,6 +1992,24 @@ def read_metafile(dill_file_name):
 
     if BNN_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[BNN_ARCHITECTURE_KEY] = None
+
+    # TODO(thunderhoser): HACK!
+    if (
+            metadata_dict[BNN_ARCHITECTURE_KEY] is None and
+            'shortwave_bnn_experiment01/' in dill_file_name
+    ):
+        new_file_name = dill_file_name.replace(
+            'shortwave_bnn_experiment01/',
+            'shortwave_bnn_experiment01/templates/'
+        )
+
+        new_file_handle = open(new_file_name, 'rb')
+        new_metadata_dict = dill.load(new_file_handle)
+        new_file_handle.close()
+
+        metadata_dict[BNN_ARCHITECTURE_KEY] = (
+            new_metadata_dict[BNN_ARCHITECTURE_KEY]
+        )
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
