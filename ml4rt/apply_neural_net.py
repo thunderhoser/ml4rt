@@ -1,23 +1,16 @@
 """Applies trained neural net in inference mode."""
 
-import os
-import sys
 import copy
 import time
+import os.path
 import argparse
 import numpy
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import time_conversion
-import prediction_io
-import example_io
-import example_utils
-import normalization
-import neural_net
+from gewittergefahr.gg_utils import time_conversion
+from ml4rt.io import prediction_io
+from ml4rt.io import example_io
+from ml4rt.utils import example_utils
+from ml4rt.utils import normalization
+from ml4rt.machine_learning import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -33,6 +26,7 @@ EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
 LAST_TIME_ARG_NAME = 'last_time_string'
 NUM_DROPOUT_ITERS_ARG_NAME = 'num_dropout_iterations'
+NUM_BNN_ITERS_ARG_NAME = 'num_bnn_iterations'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_ensemble_size'
 EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
@@ -52,6 +46,10 @@ TIME_HELP_STRING = (
 NUM_DROPOUT_ITERS_HELP_STRING = (
     'Number of iterations for Monte Carlo dropout.  If you do not want to use '
     'MC dropout, make this argument <= 0.'
+)
+NUM_BNN_ITERS_HELP_STRING = (
+    'Number of iterations for Bayesian neural net.  If the neural net is not '
+    'Bayesian, make this argument <= 0.'
 )
 MAX_ENSEMBLE_SIZE_HELP_STRING = (
     'Max ensemble size.  If the NN does uncertainty quantification and yields '
@@ -83,6 +81,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_DROPOUT_ITERS_ARG_NAME, type=int, required=False, default=0,
     help=NUM_DROPOUT_ITERS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_BNN_ITERS_ARG_NAME, type=int, required=False, default=0,
+    help=NUM_BNN_ITERS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MAX_ENSEMBLE_SIZE_ARG_NAME, type=int, required=False, default=1e10,
@@ -203,8 +205,8 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
 
 
 def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
-         num_dropout_iterations, max_ensemble_size, exclude_summit_greenland,
-         output_file_name):
+         num_dropout_iterations, num_bnn_iterations, max_ensemble_size,
+         exclude_summit_greenland, output_file_name):
     """Applies trained neural net in inference mode.
 
     This is effectively the main method.
@@ -214,6 +216,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     :param first_time_string: Same.
     :param last_time_string: Same.
     :param num_dropout_iterations: Same.
+    :param num_bnn_iterations: Same.
     :param max_ensemble_size: Same.
     :param exclude_summit_greenland: Same.
     :param output_file_name: Same.
@@ -270,29 +273,39 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         target_array = target_array[unique_indices, ...]
 
     if num_dropout_iterations > 1:
+        num_bnn_iterations = 0
+        num_iterations = num_dropout_iterations
+    elif num_bnn_iterations > 1:
+        num_dropout_iterations = 0
+        num_iterations = num_bnn_iterations
+    else:
+        num_iterations = 0
+
+    if num_iterations > 1:
         vector_prediction_matrix = None
         scalar_prediction_matrix = None
         ensemble_size_per_iter = -1
         ensemble_size = -1
 
-        for k in range(num_dropout_iterations):
+        for k in range(num_iterations):
             this_vector_prediction_matrix, this_scalar_prediction_matrix = (
                 _apply_model_once(
                     model_object=model_object,
                     model_metadata_dict=metadata_dict,
-                    predictor_matrix=predictor_matrix, use_dropout=True
+                    predictor_matrix=predictor_matrix,
+                    use_dropout=num_dropout_iterations > 1
                 )
             )
 
             if k == 0:
                 max_ensemble_size_per_iter = int(numpy.ceil(
-                    float(max_ensemble_size) / num_dropout_iterations
+                    float(max_ensemble_size) / num_iterations
                 ))
                 ensemble_size_per_iter = min([
                     this_vector_prediction_matrix.shape[-1],
                     max_ensemble_size_per_iter
                 ])
-                ensemble_size = ensemble_size_per_iter * num_dropout_iterations
+                ensemble_size = ensemble_size_per_iter * num_iterations
 
                 vector_prediction_matrix = numpy.full(
                     this_vector_prediction_matrix.shape[:-1] + (ensemble_size,),
@@ -554,6 +567,7 @@ if __name__ == '__main__':
         num_dropout_iterations=getattr(
             INPUT_ARG_OBJECT, NUM_DROPOUT_ITERS_ARG_NAME
         ),
+        num_bnn_iterations=getattr(INPUT_ARG_OBJECT, NUM_BNN_ITERS_ARG_NAME),
         max_ensemble_size=getattr(INPUT_ARG_OBJECT, MAX_ENSEMBLE_SIZE_ARG_NAME),
         exclude_summit_greenland=bool(getattr(
             INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME

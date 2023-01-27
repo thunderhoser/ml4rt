@@ -1,0 +1,31 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="apply_neural_nets_ensemble2"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=04:00:00
+#SBATCH --array=1-4
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_ensemble2_%A_%a.out
+
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_experiment01"
+
+set FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
+set BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
+set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}"
+
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt/slurm/shortwave_bnn_experiment01; sh apply_neural_net_ensemble2.sh ${model_dir_name}"
