@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 SLURM_ARRAY_TASK_ID=$1
 echo $SLURM_ARRAY_TASK_ID
