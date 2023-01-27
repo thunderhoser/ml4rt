@@ -34,7 +34,7 @@ set PATHLESS_OUTPUT_DIR_NAMES=("predictions_high-bias" "predictions_low-bias" "p
 set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq/extreme_hr_avg-by-height/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
 set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq/extreme_hr_avg-by-height/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}/full_examples"
 
-python3 -u "${CODE_DIR_NAME}/plot_examples_4predictors.py" \
+python3 -u "${CODE_DIR_NAME}/plot_examples_5predictors.py" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --input_example_id_file_name="${input_file_name}" \
 --plot_shortwave=1 \
