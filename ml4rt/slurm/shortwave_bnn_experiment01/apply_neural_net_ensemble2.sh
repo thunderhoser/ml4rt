@@ -3,8 +3,8 @@
 # set -x
 
 model_dir_name=$1
-model_dir_name="${model_dir_name}/model"
 model_file_name="${model_dir_name}/model.h5"
+model_dir_name="${model_dir_name}/model"
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/validation_all_perturbed_for_uq"
