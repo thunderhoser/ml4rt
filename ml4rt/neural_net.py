@@ -176,7 +176,8 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
     :return: num_examples_per_batch: Batch size (may be different than input).
     """
 
-    error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
+    assert not numpy.any(numpy.isnan(predictor_matrix))
+    # error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
     num_examples = predictor_matrix.shape[0]
 
     if num_examples_per_batch is None:
