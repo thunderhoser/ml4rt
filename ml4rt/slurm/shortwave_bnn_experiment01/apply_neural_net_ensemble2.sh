@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+# set -x
 
 model_dir_name=$1
 model_dir_name="${model_dir_name}/model"
