@@ -7,7 +7,7 @@ model_file_name="${model_dir_name}/model.h5"
 model_dir_name="${model_dir_name}/model"
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/validation_all_perturbed_for_uq"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_with_perturbed_training_data"
 
 FIRST_EVAL_TIME_STRINGS=("2020-01-02-000000" "2020-02-12-000000" "2020-03-24-000000" "2020-05-05-000000" "2020-06-16-000000" "2020-07-27-000000" "2020-09-06-000000" "2020-10-19-000000" "2020-11-30-000000")
 LAST_EVAL_TIME_STRINGS=("2020-01-15-235959" "2020-02-25-235959" "2020-04-06-235959" "2020-05-18-235959" "2020-06-29-235959" "2020-08-09-235959" "2020-09-19-235959" "2020-11-02-235959" "2020-12-13-235959")
