@@ -1,7 +1,7 @@
 #!/bin/bash
 
-template_file_name=$1
-output_dir_name=$2
+SLURM_ARRAY_TASK_ID=$1
+echo $SLURM_ARRAY_TASK_ID
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_experiment01/templates"
@@ -11,6 +11,14 @@ TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_
 VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_with_perturbed_training_data/validation_all_perturbed_for_uq"
 NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_all_perturbed_for_uq/learning_examples_for_norm_20180901-20191221.nc"
 
+FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
+BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
+BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
+BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
+BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+
+template_file_name="${TEMPLATE_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/model.h5"
+output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}"
 echo $output_dir_name
 
 python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
