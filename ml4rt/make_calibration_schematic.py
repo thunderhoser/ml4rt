@@ -18,7 +18,6 @@ import error_checking
 import prediction_io
 import example_utils
 
-TARGET_VAR_NAME = example_utils.SHORTWAVE_HEATING_RATE_NAME
 APPROX_TARGET_HEIGHT_M_AGL = 2000.
 
 BEFORE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -157,48 +156,29 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
         base_prediction_dict[prediction_io.HEIGHTS_KEY] -
         APPROX_TARGET_HEIGHT_M_AGL
     ))
-
-    print(
-        base_prediction_dict[
-            prediction_io.VECTOR_TARGETS_KEY
-        ].tolist()
-    )
-
-    var_index = base_prediction_dict[
-        prediction_io.VECTOR_TARGETS_KEY
-    ].tolist().index(TARGET_VAR_NAME)
-
     target_height_m_agl = (
         base_prediction_dict[prediction_io.HEIGHTS_KEY][height_index]
     )
     base_prediction_matrix = base_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
-    ][:, height_index, var_index, :]
+    ][:, height_index, 0, :]
 
     height_index = example_utils.match_heights(
         heights_m_agl=isotonic_prediction_dict[prediction_io.HEIGHTS_KEY],
         desired_height_m_agl=target_height_m_agl
     )
-    var_index = isotonic_prediction_dict[
-        prediction_io.VECTOR_TARGETS_KEY
-    ].tolist().index(TARGET_VAR_NAME)
-
     isotonic_prediction_matrix = isotonic_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
-    ][:, height_index, var_index, :]
+    ][:, height_index, 0, :]
 
     height_index = example_utils.match_heights(
         heights_m_agl=
         uncty_calibrated_prediction_dict[prediction_io.HEIGHTS_KEY],
         desired_height_m_agl=target_height_m_agl
     )
-    var_index = uncty_calibrated_prediction_dict[
-        prediction_io.VECTOR_TARGETS_KEY
-    ].tolist().index(TARGET_VAR_NAME)
-
     uncty_calibrated_prediction_matrix = uncty_calibrated_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
-    ][:, height_index, var_index, :]
+    ][:, height_index, 0, :]
 
     mean_base_predictions = numpy.mean(base_prediction_matrix, axis=-1)
     sort_indices = numpy.argsort(mean_base_predictions)
