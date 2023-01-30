@@ -219,7 +219,7 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     axes_object.set_ylabel(r'Mean forecast HR (K day$^{-1}$)')
     axes_object.set_xticks([], [])
-    axes_object.setxlabel('Data sample')
+    axes_object.set_xlabel('Data sample')
     axes_object.set_title('Isotonic regression')
 
     figure_file_name = '{0:s}/isotonic_regression_schematic.jpg'.format(
@@ -274,7 +274,7 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     axes_object.set_ylabel(r'Stdev of forecast HR (K day$^{-1}$)')
     axes_object.set_xticks([], [])
-    axes_object.setxlabel('Data sample')
+    axes_object.set_xlabel('Data sample')
     axes_object.set_title('Uncertainty calibration')
 
     figure_file_name = '{0:s}/uncertainty_calibration_schematic.jpg'.format(
