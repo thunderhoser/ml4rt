@@ -234,13 +234,13 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     # TODO(thunderhoser): This assumes that uncertainty calibration is applied
     # on top of isotonic regression.
-    isotonic_predictions_stdev = numpy.stdev(
+    isotonic_predictions_stdev = numpy.std(
         isotonic_prediction_matrix, axis=-1, ddof=1
     )
     sort_indices = numpy.argsort(isotonic_predictions_stdev)
     isotonic_predictions_stdev = isotonic_predictions_stdev[sort_indices]
-    uncty_calibrated_predictions_stdev = numpy.mean(
-        uncty_calibrated_prediction_matrix, axis=-1
+    uncty_calibrated_predictions_stdev = numpy.std(
+        uncty_calibrated_prediction_matrix, axis=-1, ddof=1
     )
     uncty_calibrated_predictions_stdev = (
         uncty_calibrated_predictions_stdev[sort_indices]
