@@ -12,6 +12,15 @@ from ml4rt.utils import example_utils
 
 APPROX_TARGET_HEIGHT_M_AGL = 2000.
 
+DEFAULT_FONT_SIZE = 30
+pyplot.rc('font', size=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
+pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
+
 BEFORE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 AFTER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
@@ -196,9 +205,9 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     second_legend_handle = axes_object.plot(
         dummy_indices, mean_isotonic_predictions,
-        color=BEFORE_COLOUR, linestyle='solid', linewidth=3,
-        marker='o', markersize=12, markerfacecolor=BEFORE_COLOUR,
-        markeredgecolor=BEFORE_COLOUR, markeredgewidth=0
+        color=AFTER_COLOUR, linestyle='solid', linewidth=3,
+        marker='o', markersize=12, markerfacecolor=AFTER_COLOUR,
+        markeredgecolor=AFTER_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles = [first_legend_handle, second_legend_handle]
@@ -211,7 +220,7 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     axes_object.set_ylabel(r'Mean forecast HR (K day$^{-1}$)')
     axes_object.set_xticks([], [])
-    axes_object.setxlabel('Data sample')
+    axes_object.set_xlabel('Data sample')
     axes_object.set_title('Isotonic regression')
 
     figure_file_name = '{0:s}/isotonic_regression_schematic.jpg'.format(
@@ -226,13 +235,13 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     # TODO(thunderhoser): This assumes that uncertainty calibration is applied
     # on top of isotonic regression.
-    isotonic_predictions_stdev = numpy.stdev(
+    isotonic_predictions_stdev = numpy.std(
         isotonic_prediction_matrix, axis=-1, ddof=1
     )
     sort_indices = numpy.argsort(isotonic_predictions_stdev)
     isotonic_predictions_stdev = isotonic_predictions_stdev[sort_indices]
-    uncty_calibrated_predictions_stdev = numpy.mean(
-        uncty_calibrated_prediction_matrix, axis=-1
+    uncty_calibrated_predictions_stdev = numpy.std(
+        uncty_calibrated_prediction_matrix, axis=-1, ddof=1
     )
     uncty_calibrated_predictions_stdev = (
         uncty_calibrated_predictions_stdev[sort_indices]
@@ -251,9 +260,9 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     second_legend_handle = axes_object.plot(
         dummy_indices, uncty_calibrated_predictions_stdev,
-        color=BEFORE_COLOUR, linestyle='solid', linewidth=3,
-        marker='o', markersize=12, markerfacecolor=BEFORE_COLOUR,
-        markeredgecolor=BEFORE_COLOUR, markeredgewidth=0
+        color=AFTER_COLOUR, linestyle='solid', linewidth=3,
+        marker='o', markersize=12, markerfacecolor=AFTER_COLOUR,
+        markeredgecolor=AFTER_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles = [first_legend_handle, second_legend_handle]
@@ -266,7 +275,7 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     axes_object.set_ylabel(r'Stdev of forecast HR (K day$^{-1}$)')
     axes_object.set_xticks([], [])
-    axes_object.setxlabel('Data sample')
+    axes_object.set_xlabel('Data sample')
     axes_object.set_title('Uncertainty calibration')
 
     figure_file_name = '{0:s}/uncertainty_calibration_schematic.jpg'.format(
