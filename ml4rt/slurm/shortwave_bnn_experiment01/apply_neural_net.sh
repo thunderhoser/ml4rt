@@ -16,7 +16,7 @@ PATHLESS_OUTPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "pre
 for i in ${!FIRST_EVAL_TIME_STRINGS[@]}; do
     first_eval_time_string=${FIRST_EVAL_TIME_STRINGS[$i]}
     last_eval_time_string=${LAST_EVAL_TIME_STRINGS[$i]}
-    prediction_file_name="${model_dir_name}/validation_perturbed_for_uq/ensemble50/${PATHLESS_OUTPUT_FILE_NAMES[$i]}"
+    prediction_file_name="${model_dir_name}/validation_perturbed_for_uq/${PATHLESS_OUTPUT_FILE_NAMES[$i]}"
     
     python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
     --input_model_file_name="${model_file_name}" \
