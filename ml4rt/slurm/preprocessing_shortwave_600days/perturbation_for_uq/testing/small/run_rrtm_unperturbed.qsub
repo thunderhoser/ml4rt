@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#SBATCH --job-name="run_rrtm_unperturbed"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --array=0
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=run_rrtm_unperturbed_%A_%a.out
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+DATE_STRINGS=("2020018" "2020019" "2020020" "2020021" "2020022" "2020023" "2020024" "2020025" "2020026" "2020027" "2020028" "2020029" "2020030" "2020031" "2020059" "2020060" "2020061" "2020062" "2020063" "2020064" "2020065" "2020066" "2020067" "2020068" "2020069" "2020070" "2020071" "2020072" "2020100" "2020101" "2020102" "2020103" "2020104" "2020105" "2020106" "2020107" "2020108" "2020109" "2020110" "2020111" "2020112" "2020113" "2020143" "2020144" "2020145" "2020146" "2020147" "2020148" "2020149" "2020150" "2020151" "2020152" "2020153" "2020154" "2020155" "2020156" "2020184" "2020185" "2020186" "2020187" "2020188" "2020189" "2020190" "2020191" "2020192" "2020193" "2020194" "2020195" "2020196" "2020197" "2020225" "2020226" "2020227" "2020228" "2020229" "2020230" "2020231" "2020232" "2020233" "2020234" "2020235" "2020236" "2020237" "2020238" "2020266" "2020267" "2020268" "2020269" "2020270" "2020272" "2020273" "2020274" "2020275" "2020276" "2020277" "2020278" "2020280" "2020281" "2020310" "2020311" "2020312" "2020313" "2020314" "2020315" "2020316" "2020317" "2020318" "2020319" "2020320" "2020321" "2020322" "2020323" "2020351" "2020352" "2020353" "2020354" "2020355" "2020356" "2020357" "2020358")
+date_string=${DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+mv -v "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights/unperturbed/profiler_sitesF.ncep_rap.${date_string}.0000.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights/profiler_sitesF.ncep_rap.${date_string}.0000.nc"
+
+chmod +x "${CODE_DIR_NAME}/rrtm/singularity_hera/run_rrtm_one_day_orig-heights_simple-aerosol.sh"
+sh "${CODE_DIR_NAME}/rrtm/singularity_hera/run_rrtm_one_day_orig-heights_simple-aerosol.sh" "${date_string}"
