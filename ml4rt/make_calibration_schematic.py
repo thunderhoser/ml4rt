@@ -20,6 +20,15 @@ import example_utils
 
 APPROX_TARGET_HEIGHT_M_AGL = 2000.
 
+DEFAULT_FONT_SIZE = 30
+pyplot.rc('font', size=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
+pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
+
 BEFORE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 AFTER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
@@ -204,9 +213,9 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     second_legend_handle = axes_object.plot(
         dummy_indices, mean_isotonic_predictions,
-        color=BEFORE_COLOUR, linestyle='solid', linewidth=3,
-        marker='o', markersize=12, markerfacecolor=BEFORE_COLOUR,
-        markeredgecolor=BEFORE_COLOUR, markeredgewidth=0
+        color=AFTER_COLOUR, linestyle='solid', linewidth=3,
+        marker='o', markersize=12, markerfacecolor=AFTER_COLOUR,
+        markeredgecolor=AFTER_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles = [first_legend_handle, second_legend_handle]
@@ -259,9 +268,9 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
 
     second_legend_handle = axes_object.plot(
         dummy_indices, uncty_calibrated_predictions_stdev,
-        color=BEFORE_COLOUR, linestyle='solid', linewidth=3,
-        marker='o', markersize=12, markerfacecolor=BEFORE_COLOUR,
-        markeredgecolor=BEFORE_COLOUR, markeredgewidth=0
+        color=AFTER_COLOUR, linestyle='solid', linewidth=3,
+        marker='o', markersize=12, markerfacecolor=AFTER_COLOUR,
+        markeredgecolor=AFTER_COLOUR, markeredgewidth=0
     )[0]
 
     legend_handles = [first_legend_handle, second_legend_handle]
