@@ -18,7 +18,7 @@ import error_checking
 import prediction_io
 import example_utils
 
-APPROX_TARGET_HEIGHT_M_AGL = 2000.
+APPROX_TARGET_HEIGHT_M_AGL = 35000.
 
 DEFAULT_FONT_SIZE = 30
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
