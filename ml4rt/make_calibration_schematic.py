@@ -157,13 +157,13 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
         base_prediction_dict[prediction_io.HEIGHTS_KEY] -
         APPROX_TARGET_HEIGHT_M_AGL
     ))
-    var_index = base_prediction_dict[prediction_io.VECTOR_TARGETS_KEY].index(
-        TARGET_VAR_NAME
-    )
+    var_index = base_prediction_dict[
+        prediction_io.VECTOR_TARGETS_KEY
+    ].tolist().index(TARGET_VAR_NAME)
+
     target_height_m_agl = (
         base_prediction_dict[prediction_io.HEIGHTS_KEY][height_index]
     )
-
     base_prediction_matrix = base_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
     ][:, height_index, var_index, :]
@@ -174,7 +174,7 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
     )
     var_index = isotonic_prediction_dict[
         prediction_io.VECTOR_TARGETS_KEY
-    ].index(TARGET_VAR_NAME)
+    ].tolist().index(TARGET_VAR_NAME)
 
     isotonic_prediction_matrix = isotonic_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
@@ -187,7 +187,7 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
     )
     var_index = uncty_calibrated_prediction_dict[
         prediction_io.VECTOR_TARGETS_KEY
-    ].index(TARGET_VAR_NAME)
+    ].tolist().index(TARGET_VAR_NAME)
 
     uncty_calibrated_prediction_matrix = uncty_calibrated_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
