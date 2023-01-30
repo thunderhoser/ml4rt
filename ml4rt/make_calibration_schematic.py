@@ -157,6 +157,13 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
         base_prediction_dict[prediction_io.HEIGHTS_KEY] -
         APPROX_TARGET_HEIGHT_M_AGL
     ))
+
+    print(
+        base_prediction_dict[
+            prediction_io.VECTOR_TARGETS_KEY
+        ].tolist()
+    )
+
     var_index = base_prediction_dict[
         prediction_io.VECTOR_TARGETS_KEY
     ].tolist().index(TARGET_VAR_NAME)
