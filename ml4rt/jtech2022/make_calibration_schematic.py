@@ -10,7 +10,6 @@ from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 
-TARGET_VAR_NAME = example_utils.SHORTWAVE_HEATING_RATE_NAME
 APPROX_TARGET_HEIGHT_M_AGL = 2000.
 
 BEFORE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -23,7 +22,7 @@ FIGURE_RESOLUTION_DPI = 300
 BASE_FILE_ARG_NAME = 'input_base_prediction_file_name'
 ISOTONIC_FILE_ARG_NAME = 'input_isotonic_prediction_file_name'
 UNCTY_CALIBRATED_FILE_ARG_NAME = 'input_uncty_calibrated_prediction_file_name'
-NUM_EXAMPLES_ARG_NAME = 'num_examploes_to_plot'
+NUM_EXAMPLES_ARG_NAME = 'num_examples_to_plot'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 BASE_FILE_HELP_STRING = (
@@ -149,41 +148,29 @@ def _run(base_prediction_file_name, isotonic_prediction_file_name,
         base_prediction_dict[prediction_io.HEIGHTS_KEY] -
         APPROX_TARGET_HEIGHT_M_AGL
     ))
-    var_index = base_prediction_dict[prediction_io.VECTOR_TARGETS_KEY].index(
-        TARGET_VAR_NAME
-    )
     target_height_m_agl = (
         base_prediction_dict[prediction_io.HEIGHTS_KEY][height_index]
     )
-
     base_prediction_matrix = base_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
-    ][:, height_index, var_index, :]
+    ][:, height_index, 0, :]
 
     height_index = example_utils.match_heights(
         heights_m_agl=isotonic_prediction_dict[prediction_io.HEIGHTS_KEY],
         desired_height_m_agl=target_height_m_agl
     )
-    var_index = isotonic_prediction_dict[
-        prediction_io.VECTOR_TARGETS_KEY
-    ].index(TARGET_VAR_NAME)
-
     isotonic_prediction_matrix = isotonic_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
-    ][:, height_index, var_index, :]
+    ][:, height_index, 0, :]
 
     height_index = example_utils.match_heights(
         heights_m_agl=
         uncty_calibrated_prediction_dict[prediction_io.HEIGHTS_KEY],
         desired_height_m_agl=target_height_m_agl
     )
-    var_index = uncty_calibrated_prediction_dict[
-        prediction_io.VECTOR_TARGETS_KEY
-    ].index(TARGET_VAR_NAME)
-
     uncty_calibrated_prediction_matrix = uncty_calibrated_prediction_dict[
         prediction_io.VECTOR_PREDICTIONS_KEY
-    ][:, height_index, var_index, :]
+    ][:, height_index, 0, :]
 
     mean_base_predictions = numpy.mean(base_prediction_matrix, axis=-1)
     sort_indices = numpy.argsort(mean_base_predictions)
