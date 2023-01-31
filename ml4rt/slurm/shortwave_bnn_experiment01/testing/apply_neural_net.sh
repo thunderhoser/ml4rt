@@ -4,6 +4,8 @@
 
 model_dir_name=$1
 prediction_file_index=$2
+prediction_file_index="$((prediction_file_index-1))"
+
 model_file_name="${model_dir_name}/model.h5"
 model_dir_name="${model_dir_name}/model"
 
