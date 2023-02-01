@@ -304,7 +304,7 @@ def plot_spread_vs_skill(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
 
-    max_value_to_plot = max([
+    max_value_to_plot = 1.01 * max([
         numpy.nanmax(mean_prediction_stdevs),
         numpy.nanmax(rmse_values)
     ])
@@ -345,8 +345,11 @@ def plot_spread_vs_skill(
     )
     histogram_axes_object.set_ylabel('% examples in each bin')
 
-    axes_object.set_xlim(min([bin_edges[0], 0]), bin_edges[-1])
-    axes_object.set_ylim(0, 1.01 * numpy.nanmax(rmse_values))
+    # axes_object.set_xlim(min([bin_edges[0], 0]), bin_edges[-1])
+    # axes_object.set_ylim(0, 1.01 * numpy.nanmax(rmse_values))
+
+    axes_object.set_xlim(min([bin_edges[0], 0]), max_value_to_plot)
+    axes_object.set_ylim(0, max_value_to_plot)
 
     inset_axes_object = _plot_means_as_inset(
         figure_object=figure_object, bin_centers=mean_prediction_stdevs,
