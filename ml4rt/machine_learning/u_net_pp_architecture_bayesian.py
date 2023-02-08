@@ -92,6 +92,7 @@ SKIP_BNN_LAYER_TYPES_KEY = 'skip_layer_type_string_by_level'
 PENULTIMATE_BNN_LAYER_TYPE_KEY = 'penultimate_conv_layer_type_string'
 DENSE_BNN_LAYER_TYPES_KEY = 'dense_layer_type_strings'
 CONV_OUTPUT_BNN_LAYER_TYPE_KEY = 'conv_output_layer_type_string'
+ENSEMBLE_SIZE_KEY = 'ensemble_size'
 
 
 def _check_layer_type(layer_type_string):
@@ -171,6 +172,7 @@ def _check_args(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) conv layer.
+    option_dict['ensemble_size']: Number of ensemble members.
 
     :return: option_dict: Same as input, except defaults may have been added.
     """
@@ -338,6 +340,9 @@ def _check_args(option_dict):
     error_checking.assert_is_less_than(option_dict[KL_SCALING_FACTOR_KEY], 1.)
     _check_layer_type(option_dict[CONV_OUTPUT_BNN_LAYER_TYPE_KEY])
 
+    error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
+    error_checking.assert_is_geq(option_dict[ENSEMBLE_SIZE_KEY], 1)
+
     return option_dict
 
 
@@ -492,6 +497,7 @@ def create_bayesian_model(option_dict):
     num_output_channels = option_dict[NUM_OUTPUT_CHANNELS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
+    ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
@@ -722,7 +728,7 @@ def create_bayesian_model(option_dict):
         last_conv_layer_matrix[0, -1] = _get_1d_conv_layer(
             previous_layer_object=last_conv_layer_matrix[0, -1],
             layer_type_string=penultimate_conv_layer_type_string,
-            num_filters=2 * num_output_channels,
+            num_filters=2 * num_output_channels * ensemble_size,
             weight_regularizer=regularizer_object,
             layer_name='penultimate_conv',
             kl_divergence_scaling_factor=kl_divergence_scaling_factor
@@ -753,11 +759,17 @@ def create_bayesian_model(option_dict):
     conv_output_layer_object = _get_1d_conv_layer(
         previous_layer_object=last_conv_layer_matrix[0, -1],
         layer_type_string=conv_output_layer_type_string,
-        num_filters=num_output_channels,
+        num_filters=num_output_channels * ensemble_size,
         weight_regularizer=regularizer_object,
         layer_name='last_conv',
         kl_divergence_scaling_factor=kl_divergence_scaling_factor
     )
+
+    if ensemble_size > 1:
+        conv_output_layer_object = keras.layers.Reshape(
+            target_shape=
+            (input_dimensions[0], num_output_channels, ensemble_size)
+        )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
         conv_output_layer_object = architecture_utils.get_activation_layer(
@@ -806,6 +818,20 @@ def create_bayesian_model(option_dict):
         )
 
         if j == num_dense_layers - 1:
+            if ensemble_size > 1:
+                num_dense_output_vars = (
+                    float(dense_layer_neuron_nums[j]) / ensemble_size
+                )
+                assert numpy.isclose(
+                    num_dense_output_vars, numpy.round(num_dense_output_vars),
+                    atol=1e-6
+                )
+
+                num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+                dense_output_layer_object = keras.layers.Reshape(
+                    target_shape=(num_dense_output_vars, ensemble_size)
+                )(dense_output_layer_object)
+
             if dense_output_activ_func_name is not None:
                 this_name = (
                     None if dense_layer_dropout_rates[j] > 0 else 'dense_output'
