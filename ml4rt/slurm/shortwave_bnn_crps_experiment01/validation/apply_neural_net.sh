@@ -23,7 +23,7 @@ for i in ${!FIRST_EVAL_TIME_STRINGS[@]}; do
     --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
     --first_time_string="${first_eval_time_string}" \
     --last_time_string="${last_eval_time_string}" \
-    --num_bnn_iterations=10 \
-    --max_ensemble_size=50 \
+    --num_bnn_iterations=50 \
+    --max_ensemble_size=200 \
     --output_file_name="${prediction_file_name}"
 done
