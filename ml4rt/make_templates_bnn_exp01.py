@@ -92,7 +92,8 @@ DEFAULT_OPTION_DICT = {
         numpy.full(4, False, dtype=bool),
     u_net_pp_architecture.NUM_OUTPUT_CHANNELS_KEY: 1,
     u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
-    u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION
+    u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
+    u_net_pp_architecture.ENSEMBLE_SIZE_KEY: 1
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
