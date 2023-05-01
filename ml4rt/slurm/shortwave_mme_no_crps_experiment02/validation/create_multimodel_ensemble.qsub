@@ -1,0 +1,46 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="create_multimodel_ensemble"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-9
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=create_multimodel_ensemble_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_no_crps_experiment02"
+
+set ENSEMBLE_MEMBER_INDICES=("001" "002" "003" "004" "005" "006" "007" "008" "009" "010" "011" "012" "013" "014" "015" "016" "017" "018" "019" "020" "021" "022" "023" "024" "025" "026" "027" "028" "029" "030" "031" "032" "033" "034" "035" "036" "037" "038" "039" "040" "041" "042" "043" "044" "045" "046" "047" "048" "049" "050")
+set PATHLESS_PREDICTION_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
+
+set input_file_names_string=""
+set i=1
+
+while ($i <= ${#ENSEMBLE_MEMBER_INDICES})
+    set this_index=${ENSEMBLE_MEMBER_INDICES[$i]}
+    set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/ensemble-member=${this_index}/model/validation_perturbed_for_uq/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+    
+    @ i = $i + 1
+end
+
+python3 -u "${CODE_DIR_NAME}/create_multimodel_ensemble.py" \
+--input_prediction_file_names ${input_file_names_string} \
+--max_total_ensemble_size=50 \
+--output_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50x1/validation_perturbed_for_uq/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"

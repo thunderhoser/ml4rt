@@ -1,0 +1,35 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="compute_crps"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-9
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=compute_crps_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_no_crps_experiment02"
+
+set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
+set PATHLESS_OUTPUT_FILE_NAMES=("crps_part01.nc" "crps_part02.nc" "crps_part03.nc" "crps_part04.nc" "crps_part05.nc" "crps_part06.nc" "crps_part07.nc" "crps_part08.nc" "crps_part09.nc")
+
+set prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50x1/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50x1/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq/${PATHLESS_OUTPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+
+python3 -u "${CODE_DIR_NAME}/compute_crps.py" \
+--input_prediction_file_name="${prediction_file_name}" \
+--num_integration_levels=1000 \
+--ensemble_size_for_climo=500 \
+--output_file_name="${output_file_name}"

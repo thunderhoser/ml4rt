@@ -1,0 +1,34 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="split_predictions_by_cloud_regime"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+#SBATCH --array=1-9
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=split_predictions_by_cloud_regime_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/validation_all_perturbed_for_uq"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_no_crps_experiment01"
+
+set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
+
+python3 -u "${CODE_DIR_NAME}/split_predictions_by_cloud.py" \
+--input_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50x1/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--for_ice=0 \
+--min_path_kg_m02=0.025 \
+--include_fog=0 \
+--output_prediction_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50x1/isotonic_regression/uncertainty_calibration/validation_perturbed_for_uq/by_cloud_regime"
