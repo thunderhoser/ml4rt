@@ -27,7 +27,7 @@ set BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2
 set BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
 set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
 
-set BEST_MODEL_INDEX=2
+set BEST_MODEL_INDEX=30
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
 
 set input_file_name="${model_dir_name}/model/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq/discard_test_for_fluxes.nc"
