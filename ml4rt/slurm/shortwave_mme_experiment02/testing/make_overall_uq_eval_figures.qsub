@@ -22,6 +22,6 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
 python3 -u "${CODE_DIR_NAME}/make_overall_uq_eval_figures.py" \
---input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq" \
+--input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq" \
 --for_shortwave=1 \
---output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/nice_figures"
+--output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/nice_figures"

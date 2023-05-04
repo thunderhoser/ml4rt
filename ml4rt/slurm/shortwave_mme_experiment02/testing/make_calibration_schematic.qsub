@@ -21,10 +21,10 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
-set base_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/predictions_part01.nc"
-set isotonic_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/testing_perturbed_for_uq/predictions_part01.nc"
-set uncty_calibrated_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/predictions_part01.nc"
-set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/calibration_schematics"
+set base_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/predictions_part01.nc"
+set isotonic_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/testing_perturbed_for_uq/predictions_part01.nc"
+set uncty_calibrated_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/predictions_part01.nc"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/calibration_schematics"
 
 python3 -u "${CODE_DIR_NAME}/make_calibration_schematic.py" \
 --input_base_prediction_file_name="${base_prediction_file_name}" \

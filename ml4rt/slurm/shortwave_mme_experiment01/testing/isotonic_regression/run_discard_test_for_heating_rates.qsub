@@ -25,14 +25,14 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
 set PATHLESS_OUTPUT_FILE_NAMES=("discard_test_for_heating_rates_part01.nc" "discard_test_for_heating_rates_part02.nc" "discard_test_for_heating_rates_part03.nc" "discard_test_for_heating_rates_part04.nc" "discard_test_for_heating_rates_part05.nc" "discard_test_for_heating_rates_part06.nc" "discard_test_for_heating_rates_part07.nc" "discard_test_for_heating_rates_part08.nc" "discard_test_for_heating_rates_part09.nc")
 
-set prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
-set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/testing_perturbed_for_uq/${PATHLESS_OUTPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set output_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/testing_perturbed_for_uq/${PATHLESS_OUTPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
 
 set all_prediction_file_names_string=""
 set i=1
 
 while ($i <= ${#PATHLESS_INPUT_FILE_NAMES})
-    set all_prediction_file_names_string="${all_prediction_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
+    set all_prediction_file_names_string="${all_prediction_file_names_string} ${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
     
     @ i = $i + 1
 end

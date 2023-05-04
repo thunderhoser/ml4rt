@@ -21,7 +21,7 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01"
 
-set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq"
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq"
 
 set REGIME_STRINGS_DASHED=("no-cloud" "single-layer-cloud" "multi-layer-cloud")
 set REGIME_STRINGS_UNDERSCORED=("no_cloud" "single_layer_cloud" "multi_layer_cloud")

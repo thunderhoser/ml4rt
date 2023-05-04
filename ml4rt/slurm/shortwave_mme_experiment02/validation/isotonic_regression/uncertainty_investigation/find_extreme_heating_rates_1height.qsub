@@ -30,8 +30,8 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
 set PATHLESS_OUTPUT_DIR_NAMES=("part01" "part02" "part03" "part04" "part05" "part06" "part07" "part08" "part09")
 
-set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
-set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/validation_perturbed_for_uq/extreme_hr_uncertainties_1height/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/validation_perturbed_for_uq/extreme_hr_uncertainties_1height/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
 
 python3 -u "${CODE_DIR_NAME}/find_extreme_hr_uncertainties.py" \
 --input_prediction_file_name="${input_file_name}" \

@@ -22,7 +22,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
 python3 -u "${CODE_DIR_NAME}/make_by_cloud_eval_figure.py" \
---input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_perturbed_for_uq/by_cloud_regime/evaluation" \
+--input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/validation_perturbed_for_uq/by_cloud_regime/evaluation" \
 --for_shortwave=1 \
 --include_fog=0 \
---output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_perturbed_for_uq/by_cloud_regime/nice_figures"
+--output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/validation_perturbed_for_uq/by_cloud_regime/nice_figures"

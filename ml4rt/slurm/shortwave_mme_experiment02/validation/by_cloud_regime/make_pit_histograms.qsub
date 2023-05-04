@@ -22,7 +22,7 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
-set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/validation_perturbed_for_uq"
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/validation_perturbed_for_uq"
 
 set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
 set PATHLESS_OUTPUT_FILE_NAMES=("pit_histograms_part01.nc" "pit_histograms_part02.nc" "pit_histograms_part03.nc" "pit_histograms_part04.nc" "pit_histograms_part05.nc" "pit_histograms_part06.nc" "pit_histograms_part07.nc" "pit_histograms_part08.nc" "pit_histograms_part09.nc")

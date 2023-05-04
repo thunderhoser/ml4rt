@@ -21,8 +21,8 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
-set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/crps.nc"
-set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/crps_plots"
+set input_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/crps.nc"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/crps_plots"
 
 python3 -u "${CODE_DIR_NAME}/plot_crps.py" \
 --input_file_name="${input_file_name}" \

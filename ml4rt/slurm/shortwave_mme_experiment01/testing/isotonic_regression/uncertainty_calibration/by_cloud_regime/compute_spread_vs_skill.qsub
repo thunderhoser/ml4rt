@@ -22,7 +22,7 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01"
 
-set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq"
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/isotonic_regression/uncertainty_calibration/testing_perturbed_for_uq"
 
 set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
 set PATHLESS_OUTPUT_FILE_NAMES=("spread_vs_skill_part01.nc" "spread_vs_skill_part02.nc" "spread_vs_skill_part03.nc" "spread_vs_skill_part04.nc" "spread_vs_skill_part05.nc" "spread_vs_skill_part06.nc" "spread_vs_skill_part07.nc" "spread_vs_skill_part08.nc" "spread_vs_skill_part09.nc")
