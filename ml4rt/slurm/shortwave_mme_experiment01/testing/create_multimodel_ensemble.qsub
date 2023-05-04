@@ -42,5 +42,5 @@ end
 
 python3 -u "${CODE_DIR_NAME}/create_multimodel_ensemble.py" \
 --input_prediction_file_names ${input_file_names_string} \
---max_total_ensemble_size=500 \
+--max_total_ensemble_size=50 \
 --output_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_100x5/testing_perturbed_for_uq/${PATHLESS_PREDICTION_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
