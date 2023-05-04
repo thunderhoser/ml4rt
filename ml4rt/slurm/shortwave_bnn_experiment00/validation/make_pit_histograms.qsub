@@ -1,0 +1,39 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="make_pit_histograms"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=12:00:00
+#SBATCH --array=1-48
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=make_pit_histograms_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_experiment00"
+
+set FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
+set BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
+set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}"
+
+set prediction_file_name="${model_dir_name}/model/validation_perturbed_for_uq/predictions.nc"
+set output_file_name="${model_dir_name}/model/validation_perturbed_for_uq/pit_histograms.nc"
+
+python3 -u "${CODE_DIR_NAME}/make_pit_histograms.py" \
+--input_prediction_file_name="${prediction_file_name}" \
+--num_bins=20 \
+--output_file_name="${output_file_name}"
