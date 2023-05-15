@@ -567,7 +567,7 @@ def _plot_attributes_diagram(
 
         title_string += '\nREL = {0:.2f} {1:s}; MSESS = {2:.3f}'.format(
             numpy.mean(reliabilities_by_set[main_index]),
-            r'W m$^{-2}$' if is_scalar or is_aux else r'K day$^{-1}$',
+            r'W$^2$ m$^{-4}$' if is_scalar or is_aux else r'K$^2$ day$^{-2}$',
             numpy.mean(mse_skill_scores_by_set[main_index])
         )
 
