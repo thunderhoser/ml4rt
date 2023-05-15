@@ -110,6 +110,9 @@ def _run(output_dir_name):
         line_width=4, use_log_scale=True, line_colour=ORIG_TEMPERATURE_COLOUR
     )
 
+    axes_object.set_xlim(-55, 65)
+    axes_object.set_xticks([-50, -25, 0, 25, 50])
+
     axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_title('Original temperature profile')
@@ -158,6 +161,9 @@ def _run(output_dir_name):
         line_colour=TEMPERATURE_INCREASE_COLOUR
     )
 
+    axes_object.set_xlim(-55, 65)
+    axes_object.set_xticks([-50, -25, 0, 25, 50])
+
     axes_object.set_xlabel(r'Perturbation ($^{\circ}$C)')
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_title('Temperature perturbations')
@@ -181,6 +187,9 @@ def _run(output_dir_name):
         heights_m_agl=HEIGHTS_M_AGL,
         line_width=4, use_log_scale=True, line_colour=NEW_TEMPERATURE_COLOUR
     )
+
+    axes_object.set_xlim(-55, 65)
+    axes_object.set_xticks([-50, -25, 0, 25, 50])
 
     axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
     axes_object.set_ylabel('Height (km AGL)')
@@ -207,6 +216,9 @@ def _run(output_dir_name):
         heights_m_agl=HEIGHTS_M_AGL,
         line_width=4, use_log_scale=True, line_colour=NEW_TEMPERATURE_COLOUR
     )
+
+    axes_object.set_xlim(-55, 65)
+    axes_object.set_xticks([-50, -25, 0, 25, 50])
 
     axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
     axes_object.set_ylabel('Height (km AGL)')

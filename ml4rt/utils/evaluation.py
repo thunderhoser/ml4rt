@@ -46,6 +46,7 @@ VECTOR_MSE_KEY = 'vector_mse'
 VECTOR_MSE_BIAS_KEY = 'vector_mse_bias'
 VECTOR_MSE_VARIANCE_KEY = 'vector_mse_variance'
 VECTOR_MSE_SKILL_KEY = 'vector_mse_skill_score'
+VECTOR_FLAT_MSE_SKILL_KEY = 'vector_flat_mse_skill_score'
 AUX_MSE_KEY = 'aux_mse'
 AUX_MSE_BIAS_KEY = 'aux_mse_bias'
 AUX_MSE_VARIANCE_KEY = 'aux_mse_variance'
@@ -74,24 +75,28 @@ SCALAR_KGE_KEY = 'scalar_kge'
 VECTOR_KGE_KEY = 'vector_kge'
 AUX_KGE_KEY = 'aux_kge'
 VECTOR_PRMSE_KEY = 'vector_prmse'
+SCALAR_RELIABILITY_KEY = 'scalar_reliability'
 SCALAR_RELIABILITY_X_KEY = 'scalar_reliability_x'
 SCALAR_RELIABILITY_Y_KEY = 'scalar_reliability_y'
 SCALAR_RELIA_BIN_CENTER_KEY = 'scalar_reliability_bin_center'
 SCALAR_RELIABILITY_COUNT_KEY = 'scalar_reliability_count'
 SCALAR_INV_RELIA_BIN_CENTER_KEY = 'scalar_inv_reliability_bin_center'
 SCALAR_INV_RELIABILITY_COUNT_KEY = 'scalar_inv_reliability_count'
+VECTOR_RELIABILITY_KEY = 'vector_reliability'
 VECTOR_RELIABILITY_X_KEY = 'vector_reliability_x'
 VECTOR_RELIABILITY_Y_KEY = 'vector_reliability_y'
 VECTOR_RELIA_BIN_CENTER_KEY = 'vector_reliability_bin_center'
 VECTOR_RELIABILITY_COUNT_KEY = 'vector_reliability_count'
 VECTOR_INV_RELIA_BIN_CENTER_KEY = 'vector_inv_reliability_bin_center'
 VECTOR_INV_RELIABILITY_COUNT_KEY = 'vector_inv_reliability_count'
+VECTOR_FLAT_RELIABILITY_KEY = 'vector_flat_reliability'
 VECTOR_FLAT_RELIABILITY_X_KEY = 'vector_flat_reliability_x'
 VECTOR_FLAT_RELIABILITY_Y_KEY = 'vector_flat_reliability_y'
 VECTOR_FLAT_RELIA_BIN_CENTER_KEY = 'vector_flat_reliability_bin_center'
 VECTOR_FLAT_RELIABILITY_COUNT_KEY = 'vector_flat_reliability_count'
 VECTOR_FLAT_INV_RELIA_BIN_CENTER_KEY = 'vector_flat_inv_reliability_bin_center'
 VECTOR_FLAT_INV_RELIABILITY_COUNT_KEY = 'vector_flat_inv_reliability_count'
+AUX_RELIABILITY_KEY = 'aux_reliability'
 AUX_RELIABILITY_X_KEY = 'aux_reliability_x'
 AUX_RELIABILITY_Y_KEY = 'aux_reliability_y'
 AUX_RELIA_BIN_CENTER_KEY = 'aux_reliability_bin_center'
@@ -543,13 +548,24 @@ def _get_scores_one_replicate(
 
         (
             t[SCALAR_RELIABILITY_X_KEY].values[k, :, i],
-            t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i]
+            t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i],
+            these_counts
         ) = _get_rel_curve_one_scalar(
             target_values=scalar_target_matrix[:, k],
             predicted_values=scalar_prediction_matrix[:, k],
             num_bins=len(t.coords[RAW_FLUX_BIN_DIM].values),
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
-        )[:2]
+        )
+
+        these_squared_diffs = (
+            t[SCALAR_RELIABILITY_X_KEY].values[k, :, i] -
+            t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i]
+        ) ** 2
+
+        t[SCALAR_RELIABILITY_KEY].values[k, :, i] = (
+            numpy.nansum(these_counts * these_squared_diffs) /
+            numpy.sum(these_counts)
+        )
 
         if i == 0:
             (
@@ -672,14 +688,25 @@ def _get_scores_one_replicate(
 
             (
                 t[VECTOR_RELIABILITY_X_KEY].values[j, k, :, i],
-                t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i]
+                t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i],
+                these_counts
             ) = _get_rel_curve_one_scalar(
                 target_values=vector_target_matrix[expl_inds, j, k],
                 predicted_values=vector_prediction_matrix[expl_inds, j, k],
                 num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
                 min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
                 invert=False
-            )[:2]
+            )
+
+            these_squared_diffs = (
+                t[VECTOR_RELIABILITY_X_KEY].values[j, k, :, i] -
+                t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i]
+            ) ** 2
+
+            t[VECTOR_RELIABILITY_KEY].values[j, k, :, i] = (
+                numpy.nansum(these_counts * these_squared_diffs) /
+                numpy.sum(these_counts)
+            )
 
             if i == 0:
                 full_expl_inds = numpy.where(numpy.logical_and(
@@ -744,6 +771,18 @@ def _get_scores_one_replicate(
         flat_target_values = vector_target_matrix[..., k][expl_inds]
         flat_predicted_values = vector_prediction_matrix[..., k][expl_inds]
 
+        this_climo_value = numpy.mean(
+            mean_training_example_dict[
+                example_utils.VECTOR_TARGET_VALS_KEY
+            ][0, :, k]
+        )
+
+        t[VECTOR_FLAT_MSE_SKILL_KEY].values[k, i] = _get_mse_ss_one_scalar(
+            target_values=flat_target_values,
+            predicted_values=flat_predicted_values,
+            mean_training_target_value=this_climo_value
+        )
+
         if num_examples == 0:
             min_bin_edge = 0.
             max_bin_edge = 1.
@@ -762,14 +801,25 @@ def _get_scores_one_replicate(
 
         (
             t[VECTOR_FLAT_RELIABILITY_X_KEY].values[k, :, i],
-            t[VECTOR_FLAT_RELIABILITY_Y_KEY].values[k, :, i]
+            t[VECTOR_FLAT_RELIABILITY_Y_KEY].values[k, :, i],
+            these_counts
         ) = _get_rel_curve_one_scalar(
             target_values=flat_target_values,
             predicted_values=flat_predicted_values,
             num_bins=len(t.coords[HEATING_RATE_BIN_DIM].values),
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge,
             invert=False
-        )[:2]
+        )
+
+        these_squared_diffs = (
+            t[VECTOR_FLAT_RELIABILITY_X_KEY].values[k, :, i] -
+            t[VECTOR_FLAT_RELIABILITY_Y_KEY].values[k, :, i]
+        ) ** 2
+
+        t[VECTOR_FLAT_RELIABILITY_KEY].values[k, :, i] = (
+            numpy.nansum(these_counts * these_squared_diffs) /
+            numpy.sum(these_counts)
+        )
 
         if i == 0:
             full_expl_inds = numpy.where(numpy.logical_and(
@@ -895,13 +945,24 @@ def _get_scores_one_replicate(
 
         (
             t[AUX_RELIABILITY_X_KEY].values[k, :, i],
-            t[AUX_RELIABILITY_Y_KEY].values[k, :, i]
+            t[AUX_RELIABILITY_Y_KEY].values[k, :, i],
+            these_counts
         ) = _get_rel_curve_one_scalar(
             target_values=aux_target_matrix[:, k],
             predicted_values=aux_prediction_matrix[:, k],
             num_bins=len(t.coords[NET_FLUX_BIN_DIM].values),
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
-        )[:2]
+        )
+
+        these_squared_diffs = (
+            t[AUX_RELIABILITY_X_KEY].values[k, :, i] -
+            t[AUX_RELIABILITY_Y_KEY].values[k, :, i]
+        ) ** 2
+
+        t[AUX_RELIABILITY_KEY].values[k, :, i] = (
+            numpy.nansum(these_counts * these_squared_diffs) /
+            numpy.sum(these_counts)
+        )
 
         if i == 0:
             (
@@ -1428,6 +1489,9 @@ def get_scores_all_variables(
         ),
         SCALAR_KGE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        SCALAR_RELIABILITY_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         )
     }
 
@@ -1512,6 +1576,9 @@ def get_scores_all_variables(
         ),
         VECTOR_KGE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_RELIABILITY_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         )
     }
     main_data_dict.update(new_dict)
@@ -1577,6 +1644,18 @@ def get_scores_all_variables(
     }
     main_data_dict.update(new_dict)
 
+    these_dimensions = (num_vector_targets, num_bootstrap_reps)
+    these_dim_keys = (VECTOR_FIELD_DIM, BOOTSTRAP_REP_DIM)
+    new_dict = {
+        VECTOR_FLAT_MSE_SKILL_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        VECTOR_FLAT_RELIABILITY_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        )
+    }
+    main_data_dict.update(new_dict)
+
     these_dimensions = (num_vector_targets, num_heating_rate_bins)
     these_dim_keys = (VECTOR_FIELD_DIM, HEATING_RATE_BIN_DIM)
     new_dict = {
@@ -1594,7 +1673,6 @@ def get_scores_all_variables(
         )
     }
     main_data_dict.update(new_dict)
-
 
     these_dimensions = (num_heights, num_vector_targets)
     these_dim_keys = (HEIGHT_DIM, VECTOR_FIELD_DIM)
@@ -1643,6 +1721,9 @@ def get_scores_all_variables(
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             ),
             AUX_KGE_KEY: (
+                these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+            ),
+            AUX_RELIABILITY_KEY: (
                 these_dim_keys, numpy.full(these_dimensions, numpy.nan)
             )
         }

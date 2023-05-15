@@ -489,7 +489,7 @@ def _run(output_dir_name):
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names,
         output_file_name=concat_figure_file_name,
-        num_panel_rows=3, num_panel_columns=2
+        num_panel_rows=2, num_panel_columns=3
     )
     imagemagick_utils.trim_whitespace(
         input_file_name=concat_figure_file_name,

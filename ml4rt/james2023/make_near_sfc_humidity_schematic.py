@@ -184,14 +184,9 @@ def _run(output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
-    orig_dewpoint_limits_deg_c = axes_objects[1].get_xlim()
-    orig_temp_limits_deg_c = axes_objects[2].get_xlim()
-
-    new_limits_deg_c = numpy.array([
-        orig_temp_limits_deg_c[0], orig_dewpoint_limits_deg_c[1]
-    ])
-    axes_objects[1].set_xlim(new_limits_deg_c)
-    axes_objects[2].set_xlim(new_limits_deg_c)
+    axes_objects[0].set_xlim([0, 47])
+    axes_objects[1].set_xlim([-70, 40])
+    axes_objects[2].set_xlim([-70, 40])
 
     axes_objects[0].set_title('Original thermodynamic profiles')
     gg_plotting_utils.label_axes(
@@ -270,6 +265,8 @@ def _run(output_dir_name):
         line_colour=PERTURBATION_COLOUR
     )
 
+    axes_object.set_xlim([0, 47])
+
     axes_object.set_xlabel(r'Perturbation (g kg$^{-1}$)')
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_title('Mixing-ratio perturbations')
@@ -323,14 +320,9 @@ def _run(output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
-    orig_dewpoint_limits_deg_c = axes_objects[1].get_xlim()
-    orig_temp_limits_deg_c = axes_objects[2].get_xlim()
-
-    new_limits_deg_c = numpy.array([
-        orig_temp_limits_deg_c[0], orig_dewpoint_limits_deg_c[1]
-    ])
-    axes_objects[1].set_xlim(new_limits_deg_c)
-    axes_objects[2].set_xlim(new_limits_deg_c)
+    axes_objects[0].set_xlim([0, 47])
+    axes_objects[1].set_xlim([-70, 40])
+    axes_objects[2].set_xlim([-70, 40])
 
     axes_objects[0].set_title('New thermodynamic profiles')
     gg_plotting_utils.label_axes(
@@ -376,14 +368,9 @@ def _run(output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
-    orig_dewpoint_limits_deg_c = axes_objects[1].get_xlim()
-    orig_temp_limits_deg_c = axes_objects[2].get_xlim()
-
-    new_limits_deg_c = numpy.array([
-        orig_temp_limits_deg_c[0], orig_dewpoint_limits_deg_c[1]
-    ])
-    axes_objects[1].set_xlim(new_limits_deg_c)
-    axes_objects[2].set_xlim(new_limits_deg_c)
+    axes_objects[0].set_xlim([0, 47])
+    axes_objects[1].set_xlim([-70, 40])
+    axes_objects[2].set_xlim([-70, 40])
 
     title_string = 'New thermodynamic profiles\n' + r'(temperature $\leq$ dewpoint)'
     axes_objects[0].set_title(title_string)
@@ -432,14 +419,9 @@ def _run(output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
-    orig_dewpoint_limits_deg_c = axes_objects[1].get_xlim()
-    orig_temp_limits_deg_c = axes_objects[2].get_xlim()
-
-    new_limits_deg_c = numpy.array([
-        orig_temp_limits_deg_c[0], orig_dewpoint_limits_deg_c[1]
-    ])
-    axes_objects[1].set_xlim(new_limits_deg_c)
-    axes_objects[2].set_xlim(new_limits_deg_c)
+    axes_objects[0].set_xlim([0, 47])
+    axes_objects[1].set_xlim([-70, 40])
+    axes_objects[2].set_xlim([-70, 40])
 
     title_string = (
         'New thermodynamic profiles\n' + r'(mixing ratio $\leq$ 40 g kg$^{-1}$)'
@@ -475,7 +457,7 @@ def _run(output_dir_name):
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names,
         output_file_name=concat_figure_file_name,
-        num_panel_rows=3, num_panel_columns=2
+        num_panel_rows=2, num_panel_columns=3
     )
     imagemagick_utils.trim_whitespace(
         input_file_name=concat_figure_file_name,

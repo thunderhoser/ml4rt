@@ -516,13 +516,12 @@ def plot_discard_test(
 
     title_string = (
         'Discard test for {0:s}{1:s}\n'
-        'MF = {2:.1f}%; DI = {3:.3f}'
+        'MF = {2:.1f}%'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None
         else ' at {0:d} m AGL'.format(int(numpy.round(target_height_m_agl))),
-        100 * mono_fraction,
-        mean_di
+        100 * mono_fraction
     )
 
     axes_object.set_title(title_string)
