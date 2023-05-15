@@ -277,6 +277,14 @@ def _plot_attributes_diagram(
             t[evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
+        reliabilities_by_set = [
+            t[evaluation.SCALAR_RELIABILITY_KEY].values[k, ...]
+            for t, k in zip(evaluation_tables_xarray, target_indices)
+        ]
+        mse_skill_scores_by_set = [
+            t[evaluation.SCALAR_MSE_SKILL_KEY].values[k, ...]
+            for t, k in zip(evaluation_tables_xarray, target_indices)
+        ]
 
         k = mean_training_example_dict[
             example_utils.SCALAR_TARGET_NAMES_KEY
@@ -312,6 +320,14 @@ def _plot_attributes_diagram(
         ]
         inverted_example_counts_by_set = [
             t[evaluation.AUX_INV_RELIABILITY_COUNT_KEY].values[k, ...]
+            for t, k in zip(evaluation_tables_xarray, target_indices)
+        ]
+        reliabilities_by_set = [
+            t[evaluation.AUX_RELIABILITY_KEY].values[k, ...]
+            for t, k in zip(evaluation_tables_xarray, target_indices)
+        ]
+        mse_skill_scores_by_set = [
+            t[evaluation.AUX_MSE_SKILL_KEY].values[k, ...]
             for t, k in zip(evaluation_tables_xarray, target_indices)
         ]
 
@@ -381,6 +397,16 @@ def _plot_attributes_diagram(
                 for t, k in
                 zip(evaluation_tables_xarray, target_indices)
             ]
+            reliabilities_by_set = [
+                t[evaluation.VECTOR_FLAT_RELIABILITY_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
+            mse_skill_scores_by_set = [
+                t[evaluation.VECTOR_FLAT_MSE_SKILL_KEY].values[k, ...]
+                for t, k in
+                zip(evaluation_tables_xarray, target_indices)
+            ]
 
             k = mean_training_example_dict[
                 example_utils.VECTOR_TARGET_NAMES_KEY
@@ -420,6 +446,16 @@ def _plot_attributes_diagram(
             ]
             inverted_example_counts_by_set = [
                 t[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
+            reliabilities_by_set = [
+                t[evaluation.VECTOR_RELIABILITY_KEY].values[j, k, ...]
+                for t, j, k in
+                zip(evaluation_tables_xarray, height_indices, target_indices)
+            ]
+            mse_skill_scores_by_set = [
+                t[evaluation.VECTOR_MSE_SKILL_KEY].values[j, k, ...]
                 for t, j, k in
                 zip(evaluation_tables_xarray, height_indices, target_indices)
             ]
@@ -528,6 +564,12 @@ def _plot_attributes_diagram(
             title_string += ' at {0:d} m AGL'.format(
                 int(numpy.round(height_m_agl))
             )
+
+        title_string += '\nREL = {0:.2f} {1:s}; MSESS = {2:.3f}'.format(
+            numpy.mean(reliabilities_by_set[main_index]),
+            r'W m$^{-2}$' if is_scalar or is_aux else r'K day$^{-1}$',
+            numpy.mean(mse_skill_scores_by_set[main_index])
+        )
 
         axes_object.set_title(title_string)
 
@@ -695,6 +737,15 @@ def _plot_score_profile(
         SCORE_NAME_TO_VERBOSE[score_name],
         TARGET_NAME_TO_VERBOSE[target_name]
     )
+
+    if score_name == evaluation_plotting.MAE_NAME:
+        title_string += '\nMax value = {0:.2f}'.format(
+            numpy.nanmax(numpy.nanmean(this_score_matrix, axis=1))
+        )
+    elif score_name == evaluation_plotting.BIAS_NAME:
+        title_string += '\nMax absolute value = {0:.2f}'.format(
+            numpy.nanmax(numpy.nanmean(this_score_matrix, axis=1))
+        )
 
     x_label_string = '{0:s}'.format(SCORE_NAME_TO_VERBOSE[score_name])
 
