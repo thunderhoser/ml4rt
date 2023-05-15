@@ -569,7 +569,7 @@ def _get_scores_one_replicate(
             t[SCALAR_RELIABILITY_Y_KEY].values[k, :, i]
         ) ** 2
 
-        t[SCALAR_RELIABILITY_KEY].values[k, :, i] = (
+        t[SCALAR_RELIABILITY_KEY].values[k, i] = (
             numpy.nansum(these_counts * these_squared_diffs) /
             numpy.sum(these_counts)
         )
@@ -710,7 +710,7 @@ def _get_scores_one_replicate(
                 t[VECTOR_RELIABILITY_Y_KEY].values[j, k, :, i]
             ) ** 2
 
-            t[VECTOR_RELIABILITY_KEY].values[j, k, :, i] = (
+            t[VECTOR_RELIABILITY_KEY].values[j, k, i] = (
                 numpy.nansum(these_counts * these_squared_diffs) /
                 numpy.sum(these_counts)
             )
@@ -823,7 +823,7 @@ def _get_scores_one_replicate(
             t[VECTOR_FLAT_RELIABILITY_Y_KEY].values[k, :, i]
         ) ** 2
 
-        t[VECTOR_FLAT_RELIABILITY_KEY].values[k, :, i] = (
+        t[VECTOR_FLAT_RELIABILITY_KEY].values[k, i] = (
             numpy.nansum(these_counts * these_squared_diffs) /
             numpy.sum(these_counts)
         )
@@ -966,7 +966,7 @@ def _get_scores_one_replicate(
             t[AUX_RELIABILITY_Y_KEY].values[k, :, i]
         ) ** 2
 
-        t[AUX_RELIABILITY_KEY].values[k, :, i] = (
+        t[AUX_RELIABILITY_KEY].values[k, i] = (
             numpy.nansum(these_counts * these_squared_diffs) /
             numpy.sum(these_counts)
         )
