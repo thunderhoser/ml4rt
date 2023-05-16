@@ -325,9 +325,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
             dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY
         ].values[0]
 
-    # TODO(thunderhoser): Make sure none of the code in the above for-loop is
-    # fucked up.
-
     panel_file_names = [
         '{0:s}/heating_rate_mae_ssrel.jpg'.format(output_dir_name)
     ]
@@ -335,7 +332,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         first_error_values=heating_rate_mae_values_k_day01,
         second_error_values=heating_rate_ssrel_values_k_day01,
         first_error_metric_name='MAE',
-        second_error_metric_name='SSRAT',
+        second_error_metric_name='SSREL',
         y_label_string=r'Error metric (MAE or SSREL; K day$^{-1}$)',
         title_string='MAE and SSREL for heating rates',
         model_description_strings=model_description_strings,
@@ -349,7 +346,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         first_error_values=flux_mae_values_w_m02,
         second_error_values=flux_ssrel_values_w_m02,
         first_error_metric_name='MAE',
-        second_error_metric_name='SSRAT',
+        second_error_metric_name='SSREL',
         y_label_string=r'Error metric (MAE or SSREL; W m$^{-2}$)',
         title_string='MAE and SSREL for flux components',
         model_description_strings=model_description_strings,
