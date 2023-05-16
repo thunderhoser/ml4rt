@@ -744,7 +744,9 @@ def _plot_score_profile(
         )
     elif score_name == evaluation_plotting.BIAS_NAME:
         title_string += '\nMax absolute value = {0:.2f}'.format(
-            numpy.nanmax(numpy.nanmean(this_score_matrix, axis=1))
+            numpy.nanmax(
+                numpy.absolute(numpy.nanmean(this_score_matrix, axis=1))
+            )
         )
 
     x_label_string = '{0:s}'.format(SCORE_NAME_TO_VERBOSE[score_name])
