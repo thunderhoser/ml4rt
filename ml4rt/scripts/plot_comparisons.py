@@ -54,7 +54,7 @@ PREDICTION_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 
 LEGEND_BOUNDING_BOX_DICT = {
     'facecolor': 'white',
-    'alpha': 0.7,
+    'alpha': 0.5,
     'edgecolor': 'black',
     'linewidth': 1,
     'boxstyle': 'round'
@@ -68,6 +68,7 @@ NUM_EXAMPLES_ARG_NAME = 'num_examples'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 ADD_DUMMY_AXES_ARG_NAME = 'add_two_dummy_axes'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
+MODEL_DESCRIPTION_ARG_NAME = 'model_description_string'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
@@ -101,6 +102,9 @@ EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with full example files.  Will use these files to add '
     'metadata to legend.  If you do not want metadata in legend, leave this '
     'argument empty.'
+)
+MODEL_DESCRIPTION_HELP_STRING = (
+    'Model description (will be plotted at the top of each legend).'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -138,6 +142,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=False, default='',
     help=EXAMPLE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MODEL_DESCRIPTION_ARG_NAME, type=str, required=False, default='',
+    help=MODEL_DESCRIPTION_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -220,7 +228,7 @@ def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
         model_metadata_dict, use_log_scale, add_two_dummy_axes, plot_shortwave,
         plot_uncertainty, confidence_level,
-        annotation_strings, output_dir_name):
+        annotation_strings, model_description_string, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
     :param vector_target_matrix: See doc for `_plot_comparisons_fancy`.
@@ -233,6 +241,7 @@ def _plot_comparisons_simple(
     :param plot_uncertainty: Same.
     :param confidence_level: Same.
     :param annotation_strings: 1-D list of annotations, one per example.
+    :param model_description_string: See documentation at top of file.
     :param output_dir_name: See doc for `_plot_comparisons_fancy`.
     """
 
@@ -292,12 +301,16 @@ def _plot_comparisons_simple(
             )
             if annotation_strings[i] is not None:
                 this_annotation_string += '\n' + annotation_strings[i]
+            if model_description_string is not None:
+                this_annotation_string = (
+                    model_description_string + ':\n\n' + annotation_strings[i]
+                )
 
             this_axes_object.text(
-                0.99, 0.8, this_annotation_string,
+                0.99, 0.15, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
-                horizontalalignment='right', verticalalignment='top',
+                horizontalalignment='right', verticalalignment='bottom',
                 transform=this_axes_object.transAxes, zorder=1e10
             )
 
@@ -438,7 +451,7 @@ def _get_flux_strings(
 
 def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
          confidence_level, num_examples, use_log_scale, add_two_dummy_axes,
-         example_dir_name, output_dir_name):
+         example_dir_name, model_description_string, output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
@@ -451,11 +464,14 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
     :param use_log_scale: Same.
     :param add_two_dummy_axes: Same.
     :param example_dir_name: Same.
+    :param model_description_string: Same.
     :param output_dir_name: Same.
     """
 
     if example_dir_name in ['', 'None', 'none']:
         example_dir_name = None
+    if model_description_string in ['', 'None', 'none']:
+        model_description_string = None
 
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -568,7 +584,7 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
         else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
     )
     down_flux_strings = [
-        'Fdown bias = {0:.1f} WW'.format(b) for b in (
+        'Fdown error = {0:.1f} WW'.format(b) for b in (
             numpy.mean(scalar_prediction_matrix[:, down_flux_index, :], axis=1)
             - scalar_target_matrix[:, down_flux_index]
         )
@@ -583,7 +599,7 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
         else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
     )
     up_flux_strings = [
-        'Fup bias = {0:.1f} WW'.format(b) for b in (
+        'Fup error = {0:.1f} WW'.format(b) for b in (
             numpy.mean(scalar_prediction_matrix[:, up_flux_index, :], axis=1)
             - scalar_target_matrix[:, up_flux_index]
         )
@@ -601,7 +617,7 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
         numpy.mean(scalar_prediction_matrix[:, up_flux_index, :], axis=1)
     )
     net_flux_strings = [
-        'Fnet bias = {0:.1f} WW'.format(b) for b in
+        'Fnet error = {0:.1f} WW'.format(b) for b in
         predicted_net_fluxes_w_m02 - actual_net_fluxes_w_m02
     ]
     net_flux_strings = [
@@ -660,6 +676,7 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
             plot_uncertainty=plot_uncertainty,
             confidence_level=confidence_level,
             annotation_strings=annotation_strings,
+            model_description_string=model_description_string,
             output_dir_name=output_dir_name
         )
 
@@ -682,5 +699,8 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, ADD_DUMMY_AXES_ARG_NAME)
         ),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
+        model_description_string=getattr(
+            INPUT_ARG_OBJECT, MODEL_DESCRIPTION_ARG_NAME
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
