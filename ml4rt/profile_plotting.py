@@ -38,6 +38,8 @@ UP_FLUX_HANDLE_KEY = 'up_flux_axes_object'
 PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.RELATIVE_HUMIDITY_NAME: r'Relative humidity',
     example_utils.SPECIFIC_HUMIDITY_NAME: r'Specific humidity (g kg$^{-1}$)',
+    example_utils.MIXING_RATIO_NAME: r'Mixing ratio (g kg$^{-1}$)',
+    example_utils.DEWPOINT_NAME: r'Dewpoint ($^{\circ}$C)',
     example_utils.WATER_VAPOUR_PATH_NAME:
         r'Downward water-vapour path (kg m$^{-2}$)',
     example_utils.UPWARD_WATER_VAPOUR_PATH_NAME:
@@ -49,7 +51,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME:
         r'Upward liquid-water path (g m$^{-2}$)',
     example_utils.LIQUID_EFF_RADIUS_NAME: r'Liquid effective radius ($\mu$m)',
-    example_utils.ICE_WATER_CONTENT_NAME: r'Ice-water content (mg m$^{-3}$)',
+    example_utils.ICE_WATER_CONTENT_NAME: r'Ice-water content (g m$^{-3}$)',
     example_utils.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
     example_utils.UPWARD_ICE_WATER_PATH_NAME:
         r'Upward ice-water path (mg m$^{-2}$)',
@@ -80,13 +82,14 @@ PREDICTOR_NAME_TO_VERBOSE = {
 PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_utils.RELATIVE_HUMIDITY_NAME: 1.,
     example_utils.SPECIFIC_HUMIDITY_NAME: KG_TO_GRAMS,
+    example_utils.MIXING_RATIO_NAME: KG_TO_GRAMS,
     example_utils.WATER_VAPOUR_PATH_NAME: 1.,
     example_utils.UPWARD_WATER_VAPOUR_PATH_NAME: 1.,
     example_utils.LIQUID_WATER_CONTENT_NAME: KG_TO_GRAMS,
     example_utils.LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
     example_utils.LIQUID_EFF_RADIUS_NAME: METRES_TO_MICRONS,
-    example_utils.ICE_WATER_CONTENT_NAME: KG_TO_MILLIGRAMS,
+    example_utils.ICE_WATER_CONTENT_NAME: KG_TO_GRAMS,
     example_utils.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
     example_utils.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
     example_utils.ICE_EFF_RADIUS_NAME: METRES_TO_MICRONS,
@@ -242,7 +245,8 @@ def plot_predictors(
     error_checking.assert_is_leq(num_predictors, 4)
 
     for k in range(num_predictors):
-        assert predictor_names[k] in example_utils.ALL_PREDICTOR_NAMES
+        pass
+        # assert predictor_names[k] in example_utils.ALL_PREDICTOR_NAMES
         # assert predictor_names[k] in example_utils.ALL_VECTOR_PREDICTOR_NAMES
 
     assert len(predictor_colours) == num_predictors
@@ -267,10 +271,24 @@ def plot_predictors(
         for k in range(1, num_predictors):
             axes_objects.append(axes_objects[0].twiny())
 
-            if k == 2:
-                axes_objects[k].spines['top'].set_position(('axes', 1.15))
+            if k == 1:
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
                 _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['top'].set_visible(True)
+                axes_objects[k].spines['bottom'].set_visible(True)
+
+            if k == 2:
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_position(('axes', -0.3))
+                _make_spines_invisible(axes_objects[k])
+                axes_objects[k].spines['bottom'].set_visible(True)
+
+            # if k == 2:
+            #     axes_objects[k].spines['top'].set_position(('axes', 1.15))
+            #     _make_spines_invisible(axes_objects[k])
+            #     axes_objects[k].spines['top'].set_visible(True)
 
             if k == 3:
                 axes_objects[k].xaxis.set_ticks_position('bottom')
@@ -313,7 +331,8 @@ def plot_predictors(
         if include_units:
             if predictor_names[k] in [
                     example_utils.TEMPERATURE_NAME,
-                    example_utils.SURFACE_TEMPERATURE_NAME
+                    example_utils.SURFACE_TEMPERATURE_NAME,
+                    example_utils.DEWPOINT_NAME
             ]:
                 these_predictor_values = temperature_conv.kelvins_to_celsius(
                     these_predictor_values
