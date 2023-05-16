@@ -20,7 +20,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 
-python3 -u "${CODE_DIR_NAME}/make_overall_eval_figure.py" \
+python3 -u "${CODE_DIR_NAME}/make_model_comparison_figure.py" \
 --input_evaluation_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment00/model/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_no_crps_experiment01/multimodel_ensemble_50x1/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01/multimodel_ensemble_50/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_experiment00/num-first-layer-channels=064_num-bayesian-skip-layers=2_num-bayesian-upconv-layers=2_num-bayesian-dense-layers=3_bayesian-layer-type=reparameterization/model/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00/num-first-layer-channels=064_num-bayesian-skip-layers=2_num-bayesian-upconv-layers=1_num-bayesian-dense-layers=3_bayesian-layer-type=reparameterization/model/testing_perturbed_for_uq" \
 --model_description_strings CRPS MME MME+CRPS BNN BNN+CRPS \
 --output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_comparison/clean_testing"
