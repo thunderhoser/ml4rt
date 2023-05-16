@@ -90,7 +90,8 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + PLOT_TARGETS_ARG_NAME, type=int, required=False, default=0,    help=PLOT_TARGETS_HELP_STRING
+    '--' + PLOT_TARGETS_ARG_NAME, type=int, required=False, default=0,
+    help=PLOT_TARGETS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
