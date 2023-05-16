@@ -1,0 +1,26 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="make_model_comparison_fig_clean_testing"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=make_model_comparison_fig_clean_testing_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+python3 -u "${CODE_DIR_NAME}/make_overall_eval_figure.py" \
+--input_evaluation_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment00/model/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_no_crps_experiment01/multimodel_ensemble_50x1/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment01/multimodel_ensemble_50/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_experiment00/num-first-layer-channels=064_num-bayesian-skip-layers=2_num-bayesian-upconv-layers=2_num-bayesian-dense-layers=3_bayesian-layer-type=reparameterization/model/testing_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00/num-first-layer-channels=064_num-bayesian-skip-layers=2_num-bayesian-upconv-layers=1_num-bayesian-dense-layers=3_bayesian-layer-type=reparameterization/model/testing_perturbed_for_uq" \
+--model_description_strings CRPS MME MME+CRPS BNN BNN+CRPS \
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_comparison/clean_testing"

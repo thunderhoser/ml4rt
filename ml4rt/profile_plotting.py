@@ -271,24 +271,10 @@ def plot_predictors(
         for k in range(1, num_predictors):
             axes_objects.append(axes_objects[0].twiny())
 
-            if k == 1:
-                axes_objects[k].xaxis.set_ticks_position('bottom')
-                axes_objects[k].xaxis.set_label_position('bottom')
-                axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
-                _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['bottom'].set_visible(True)
-
             if k == 2:
-                axes_objects[k].xaxis.set_ticks_position('bottom')
-                axes_objects[k].xaxis.set_label_position('bottom')
-                axes_objects[k].spines['bottom'].set_position(('axes', -0.3))
+                axes_objects[k].spines['top'].set_position(('axes', 1.15))
                 _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['bottom'].set_visible(True)
-
-            # if k == 2:
-            #     axes_objects[k].spines['top'].set_position(('axes', 1.15))
-            #     _make_spines_invisible(axes_objects[k])
-            #     axes_objects[k].spines['top'].set_visible(True)
+                axes_objects[k].spines['top'].set_visible(True)
 
             if k == 3:
                 axes_objects[k].xaxis.set_ticks_position('bottom')
