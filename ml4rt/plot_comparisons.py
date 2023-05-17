@@ -309,7 +309,9 @@ def _plot_comparisons_simple(
                 this_annotation_string += '\n' + annotation_strings[i]
             if model_description_string is not None:
                 this_annotation_string = (
-                    model_description_string + ':\n\n' + annotation_strings[i]
+                    model_description_string + ':\n\n' +
+                    this_annotation_string + '\n' +
+                    annotation_strings[i]
                 )
 
             this_axes_object.text(
