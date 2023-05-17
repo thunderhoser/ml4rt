@@ -305,17 +305,18 @@ def _plot_comparisons_simple(
             this_annotation_string = 'HR MAE = {0:.2f} {1:s}'.format(
                 this_mae, TARGET_NAME_TO_UNITS[target_names[j]]
             )
-            if annotation_strings[i] is not None:
-                this_annotation_string += '\n' + annotation_strings[i]
+
             if model_description_string is not None:
                 this_annotation_string = (
                     model_description_string + ':\n\n' +
                     this_annotation_string + '\n' +
                     annotation_strings[i]
                 )
+            elif annotation_strings[i] is not None:
+                this_annotation_string += '\n' + annotation_strings[i]
 
             this_axes_object.text(
-                0.99, 0.15, this_annotation_string,
+                0.99, 0.1, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
                 horizontalalignment='right', verticalalignment='bottom',
