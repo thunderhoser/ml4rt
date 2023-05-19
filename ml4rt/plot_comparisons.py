@@ -290,7 +290,7 @@ def _plot_comparisons_simple(
                 line_styles=['solid', 'dashed'],
                 use_log_scale=use_log_scale,
                 add_two_dummy_axes=add_two_dummy_axes,
-                plot_uncertainty_with_error_bars=plot_uncertainty,
+                plot_uncertainty_with_shading=plot_uncertainty,
                 confidence_level=confidence_level
             )
 
