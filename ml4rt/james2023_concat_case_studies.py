@@ -190,6 +190,17 @@ def _concat_panels_one_example(
         else 'extreme_hr_1height'
     )
 
+    print(all_experiments_dir_name)
+    print(model_dir_suffixes[0])
+    print(model_dir_suffixes[1])
+    print(model_dir_suffixes[2])
+    print(model_dir_suffixes[3])
+    print(model_dir_suffixes[4])
+    print(val_or_testing_string)
+    print(height_processing_string)
+    print(example_id_string)
+    print('\n\n\n\n\n\n')
+
     panel_file_names = [
         (
             '{0:s}/{1:s}/{2:s}/{3:s}/predictions_large-heating-rate/'
