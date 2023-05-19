@@ -395,6 +395,7 @@ def _run(all_experiments_dir_name, use_clean_training, use_validation_cases,
             val_or_testing_string,
             height_processing_string
         )
+        print(figure_file_pattern)
 
         figure_file_names = glob.glob(figure_file_pattern)
         num_figures = len(figure_file_names)
