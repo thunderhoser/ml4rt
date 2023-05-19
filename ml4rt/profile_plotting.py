@@ -18,7 +18,6 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import temperature_conversions as temperature_conv
 import error_checking
 import example_utils
-import evaluation
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
