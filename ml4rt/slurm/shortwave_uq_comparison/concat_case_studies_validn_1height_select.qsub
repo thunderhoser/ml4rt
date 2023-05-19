@@ -1,0 +1,35 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="concat_case_studies_validn_1height_select"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=06:00:00
+#SBATCH --array=1,5
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=concat_case_studies_validn_1height_select_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+set USE_CLEAN_TRAINING_FLAGS=("1" "1" "1" "1" "0" "0" "0" "0")
+set USE_VALIDATION_FLAGS=(    "1" "1" "0" "0" "1" "1" "0" "0")
+set USE_HEIGHT_AVG_FLAGS=(    "0" "1" "0" "1" "0" "1" "0" "1")
+set OUTPUT_DIR_SUFFIXES=("concat_case_studies_clean_validation_1height" "concat_case_studies_clean_validation_avg-by-height" "concat_case_studies_clean_testing_1height" "concat_case_studies_clean_testing_avg-by-height" "concat_case_studies_perturbed_validation_1height" "concat_case_studies_perturbed_validation_avg-by-height" "concat_case_studies_perturbed_testing_1height" "concat_case_studies_perturbed_testing_avg-by-height")
+
+python3 -u "${CODE_DIR_NAME}/james2023_concat_case_studies.py" \
+--input_all_experiments_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models" \
+--use_clean_training=${USE_CLEAN_TRAINING_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--use_validation_cases=${USE_VALIDATION_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--use_height_avg_extremes=${USE_HEIGHT_AVG_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--example_id_strings "lat=00.058575_long=139.335938_zenith-angle-rad=0.814404_time=1578096000_atmo=3_albedo=0.060000_temp-10m-kelvins=299.278015" "lat=02.401562_long=-16.757812_zenith-angle-rad=0.274223_time=1599912000_atmo=2_albedo=0.062209_temp-10m-kelvins=297.492645" "lat=15.756589_long=-142.617188_zenith-angle-rad=0.882250_time=1593021600_atmo=2_albedo=0.060003_temp-10m-kelvins=297.521820" "lat=36.726322_long=049.570312_zenith-angle-rad=1.070001_time=1582610400_atmo=3_albedo=0.126812_temp-10m-kelvins=288.165070" "lat=37.077770_long=-56.601562_zenith-angle-rad=0.781922_time=1585332000_atmo=3_albedo=0.060000_temp-10m-kelvins=293.182770" "lat=17.513828_long=035.859375_zenith-angle-rad=0.586170_time=1592654400_atmo=2_albedo=0.227566_temp-10m-kelvins=315.475128" "lat=74.214111_long=144.492188_zenith-angle-rad=1.019340_time=1589414400_atmo=4_albedo=0.655954_temp-10m-kelvins=273.233521" "lat=75.151306_long=114.609375_zenith-angle-rad=1.004507_time=1589522400_atmo=4_albedo=0.639458_temp-10m-kelvins=274.727539" "lat=-1.581516_long=-59.179688_zenith-angle-rad=1.066321_time=1608638400_atmo=3_albedo=0.162959_temp-10m-kelvins=297.601501" "lat=-1.581516_long=094.804688_zenith-angle-rad=0.389286_time=1607493600_atmo=3_albedo=0.065107_temp-10m-kelvins=301.859192" \
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_comparison/select_examples/${OUTPUT_DIR_SUFFIXES[$SLURM_ARRAY_TASK_ID]}"

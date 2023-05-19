@@ -1,0 +1,35 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="concat_case_studies"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=06:00:00
+#SBATCH --array=1-8
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=concat_case_studies_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+set USE_CLEAN_TRAINING_FLAGS=("1" "1" "1" "1" "0" "0" "0" "0")
+set USE_VALIDATION_FLAGS=(    "1" "1" "0" "0" "1" "1" "0" "0")
+set USE_HEIGHT_AVG_FLAGS=(    "0" "1" "0" "1" "0" "1" "0" "1")
+set OUTPUT_DIR_SUFFIXES=("concat_case_studies_clean_validation_1height" "concat_case_studies_clean_validation_avg-by-height" "concat_case_studies_clean_testing_1height" "concat_case_studies_clean_testing_avg-by-height" "concat_case_studies_perturbed_validation_1height" "concat_case_studies_perturbed_validation_avg-by-height" "concat_case_studies_perturbed_testing_1height" "concat_case_studies_perturbed_testing_avg-by-height")
+
+python3 -u "${CODE_DIR_NAME}/james2023_concat_case_studies.py" \
+--input_all_experiments_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models" \
+--use_clean_training=${USE_CLEAN_TRAINING_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--use_validation_cases=${USE_VALIDATION_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--use_height_avg_extremes=${USE_HEIGHT_AVG_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--num_examples=225 \
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_comparison/${OUTPUT_DIR_SUFFIXES[$SLURM_ARRAY_TASK_ID]}"
