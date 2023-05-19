@@ -45,13 +45,12 @@ MODEL_DIR_SUFFIXES_CLEAN_TRAINING = [
 
 MODEL_DIR_SUFFIXES_PERTURBED_TRAINING = [
     'shortwave_mme_no_crps_experiment02/multimodel_ensemble_50x1',
-
     'shortwave_mme_experiment02/multimodel_ensemble_50',
 
     'shortwave_bnn_experiment01/'
     'num-first-layer-channels=128_num-bayesian-skip-layers=1_'
     'num-bayesian-upconv-layers=2_num-bayesian-dense-layers=2_'
-    'bayesian-layer-type=reparameterization/model'
+    'bayesian-layer-type=reparameterization/model',
 
     'shortwave_bnn_crps_experiment01/'
     'num-first-layer-channels=064_num-bayesian-skip-layers=2_'
@@ -189,17 +188,6 @@ def _concat_panels_one_example(
         'extreme_hr_avg-by-height' if use_height_avg_extremes
         else 'extreme_hr_1height'
     )
-
-    print(all_experiments_dir_name)
-    print(model_dir_suffixes[0])
-    print(model_dir_suffixes[1])
-    print(model_dir_suffixes[2])
-    print(model_dir_suffixes[3])
-    print(model_dir_suffixes[4])
-    print(val_or_testing_string)
-    print(height_processing_string)
-    print(example_id_string)
-    print('\n\n\n\n\n\n')
 
     panel_file_names = [
         (
