@@ -38,13 +38,12 @@ MODEL_DIR_SUFFIXES_CLEAN_TRAINING = [
 
 MODEL_DIR_SUFFIXES_PERTURBED_TRAINING = [
     'shortwave_mme_no_crps_experiment02/multimodel_ensemble_50x1',
-
     'shortwave_mme_experiment02/multimodel_ensemble_50',
 
     'shortwave_bnn_experiment01/'
     'num-first-layer-channels=128_num-bayesian-skip-layers=1_'
     'num-bayesian-upconv-layers=2_num-bayesian-dense-layers=2_'
-    'bayesian-layer-type=reparameterization/model'
+    'bayesian-layer-type=reparameterization/model',
 
     'shortwave_bnn_crps_experiment01/'
     'num-first-layer-channels=064_num-bayesian-skip-layers=2_'

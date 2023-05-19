@@ -10,7 +10,6 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
-from ml4rt.utils import evaluation
 
 METRES_TO_KM = 0.001
 KG_TO_GRAMS = 1000.
@@ -682,11 +681,13 @@ def plot_actual_and_predicted(
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(2):
-        axes_objects[k].plot(
-            actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
-            heights_km_agl, color=line_colours[k],
-            linewidth=line_widths[k], linestyle=line_styles[k]
-        )
+        if not (plot_uncertainty_with_shading and k == 1):
+            axes_objects[k].plot(
+                actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
+                heights_km_agl, color=line_colours[k],
+                linewidth=line_widths[k], linestyle=line_styles[k],
+                zorder=1e12
+            )
 
         axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
             'Actual' if k == 0 else 'Predicted', fancy_target_name
@@ -731,24 +732,6 @@ def plot_actual_and_predicted(
             this_handle.set_linewidth(0)
             this_handle.set_alpha(0.5)
 
-    if plot_uncertainty_with_shading:
-        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
-            x_value_matrix=prediction_matrix,
-            y_value_matrix=numpy.repeat(
-                numpy.expand_dims(heights_km_agl, axis=1),
-                repeats=ensemble_size, axis=1
-            ),
-            confidence_level=confidence_level, same_order=True
-        )
-
-        polygon_colour = matplotlib.colors.to_rgba(
-            line_colours[1], OPACITY_FOR_UNCERTAINTY
-        )
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        )
-        axes_objects[1].add_patch(patch_object)
-
     if plot_uncertainty_with_error_bars:
         min_prediction_by_height = numpy.percentile(
             prediction_matrix, 50 * (1. - confidence_level), axis=1
@@ -768,6 +751,23 @@ def plot_actual_and_predicted(
             capsize=6, capthick=3
         )
 
+    if plot_uncertainty_with_shading:
+        min_prediction_by_height = numpy.percentile(
+            prediction_matrix, 50 * (1. - confidence_level), axis=1
+        )
+        max_prediction_by_height = numpy.percentile(
+            prediction_matrix, 50 * (1. + confidence_level), axis=1
+        )
+
+        polygon_colour = 1. + OPACITY_FOR_UNCERTAINTY * (line_colours[1] - 1)
+
+        axes_objects[1].fill_betweenx(
+            y=heights_km_agl,
+            x1=min_prediction_by_height, x2=max_prediction_by_height,
+            facecolor=polygon_colour, alpha=1.,
+            linewidth=5, edgecolor=polygon_colour, zorder=-1e12
+        )
+
     if add_two_dummy_axes:
         for k in range(2, 4):
             axes_objects[k].set_xlabel(fancy_target_name)
@@ -775,6 +775,12 @@ def plot_actual_and_predicted(
             axes_objects[k].tick_params(
                 axis='x', colors=BLACK_COLOUR, **tick_mark_dict
             )
+
+    axes_objects[1].plot(
+        actual_values, heights_km_agl, color=line_colours[0],
+        linewidth=line_widths[0], linestyle=line_styles[0],
+        zorder=1e12
+    )
 
     x_min = min([
         axes_objects[0].get_xlim()[0],
