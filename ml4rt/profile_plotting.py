@@ -740,7 +740,14 @@ def plot_actual_and_predicted(
             line_colours[1], OPACITY_FOR_UNCERTAINTY
         )
         patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=5, ec=polygon_colour, fc=polygon_colour
+            polygon_coord_matrix, fill=True, lw=0,
+            ec=polygon_colour, fc=polygon_colour
+        )
+        axes_objects[1].add_patch(patch_object)
+
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, fill=False, lw=5,
+            ec=polygon_colour, fc=polygon_colour
         )
         axes_objects[1].add_patch(patch_object)
 
