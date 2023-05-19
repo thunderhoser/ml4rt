@@ -673,6 +673,32 @@ def plot_actual_and_predicted(
                 axes_objects[k].spines['bottom'].set_visible(True)
 
     heights_km_agl = METRES_TO_KM * heights_m_agl
+
+    if plot_uncertainty_with_shading:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=prediction_matrix,
+            y_value_matrix=numpy.repeat(
+                numpy.expand_dims(heights_km_agl, axis=1),
+                repeats=ensemble_size, axis=1
+            ),
+            confidence_level=confidence_level, same_order=True
+        )
+
+        polygon_colour = matplotlib.colors.to_rgba(
+            line_colours[1], 1.
+        )
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, fill=True, lw=0,
+            ec=polygon_colour, fc=polygon_colour
+        )
+        axes_objects[1].add_patch(patch_object)
+
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, fill=False, lw=5,
+            ec=polygon_colour, fc=polygon_colour
+        )
+        axes_objects[1].add_patch(patch_object)
+
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(2):
@@ -725,31 +751,6 @@ def plot_actual_and_predicted(
             )
             this_handle.set_linewidth(0)
             this_handle.set_alpha(0.5)
-
-    if plot_uncertainty_with_shading:
-        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
-            x_value_matrix=prediction_matrix,
-            y_value_matrix=numpy.repeat(
-                numpy.expand_dims(heights_km_agl, axis=1),
-                repeats=ensemble_size, axis=1
-            ),
-            confidence_level=confidence_level, same_order=True
-        )
-
-        polygon_colour = matplotlib.colors.to_rgba(
-            line_colours[1], OPACITY_FOR_UNCERTAINTY
-        )
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, fill=True, lw=0,
-            ec=polygon_colour, fc=polygon_colour
-        )
-        axes_objects[1].add_patch(patch_object)
-
-        patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, fill=False, lw=5,
-            ec=polygon_colour, fc=polygon_colour
-        )
-        axes_objects[1].add_patch(patch_object)
 
     if plot_uncertainty_with_error_bars:
         min_prediction_by_height = numpy.percentile(
