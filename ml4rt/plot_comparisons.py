@@ -295,7 +295,17 @@ def _plot_comparisons_simple(
             )
 
             this_figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-            this_axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][1]
+            these_axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
+
+            if plot_shortwave:
+                x_min = min([
+                    these_axes_objects[0].get_xlim()[0],
+                    these_axes_objects[1].get_xlim()[0]
+                ])
+                x_min = max([x_min, 0.])
+
+                these_axes_objects[0].set_xlim(left=x_min)
+                these_axes_objects[1].set_xlim(left=x_min)
 
             this_mae = evaluation._get_mae_one_scalar(
                 target_values=vector_target_matrix[i, :, k],
@@ -315,12 +325,12 @@ def _plot_comparisons_simple(
             elif annotation_strings[i] is not None:
                 this_annotation_string += '\n' + annotation_strings[i]
 
-            this_axes_object.text(
+            these_axes_objects[1].text(
                 0.99, 0.1, this_annotation_string,
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
                 horizontalalignment='right', verticalalignment='bottom',
-                transform=this_axes_object.transAxes, zorder=1e13
+                transform=these_axes_objects[1].transAxes, zorder=1e13
             )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
