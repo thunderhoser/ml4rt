@@ -676,11 +676,12 @@ def plot_actual_and_predicted(
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(2):
-        axes_objects[k].plot(
-            actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
-            heights_km_agl, color=line_colours[k],
-            linewidth=line_widths[k], linestyle=line_styles[k]
-        )
+        if not (plot_uncertainty_with_shading and k == 1):
+            axes_objects[k].plot(
+                actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
+                heights_km_agl, color=line_colours[k],
+                linewidth=line_widths[k], linestyle=line_styles[k]
+            )
 
         axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
             'Actual' if k == 0 else 'Predicted', fancy_target_name
@@ -739,7 +740,7 @@ def plot_actual_and_predicted(
             line_colours[1], OPACITY_FOR_UNCERTAINTY
         )
         patch_object = matplotlib.patches.Polygon(
-            polygon_coord_matrix, lw=10, ec=polygon_colour, fc=polygon_colour
+            polygon_coord_matrix, lw=5, ec=polygon_colour, fc=polygon_colour
         )
         axes_objects[1].add_patch(patch_object)
 
