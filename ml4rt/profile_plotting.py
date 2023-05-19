@@ -718,6 +718,8 @@ def plot_actual_and_predicted(
                 zorder=1e12
             )
 
+            print(actual_values)
+
         axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
             'Actual' if k == 0 else 'Predicted', fancy_target_name
         ))
