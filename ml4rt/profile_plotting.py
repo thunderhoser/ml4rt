@@ -701,6 +701,21 @@ def plot_actual_and_predicted(
         #     confidence_level=confidence_level, same_order=True
         # )
         #
+        # import shapely.geometry
+        #
+        # this_arg = [
+        #     (polygon_coord_matrix[i, 0], polygon_coord_matrix[i, 1])
+        #     for i in range(polygon_coord_matrix.shape[0])
+        # ]
+        # polygon_object = shapely.geometry.Polygon(shell=this_arg)
+        # polygon_object = polygon_object.buffer(
+        #     0.1, join_style=shapely.geometry.JOIN_STYLE.mitre
+        # )
+        # polygon_coord_matrix = numpy.transpose(numpy.vstack((
+        #     numpy.array(polygon_object.exterior.xy[0]),
+        #     numpy.array(polygon_object.exterior.xy[1])
+        # )))
+        #
         # polygon_colour = matplotlib.colors.to_rgba(
         #     line_colours[1], OPACITY_FOR_UNCERTAINTY
         # )
@@ -789,6 +804,12 @@ def plot_actual_and_predicted(
             axes_objects[k].tick_params(
                 axis='x', colors=BLACK_COLOUR, **tick_mark_dict
             )
+
+    axes_objects[1].plot(
+        actual_values, heights_km_agl, color=line_colours[0],
+        linewidth=line_widths[0], linestyle=line_styles[0],
+        zorder=1e12
+    )
 
     x_min = min([
         axes_objects[0].get_xlim()[0],
