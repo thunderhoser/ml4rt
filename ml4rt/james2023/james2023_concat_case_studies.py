@@ -192,7 +192,7 @@ def _concat_panels_one_example(
             d,
             val_or_testing_string,
             height_processing_string,
-            example_id_string
+            example_id_string.replace('_', '-')
         )
         for d in model_dir_suffixes
     ]
@@ -267,7 +267,7 @@ def _concat_panels_one_example(
         model_dir_suffixes[0],
         val_or_testing_string,
         height_processing_string,
-        example_id_string
+        example_id_string.replace('_', '-')
     )
 
     lettered_predictor_file_name = '{0:s}/predictors/{1:s}.jpg'.format(
@@ -398,6 +398,14 @@ def _run(all_experiments_dir_name, use_clean_training, use_validation_cases,
             this_example_id_string = '_'.join(
                 this_pathless_file_name.split('_')[:-1]
             )
+            this_example_id_string = this_example_id_string.replace('-', '_')
+            this_example_id_string = this_example_id_string.replace('=_', '=-')
+            this_example_id_string = this_example_id_string.replace(
+                'zenith_angle_rad', 'zenith-angle-rad'
+            )
+            this_example_id_string = this_example_id_string.replace(
+                'temp_10m_kelvins', 'temp-10m-kelvins'
+            )
 
             try:
                 example_utils.parse_example_ids([this_example_id_string])
@@ -415,6 +423,8 @@ def _run(all_experiments_dir_name, use_clean_training, use_validation_cases,
                 good_indices, size=num_examples, replace=False
             )
             example_id_strings = [example_id_strings[k] for k in good_indices]
+
+    example_utils.parse_example_ids(example_id_strings)
 
     for this_example_id_string in example_id_strings:
         _concat_panels_one_example(
