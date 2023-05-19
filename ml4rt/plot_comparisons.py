@@ -295,7 +295,7 @@ def _plot_comparisons_simple(
             )
 
             this_figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-            this_axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+            this_axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][1]
 
             this_mae = evaluation._get_mae_one_scalar(
                 target_values=vector_target_matrix[i, :, k],
@@ -320,7 +320,7 @@ def _plot_comparisons_simple(
                 fontsize=TITLE_FONT_SIZE, color='k',
                 bbox=LEGEND_BOUNDING_BOX_DICT,
                 horizontalalignment='right', verticalalignment='bottom',
-                transform=this_axes_object.transAxes, zorder=1e10
+                transform=this_axes_object.transAxes, zorder=1e13
             )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(

@@ -675,55 +675,6 @@ def plot_actual_and_predicted(
     heights_km_agl = METRES_TO_KM * heights_m_agl
     tick_mark_dict = dict(size=4, width=1.5)
 
-    if plot_uncertainty_with_shading:
-        min_prediction_by_height = numpy.percentile(
-            prediction_matrix, 50 * (1. - confidence_level), axis=1
-        )
-        max_prediction_by_height = numpy.percentile(
-            prediction_matrix, 50 * (1. + confidence_level), axis=1
-        )
-
-        polygon_colour = 1. + OPACITY_FOR_UNCERTAINTY * (line_colours[1] - 1)
-
-        axes_objects[1].fill_betweenx(
-            y=heights_km_agl,
-            x1=min_prediction_by_height, x2=max_prediction_by_height,
-            facecolor=polygon_colour, alpha=1.,
-            linewidth=5, edgecolor=polygon_colour, zorder=-1e12
-        )
-
-        # polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
-        #     x_value_matrix=prediction_matrix,
-        #     y_value_matrix=numpy.repeat(
-        #         numpy.expand_dims(heights_km_agl, axis=1),
-        #         repeats=ensemble_size, axis=1
-        #     ),
-        #     confidence_level=confidence_level, same_order=True
-        # )
-        #
-        # import shapely.geometry
-        #
-        # this_arg = [
-        #     (polygon_coord_matrix[i, 0], polygon_coord_matrix[i, 1])
-        #     for i in range(polygon_coord_matrix.shape[0])
-        # ]
-        # polygon_object = shapely.geometry.Polygon(shell=this_arg)
-        # polygon_object = polygon_object.buffer(
-        #     0.1, join_style=shapely.geometry.JOIN_STYLE.mitre
-        # )
-        # polygon_coord_matrix = numpy.transpose(numpy.vstack((
-        #     numpy.array(polygon_object.exterior.xy[0]),
-        #     numpy.array(polygon_object.exterior.xy[1])
-        # )))
-        #
-        # polygon_colour = matplotlib.colors.to_rgba(
-        #     line_colours[1], OPACITY_FOR_UNCERTAINTY
-        # )
-        # patch_object = matplotlib.patches.Polygon(
-        #     polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
-        # )
-        # axes_objects[1].add_patch(patch_object)
-
     for k in range(2):
         if not (plot_uncertainty_with_shading and k == 1):
             axes_objects[k].plot(
@@ -732,8 +683,6 @@ def plot_actual_and_predicted(
                 linewidth=line_widths[k], linestyle=line_styles[k],
                 zorder=1e12
             )
-
-            print(actual_values)
 
         axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
             'Actual' if k == 0 else 'Predicted', fancy_target_name
@@ -795,6 +744,23 @@ def plot_actual_and_predicted(
             x=mean_prediction_by_height, y=heights_km_agl, xerr=error_matrix,
             linewidth=0, ecolor=line_colours[1], elinewidth=line_widths[1],
             capsize=6, capthick=3
+        )
+
+    if plot_uncertainty_with_shading:
+        min_prediction_by_height = numpy.percentile(
+            prediction_matrix, 50 * (1. - confidence_level), axis=1
+        )
+        max_prediction_by_height = numpy.percentile(
+            prediction_matrix, 50 * (1. + confidence_level), axis=1
+        )
+
+        polygon_colour = 1. + OPACITY_FOR_UNCERTAINTY * (line_colours[1] - 1)
+
+        axes_objects[1].fill_betweenx(
+            y=heights_km_agl,
+            x1=min_prediction_by_height, x2=max_prediction_by_height,
+            facecolor=polygon_colour, alpha=1.,
+            linewidth=5, edgecolor=polygon_colour, zorder=-1e12
         )
 
     if add_two_dummy_axes:
