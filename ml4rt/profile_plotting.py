@@ -774,6 +774,12 @@ def plot_actual_and_predicted(
         linewidth=line_widths[0], linestyle=line_styles[0],
         zorder=1e12
     )
+    axes_objects[1].plot(
+        numpy.mean(prediction_matrix, axis=1),
+        heights_km_agl, color=line_colours[1],
+        linewidth=line_widths[1], linestyle=line_styles[1],
+        zorder=1e12
+    )
 
     x_min = min([
         axes_objects[0].get_xlim()[0],
