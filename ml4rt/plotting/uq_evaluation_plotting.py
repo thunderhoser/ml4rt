@@ -311,7 +311,9 @@ def plot_spread_vs_skill(
     axes_object.plot(
         mean_prediction_stdevs[real_indices],
         rmse_values[real_indices],
-        color=line_colour, linestyle=line_style, linewidth=line_width
+        color=line_colour, linestyle=line_style, linewidth=line_width,
+        marker='o', markersize=12, markeredgewidth=0,
+        markerfacecolor=line_colour, markeredgecolor=line_colour
     )
 
     unit_string = TARGET_NAME_TO_UNITS[target_var_name]
@@ -368,7 +370,7 @@ def plot_spread_vs_skill(
 
     title_string = (
         'Spread vs. skill for {0:s}{1:s}\n'
-        'SSREL = {2:.3f} {3:s}; SSRAT = {4:.2f}'
+        'SSREL = {2:.3f} {3:s}; SSRAT = {4:.3f}'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None
@@ -417,6 +419,8 @@ def plot_discard_test(
         mean_target_values = t[dt_utils.SCALAR_MEAN_TARGET_KEY].values[k, :]
         mono_fraction = t[dt_utils.SCALAR_MONO_FRACTION_KEY].values[k]
         mean_di = t[dt_utils.SCALAR_MEAN_DI_KEY].values[k]
+
+        y_label_string = 'MSE for deterministic prediction'
     except ValueError:
         try:
             k = t.coords[dt_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
@@ -430,6 +434,8 @@ def plot_discard_test(
             mean_target_values = t[dt_utils.AUX_MEAN_TARGET_KEY].values[k, :]
             mono_fraction = t[dt_utils.AUX_MONO_FRACTION_KEY].values[k]
             mean_di = t[dt_utils.AUX_MEAN_DI_KEY].values[k]
+
+            y_label_string = 'MSE for deterministic prediction'
         except ValueError:
             k = t.coords[dt_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
@@ -469,6 +475,8 @@ def plot_discard_test(
                 )
                 mean_di = t[dt_utils.VECTOR_MEAN_DI_KEY].values[k, j]
 
+            y_label_string = 'DWMSE for deterministic prediction'
+
     discard_fractions = (
         1. - result_table_xarray[dt_utils.EXAMPLE_FRACTION_KEY].values
     )
@@ -487,7 +495,7 @@ def plot_discard_test(
     )
 
     axes_object.set_xlabel('Discard fraction')
-    axes_object.set_ylabel('Model error')
+    axes_object.set_ylabel(y_label_string)
     axes_object.set_xlim(left=0.)
 
     inset_axes_object = _plot_means_as_inset(
@@ -613,7 +621,7 @@ def plot_pit_histogram(
 
     title_string = (
         'PIT histogram for {0:s}{1:s}\n'
-        'PITD = {2:.3g}'
+        'PITD = {2:.4f}'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
         '' if target_height_m_agl is None

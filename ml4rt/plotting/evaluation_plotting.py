@@ -133,7 +133,9 @@ def _plot_reliability_curve(
 
         main_line_handle = axes_object.plot(
             mean_predictions[real_indices], mean_observations[real_indices],
-            color=line_colour, linestyle=line_style, linewidth=line_width
+            color=line_colour, linestyle=line_style, linewidth=line_width,
+            marker='o', markersize=8, markeredgewidth=0,
+            markerfacecolor=line_colour, markeredgecolor=line_colour
         )[0]
 
     axes_object.set_xlabel('Prediction')
