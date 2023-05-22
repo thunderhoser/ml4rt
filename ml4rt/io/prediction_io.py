@@ -480,13 +480,9 @@ def read_file(netcdf_file_name):
 
     prediction_dict = {
         VECTOR_TARGETS_KEY:
-            dataset_object.variables[VECTOR_TARGETS_KEY][:].astype(
-                numpy.float32
-            ),
+            dataset_object.variables[VECTOR_TARGETS_KEY][:],
         VECTOR_PREDICTIONS_KEY:
-            dataset_object.variables[VECTOR_PREDICTIONS_KEY][:].astype(
-                numpy.float32
-            ),
+            dataset_object.variables[VECTOR_PREDICTIONS_KEY][:],
         EXAMPLE_IDS_KEY: [
             str(id) for id in
             netCDF4.chartostring(dataset_object.variables[EXAMPLE_IDS_KEY][:])
