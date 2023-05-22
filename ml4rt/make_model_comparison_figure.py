@@ -28,7 +28,7 @@ SINGLE_ERROR_METRIC_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 FIRST_ERROR_METRIC_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 SECOND_ERROR_METRIC_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 
-DEFAULT_FONT_SIZE = 30
+DEFAULT_FONT_SIZE = 40
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
