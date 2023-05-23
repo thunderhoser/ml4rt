@@ -230,22 +230,10 @@ def _make_violin_plot_one_dataset(
     y_tick_indices = y_tick_indices[y_tick_indices > 0]
     y_tick_indices = y_tick_indices[y_tick_indices < num_heights]
 
-
-    print(type(y_tick_indices))
-    print(type(y_tick_indices[0]))
-    print(type(heights_km_agl))
-    print('\n\n\n\n\n\n\n')
-
-    print(y_tick_indices[0])
-
-
-    print(y_tick_indices)
-    print(heights_km_agl[y_tick_indices[0]])
-    print('{0:.2g}'.format(heights_km_agl[y_tick_indices[0]]))
     print(['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices])
 
+    axes_object.set_yticks(y_tick_indices)
     axes_object.set_yticklabels(
-        y_tick_indices,
         ['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices]
     )
 
