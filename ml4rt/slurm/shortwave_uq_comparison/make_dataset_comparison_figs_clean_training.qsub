@@ -1,0 +1,32 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="make_dataset_comparison_figs_clean_training"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+#SBATCH --array=1-5
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=make_dataset_comparison_figs_clean_training_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+set FIELD_NAMES=("o3_mixing_ratio_kg_kg01" "liquid_water_content_kg_m03" "ice_water_content_kg_m03" "temperature_kelvins" "specific_humidity_kg_kg01")
+
+python3 -u "${CODE_DIR_NAME}/james2023_make_dataset_comparison_figure.py" \
+--input_dataset_dir_names "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/validation_all_perturbed_for_uq" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing_all_perturbed_for_uq" \
+--dataset_description_strings "Training_data_(clean)" "Validation_data_(moderately_perturbed)" "Testing_data_(heavily_perturbed)" \
+--dataset_colours "27_158_119" "217_95_2" "117_112_179" \
+--field_name="${FIELD_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--num_panel_rows=2 \
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_uq_comparison/dataset_comparison_clean_training/${FIELD_NAMES[$SLURM_ARRAY_TASK_ID]}"
