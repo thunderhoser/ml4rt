@@ -24,6 +24,15 @@ import profile_plotting
 
 # TODO(thunderhoser): Specify min and max to plot for each field
 
+DEFAULT_FONT_SIZE = 30
+pyplot.rc('font', size=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
+pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
+
 METRES_TO_KM = 0.001
 
 DUMMY_FIRST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
@@ -208,7 +217,7 @@ def _make_violin_plot_one_dataset(
     violin_handles = axes_object.violinplot(
         data_matrix, positions=height_indices,
         vert=False, widths=1.,
-        showmeans=True, showmedians=True, showextrema=True
+        showmeans=False, showmedians=False, showextrema=True
     )
 
     for part_name in ['cbars', 'cmins', 'cmaxes', 'cmeans', 'cmedians']:
@@ -239,7 +248,7 @@ def _make_violin_plot_one_dataset(
 
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_xlabel(
-        profile_plotting.PREDICTOR_NAME_TO_CONV_FACTOR[field_name]
+        profile_plotting.PREDICTOR_NAME_TO_VERBOSE[field_name]
     )
 
     return figure_object, axes_object
