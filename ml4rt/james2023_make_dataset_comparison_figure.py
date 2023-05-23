@@ -177,6 +177,8 @@ def _make_violin_plot_one_dataset(
     assert len(data_matrix.shape) == 2
 
     print(data_matrix.shape)
+    data_matrix = data_matrix[:100000, :]
+    print(data_matrix.shape)
 
     heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
     heights_km_agl = METRES_TO_KM * heights_m_agl
@@ -204,7 +206,7 @@ def _make_violin_plot_one_dataset(
         )
 
     violin_handles = axes_object.violinplot(
-        numpy.transpose(data_matrix), positions=height_indices,
+        data_matrix, positions=height_indices,
         vert=False, widths=1.,
         showmeans=True, showmedians=True, showextrema=True
     )
