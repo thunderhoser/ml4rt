@@ -226,10 +226,15 @@ def _make_violin_plot_one_dataset(
         # this_handle.set_linewidth(0)
 
     y_tick_indices = axes_object.get_yticks()
+    y_tick_indices = numpy.round(y_tick_indices).astype(int)
+
+
     print(type(y_tick_indices))
     print(type(y_tick_indices[0]))
     print(type(heights_km_agl))
     print('\n\n\n\n\n\n\n')
+
+    print(y_tick_indices[0])
 
 
     print(y_tick_indices)
