@@ -183,8 +183,8 @@ def _make_violin_plot_one_dataset(
     heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
     heights_km_agl = METRES_TO_KM * heights_m_agl
     num_heights = len(heights_m_agl)
-    height_indices = 0.5 + numpy.linspace(
-        0, num_heights - 1, num=num_heights, dtype=float
+    height_indices = numpy.linspace(
+        1, num_heights, num=num_heights, dtype=float
     )
 
     figure_object, axes_object = pyplot.subplots(
