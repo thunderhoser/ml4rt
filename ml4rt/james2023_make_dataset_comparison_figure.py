@@ -176,6 +176,8 @@ def _make_violin_plot_one_dataset(
     )
     assert len(data_matrix.shape) == 2
 
+    print(data_matrix.shape)
+
     heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
     heights_km_agl = METRES_TO_KM * heights_m_agl
     num_heights = len(heights_m_agl)
