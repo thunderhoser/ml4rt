@@ -227,6 +227,10 @@ def _make_violin_plot_one_dataset(
 
     y_tick_indices = axes_object.get_yticks()
     print(y_tick_indices)
+    print(heights_km_agl[y_tick_indices[0]])
+    print('{0:.2g}'.format(heights_km_agl[y_tick_indices[0]]))
+    print(['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices])
+
     axes_object.set_yticklabels(
         y_tick_indices,
         ['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices]
