@@ -184,7 +184,7 @@ def _make_violin_plot_one_dataset(
     heights_km_agl = METRES_TO_KM * heights_m_agl
     num_heights = len(heights_m_agl)
     height_indices = numpy.linspace(
-        1, num_heights, num=num_heights, dtype=float
+        0, num_heights - 1, num=num_heights, dtype=float
     )
 
     figure_object, axes_object = pyplot.subplots(
@@ -227,6 +227,8 @@ def _make_violin_plot_one_dataset(
 
     y_tick_indices = axes_object.get_yticks()
     y_tick_indices = numpy.round(y_tick_indices).astype(int)
+    y_tick_indices = y_tick_indices[y_tick_indices > 0]
+    y_tick_indices = y_tick_indices[y_tick_indices < num_heights]
 
 
     print(type(y_tick_indices))
