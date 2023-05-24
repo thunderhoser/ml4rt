@@ -227,12 +227,12 @@ def _make_violin_plot_one_dataset(
             continue
 
         this_handle.set_edgecolor(VIOLIN_LINE_COLOUR)
-        this_handle.set_linewidth(1)
+        # this_handle.set_linewidth(1)
 
     for this_handle in violin_handles['bodies']:
         this_handle.set_facecolor(dataset_colour)
         this_handle.set_edgecolor(dataset_colour)
-        # this_handle.set_linewidth(0)
+        this_handle.set_linewidth(0)
 
     y_tick_indices = axes_object.get_yticks()
     y_tick_indices = numpy.round(y_tick_indices).astype(int)
