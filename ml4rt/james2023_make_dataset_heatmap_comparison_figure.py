@@ -280,7 +280,7 @@ def _plot_heat_map_one_dataset(
         colour_map_object=COLOUR_MAP_OBJECT,
         colour_norm_object=colour_norm_object,
         orientation_string='vertical', extend_min=True, extend_max=True,
-        fraction_of_axis_length=0.8
+        fraction_of_axis_length=1.
     )
 
     tick_values = colour_bar_object.get_ticks()
@@ -291,7 +291,7 @@ def _plot_heat_map_one_dataset(
 
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_xlabel(
-        profile_plotting.PREDICTOR_NAME_TO_CONV_FACTOR[field_name]
+        profile_plotting.PREDICTOR_NAME_TO_VERBOSE[field_name]
     )
 
     return figure_object, axes_object
@@ -371,7 +371,7 @@ def _run(dataset_dir_names, dataset_description_strings, field_name,
         )
         _overlay_text(
             image_file_name=panel_file_names[i],
-            x_offset_from_left_px=TITLE_FONT_SIZE,
+            x_offset_from_left_px=0,
             y_offset_from_top_px=TITLE_FONT_SIZE,
             text_string='({0:s})'.format(letter_label)
         )
