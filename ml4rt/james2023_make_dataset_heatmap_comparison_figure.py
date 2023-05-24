@@ -367,15 +367,14 @@ def _run(dataset_dir_names, dataset_description_strings, field_name,
         imagemagick_utils.trim_whitespace(
             input_file_name=panel_file_names[i],
             output_file_name=panel_file_names[i],
-            border_width_pixels=0
+            border_width_pixels=100
         )
         _overlay_text(
             image_file_name=panel_file_names[i],
-            x_offset_from_left_px=0,
-            y_offset_from_top_px=TITLE_FONT_SIZE,
+            x_offset_from_left_px=100,
+            y_offset_from_top_px=TITLE_FONT_SIZE + 100,
             text_string='({0:s})'.format(letter_label)
         )
-
         imagemagick_utils.trim_whitespace(
             input_file_name=panel_file_names[i],
             output_file_name=panel_file_names[i],
