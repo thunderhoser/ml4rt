@@ -1,4 +1,4 @@
-"""Compares one field across datasets, using violin plots."""
+"""Compares one field across datasets, using heat maps to show 2-D prob dist."""
 
 import os
 import sys
@@ -18,20 +18,10 @@ import temperature_conversions as temperature_conv
 import file_system_utils
 import error_checking
 import imagemagick_utils
+import gg_plotting_utils
 import example_io
 import example_utils
 import profile_plotting
-
-# TODO(thunderhoser): Specify min and max to plot for each field
-
-DEFAULT_FONT_SIZE = 30
-pyplot.rc('font', size=DEFAULT_FONT_SIZE)
-pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
-pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
-pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
-pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
-pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
-pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
 METRES_TO_KM = 0.001
 
@@ -42,11 +32,11 @@ DUMMY_LAST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
     '2100-01-01', '%Y-%m-%d'
 )
 
-VIOLIN_LINE_COLOUR = numpy.full(3, 0.)
-
 CONVERT_EXE_NAME = '/usr/bin/convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
+
+COLOUR_MAP_OBJECT = pyplot.get_cmap('viridis')
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -56,8 +46,10 @@ CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 DATASET_DIRS_ARG_NAME = 'input_dataset_dir_names'
 DATASET_DESCRIPTIONS_ARG_NAME = 'dataset_description_strings'
-DATASET_COLOURS_ARG_NAME = 'dataset_colours'
 FIELD_ARG_NAME = 'field_name'
+MIN_VALUE_ARG_NAME = 'min_value_for_field'
+MAX_VALUE_ARG_NAME = 'max_value_for_field'
+NUM_BINS_ARG_NAME = 'num_bins_for_field'
 NUM_PANEL_ROWS_ARG_NAME = 'num_panel_rows'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -72,15 +64,20 @@ DATASET_DESCRIPTIONS_HELP_STRING = (
     'spaces.  Example: "perturbed_training clean_training" will be interpreted '
     'as a 2-element list: ["perturbed training", "clean training"].'
 )
-DATASET_COLOURS_HELP_STRING = (
-    'List of colours, one for each dataset.  This should be a space-separated '
-    'list, and each item should be an underscore-separated list of [R, G, B] '
-    'values ranging from 0...255.  For example, if you want red and black: '
-    '"255_0_0 0_0_0"'
-)
 FIELD_HELP_STRING = (
     'Name of field to compare.  This must be a vector (i.e., defined at '
     'every height), not a scalar.'
+)
+MIN_VALUE_HELP_STRING = (
+    'Minimum value for the given field.  This will be the bottom edge of the '
+    'lowest bin.'
+)
+MAX_VALUE_HELP_STRING = (
+    'Max value for the given field.  This will be the top edge of the highest '
+    'bin.'
+)
+NUM_BINS_HELP_STRING = (
+    'Number of bins into which the given field is discretized.'
 )
 NUM_PANEL_ROWS_HELP_STRING = (
     'Number of rows in final concatenated figure (with one panel per dataset).'
@@ -99,11 +96,19 @@ INPUT_ARG_PARSER.add_argument(
     help=DATASET_DESCRIPTIONS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + DATASET_COLOURS_ARG_NAME, type=str, nargs='+', required=True,
-    help=DATASET_COLOURS_HELP_STRING
+    '--' + FIELD_ARG_NAME, type=str, required=True, help=FIELD_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + FIELD_ARG_NAME, type=str, required=True, help=FIELD_HELP_STRING
+    '--' + MIN_VALUE_ARG_NAME, type=float, required=True,
+    help=MIN_VALUE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_VALUE_ARG_NAME, type=float, required=True,
+    help=MAX_VALUE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_BINS_ARG_NAME, type=int, required=True,
+    help=NUM_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_PANEL_ROWS_ARG_NAME, type=int, required=True,
@@ -143,15 +148,17 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _make_violin_plot_one_dataset(
-        dataset_dir_name, dataset_colour, field_name):
-    """Creates multi-height violin plot for one dataset.
+def _plot_heat_map_one_dataset(
+        dataset_dir_name, field_name, min_value_for_field, max_value_for_field,
+        num_bins_for_field):
+    """Plot 2-D heat map of probabilities for one dataset.
 
     :param dataset_dir_name: Name of input directory.  Files therein will be
         found by `example_io.find_file` and read by `example_io.read_file`.
-    :param dataset_colour: Colour for this dataset, as a numpy array with
-        [R, G, B] values ranging from 0...1.
-    :param field_name: Name of field.
+    :param field_name: See documentation at top of file.
+    :param min_value_for_field: Same.
+    :param max_value_for_field: Same.
+    :param num_bins_for_field: Same.
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -189,81 +196,120 @@ def _make_violin_plot_one_dataset(
     data_matrix = data_matrix[:100000, :]
     print(data_matrix.shape)
 
-    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
-    heights_km_agl = METRES_TO_KM * heights_m_agl
-    num_heights = len(heights_m_agl)
-    height_indices = numpy.linspace(
-        0, num_heights - 1, num=num_heights, dtype=float
+    bin_edges_for_field = numpy.linspace(
+        min_value_for_field, max_value_for_field, num=num_bins_for_field + 1,
+        dtype=float
+    )
+    bin_centers_for_field = (
+        0.5 * (bin_edges_for_field[:-1] + bin_edges_for_field[1:])
     )
 
-    figure_object, axes_object = pyplot.subplots(
-        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-    )
+    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
+    num_heights = len(heights_m_agl)
+    frequency_matrix = numpy.full((num_heights, num_bins_for_field), numpy.nan)
+
+    for i in range(num_heights):
+        for j in range(num_bins_for_field):
+            if j == 0:
+                these_flags = data_matrix[:, i] < bin_edges_for_field[j + 1]
+            elif j == num_bins_for_field - 1:
+                these_flags = data_matrix[:, i] >= bin_edges_for_field[j]
+            else:
+                these_flags = numpy.logical_and(
+                    data_matrix[:, i] >= bin_edges_for_field[j],
+                    data_matrix[:, i] < bin_edges_for_field[j + 1]
+                )
+
+            frequency_matrix[i, j] = numpy.mean(these_flags)
+
+    frequency_matrix_log10 = numpy.log10(frequency_matrix)
+    frequency_matrix_log10[numpy.isinf(frequency_matrix_log10)] = numpy.nan
+    heights_km_agl = METRES_TO_KM * heights_m_agl
 
     if field_name in [
             example_utils.TEMPERATURE_NAME,
             example_utils.SURFACE_TEMPERATURE_NAME,
             example_utils.DEWPOINT_NAME
     ]:
-        data_matrix = temperature_conv.kelvins_to_celsius(
-            data_matrix
+        bin_centers_plotting_units = temperature_conv.kelvins_to_celsius(
+            bin_centers_for_field
         )
     else:
-        data_matrix = (
+        bin_centers_plotting_units = (
             profile_plotting.PREDICTOR_NAME_TO_CONV_FACTOR[field_name] *
-            data_matrix
+            bin_centers_for_field
         )
 
-    violin_handles = axes_object.violinplot(
-        data_matrix, positions=height_indices,
-        vert=False, widths=1.,
-        showmeans=False, showmedians=False, showextrema=True
+    colour_norm_object = pyplot.Normalize(vmin=-6., vmax=-1.)
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    axes_object.imshow(
+        frequency_matrix_log10, cmap=COLOUR_MAP_OBJECT, norm=colour_norm_object,
+        origin='lower'
     )
 
-    for part_name in ['cbars', 'cmins', 'cmaxes', 'cmeans', 'cmedians']:
-        try:
-            this_handle = violin_handles[part_name]
-        except:
-            continue
-
-        this_handle.set_edgecolor(VIOLIN_LINE_COLOUR)
-        # this_handle.set_linewidth(1)
-
-    for this_handle in violin_handles['bodies']:
-        this_handle.set_facecolor(dataset_colour)
-        this_handle.set_edgecolor(dataset_colour)
-        this_handle.set_linewidth(0)
-
-    y_tick_indices = axes_object.get_yticks()
-    y_tick_indices = numpy.round(y_tick_indices).astype(int)
-    y_tick_indices = y_tick_indices[y_tick_indices > 0]
-    y_tick_indices = y_tick_indices[y_tick_indices < num_heights]
-
-    print(['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices])
-
-    axes_object.set_yticks(y_tick_indices)
-    axes_object.set_yticklabels(
-        ['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices]
+    x_tick_values = numpy.linspace(
+        0, num_bins_for_field - 1, num=11, dtype=float
     )
+    x_tick_values = numpy.unique(
+        numpy.round(x_tick_values).astype(int)
+    )
+    x_tick_labels = [
+        '{0:.2g}'.format(c) for c in bin_centers_plotting_units[x_tick_values]
+    ]
+    pyplot.xticks(x_tick_values, x_tick_labels, rotation=90)
+
+    y_tick_values = numpy.linspace(
+        0, num_heights - 1, num=11, dtype=float
+    )
+    y_tick_values = numpy.unique(
+        numpy.round(y_tick_values).astype(int)
+    )
+    y_tick_labels = [
+        '{0:.2g}'.format(h) for h in heights_km_agl[y_tick_values]
+    ]
+    pyplot.yticks(y_tick_values, y_tick_labels)
+
+    colour_bar_object = gg_plotting_utils.plot_colour_bar(
+        axes_object_or_matrix=axes_object,
+        data_matrix=frequency_matrix_log10[
+            numpy.invert(numpy.isnan(frequency_matrix_log10))
+        ],
+        colour_map_object=COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        orientation_string='vertical', extend_min=True, extend_max=True,
+        fraction_of_axis_length=0.8
+    )
+
+    tick_values = colour_bar_object.get_ticks()
+    tick_strings = ['{0:.2g}'.format(v) for v in tick_values]
+    tick_strings = [r'10$^{' + s + r'}$' for s in tick_strings]
+    colour_bar_object.set_ticks(tick_values)
+    colour_bar_object.set_ticklabels(tick_strings)
 
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_xlabel(
-        profile_plotting.PREDICTOR_NAME_TO_VERBOSE[field_name]
+        profile_plotting.PREDICTOR_NAME_TO_CONV_FACTOR[field_name]
     )
 
     return figure_object, axes_object
 
 
-def _run(dataset_dir_names, dataset_description_strings, dataset_colours,
-         field_name, num_panel_rows, output_dir_name):
-    """Compares one field across datasets, using violin plots.
+def _run(dataset_dir_names, dataset_description_strings, field_name,
+         min_value_for_field, max_value_for_field, num_bins_for_field,
+         num_panel_rows, output_dir_name):
+    """Compares one field across datasets, using heat maps to show 2-D dist.
 
     This is effectively the main method.
 
     :param dataset_dir_names: See documentation at top of file.
     :param dataset_description_strings: Same.
-    :param dataset_colours: Same.
     :param field_name: Same.
+    :param min_value_for_field: Same.
+    :param max_value_for_field: Same.
+    :param num_bins_for_field: Same.
     :param num_panel_rows: Same.
     :param output_dir_name: Same.
     """
@@ -280,18 +326,8 @@ def _run(dataset_dir_names, dataset_description_strings, dataset_colours,
         s.replace('_', ' ') for s in dataset_description_strings
     ]
 
-    error_checking.assert_is_numpy_array(
-        numpy.array(dataset_colours), exact_dimensions=expected_dim
-    )
-    dataset_colours = [
-        numpy.array([int(x) for x in c.split('_')], dtype=int)
-        for c in dataset_colours
-    ]
-    dataset_colours = [c.astype(float) / 255 for c in dataset_colours]
-
-    for this_colour in dataset_colours:
-        error_checking.assert_is_geq_numpy_array(this_colour, 0.)
-        error_checking.assert_is_leq_numpy_array(this_colour, 1.)
+    error_checking.assert_is_greater(max_value_for_field, min_value_for_field)
+    error_checking.assert_is_geq(num_bins_for_field, 10)
 
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -302,10 +338,12 @@ def _run(dataset_dir_names, dataset_description_strings, dataset_colours,
     letter_label = None
 
     for i in range(num_datasets):
-        figure_object, axes_object = _make_violin_plot_one_dataset(
+        figure_object, axes_object = _plot_heat_map_one_dataset(
             dataset_dir_name=dataset_dir_names[i],
-            dataset_colour=dataset_colours[i],
-            field_name=field_name
+            field_name=field_name,
+            min_value_for_field=min_value_for_field,
+            max_value_for_field=max_value_for_field,
+            num_bins_for_field=num_bins_for_field
         )
         axes_object.set_title(dataset_description_strings[i])
 
@@ -377,8 +415,10 @@ if __name__ == '__main__':
         dataset_description_strings=getattr(
             INPUT_ARG_OBJECT, DATASET_DESCRIPTIONS_ARG_NAME
         ),
-        dataset_colours=getattr(INPUT_ARG_OBJECT, DATASET_COLOURS_ARG_NAME),
         field_name=getattr(INPUT_ARG_OBJECT, FIELD_ARG_NAME),
+        min_value_for_field=getattr(INPUT_ARG_OBJECT, MIN_VALUE_ARG_NAME),
+        max_value_for_field=getattr(INPUT_ARG_OBJECT, MAX_VALUE_ARG_NAME),
+        num_bins_for_field=getattr(INPUT_ARG_OBJECT, NUM_BINS_ARG_NAME),
         num_panel_rows=getattr(INPUT_ARG_OBJECT, NUM_PANEL_ROWS_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
