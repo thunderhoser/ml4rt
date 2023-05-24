@@ -420,7 +420,7 @@ def plot_discard_test(
         mono_fraction = t[dt_utils.SCALAR_MONO_FRACTION_KEY].values[k]
         mean_di = t[dt_utils.SCALAR_MEAN_DI_KEY].values[k]
 
-        y_label_string = 'MSE for deterministic prediction'
+        y_label_string = r'MSE for mean prediction (W$^2$ m$^-4$)'
     except ValueError:
         try:
             k = t.coords[dt_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
@@ -435,7 +435,7 @@ def plot_discard_test(
             mono_fraction = t[dt_utils.AUX_MONO_FRACTION_KEY].values[k]
             mean_di = t[dt_utils.AUX_MEAN_DI_KEY].values[k]
 
-            y_label_string = 'MSE for deterministic prediction'
+            y_label_string = r'MSE for mean prediction (W$^2$ m$^-4$)'
         except ValueError:
             k = t.coords[dt_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
@@ -475,7 +475,7 @@ def plot_discard_test(
                 )
                 mean_di = t[dt_utils.VECTOR_MEAN_DI_KEY].values[k, j]
 
-            y_label_string = 'DWMSE for deterministic prediction'
+            y_label_string = r'DWMSE for mean prediction (K$^3$ day$^-3$)'
 
     discard_fractions = (
         1. - result_table_xarray[dt_utils.EXAMPLE_FRACTION_KEY].values
