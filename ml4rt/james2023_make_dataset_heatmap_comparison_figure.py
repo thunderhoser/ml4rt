@@ -192,10 +192,6 @@ def _plot_heat_map_one_dataset(
     )
     assert len(data_matrix.shape) == 2
 
-    print(data_matrix.shape)
-    data_matrix = data_matrix[:100000, :]
-    print(data_matrix.shape)
-
     bin_edges_for_field = numpy.linspace(
         min_value_for_field, max_value_for_field, num=num_bins_for_field + 1,
         dtype=float
