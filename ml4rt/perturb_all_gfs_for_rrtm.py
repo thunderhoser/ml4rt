@@ -1008,12 +1008,12 @@ def _run(input_file_name, max_temp_increase_kelvins,
                 gfs_table_xarray = _create_cloud(
                     gfs_table_xarray=gfs_table_xarray,
                     time_index=i, site_index=j,
-                    max_num_cloud_layers=max_num_liquid_cloud_layers,
+                    max_num_cloud_layers=max_num_ice_cloud_layers,
                     max_layer_thickness_metres=
-                    max_liquid_cloud_layer_thickness_metres,
-                    max_water_content_kg_m03=max_liquid_water_content_kg_m03,
+                    max_ice_cloud_layer_thickness_metres,
+                    max_water_content_kg_m03=max_ice_water_content_kg_m03,
                     water_content_noise_stdev_kg_m03=
-                    liquid_water_content_noise_stdev_kg_m03,
+                    ice_water_content_noise_stdev_kg_m03,
                     liquid_flag=False
                 )
 
