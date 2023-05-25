@@ -26,7 +26,7 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/
 
 set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
 
-python3 -u "${CODE_DIR_NAME}/split_predictions_by_cloud.py" \
+python3 -u "${CODE_DIR_NAME}/split_predictions_by_perturbation_type.py" \
 --input_perturbed_prediction_file_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/validation_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
 --input_clean_example_dir_name="${CLEAN_EXAMPLE_DIR_NAME}" \
 --input_perturbed_example_dir_name="${PERTURBED_EXAMPLE_DIR_NAME}" \
