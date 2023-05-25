@@ -229,7 +229,8 @@ def _plot_heat_map_one_dataset(
             bin_centers_for_field
         )
 
-    colour_norm_object = pyplot.Normalize(vmin=-6., vmax=-1.)
+    colour_norm_object = pyplot.Normalize(vmin=-5., vmax=-1.)
+    frequency_matrix_log10[frequency_matrix_log10 < -5] = numpy.nan
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -246,7 +247,7 @@ def _plot_heat_map_one_dataset(
         numpy.round(x_tick_values).astype(int)
     )
     x_tick_labels = [
-        '{0:.2g}'.format(c) for c in bin_centers_plotting_units[x_tick_values]
+        '{0:.2f}'.format(c) for c in bin_centers_plotting_units[x_tick_values]
     ]
     pyplot.xticks(x_tick_values, x_tick_labels, rotation=90)
 
@@ -257,7 +258,7 @@ def _plot_heat_map_one_dataset(
         numpy.round(y_tick_values).astype(int)
     )
     y_tick_labels = [
-        '{0:.2g}'.format(h) for h in heights_km_agl[y_tick_values]
+        '{0:.2f}'.format(h) for h in heights_km_agl[y_tick_values]
     ]
     pyplot.yticks(y_tick_values, y_tick_labels)
 
@@ -277,6 +278,7 @@ def _plot_heat_map_one_dataset(
     tick_strings = [r'10$^{' + s + r'}$' for s in tick_strings]
     colour_bar_object.set_ticks(tick_values)
     colour_bar_object.set_ticklabels(tick_strings)
+    colour_bar_object.set_label('Frequency')
 
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_xlabel(
@@ -356,11 +358,11 @@ def _run(dataset_dir_names, dataset_description_strings, field_name,
         imagemagick_utils.trim_whitespace(
             input_file_name=panel_file_names[i],
             output_file_name=panel_file_names[i],
-            border_width_pixels=100
+            border_width_pixels=159
         )
         _overlay_text(
             image_file_name=panel_file_names[i],
-            x_offset_from_left_px=100,
+            x_offset_from_left_px=0,
             y_offset_from_top_px=TITLE_FONT_SIZE + 100,
             text_string='({0:s})'.format(letter_label)
         )
