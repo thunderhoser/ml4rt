@@ -107,6 +107,15 @@ SIXTH_PREDICTOR_COLOURS_SHORTWAVE = [
     ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
 ]
 
+# PREDICTOR_NAMES_BY_SET = [
+#     FIRST_PREDICTOR_NAMES, SECOND_PREDICTOR_NAMES, THIRD_PREDICTOR_NAMES,
+#     FOURTH_PREDICTOR_NAMES, FIFTH_PREDICTOR_NAMES, SIXTH_PREDICTOR_NAMES
+# ]
+# PREDICTOR_COLOURS_BY_SET = [
+#     FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS, THIRD_PREDICTOR_COLOURS,
+#     FOURTH_PREDICTOR_COLOURS, FIFTH_PREDICTOR_COLOURS, SIXTH_PREDICTOR_COLOURS
+# ]
+
 LINE_WIDTH = 3
 FIGURE_RESOLUTION_DPI = 300
 
@@ -304,7 +313,7 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_file_name=example_file_name, num_examples=num_examples,
         example_dir_name=example_dir_name,
         example_id_file_name=example_id_file_name
-    )
+    )[0]
 
     num_examples_total = len(example_dict[example_utils.VALID_TIMES_KEY])
 
