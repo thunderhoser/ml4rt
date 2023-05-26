@@ -209,7 +209,7 @@ def _plot_scores_2d(
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
         orientation_string='vertical', extend_min=False, extend_max=False,
-        font_size=FONT_SIZE
+        font_size=FONT_SIZE, fraction_of_axis_length=0.6
     )
 
     tick_values = colour_bar_object.get_ticks()
