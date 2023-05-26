@@ -583,12 +583,27 @@ def _run(experiment_dir_name, trained_with_clean_data):
                 marker_colour = BLACK_COLOUR
 
             elif '_ssrat' in METRIC_NAMES[m]:
-                this_offset = _finite_percentile(
-                    numpy.absolute(metric_matrix[..., m] - 1.), 97.5
-                )
-                colour_map_object, colour_norm_object = (
-                    _get_ssrat_colour_scheme(max_colour_value=1. + this_offset)
-                )
+                if not numpy.any(metric_matrix[..., m] > 1):
+                    max_colour_value = _finite_percentile(
+                        numpy.absolute(metric_matrix[..., m]), 100
+                    )
+                    min_colour_value = _finite_percentile(
+                        numpy.absolute(metric_matrix[..., m]), 5
+                    )
+
+                    colour_norm_object = matplotlib.colors.Normalize(
+                        vmin=min_colour_value, vmax=max_colour_value, clip=False
+                    )
+                    colour_map_object = MONO_FRACTION_COLOUR_MAP_OBJECT
+                else:
+                    this_offset = _finite_percentile(
+                        numpy.absolute(metric_matrix[..., m] - 1.), 97.5
+                    )
+                    colour_map_object, colour_norm_object = (
+                        _get_ssrat_colour_scheme(
+                            max_colour_value=1. + this_offset
+                        )
+                    )
 
                 best_linear_index = numpy.nanargmin(
                     numpy.absolute(numpy.ravel(metric_matrix[..., m]) - 1.)
