@@ -657,10 +657,10 @@ def _run(experiment_dir_name, trained_with_clean_data):
             axes_object.set_xlabel(x_axis_label)
             axes_object.set_ylabel(y_axis_label)
             axes_object.set_title(
-                'Spectral complexity = {0:d}\nTraining method = {1:s}'
-            ).format(
-                SPECTRAL_COMPLEXITIES_AXIS3[k],
-                BAYESIAN_LAYER_TYPE_STRINGS_AXIS3[k]
+                'Spectral complexity = {0:d}\nTraining method = {1:s}'.format(
+                    SPECTRAL_COMPLEXITIES_AXIS3[k],
+                    BAYESIAN_LAYER_TYPE_STRINGS_AXIS3[k]
+                )
             )
 
             panel_file_names[k] = (
