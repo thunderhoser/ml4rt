@@ -189,7 +189,8 @@ def get_examples_for_inference(
 
 def get_raw_examples(
         example_file_name, num_examples, example_dir_name,
-        example_id_file_name):
+        example_id_file_name, ignore_sfc_temp_in_example_id=False,
+        allow_missing_examples=False):
     """Returns raw examples.
 
     The difference between `get_raw_examples` and `get_examples_for_inference`
@@ -200,7 +201,14 @@ def get_raw_examples(
     :param num_examples: Same.
     :param example_dir_name: Same.
     :param example_id_file_name: Same.
+    :param ignore_sfc_temp_in_example_id: Boolean flag.  If True, will ignore
+        surface temperature when matching example IDs.
+    :param allow_missing_examples: Boolean flag.  If True, will allow missing
+        examples.
     :return: example_dict: See doc for `example_io.read_file`.
+    :return: found_example_flags: length-E numpy array of Boolean flags
+        indicating which desired examples were found, where E = number of
+        example IDs read from `example_id_file_name`.
     """
 
     error_checking.assert_is_string(example_file_name)
@@ -208,15 +216,20 @@ def get_raw_examples(
 
     if use_specific_ids:
         error_checking.assert_is_string(example_id_file_name)
+        error_checking.assert_is_boolean(ignore_sfc_temp_in_example_id)
+        error_checking.assert_is_boolean(allow_missing_examples)
 
         print('Reading desired example IDs from: "{0:s}"...'.format(
             example_id_file_name
         ))
         example_id_strings = read_example_ids_from_netcdf(example_id_file_name)
 
-        valid_times_unix_sec = example_utils.parse_example_ids(
-            example_id_strings
-        )[example_utils.VALID_TIMES_KEY]
+        metadata_dict = example_utils.parse_example_ids(example_id_strings)
+        valid_times_unix_sec = metadata_dict[example_utils.VALID_TIMES_KEY]
+
+        if ignore_sfc_temp_in_example_id:
+            metadata_dict[example_utils.TEMPERATURES_10M_KEY][:] = 200.
+            example_id_strings = example_utils.create_example_ids(metadata_dict)
 
         example_file_names = example_io.find_many_files(
             directory_name=example_dir_name,
@@ -233,10 +246,23 @@ def get_raw_examples(
 
         example_dict = example_utils.concat_examples(example_dicts)
 
+        if ignore_sfc_temp_in_example_id:
+            metadata_dict = example_utils.parse_example_ids(
+                example_dict[example_utils.EXAMPLE_IDS_KEY]
+            )
+            metadata_dict[example_utils.TEMPERATURES_10M_KEY][:] = 200.
+            example_dict[example_utils.EXAMPLE_IDS_KEY] = (
+                example_utils.create_example_ids(metadata_dict)
+            )
+
         good_indices = example_utils.find_examples(
             all_id_strings=example_dict[example_utils.EXAMPLE_IDS_KEY],
-            desired_id_strings=example_id_strings, allow_missing=False
+            desired_id_strings=example_id_strings,
+            allow_missing=allow_missing_examples
         )
+
+        found_example_flags = good_indices >= 0
+        good_indices[good_indices < 0] = len(good_indices) - 1
 
         example_dict = example_utils.subset_by_index(
             example_dict=example_dict, desired_indices=good_indices
@@ -263,7 +289,10 @@ def get_raw_examples(
             example_dict=example_dict, desired_indices=desired_indices
         )
 
-    return example_dict
+        num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
+        found_example_flags = numpy.full(num_examples, 1, dtype=bool)
+
+    return example_dict, found_example_flags
 
 
 def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,

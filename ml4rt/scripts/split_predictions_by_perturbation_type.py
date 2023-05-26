@@ -9,8 +9,10 @@ This script accounts for perturbations to 5 predictor variables:
 - ozone mixing ratio
 """
 
+import os
 import copy
 import argparse
+import warnings
 import numpy
 from ml4rt.utils import example_utils
 from ml4rt.io import prediction_io
@@ -91,22 +93,52 @@ def _run(perturbed_prediction_file_name, clean_example_dir_name,
     perturbed_example_dict = misc_utils.get_raw_examples(
         example_file_name='', num_examples=int(1e12),
         example_dir_name=perturbed_example_dir_name,
-        example_id_file_name=perturbed_prediction_file_name
-    )
+        example_id_file_name=perturbed_prediction_file_name,
+        ignore_sfc_temp_in_example_id=False,
+        allow_missing_examples=False
+    )[0]
     perturbed_example_dict = example_utils.subset_by_field(
         example_dict=perturbed_example_dict, field_names=RELEVANT_FIELD_NAMES
     )
     print(SEPARATOR_STRING)
 
-    clean_example_dict = misc_utils.get_raw_examples(
+    clean_example_dict, found_clean_example_flags = misc_utils.get_raw_examples(
         example_file_name='', num_examples=int(1e12),
         example_dir_name=clean_example_dir_name,
-        example_id_file_name=perturbed_prediction_file_name
+        example_id_file_name=perturbed_prediction_file_name,
+        ignore_sfc_temp_in_example_id=True,
+        allow_missing_examples=True
     )
     clean_example_dict = example_utils.subset_by_field(
         example_dict=clean_example_dict, field_names=RELEVANT_FIELD_NAMES
     )
     print(SEPARATOR_STRING)
+
+    found_clean_example_indices = numpy.where(found_clean_example_flags)[0]
+
+    if not numpy.all(found_clean_example_flags):
+        warning_string = (
+            'POTENTIAL ERROR: {0:d} of {1:d} desired clean examples cannot be '
+            'found.'
+        ).format(
+            numpy.sum(found_clean_example_flags == False),
+            len(found_clean_example_flags)
+        )
+
+        warnings.warn(warning_string)
+
+    perturbed_example_dict = example_utils.subset_by_index(
+        example_dict=perturbed_example_dict,
+        desired_indices=found_clean_example_indices
+    )
+    clean_example_dict = example_utils.subset_by_index(
+        example_dict=clean_example_dict,
+        desired_indices=found_clean_example_indices
+    )
+    perturbed_prediction_dict = prediction_io.subset_by_index(
+        prediction_dict=perturbed_prediction_dict,
+        desired_indices=found_clean_example_indices
+    )
 
     num_examples = len(clean_example_dict[example_utils.EXAMPLE_IDS_KEY])
 
@@ -134,8 +166,9 @@ def _run(perturbed_prediction_file_name, clean_example_dir_name,
             desired_indices=perturbed_indices
         )
 
-        this_output_file_name = '{0:s}/{1:s}/predictions.nc'.format(
-            output_dir_name, this_field_name
+        this_output_file_name = '{0:s}/{1:s}/{2:s}'.format(
+            output_dir_name, this_field_name,
+            os.path.split(perturbed_prediction_file_name)[1]
         )
         print('Writing {0:d} examples to: "{1:s}"...'.format(
             len(this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY]),
