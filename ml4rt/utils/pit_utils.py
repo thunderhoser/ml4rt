@@ -19,6 +19,7 @@ TOLERANCE = 1e-6
 
 MAX_PIT_FOR_LOW_BINS = 0.3
 MIN_PIT_FOR_HIGH_BINS = 0.7
+CONFIDENCE_LEVEL_FOR_NONEXTREME_PIT = 0.95
 
 BIN_EDGES_KEY = 'bin_edges'
 BIN_COUNTS_KEY = 'bin_counts'
@@ -27,6 +28,7 @@ PERFECT_PITD_KEY = 'perfect_pitd_value'
 LOW_BIN_BIAS_KEY = 'low_bin_pit_bias'
 MIDDLE_BIN_BIAS_KEY = 'middle_bin_pit_bias'
 HIGH_BIN_BIAS_KEY = 'high_bin_pit_bias'
+EXTREME_PIT_FREQ_KEY = 'extreme_pit_frequency'
 
 BIN_CENTER_DIM = 'bin_center'
 BIN_EDGE_DIM = 'bin_edge'
@@ -37,6 +39,7 @@ SCALAR_BIN_COUNT_KEY = 'scalar_bin_count'
 SCALAR_LOW_BIN_BIAS_KEY = 'scalar_low_bin_pit_bias'
 SCALAR_MIDDLE_BIN_BIAS_KEY = 'scalar_middle_bin_pit_bias'
 SCALAR_HIGH_BIN_BIAS_KEY = 'scalar_high_bin_pit_bias'
+SCALAR_EXTREME_PIT_FREQ_KEY = 'scalar_extreme_pit_frequency'
 
 VECTOR_PITD_KEY = 'vector_pitd'
 VECTOR_PERFECT_PITD_KEY = 'vector_perfect_pitd'
@@ -44,6 +47,7 @@ VECTOR_BIN_COUNT_KEY = 'vector_bin_count'
 VECTOR_LOW_BIN_BIAS_KEY = 'vector_low_bin_pit_bias'
 VECTOR_MIDDLE_BIN_BIAS_KEY = 'vector_middle_bin_pit_bias'
 VECTOR_HIGH_BIN_BIAS_KEY = 'vector_high_bin_pit_bias'
+VECTOR_EXTREME_PIT_FREQ_KEY = 'vector_extreme_pit_frequency'
 
 VECTOR_FLAT_PITD_KEY = 'vector_flat_pitd'
 VECTOR_FLAT_PERFECT_PITD_KEY = 'vector_flat_perfect_pitd'
@@ -51,6 +55,7 @@ VECTOR_FLAT_BIN_COUNT_KEY = 'vector_flat_bin_count'
 VECTOR_FLAT_LOW_BIN_BIAS_KEY = 'vector_flat_low_bin_pit_bias'
 VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY = 'vector_flat_middle_bin_pit_bias'
 VECTOR_FLAT_HIGH_BIN_BIAS_KEY = 'vector_flat_high_bin_pit_bias'
+VECTOR_FLAT_EXTREME_PIT_FREQ_KEY = 'vector_flat_extreme_pit_frequency'
 
 AUX_PITD_KEY = 'aux_pitd'
 AUX_PERFECT_PITD_KEY = 'aux_perfect_pitd'
@@ -58,6 +63,7 @@ AUX_BIN_COUNT_KEY = 'aux_bin_count'
 AUX_LOW_BIN_BIAS_KEY = 'aux_low_bin_pit_bias'
 AUX_MIDDLE_BIN_BIAS_KEY = 'aux_middle_bin_pit_bias'
 AUX_HIGH_BIN_BIAS_KEY = 'aux_high_bin_pit_bias'
+AUX_EXTREME_PIT_FREQ_KEY = 'aux_extreme_pit_frequency'
 
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
@@ -140,6 +146,8 @@ def _get_histogram_one_var(target_values, prediction_matrix, num_bins):
         values of [0.3, 0.7).
     result_dict["high_bin_pit_bias"]: PIT bias for high bins, i.e., PIT values
         of [0.7, 1.0].
+    result_dict["extreme_pit_frequency"]: Frequency of extreme PIT values, i.e.,
+        below 0.025 or above 0.975.
     """
 
     num_examples = len(target_values)
@@ -186,6 +194,10 @@ def _get_histogram_one_var(target_values, prediction_matrix, num_bins):
     high_bin_pit_bias = numpy.mean(
         bin_frequencies[high_bin_indices] - perfect_bin_frequency
     )
+    extreme_pit_frequency = numpy.mean(numpy.logical_or(
+        pit_values < 0.5 * (1. - CONFIDENCE_LEVEL_FOR_NONEXTREME_PIT),
+        pit_values > 0.5 * (1. + CONFIDENCE_LEVEL_FOR_NONEXTREME_PIT)
+    ))
 
     return {
         BIN_EDGES_KEY: bin_edges,
@@ -194,7 +206,8 @@ def _get_histogram_one_var(target_values, prediction_matrix, num_bins):
         PERFECT_PITD_KEY: perfect_pitd_value,
         LOW_BIN_BIAS_KEY: low_bin_pit_bias,
         MIDDLE_BIN_BIAS_KEY: middle_bin_pit_bias,
-        HIGH_BIN_BIAS_KEY: high_bin_pit_bias
+        HIGH_BIN_BIAS_KEY: high_bin_pit_bias,
+        EXTREME_PIT_FREQ_KEY: extreme_pit_frequency
     }
 
 
@@ -288,6 +301,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
         SCALAR_HIGH_BIN_BIAS_KEY: (
             (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
         ),
+        SCALAR_EXTREME_PIT_FREQ_KEY: (
+            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+        ),
         VECTOR_PITD_KEY: (
             (VECTOR_FIELD_DIM, HEIGHT_DIM),
             numpy.full((num_vector_targets, num_heights), numpy.nan)
@@ -314,6 +330,10 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             (VECTOR_FIELD_DIM, HEIGHT_DIM),
             numpy.full((num_vector_targets, num_heights), numpy.nan)
         ),
+        VECTOR_EXTREME_PIT_FREQ_KEY: (
+            (VECTOR_FIELD_DIM, HEIGHT_DIM),
+            numpy.full((num_vector_targets, num_heights), numpy.nan)
+        ),
         VECTOR_FLAT_PITD_KEY: (
             (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
         ),
@@ -331,6 +351,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
         ),
         VECTOR_FLAT_HIGH_BIN_BIAS_KEY: (
+            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+        ),
+        VECTOR_FLAT_EXTREME_PIT_FREQ_KEY: (
             (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
         )
     }
@@ -354,6 +377,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
                 (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             ),
             AUX_HIGH_BIN_BIAS_KEY: (
+                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+            ),
+            AUX_EXTREME_PIT_FREQ_KEY: (
                 (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
             )
         })
@@ -407,6 +433,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
         result_table_xarray[SCALAR_HIGH_BIN_BIAS_KEY].values[j] = (
             this_result_dict[HIGH_BIN_BIAS_KEY]
         )
+        result_table_xarray[SCALAR_EXTREME_PIT_FREQ_KEY].values[j] = (
+            this_result_dict[EXTREME_PIT_FREQ_KEY]
+        )
 
     for j in range(num_vector_targets):
         print('Computing PIT histogram for {0:s}...'.format(
@@ -441,6 +470,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
         result_table_xarray[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[j] = (
             this_result_dict[HIGH_BIN_BIAS_KEY]
         )
+        result_table_xarray[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[j] = (
+            this_result_dict[EXTREME_PIT_FREQ_KEY]
+        )
 
         for k in range(num_heights):
             print('Computing PIT histogram for {0:s} at {1:d} m AGL...'.format(
@@ -471,6 +503,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             result_table_xarray[VECTOR_HIGH_BIN_BIAS_KEY].values[j, k] = (
                 this_result_dict[HIGH_BIN_BIAS_KEY]
             )
+            result_table_xarray[VECTOR_EXTREME_PIT_FREQ_KEY].values[j, k] = (
+                this_result_dict[EXTREME_PIT_FREQ_KEY]
+            )
 
     for j in range(num_aux_targets):
         print('Computing PIT histogram for {0:s}...'.format(
@@ -499,6 +534,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
         )
         result_table_xarray[AUX_HIGH_BIN_BIAS_KEY].values[j] = (
             this_result_dict[HIGH_BIN_BIAS_KEY]
+        )
+        result_table_xarray[AUX_EXTREME_PIT_FREQ_KEY].values[j] = (
+            this_result_dict[EXTREME_PIT_FREQ_KEY]
         )
 
     return result_table_xarray
@@ -567,6 +605,18 @@ def merge_results_over_examples(result_tables_xarray):
                 for t in result_tables_xarray
             ])
 
+        extreme_freq_by_table = numpy.array([
+            t[SCALAR_EXTREME_PIT_FREQ_KEY].values[j]
+            for t in result_tables_xarray
+        ])
+
+        result_table_xarray[SCALAR_EXTREME_PIT_FREQ_KEY].values[j] = (
+            numpy.average(
+                a=extreme_freq_by_table[num_examples_by_table > 0],
+                weights=num_examples_by_table[num_examples_by_table > 0]
+            )
+        )
+
         error_checking.assert_equals(
             num_examples_total,
             numpy.sum(result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :])
@@ -602,6 +652,18 @@ def merge_results_over_examples(result_tables_xarray):
                 for t in result_tables_xarray
             ])
 
+        extreme_freq_by_table = numpy.array([
+            t[AUX_EXTREME_PIT_FREQ_KEY].values[j]
+            for t in result_tables_xarray
+        ])
+
+        result_table_xarray[AUX_EXTREME_PIT_FREQ_KEY].values[j] = (
+            numpy.average(
+                a=extreme_freq_by_table[num_examples_by_table > 0],
+                weights=num_examples_by_table[num_examples_by_table > 0]
+            )
+        )
+
         error_checking.assert_equals(
             num_examples_total,
             numpy.sum(result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :])
@@ -636,6 +698,18 @@ def merge_results_over_examples(result_tables_xarray):
                 t[VECTOR_FLAT_BIN_COUNT_KEY].values[j, i]
                 for t in result_tables_xarray
             ])
+
+        extreme_freq_by_table = numpy.array([
+            t[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[j]
+            for t in result_tables_xarray
+        ])
+
+        result_table_xarray[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[j] = (
+            numpy.average(
+                a=extreme_freq_by_table[num_examples_by_table > 0],
+                weights=num_examples_by_table[num_examples_by_table > 0]
+            )
+        )
 
         these_counts = (
             result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :]
@@ -675,6 +749,18 @@ def merge_results_over_examples(result_tables_xarray):
                     t[VECTOR_BIN_COUNT_KEY].values[j, k, i]
                     for t in result_tables_xarray
                 ])
+
+            extreme_freq_by_table = numpy.array([
+                t[VECTOR_EXTREME_PIT_FREQ_KEY].values[j, k]
+                for t in result_tables_xarray
+            ])
+
+            result_table_xarray[VECTOR_EXTREME_PIT_FREQ_KEY].values[j, k] = (
+                numpy.average(
+                    a=extreme_freq_by_table[num_examples_by_table > 0],
+                    weights=num_examples_by_table[num_examples_by_table > 0]
+                )
+            )
 
             error_checking.assert_equals(
                 num_examples_total,

@@ -60,13 +60,15 @@ def _run(input_file_names, output_file_name):
     for k in range(len(scalar_target_names)):
         print((
             'Variable = {0:s} ... PITD = {1:f} ... low-PIT bias = {2:f} ... '
-            'medium-PIT bias = {3:f} ... high-PIT bias = {4:f}'
+            'medium-PIT bias = {3:f} ... high-PIT bias = {4:f} ... '
+            'extreme-PIT frequency = {5:f}'
         ).format(
             scalar_target_names[k],
             t[pit_utils.SCALAR_PITD_KEY].values[k],
             t[pit_utils.SCALAR_LOW_BIN_BIAS_KEY].values[k],
             t[pit_utils.SCALAR_MIDDLE_BIN_BIAS_KEY].values[k],
-            t[pit_utils.SCALAR_HIGH_BIN_BIAS_KEY].values[k]
+            t[pit_utils.SCALAR_HIGH_BIN_BIAS_KEY].values[k],
+            t[pit_utils.SCALAR_EXTREME_PIT_FREQ_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
@@ -76,26 +78,30 @@ def _run(input_file_names, output_file_name):
     for k in range(len(vector_target_names)):
         print((
             'Variable = {0:s} ... PITD = {1:f} ... low-PIT bias = {2:f} ... '
-            'medium-PIT bias = {3:f} ... high-PIT bias = {4:f}'
+            'medium-PIT bias = {3:f} ... high-PIT bias = {4:f} ... '
+            'extreme-PIT frequency = {5:f}'
         ).format(
             vector_target_names[k],
             t[pit_utils.VECTOR_FLAT_PITD_KEY].values[k],
             t[pit_utils.VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[k],
             t[pit_utils.VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[k],
-            t[pit_utils.VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[k]
+            t[pit_utils.VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[k],
+            t[pit_utils.VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[k]
         ))
 
         for j in range(len(heights_m_agl)):
             print((
                 'Variable = {0:s} at {1:d} m AGL ... PITD = {2:f} ... '
                 'low-PIT bias = {3:f} ... '
-                'medium-PIT bias = {4:f} ... high-PIT bias = {5:f}'
+                'medium-PIT bias = {4:f} ... high-PIT bias = {5:f} ... '
+                'extreme-PIT frequency = {6:f}'
             ).format(
                 vector_target_names[k], int(numpy.round(heights_m_agl[j])),
                 t[pit_utils.VECTOR_PITD_KEY].values[k, j],
                 t[pit_utils.VECTOR_LOW_BIN_BIAS_KEY].values[k, j],
                 t[pit_utils.VECTOR_MIDDLE_BIN_BIAS_KEY].values[k, j],
-                t[pit_utils.VECTOR_HIGH_BIN_BIAS_KEY].values[k, j]
+                t[pit_utils.VECTOR_HIGH_BIN_BIAS_KEY].values[k, j],
+                t[pit_utils.VECTOR_EXTREME_PIT_FREQ_KEY].values[k, j]
             ))
 
         print(SEPARATOR_STRING)
@@ -115,13 +121,15 @@ def _run(input_file_names, output_file_name):
         print((
             'Target variable = {0:s} ... predicted variable = {1:s} ... '
             'PITD = {2:f} ... low-PIT bias = {3:f} ... '
-            'medium-PIT bias = {4:f} ... high-PIT bias = {5:f}'
+            'medium-PIT bias = {4:f} ... high-PIT bias = {5:f} ... '
+            'extreme-PIT frequency = {6:f}'
         ).format(
             aux_target_field_names[k], aux_predicted_field_names[k],
             t[pit_utils.AUX_PITD_KEY].values[k],
             t[pit_utils.AUX_LOW_BIN_BIAS_KEY].values[k],
             t[pit_utils.AUX_MIDDLE_BIN_BIAS_KEY].values[k],
-            t[pit_utils.AUX_HIGH_BIN_BIAS_KEY].values[k]
+            t[pit_utils.AUX_HIGH_BIN_BIAS_KEY].values[k],
+            t[pit_utils.AUX_EXTREME_PIT_FREQ_KEY].values[k]
         ))
 
     print(SEPARATOR_STRING)
