@@ -22,4 +22,5 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 
 python3 -u "${CODE_DIR_NAME}/james2023_plot_hp_grid_bnn_experiment.py" \
 --experiment_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00" \
---trained_with_clean_data=1
+--trained_with_clean_data=1 \
+--trained_with_crps_loss=1
