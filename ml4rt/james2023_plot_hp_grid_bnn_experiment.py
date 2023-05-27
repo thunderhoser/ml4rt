@@ -95,7 +95,7 @@ MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 MONO_FRACTION_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
 SSRAT_COLOUR_MAP_NAME = 'seismic'
 
-NAN_COLOUR = numpy.full(3, 152. / 255)
+NAN_COLOUR = numpy.full(3, 0.)
 MAIN_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 MONO_FRACTION_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 
@@ -591,9 +591,9 @@ def _run(experiment_dir_name, trained_with_clean_data, trained_with_crps_loss):
                     numpy.absolute(metric_matrix[..., m]), 100
                 )
                 min_colour_value = _finite_percentile(
-                    numpy.absolute(metric_matrix[..., m]), 5
+                    numpy.absolute(metric_matrix[..., m]), 0
                 )
-                min_colour_value = min([min_colour_value, 0.99])
+                min_colour_value = min([min_colour_value, 18. / 19])
 
                 colour_norm_object = matplotlib.colors.Normalize(
                     vmin=min_colour_value, vmax=max_colour_value, clip=False
@@ -611,7 +611,7 @@ def _run(experiment_dir_name, trained_with_clean_data, trained_with_crps_loss):
                         numpy.absolute(metric_matrix[..., m]), 100
                     )
                     min_colour_value = _finite_percentile(
-                        numpy.absolute(metric_matrix[..., m]), 5
+                        numpy.absolute(metric_matrix[..., m]), 0
                     )
 
                     colour_norm_object = matplotlib.colors.Normalize(
@@ -620,7 +620,7 @@ def _run(experiment_dir_name, trained_with_clean_data, trained_with_crps_loss):
                     colour_map_object = MONO_FRACTION_COLOUR_MAP_OBJECT
                 else:
                     this_offset = _finite_percentile(
-                        numpy.absolute(metric_matrix[..., m] - 1.), 97.5
+                        numpy.absolute(metric_matrix[..., m] - 1.), 100
                     )
                     colour_map_object, colour_norm_object = (
                         _get_ssrat_colour_scheme(
