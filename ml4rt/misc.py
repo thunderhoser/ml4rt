@@ -194,6 +194,54 @@ def get_examples_for_inference(
     return predictor_matrix, target_array, example_id_strings
 
 
+def _handle_nonunique_example_ids(example_id_strings, first_dummy_temp_kelvins):
+    """Handles non-unique example IDs.
+
+    Specifically, this method replaces every non-unique example ID with a fake
+    ID that is impossible (an extremely low or high surface temperature).
+
+    E = number of examples
+
+    :param example_id_strings: length-E list of example IDs.
+    :param first_dummy_temp_kelvins: First dummy surface temperature.  For each
+        successive fake ID, this method will increment or decrement the surface
+        temperature by 10^-6 K.
+    :return: example_id_strings: Same as input, except that non-unique IDs have
+        been replaced with unique fake IDs.
+    """
+
+    assert first_dummy_temp_kelvins <= 101 or first_dummy_temp_kelvins >= 499
+
+    example_id_strings_numpy = numpy.array(example_id_strings)
+    unique_example_id_strings_numpy, unique_counts = numpy.unique(
+        example_id_strings_numpy, return_counts=True
+    )
+
+    bad_unique_indices = numpy.where(unique_counts > 1)[0]
+    dummy_temp_kelvins = first_dummy_temp_kelvins + 0.
+    dummy_temp_increment = 1e-6 if first_dummy_temp_kelvins >= 499 else -1e-6
+
+    for j in bad_unique_indices:
+        this_bad_id_string = unique_example_id_strings_numpy[j]
+        these_bad_indices = numpy.where(
+            example_id_strings_numpy == this_bad_id_string
+        )[0]
+
+        for k in these_bad_indices:
+            dummy_temp_kelvins += dummy_temp_increment
+            example_id_strings_numpy[k] = (
+                '{0:s}_temp-10m-kelvins={1:010.6f}'
+            ).format(
+                '_'.join(example_id_strings_numpy[k].split('_')[:-1]),
+                dummy_temp_kelvins
+            )
+
+    example_id_strings = example_id_strings_numpy.tolist()
+    assert len(example_id_strings) == len(set(example_id_strings))
+
+    return example_id_strings
+
+
 def get_raw_examples(
         example_file_name, num_examples, example_dir_name,
         example_id_file_name, ignore_sfc_temp_in_example_id=False,
@@ -239,32 +287,10 @@ def get_raw_examples(
                 '_'.join(s.split('_')[:-1]) + '_temp-10m-kelvins=200.000000'
                 for s in example_id_strings
             ]
-
-            example_id_strings_numpy = numpy.array(example_id_strings)
-            unique_example_id_strings_numpy, unique_counts = numpy.unique(
-                example_id_strings_numpy, return_counts=True
+            example_id_strings = _handle_nonunique_example_ids(
+                example_id_strings=example_id_strings,
+                first_dummy_temp_kelvins=100.
             )
-
-            bad_unique_indices = numpy.where(unique_counts > 1)[0]
-            dummy_temp_kelvins = 100.
-
-            for j in bad_unique_indices:
-                this_bad_id_string = unique_example_id_strings_numpy[j]
-                these_bad_indices = numpy.where(
-                    example_id_strings_numpy == this_bad_id_string
-                )[0]
-
-                for k in these_bad_indices:
-                    dummy_temp_kelvins += 1e-6
-                    example_id_strings_numpy[k] = (
-                        '{0:s}_temp-10m-kelvins={1:010.6f}'
-                    ).format(
-                        '_'.join(example_id_strings_numpy[k].split('_')[:-1]),
-                        dummy_temp_kelvins
-                    )
-
-            example_id_strings = example_id_strings_numpy.tolist()
-            assert len(example_id_strings) == len(set(example_id_strings))
 
         example_file_names = example_io.find_many_files(
             directory_name=example_dir_name,
@@ -286,38 +312,12 @@ def get_raw_examples(
                 '_'.join(s.split('_')[:-1]) + '_temp-10m-kelvins=200.000000'
                 for s in example_dict[example_utils.EXAMPLE_IDS_KEY]
             ]
-
-            all_example_id_strings_numpy = numpy.array(
-                example_dict[example_utils.EXAMPLE_IDS_KEY]
-            )
-            unique_all_example_id_strings_numpy, unique_counts = numpy.unique(
-                all_example_id_strings_numpy, return_counts=True
-            )
-
-            bad_unique_indices = numpy.where(unique_counts > 1)[0]
-            dummy_temp_kelvins = 500.
-
-            for j in bad_unique_indices:
-                this_bad_id_string = unique_all_example_id_strings_numpy[j]
-                these_bad_indices = numpy.where(
-                    all_example_id_strings_numpy == this_bad_id_string
-                )[0]
-
-                for k in these_bad_indices:
-                    dummy_temp_kelvins += 1e-6
-                    all_example_id_strings_numpy[k] = (
-                        '{0:s}_temp-10m-kelvins={1:010.6f}'
-                    ).format(
-                        '_'.join(all_example_id_strings_numpy[k].split('_')[:-1]),
-                        dummy_temp_kelvins
-                    )
-
             example_dict[example_utils.EXAMPLE_IDS_KEY] = (
-                all_example_id_strings_numpy.tolist()
-            )
-            assert (
-                len(example_dict[example_utils.EXAMPLE_IDS_KEY]) ==
-                len(set(example_dict[example_utils.EXAMPLE_IDS_KEY]))
+                _handle_nonunique_example_ids(
+                    example_id_strings=
+                    example_dict[example_utils.EXAMPLE_IDS_KEY],
+                    first_dummy_temp_kelvins=500.
+                )
             )
 
         good_indices = example_utils.find_examples(
