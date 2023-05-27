@@ -1,4 +1,4 @@
-"""Plots hyperparameter grids for experiment with BNN-only UQ method."""
+"""Plots hyperparameter grids for experiment w/ BNN-only or BNN/CRPS method."""
 
 import os
 import sys
@@ -82,15 +82,22 @@ BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
-SELECTED_MARKER_INDICES_CLEAN_TRAINED = numpy.array([2, 3, 1], dtype=int)
-SELECTED_MARKER_INDICES_LP_TRAINED = numpy.array([1, 1, 3], dtype=int)
+SELECTED_MARKER_INDICES_CLEAN_TRAINED_NO_CRPS = numpy.array(
+    [2, 3, 1], dtype=int
+)
+SELECTED_MARKER_INDICES_LP_TRAINED_NO_CRPS = numpy.array([1, 1, 3], dtype=int)
+SELECTED_MARKER_INDICES_CLEAN_TRAINED_WITH_CRPS = numpy.array(
+    [2, 2, 1], dtype=int
+)
+SELECTED_MARKER_INDICES_LP_TRAINED_WITH_CRPS = numpy.array([0, 3, 0], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 MONO_FRACTION_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
 SSRAT_COLOUR_MAP_NAME = 'seismic'
 
-MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
-MONO_FRACTION_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
+NAN_COLOUR = numpy.full(3, 152. / 255)
+MAIN_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
+MONO_FRACTION_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 
 FONT_SIZE = 26
 pyplot.rc('font', size=FONT_SIZE)
@@ -107,11 +114,16 @@ FIGURE_RESOLUTION_DPI = 300
 
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
 TRAINED_WITH_CLEAN_DATA_ARG_NAME = 'trained_with_clean_data'
+TRAINED_WITH_CRPS_LOSS_ARG_NAME = 'trained_with_crps_loss'
 
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 TRAINED_WITH_CLEAN_DATA_HELP_STRING = (
     'Boolean flag.  If True (False), models were trained with clean (lightly '
     'perturbed) data.'
+)
+TRAINED_WITH_CRPS_LOSS_HELP_STRING = (
+    'Boolean flag.  If True (False), models were trained with CRPS '
+    '(deterministic) loss function.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -122,6 +134,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + TRAINED_WITH_CLEAN_DATA_ARG_NAME, type=int, required=True,
     help=TRAINED_WITH_CLEAN_DATA_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + TRAINED_WITH_CRPS_LOSS_ARG_NAME, type=int, required=True,
+    help=TRAINED_WITH_CRPS_LOSS_HELP_STRING
 )
 
 
@@ -158,6 +174,7 @@ def _get_ssrat_colour_scheme(max_colour_value):
     rgb_matrix = orig_colour_map_object(normalized_values)[:, :-1]
 
     colour_map_object = matplotlib.colors.ListedColormap(rgb_matrix)
+    colour_map_object.set_bad(NAN_COLOUR)
     colour_norm_object = matplotlib.colors.BoundaryNorm(
         bias_values, colour_map_object.N
     )
@@ -186,11 +203,15 @@ def _plot_scores_2d(
         `matplotlib.axes._subplots.AxesSubplot`).
     """
 
+    score_matrix_to_plot = numpy.ma.masked_where(
+        numpy.isnan(score_matrix), score_matrix
+    )
+
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
     axes_object.imshow(
-        score_matrix, cmap=colour_map_object, norm=colour_norm_object,
+        score_matrix_to_plot, cmap=colour_map_object, norm=colour_norm_object,
         origin='lower'
     )
 
@@ -482,13 +503,14 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
         ))
 
 
-def _run(experiment_dir_name, trained_with_clean_data):
-    """Plots hyperparameter grids for experiment with BNN-only UQ method.
+def _run(experiment_dir_name, trained_with_clean_data, trained_with_crps_loss):
+    """Plots hyperparameter grids for experiment w/ BNN-only or BNN/CRPS method.
 
     This is effectively the main method.
 
     :param experiment_dir_name: See documentation at top of file.
     :param trained_with_clean_data: Same.
+    :param trained_with_crps_loss: Same.
     """
 
     length_axis1 = len(BAYESIAN_DENSE_LAYER_COUNTS_AXIS1)
@@ -571,6 +593,7 @@ def _run(experiment_dir_name, trained_with_clean_data):
                 min_colour_value = _finite_percentile(
                     numpy.absolute(metric_matrix[..., m]), 5
                 )
+                min_colour_value = min([min_colour_value, 0.99])
 
                 colour_norm_object = matplotlib.colors.Normalize(
                     vmin=min_colour_value, vmax=max_colour_value, clip=False
@@ -656,9 +679,23 @@ def _run(experiment_dir_name, trained_with_clean_data):
                 )
 
             if trained_with_clean_data:
-                selected_marker_indices = SELECTED_MARKER_INDICES_CLEAN_TRAINED
+                if trained_with_crps_loss:
+                    selected_marker_indices = (
+                        SELECTED_MARKER_INDICES_CLEAN_TRAINED_WITH_CRPS
+                    )
+                else:
+                    selected_marker_indices = (
+                        SELECTED_MARKER_INDICES_CLEAN_TRAINED_NO_CRPS
+                    )
             else:
-                selected_marker_indices = SELECTED_MARKER_INDICES_LP_TRAINED
+                if trained_with_crps_loss:
+                    selected_marker_indices = (
+                        SELECTED_MARKER_INDICES_LP_TRAINED_WITH_CRPS
+                    )
+                else:
+                    selected_marker_indices = (
+                        SELECTED_MARKER_INDICES_LP_TRAINED_NO_CRPS
+                    )
 
             if selected_marker_indices[2] == k:
                 axes_object.plot(
@@ -726,5 +763,8 @@ if __name__ == '__main__':
         experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME),
         trained_with_clean_data=bool(
             getattr(INPUT_ARG_OBJECT, TRAINED_WITH_CLEAN_DATA_ARG_NAME)
+        ),
+        trained_with_crps_loss=bool(
+            getattr(INPUT_ARG_OBJECT, TRAINED_WITH_CRPS_LOSS_ARG_NAME)
         )
     )
