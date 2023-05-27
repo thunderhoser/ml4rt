@@ -26,4 +26,5 @@ set PERTURBATION_TYPE_STRINGS=("liquid_water_content_kg_m03" "ice_water_content_
 
 python3 -u "${CODE_DIR_NAME}/make_eval_figure_determ_and_uq.py" \
 --input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--make_12panel_figure=1 \
 --output_dir_name="${TOP_MODEL_DIR_NAME}/multimodel_ensemble_50/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/james2023_figures"

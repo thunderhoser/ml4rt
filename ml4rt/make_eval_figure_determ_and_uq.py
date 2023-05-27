@@ -16,7 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import imagemagick_utils
 
-INPUT_FILE_SUFFIXES = [
+INPUT_FILE_SUFFIXES_10PANELS = [
     'evaluation/net-shortwave-flux-w-m02_attributes_new-model.jpg',
     'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02.jpg',
     'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01.jpg',
@@ -29,7 +29,26 @@ INPUT_FILE_SUFFIXES = [
     'evaluation/shortwave-heating-rate-k-day01_bias_profile.jpg'
 ]
 
-PANEL_LETTERS = ['a', 'e', 'h', 'b', 'f', 'i', 'c', 'g', 'j', 'd']
+PANEL_LETTERS_10PANELS = ['a', 'e', 'h', 'b', 'f', 'i', 'c', 'g', 'j', 'd']
+
+INPUT_FILE_SUFFIXES_12PANELS = [
+    'evaluation/net-shortwave-flux-w-m02_attributes_new-model.jpg',
+    'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02.jpg',
+    'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01.jpg',
+    'evaluation/shortwave-heating-rate-k-day01_attributes_new-model.jpg',
+    'discard_test_for_heating_rates/discard_test_net-shortwave-flux-w-m02.jpg',
+    'discard_test_for_heating_rates/discard_test_shortwave-heating-rate-k-day01.jpg',
+    'evaluation/shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
+    'pit_histograms/pit_histogram_net-shortwave-flux-w-m02.jpg',
+    'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01.jpg',
+    'evaluation/shortwave-heating-rate-k-day01_bias_profile.jpg',
+    'spread_vs_skill/ssrat_shortwave-heating-rate-k-day01.jpg',
+    'pit_histograms/extreme_pit_frequency_shortwave-heating-rate-k-day01.jpg'
+]
+
+PANEL_LETTERS_12PANELS = [
+    'a', 'e', 'i', 'b', 'f', 'j', 'c', 'g', 'k', 'd', 'h', 'l'
+]
 
 CONVERT_EXE_NAME = '/usr/bin/convert'
 TITLE_FONT_SIZE = 250
@@ -41,6 +60,7 @@ PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
+MAKE_12PANEL_FIG_ARG_NAME = 'make_12panel_figure'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -48,6 +68,11 @@ INPUT_DIR_HELP_STRING = (
     'plot_evaluation.py, plot_spread_vs_skill.py, plot_discard_test.py, and '
     'plot_pit_histograms.py.  This script will panel some of '
     'those figures together.'
+)
+MAKE_12PANEL_FIG_HELP_STRING = (
+    'Boolean flag.  If 1, will make 12-panel figure, including SSRAT and '
+    'extreme-PIT-frequency profiles for heating rate.  If 0, will make '
+    '10-panel figure.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  New images (paneled figures) will be saved '
@@ -58,6 +83,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
     help=INPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAKE_12PANEL_FIG_ARG_NAME, type=int, required=False, default=0,
+    help=MAKE_12PANEL_FIG_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -93,12 +122,13 @@ def _overlay_text(
     raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
-def _run(input_dir_name, output_dir_name):
+def _run(input_dir_name, make_12panel_figure, output_dir_name):
     """Creates 10-panel figure showing evaluation metrics for one model.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
+    :param make_12panel_figure: Same.
     :param output_dir_name: Same.
     """
 
@@ -109,12 +139,19 @@ def _run(input_dir_name, output_dir_name):
         output_dir_name
     )
 
+    if make_12panel_figure:
+        input_file_suffixes = INPUT_FILE_SUFFIXES_12PANELS
+        panel_letters = PANEL_LETTERS_12PANELS
+    else:
+        input_file_suffixes = INPUT_FILE_SUFFIXES_10PANELS
+        panel_letters = PANEL_LETTERS_10PANELS
+
     panel_file_names = [
-        '{0:s}/{1:s}'.format(input_dir_name, p) for p in INPUT_FILE_SUFFIXES
+        '{0:s}/{1:s}'.format(input_dir_name, p) for p in input_file_suffixes
     ]
     resized_panel_file_names = [
         '{0:s}/{1:s}'.format(output_dir_name, p.split('/')[-1])
-        for p in INPUT_FILE_SUFFIXES
+        for p in input_file_suffixes
     ]
 
     for i in range(len(panel_file_names)):
@@ -130,7 +167,7 @@ def _run(input_dir_name, output_dir_name):
         _overlay_text(
             image_file_name=resized_panel_file_names[i],
             x_offset_from_left_px=0, y_offset_from_top_px=TITLE_FONT_SIZE,
-            text_string='({0:s})'.format(PANEL_LETTERS[i])
+            text_string='({0:s})'.format(panel_letters[i])
         )
         imagemagick_utils.resize_image(
             input_file_name=resized_panel_file_names[i],
@@ -159,5 +196,8 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        make_12panel_figure=bool(
+            getattr(INPUT_ARG_OBJECT, MAKE_12PANEL_FIG_ARG_NAME)
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
