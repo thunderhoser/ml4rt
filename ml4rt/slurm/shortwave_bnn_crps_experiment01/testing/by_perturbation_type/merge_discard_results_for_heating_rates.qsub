@@ -1,0 +1,55 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="merge_discard_results_for_heating_rates"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=merge_discard_results_for_heating_rates_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment01"
+
+set FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
+set BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
+set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+
+set BEST_MODEL_INDEX=31
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
+
+set PATHLESS_INPUT_FILE_NAMES=("discard_test_for_heating_rates_part01.nc" "discard_test_for_heating_rates_part02.nc" "discard_test_for_heating_rates_part03.nc" "discard_test_for_heating_rates_part04.nc" "discard_test_for_heating_rates_part05.nc" "discard_test_for_heating_rates_part06.nc" "discard_test_for_heating_rates_part07.nc" "discard_test_for_heating_rates_part08.nc" "discard_test_for_heating_rates_part09.nc")
+
+set PERTURBATION_TYPE_STRINGS=("liquid_water_content_kg_m03" "ice_water_content_kg_m03" "specific_humidity_kg_kg01" "temperature_kelvins" "o3_mixing_ratio_kg_kg01")
+set i=1
+
+while ($i <= ${#PERTURBATION_TYPE_STRINGS})
+    set input_file_names_string=""
+    set j=1
+    
+    while ($j <= ${#PATHLESS_INPUT_FILE_NAMES})
+        set input_file_names_string="${input_file_names_string} ${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$i]}/${PATHLESS_INPUT_FILE_NAMES[$j]}"
+        
+        @ j = $j + 1
+    end
+
+    set output_file_name="${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$i]}/discard_test_for_heating_rates.nc"
+    
+    python3 -u "${CODE_DIR_NAME}/merge_discard_results_over_examples.py" \
+    --input_file_names ${input_file_names_string} \
+    --output_file_name="${output_file_name}"
+    
+    @ i = $i + 1
+end

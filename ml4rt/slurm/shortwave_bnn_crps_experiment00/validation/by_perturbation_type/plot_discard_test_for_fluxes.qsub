@@ -1,0 +1,51 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_discard_test_for_fluxes"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_discard_test_for_fluxes_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00"
+
+set FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
+set BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
+set BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
+set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+
+set BEST_MODEL_INDEX=30
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
+set evaluation_dir_name="${model_dir_name}/model/validation_perturbed_for_uq"
+
+set PERTURBATION_TYPE_STRINGS_DASHED=("liquid-water-content-kg-m03" "ice-water-content-kg-m03" "specific-humidity-kg-kg01" "temperature-kelvins" "o3-mixing-ratio-kg-kg01")
+set PERTURBATION_TYPE_STRINGS_UNDERSCORED=("liquid_water_content_kg_m03" "ice_water_content_kg_m03" "specific_humidity_kg_kg01" "temperature_kelvins" "o3_mixing_ratio_kg_kg01")
+
+set i=1
+
+while ($i <= ${#PERTURBATION_TYPE_STRINGS_DASHED})
+    set perturbation_type_string_dashed=${PERTURBATION_TYPE_STRINGS_DASHED[$i]}
+    set perturbation_type_string_underscored=${PERTURBATION_TYPE_STRINGS_UNDERSCORED[$i]}
+    
+    set input_file_name="${evaluation_dir_name}/by_perturbation_type/${perturbation_type_string_underscored}/discard_test_for_fluxes.nc"
+    set output_dir_name="${evaluation_dir_name}/by_perturbation_type/${perturbation_type_string_underscored}/discard_test_for_fluxes"
+    
+    python3 -u "${CODE_DIR_NAME}/plot_discard_test.py" \
+    --input_file_name="${input_file_name}" \
+    --output_dir_name="${output_dir_name}"
+    
+    @ i = $i + 1
+end
