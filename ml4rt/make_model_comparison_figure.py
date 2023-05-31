@@ -384,6 +384,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
     panel_file_names.append(
         '{0:s}/ssrat.jpg'.format(output_dir_name)
     )
+    print(heating_rate_ssrat_values)
     _plot_one_bar_graph(
         first_error_values=heating_rate_ssrat_values,
         second_error_values=flux_ssrat_values,
