@@ -32,4 +32,5 @@ set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER
 
 python3 -u "${CODE_DIR_NAME}/make_eval_figure_determ_and_uq.py" \
 --input_evaluation_dir_name="${model_dir_name}/model/validation_perturbed_for_uq" \
+--make_12panel_figure=1 \
 --output_dir_name="${model_dir_name}/model/validation_perturbed_for_uq/james2023_figures"
