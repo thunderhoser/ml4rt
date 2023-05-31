@@ -213,7 +213,10 @@ def _run(prediction_file_names, large_error_threshold_k_day01,
     )
     axes_object.set_title(title_string)
 
-    figure_file_name = '{0:s}/large_error_frequency.jpg'.format(output_dir_name)
+    figure_file_name = (
+        '{0:s}/shortwave-heating-rate-k-day01_large_error_frequency.jpg'
+    ).format(output_dir_name)
+
     print('Saving figure to: "{0:s}"...'.format(figure_file_name))
     figure_object.savefig(
         figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
@@ -243,9 +246,10 @@ def _run(prediction_file_names, large_error_threshold_k_day01,
     )
     axes_object.set_title(title_string)
 
-    figure_file_name = '{0:s}/catastrophic_error_frequency.jpg'.format(
-        output_dir_name
-    )
+    figure_file_name = (
+        '{0:s}/shortwave-heating-rate-k-day01_catastrophic_error_frequency.jpg'
+    ).format(output_dir_name)
+
     print('Saving figure to: "{0:s}"...'.format(figure_file_name))
     figure_object.savefig(
         figure_file_name, dpi=FIGURE_RESOLUTION_DPI,

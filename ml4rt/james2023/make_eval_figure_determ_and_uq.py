@@ -35,8 +35,8 @@ INPUT_FILE_SUFFIXES_12PANELS = [
     'pit_histograms/pit_histogram_net-shortwave-flux-w-m02.jpg',
     'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01.jpg',
     'evaluation/shortwave-heating-rate-k-day01_bias_profile.jpg',
-    'spread_vs_skill/ssrat_shortwave-heating-rate-k-day01.jpg',
-    'pit_histograms/extreme_pit_frequency_shortwave-heating-rate-k-day01.jpg'
+    'evaluation/shortwave-heating-rate-k-day01_large_error_frequency.jpg',
+    'evaluation/shortwave-heating-rate-k-day01_catastrophic_error_frequency.jpg'
 ]
 
 PANEL_LETTERS_12PANELS = [
