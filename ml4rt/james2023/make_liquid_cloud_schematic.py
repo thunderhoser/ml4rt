@@ -178,12 +178,20 @@ def _run(output_dir_name):
     ]
 
     for k in range(1, num_cloud_layers):
-        this_bottom_height_m_agl = HEIGHTS_M_AGL[
-            numpy.where(water_contents_kg_m03 > 0)[0][0]
+        # this_bottom_height_m_agl = HEIGHTS_M_AGL[
+        #     numpy.where(water_contents_kg_m03 > 0)[0][0]
+        # ]
+        # this_top_height_m_agl = min([
+        #     this_bottom_height_m_agl + MAX_CLOUD_THICKNESS_METRES,
+        #     tropopause_height_m_agl + 2000
+        # ])
+
+        this_top_height_m_agl = HEIGHTS_M_AGL[
+            numpy.where(water_contents_kg_m03 > 0)[0][0] + 1
         ]
-        this_top_height_m_agl = min([
-            this_bottom_height_m_agl + MAX_CLOUD_THICKNESS_METRES,
-            tropopause_height_m_agl + 2000
+        this_bottom_height_m_agl = max([
+            this_top_height_m_agl - MAX_CLOUD_THICKNESS_METRES,
+            0
         ])
 
         height_indices_by_layer_no_constraints[k] = (
