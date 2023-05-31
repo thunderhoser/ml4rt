@@ -565,10 +565,9 @@ def _plot_attributes_diagram(
                 int(numpy.round(height_m_agl))
             )
 
-        title_string += '\nREL = {0:.2f} {1:s}; MSESS = {2:.3f}'.format(
+        title_string += '\nREL = {0:.2f} {1:s}'.format(
             numpy.mean(reliabilities_by_set[main_index]),
-            r'W$^2$ m$^{-4}$' if is_scalar or is_aux else r'K$^2$ day$^{-2}$',
-            numpy.mean(mse_skill_scores_by_set[main_index])
+            r'W$^2$ m$^{-4}$' if is_scalar or is_aux else r'K$^2$ day$^{-2}$'
         )
 
         axes_object.set_title(title_string)
