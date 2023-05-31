@@ -260,13 +260,20 @@ def _run(input_file_name, output_dir_name):
             are_axes_new=True
         )
 
+        axes_object.set_xlim([0, 0.5])
+
         this_var_name = t.coords[pit_utils.VECTOR_FIELD_DIM].values[j]
         axes_object.set_xlabel('Frequency of PIT outside middle 95%'.format(
             100 * pit_utils.CONFIDENCE_LEVEL_FOR_NONEXTREME_PIT
         ))
-        axes_object.set_title('Extreme-PIT frequency for {0:s}'.format(
-            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
-        ))
+        axes_object.set_title(
+            'Extreme-PIT frequency for {0:s}\nMax value = {1:.2f}'.format(
+                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name],
+                numpy.nanmax(
+                    t[pit_utils.VECTOR_EXTREME_PIT_FREQ_KEY].values[j, :]
+                )
+            )
+        )
 
         figure_file_name = '{0:s}/extreme_pit_frequency_{1:s}.jpg'.format(
             output_dir_name, this_var_name.replace('_', '-')

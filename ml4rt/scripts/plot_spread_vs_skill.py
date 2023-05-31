@@ -169,10 +169,13 @@ def _run(input_file_name, output_dir_name):
             are_axes_new=True
         )
 
+        axes_object.set_xlim([0., 2.])
+
         this_var_name = t.coords[ss_utils.VECTOR_FIELD_DIM].values[j]
         axes_object.set_xlabel('Spread-skill ratio (SSRAT)')
-        axes_object.set_title('SSRAT for {0:s}'.format(
-            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
+        axes_object.set_title('SSRAT for {0:s}\nMin value = {1:.2f}'.format(
+            uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name],
+            numpy.nanmin(t[ss_utils.VECTOR_SSRAT_KEY].values[j, :])
         ))
 
         figure_file_name = '{0:s}/ssrat_{1:s}.jpg'.format(

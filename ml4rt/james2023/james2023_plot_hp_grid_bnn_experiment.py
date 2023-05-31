@@ -512,7 +512,7 @@ def _run(experiment_dir_name, trained_with_clean_data, trained_with_crps_loss):
     num_metrics = len(METRIC_NAMES)
 
     y_tick_labels = [
-        '{0:d}'.format(c) for c in BAYESIAN_DENSE_LAYER_COUNTS_AXIS1
+        '{0:d}'.format(c + 1) for c in BAYESIAN_DENSE_LAYER_COUNTS_AXIS1
     ]
     x_tick_labels = [
         '{0:d}/{1:d}'.format(s, u) for s, u in zip(
@@ -521,7 +521,7 @@ def _run(experiment_dir_name, trained_with_clean_data, trained_with_crps_loss):
     ]
 
     y_axis_label = 'Number of Bayesian dense layers'
-    x_axis_label = 'Number of Bayesian skip/upconv layers'
+    x_axis_label = 'Number of Bayesian skip/upconv connections'
 
     metric_matrix = numpy.full(
         (length_axis1, length_axis2, length_axis3, num_metrics),
