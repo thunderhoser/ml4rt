@@ -33,17 +33,17 @@ PANEL_LETTERS_10PANELS = ['a', 'e', 'h', 'b', 'f', 'i', 'c', 'g', 'j', 'd']
 
 INPUT_FILE_SUFFIXES_12PANELS = [
     'evaluation/net-shortwave-flux-w-m02_attributes_new-model.jpg',
-    'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02.jpg',
-    'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01.jpg',
-    'evaluation/shortwave-heating-rate-k-day01_attributes_new-model.jpg',
-    'discard_test_for_heating_rates/discard_test_net-shortwave-flux-w-m02.jpg',
-    'discard_test_for_heating_rates/discard_test_shortwave-heating-rate-k-day01.jpg',
-    'evaluation/shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
-    'pit_histograms/pit_histogram_net-shortwave-flux-w-m02.jpg',
-    'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01.jpg',
-    'evaluation/shortwave-heating-rate-k-day01_bias_profile.jpg',
     'evaluation/shortwave-heating-rate-k-day01_large_error_frequency.jpg',
     'evaluation/shortwave-heating-rate-k-day01_catastrophic_error_frequency.jpg'
+    'evaluation/shortwave-heating-rate-k-day01_attributes_new-model.jpg',
+    'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02.jpg',
+    'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01.jpg',
+    'evaluation/shortwave-heating-rate-k-day01_mean-absolute-error_profile.jpg',
+    'discard_test_for_heating_rates/discard_test_net-shortwave-flux-w-m02.jpg',
+    'discard_test_for_heating_rates/discard_test_shortwave-heating-rate-k-day01.jpg',
+    'evaluation/shortwave-heating-rate-k-day01_bias_profile.jpg',
+    'pit_histograms/pit_histogram_net-shortwave-flux-w-m02.jpg',
+    'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01.jpg'
 ]
 
 PANEL_LETTERS_12PANELS = [
