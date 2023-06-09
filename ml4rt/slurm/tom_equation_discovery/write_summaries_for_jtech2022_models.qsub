@@ -1,0 +1,34 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="write_summaries_for_jtech2022_models"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+#SBATCH --array=1-4
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=write_summaries_for_jtech2022_models_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_EXPERIMENT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/tom_experiment"
+
+set PLUSPLUSPLUS_FLAGS=(0 0 1 1)
+set DEEP_SUPERVISION_FLAGS=(0 1 0 1)
+set OUTPUT_FILE_NAMES=("${OUTPUT_DIR_NAME}/results_summary_jtech2022_plusplus.csv" "${OUTPUT_DIR_NAME}/results_summary_jtech2022_plusplus_deep.csv" "${OUTPUT_DIR_NAME}/results_summary_jtech2022_plusplusplus.csv" "${OUTPUT_DIR_NAME}/results_summary_jtech2022_plusplusplus_deep.csv")
+
+python3 -u "${CODE_DIR_NAME}/jtech2022_write_summary_for_tom.py" \
+--input_top_experiment_dir_name="${TOP_EXPERIMENT_DIR_NAME}" \
+--plusplusplus_flag=${PLUSPLUSPLUS_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--deep_supervision_flag=${DEEP_SUPERVISION_FLAGS[$SLURM_ARRAY_TASK_ID]} \
+--output_csv_file_name="${OUTPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
