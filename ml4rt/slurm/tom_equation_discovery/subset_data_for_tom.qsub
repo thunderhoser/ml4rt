@@ -8,7 +8,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=01:00:00
-#SBATCH --array=1-6
+#SBATCH --array=1-3
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -22,8 +22,8 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_DATA_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights"
 
-set INPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/training" "${TOP_DATA_DIR_NAME}/validation" "${TOP_DATA_DIR_NAME}/testing" "${TOP_DATA_DIR_NAME}/normalized_not_flux/training" "${TOP_DATA_DIR_NAME}/normalized_not_flux/validation" "${TOP_DATA_DIR_NAME}/normalized_not_flux/testing")
-set OUTPUT_FILE_NAMES=("${TOP_DATA_DIR_NAME}/training/subset_for_tom/subset_training_examples_for_tom.nc" "${TOP_DATA_DIR_NAME}/validation/subset_for_tom/subset_validation_examples_for_tom.nc" "${TOP_DATA_DIR_NAME}/testing/subset_for_tom/subset_testing_examples_for_tom.nc" "${TOP_DATA_DIR_NAME}/normalized_not_flux/training/subset_for_tom/subset_training_examples_for_tom_normalized.nc" "${TOP_DATA_DIR_NAME}/normalized_not_flux/validation/subset_for_tom/subset_validation_examples_for_tom_normalized.nc" "${TOP_DATA_DIR_NAME}/normalized_not_flux/testing/subset_for_tom/subset_testing_examples_for_tom_normalized.nc")
+set INPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/training" "${TOP_DATA_DIR_NAME}/validation" "${TOP_DATA_DIR_NAME}/testing")
+set OUTPUT_FILE_NAMES=("${TOP_DATA_DIR_NAME}/training/subset_for_tom/learning_examples_2020.nc" "${TOP_DATA_DIR_NAME}/validation/subset_for_tom/learning_examples_2020.nc" "${TOP_DATA_DIR_NAME}/testing/subset_for_tom/learning_examples_2020.nc")
 
 python3 -u "${CODE_DIR_NAME}/subset_data_for_tom.py" \
 --input_example_dir_name="${INPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}" \
