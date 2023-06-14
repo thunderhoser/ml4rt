@@ -1,0 +1,41 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="normalize_subset_data"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=06:00:00
+#SBATCH --array=1-3
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=normalize_subset_data_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_DATA_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights"
+set NORMALIZATION_FILE_NAME="${TOP_DATA_DIR_NAME}/training/learning_examples_for_norm_20200103-20200313.nc"
+
+set INPUT_FILE_NAMES=("${TOP_DATA_DIR_NAME}/training/subset_for_tom/learning_examples_2020.nc" "${TOP_DATA_DIR_NAME}/validation/subset_for_tom/learning_examples_2020.nc" "${TOP_DATA_DIR_NAME}/testing/subset_for_tom/learning_examples_2020.nc")
+set OUTPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/normalized_not_flux/training/subset_for_tom" "${TOP_DATA_DIR_NAME}/normalized_not_flux/validation/subset_for_tom" "${TOP_DATA_DIR_NAME}/normalized_not_flux/testing/subset_for_tom")
+
+python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
+--input_example_file_name="${INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--uniformize=1 \
+--predictor_norm_type_string="z_score" \
+--vector_target_norm_type_string="" \
+--scalar_target_norm_type_string="" \
+--output_example_dir_name="${OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
