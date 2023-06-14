@@ -27,7 +27,7 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_DATA_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights"
 
-set INPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/training" "${TOP_DATA_DIR_NAME}/validation" "${TOP_DATA_DIR_NAME}/testing" "${TOP_DATA_DIR_NAME}/subset_for_tom/training" "${TOP_DATA_DIR_NAME}/subset_for_tom/validation" "${TOP_DATA_DIR_NAME}/subset_for_tom/testing")
+set INPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/training" "${TOP_DATA_DIR_NAME}/validation" "${TOP_DATA_DIR_NAME}/testing" "${TOP_DATA_DIR_NAME}/training/subset_for_tom" "${TOP_DATA_DIR_NAME}/validation/subset_for_tom" "${TOP_DATA_DIR_NAME}/testing/subset_for_tom")
 set OUTPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/target_distributions/before_subsetting_for_tom/training" "${TOP_DATA_DIR_NAME}/target_distributions/before_subsetting_for_tom/validation" "${TOP_DATA_DIR_NAME}/target_distributions/before_subsetting_for_tom/testing" "${TOP_DATA_DIR_NAME}/target_distributions/after_subsetting_for_tom/training" "${TOP_DATA_DIR_NAME}/target_distributions/after_subsetting_for_tom/validation" "${TOP_DATA_DIR_NAME}/target_distributions/after_subsetting_for_tom/testing")
 
 python3 -u "${CODE_DIR_NAME}/plot_target_distributions.py" \
