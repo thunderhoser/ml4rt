@@ -28,12 +28,12 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set TOP_DATA_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_new/orig_heights"
 
 if ($SLURM_ARRAY_TASK_ID == 1) then
-    python3 -u "${CODE_DIR_NAME}/explore_full_and_subset_data.py" \
+    python3 -u "${CODE_DIR_NAME}/explore_data.py" \
     --input_example_file_names "${TOP_DATA_DIR_NAME}/training/learning_examples_2019_part01.nc" "${TOP_DATA_DIR_NAME}/training/learning_examples_2019_part02.nc" "${TOP_DATA_DIR_NAME}/training/learning_examples_2019_part03.nc" "${TOP_DATA_DIR_NAME}/training/learning_examples_2020_part01.nc" "${TOP_DATA_DIR_NAME}/training/learning_examples_2020_part02.nc" "${TOP_DATA_DIR_NAME}/training/learning_examples_2020_part03.nc" "${TOP_DATA_DIR_NAME}/validation/learning_examples_2020_part01.nc" "${TOP_DATA_DIR_NAME}/validation/learning_examples_2020_part02.nc" "${TOP_DATA_DIR_NAME}/validation/learning_examples_2020_part03.nc" "${TOP_DATA_DIR_NAME}/testing/learning_examples_2020_part01.nc" "${TOP_DATA_DIR_NAME}/testing/learning_examples_2020_part02.nc" "${TOP_DATA_DIR_NAME}/testing/learning_examples_2020_part03.nc" \
     --plot_shortwave=1 \
     --output_figure_dir_name="${TOP_DATA_DIR_NAME}/data_exploration/before_subsetting_for_tom"
 else
-    python3 -u "${CODE_DIR_NAME}/explore_full_and_subset_data.py" \
+    python3 -u "${CODE_DIR_NAME}/explore_data.py" \
     --input_example_file_names "${TOP_DATA_DIR_NAME}/training/subset_for_tom/learning_examples_2020.nc" "${TOP_DATA_DIR_NAME}/validation/subset_for_tom/learning_examples_2020.nc" "${TOP_DATA_DIR_NAME}/testing/subset_for_tom/learning_examples_2020.nc" \
     --plot_shortwave=1 \
     --output_figure_dir_name="${TOP_DATA_DIR_NAME}/data_exploration/after_subsetting_for_tom"
