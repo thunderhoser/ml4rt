@@ -325,13 +325,22 @@ def _plot_comparisons_simple(
             elif annotation_strings[i] is not None:
                 this_annotation_string += '\n' + annotation_strings[i]
 
-            these_axes_objects[1].text(
-                0.99, 0.1, this_annotation_string,
-                fontsize=TITLE_FONT_SIZE, color='k',
-                bbox=LEGEND_BOUNDING_BOX_DICT,
-                horizontalalignment='right', verticalalignment='bottom',
-                transform=these_axes_objects[1].transAxes, zorder=1e13
-            )
+            if plot_shortwave:
+                these_axes_objects[1].text(
+                    0.99, 0.1, this_annotation_string,
+                    fontsize=TITLE_FONT_SIZE, color='k',
+                    bbox=LEGEND_BOUNDING_BOX_DICT,
+                    horizontalalignment='right', verticalalignment='bottom',
+                    transform=these_axes_objects[1].transAxes, zorder=1e13
+                )
+            else:
+                these_axes_objects[1].text(
+                    0.01, 0.1, this_annotation_string,
+                    fontsize=TITLE_FONT_SIZE, color='k',
+                    bbox=LEGEND_BOUNDING_BOX_DICT,
+                    horizontalalignment='left', verticalalignment='bottom',
+                    transform=these_axes_objects[1].transAxes, zorder=1e13
+                )
 
             this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
                 output_dir_name, example_id_strings[i].replace('_', '-'),
