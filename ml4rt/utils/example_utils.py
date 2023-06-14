@@ -2574,17 +2574,23 @@ def subset_by_index(example_dict, desired_indices):
         desired_indices, len(example_dict[VALID_TIMES_KEY])
     )
 
-    for this_key in ONE_PER_EXAMPLE_KEYS:
+    new_example_dict = dict()
+
+    for this_key in list(example_dict.keys()):
+        if this_key not in ONE_PER_EXAMPLE_KEYS:
+            new_example_dict[this_key] = example_dict[this_key]
+            continue
+
         if isinstance(example_dict[this_key], list):
-            example_dict[this_key] = [
+            new_example_dict[this_key] = [
                 example_dict[this_key][k] for k in desired_indices
             ]
         else:
-            example_dict[this_key] = (
+            new_example_dict[this_key] = (
                 example_dict[this_key][desired_indices, ...]
             )
 
-    return example_dict
+    return new_example_dict
 
 
 def average_examples(

@@ -94,7 +94,7 @@ def _create_filtered_index_array(max_index, indices_to_exclude):
 
 def _time_to_season(valid_time_unix_sec):
     """Converts time to season.
-    
+
     :param valid_time_unix_sec: Time.
     :return: season_index: Integer (0 for DJF, 1 for MAM, 2 for JJA, 3 for SON).
     """
@@ -112,7 +112,7 @@ def _time_to_season(valid_time_unix_sec):
 
 def _get_aerosol_optical_depths(example_dict):
     """Computes AOD for each profile.
-    
+
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`.
     :return: aerosol_optical_depths_unitless: length-E numpy array of AOD
@@ -148,7 +148,7 @@ def _get_aerosol_optical_depths(example_dict):
 
 def _get_diverse_cloud_examples(example_dict, for_ice):
     """Finds diverse examples with respect to either liquid or ice cloud.
-    
+
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`.
     :param for_ice: Boolean flag, indicating whether to do this for ice or
@@ -171,7 +171,7 @@ def _get_diverse_cloud_examples(example_dict, for_ice):
     no_cloud_indices = numpy.where(num_clouds_by_example == 0)[0]
     single_cloud_indices = numpy.where(num_clouds_by_example == 1)[0]
     multi_cloud_indices = numpy.where(num_clouds_by_example >= 2)[0]
-    
+
     if len(no_cloud_indices) == 0:
         total_path_by_example_kg_m02 = example_utils.get_field_from_dict(
             example_dict=example_dict, field_name=total_water_path_field_name
@@ -225,7 +225,7 @@ def _subset_examples_one_grid_cell_and_season(
         example_dict, high_aod_threshold_unitless,
         low_zenith_angle_threshold_deg, num_examples_to_keep):
     """Subsets examples for one pair of grid cell season.
-    
+
     :param example_dict: Dictionary in format returned by
         `example_io.read_file`, containing only examples in one grid cell.
     :param high_aod_threshold_unitless: See documentation at top of file.
@@ -380,11 +380,11 @@ def _run(input_dir_name, num_grid_rows, num_grid_columns,
         numpy.argmin(numpy.absolute(grid_longitudes_deg_e - this_lng))
         for this_lng in longitude_by_example_deg_e
     ], dtype=int)
-    
+
     valid_time_by_example_unix_sec = example_utils.parse_example_ids(
         example_dict[example_utils.EXAMPLE_IDS_KEY]
     )[example_utils.VALID_TIMES_KEY]
-    
+
     season_index_by_example = numpy.array(
         [_time_to_season(t) for t in valid_time_by_example_unix_sec], dtype=int
     )
@@ -402,10 +402,10 @@ def _run(input_dir_name, num_grid_rows, num_grid_columns,
                 these_example_indices = numpy.where(numpy.logical_and(
                     these_spatial_flags, these_time_flags
                 ))[0]
-            
+
                 if len(these_example_indices) == 0:
                     continue
-    
+
                 this_example_dict = example_utils.subset_by_index(
                     example_dict=example_dict,
                     desired_indices=these_example_indices
@@ -429,6 +429,16 @@ def _run(input_dir_name, num_grid_rows, num_grid_columns,
                 )
 
                 subset_example_dicts.append(this_example_dict)
+
+    subset_example_dict = example_utils.concat_examples(subset_example_dicts)
+
+    print('\nWriting {0:d} subset examples to: "{1:s}"...'.format(
+        len(subset_example_dict[example_utils.EXAMPLE_IDS_KEY]),
+        output_file_name
+    ))
+    example_io.write_file(
+        example_dict=subset_example_dict, netcdf_file_name=output_file_name
+    )
 
 
 if __name__ == '__main__':
