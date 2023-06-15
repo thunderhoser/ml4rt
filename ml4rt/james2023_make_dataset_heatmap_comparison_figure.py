@@ -237,7 +237,7 @@ def _plot_heat_map_one_dataset(
         )
 
     colour_norm_object = pyplot.Normalize(vmin=-5., vmax=-1.)
-    frequency_matrix_log10[frequency_matrix_log10 < -5] = numpy.nan
+    # frequency_matrix_log10[frequency_matrix_log10 < -5] = numpy.nan
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
