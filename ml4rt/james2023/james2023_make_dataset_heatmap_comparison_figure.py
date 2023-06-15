@@ -44,6 +44,7 @@ MIN_VALUE_ARG_NAME = 'min_value_for_field'
 MAX_VALUE_ARG_NAME = 'max_value_for_field'
 NUM_BINS_ARG_NAME = 'num_bins_for_field'
 NUM_PANEL_ROWS_ARG_NAME = 'num_panel_rows'
+FIRST_PANEL_LETTER_ARG_NAME = 'first_panel_letter'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 DATASET_DIRS_HELP_STRING = (
@@ -75,6 +76,7 @@ NUM_BINS_HELP_STRING = (
 NUM_PANEL_ROWS_HELP_STRING = (
     'Number of rows in final concatenated figure (with one panel per dataset).'
 )
+FIRST_PANEL_LETTER_HELP_STRING = 'Letter used to label first panel.'
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -106,6 +108,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_PANEL_ROWS_ARG_NAME, type=int, required=True,
     help=NUM_PANEL_ROWS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + FIRST_PANEL_LETTER_ARG_NAME, type=str, required=False, default='a',
+    help=FIRST_PANEL_LETTER_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -229,8 +235,11 @@ def _plot_heat_map_one_dataset(
             bin_centers_for_field
         )
 
-    colour_norm_object = pyplot.Normalize(vmin=-5., vmax=-1.)
-    frequency_matrix_log10[frequency_matrix_log10 < -5] = numpy.nan
+    # colour_norm_object = pyplot.Normalize(vmin=-5., vmax=-1.)
+    # frequency_matrix_log10[frequency_matrix_log10 < -5] = numpy.nan
+
+    colour_norm_object = pyplot.Normalize(vmin=-6., vmax=-1.)
+    frequency_matrix_log10[frequency_matrix_log10 < -6] = numpy.nan
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
@@ -290,7 +299,7 @@ def _plot_heat_map_one_dataset(
 
 def _run(dataset_dir_names, dataset_description_strings, field_name,
          min_value_for_field, max_value_for_field, num_bins_for_field,
-         num_panel_rows, output_dir_name):
+         num_panel_rows, first_panel_letter, output_dir_name):
     """Compares one field across datasets, using heat maps to show 2-D dist.
 
     This is effectively the main method.
@@ -302,6 +311,7 @@ def _run(dataset_dir_names, dataset_description_strings, field_name,
     :param max_value_for_field: Same.
     :param num_bins_for_field: Same.
     :param num_panel_rows: Same.
+    :param first_panel_letter: Same.
     :param output_dir_name: Same.
     """
 
@@ -319,6 +329,7 @@ def _run(dataset_dir_names, dataset_description_strings, field_name,
 
     error_checking.assert_is_greater(max_value_for_field, min_value_for_field)
     error_checking.assert_is_geq(num_bins_for_field, 10)
+    error_checking.assert_equals(len(first_panel_letter), 1)
 
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -326,7 +337,7 @@ def _run(dataset_dir_names, dataset_description_strings, field_name,
 
     # Do actual stuff.
     panel_file_names = [''] * num_datasets
-    letter_label = None
+    letter_label = chr(ord(first_panel_letter) - 1)
 
     for i in range(num_datasets):
         figure_object, axes_object = _plot_heat_map_one_dataset(
@@ -410,5 +421,8 @@ if __name__ == '__main__':
         max_value_for_field=getattr(INPUT_ARG_OBJECT, MAX_VALUE_ARG_NAME),
         num_bins_for_field=getattr(INPUT_ARG_OBJECT, NUM_BINS_ARG_NAME),
         num_panel_rows=getattr(INPUT_ARG_OBJECT, NUM_PANEL_ROWS_ARG_NAME),
+        first_panel_letter=getattr(
+            INPUT_ARG_OBJECT, FIRST_PANEL_LETTER_ARG_NAME
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
