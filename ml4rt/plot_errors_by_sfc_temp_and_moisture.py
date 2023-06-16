@@ -31,45 +31,71 @@ MAX_SURFACE_SPEC_HUMIDITY_KG_KG01 = 0.024
 LONGWAVE_ALL_FLUX_NAME = 'all_longwave_flux_w_m02'
 LONGWAVE_NET_FLUX_NAME = 'net_longwave_flux_w_m02'
 
-STATISTIC_NAMES = [
+STATISTIC_NAMES_BASIC = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_all_flux_mae', 'longwave_net_flux_mae',
-    'longwave_net_flux_bias', 'num_examples'
+    'longwave_net_flux_bias'
 ]
-STATISTIC_NAMES_FANCY = [
-    r'Column-averaged HR MAE (K day$^{-1}$)',
-    r'Near-surface HR MAE (K day$^{-1}$)',
-    r'Column-averaged HR bias (K day$^{-1}$)',
-    r'Near-surface HR bias (K day$^{-1}$)',
-    r'All-flux MAE (W m$^{-2}$)',
-    r'Net-flux MAE (W m$^{-2}$)',
-    r'Net-flux bias (W m$^{-2}$)',
-    r'Number of profiles (log$_{10}$)'
+STATISTIC_NAMES_DETAILED = [
+    'longwave_mae', 'longwave_near_sfc_mae',
+    'longwave_bias', 'longwave_near_sfc_bias',
+    'longwave_down_flux_mae', 'longwave_down_flux_bias',
+    'longwave_up_flux_mae', 'longwave_up_flux_bias',
+    'longwave_net_flux_mae', 'longwave_net_flux_bias'
 ]
-STATISTIC_NAMES_FANCY_FRACTIONAL = [
-    'Relative column-averaged HR MAE (%)',
-    'Relative near-surface HR MAE (%)',
-    'Relative column-averaged HR bias (%)',
-    'Relative near-surface HR bias (%)',
-    'Relative all-flux MAE (%)',
-    'Relative net-flux MAE (%)',
-    'Relative net-flux bias (%)',
-    r'Number of profiles (log$_{10}$)'
-]
-TARGET_NAME_BY_STATISTIC = [
-    example_utils.LONGWAVE_HEATING_RATE_NAME,
-    example_utils.LONGWAVE_HEATING_RATE_NAME,
-    example_utils.LONGWAVE_HEATING_RATE_NAME,
-    example_utils.LONGWAVE_HEATING_RATE_NAME,
-    LONGWAVE_ALL_FLUX_NAME,
-    LONGWAVE_NET_FLUX_NAME,
-    LONGWAVE_NET_FLUX_NAME,
-    ''
-]
-TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
-    [-1, 0, -1, 0, -1, -1, -1, -1], dtype=int
-)
+STATISTIC_NAME_TO_FANCY = {
+    'longwave_mae': r'HR MAE (K day$^{-1}$)',
+    'longwave_near_sfc_mae': r'Near-surface HR MAE (K day$^{-1}$)',
+    'longwave_bias': r'HR bias (K day$^{-1}$)',
+    'longwave_near_sfc_bias': r'Near-surface HR bias (K day$^{-1}$)',
+    'longwave_down_flux_mae': r'Downwelling-flux MAE (W m$^{-2}$)',
+    'longwave_down_flux_bias': r'Downwelling-flux bias (W m$^{-2}$)',
+    'longwave_up_flux_mae': r'Upwelling-flux MAE (W m$^{-2}$)',
+    'longwave_up_flux_bias': r'Upwelling-flux bias (W m$^{-2}$)',
+    'longwave_net_flux_mae': r'Net-flux MAE (W m$^{-2}$)',
+    'longwave_net_flux_bias': r'Net-flux bias (W m$^{-2}$)',
+    'longwave_all_flux_mae': r'All-flux MAE (W m$^{-2}$)'
+}
+STATISTIC_NAME_TO_FANCY_FRACTIONAL = {
+    'longwave_mae': 'Relative HR MAE (%)',
+    'longwave_near_sfc_mae': 'Relative near-surface HR MAE (%)',
+    'longwave_bias': 'Relative HR bias (%)',
+    'longwave_near_sfc_bias': 'Relative near-surface HR bias (%)',
+    'longwave_down_flux_mae': 'Relative downwelling-flux MAE (%)',
+    'longwave_down_flux_bias': 'Relative downwelling-flux bias (%)',
+    'longwave_up_flux_mae': 'Relative upwelling-flux MAE (%)',
+    'longwave_up_flux_bias': 'Relative upwelling-flux bias (%)',
+    'longwave_net_flux_mae': 'Relative net-flux MAE (%)',
+    'longwave_net_flux_bias': 'Relative net-flux bias (%)',
+    'longwave_all_flux_mae': 'Relative all-flux MAE (%)'
+}
+STATISTIC_NAME_TO_TARGET_NAME = {
+    'longwave_mae': example_utils.LONGWAVE_HEATING_RATE_NAME,
+    'longwave_near_sfc_mae': example_utils.LONGWAVE_HEATING_RATE_NAME,
+    'longwave_bias': example_utils.LONGWAVE_HEATING_RATE_NAME,
+    'longwave_near_sfc_bias': example_utils.LONGWAVE_HEATING_RATE_NAME,
+    'longwave_down_flux_mae': example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+    'longwave_down_flux_bias': example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+    'longwave_up_flux_mae': example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
+    'longwave_up_flux_bias': example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
+    'longwave_net_flux_mae': LONGWAVE_NET_FLUX_NAME,
+    'longwave_net_flux_bias': LONGWAVE_NET_FLUX_NAME,
+    'longwave_all_flux_mae': LONGWAVE_ALL_FLUX_NAME
+}
+STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
+    'longwave_mae': -1,
+    'longwave_near_sfc_mae': 0,
+    'longwave_bias': -1,
+    'longwave_near_sfc_bias': 0,
+    'longwave_down_flux_mae': -1,
+    'longwave_down_flux_bias': -1,
+    'longwave_up_flux_mae': -1,
+    'longwave_up_flux_bias': -1,
+    'longwave_net_flux_mae': -1,
+    'longwave_net_flux_bias': -1,
+    'longwave_all_flux_mae': -1
+}
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -91,6 +117,7 @@ NUM_HUMIDITY_BINS_ARG_NAME = 'num_humidity_bins'
 MIN_HUMIDITY_LAPSE_RATE_ARG_NAME = 'min_humidity_lapse_rate_km01'
 MAX_HUMIDITY_LAPSE_RATE_ARG_NAME = 'max_humidity_lapse_rate_km01'
 PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
+PLOT_DETAILS_ARG_NAME = 'plot_details'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -121,8 +148,13 @@ MAX_HUMIDITY_LAPSE_RATE_HELP_STRING = (
     'surface specific humidity, leave this alone.'
 )
 PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
-    'Boolean flag.  If True (False), will plot fractional (raw) errors for '
+    'Boolean flag.  If 1 (0), will plot fractional (raw) errors for '
     'each metric -- "fractional" meaning as a fraction of the mean.'
+)
+PLOT_DETAILS_HELP_STRING = (
+    'Boolean flag.  If 1, will plot all the details, including two metrics '
+    '(MAE and bias) for every flux variable.  If 0, will plot only three flux-'
+    'based metrics: all-flux MAE, net-flux MAE, and net-flux bias.'
 )
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with example files.  Temperature and humidity values '
@@ -164,6 +196,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_FRACTIONAL_ERRORS_ARG_NAME, type=int, required=False, default=0,
     help=PLOT_FRACTIONAL_ERRORS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_DETAILS_ARG_NAME, type=int, required=False, default=0,
+    help=PLOT_DETAILS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=True,
@@ -423,7 +459,8 @@ def _run(prediction_file_name, num_temperature_bins,
          min_temp_lapse_rate_k_km01, max_temp_lapse_rate_k_km01,
          num_humidity_bins,
          min_humidity_lapse_rate_km01, max_humidity_lapse_rate_km01,
-         plot_fractional_errors, example_dir_name, output_dir_name):
+         plot_fractional_errors, plot_details,
+         example_dir_name, output_dir_name):
     """Plots error metrics vs. surface temperature and surface humidity.
 
     This is effectively the main method.
@@ -436,6 +473,7 @@ def _run(prediction_file_name, num_temperature_bins,
     :param min_humidity_lapse_rate_km01: Same.
     :param max_humidity_lapse_rate_km01: Same.
     :param plot_fractional_errors: Same.
+    :param plot_details: Same.
     :param example_dir_name: Same.
     :param output_dir_name: Same.
     """
@@ -593,12 +631,24 @@ def _run(prediction_file_name, num_temperature_bins,
             LONGWAVE_ALL_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
         ]
 
+    if plot_details:
+        statistic_names = STATISTIC_NAMES_DETAILED
+    else:
+        statistic_names = STATISTIC_NAMES_BASIC
+
+    target_name_by_statistic = [
+        STATISTIC_NAME_TO_TARGET_NAME[s] for s in statistic_names
+    ]
+    target_height_index_by_statistic = numpy.array([
+        STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX[s] for s in statistic_names
+    ], dtype=int)
+
     found_data_flags = numpy.array(
-        [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
+        [t in available_target_names for t in target_name_by_statistic],
         dtype=bool
     )
     found_data_flags = numpy.array([
-        True if TARGET_NAME_BY_STATISTIC[i] == '' else found_data_flags[i]
+        True if target_name_by_statistic[i] == '' else found_data_flags[i]
         for i in range(len(found_data_flags))
     ], dtype=bool)
 
@@ -618,12 +668,12 @@ def _run(prediction_file_name, num_temperature_bins,
         )
 
         if (
-                TARGET_NAME_BY_STATISTIC[k] ==
+                target_name_by_statistic[k] ==
                 example_utils.LONGWAVE_HEATING_RATE_NAME
         ):
             channel_index = training_option_dict[
                 neural_net.VECTOR_TARGET_NAMES_KEY
-            ].index(TARGET_NAME_BY_STATISTIC[k])
+            ].index(target_name_by_statistic[k])
 
             actual_values = (
                 pd[prediction_io.VECTOR_TARGETS_KEY][..., channel_index]
@@ -632,14 +682,16 @@ def _run(prediction_file_name, num_temperature_bins,
                 pd[prediction_io.VECTOR_PREDICTIONS_KEY][..., channel_index]
             )
 
-            if TARGET_HEIGHT_INDEX_BY_STATISTIC[k] > -1:
+            if target_height_index_by_statistic[k] > -1:
                 actual_values = (
-                    actual_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
+                    actual_values[:, target_height_index_by_statistic[k]]
                 )
                 predicted_values = (
-                    predicted_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
+                    predicted_values[:, target_height_index_by_statistic[k]]
                 )
-        else:
+        elif target_name_by_statistic[k] in [
+                LONGWAVE_NET_FLUX_NAME, LONGWAVE_ALL_FLUX_NAME
+        ]:
             down_flux_index = training_option_dict[
                 neural_net.SCALAR_TARGET_NAMES_KEY
             ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
@@ -657,7 +709,7 @@ def _run(prediction_file_name, num_temperature_bins,
                 pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index]
             )
 
-            if TARGET_NAME_BY_STATISTIC[k] == LONGWAVE_NET_FLUX_NAME:
+            if target_name_by_statistic[k] == LONGWAVE_NET_FLUX_NAME:
                 actual_values = actual_net_flux_values
                 predicted_values = predicted_net_flux_values
             else:
@@ -671,6 +723,17 @@ def _run(prediction_file_name, num_temperature_bins,
                     pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
                     predicted_net_flux_values
                 ))
+        else:
+            channel_index = training_option_dict[
+                neural_net.SCALAR_TARGET_NAMES_KEY
+            ].index(target_name_by_statistic[k])
+
+            actual_values = (
+                pd[prediction_io.SCALAR_TARGETS_KEY][..., channel_index]
+            )
+            predicted_values = (
+                pd[prediction_io.SCALAR_PREDICTIONS_KEY][..., channel_index]
+            )
 
         for i in range(num_temperature_bins):
             for j in range(num_humidity_bins):
@@ -678,11 +741,11 @@ def _run(prediction_file_name, num_temperature_bins,
                     temperature_bin_indices == i, humidity_bin_indices == j
                 ))[0]
 
-                if STATISTIC_NAMES[k] == 'num_examples':
+                if statistic_names[k] == 'num_examples':
                     metric_matrix[i, j] = len(these_indices)
                     continue
 
-                if 'mae' in STATISTIC_NAMES[k]:
+                if 'mae' in statistic_names[k]:
                     these_errors = numpy.absolute(
                         actual_values[these_indices] -
                         predicted_values[these_indices]
@@ -706,13 +769,13 @@ def _run(prediction_file_name, num_temperature_bins,
         else:
             letter_label = chr(ord(letter_label) + 1)
 
-        if 'bias' in STATISTIC_NAMES[k]:
+        if 'bias' in statistic_names[k]:
             max_colour_value = numpy.nanmax(
                 numpy.absolute(metric_matrix)
             )
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
-        elif STATISTIC_NAMES[k] == 'num_examples':
+        elif statistic_names[k] == 'num_examples':
             metric_matrix = numpy.log10(metric_matrix)
             metric_matrix[numpy.isinf(metric_matrix)] = numpy.nan
 
@@ -752,15 +815,16 @@ def _run(prediction_file_name, num_temperature_bins,
             )
 
         axes_object.set_title(
-            STATISTIC_NAMES_FANCY_FRACTIONAL[k] if plot_fractional_errors
-            else STATISTIC_NAMES_FANCY[k]
+            STATISTIC_NAME_TO_FANCY_FRACTIONAL[statistic_names[k]]
+            if plot_fractional_errors
+            else STATISTIC_NAME_TO_FANCY[statistic_names[k]]
         )
         gg_plotting_utils.label_axes(
             axes_object=axes_object, label_string='({0:s})'.format(letter_label)
         )
 
         panel_file_names[m] = '{0:s}/{1:s}.jpg'.format(
-            output_dir_name, STATISTIC_NAMES[k]
+            output_dir_name, statistic_names[k]
         )
 
         print('Saving figure to: "{0:s}"...'.format(panel_file_names[m]))
@@ -819,6 +883,7 @@ if __name__ == '__main__':
         plot_fractional_errors=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
         ),
+        plot_details=bool(getattr(INPUT_ARG_OBJECT, PLOT_DETAILS_ARG_NAME)),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
