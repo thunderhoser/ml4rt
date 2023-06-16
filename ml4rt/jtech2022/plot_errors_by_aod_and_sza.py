@@ -24,42 +24,75 @@ MAX_AEROSOL_OPTICAL_DEPTH = 1.5
 SHORTWAVE_ALL_FLUX_NAME = 'all_shortwave_flux_w_m02'
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
 
-STATISTIC_NAMES = [
+STATISTIC_NAMES_BASIC = [
     'shortwave_mae', 'shortwave_near_sfc_mae',
     'shortwave_bias', 'shortwave_near_sfc_bias',
     'shortwave_all_flux_mae', 'shortwave_net_flux_mae',
     'shortwave_net_flux_bias'
 ]
-STATISTIC_NAMES_FANCY = [
-    r'HR MAE (K day$^{-1}$)',
-    r'Near-surface HR MAE (K day$^{-1}$)',
-    r'HR bias (K day$^{-1}$)',
-    r'Near-surface HR bias (K day$^{-1}$)',
-    r'All-flux MAE (W m$^{-2}$)',
-    r'Net-flux MAE (W m$^{-2}$)',
-    r'Net-flux bias (W m$^{-2}$)'
+STATISTIC_NAMES_DETAILED = [
+    'shortwave_mae', 'shortwave_near_sfc_mae',
+    'shortwave_bias', 'shortwave_near_sfc_bias',
+    'shortwave_down_flux_mae', 'shortwave_down_flux_bias',
+    'shortwave_up_flux_mae', 'shortwave_up_flux_bias',
+    'shortwave_net_flux_mae', 'shortwave_net_flux_bias'
 ]
-STATISTIC_NAMES_FANCY_FRACTIONAL = [
-    'Relative HR MAE (%)',
-    'Relative near-surface HR MAE (%)',
-    'Relative HR bias (%)',
-    'Relative near-surface HR bias (%)',
-    'Relative all-flux MAE (%)',
-    'Relative net-flux MAE (%)',
-    'Relative net-flux bias (%)'
-]
-TARGET_NAME_BY_STATISTIC = [
-    example_utils.SHORTWAVE_HEATING_RATE_NAME,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME,
-    SHORTWAVE_ALL_FLUX_NAME,
-    SHORTWAVE_NET_FLUX_NAME,
-    SHORTWAVE_NET_FLUX_NAME
-]
-TARGET_HEIGHT_INDEX_BY_STATISTIC = numpy.array(
-    [-1, 0, -1, 0, -1, -1, -1], dtype=int
-)
+
+STATISTIC_NAME_TO_FANCY = {
+    'shortwave_mae': r'HR MAE (K day$^{-1}$)',
+    'shortwave_near_sfc_mae': r'Near-surface HR MAE (K day$^{-1}$)',
+    'shortwave_bias': r'HR bias (K day$^{-1}$)',
+    'shortwave_near_sfc_bias': r'Near-surface HR bias (K day$^{-1}$)',
+    'shortwave_down_flux_mae': r'Downwelling-flux MAE (W m$^{-2}$)',
+    'shortwave_down_flux_bias': r'Downwelling-flux bias (W m$^{-2}$)',
+    'shortwave_up_flux_mae': r'Upwelling-flux MAE (W m$^{-2}$)',
+    'shortwave_up_flux_bias': r'Upwelling-flux bias (W m$^{-2}$)',
+    'shortwave_net_flux_mae': r'Net-flux MAE (W m$^{-2}$)',
+    'shortwave_net_flux_bias': r'Net-flux bias (W m$^{-2}$)',
+    'shortwave_all_flux_mae': r'All-flux MAE (W m$^{-2}$)'
+}
+
+STATISTIC_NAME_TO_FANCY_FRACTIONAL = {
+    'shortwave_mae': 'Relative HR MAE (%)',
+    'shortwave_near_sfc_mae': 'Relative near-surface HR MAE (%)',
+    'shortwave_bias': 'Relative HR bias (%)',
+    'shortwave_near_sfc_bias': 'Relative near-surface HR bias (%)',
+    'shortwave_down_flux_mae': 'Relative downwelling-flux MAE (%)',
+    'shortwave_down_flux_bias': 'Relative downwelling-flux bias (%)',
+    'shortwave_up_flux_mae': 'Relative upwelling-flux MAE (%)',
+    'shortwave_up_flux_bias': 'Relative upwelling-flux bias (%)',
+    'shortwave_net_flux_mae': 'Relative net-flux MAE (%)',
+    'shortwave_net_flux_bias': 'Relative net-flux bias (%)',
+    'shortwave_all_flux_mae': 'Relative all-flux MAE (%)'
+}
+
+STATISTIC_NAME_TO_TARGET_NAME = {
+    'shortwave_mae': example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    'shortwave_near_sfc_mae': example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    'shortwave_bias': example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    'shortwave_near_sfc_bias': example_utils.SHORTWAVE_HEATING_RATE_NAME,
+    'shortwave_down_flux_mae': example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+    'shortwave_down_flux_bias': example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+    'shortwave_up_flux_mae': example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
+    'shortwave_up_flux_bias': example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
+    'shortwave_net_flux_mae': SHORTWAVE_NET_FLUX_NAME,
+    'shortwave_net_flux_bias': SHORTWAVE_NET_FLUX_NAME,
+    'shortwave_all_flux_mae': SHORTWAVE_ALL_FLUX_NAME
+}
+
+STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
+    'shortwave_mae': -1,
+    'shortwave_near_sfc_mae': 0,
+    'shortwave_bias': -1,
+    'shortwave_near_sfc_bias': 0,
+    'shortwave_down_flux_mae': -1,
+    'shortwave_down_flux_bias': -1,
+    'shortwave_up_flux_mae': -1,
+    'shortwave_up_flux_bias': -1,
+    'shortwave_net_flux_mae': -1,
+    'shortwave_net_flux_bias': -1,
+    'shortwave_all_flux_mae': -1
+}
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -74,6 +107,7 @@ INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
 PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
+PLOT_DETAILS_ARG_NAME = 'plot_details'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -84,8 +118,13 @@ INPUT_FILE_HELP_STRING = (
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for solar zenith angle.'
 NUM_AOD_BINS_HELP_STRING = 'Number of bins for aerosol optical depth (AOD).'
 PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
-    'Boolean flag.  If True (False), will plot fractional (raw) errors for '
-    'each metric -- "fractional" meaning as a fraction of the mean.'
+    'Boolean flag.  If 1 (0), will plot fractional (raw) errors for each '
+    'metric -- "fractional" meaning as a fraction of the mean.'
+)
+PLOT_DETAILS_HELP_STRING = (
+    'Boolean flag.  If 1, will plot all the details, including two metrics '
+    '(MAE and bias) for every flux variable.  If 0, will plot only three flux-'
+    'based metrics: all-flux MAE, net-flux MAE, and net-flux bias.'
 )
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with example files.  AOD values will be read from here.'
@@ -110,6 +149,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_FRACTIONAL_ERRORS_ARG_NAME, type=int, required=False, default=0,
     help=PLOT_FRACTIONAL_ERRORS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_DETAILS_ARG_NAME, type=int, required=False, default=0,
+    help=PLOT_DETAILS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=True,
@@ -293,7 +336,8 @@ def _plot_score_2d(
 
 
 def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
-         plot_fractional_errors, example_dir_name, output_dir_name):
+         plot_fractional_errors, plot_details, example_dir_name,
+         output_dir_name):
     """Plots error metrics vs. aerosol optical depth and solar zenith angle.
 
     This is effectively the main method.
@@ -302,6 +346,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
     :param num_zenith_angle_bins: Same.
     :param num_aod_bins: Same.
     :param plot_fractional_errors: Same.
+    :param plot_details: Same.
     :param example_dir_name: Same.
     :param output_dir_name: Same.
     """
@@ -389,8 +434,20 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
             SHORTWAVE_ALL_FLUX_NAME, SHORTWAVE_NET_FLUX_NAME
         ]
 
+    if plot_details:
+        statistic_names = STATISTIC_NAMES_DETAILED
+    else:
+        statistic_names = STATISTIC_NAMES_BASIC
+
+    target_name_by_statistic = [
+        STATISTIC_NAME_TO_TARGET_NAME[s] for s in statistic_names
+    ]
+    target_height_index_by_statistic = numpy.array([
+        STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX[s] for s in statistic_names
+    ], dtype=int)
+
     found_data_flags = numpy.array(
-        [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
+        [t in available_target_names for t in target_name_by_statistic],
         dtype=bool
     )
     plot_statistic_indices = numpy.where(found_data_flags)[0]
@@ -409,12 +466,12 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
         )
 
         if (
-                TARGET_NAME_BY_STATISTIC[k] ==
+                target_name_by_statistic[k] ==
                 example_utils.SHORTWAVE_HEATING_RATE_NAME
         ):
             channel_index = training_option_dict[
                 neural_net.VECTOR_TARGET_NAMES_KEY
-            ].index(TARGET_NAME_BY_STATISTIC[k])
+            ].index(target_name_by_statistic[k])
 
             actual_values = (
                 pd[prediction_io.VECTOR_TARGETS_KEY][..., channel_index]
@@ -423,14 +480,16 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                 pd[prediction_io.VECTOR_PREDICTIONS_KEY][..., channel_index]
             )
 
-            if TARGET_HEIGHT_INDEX_BY_STATISTIC[k] > -1:
+            if target_height_index_by_statistic[k] > -1:
                 actual_values = (
-                    actual_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
+                    actual_values[:, target_height_index_by_statistic[k]]
                 )
                 predicted_values = (
-                    predicted_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
+                    predicted_values[:, target_height_index_by_statistic[k]]
                 )
-        else:
+        elif target_name_by_statistic[k] in [
+                SHORTWAVE_NET_FLUX_NAME, SHORTWAVE_ALL_FLUX_NAME
+        ]:
             down_flux_index = training_option_dict[
                 neural_net.SCALAR_TARGET_NAMES_KEY
             ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
@@ -448,7 +507,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                 pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index]
             )
 
-            if TARGET_NAME_BY_STATISTIC[k] == SHORTWAVE_NET_FLUX_NAME:
+            if target_name_by_statistic[k] == SHORTWAVE_NET_FLUX_NAME:
                 actual_values = actual_net_flux_values
                 predicted_values = predicted_net_flux_values
             else:
@@ -462,6 +521,17 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                     pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
                     predicted_net_flux_values
                 ))
+        else:
+            channel_index = training_option_dict[
+                neural_net.SCALAR_TARGET_NAMES_KEY
+            ].index(target_name_by_statistic[k])
+
+            actual_values = (
+                pd[prediction_io.SCALAR_TARGETS_KEY][..., channel_index]
+            )
+            predicted_values = (
+                pd[prediction_io.SCALAR_PREDICTIONS_KEY][..., channel_index]
+            )
 
         for i in range(num_zenith_angle_bins):
             for j in range(num_aod_bins):
@@ -469,7 +539,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
                     zenith_angle_bin_indices == i, aod_bin_indices == j
                 ))[0]
 
-                if 'mae' in STATISTIC_NAMES[k]:
+                if 'mae' in statistic_names[k]:
                     these_errors = numpy.absolute(
                         actual_values[these_indices] -
                         predicted_values[these_indices]
@@ -503,7 +573,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
         else:
             letter_label = chr(ord(letter_label) + 1)
 
-        if 'bias' in STATISTIC_NAMES[k]:
+        if 'bias' in statistic_names[k]:
             max_colour_value = numpy.nanmax(
                 numpy.absolute(metric_matrix)
             )
@@ -528,15 +598,16 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
         axes_object.set_xlabel('Aerosol optical depth (unitless)')
         axes_object.set_ylabel('Solar zenith angle (deg)')
         axes_object.set_title(
-            STATISTIC_NAMES_FANCY_FRACTIONAL[k] if plot_fractional_errors
-            else STATISTIC_NAMES_FANCY[k]
+            STATISTIC_NAME_TO_FANCY_FRACTIONAL[statistic_names[k]]
+            if plot_fractional_errors
+            else STATISTIC_NAME_TO_FANCY[statistic_names[k]]
         )
         gg_plotting_utils.label_axes(
             axes_object=axes_object, label_string='({0:s})'.format(letter_label)
         )
 
         panel_file_names[m] = '{0:s}/{1:s}.jpg'.format(
-            output_dir_name, STATISTIC_NAMES[k]
+            output_dir_name, statistic_names[k]
         )
 
         print('Saving figure to: "{0:s}"...'.format(panel_file_names[m]))
@@ -579,6 +650,7 @@ if __name__ == '__main__':
         plot_fractional_errors=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
         ),
+        plot_details=bool(getattr(INPUT_ARG_OBJECT, PLOT_DETAILS_ARG_NAME)),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
