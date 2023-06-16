@@ -94,6 +94,7 @@ STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
     'shortwave_all_flux_mae': -1
 }
 
+NUM_PANEL_COLUMNS = 2
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -617,11 +618,8 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
         )
         pyplot.close(figure_object)
 
-    num_panel_columns = int(numpy.floor(
-        numpy.sqrt(num_statistics)
-    ))
     num_panel_rows = int(numpy.ceil(
-        float(num_statistics) / num_panel_columns
+        float(num_statistics) / NUM_PANEL_COLUMNS
     ))
 
     concat_file_name = '{0:s}/errors_by_aod_and_sza.jpg'.format(output_dir_name)
@@ -629,7 +627,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names,
         output_file_name=concat_file_name,
-        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_file_name,
