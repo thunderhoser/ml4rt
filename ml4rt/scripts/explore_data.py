@@ -283,7 +283,8 @@ def _plot_by_cloud_regime(example_dict, plot_shortwave, output_dir_name):
 
     cloud_layer_counts = example_utils.find_cloud_layers(
         example_dict=example_dict, min_path_kg_m02=MIN_PATH_FOR_CLOUD_KG_M02,
-        for_ice=False
+        cloud_type_string=example_utils.LIQUID_CLOUD_TYPE_STRING,
+        fog_only=False
     )[-1]
 
     no_cloud_indices = numpy.where(cloud_layer_counts == 0)[0]

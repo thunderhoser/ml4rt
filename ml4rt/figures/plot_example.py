@@ -225,7 +225,8 @@ def _run(example_file_name, output_dir_name):
     example_dict = example_io.read_file(example_file_name)
     cloud_layer_counts = example_utils.find_cloud_layers(
         example_dict=example_dict, min_path_kg_m02=MIN_CLOUD_LAYER_PATH_KG_M02,
-        for_ice=False
+        cloud_type_string=example_utils.LIQUID_CLOUD_TYPE_STRING,
+        fog_only=False
     )[1]
 
     desired_indices = numpy.where(cloud_layer_counts > 1)[0]

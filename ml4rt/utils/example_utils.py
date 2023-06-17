@@ -18,6 +18,21 @@ from ml4rt.utils import land_ocean_mask
 TOLERANCE = 1e-6
 MAX_AEROSOL_OPTICAL_DEPTH = 1.5
 
+LIQUID_ONLY_CLOUD_TYPE_STRING = 'liquid_only'
+ICE_ONLY_CLOUD_TYPE_STRING = 'ice_only'
+LIQUID_CLOUD_TYPE_STRING = 'liquid'
+ICE_CLOUD_TYPE_STRING = 'ice'
+MIXED_PHASE_CLOUD_TYPE_STRING = 'mixed_phase'
+ANY_CLOUD_TYPE_STRING = 'any'
+
+VALID_CLOUD_TYPE_STRINGS = [
+    LIQUID_ONLY_CLOUD_TYPE_STRING, ICE_ONLY_CLOUD_TYPE_STRING,
+    LIQUID_CLOUD_TYPE_STRING, ICE_CLOUD_TYPE_STRING,
+    MIXED_PHASE_CLOUD_TYPE_STRING, ANY_CLOUD_TYPE_STRING
+]
+
+MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02 = 1e-9
+
 DAYS_TO_SECONDS = 86400.
 GRAVITY_CONSTANT_M_S02 = 9.8066
 DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 1004.
@@ -199,6 +214,25 @@ ALL_VECTOR_TARGET_NAMES = [
 ]
 
 ALL_TARGET_NAMES = ALL_SCALAR_TARGET_NAMES + ALL_VECTOR_TARGET_NAMES
+
+
+def _check_cloud_type(cloud_type_string):
+    """Ensures validity of cloud type.
+
+    :param cloud_type_string: Cloud type.
+    :raises: ValueError: if `cloud_type_string not in VALID_CLOUD_TYPE_STRINGS`.
+    """
+
+    error_checking.assert_is_string(cloud_type_string)
+    if cloud_type_string in VALID_CLOUD_TYPE_STRINGS:
+        return
+
+    error_string = (
+        'Cloud type ("{0:s}") in not in list of accepted cloud types:\n{1:s}'
+    ).format(
+        cloud_type_string, str(VALID_CLOUD_TYPE_STRINGS)
+    )
+    raise ValueError(error_string)
 
 
 def _find_nonzero_runs(values):
@@ -1693,8 +1727,8 @@ def add_aerosols(example_dict, test_mode=False):
     return example_dict
 
 
-def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False,
-                      for_mixed_phase=False, fog_only=False):
+def find_cloud_layers(example_dict, min_path_kg_m02, cloud_type_string,
+                      fog_only=False):
     """Finds liquid- or ice-cloud layers in each profile.
 
     E = number of examples
@@ -1703,12 +1737,8 @@ def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False,
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
     :param min_path_kg_m02: Minimum path in each cloud layer (kg m^-2).
-    :param for_ice: Boolean flag.  If True, will find ice clouds.  If False,
-        will find liquid clouds.
-    :param for_mixed_phase: Boolean flag.  If True, will find only clouds with
-        both phases (liquid and ice).  If False, will look for clouds with a
-        particular phase (liquid or ice), regardless of whether they are single-
-        or mixed-phase.
+    :param cloud_type_string: Cloud type (must be accepted by
+        `_check_cloud_type`).
     :param fog_only: Boolean flag.  If True, will find only clouds that touch
         surface.  If False, will find clouds at all levels.
     :return: cloud_mask_matrix: E-by-H numpy array of Boolean flags, indicating
@@ -1718,97 +1748,170 @@ def find_cloud_layers(example_dict, min_path_kg_m02, for_ice=False,
     """
 
     error_checking.assert_is_greater(min_path_kg_m02, 0.)
-    error_checking.assert_is_boolean(for_ice)
-    error_checking.assert_is_boolean(for_mixed_phase)
     error_checking.assert_is_boolean(fog_only)
+    _check_cloud_type(cloud_type_string)
 
-    ice_path_matrix_kg_m02 = None
-    liquid_path_matrix_kg_m02 = None
-
-    if for_mixed_phase:
-        for_ice = False
-
-        ice_path_matrix_kg_m02 = get_field_from_dict(
+    if cloud_type_string == LIQUID_ONLY_CLOUD_TYPE_STRING:
+        desired_path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
+        )
+        other_path_matrix_kg_m02 = get_field_from_dict(
             example_dict=example_dict, field_name=UPWARD_ICE_WATER_PATH_NAME
         )
+    elif cloud_type_string == ICE_ONLY_CLOUD_TYPE_STRING:
+        desired_path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_ICE_WATER_PATH_NAME
+        )
+        other_path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
+        )
+    elif cloud_type_string == LIQUID_CLOUD_TYPE_STRING:
+        desired_path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
+        )
+        other_path_matrix_kg_m02 = None
+    elif cloud_type_string == ICE_CLOUD_TYPE_STRING:
+        desired_path_matrix_kg_m02 = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_ICE_WATER_PATH_NAME
+        )
+        other_path_matrix_kg_m02 = None
+    else: # any or mixed-phase
+        first_matrix = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
+        )
+        second_matrix = get_field_from_dict(
+            example_dict=example_dict, field_name=UPWARD_ICE_WATER_PATH_NAME
+        )
+        desired_path_matrix_kg_m02 = first_matrix + second_matrix
+        other_path_matrix_kg_m02 = None
+
+    desired_path_diff_matrix_kg_m02 = numpy.diff(
+        desired_path_matrix_kg_m02, axis=1, prepend=0.
+    )
+    if other_path_matrix_kg_m02 is None:
+        other_path_diff_matrix_kg_m02 = None
+    else:
+        other_path_diff_matrix_kg_m02 = numpy.diff(
+            other_path_matrix_kg_m02, axis=1, prepend=0.
+        )
+
+    del desired_path_matrix_kg_m02, other_path_matrix_kg_m02
+
+    if cloud_type_string in [
+            LIQUID_CLOUD_TYPE_STRING, LIQUID_ONLY_CLOUD_TYPE_STRING
+    ]:
+        desired_path_diff_matrix_kg_m02[
+            desired_path_diff_matrix_kg_m02 <
+            MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+        ] = 0.
+
+        if other_path_diff_matrix_kg_m02 is not None:
+            other_path_diff_matrix_kg_m02[
+                other_path_diff_matrix_kg_m02 <
+                MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+            ] = 0.
+    else:
+        desired_path_diff_matrix_kg_m02[
+            desired_path_diff_matrix_kg_m02 <
+            MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+        ] = 0.
+
+        if other_path_diff_matrix_kg_m02 is not None:
+            other_path_diff_matrix_kg_m02[
+                other_path_diff_matrix_kg_m02 <
+                MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+            ] = 0.
+
+    liquid_path_diff_matrix_kg_m02 = None
+    ice_path_diff_matrix_kg_m02 = None
+
+    if cloud_type_string == MIXED_PHASE_CLOUD_TYPE_STRING:
         liquid_path_matrix_kg_m02 = get_field_from_dict(
             example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
         )
-        path_matrix_kg_m02 = ice_path_matrix_kg_m02 + liquid_path_matrix_kg_m02
-    elif for_ice:
-        path_matrix_kg_m02 = get_field_from_dict(
+        ice_path_matrix_kg_m02 = get_field_from_dict(
             example_dict=example_dict, field_name=UPWARD_ICE_WATER_PATH_NAME
-        )
-    else:
-        path_matrix_kg_m02 = get_field_from_dict(
-            example_dict=example_dict, field_name=UPWARD_LIQUID_WATER_PATH_NAME
-        )
-
-    path_diff_matrix_kg_m02 = numpy.diff(path_matrix_kg_m02, axis=1, prepend=0.)
-
-    if for_mixed_phase:
-        ice_path_diff_matrix_kg_m02 = numpy.diff(
-            ice_path_matrix_kg_m02, axis=1, prepend=0.
         )
         liquid_path_diff_matrix_kg_m02 = numpy.diff(
             liquid_path_matrix_kg_m02, axis=1, prepend=0.
         )
-    else:
-        ice_path_diff_matrix_kg_m02 = None
-        liquid_path_diff_matrix_kg_m02 = None
+        ice_path_diff_matrix_kg_m02 = numpy.diff(
+            ice_path_matrix_kg_m02, axis=1, prepend=0.
+        )
+        del liquid_path_matrix_kg_m02, ice_path_matrix_kg_m02
 
-    num_examples = path_matrix_kg_m02.shape[0]
-    cloud_mask_matrix = numpy.full(path_matrix_kg_m02.shape, False, dtype=bool)
+        liquid_path_diff_matrix_kg_m02[
+            liquid_path_diff_matrix_kg_m02 <
+            MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+        ] = 0.
+
+        ice_path_diff_matrix_kg_m02[
+            ice_path_diff_matrix_kg_m02 <
+            MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+        ] = 0.
+
+    num_examples = desired_path_diff_matrix_kg_m02.shape[0]
+    cloud_mask_matrix = numpy.full(
+        desired_path_diff_matrix_kg_m02.shape, False, dtype=bool
+    )
     cloud_layer_counts = numpy.full(num_examples, 0, dtype=int)
 
     for i in range(num_examples):
-        these_diffs = path_diff_matrix_kg_m02[i, :] + 0.
-
-        if for_mixed_phase or for_ice:
-            these_diffs[these_diffs <= 1e-9] = 0
-        else:
-            these_diffs[these_diffs <= 1e-6] = 0
-
-        these_start_indices, these_end_indices = _find_nonzero_runs(these_diffs)
-        this_num_layers = len(these_start_indices)
+        these_start_idx, these_end_idx = _find_nonzero_runs(
+            desired_path_diff_matrix_kg_m02[i, :]
+        )
+        this_num_layers = len(these_start_idx)
 
         for j in range(this_num_layers):
-            if fog_only and these_start_indices[j] != 0:
+            if fog_only and these_start_idx[j] != 0:
                 continue
 
             this_path_kg_m02 = numpy.sum(
-                these_diffs[these_start_indices[j]:(these_end_indices[j] + 1)]
+                desired_path_diff_matrix_kg_m02[
+                    i, these_start_idx[j]:(these_end_idx[j] + 1)
+                ]
             )
-
             if this_path_kg_m02 < min_path_kg_m02:
                 continue
 
-            if for_mixed_phase:
-                these_ice_diffs = ice_path_diff_matrix_kg_m02[i, :] + 0.
-                these_ice_diffs[these_ice_diffs <= 1e-9] = 0
-                these_liquid_diffs = liquid_path_diff_matrix_kg_m02[i, :] + 0.
-                these_liquid_diffs[these_liquid_diffs <= 1e-6] = 0
-
+            if cloud_type_string == MIXED_PHASE_CLOUD_TYPE_STRING:
                 this_ice_path_kg_m02 = numpy.sum(
-                    these_ice_diffs[
-                        these_start_indices[j]:(these_end_indices[j] + 1)
+                    ice_path_diff_matrix_kg_m02[
+                        i, these_start_idx[j]:(these_end_idx[j] + 1)
                     ]
                 )
+
+                if (
+                        this_ice_path_kg_m02 <
+                        MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
+                ):
+                    continue
 
                 this_liquid_path_kg_m02 = numpy.sum(
-                    these_liquid_diffs[
-                        these_start_indices[j]:(these_end_indices[j] + 1)
+                    liquid_path_diff_matrix_kg_m02[
+                        i, these_start_idx[j]:(these_end_idx[j] + 1)
                     ]
                 )
 
-                if not (
-                        this_ice_path_kg_m02 > 0 and this_liquid_path_kg_m02 > 0
+                if (
+                        this_liquid_path_kg_m02 <
+                        MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02
                 ):
+                    continue
+
+            if other_path_diff_matrix_kg_m02 is not None:
+                this_other_path_kg_m02 = numpy.sum(
+                    other_path_diff_matrix_kg_m02[
+                        i, these_start_idx[j]:(these_end_idx[j] + 1)
+                    ]
+                )
+
+                if this_other_path_kg_m02 > MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02:
                     continue
 
             cloud_layer_counts[i] += 1
             cloud_mask_matrix[
-                i, these_start_indices[j]:(these_end_indices[j] + 1)
+                i, these_start_idx[j]:(these_end_idx[j] + 1)
             ] = True
 
     return cloud_mask_matrix, cloud_layer_counts
