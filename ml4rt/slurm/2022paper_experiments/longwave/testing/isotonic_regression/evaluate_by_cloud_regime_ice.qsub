@@ -46,7 +46,7 @@ while ($i <= ${#REGIME_STRINGS_DASHED})
     set regime_string_dashed=${REGIME_STRINGS_DASHED[$i]}
     set regime_string_underscored=${REGIME_STRINGS_UNDERSCORED[$i]}
     
-    set prediction_file_name="${testing_dir_name}/by_ice_cloud_regime/predictions_${regime_string_dashed}.nc"
+    set prediction_file_name="${testing_dir_name}/by_ice_cloud_regime/${regime_string_underscored}/predictions.nc"
     set evaluation_dir_name="${testing_dir_name}/by_ice_cloud_regime/${regime_string_underscored}"
     
     python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
