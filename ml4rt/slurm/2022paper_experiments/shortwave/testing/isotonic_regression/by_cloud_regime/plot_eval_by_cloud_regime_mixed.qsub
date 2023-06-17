@@ -48,4 +48,5 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --confidence_level=0.99 \
 --use_log_scale=1 \
 --plot_by_height=0 \
+--report_metrics_in_titles=0 \
 --output_dir_name="${evaluation_dir_name}"
