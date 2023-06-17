@@ -196,6 +196,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 GRID_SPACING_ARG_NAME = 'grid_spacing_deg'
+MAX_COLOUR_PERCENTILE_ARG_NAME = 'max_colour_percentile'
 PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
 PLOT_DETAILS_ARG_NAME = 'plot_details'
 MIN_EXAMPLES_ARG_NAME = 'min_num_examples'
@@ -207,6 +208,9 @@ PREDICTION_FILE_HELP_STRING = (
     '`prediction_io.read_file`.'
 )
 GRID_SPACING_HELP_STRING = 'Grid spacing (degrees).'
+MAX_COLOUR_PERCENTILE_HELP_STRING = (
+    'Max percentile (from 0...100) to show in colour bars.'
+)
 PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot fractional (raw) errors for '
     'each metric -- "fractional" meaning as a fraction of the mean.'
@@ -236,6 +240,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + GRID_SPACING_ARG_NAME, type=float, required=True,
     help=GRID_SPACING_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_COLOUR_PERCENTILE_ARG_NAME, type=float, required=False,
+    default=100, help=MAX_COLOUR_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_FRACTIONAL_ERRORS_ARG_NAME, type=int, required=False, default=0,
@@ -321,7 +329,7 @@ def _create_latlng_grid(
 
 def _plot_one_score(
         score_matrix, score_is_bias, score_is_num_examples,
-        grid_latitudes_deg_n, grid_longitudes_deg_e,
+        max_colour_percentile, grid_latitudes_deg_n, grid_longitudes_deg_e,
         border_latitudes_deg_n, border_longitudes_deg_e,
         title_string, letter_label, output_file_name):
     """Plots one score on 2-D georeferenced grid.
@@ -333,6 +341,7 @@ def _plot_one_score(
     :param score_matrix: M-by-N numpy array of scores.
     :param score_is_bias: Boolean flag.  If True, plotting a bias.
     :param score_is_num_examples: Boolean flag.  If True, plotting num examples.
+    :param max_colour_percentile: Max percentile to show in colour bar.
     :param grid_latitudes_deg_n: length-M numpy array of latitudes (deg N).
     :param grid_longitudes_deg_e: length-N numpy array of longitudes (deg E).
     :param border_latitudes_deg_n: length-P numpy array of latitudes (deg N).
@@ -358,19 +367,27 @@ def _plot_one_score(
     )
 
     if score_is_bias:
-        max_colour_value = numpy.nanmax(
-            numpy.absolute(score_matrix)
+        max_colour_value = numpy.nanpercentile(
+            numpy.absolute(score_matrix), max_colour_percentile
         )
         min_colour_value = -1 * max_colour_value
         colour_map_object = BIAS_COLOUR_MAP_OBJECT
     elif score_is_num_examples:
         score_matrix = numpy.log10(1. + score_matrix)
-        min_colour_value = numpy.nanmin(score_matrix)
-        max_colour_value = numpy.nanmax(score_matrix)
+        min_colour_value = numpy.nanpercentile(
+            score_matrix, 100 - max_colour_percentile
+        )
+        max_colour_value = numpy.nanpercentile(
+            score_matrix, max_colour_percentile
+        )
         colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
     else:
-        min_colour_value = numpy.nanmin(score_matrix)
-        max_colour_value = numpy.nanmax(score_matrix)
+        min_colour_value = numpy.nanpercentile(
+            score_matrix, 100 - max_colour_percentile
+        )
+        max_colour_value = numpy.nanpercentile(
+            score_matrix, max_colour_percentile
+        )
         colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
     colour_norm_object = pyplot.Normalize(
@@ -449,14 +466,16 @@ def _plot_one_score(
     pyplot.close(figure_object)
 
 
-def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
-         plot_details, min_num_examples, plot_num_examples, output_dir_name):
+def _run(prediction_file_name, grid_spacing_deg, max_colour_percentile,
+         plot_fractional_errors, plot_details, min_num_examples,
+         plot_num_examples, output_dir_name):
     """Plots error metrics vs. geographic location on a world map.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
     :param grid_spacing_deg: Same.
+    :param max_colour_percentile: Same.
     :param plot_fractional_errors: Same.
     :param plot_details: Same.
     :param min_num_examples: Same.
@@ -467,6 +486,8 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
     error_checking.assert_is_greater(grid_spacing_deg, 0.)
     error_checking.assert_is_leq(grid_spacing_deg, 10.)
     error_checking.assert_is_greater(min_num_examples, 0)
+    error_checking.assert_is_geq(max_colour_percentile, 80.)
+    error_checking.assert_is_leq(max_colour_percentile, 100.)
 
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -772,6 +793,7 @@ def _run(prediction_file_name, grid_spacing_deg, plot_fractional_errors,
             score_matrix=metric_matrix,
             score_is_bias='bias' in statistic_names[k],
             score_is_num_examples=statistic_names[k] == 'num_examples',
+            max_colour_percentile=max_colour_percentile,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -806,6 +828,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
         grid_spacing_deg=getattr(INPUT_ARG_OBJECT, GRID_SPACING_ARG_NAME),
+        max_colour_percentile=getattr(
+            INPUT_ARG_OBJECT, MAX_COLOUR_PERCENTILE_ARG_NAME
+        ),
         plot_fractional_errors=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
         ),
