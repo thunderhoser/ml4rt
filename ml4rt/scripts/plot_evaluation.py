@@ -134,6 +134,7 @@ SET_DESCRIPTIONS_ARG_NAME = 'set_descriptions'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PLOT_BY_HEIGHT_ARG_NAME = 'plot_by_height'
+METRICS_IN_TITLES_ARG_NAME = 'report_metrics_in_titles'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILES_HELP_STRING = (
@@ -169,6 +170,10 @@ PLOT_BY_HEIGHT_HELP_STRING = (
     'Boolean flag.  If 1, will plot Taylor diagram and attributes diagram for '
     'each vector field at each height.  If 0, will not plot these things.'
 )
+METRICS_IN_TITLES_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will (not) report overall metrics in panel '
+    'titles.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
 )
@@ -203,6 +208,10 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_BY_HEIGHT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + METRICS_IN_TITLES_ARG_NAME, type=int, required=False, default=1,
+    help=METRICS_IN_TITLES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -211,8 +220,8 @@ INPUT_ARG_PARSER.add_argument(
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
-        mean_training_example_dict, target_name, output_dir_name,
-        height_m_agl=None, force_plot_legend=False):
+        mean_training_example_dict, target_name, report_reliability_in_title,
+        output_dir_name, height_m_agl=None, force_plot_legend=False):
     """Plots attributes diagram for each set and each target variable.
 
     S = number of evaluation sets
@@ -232,6 +241,8 @@ def _plot_attributes_diagram(
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
     :param target_name: Name of target variable.
+    :param report_reliability_in_title: Boolean flag.  If True, will report
+        overall reliability in title.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     :param height_m_agl: Height (metres above ground level).
@@ -557,11 +568,11 @@ def _plot_attributes_diagram(
             title_string += ' at {0:d} m AGL'.format(
                 int(numpy.round(height_m_agl))
             )
-
-        title_string += '\nREL = {0:.2f} {1:s}'.format(
-            numpy.mean(reliabilities_by_set[main_index]),
-            r'W$^2$ m$^{-4}$' if is_scalar or is_aux else r'K$^2$ day$^{-2}$'
-        )
+        if report_reliability_in_title:
+            title_string += '\nREL = {0:.2f} {1:s}'.format(
+                numpy.mean(reliabilities_by_set[main_index]),
+                r'W$^2$ m$^{-4}$' if is_scalar or is_aux else r'K$^2$ day$^{-2}$'
+            )
 
         axes_object.set_title(title_string)
 
@@ -636,7 +647,7 @@ def _plot_attributes_diagram(
 def _plot_score_profile(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_verbose, confidence_level, target_name, score_name,
-        use_log_scale, output_dir_name):
+        use_log_scale, report_max_in_title, output_dir_name):
     """Plots vertical profile of one score.
 
     :param evaluation_tables_xarray: See doc for `_plot_attributes_diagram`.
@@ -648,6 +659,8 @@ def _plot_score_profile(
     :param score_name: Name of score being plotted.
     :param use_log_scale: Boolean flag.  If True, will plot heights (y-axis) in
         log scale.
+    :param report_max_in_title: Boolean flag.  If True, will report maximum in
+        title.
     :param output_dir_name: Name of output directory.  Figure will be saved
         here.
     """
@@ -730,16 +743,17 @@ def _plot_score_profile(
         TARGET_NAME_TO_VERBOSE[target_name]
     )
 
-    if score_name == evaluation_plotting.MAE_NAME:
-        title_string += '\nMax value = {0:.2f}'.format(
-            numpy.nanmax(numpy.nanmean(this_score_matrix, axis=1))
-        )
-    elif score_name == evaluation_plotting.BIAS_NAME:
-        title_string += '\nMax absolute value = {0:.2f}'.format(
-            numpy.nanmax(
-                numpy.absolute(numpy.nanmean(this_score_matrix, axis=1))
+    if report_max_in_title:
+        if score_name == evaluation_plotting.MAE_NAME:
+            title_string += '\nMax value = {0:.2f}'.format(
+                numpy.nanmax(numpy.nanmean(this_score_matrix, axis=1))
             )
-        )
+        elif score_name == evaluation_plotting.BIAS_NAME:
+            title_string += '\nMax absolute value = {0:.2f}'.format(
+                numpy.nanmax(
+                    numpy.absolute(numpy.nanmean(this_score_matrix, axis=1))
+                )
+            )
 
     x_label_string = '{0:s}'.format(SCORE_NAME_TO_VERBOSE[score_name])
 
@@ -1129,7 +1143,7 @@ def _plot_reliability_by_height(
 
 def _run(evaluation_file_names, line_styles, line_colour_strings,
          set_descriptions_verbose, confidence_level, use_log_scale,
-         plot_by_height, output_dir_name):
+         plot_by_height, report_metrics_in_titles, output_dir_name):
     """Plots model evaluation.
 
     This is effectively the main method.
@@ -1141,6 +1155,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     :param confidence_level: Same.
     :param use_log_scale: Same.
     :param plot_by_height: Same.
+    :param report_metrics_in_titles: Same.
     :param output_dir_name: Same.
     """
 
@@ -1316,7 +1331,9 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 set_descriptions_verbose=set_descriptions_verbose,
                 confidence_level=confidence_level,
                 target_name=vector_target_names[k], score_name=this_score_name,
-                use_log_scale=use_log_scale, output_dir_name=output_dir_name
+                use_log_scale=use_log_scale,
+                report_max_in_title=report_metrics_in_titles,
+                output_dir_name=output_dir_name
             )
 
     print(SEPARATOR_STRING)
@@ -1331,6 +1348,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             confidence_level=confidence_level,
             mean_training_example_dict=mean_training_example_dict,
             target_name=scalar_target_names[k],
+            report_reliability_in_title=report_metrics_in_titles,
             output_dir_name=output_dir_name
         )
 
@@ -1344,6 +1362,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             confidence_level=confidence_level,
             mean_training_example_dict=mean_training_example_dict,
             target_name=aux_target_names[k],
+            report_reliability_in_title=report_metrics_in_titles,
             output_dir_name=output_dir_name
         )
 
@@ -1358,6 +1377,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 confidence_level=confidence_level,
                 mean_training_example_dict=mean_training_example_dict,
                 height_m_agl=None, target_name=vector_target_names[k],
+                report_reliability_in_title=report_metrics_in_titles,
                 output_dir_name=output_dir_name,
                 force_plot_legend=num_evaluation_sets > 1
             )
@@ -1379,6 +1399,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 mean_training_example_dict=mean_training_example_dict,
                 height_m_agl=heights_m_agl[j],
                 target_name=vector_target_names[k],
+                report_reliability_in_title=report_metrics_in_titles,
                 output_dir_name=output_dir_name
             )
 
@@ -1399,5 +1420,8 @@ if __name__ == '__main__':
         confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
+        report_metrics_in_titles=bool(
+            getattr(INPUT_ARG_OBJECT, METRICS_IN_TITLES_ARG_NAME)
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
