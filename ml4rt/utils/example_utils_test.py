@@ -570,6 +570,8 @@ AIR_DENSITY_MATRIX_KG_M03 = numpy.array([
 ])
 
 # The following constants are used to test find_cloud_layers.
+MIN_PATH_KG_M02 = 0.05
+
 THIS_LWP_MATRIX_KG_M02 = 0.001 * numpy.array([
     [0, 0, 0, 1, 2, 2, 2, 2, 3, 4, 4, 4, 4, 5, 6, 6, 6, 6],
     [10, 20, 50, 70, 90, 90, 90, 90, 90, 90, 90, 110, 110, 130, 130, 150, 150,
@@ -577,26 +579,49 @@ THIS_LWP_MATRIX_KG_M02 = 0.001 * numpy.array([
     [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51]
 ], dtype=float)
 
-MIN_PATH_KG_M02 = 0.05
-
-CLOUD_MASK_MATRIX = numpy.array([
+LIQUID_CLOUD_MASK_MATRIX = numpy.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ], dtype=bool)
 
-CLOUD_LAYER_COUNTS = numpy.array([0, 2, 1], dtype=int)
+LIQUID_CLOUD_LAYER_COUNTS = numpy.array([0, 2, 1], dtype=int)
+
+THIS_IWP_MATRIX_KG_M02 = 0.001 * numpy.array([
+    [50, 50, 50, 98, 98, 98, 98, 98, 98, 98, 98, 98, 98, 98, 98, 98, 98, 98],
+    [0, 0, 0, 0, 0, 0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 550],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+], dtype=float)
+
+ICE_CLOUD_MASK_MATRIX = numpy.array([
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=bool)
+
+ICE_CLOUD_LAYER_COUNTS = numpy.array([1, 1, 0], dtype=int)
+
+MIXED_PHASE_CLOUD_MASK_MATRIX = numpy.array([
+    [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+], dtype=bool)
+
+MIXED_PHASE_CLOUD_LAYER_COUNTS = numpy.array([1, 1, 1], dtype=int)
 
 THESE_HEIGHTS_M_AGL = numpy.array([
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
 ], dtype=float)
 
-THESE_VECTOR_PREDICTOR_NAMES = [example_utils.UPWARD_LIQUID_WATER_PATH_NAME]
-THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
-    THIS_LWP_MATRIX_KG_M02, axis=-1
+THESE_VECTOR_PREDICTOR_NAMES = [
+    example_utils.UPWARD_LIQUID_WATER_PATH_NAME,
+    example_utils.UPWARD_ICE_WATER_PATH_NAME
+]
+THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack(
+    (THIS_LWP_MATRIX_KG_M02, THIS_IWP_MATRIX_KG_M02), axis=-1
 )
 
-EXAMPLE_DICT_FOR_CLOUD_MASK = {
+EXAMPLE_DICT_FOR_CLOUD = {
     example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX,
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: THESE_VECTOR_PREDICTOR_NAMES,
     example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
@@ -1409,19 +1434,68 @@ class ExampleUtilsTests(unittest.TestCase):
             atol=TOLERANCE
         ))
 
-    def test_find_cloud_layers(self):
-        """Ensures correct output from find_cloud_layers."""
+    def test_find_cloud_layers_liquid(self):
+        """Ensures correct output from find_cloud_layers.
+
+        In this case, looking for clouds with liquid and maybe ice.
+        """
 
         this_mask_matrix, these_cloud_layer_counts = (
             example_utils.find_cloud_layers(
-                example_dict=EXAMPLE_DICT_FOR_CLOUD_MASK,
-                min_path_kg_m02=MIN_PATH_KG_M02, for_ice=False
+                example_dict=EXAMPLE_DICT_FOR_CLOUD,
+                min_path_kg_m02=MIN_PATH_KG_M02,
+                for_ice=False, for_mixed_phase=False, fog_only=False
             )
         )
 
-        self.assertTrue(numpy.array_equal(this_mask_matrix, CLOUD_MASK_MATRIX))
         self.assertTrue(numpy.array_equal(
-            these_cloud_layer_counts, CLOUD_LAYER_COUNTS
+            this_mask_matrix, LIQUID_CLOUD_MASK_MATRIX
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_cloud_layer_counts, LIQUID_CLOUD_LAYER_COUNTS
+        ))
+
+    def test_find_cloud_layers_ice(self):
+        """Ensures correct output from find_cloud_layers.
+
+        In this case, looking for clouds with ice and maybe liquid.
+        """
+
+        this_mask_matrix, these_cloud_layer_counts = (
+            example_utils.find_cloud_layers(
+                example_dict=EXAMPLE_DICT_FOR_CLOUD,
+                min_path_kg_m02=MIN_PATH_KG_M02,
+                for_ice=True, for_mixed_phase=False, fog_only=False
+            )
+        )
+
+        self.assertTrue(numpy.array_equal(
+            this_mask_matrix, ICE_CLOUD_MASK_MATRIX
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_cloud_layer_counts, ICE_CLOUD_LAYER_COUNTS
+        ))
+
+    def test_find_cloud_layers_mixed_phase(self):
+        """Ensures correct output from find_cloud_layers.
+
+        In this case, looking for mixed-phase clouds.
+        """
+
+        this_mask_matrix, these_cloud_layer_counts = (
+            example_utils.find_cloud_layers(
+                example_dict=EXAMPLE_DICT_FOR_CLOUD,
+                min_path_kg_m02=MIN_PATH_KG_M02,
+                for_ice=False, for_mixed_phase=True, fog_only=False
+            )
+        )
+
+
+        self.assertTrue(numpy.array_equal(
+            this_mask_matrix, MIXED_PHASE_CLOUD_MASK_MATRIX
+        ))
+        self.assertTrue(numpy.array_equal(
+            these_cloud_layer_counts, MIXED_PHASE_CLOUD_LAYER_COUNTS
         ))
 
     def test_concat_examples_good(self):
