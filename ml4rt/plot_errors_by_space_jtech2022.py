@@ -1,24 +1,31 @@
 """Plots error metrics vs. geographic location on a world map."""
 
 import os
+import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-from gewittergefahr.gg_utils import grids
-from gewittergefahr.gg_utils import number_rounding
-from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
-from gewittergefahr.plotting import radar_plotting
-from gewittergefahr.plotting import imagemagick_utils
-from ml4rt.io import border_io
-from ml4rt.io import prediction_io
-from ml4rt.utils import example_utils
-from ml4rt.machine_learning import neural_net
-from ml4rt.plotting import plotting_utils
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import grids
+import number_rounding
+import longitude_conversion as lng_conversion
+import file_system_utils
+import error_checking
+import gg_plotting_utils
+import radar_plotting
+import imagemagick_utils
+import border_io
+import prediction_io
+import example_utils
+import neural_net
+import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 DUMMY_FIELD_NAME = 'reflectivity_column_max_dbz'
