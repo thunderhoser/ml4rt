@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_errors_by_space_jtech2022_basic"
+#SBATCH --job-name="plot_errors_by_sfc_temp_lr_and_moisture_detailed"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -13,7 +13,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_errors_by_space_jtech2022_basic_%A_%a.out
+#SBATCH --output=plot_errors_by_sfc_temp_lr_and_moisture_detailed_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -21,6 +21,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_lw_plusplusplus"
+set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/longwave_examples_600days/orig_heights/testing"
 
 set MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
 set CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
@@ -37,11 +38,17 @@ set model_file_name=${model_file_names[$#model_file_names]}
 set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
 
 set prediction_file_name="${model_dir_name}/testing/predictions.nc"
-set output_dir_name="${model_dir_name}/testing/by_space_jtech2022/basic"
+set output_dir_name="${model_dir_name}/testing/by_sfc_temp_lr_and_moisture/detailed"
 
-python3 -u "${CODE_DIR_NAME}/plot_errors_by_space_jtech2022.py" \
+python3 -u "${CODE_DIR_NAME}/plot_errors_by_sfc_temp_and_moisture.py" \
 --input_prediction_file_name="${prediction_file_name}" \
---grid_spacing_deg=5 \
---min_num_examples=1 \
---plot_details=0 \
+--num_temperature_bins=22 \
+--min_temp_lapse_rate_k_km01=-55 \
+--max_temp_lapse_rate_k_km01=55 \
+--num_humidity_bins=22 \
+--min_humidity_lapse_rate_km01=-0.011 \
+--max_humidity_lapse_rate_km01=0.011 \
+--plot_fractional_errors=0 \
+--plot_details=1 \
+--input_example_dir_name="${UNNORM_EXAMPLE_DIR_NAME}" \
 --output_dir_name="${output_dir_name}"
