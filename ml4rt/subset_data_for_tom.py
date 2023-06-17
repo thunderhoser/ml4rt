@@ -173,7 +173,11 @@ def _get_diverse_cloud_examples(example_dict, for_ice):
     _, num_clouds_by_example = example_utils.find_cloud_layers(
         example_dict=example_dict,
         min_path_kg_m02=MIN_WATER_PATH_FOR_CLOUD_LAYER_KG_M02,
-        for_ice=for_ice
+        cloud_type_string=(
+            example_utils.ICE_CLOUD_TYPE_STRING if for_ice
+            else example_utils.LIQUID_CLOUD_TYPE_STRING
+        ),
+        fog_only=False
     )
 
     no_cloud_indices = numpy.where(num_clouds_by_example == 0)[0]

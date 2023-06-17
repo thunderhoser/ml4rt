@@ -33,8 +33,7 @@ SUBDIR_NAMES = ['no_cloud', 'single_layer_cloud', 'multi_layer_cloud']
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
-FOR_ICE_ARG_NAME = 'for_ice'
-FOR_MIXED_PHASE_ARG_NAME = 'for_mixed_phase'
+CLOUD_TYPE_ARG_NAME = 'cloud_type_string'
 MIN_PATH_ARG_NAME = 'min_path_kg_m02'
 INCLUDE_FOG_ARG_NAME = 'include_fog'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
@@ -47,14 +46,8 @@ EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with data examples.  Files therein will be found by '
     '`example_io.find_file` and read by `example_io.read_file`.'
 )
-FOR_ICE_HELP_STRING = (
-    'Boolean flag.  If 1 (0), cloud regimes will be based on ice (liquid) '
-    'cloud.'
-)
-FOR_MIXED_PHASE_HELP_STRING = (
-    'Boolean flag.  If 0, cloud regimes will be based on a single phase.  If '
-    '1, cloud regimes will be based on mixed-phase (clouds containing both ice '
-    'and liquid).'
+CLOUD_TYPE_HELP_STRING = (
+    'Cloud type (must be accepted by `example_utils._check_cloud_type`).'
 )
 MIN_PATH_HELP_STRING = 'Minimum water path (kg m^-2) for each cloud layer.'
 INCLUDE_FOG_HELP_STRING = (
@@ -75,12 +68,8 @@ INPUT_ARG_PARSER.add_argument(
     help=EXAMPLE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + FOR_ICE_ARG_NAME, type=int, required=False, default=0,
-    help=FOR_ICE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + FOR_MIXED_PHASE_ARG_NAME, type=int, required=False, default=0,
-    help=FOR_MIXED_PHASE_HELP_STRING
+    '--' + CLOUD_TYPE_ARG_NAME, type=str, required=True,
+    help=CLOUD_TYPE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MIN_PATH_ARG_NAME, type=float, required=False, default=0.05,
@@ -96,7 +85,7 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, example_dir_name, for_ice, for_mixed_phase,
+def _run(input_file_name, example_dir_name, cloud_type_string,
          min_path_kg_m02, include_fog, output_dir_name):
     """Splits predictions by cloud regime.
 
@@ -104,15 +93,11 @@ def _run(input_file_name, example_dir_name, for_ice, for_mixed_phase,
 
     :param input_file_name: See documentation at top of file.
     :param example_dir_name: Same.
-    :param for_ice: Same.
-    :param for_mixed_phase: Same.
+    :param cloud_type_string: Same.
     :param min_path_kg_m02: Same.
     :param include_fog: Same.
     :param output_dir_name: Same.
     """
-
-    if for_mixed_phase:
-        for_ice = False
 
     print('Reading data from: "{0:s}"...\n'.format(input_file_name))
     prediction_dict = prediction_io.read_file(input_file_name)
@@ -125,7 +110,7 @@ def _run(input_file_name, example_dir_name, for_ice, for_mixed_phase,
 
     cloud_layer_counts = example_utils.find_cloud_layers(
         example_dict=example_dict, min_path_kg_m02=min_path_kg_m02,
-        for_ice=for_ice, for_mixed_phase=for_mixed_phase, fog_only=False
+        cloud_type_string=cloud_type_string, fog_only=False
     )[-1]
 
     unique_cloud_layer_counts, unique_example_counts = numpy.unique(
@@ -134,11 +119,10 @@ def _run(input_file_name, example_dir_name, for_ice, for_mixed_phase,
 
     for i in range(len(unique_cloud_layer_counts)):
         print((
-            'Number of examples with {0:d} cloud layers '
-            '({1:s}water path >= {2:.1f} g m^-2) = {3:d}'
+            'Number of examples with {0:d} cloud layers (path >= {1:.1f} '
+            'g m^-2) = {2:d}'
         ).format(
             unique_cloud_layer_counts[i],
-            'total ' if for_mixed_phase else 'ice-' if for_ice else 'liquid-',
             KG_TO_GRAMS * min_path_kg_m02,
             unique_example_counts[i]
         ))
@@ -195,15 +179,12 @@ def _run(input_file_name, example_dir_name, for_ice, for_mixed_phase,
     print(SEPARATOR_STRING)
     cloud_layer_counts = example_utils.find_cloud_layers(
         example_dict=example_dict, min_path_kg_m02=min_path_kg_m02,
-        for_ice=for_ice, for_mixed_phase=for_mixed_phase, fog_only=True
+        cloud_type_string=cloud_type_string, fog_only=True
     )[-1]
     print(SEPARATOR_STRING)
 
     fog_indices = numpy.where(cloud_layer_counts > 0)[0]
-    print('Number of examples with {0:s} fog = {1:d}'.format(
-        'mixed-phase' if for_mixed_phase else 'ice' if for_ice else 'liquid',
-        len(fog_indices)
-    ))
+    print('Number of examples with fog = {0:d}'.format(len(fog_indices)))
 
     this_prediction_dict = prediction_io.subset_by_index(
         prediction_dict=copy.deepcopy(prediction_dict),
@@ -246,10 +227,7 @@ if __name__ == '__main__':
     _run(
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
-        for_ice=bool(getattr(INPUT_ARG_OBJECT, FOR_ICE_ARG_NAME)),
-        for_mixed_phase=bool(
-            getattr(INPUT_ARG_OBJECT, FOR_MIXED_PHASE_ARG_NAME)
-        ),
+        cloud_type_string=getattr(INPUT_ARG_OBJECT, CLOUD_TYPE_ARG_NAME),
         min_path_kg_m02=getattr(INPUT_ARG_OBJECT, MIN_PATH_ARG_NAME),
         include_fog=bool(getattr(INPUT_ARG_OBJECT, INCLUDE_FOG_ARG_NAME)),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
