@@ -673,7 +673,10 @@ def _run(prediction_file_name, num_temperature_bins,
             (num_temperature_bins, num_humidity_bins), numpy.nan
         )
 
-        if (
+        if target_name_by_statistic[k] == '':
+            actual_values = numpy.array([])
+            predicted_values = numpy.array([])
+        elif (
                 target_name_by_statistic[k] ==
                 example_utils.LONGWAVE_HEATING_RATE_NAME
         ):
