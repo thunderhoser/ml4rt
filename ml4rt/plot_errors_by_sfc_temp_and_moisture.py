@@ -35,14 +35,15 @@ STATISTIC_NAMES_BASIC = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_all_flux_mae', 'longwave_net_flux_mae',
-    'longwave_net_flux_bias'
+    'longwave_net_flux_bias', 'num_examples'
 ]
 STATISTIC_NAMES_DETAILED = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_down_flux_mae', 'longwave_down_flux_bias',
     'longwave_up_flux_mae', 'longwave_up_flux_bias',
-    'longwave_net_flux_mae', 'longwave_net_flux_bias'
+    'longwave_net_flux_mae', 'longwave_net_flux_bias',
+    'num_examples'
 ]
 STATISTIC_NAME_TO_FANCY = {
     'longwave_mae': r'HR MAE (K day$^{-1}$)',
@@ -55,7 +56,8 @@ STATISTIC_NAME_TO_FANCY = {
     'longwave_up_flux_bias': r'Upwelling-flux bias (W m$^{-2}$)',
     'longwave_net_flux_mae': r'Net-flux MAE (W m$^{-2}$)',
     'longwave_net_flux_bias': r'Net-flux bias (W m$^{-2}$)',
-    'longwave_all_flux_mae': r'All-flux MAE (W m$^{-2}$)'
+    'longwave_all_flux_mae': r'All-flux MAE (W m$^{-2}$)',
+    'num_examples': 'Number of examples'
 }
 STATISTIC_NAME_TO_FANCY_FRACTIONAL = {
     'longwave_mae': 'Relative HR MAE (%)',
@@ -68,7 +70,8 @@ STATISTIC_NAME_TO_FANCY_FRACTIONAL = {
     'longwave_up_flux_bias': 'Relative upwelling-flux bias (%)',
     'longwave_net_flux_mae': 'Relative net-flux MAE (%)',
     'longwave_net_flux_bias': 'Relative net-flux bias (%)',
-    'longwave_all_flux_mae': 'Relative all-flux MAE (%)'
+    'longwave_all_flux_mae': 'Relative all-flux MAE (%)',
+    'num_examples': 'Number of examples'
 }
 STATISTIC_NAME_TO_TARGET_NAME = {
     'longwave_mae': example_utils.LONGWAVE_HEATING_RATE_NAME,
@@ -81,7 +84,8 @@ STATISTIC_NAME_TO_TARGET_NAME = {
     'longwave_up_flux_bias': example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
     'longwave_net_flux_mae': LONGWAVE_NET_FLUX_NAME,
     'longwave_net_flux_bias': LONGWAVE_NET_FLUX_NAME,
-    'longwave_all_flux_mae': LONGWAVE_ALL_FLUX_NAME
+    'longwave_all_flux_mae': LONGWAVE_ALL_FLUX_NAME,
+    'num_examples': ''
 }
 STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
     'longwave_mae': -1,
@@ -94,7 +98,8 @@ STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
     'longwave_up_flux_bias': -1,
     'longwave_net_flux_mae': -1,
     'longwave_net_flux_bias': -1,
-    'longwave_all_flux_mae': -1
+    'longwave_all_flux_mae': -1,
+    'num_examples': -1
 }
 
 NUM_PANEL_COLUMNS = 2
