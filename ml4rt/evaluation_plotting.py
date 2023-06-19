@@ -327,10 +327,14 @@ def plot_inset_histogram(
         (1. / 6) * len(real_indices)
     ))
     this_spacing = max([this_spacing, 1])
+
     tick_indices = numpy.concatenate((
         real_indices[::this_spacing], real_indices[[-1]]
     ))
     tick_indices = numpy.unique(tick_indices)
+    if numpy.diff(tick_indices[-2:])[0] < 2:
+        tick_indices = tick_indices[:-1]
+
     x_tick_values = fake_bin_centers[tick_indices]
 
     if numpy.any(numpy.absolute(bin_centers[tick_indices]) > 100):

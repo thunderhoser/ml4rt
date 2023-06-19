@@ -771,8 +771,8 @@ def _run(prediction_file_name, num_temperature_bins,
             letter_label = chr(ord(letter_label) + 1)
 
         if 'bias' in statistic_names[k]:
-            max_colour_value = numpy.nanmax(
-                numpy.absolute(metric_matrix)
+            max_colour_value = numpy.nanpercentile(
+                numpy.absolute(metric_matrix), 99.5
             )
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
@@ -780,12 +780,12 @@ def _run(prediction_file_name, num_temperature_bins,
             metric_matrix = numpy.log10(metric_matrix)
             metric_matrix[numpy.isinf(metric_matrix)] = numpy.nan
 
-            min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanmax(metric_matrix)
+            min_colour_value = numpy.nanpercentile(metric_matrix, 0.5)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 99.5)
             colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
         else:
-            min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanmax(metric_matrix)
+            min_colour_value = numpy.nanpercentile(metric_matrix, 0.5)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 99.5)
             colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
         colour_norm_object = pyplot.Normalize(
