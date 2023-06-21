@@ -211,10 +211,12 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag, fog_flag,
     model_file_names.sort()
     model_file_name = model_file_names[-1]
 
-    model_object = neural_net.read_model(model_file_name)
-    num_weights = int(numpy.round(numpy.sum([
-        K.count_params(p) for p in set(model_object.trainable_weights)
-    ])))
+    # model_object = neural_net.read_model(model_file_name)
+    # num_weights = int(numpy.round(numpy.sum([
+    #     K.count_params(p) for p in set(model_object.trainable_weights)
+    # ])))
+
+    num_weights = numpy.random.random_integers(low=10, high=1000, size=1)[0]
 
     evaluation_file_name = '{0:s}/{1:s}validation/{2:s}evaluation.nc'.format(
         model_file_name[:-3],
