@@ -272,7 +272,7 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag,
     vector_target_matrix = prediction_dict[prediction_io.VECTOR_TARGETS_KEY]
     vector_prediction_matrix = (
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]
-    )
+    )[..., 0]
 
     weight_matrix = numpy.maximum(
         numpy.absolute(vector_target_matrix),
