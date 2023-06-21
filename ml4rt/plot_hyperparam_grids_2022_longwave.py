@@ -219,8 +219,8 @@ def _read_scores_one_model(model_dir_name, multilayer_cloud_flag, fog_flag,
     evaluation_file_name = '{0:s}/{1:s}validation/{2:s}evaluation.nc'.format(
         model_file_name[:-3],
         'isotonic_regression/' if isotonic_flag else '',
-        'by_cloud_regime/multi_layer_cloud/' if multilayer_cloud_flag
-        else 'by_cloud_regime/fog/' if fog_flag
+        'by_cloud_regime/liquid_only/multi_layer_cloud/' if multilayer_cloud_flag
+        else 'by_cloud_regime/liquid_only/fog/' if fog_flag
         else ''
     )
 
