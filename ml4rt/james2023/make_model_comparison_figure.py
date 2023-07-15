@@ -1,12 +1,15 @@
 """Creates 7-panel figure comparing evaluation metrics across models."""
 
 import os
+import glob
 import argparse
 import numpy
 from matplotlib import pyplot
+from scipy.stats import percentileofscore
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import imagemagick_utils
+from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
 from ml4rt.utils import pit_utils
 from ml4rt.utils import spread_skill_utils as ss_utils
@@ -218,8 +221,96 @@ def _run(model_evaluation_dir_names, model_description_strings,
     flux_pitd_values = numpy.full(num_models, numpy.nan)
     heating_rate_mf_values = numpy.full(num_models, numpy.nan)
     flux_mf_values = numpy.full(num_models, numpy.nan)
+    heating_rate_cat_error_freqs = numpy.full(num_models, numpy.nan)
+    flux_cat_error_freqs = numpy.full(num_models, numpy.nan)
 
     for i in range(num_models):
+        these_prediction_file_names = glob.glob(
+            '{0:s}/predictions_part*.nc'.format(model_evaluation_dir_names[i])
+        )
+        these_prediction_dicts = []
+        for this_file_name in these_prediction_file_names:
+            print('Reading data from: "{0:s}"...'.format(this_file_name))
+            these_prediction_dicts.append(
+                prediction_io.read_file(this_file_name)
+            )
+
+        this_prediction_dict = prediction_io.concat_predictions(
+            these_prediction_dicts
+        )
+
+        this_target_matrix = this_prediction_dict[
+            prediction_io.VECTOR_TARGETS_KEY
+        ]
+        assert this_target_matrix.shape[2] == 1
+        this_target_matrix = this_target_matrix[..., 0]
+
+        this_prediction_matrix = this_prediction_dict[
+            prediction_io.VECTOR_PREDICTIONS_KEY
+        ][..., 0, :]
+        this_mean_prediction_matrix = numpy.mean(
+            this_prediction_matrix, axis=-1
+        )
+        this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
+
+        for j in range(this_target_matrix.shape[0]):
+            for k in range(this_target_matrix.shape[1]):
+                this_pit_matrix[j, k] = 0.01 * percentileofscore(
+                    a=this_prediction_matrix[j, k, :],
+                    score=this_target_matrix[j, k], kind='mean'
+                )
+
+        this_large_error_flag_matrix = (
+            numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
+            >= 1
+        )
+        this_extreme_pit_flag_matrix = numpy.logical_or(
+            this_pit_matrix < 0.025, this_pit_matrix > 0.975
+        )
+        heating_rate_cat_error_freqs[i] = numpy.mean(numpy.logical_and(
+            this_large_error_flag_matrix, this_extreme_pit_flag_matrix
+        ))
+
+        this_target_matrix = this_prediction_dict[
+            prediction_io.SCALAR_TARGETS_KEY
+        ]
+        assert this_target_matrix.shape[1] == 2
+        this_target_matrix = numpy.concatenate((
+            this_target_matrix,
+            this_target_matrix[:, [0]] - this_target_matrix[:, [1]]
+        ), axis=1)
+
+        this_prediction_matrix = this_prediction_dict[
+            prediction_io.SCALAR_PREDICTIONS_KEY
+        ]
+        this_prediction_matrix = numpy.concatenate((
+            this_prediction_matrix,
+            this_prediction_matrix[:, [0], :] - this_prediction_matrix[:, [1], :]
+        ), axis=1)
+
+        this_mean_prediction_matrix = numpy.mean(
+            this_prediction_matrix, axis=-1
+        )
+        this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
+
+        for j in range(this_target_matrix.shape[0]):
+            for k in range(this_target_matrix.shape[1]):
+                this_pit_matrix[j, k] = 0.01 * percentileofscore(
+                    a=this_prediction_matrix[j, k, :],
+                    score=this_target_matrix[j, k], kind='mean'
+                )
+
+        this_large_error_flag_matrix = (
+            numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
+            >= 1
+        )
+        this_extreme_pit_flag_matrix = numpy.logical_or(
+            this_pit_matrix < 0.025, this_pit_matrix > 0.975
+        )
+        flux_cat_error_freqs[i] = numpy.mean(numpy.logical_and(
+            this_large_error_flag_matrix, this_extreme_pit_flag_matrix
+        ))
+
         this_file_name = '{0:s}/evaluation.nc'.format(
             model_evaluation_dir_names[i]
         )
@@ -415,6 +506,20 @@ def _run(model_evaluation_dir_names, model_description_strings,
         second_error_metric_name='Flux MF',
         y_label_string='Monotonicity fraction',
         title_string='MF for heating rates and flux components',
+        model_description_strings=model_description_strings,
+        plotting_ssrat=False, output_file_name=panel_file_names[-1]
+    )
+
+    panel_file_names.append(
+        '{0:s}/mono_fraction.jpg'.format(output_dir_name)
+    )
+    _plot_one_bar_graph(
+        first_error_values=heating_rate_cat_error_freqs,
+        second_error_values=flux_cat_error_freqs,
+        first_error_metric_name='Heating-rate CEF',
+        second_error_metric_name='Flux CEF',
+        y_label_string='Catastrophic-error frequency',
+        title_string='CEF for heating rates and flux components',
         model_description_strings=model_description_strings,
         plotting_ssrat=False, output_file_name=panel_file_names[-1]
     )
