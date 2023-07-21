@@ -906,7 +906,7 @@ def create_model_1output_layer(
 
             if upconv_dropout_rate_by_level[i_new] > 0:
                 this_name = 'block{0:d}-{1:d}_upconv_dropout'.format(i_new, j)
-                this_mc_flag = bool(upconv_dropout_rate_by_level[i_new])
+                this_mc_flag = bool(upconv_mc_dropout_flag_by_level[i_new])
 
                 this_layer_object = architecture_utils.get_dropout_layer(
                     dropout_fraction=upconv_dropout_rate_by_level[i_new],
@@ -967,7 +967,7 @@ def create_model_1output_layer(
                     this_name = 'block{0:d}-{1:d}_skipconv{2:d}_dropout'.format(
                         i_new, j, k
                     )
-                    this_mc_flag = bool(skip_dropout_rate_by_level[i_new])
+                    this_mc_flag = bool(skip_mc_dropout_flag_by_level[i_new])
 
                     last_conv_layer_matrix[i_new, j] = (
                         architecture_utils.get_dropout_layer(
