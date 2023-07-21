@@ -103,10 +103,16 @@ def _run():
                         these_channel_counts_all,
                     u_net_pp_architecture.ENCODER_DROPOUT_RATES_KEY:
                         numpy.full(MODEL_DEPTHS[i] + 1, 0.),
+                    u_net_pp_architecture.ENCODER_MC_DROPOUT_FLAGS_KEY:
+                        numpy.full(MODEL_DEPTHS[i] + 1, 0, dtype=bool),
                     u_net_pp_architecture.UPCONV_DROPOUT_RATES_KEY:
                         numpy.full(MODEL_DEPTHS[i], 0.),
+                    u_net_pp_architecture.UPCONV_MC_DROPOUT_FLAGS_KEY:
+                        numpy.full(MODEL_DEPTHS[i], 0, dtype=bool),
                     u_net_pp_architecture.SKIP_DROPOUT_RATES_KEY:
-                        numpy.full(MODEL_DEPTHS[i], 0.)
+                        numpy.full(MODEL_DEPTHS[i], 0.),
+                    u_net_pp_architecture.SKIP_MC_DROPOUT_FLAGS_KEY:
+                        numpy.full(MODEL_DEPTHS[i], 0, dtype=bool)
                 })
 
                 if MODEL_DEPTHS[i] == 3:
