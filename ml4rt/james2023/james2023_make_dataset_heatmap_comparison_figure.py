@@ -255,9 +255,22 @@ def _plot_heat_map_one_dataset(
     x_tick_values = numpy.unique(
         numpy.round(x_tick_values).astype(int)
     )
-    x_tick_labels = [
-        '{0:.2f}'.format(c) for c in bin_centers_plotting_units[x_tick_values]
-    ]
+    if numpy.max(bin_centers_plotting_units[x_tick_values]) > 1000:
+        x_tick_labels = [
+            '{0:.0f}'.format(c)
+            for c in bin_centers_plotting_units[x_tick_values]
+        ]
+    elif numpy.max(bin_centers_plotting_units[x_tick_values]) < 10:
+        x_tick_labels = [
+            '{0:.3f}'.format(c)
+            for c in bin_centers_plotting_units[x_tick_values]
+        ]
+    else:
+        x_tick_labels = [
+            '{0:.2f}'.format(c)
+            for c in bin_centers_plotting_units[x_tick_values]
+        ]
+
     pyplot.xticks(x_tick_values, x_tick_labels, rotation=90)
 
     y_tick_values = numpy.linspace(
