@@ -1429,6 +1429,9 @@ def create_data_specific_examples(
             scalar_target_max_norm_value=scalar_target_max_norm_value
         )
 
+        if len(this_example_dict[example_utils.EXAMPLE_IDS_KEY]) == 0:
+            continue
+
         missing_to_dict_indices = example_utils.find_examples(
             all_id_strings=this_example_dict[example_utils.EXAMPLE_IDS_KEY],
             desired_id_strings=[
