@@ -167,14 +167,17 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     first_metadata_dict = _check_normalization_metadata(first_metadata_dict)
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
-    first_norm_file_name = first_metadata_dict[NORMALIZATION_FILE_KEY].replace(
-        '/training_perturbed_for_uq/', '/training_all_perturbed_for_uq/'
-    )
-    second_norm_file_name = second_metadata_dict[
-        NORMALIZATION_FILE_KEY
-    ].replace(
-        '/training_perturbed_for_uq/', '/training_all_perturbed_for_uq/'
-    )
+    first_norm_file_name = first_metadata_dict[NORMALIZATION_FILE_KEY]
+    second_norm_file_name = second_metadata_dict[NORMALIZATION_FILE_KEY]
+
+    if first_norm_file_name is not None:
+        first_norm_file_name = first_norm_file_name.replace(
+            '/training_perturbed_for_uq/', '/training_all_perturbed_for_uq/'
+        )
+    if second_norm_file_name is not None:
+        second_norm_file_name = second_norm_file_name.replace(
+            '/training_perturbed_for_uq/', '/training_all_perturbed_for_uq/'
+        )
 
     if first_norm_file_name != second_norm_file_name:
         return False
