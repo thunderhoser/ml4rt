@@ -128,6 +128,8 @@ def _targets_numpy_to_dict(
     )
 
     target_matrices = [vector_target_matrix]
+    print('VECTOR TARGET MATRIX')
+    print(vector_target_matrix)
     if scalar_target_matrix is not None:
         target_matrices.append(scalar_target_matrix)
 
@@ -268,9 +270,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         exclude_summit_greenland=exclude_summit_greenland
     )
     print(SEPARATOR_STRING)
-
-    print('TARGET ARRAY')
-    print(target_array)
 
     example_id_strings, unique_indices = numpy.unique(
         numpy.array(example_id_strings), return_index=True
