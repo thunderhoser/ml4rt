@@ -218,7 +218,7 @@ def plot_spread_vs_skill(
             t[ss_utils.SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, :]
         )
         mean_target_values = t[ss_utils.SCALAR_MEAN_TARGET_KEY].values[k, :]
-    except ValueError:
+    except:
         try:
             k = t.coords[ss_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
                 target_var_name
@@ -234,7 +234,7 @@ def plot_spread_vs_skill(
                 t[ss_utils.AUX_MEAN_MEAN_PREDICTION_KEY].values[k, :]
             )
             mean_target_values = t[ss_utils.AUX_MEAN_TARGET_KEY].values[k, :]
-        except ValueError:
+        except:
             k = t.coords[ss_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
             )
@@ -421,7 +421,7 @@ def plot_discard_test(
         mean_di = t[dt_utils.SCALAR_MEAN_DI_KEY].values[k]
 
         y_label_string = r'MSE for mean prediction (W$^2$ m$^{-4}$)'
-    except ValueError:
+    except:
         try:
             k = t.coords[dt_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
                 target_var_name
@@ -436,7 +436,7 @@ def plot_discard_test(
             mean_di = t[dt_utils.AUX_MEAN_DI_KEY].values[k]
 
             y_label_string = r'MSE for mean prediction (W$^2$ m$^{-4}$)'
-        except ValueError:
+        except:
             k = t.coords[dt_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
             )
@@ -569,7 +569,7 @@ def plot_pit_histogram(
 
         bin_counts = t[pit_utils.SCALAR_BIN_COUNT_KEY].values[k, :]
         pitd_value = t[pit_utils.SCALAR_PITD_KEY].values[k]
-    except ValueError:
+    except:
         try:
             k = t.coords[pit_utils.AUX_TARGET_FIELD_DIM].values.tolist().index(
                 target_var_name
@@ -577,7 +577,7 @@ def plot_pit_histogram(
 
             bin_counts = t[pit_utils.AUX_BIN_COUNT_KEY].values[k, :]
             pitd_value = t[pit_utils.AUX_PITD_KEY].values[k]
-        except ValueError:
+        except:
             k = t.coords[pit_utils.VECTOR_FIELD_DIM].values.tolist().index(
                 target_var_name
             )
