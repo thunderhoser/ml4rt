@@ -193,7 +193,7 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
         )
 
         vector_prediction_matrix = numpy.expand_dims(
-            prediction_array[0][..., :-num_scalar_targets, :], axis=-2
+            prediction_array[0][..., :-num_scalar_targets], axis=-1
         )
         scalar_prediction_matrix = (
             prediction_array[0][..., -num_scalar_targets:]
@@ -202,7 +202,7 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
             vector_prediction_matrix, scalar_prediction_matrix
         ]
 
-        print('FOO1: {0:s}'.format(str(scalar_prediction_matrix.shape)))
+        print('FOO1: {0:s}'.format(str(vector_prediction_matrix.shape)))
 
     vector_prediction_matrix = prediction_array[0]
     if len(prediction_array) > 1:
@@ -210,7 +210,7 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
     else:
         scalar_prediction_matrix = None
 
-    print('FOO2: {0:s}'.format(str(scalar_prediction_matrix.shape)))
+    print('FOO2: {0:s}'.format(str(vector_prediction_matrix.shape)))
 
     return vector_prediction_matrix, scalar_prediction_matrix
 
@@ -363,7 +363,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             model_metadata_dict=metadata_dict,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
-        print('FOO3: {0:s}'.format(str(scalar_prediction_matrix.shape)))
+        print('FOO3: {0:s}'.format(str(vector_prediction_matrix.shape)))
 
         while len(vector_prediction_matrix.shape) < 4:
             vector_prediction_matrix = numpy.expand_dims(
@@ -375,7 +375,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 scalar_prediction_matrix, axis=-1
             )
 
-        print('FOO4: {0:s}'.format(str(scalar_prediction_matrix.shape)))
+        print('FOO4: {0:s}'.format(str(vector_prediction_matrix.shape)))
 
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
