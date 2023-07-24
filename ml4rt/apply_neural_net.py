@@ -188,6 +188,8 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
     ))
 
     if joined_output_layer:
+        print('JOINED OUTPUT LAYER')
+
         num_scalar_targets = len(
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
