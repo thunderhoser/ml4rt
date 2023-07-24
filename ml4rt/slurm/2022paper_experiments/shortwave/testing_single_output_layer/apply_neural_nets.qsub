@@ -26,9 +26,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_sw_plusplus_best_1output"
-
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/testing"
-set UNNORM_EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/testing"
 
 set FIRST_TESTING_TIME_STRING="2019-12-24-000000"
 set LAST_TESTING_TIME_STRING="2020-12-31-235959"
@@ -51,7 +49,6 @@ set prediction_file_name="${model_dir_name}/testing/predictions.nc"
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_file_name}" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
---input_example_dir_name_for_pressure="${UNNORM_EXAMPLE_DIR_NAME}" \
 --first_time_string="${FIRST_TESTING_TIME_STRING}" \
 --last_time_string="${LAST_TESTING_TIME_STRING}" \
 --output_file_name="${prediction_file_name}"
