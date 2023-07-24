@@ -273,6 +273,63 @@ def _find_tropopause(temperatures_kelvins, sorted_heights_m_agl):
     return None, None
 
 
+def _find_tropopause_unbounded(temperatures_kelvins, sorted_heights_m_agl):
+    """Finds the lowest tropopause (with no constraints).
+
+    H = number of heights
+
+    :param temperatures_kelvins: length-H numpy array of temperatures.
+    :param sorted_heights_m_agl: length-H numpy array of heights (metres above
+        ground).  This method assumes that the array is sorted in ascending
+        order.
+    :return: tropopause_height_m_agl: Tropopause height (metres above ground).
+    :return: tropopause_height_index: Grid-point index at tropopause.
+    """
+
+    lapse_rates_kelvins_m01 = (
+        -1 * numpy.diff(temperatures_kelvins) / numpy.diff(sorted_heights_m_agl)
+    )
+    these_indices = numpy.where(
+        lapse_rates_kelvins_m01 < MAX_TROPOPAUSE_LAPSE_RATE_KELVINS_M01
+    )[0]
+
+    if len(these_indices) == 0:
+        return None, None
+
+    for lower_index in these_indices:
+        lower_height_m_agl = sorted_heights_m_agl[lower_index]
+        upper_height_m_agl = (
+            lower_height_m_agl + TROPOPAUSE_LOOK_ABOVE_HEIGHT_METRES
+        )
+
+        upper_index = numpy.argmin(numpy.absolute(
+            sorted_heights_m_agl - upper_height_m_agl
+        ))
+
+        if (
+                sorted_heights_m_agl[upper_index] < upper_height_m_agl and
+                upper_index < len(sorted_heights_m_agl) - 1
+        ):
+            upper_index += 1
+
+        numerator = (
+            temperatures_kelvins[lower_index] -
+            temperatures_kelvins[upper_index]
+        )
+        denominator = (
+            sorted_heights_m_agl[upper_index] -
+            sorted_heights_m_agl[lower_index]
+        )
+        this_lapse_rate_kelvins_m01 = numerator / denominator
+
+        if this_lapse_rate_kelvins_m01 >= MAX_TROPOPAUSE_LAPSE_RATE_KELVINS_M01:
+            continue
+
+        return sorted_heights_m_agl[lower_index], lower_index
+
+    return None, None
+
+
 def _create_cloud(
         gfs_table_xarray, time_index, site_index, max_num_cloud_layers,
         max_layer_thickness_metres, max_water_content_kg_m03,
@@ -950,7 +1007,7 @@ def _run(input_file_name, max_temp_increase_kelvins,
 
             perturbation_flags = numpy.random.uniform(low=0., high=1., size=5)
             perturbation_flags = numpy.round(perturbation_flags).astype(bool)
-            
+
             if not numpy.any(perturbation_flags):
                 this_index = numpy.random.random_integers(low=0, high=4, size=1)
                 perturbation_flags[this_index] = True

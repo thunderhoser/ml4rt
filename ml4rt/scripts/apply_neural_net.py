@@ -186,10 +186,10 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
         )
 
         vector_prediction_matrix = numpy.expand_dims(
-            prediction_array[0][..., :-num_scalar_targets, :], axis=-2
+            prediction_array[0][..., :-num_scalar_targets], axis=-1
         )
         scalar_prediction_matrix = (
-            prediction_array[0][..., -num_scalar_targets:, :]
+            prediction_array[0][..., -num_scalar_targets:]
         )
         prediction_array = [
             vector_prediction_matrix, scalar_prediction_matrix
@@ -353,7 +353,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
 
-        while len(vector_prediction_matrix.shape) < 3:
+        while len(vector_prediction_matrix.shape) < 4:
             vector_prediction_matrix = numpy.expand_dims(
                 vector_prediction_matrix, axis=-1
             )
