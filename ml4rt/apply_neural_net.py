@@ -269,6 +269,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
     print(SEPARATOR_STRING)
 
+    print('TARGET ARRAY')
+    print(target_array)
+
     example_id_strings, unique_indices = numpy.unique(
         numpy.array(example_id_strings), return_index=True
     )
