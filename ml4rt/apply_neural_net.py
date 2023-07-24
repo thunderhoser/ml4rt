@@ -128,8 +128,6 @@ def _targets_numpy_to_dict(
     )
 
     target_matrices = [vector_target_matrix]
-    print('VECTOR TARGET MATRIX')
-    print(vector_target_matrix)
     if scalar_target_matrix is not None:
         target_matrices.append(scalar_target_matrix)
 
@@ -190,8 +188,6 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
     ))
 
     if joined_output_layer:
-        print('JOINED OUTPUT LAYER')
-
         num_scalar_targets = len(
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
@@ -373,6 +369,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             scalar_prediction_matrix = numpy.expand_dims(
                 scalar_prediction_matrix, axis=-1
             )
+
+    print('VECTOR PREDICTIONS')
+    print(vector_prediction_matrix.shape)
 
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
