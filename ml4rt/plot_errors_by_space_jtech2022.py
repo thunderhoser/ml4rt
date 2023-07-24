@@ -377,6 +377,13 @@ def _plot_one_score(
         max_colour_value = numpy.nanpercentile(
             numpy.absolute(score_matrix), max_colour_percentile
         )
+
+        if numpy.isnan(max_colour_value):
+            max_colour_value = numpy.nanpercentile(
+                numpy.absolute(score_matrix[numpy.isfinite(score_matrix)]),
+                max_colour_percentile
+            )
+
         min_colour_value = -1 * max_colour_value
         colour_map_object = BIAS_COLOUR_MAP_OBJECT
     elif score_is_num_examples:
@@ -387,6 +394,18 @@ def _plot_one_score(
         max_colour_value = numpy.nanpercentile(
             score_matrix, max_colour_percentile
         )
+
+        if numpy.isnan(min_colour_value):
+            min_colour_value = numpy.nanpercentile(
+                score_matrix[numpy.isfinite(score_matrix)],
+                100 - max_colour_percentile
+            )
+        if numpy.isnan(max_colour_value):
+            max_colour_value = numpy.nanpercentile(
+                score_matrix[numpy.isfinite(score_matrix)],
+                max_colour_percentile
+            )
+
         colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
     else:
         min_colour_value = numpy.nanpercentile(
@@ -395,6 +414,18 @@ def _plot_one_score(
         max_colour_value = numpy.nanpercentile(
             score_matrix, max_colour_percentile
         )
+
+        if numpy.isnan(min_colour_value):
+            min_colour_value = numpy.nanpercentile(
+                score_matrix[numpy.isfinite(score_matrix)],
+                100 - max_colour_percentile
+            )
+        if numpy.isnan(max_colour_value):
+            max_colour_value = numpy.nanpercentile(
+                score_matrix[numpy.isfinite(score_matrix)],
+                max_colour_percentile
+            )
+
         colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
     colour_norm_object = pyplot.Normalize(
