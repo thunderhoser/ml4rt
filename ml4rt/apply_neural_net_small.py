@@ -35,11 +35,23 @@ PREDICTOR_DIMENSION_KEY = 'predictor_variable'
 VECTOR_TARGET_DIMENSION_KEY = 'vector_target_variable'
 SCALAR_TARGET_DIMENSION_KEY = 'scalar_target_variable'
 PREDICTOR_MATRIX_KEY = 'predictor_matrix'
+UNNORM_PREDICTOR_MATRIX_KEY = 'unnorm_predictor_matrix'
 VECTOR_PREDICTION_MATRIX_KEY = 'vector_prediction_matrix'
 SCALAR_PREDICTION_MATRIX_KEY = 'scalar_prediction_matrix'
 
+# PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
+# PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
+# PREDICTOR_MAX_NORM_VALUE_KEY = 'predictor_max_norm_value'
+# VECTOR_TARGET_NORM_TYPE_KEY = 'vector_target_norm_type_string'
+# VECTOR_TARGET_MIN_VALUE_KEY = 'vector_target_min_norm_value'
+# VECTOR_TARGET_MAX_VALUE_KEY = 'vector_target_max_norm_value'
+# SCALAR_TARGET_NORM_TYPE_KEY = 'scalar_target_norm_type_string'
+# SCALAR_TARGET_MIN_VALUE_KEY = 'scalar_target_min_norm_value'
+# SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
+
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
+UNNORM_EXAMPLE_DIR_ARG_NAME = 'input_unnorm_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
 LAST_TIME_ARG_NAME = 'last_time_string'
 EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
@@ -51,6 +63,9 @@ MODEL_FILE_HELP_STRING = (
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with data examples.  Files therein will be found by '
     '`example_io.find_file` and read by `example_io.read_file`.'
+)
+UNNORM_EXAMPLE_DIR_HELP_STRING = (
+    'Same as {0:s} but with unnormalized examples.'.format(EXAMPLE_DIR_ARG_NAME)
 )
 TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The neural net will be applied only to'
@@ -74,6 +89,10 @@ INPUT_ARG_PARSER.add_argument(
     help=EXAMPLE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + UNNORM_EXAMPLE_DIR_ARG_NAME, type=str, required=True,
+    help=UNNORM_EXAMPLE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + FIRST_TIME_ARG_NAME, type=str, required=True, help=TIME_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -90,12 +109,13 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _write_predictors_and_predictions(
-        netcdf_file_name, predictor_matrix, vector_prediction_matrix,
-        scalar_prediction_matrix):
+        netcdf_file_name, predictor_matrix, unnorm_predictor_matrix,
+        vector_prediction_matrix,scalar_prediction_matrix):
     """Writes predictors and predictions to NetCDF file.
 
     :param netcdf_file_name: Path to output file.
     :param predictor_matrix: numpy array with predictors.
+    :param unnorm_predictor_matrix: numpy array with unnormalized predictors.
     :param vector_prediction_matrix: numpy array with vector predictions.
     :param scalar_prediction_matrix: numpy array with scalar predictions.
     """
@@ -129,6 +149,14 @@ def _write_predictors_and_predictions(
         dimensions=these_dimensions
     )
     dataset_object.variables[PREDICTOR_MATRIX_KEY][:] = predictor_matrix
+
+    dataset_object.createVariable(
+        UNNORM_PREDICTOR_MATRIX_KEY, datatype=numpy.float32,
+        dimensions=these_dimensions
+    )
+    dataset_object.variables[UNNORM_PREDICTOR_MATRIX_KEY][:] = (
+        unnorm_predictor_matrix
+    )
 
     these_dimensions = (
         EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY
@@ -196,14 +224,16 @@ def _targets_numpy_to_dict(
     return example_dict
 
 
-def _run(model_file_name, example_dir_name,first_time_string, last_time_string,
-         exclude_summit_greenland, output_file_name):
+def _run(model_file_name, example_dir_name, unnorm_example_dir_name,
+         first_time_string, last_time_string, exclude_summit_greenland,
+         output_file_name):
     """Applies trained neural net in inference mode.
 
     This is effectively the main method.
 
     :param model_file_name: See documentation at top of file.
     :param example_dir_name: Same.
+    :param unnorm_example_dir_name: Same.
     :param first_time_string: Same.
     :param last_time_string: Same.
     :param exclude_summit_greenland: Same.
@@ -250,6 +280,9 @@ def _run(model_file_name, example_dir_name,first_time_string, last_time_string,
     example_id_strings, unique_indices = numpy.unique(
         numpy.array(example_id_strings), return_index=True
     )
+    example_id_strings = example_id_strings[:10]
+    unique_indices = unique_indices[:10]
+    
     example_id_strings = example_id_strings.tolist()
     predictor_matrix = predictor_matrix[unique_indices, ...]
 
@@ -258,6 +291,26 @@ def _run(model_file_name, example_dir_name,first_time_string, last_time_string,
             target_array[k] = target_array[k][unique_indices, ...]
     else:
         target_array = target_array[unique_indices, ...]
+    
+    d = copy.deepcopy(generator_option_dict)
+    d[neural_net.NORMALIZATION_FILE_KEY] = None
+    d[neural_net.PREDICTOR_NORM_TYPE_KEY] = None
+    d[neural_net.VECTOR_TARGET_NORM_TYPE_KEY] = None
+    d[neural_net.SCALAR_TARGET_NORM_TYPE_KEY] = None
+    d[neural_net.UNIFORMIZE_FLAG_KEY] = False
+    d[neural_net.PREDICTOR_MIN_NORM_VALUE_KEY] = numpy.nan
+    d[neural_net.PREDICTOR_MAX_NORM_VALUE_KEY] = numpy.nan
+    d[neural_net.VECTOR_TARGET_MIN_VALUE_KEY] = numpy.nan
+    d[neural_net.VECTOR_TARGET_MAX_VALUE_KEY] = numpy.nan
+    d[neural_net.SCALAR_TARGET_MIN_VALUE_KEY] = numpy.nan
+    d[neural_net.SCALAR_TARGET_MAX_VALUE_KEY] = numpy.nan
+    unnorm_generator_option_dict = d
+    
+    unnorm_predictor_matrix = neural_net.create_data_specific_examples(
+        option_dict=unnorm_generator_option_dict,
+        net_type_string=net_type_string,
+        example_id_strings=example_id_strings
+    )[0]
 
     exec_start_time_unix_sec = time.time()
     prediction_array = neural_net.apply_model(
@@ -424,11 +477,12 @@ def _run(model_file_name, example_dir_name,first_time_string, last_time_string,
     ))
     _write_predictors_and_predictions(
         netcdf_file_name=output_file_name,
-        predictor_matrix=predictor_matrix[:10, ...],
+        predictor_matrix=predictor_matrix,
+        unnorm_predictor_matrix=unnorm_predictor_matrix,
         vector_prediction_matrix=
-        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:10, ...],
+        prediction_example_dict[example_utils.VECTOR_TARGET_VALS_KEY],
         scalar_prediction_matrix=
-        prediction_example_dict[example_utils.SCALAR_TARGET_VALS_KEY][:10, ...]
+        prediction_example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
     )
 
 
@@ -438,6 +492,9 @@ if __name__ == '__main__':
     _run(
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
+        unnorm_example_dir_name=getattr(
+            INPUT_ARG_OBJECT, UNNORM_EXAMPLE_DIR_ARG_NAME
+        ),
         first_time_string=getattr(INPUT_ARG_OBJECT, FIRST_TIME_ARG_NAME),
         last_time_string=getattr(INPUT_ARG_OBJECT, LAST_TIME_ARG_NAME),
         exclude_summit_greenland=bool(getattr(
