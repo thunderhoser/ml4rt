@@ -1429,15 +1429,11 @@ def create_data_specific_examples(
             scalar_target_max_norm_value=scalar_target_max_norm_value
         )
 
-        # TODO: new!!
         missing_to_dict_indices = example_utils.find_examples(
-            all_id_strings=numpy.array(
-                this_example_dict[example_utils.EXAMPLE_IDS_KEY], dtype='object'
-            ),
-            desired_id_strings=numpy.array(
-                [example_id_strings[k] for k in missing_example_indices],
-                dtype='object'
-            ),
+            all_id_strings=this_example_dict[example_utils.EXAMPLE_IDS_KEY],
+            desired_id_strings=[
+                example_id_strings[k] for k in missing_example_indices
+            ],
             allow_missing=True
         )
 
