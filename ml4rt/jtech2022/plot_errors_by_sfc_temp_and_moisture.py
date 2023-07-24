@@ -28,14 +28,15 @@ STATISTIC_NAMES_BASIC = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_all_flux_mae', 'longwave_net_flux_mae',
-    'longwave_net_flux_bias'
+    'longwave_net_flux_bias', 'num_examples'
 ]
 STATISTIC_NAMES_DETAILED = [
     'longwave_mae', 'longwave_near_sfc_mae',
     'longwave_bias', 'longwave_near_sfc_bias',
     'longwave_down_flux_mae', 'longwave_down_flux_bias',
     'longwave_up_flux_mae', 'longwave_up_flux_bias',
-    'longwave_net_flux_mae', 'longwave_net_flux_bias'
+    'longwave_net_flux_mae', 'longwave_net_flux_bias',
+    'num_examples'
 ]
 STATISTIC_NAME_TO_FANCY = {
     'longwave_mae': r'HR MAE (K day$^{-1}$)',
@@ -48,7 +49,8 @@ STATISTIC_NAME_TO_FANCY = {
     'longwave_up_flux_bias': r'Upwelling-flux bias (W m$^{-2}$)',
     'longwave_net_flux_mae': r'Net-flux MAE (W m$^{-2}$)',
     'longwave_net_flux_bias': r'Net-flux bias (W m$^{-2}$)',
-    'longwave_all_flux_mae': r'All-flux MAE (W m$^{-2}$)'
+    'longwave_all_flux_mae': r'All-flux MAE (W m$^{-2}$)',
+    'num_examples': 'Number of examples'
 }
 STATISTIC_NAME_TO_FANCY_FRACTIONAL = {
     'longwave_mae': 'Relative HR MAE (%)',
@@ -61,7 +63,8 @@ STATISTIC_NAME_TO_FANCY_FRACTIONAL = {
     'longwave_up_flux_bias': 'Relative upwelling-flux bias (%)',
     'longwave_net_flux_mae': 'Relative net-flux MAE (%)',
     'longwave_net_flux_bias': 'Relative net-flux bias (%)',
-    'longwave_all_flux_mae': 'Relative all-flux MAE (%)'
+    'longwave_all_flux_mae': 'Relative all-flux MAE (%)',
+    'num_examples': 'Number of examples'
 }
 STATISTIC_NAME_TO_TARGET_NAME = {
     'longwave_mae': example_utils.LONGWAVE_HEATING_RATE_NAME,
@@ -74,7 +77,8 @@ STATISTIC_NAME_TO_TARGET_NAME = {
     'longwave_up_flux_bias': example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
     'longwave_net_flux_mae': LONGWAVE_NET_FLUX_NAME,
     'longwave_net_flux_bias': LONGWAVE_NET_FLUX_NAME,
-    'longwave_all_flux_mae': LONGWAVE_ALL_FLUX_NAME
+    'longwave_all_flux_mae': LONGWAVE_ALL_FLUX_NAME,
+    'num_examples': ''
 }
 STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
     'longwave_mae': -1,
@@ -87,9 +91,11 @@ STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX = {
     'longwave_up_flux_bias': -1,
     'longwave_net_flux_mae': -1,
     'longwave_net_flux_bias': -1,
-    'longwave_all_flux_mae': -1
+    'longwave_all_flux_mae': -1,
+    'num_examples': -1
 }
 
+NUM_PANEL_COLUMNS = 2
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -660,7 +666,10 @@ def _run(prediction_file_name, num_temperature_bins,
             (num_temperature_bins, num_humidity_bins), numpy.nan
         )
 
-        if (
+        if target_name_by_statistic[k] == '':
+            actual_values = numpy.array([])
+            predicted_values = numpy.array([])
+        elif (
                 target_name_by_statistic[k] ==
                 example_utils.LONGWAVE_HEATING_RATE_NAME
         ):
@@ -763,8 +772,8 @@ def _run(prediction_file_name, num_temperature_bins,
             letter_label = chr(ord(letter_label) + 1)
 
         if 'bias' in statistic_names[k]:
-            max_colour_value = numpy.nanmax(
-                numpy.absolute(metric_matrix)
+            max_colour_value = numpy.nanpercentile(
+                numpy.absolute(metric_matrix), 99.5
             )
             min_colour_value = -1 * max_colour_value
             colour_map_object = BIAS_COLOUR_MAP_OBJECT
@@ -772,12 +781,12 @@ def _run(prediction_file_name, num_temperature_bins,
             metric_matrix = numpy.log10(metric_matrix)
             metric_matrix[numpy.isinf(metric_matrix)] = numpy.nan
 
-            min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanmax(metric_matrix)
+            min_colour_value = numpy.nanpercentile(metric_matrix, 0.5)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 99.5)
             colour_map_object = NUM_EXAMPLES_COLOUR_MAP_OBJECT
         else:
-            min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanmax(metric_matrix)
+            min_colour_value = numpy.nanpercentile(metric_matrix, 0.5)
+            max_colour_value = numpy.nanpercentile(metric_matrix, 99.5)
             colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
         colour_norm_object = pyplot.Normalize(
@@ -827,11 +836,8 @@ def _run(prediction_file_name, num_temperature_bins,
         )
         pyplot.close(figure_object)
 
-    num_panel_columns = int(numpy.floor(
-        numpy.sqrt(num_statistics)
-    ))
     num_panel_rows = int(numpy.ceil(
-        float(num_statistics) / num_panel_columns
+        float(num_statistics) / NUM_PANEL_COLUMNS
     ))
 
     concat_file_name = '{0:s}/errors_by_sfc_temp_and_humidity.jpg'.format(
@@ -841,7 +847,7 @@ def _run(prediction_file_name, num_temperature_bins,
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names,
         output_file_name=concat_file_name,
-        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_file_name,

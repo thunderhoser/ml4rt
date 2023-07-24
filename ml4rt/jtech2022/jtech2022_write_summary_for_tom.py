@@ -203,13 +203,13 @@ def _run(top_experiment_dir_name, plusplusplus_flag, deep_supervision_flag,
         output_file_handle.write(
             'model_type, model_hyperparams, num_model_params, '
             'shortwave_surface_down_flux_mae_w_m02, '
-            'shortwave_surface_down_flux_mse_w2_m04'
+            'shortwave_surface_down_flux_mse_w2_m04\n'
         )
 
         for i in range(num_depths):
             for j in range(num_widths):
                 for k in range(num_channel_counts):
-                    new_line = '{0:s}, {1:s}, {2:d}, {3:.10f}, {4:.10f}'.format(
+                    new_line = '{0:s}, {1:s}, {2:d}, {3:.10f}, {4:.10f}\n'.format(
                         model_type_string,
                         hyperparam_string_matrix[i, j, k],
                         num_weights_matrix[i, j, k],
