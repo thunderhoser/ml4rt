@@ -46,4 +46,5 @@ python3 -u "${CODE_DIR_NAME}/split_predictions_by_cloud.py" \
 --for_ice=0 \
 --min_path_kg_m02=0.025 \
 --include_fog=0 \
+--cloud_type_string="liquid" \
 --output_prediction_dir_name="${testing_dir_name}/by_cloud_regime"
