@@ -2682,6 +2682,10 @@ def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
         raise ValueError(error_string)
 
     sort_indices = numpy.argsort(all_id_strings_numpy)
+
+    print(len(all_id_strings_numpy))
+    print(sort_indices)
+
     desired_indices = numpy.searchsorted(
         all_id_strings_numpy[sort_indices], desired_id_strings_numpy,
         side='left'
