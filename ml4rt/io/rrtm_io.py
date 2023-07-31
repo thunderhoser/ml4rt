@@ -366,6 +366,8 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     :return: example_dict: Same as input but with extra predictor variables.
     """
 
+    # If a path variable (LWP, IWP, or WVP) has already been computed, don't
+    # compute it again.
     vector_predictor_names = (
         example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
     )
@@ -386,6 +388,15 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
     if not (get_lwp or get_iwp or get_wvp):
         return example_dict
 
+    # If different_height_grids == True, this likely means that example_dict
+    # contains GFS data in the native sigma-pressure coordinates, where every
+    # horizontal point has a different set of physical heights (metres above
+    # ground).  Whether different_height_grids == True or False, the following
+    # code computes grid_cell_width_matrix_metres, which has dimensions E x H,
+    # E being the number of examples (profiles) and H being the number of height
+    # levels.  The [i, j] entry of this matrix is the width of the [j]th grid
+    # cell above the surface for the [i]th example.  For instance, if the grid
+    # cell has edges of 100.2 m AGL and 130.3 m AGL, its width is 30.1 m.
     different_height_grids = (
         example_utils.HEIGHT_NAME in
         example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
@@ -428,6 +439,7 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
             grid_cell_width_matrix_metres, repeats=num_examples, axis=0
         )
 
+    # Compute liquid-water path (kg m^-2) from liquid-water content (kg m^-3).
     if get_lwp:
         lwc_matrix_kg_m03 = example_utils.get_field_from_dict(
             example_dict=example_dict,
@@ -455,6 +467,7 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
             ), axis=-1)
         )
 
+    # Compute ice-water path (kg m^-2) from ice-water content (kg m^-3).
     if get_iwp:
         iwc_matrix_kg_m03 = example_utils.get_field_from_dict(
             example_dict=example_dict,
@@ -482,6 +495,11 @@ def _get_water_path_profiles(example_dict, get_lwp=True, get_iwp=True,
             ), axis=-1)
         )
 
+    # Compute water-vapour path (kg m^-2) from water-vapour content (kg m^-3).
+    # Since water-vapour content is not a predictor variable, it is not stored
+    # explicitly in example_dict.  Thus, the first step is to convert specific
+    # humidity (kg kg^-1) to water-vapour content (kg m^-3); this entails
+    # multiplying specific humidity by air density.
     if get_wvp:
         air_density_matrix_kg_m03 = example_utils.get_air_density(example_dict)
         specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
