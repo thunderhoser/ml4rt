@@ -2650,9 +2650,7 @@ def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
     error_checking.assert_is_string_list(desired_id_strings)
     error_checking.assert_is_boolean(allow_missing)
 
-    print(len(all_id_strings))
     all_id_strings_numpy = numpy.array(all_id_strings, dtype='object')
-    print(all_id_strings_numpy)
     desired_id_strings_numpy = numpy.array(desired_id_strings, dtype='object')
 
     these_unique_strings, these_counts = numpy.unique(

@@ -304,7 +304,7 @@ def _run(model_file_name, example_dir_name, unnorm_example_dir_name,
     d[neural_net.VECTOR_TARGET_MAX_VALUE_KEY] = numpy.nan
     d[neural_net.SCALAR_TARGET_MIN_VALUE_KEY] = numpy.nan
     d[neural_net.SCALAR_TARGET_MAX_VALUE_KEY] = numpy.nan
-    d[neural_net.EXAMPLE_DIRECTORY_KEY] = unnorm_example_dir_name # TODO: new!!
+    d[neural_net.EXAMPLE_DIRECTORY_KEY] = unnorm_example_dir_name
     unnorm_generator_option_dict = d
     
     unnorm_predictor_matrix = neural_net.create_data_specific_examples(
