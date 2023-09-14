@@ -36,6 +36,7 @@ FIELD_ARG_NAME = 'field_name'
 HEIGHT_ARG_NAME = 'height_m_agl'
 NUM_REFERENCE_VALUES_ARG_NAME = 'num_reference_values'
 NUM_PIECES_ARG_NAME = 'num_linear_pieces'
+MAX_ACCEPTABLE_ERROR_ARG_NAME = 'max_acceptable_error'
 OUTPUT_FILE_ARG_NAME = 'output_model_file_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -56,6 +57,7 @@ NUM_REFERENCE_VALUES_HELP_STRING = (
     'Number of reference values to use from the normalization file.'
 )
 NUM_PIECES_HELP_STRING = 'Number of pieces in piecewise-linear model.'
+MAX_ACCEPTABLE_ERROR_HELP_STRING = 'Max acceptable model error.'
 OUTPUT_FILE_HELP_STRING = (
     'Path to output (NetCDF) file.  The fitted model will be written here by '
     '`_write_model`.'
@@ -80,6 +82,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_PIECES_ARG_NAME, type=int, required=True,
     help=NUM_PIECES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MAX_ACCEPTABLE_ERROR_ARG_NAME, type=float, required=True,
+    help=MAX_ACCEPTABLE_ERROR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -188,7 +194,8 @@ def _write_model(
 
 
 def _run(normalization_file_name, field_name, height_m_agl,
-         num_reference_values_to_use, num_linear_pieces, output_file_name):
+         num_reference_values_to_use, num_linear_pieces, max_acceptable_error,
+         output_file_name):
     """Fits piecewise-linear model for uniformization.
 
     This is effectively the main method.
@@ -198,6 +205,7 @@ def _run(normalization_file_name, field_name, height_m_agl,
     :param height_m_agl: Same.
     :param num_reference_values_to_use: Same.
     :param num_linear_pieces: Same.
+    :param max_acceptable_error: Same.
     :param output_file_name: Same.
     """
 
@@ -206,6 +214,8 @@ def _run(normalization_file_name, field_name, height_m_agl,
 
     error_checking.assert_is_geq(num_reference_values_to_use, 100)
     error_checking.assert_is_geq(num_linear_pieces, 10)
+    error_checking.assert_is_greater(max_acceptable_error, 0.)
+    error_checking.assert_is_leq(max_acceptable_error, 0.1)
 
     print('Reading reference values from: "{0:s}"...'.format(
         normalization_file_name
@@ -278,13 +288,14 @@ def _run(normalization_file_name, field_name, height_m_agl,
         normalized_reference_values - estimated_norm_reference_values
     )
 
-    if numpy.any(absolute_errors > 0.02):
+    if numpy.any(absolute_errors > max_acceptable_error):
         error_string = (
-            '{0:d} of {1:d} predictions have an absolute error above 0.02.  '
-            'Absolute errors are sorted in descending order below:\n{2:s}'
+            '{0:d} of {1:d} predictions have an absolute error above {2:.4f}.  '
+            'Absolute errors are sorted in descending order below:\n{3:s}'
         ).format(
-            numpy.sum(absolute_errors > 0.02),
+            numpy.sum(absolute_errors > max_acceptable_error),
             len(absolute_errors),
+            max_acceptable_error,
             str(numpy.sort(absolute_errors)[::-1])
         )
 
@@ -315,5 +326,8 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_REFERENCE_VALUES_ARG_NAME
         ),
         num_linear_pieces=getattr(INPUT_ARG_OBJECT, NUM_PIECES_ARG_NAME),
+        max_acceptable_error=getattr(
+            INPUT_ARG_OBJECT, MAX_ACCEPTABLE_ERROR_ARG_NAME
+        ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
