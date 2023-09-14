@@ -37,7 +37,7 @@ while ($i <= `expr $SLURM_ARRAY_TASK_ID + 27` && $i <= $#FIELD_NAMES)
     --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
     --field_name="${field_name}" \
     --height_m_agl=${height_m_agl} \
-    --num_reference_values=1000 \
+    --num_reference_values=5000 \
     --num_linear_pieces=100 \
     --max_acceptable_error=0.01 \
     --output_model_file_name="${OUTPUT_DIR_NAME}/piecewise_linear_model_${field_name_with_dashes}_${height_m_agl}-m-agl.nc"
