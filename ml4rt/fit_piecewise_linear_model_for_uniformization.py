@@ -245,6 +245,15 @@ def _run(normalization_file_name, field_name, height_m_agl,
     max_physical_value = numpy.max(physical_reference_values)
     max_normalized_value = numpy.max(normalized_reference_values)
 
+    percentile_levels = numpy.linspace(
+        0, 100, num=num_linear_pieces + 1, dtype=float
+    )
+    percentile_levels[0] = 0.1
+    percentile_levels[-1] = 99.9
+    first_guess_break_points_physical = numpy.percentile(
+        physical_reference_values, percentile_levels
+    )
+
     print('Taking every {0:d}th of {1:d} reference values...'.format(
         take_every_nth_value, num_reference_values_total
     ))
@@ -279,7 +288,10 @@ def _run(normalization_file_name, field_name, height_m_agl,
     # model_break_points_physical = model_object.fitfast(
     #     n_segments=num_linear_pieces, pop=5
     # )
-    model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
+    # model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
+    model_break_points_physical = model_object.fit_guess(
+        guess_breakpoints=first_guess_break_points_physical
+    )
 
     estimated_norm_reference_values = model_object.predict(
         physical_reference_values
