@@ -37,6 +37,7 @@ HEIGHT_ARG_NAME = 'height_m_agl'
 NUM_REFERENCE_VALUES_ARG_NAME = 'num_reference_values'
 NUM_PIECES_ARG_NAME = 'num_linear_pieces'
 MAX_ACCEPTABLE_ERROR_ARG_NAME = 'max_acceptable_error'
+PATCHING_ARG_NAME = 'patching'
 OUTPUT_FILE_ARG_NAME = 'output_model_file_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -58,6 +59,7 @@ NUM_REFERENCE_VALUES_HELP_STRING = (
 )
 NUM_PIECES_HELP_STRING = 'Number of pieces in piecewise-linear model.'
 MAX_ACCEPTABLE_ERROR_HELP_STRING = 'Max acceptable model error.'
+PATCHING_HELP_STRING = 'Boolean flag.'
 OUTPUT_FILE_HELP_STRING = (
     'Path to output (NetCDF) file.  The fitted model will be written here by '
     '`_write_model`.'
@@ -86,6 +88,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + MAX_ACCEPTABLE_ERROR_ARG_NAME, type=float, required=True,
     help=MAX_ACCEPTABLE_ERROR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PATCHING_ARG_NAME, type=int, required=False, default=0,
+    help=PATCHING_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -195,7 +201,7 @@ def _write_model(
 
 def _run(normalization_file_name, field_name, height_m_agl,
          num_reference_values_to_use, num_linear_pieces, max_acceptable_error,
-         output_file_name):
+         patching, output_file_name):
     """Fits piecewise-linear model for uniformization.
 
     This is effectively the main method.
@@ -206,8 +212,12 @@ def _run(normalization_file_name, field_name, height_m_agl,
     :param num_reference_values_to_use: Same.
     :param num_linear_pieces: Same.
     :param max_acceptable_error: Same.
+    :param patching: Same.
     :param output_file_name: Same.
     """
+
+    if patching and os.path.isfile(output_file_name):
+        return
 
     if height_m_agl < 0:
         height_m_agl = None
@@ -254,6 +264,26 @@ def _run(normalization_file_name, field_name, height_m_agl,
         physical_reference_values, percentile_levels
     )
 
+    if patching:
+        percentile_levels = numpy.linspace(
+            0.5, 99.5, num=num_linear_pieces, dtype=float
+        )
+        percentile_levels = numpy.concatenate((
+            numpy.array([0.]),
+            percentile_levels,
+            numpy.array([100.])
+        ))
+
+        x_points_to_force = numpy.percentile(
+            physical_reference_values, percentile_levels
+        )
+        y_points_to_force = numpy.percentile(
+            normalized_reference_values, percentile_levels
+        )
+    else:
+        x_points_to_force = numpy.array([])
+        y_points_to_force = numpy.array([])
+
     print('Taking every {0:d}th of {1:d} reference values...'.format(
         take_every_nth_value, num_reference_values_total
     ))
@@ -289,9 +319,16 @@ def _run(normalization_file_name, field_name, height_m_agl,
     #     n_segments=num_linear_pieces, pop=5
     # )
     # model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
-    model_break_points_physical = model_object.fit_guess(
-        guess_breakpoints=first_guess_break_points_physical
-    )
+
+    if patching:
+        model_break_points_physical = model_object.fit_with_breaks_force_points(
+            breaks=first_guess_break_points_physical,
+            x_c=x_points_to_force, y_c=y_points_to_force
+        )
+    else:
+        model_break_points_physical = model_object.fit_guess(
+            guess_breakpoints=first_guess_break_points_physical
+        )
 
     estimated_norm_reference_values = model_object.predict(
         physical_reference_values
@@ -341,5 +378,6 @@ if __name__ == '__main__':
         max_acceptable_error=getattr(
             INPUT_ARG_OBJECT, MAX_ACCEPTABLE_ERROR_ARG_NAME
         ),
+        patching=bool(getattr(INPUT_ARG_OBJECT, PATCHING_ARG_NAME)),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
