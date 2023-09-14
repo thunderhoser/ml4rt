@@ -3,12 +3,13 @@
 import argparse
 import numpy
 import xarray
-import pwlf
+# import pwlf
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
 from ml4rt.utils import normalization
 from ml4rt.utils import example_utils
+from ml4rt.outside_code import piecewise_linear_fitting as pwlf
 
 TOLERANCE = 1e-6
 
@@ -178,28 +179,6 @@ def _write_model(
     )
 
 
-def meanfilt (x, k):
-    """Apply a length-k mean filter to a 1D array x.
-    Boundaries are extended by repeating endpoints.
-
-    Downloaded from: https://gist.github.com/nickv2002/459e4dfd94ae2b221c7d
-    """
-
-    assert k % 2 == 1, "Median filter length must be odd."
-    assert x.ndim == 1, "Input must be one-dimensional."
-
-    k2 = (k - 1) // 2
-    y = numpy.zeros ((len (x), k), dtype=x.dtype)
-    y[:,k2] = x
-    for i in range (k2):
-        j = k2 - i
-        y[j:,i] = x[:-j]
-        y[:j,i] = x[0]
-        y[:-j,-(i+1)] = x[j:]
-        y[-j:,-(i+1)] = x[-1]
-    return numpy.mean (y, axis=1)
-
-
 def _run(normalization_file_name, field_name, height_m_agl,
          num_reference_values_to_use, num_linear_pieces, output_file_name):
     """Fits piecewise-linear model for uniformization.
@@ -279,41 +258,32 @@ def _run(normalization_file_name, field_name, height_m_agl,
     model_object = pwlf.PiecewiseLinFit(
         physical_reference_values, normalized_reference_values
     )
-    model_break_points_physical = model_object.fitfast(
-        n_segments=num_linear_pieces, pop=5
-    )
-    model_slopes = model_object.calc_slopes()
-    model_intercepts = model_object.intercepts
+    # model_break_points_physical = model_object.fitfast(
+    #     n_segments=num_linear_pieces, pop=5
+    # )
+    model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
 
-    physical_values_test, estimated_norm_values_test = (
-        _apply_model_one_value_per_piece(
-            model_break_points_physical=model_break_points_physical,
-            model_slopes=model_slopes,
-            model_intercepts=model_intercepts
-        )
+    estimated_norm_reference_values = model_object.predict(
+        physical_reference_values
+    )
+    absolute_errors = numpy.absolute(
+        normalized_reference_values - estimated_norm_reference_values
     )
 
-    estimated_norm_values_test_smooth = meanfilt(
-        x=estimated_norm_values_test + 0, k=5
-    )
-    bad_piece_indices = numpy.where(
-        numpy.absolute(
-            estimated_norm_values_test - estimated_norm_values_test_smooth
-        ) > 0.01
-    )[0]
-
-    if len(bad_piece_indices) > 0:
+    if numpy.any(absolute_errors > 0.02):
         error_string = (
-            '{0:d} of {1:d} linear pieces fail the smoothness criterion.  '
-            'Estimated normalized value at middle of each piece is listed '
-            'below:\n{2:s}'
+            '{0:d} of {1:d} predictions have an absolute error above 0.02.  '
+            'Absolute errors are sorted in descending order below:\n{2:s}'
         ).format(
-            len(bad_piece_indices),
-            num_linear_pieces,
-            str(estimated_norm_values_test)
+            numpy.sum(absolute_errors > 0.02),
+            len(absolute_errors),
+            str(numpy.sort(absolute_errors)[::-1])
         )
 
         raise ValueError(error_string)
+
+    model_slopes = model_object.calc_slopes()
+    model_intercepts = model_object.intercepts
 
     print('Writing model to: "{0:s}"...'.format(output_file_name))
     _write_model(
