@@ -50,7 +50,6 @@ set prediction_file_name="${model_dir_name}/testing_normalization_on_the_fly/pre
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_file_name}" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
---input_example_dir_name_for_pressure="${UNNORM_EXAMPLE_DIR_NAME}" \
 --first_time_string="${FIRST_TESTING_TIME_STRING}" \
 --last_time_string="${LAST_TESTING_TIME_STRING}" \
 --output_file_name="${prediction_file_name}"
