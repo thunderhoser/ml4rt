@@ -163,15 +163,10 @@ def _normalize_one_variable(
         )
 
     if uniformize:
-        return _orig_to_uniform_dist(
+        return _orig_to_normal_dist(_orig_to_uniform_dist(
             orig_values_new=orig_values_new,
             orig_values_training=orig_values_training
-        )
-
-        # return _orig_to_normal_dist(_orig_to_uniform_dist(
-        #     orig_values_new=orig_values_new,
-        #     orig_values_training=orig_values_training
-        # ))
+        ))
 
     return _orig_to_normal_dist(orig_values_new)
 
@@ -567,7 +562,7 @@ def normalize_data_with_pw_linear_models_for_unif(
             pwlmt[SCALAR_INTERCEPT_KEY].values[j_pw, :this_num_linear_pieces]
         )
 
-        # this_predictor_values = _orig_to_normal_dist(this_predictor_values)
+        this_predictor_values = _orig_to_normal_dist(this_predictor_values)
         new_scalar_predictor_matrix[..., j] = numpy.reshape(
             this_predictor_values,
             new_scalar_predictor_matrix[..., j].shape
@@ -616,7 +611,7 @@ def normalize_data_with_pw_linear_models_for_unif(
                 pwlmt[VECTOR_INTERCEPT_KEY].values[j_pw, k_pw, :this_num_linear_pieces]
             )
 
-            # this_predictor_values = _orig_to_normal_dist(this_predictor_values)
+            this_predictor_values = _orig_to_normal_dist(this_predictor_values)
             new_vector_predictor_matrix[..., k, j] = numpy.reshape(
                 this_predictor_values,
                 new_vector_predictor_matrix[..., k, j].shape
