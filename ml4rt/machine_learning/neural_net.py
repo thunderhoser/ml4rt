@@ -299,15 +299,47 @@ def _read_file_for_generator(
         print('Applying {0:s} normalization to predictors...'.format(
             predictor_norm_type_string.upper()
         ))
-        example_dict = normalization.normalize_data(
-            new_example_dict=example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=predictor_norm_type_string,
-            uniformize=uniformize,
-            min_normalized_value=predictor_min_norm_value,
-            max_normalized_value=predictor_max_norm_value,
-            separate_heights=True, apply_to_predictors=True,
-            apply_to_vector_targets=False, apply_to_scalar_targets=False
+        # example_dict = normalization.normalize_data(
+        #     new_example_dict=example_dict,
+        #     training_example_dict=training_example_dict,
+        #     normalization_type_string=predictor_norm_type_string,
+        #     uniformize=uniformize,
+        #     min_normalized_value=predictor_min_norm_value,
+        #     max_normalized_value=predictor_max_norm_value,
+        #     separate_heights=True, apply_to_predictors=True,
+        #     apply_to_vector_targets=False, apply_to_scalar_targets=False
+        # )
+
+        if example_utils.AEROSOL_EXTINCTION_NAME in field_names:
+            pw_linear_model_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/shortwave_examples_600days/orig_heights/training/'
+                'piecewise_linear_models_for_uniformization.nc'
+            )
+        else:
+            pw_linear_model_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/longwave_examples_600days/orig_heights/training/'
+                'piecewise_linear_models_for_uniformization.nc'
+            )
+
+        print((
+            'Reading piecewise-linear model for uniformization from: "{0:s}"...'
+        ).format(
+            pw_linear_model_file_name
+        ))
+
+        pw_linear_model_table_xarray = (
+            normalization.read_piecewise_linear_models_for_unif(
+                pw_linear_model_file_name
+            )
+        )
+
+        example_dict = (
+            normalization.normalize_data_with_pw_linear_models_for_unif(
+                new_example_dict=example_dict,
+                pw_linear_model_table_xarray=pw_linear_model_table_xarray
+            )
         )
 
     if vector_target_norm_type_string is not None:
