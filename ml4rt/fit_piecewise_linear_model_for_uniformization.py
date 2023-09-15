@@ -216,7 +216,8 @@ def _run(normalization_file_name, field_name, height_m_agl,
     :param output_file_name: Same.
     """
 
-    if patching and os.path.isfile(output_file_name):
+    if patching and os.path.isfile(output_file_name.replace('/patch', '')):
+        print('FILE ALREADY EXISTS.  DOING NOTHING.')
         return
 
     if height_m_agl < 0:
@@ -258,31 +259,13 @@ def _run(normalization_file_name, field_name, height_m_agl,
     percentile_levels = numpy.linspace(
         0, 100, num=num_linear_pieces + 1, dtype=float
     )
+
+    # TODO(thunderhoser): Hmmm... I don't know about the next two lines.
     percentile_levels[0] = 0.1
     percentile_levels[-1] = 99.9
     first_guess_break_points_physical = numpy.percentile(
         physical_reference_values, percentile_levels
     )
-
-    if patching:
-        percentile_levels = numpy.linspace(
-            0.5, 99.5, num=num_linear_pieces, dtype=float
-        )
-        percentile_levels = numpy.concatenate((
-            numpy.array([0.]),
-            percentile_levels,
-            numpy.array([100.])
-        ))
-
-        x_points_to_force = numpy.percentile(
-            physical_reference_values, percentile_levels
-        )
-        y_points_to_force = numpy.percentile(
-            normalized_reference_values, percentile_levels
-        )
-    else:
-        x_points_to_force = numpy.array([])
-        y_points_to_force = numpy.array([])
 
     print('Taking every {0:d}th of {1:d} reference values...'.format(
         take_every_nth_value, num_reference_values_total
@@ -321,19 +304,9 @@ def _run(normalization_file_name, field_name, height_m_agl,
     # model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
 
     if patching:
-        for i in range(len(first_guess_break_points_physical)):
-            print('Break point = {0:.4f} ... force {1:.4f} to {2:.4f} ... force {3:.4f} to {4:.4f}'.format(
-                first_guess_break_points_physical[i],
-                x_points_to_force[i], y_points_to_force[i],
-                x_points_to_force[i + 1], y_points_to_force[i + 1]
-            ))
-
-        model_object.fit_with_breaks_force_points(
-            breaks=first_guess_break_points_physical,
-            x_c=x_points_to_force, y_c=y_points_to_force
+        model_break_points_physical = model_object.fit(
+            n_segments=num_linear_pieces
         )
-        model_break_points_physical = first_guess_break_points_physical + 0.
-        print(model_object.beta)
     else:
         model_break_points_physical = model_object.fit_guess(
             guess_breakpoints=first_guess_break_points_physical
