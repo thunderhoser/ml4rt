@@ -239,69 +239,43 @@ def _run(normalization_file_name, field_name, height_m_agl,
     )
     assert len(physical_reference_values.shape) == 1
 
-    num_reference_values_total = len(physical_reference_values)
-    num_reference_values_to_use = min([
-        num_reference_values_to_use, num_reference_values_total
-    ])
-    take_every_nth_value = int(numpy.floor(
-        float(num_reference_values_total) / num_reference_values_to_use
-    ))
+    this_min_value = numpy.percentile(physical_reference_values, 0.1)
+    this_max_value = numpy.percentile(physical_reference_values, 99.9)
+    physical_reference_values = physical_reference_values[physical_reference_values >= this_min_value]
+    physical_reference_values = physical_reference_values[physical_reference_values <= this_max_value]
 
-    physical_reference_values = numpy.sort(physical_reference_values)
-    normalized_reference_values = normalization._orig_to_uniform_dist(
-        orig_values_new=physical_reference_values + 0.,
+    num_reference_values_to_use = min([
+        num_reference_values_to_use,
+        len(physical_reference_values)
+    ])
+
+    these_percentile_levels = numpy.linspace(
+        0, 100, num=num_reference_values_to_use, dtype=float
+    )
+    physical_training_values = numpy.percentile(
+        physical_reference_values, these_percentile_levels
+    )
+    normalized_training_values = normalization._orig_to_uniform_dist(
+        orig_values_new=physical_training_values + 0.,
         orig_values_training=physical_reference_values
     )
 
-    max_physical_value = numpy.max(physical_reference_values)
-    max_normalized_value = numpy.max(normalized_reference_values)
-
-    percentile_levels = numpy.linspace(
+    these_percentile_levels = numpy.linspace(
         0, 100, num=num_linear_pieces + 1, dtype=float
     )
-
-    # TODO(thunderhoser): Hmmm... I don't know about the next two lines.
-    # percentile_levels[0] = 0.1
-    # percentile_levels[-1] = 99.9
     first_guess_break_points_physical = numpy.percentile(
-        physical_reference_values, percentile_levels
+        physical_reference_values, these_percentile_levels
     )
-
-    print('Taking every {0:d}th of {1:d} reference values...'.format(
-        take_every_nth_value, num_reference_values_total
-    ))
-    physical_reference_values = (
-        physical_reference_values[::take_every_nth_value]
-    )
-    normalized_reference_values = (
-        normalized_reference_values[::take_every_nth_value]
-    )
-
-    if not numpy.isclose(
-            physical_reference_values[-1], max_physical_value, atol=TOLERANCE
-    ):
-        physical_reference_values = numpy.concatenate((
-            physical_reference_values,
-            numpy.array([max_physical_value])
-        ))
-        normalized_reference_values = numpy.concatenate((
-            normalized_reference_values,
-            numpy.array([max_normalized_value])
-        ))
 
     print((
-        'Fitting piecewise-linear model with {0:d} reference values...'
+        'Fitting piecewise-linear model with {0:d} training samples...'
     ).format(
-        len(physical_reference_values)
+        len(physical_training_values)
     ))
 
     model_object = pwlf.PiecewiseLinFit(
-        physical_reference_values, normalized_reference_values
+        physical_training_values, normalized_training_values
     )
-    # model_break_points_physical = model_object.fitfast(
-    #     n_segments=num_linear_pieces, pop=5
-    # )
-    # model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
 
     if patching:
         model_break_points_physical = model_object.fit(
@@ -312,11 +286,11 @@ def _run(normalization_file_name, field_name, height_m_agl,
             guess_breakpoints=first_guess_break_points_physical
         )
 
-    estimated_norm_reference_values = model_object.predict(
-        physical_reference_values
+    estimated_norm_training_values = model_object.predict(
+        physical_training_values
     )
     absolute_errors = numpy.absolute(
-        normalized_reference_values - estimated_norm_reference_values
+        normalized_training_values - estimated_norm_training_values
     )
 
     if numpy.any(absolute_errors > max_acceptable_error):
