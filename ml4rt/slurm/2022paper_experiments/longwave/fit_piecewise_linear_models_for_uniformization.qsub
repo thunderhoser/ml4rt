@@ -1,0 +1,29 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="fit_piecewise_linear_models_for_uniformization"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=03:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=fit_piecewise_linear_models_for_uniformization_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/longwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc"
+set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/longwave_examples_600days/orig_heights/training/piecewise_linear_models_for_uniformization.nc"
+
+python3 -u "${CODE_DIR_NAME}/fit_piecewise_linear_models_for_uniformization.py" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--num_linear_pieces=200 \
+--max_acceptable_error=0.01 \
+--output_model_file_name="${OUTPUT_FILE_NAME}"

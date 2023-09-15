@@ -1,0 +1,56 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="apply_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --array=17
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_lw_plusplusplus"
+
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/longwave_examples_600days/orig_heights/testing"
+
+set FIRST_TESTING_TIME_STRING="2019-12-24-000000"
+set LAST_TESTING_TIME_STRING="2020-12-31-235959"
+
+set MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
+set CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
+set FIRST_LAYER_CHANNEL_COUNTS=("004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128")
+
+set model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+set num_conv_layers_per_block=${CONV_LAYER_PER_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set top_model_dir_name="${TOP_MODEL_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}"
+
+set model_file_names={${top_model_dir_name}/model*.h5}
+set model_file_name=${model_file_names[$#model_file_names]}
+set model_dir_name=`echo $model_file_name | rev | cut -c 4- | rev`
+set prediction_file_name="${model_dir_name}/testing_normalization_on_the_fly/predictions.nc"
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_file_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--input_example_dir_name_for_pressure="${UNNORM_EXAMPLE_DIR_NAME}" \
+--first_time_string="${FIRST_TESTING_TIME_STRING}" \
+--last_time_string="${LAST_TESTING_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
