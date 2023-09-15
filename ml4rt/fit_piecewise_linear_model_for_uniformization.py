@@ -261,8 +261,8 @@ def _run(normalization_file_name, field_name, height_m_agl,
     )
 
     # TODO(thunderhoser): Hmmm... I don't know about the next two lines.
-    percentile_levels[0] = 0.1
-    percentile_levels[-1] = 99.9
+    # percentile_levels[0] = 0.1
+    # percentile_levels[-1] = 99.9
     first_guess_break_points_physical = numpy.percentile(
         physical_reference_values, percentile_levels
     )
