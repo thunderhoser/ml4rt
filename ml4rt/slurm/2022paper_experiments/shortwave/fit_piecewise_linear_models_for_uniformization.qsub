@@ -22,7 +22,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/m
 set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc"
 set OUTPUT_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/piecewise_linear_models_for_uniformization.nc"
 
-python3 -u "${CODE_DIR_NAME}/fit_piecewise_linear_model_for_uniformization.py" \
+python3 -u "${CODE_DIR_NAME}/fit_piecewise_linear_models_for_uniformization.py" \
 --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
 --num_linear_pieces=200 \
 --max_acceptable_error=0.01 \
