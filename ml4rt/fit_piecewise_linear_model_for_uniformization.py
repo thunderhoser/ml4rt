@@ -321,6 +321,13 @@ def _run(normalization_file_name, field_name, height_m_agl,
     # model_break_points_physical = model_object.fit(n_segments=num_linear_pieces)
 
     if patching:
+        for i in range(len(first_guess_break_points_physical)):
+            print('Break point = {0:.4f} ... force {1:.4f} to {2:.4f} ... force {3:.4f} to {4:.4f}'.format(
+                first_guess_break_points_physical[i],
+                x_points_to_force[i], y_points_to_force[i],
+                x_points_to_force[i + 1], y_points_to_force[i + 1]
+            ))
+
         model_object.fit_with_breaks_force_points(
             breaks=first_guess_break_points_physical,
             x_c=x_points_to_force, y_c=y_points_to_force
