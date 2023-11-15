@@ -3,7 +3,6 @@
 import argparse
 import numpy
 import xarray
-from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from gewittergefahr.gg_utils import longitude_conversion as longitude_conv
 from gewittergefahr.gg_utils import file_system_utils
@@ -159,73 +158,51 @@ def _process_data_one_profile(
         where i is this index.
     :param site_index: Will process data for the [j]th site in the table,
         where j is this index.
-    :param processed_data_dict: Dictionary, where each key is a variable name and
-        the corresponding value is a 3-D numpy array (time x site x height).
-    :return: processed_data_dict: Same as input but with new values for the given
-        time and site.
+    :param processed_data_dict: Dictionary, where each key is a variable name
+        and the corresponding value is a 3-D numpy array (time x site x height).
+    :return: processed_data_dict: Same as input but with new values for the
+        given time and site.
     """
 
     i = time_index
     j = site_index
 
-    # pressure_diffs_pascals = numpy.cumsum(
-    #     orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
-    # )
-    # edge_pressures_pascals = (
-    #     orig_gfs_table_xarray[SURFACE_PRESSURE_KEY_ORIG_PASCALS].values[i, j] -
-    #     numpy.concatenate((numpy.array([0]), pressure_diffs_pascals))
-    # )
-    #
-    # # TODO(thunderhoser): To deal with negative pressures, I make pressure
-    # # increase with height.  This will cause the RRTM script to skip the
-    # # profile.
-    # if edge_pressures_pascals[-1] < 1:
-    #     edge_pressures_pascals = numpy.maximum(edge_pressures_pascals, 1.)
-    #     edge_pressures_pascals[-1] = 2.
-    #
-    # pressures_pascals = (
-    #     0.5 * (edge_pressures_pascals[:-1] + edge_pressures_pascals[1:])
-    # )
-    #
-    # edge_heights_m_agl = numpy.cumsum(numpy.flip(
-    #     -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
-    # ))
-    # edge_heights_m_agl = numpy.concatenate((
-    #     numpy.array([0]), edge_heights_m_agl
-    # ))
-    # heights_m_agl = 0.5 * (edge_heights_m_agl[:-1] + edge_heights_m_agl[1:])
-    #
-    # processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pascals
-    # processed_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
-    #     edge_pressures_pascals
-    # )
-    # processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
-
-    pressures_pascals = numpy.flip(numpy.cumsum(
-        orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
-    ))
-    heights_m_agl = numpy.cumsum(numpy.flip(
-        -1 * orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
-    ))
-
-    processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pascals
-    processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
-
-    edge_heights_m_agl = example_utils.get_grid_cell_edges(heights_m_agl)
-    edge_heights_m_agl[0] = max([
-        edge_heights_m_agl[0], 0.
-    ])
-
-    log_offset = 1. + -1 * numpy.min(pressures_pascals)
-    assert not numpy.isnan(log_offset)
-
-    interp_object = interp1d(
-        x=heights_m_agl, y=numpy.log(log_offset + pressures_pascals),
-        kind='linear', bounds_error=False, assume_sorted=True,
-        fill_value='extrapolate'
+    regression_intercepts_pa = orig_gfs_table_xarray.attrs['ak']
+    regression_coefficients = orig_gfs_table_xarray.attrs['bk']
+    surface_pressure_pa = (
+        orig_gfs_table_xarray[SURFACE_PRESSURE_KEY_ORIG_PASCALS].values[i, j]
     )
-    processed_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
-        numpy.exp(interp_object(edge_heights_m_agl)) - log_offset
+    edge_pressures_pa = numpy.flip(
+        regression_intercepts_pa + regression_coefficients * surface_pressure_pa
+    )
+    pressures_pa = numpy.mean(
+        numpy.vstack([edge_pressures_pa[:-1], edge_pressures_pa[1:]]),
+        axis=0
+    )
+
+    pressure_thicknesses_pa = numpy.flip(
+        orig_gfs_table_xarray[DELTA_PRESSURE_KEY_ORIG_PASCALS].values[i, :, j]
+    )
+    height_thicknesses_metres = -1 * numpy.flip(
+        orig_gfs_table_xarray[DELTA_HEIGHT_KEY_ORIG_METRES].values[i, :, j]
+    )
+
+    edge_heights_m_agl = numpy.concatenate([
+        numpy.array([0.]),
+        numpy.cumsum(height_thicknesses_metres)
+    ])
+    heights_m_agl = numpy.mean(
+        numpy.vstack([edge_heights_m_agl[:-1], edge_heights_m_agl[1:]]),
+        axis=0
+    )
+
+    processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pa
+    processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
+    processed_data_dict[PRESSURE_THICKNESS_KEY_ORIG_PASCALS][i, j, :] = (
+        pressure_thicknesses_pa
+    )
+    processed_data_dict[HEIGHT_THICKNESS_KEY_ORIG_METRES][i, j, :] = (
+        height_thicknesses_metres
     )
 
     for this_key in MAIN_KEYS_ORIG:
@@ -691,32 +668,6 @@ def _run(input_file_name, output_file_name):
             dummy_vector_predictor_matrix[:, 0, [0]]
     }
 
-    print('Adding layer thicknesses (in terms of both height and pressure)...')
-    dummy_example_dict = example_utils.add_layer_thicknesses(
-        example_dict=dummy_example_dict, use_height_coords=True
-    )
-    dummy_example_dict = example_utils.add_layer_thicknesses(
-        example_dict=dummy_example_dict, use_height_coords=False
-    )
-
-    height_thickness_matrix_metres = example_utils.get_field_from_dict(
-        example_dict=dummy_example_dict,
-        field_name=example_utils.HEIGHT_THICKNESS_NAME
-    )
-    processed_data_dict[HEIGHT_THICKNESS_KEY_ORIG_METRES] = numpy.reshape(
-        height_thickness_matrix_metres,
-        (num_times, num_sites, num_heights)
-    )
-
-    pressure_thickness_matrix_pa = example_utils.get_field_from_dict(
-        example_dict=dummy_example_dict,
-        field_name=example_utils.PRESSURE_THICKNESS_NAME
-    )
-    processed_data_dict[PRESSURE_THICKNESS_KEY_ORIG_PASCALS] = numpy.reshape(
-        pressure_thickness_matrix_pa,
-        (num_times, num_sites, num_heights)
-    )
-
     print('Adding effective radii of liquid and ice particles...')
     dummy_example_dict = example_utils.add_effective_radii(
         example_dict=dummy_example_dict,
@@ -839,16 +790,6 @@ def _run(input_file_name, output_file_name):
     new_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
     )
-
-    # for this_key in new_gfs_table_xarray.variables:
-    #     if this_key == SITE_NAME_KEY:
-    #         continue
-    #
-    #     if not numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)):
-    #         continue
-    #
-    #     print(this_key)
-    #     print(numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)))
 
     for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:

@@ -88,7 +88,8 @@ REQUIRED_SHORTWAVE_PREDICTOR_NAMES = [
     example_utils.AEROSOL_ALBEDO_NAME,
     example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
     # example_utils.SURFACE_TEMPERATURE_NAME,
-    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.PRESSURE_THICKNESS_NAME,
+    example_utils.HEIGHT_THICKNESS_NAME, example_utils.TEMPERATURE_NAME,
     example_utils.SPECIFIC_HUMIDITY_NAME,
     example_utils.LIQUID_WATER_CONTENT_NAME,
     example_utils.ICE_WATER_CONTENT_NAME,
@@ -108,7 +109,8 @@ REQUIRED_LONGWAVE_PREDICTOR_NAMES = [
     # example_utils.AEROSOL_ASYMMETRY_PARAM_NAME,
     example_utils.SURFACE_TEMPERATURE_NAME,
     example_utils.SURFACE_EMISSIVITY_NAME,
-    example_utils.PRESSURE_NAME, example_utils.TEMPERATURE_NAME,
+    example_utils.PRESSURE_NAME, example_utils.PRESSURE_THICKNESS_NAME,
+    example_utils.HEIGHT_THICKNESS_NAME, example_utils.TEMPERATURE_NAME,
     example_utils.SPECIFIC_HUMIDITY_NAME,
     example_utils.LIQUID_WATER_CONTENT_NAME,
     example_utils.ICE_WATER_CONTENT_NAME,
@@ -822,13 +824,6 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl,
             longitudes_deg=example_dict[k][:, longitude_index], allow_nan=False
         )
     )
-
-    example_dict = example_utils.add_layer_thicknesses(
-        example_dict=example_dict, use_height_coords=True
-    )
-    example_dict = example_utils.add_layer_thicknesses(
-        example_dict=example_dict, use_height_coords=False
-    )
     example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
         integrate_upward=False
@@ -1155,13 +1150,6 @@ def read_file(netcdf_file_name, allow_bad_values=False,
         longitude_conv.convert_lng_positive_in_west(
             longitudes_deg=example_dict[k][:, longitude_index], allow_nan=False
         )
-    )
-
-    example_dict = example_utils.add_layer_thicknesses(
-        example_dict=example_dict, use_height_coords=True
-    )
-    example_dict = example_utils.add_layer_thicknesses(
-        example_dict=example_dict, use_height_coords=False
     )
     example_dict = _get_water_path_profiles(
         example_dict=example_dict, get_lwp=True, get_iwp=True, get_wvp=True,
