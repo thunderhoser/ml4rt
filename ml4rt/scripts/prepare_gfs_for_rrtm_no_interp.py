@@ -594,9 +594,12 @@ def _run(input_file_name, output_file_name):
 
     # Process main variables.
     processed_data_dict = dict()
-    for this_key in (
-            MAIN_KEYS_ORIG + [PRESSURE_KEY_ORIG_PASCALS, HEIGHT_KEY_ORIG_M_AGL]
-    ):
+    these_keys = MAIN_KEYS_ORIG + [
+        PRESSURE_KEY_ORIG_PASCALS, HEIGHT_KEY_ORIG_M_AGL,
+        PRESSURE_THICKNESS_KEY_ORIG_PASCALS, HEIGHT_THICKNESS_KEY_ORIG_METRES
+    ]
+
+    for this_key in these_keys:
         processed_data_dict[this_key] = numpy.full(
             (num_times, num_sites, num_heights), numpy.nan
         )
