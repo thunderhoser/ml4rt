@@ -1217,74 +1217,6 @@ def heating_rate_to_k_day01(example_dict, shortwave_hr_matrix_w_m02,
     return example_dict
 
 
-def add_layer_thicknesses(example_dict, use_height_coords):
-    """Adds layer thicknesses to dictionary.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :param use_height_coords: Boolean flag.  If True (False), will define layer
-        thicknesses in terms of height (pressure).
-    :return: example_dict: Same as input but with layer thicknesses.
-    """
-
-    error_checking.assert_is_boolean(use_height_coords)
-
-    if use_height_coords:
-        if HEIGHT_NAME in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
-            vertical_coord_matrix = get_field_from_dict(
-                example_dict=example_dict, field_name=HEIGHT_NAME
-            )
-        else:
-            vertical_coord_matrix = numpy.repeat(
-                numpy.expand_dims(example_dict[HEIGHTS_KEY], axis=0),
-                repeats=len(example_dict[EXAMPLE_IDS_KEY]), axis=0
-            )
-    else:
-        vertical_coord_matrix = get_field_from_dict(
-            example_dict=example_dict, field_name=PRESSURE_NAME
-        )
-
-    thickness_matrix = numpy.diff(vertical_coord_matrix, axis=1)
-    edge_coord_matrix = vertical_coord_matrix[:, :-1] + thickness_matrix / 2
-    bottom_coord_matrix = (
-        vertical_coord_matrix[:, [0]] - thickness_matrix[:, [0]] / 2
-    )
-    top_coord_matrix = (
-        vertical_coord_matrix[:, [-1]] + thickness_matrix[:, [-1]] / 2
-    )
-    edge_coord_matrix = numpy.concatenate(
-        (bottom_coord_matrix, edge_coord_matrix, top_coord_matrix), axis=1
-    )
-    thickness_matrix = numpy.absolute(
-        numpy.diff(edge_coord_matrix, axis=1)
-    )
-
-    thickness_name = (
-        HEIGHT_THICKNESS_NAME if use_height_coords
-        else PRESSURE_THICKNESS_NAME
-    )
-
-    vector_predictor_names = example_dict[VECTOR_PREDICTOR_NAMES_KEY]
-    found_thickness = thickness_name in vector_predictor_names
-    if not found_thickness:
-        vector_predictor_names.append(thickness_name)
-
-    thickness_index = vector_predictor_names.index(thickness_name)
-    example_dict[VECTOR_PREDICTOR_NAMES_KEY] = vector_predictor_names
-
-    if found_thickness:
-        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., thickness_index] = (
-            thickness_matrix
-        )
-    else:
-        example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.insert(
-            example_dict[VECTOR_PREDICTOR_VALS_KEY],
-            obj=thickness_index, values=thickness_matrix, axis=-1
-        )
-
-    return example_dict
-
-
 def add_trace_gases(example_dict, profile_noise_stdev_fractional,
                     indiv_noise_stdev_fractional):
     """Adds trace-gas profiles to dictionary.
@@ -2650,8 +2582,8 @@ def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
     error_checking.assert_is_string_list(desired_id_strings)
     error_checking.assert_is_boolean(allow_missing)
 
-    all_id_strings_numpy = numpy.array(all_id_strings, dtype='object')
-    desired_id_strings_numpy = numpy.array(desired_id_strings, dtype='object')
+    all_id_strings_numpy = numpy.array(all_id_strings)
+    desired_id_strings_numpy = numpy.array(desired_id_strings)
 
     these_unique_strings, these_counts = numpy.unique(
         all_id_strings_numpy, return_counts=True
@@ -2682,7 +2614,6 @@ def find_examples(all_id_strings, desired_id_strings, allow_missing=False):
         raise ValueError(error_string)
 
     sort_indices = numpy.argsort(all_id_strings_numpy)
-
     desired_indices = numpy.searchsorted(
         all_id_strings_numpy[sort_indices], desired_id_strings_numpy,
         side='left'

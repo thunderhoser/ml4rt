@@ -25,6 +25,9 @@ function create_output_file, name, num_heights
   vid = ncdf_vardef(fid,'height_m_agl',/float,[did1,did0])
     ncdf_attput,fid,vid,'long_name','Height above ground'
     ncdf_attput,fid,vid,'units','m'
+  vid = ncdf_vardef(fid,'height_thickness_metres',/float,[did1,did0])
+    ncdf_attput,fid,vid,'long_name','Height thickness'
+    ncdf_attput,fid,vid,'units','m'
   vid = ncdf_vardef(fid,'solar_zenith_angle_deg',/float,did0)	
     ncdf_attput,fid,vid,'long_name','Solar zenith angle'	
     ncdf_attput,fid,vid,'units','degrees'
@@ -52,6 +55,9 @@ function create_output_file, name, num_heights
     ncdf_attput,fid,vid,'units','kg/m2'
   vid = ncdf_vardef(fid,'pressure_pascals',/float,[did1,did0])
     ncdf_attput,fid,vid,'long_name','Pressure'
+    ncdf_attput,fid,vid,'units','Pa'
+  vid = ncdf_vardef(fid,'pressure_thickness_pascals',/float,[did1,did0])
+    ncdf_attput,fid,vid,'long_name','Pressure thickness'
     ncdf_attput,fid,vid,'units','Pa'
   vid = ncdf_vardef(fid,'temperature_kelvins',/float,[did1,did0])
     ncdf_attput,fid,vid,'long_name','Temperature'
@@ -109,7 +115,7 @@ end
 function append_to_output_file, name, index, valid_times_unix_sec, julian_days, zenith_angles_deg, $
     standard_atmo_enums, latitudes_deg_n, longitudes_deg_e, surface_temperatures_kelvins, surface_emissivities, $
     total_liquid_paths_g_m02, total_ice_paths_g_m02, liquid_paths_g_m02, ice_paths_g_m02, $
-    temps_kelvins, pressures_mb, heights_km_agl, vapour_mixing_ratios_g_kg01, $
+    temps_kelvins, pressures_mb, pressure_thicknesses_mb, heights_km_agl, height_thicknesses_km, vapour_mixing_ratios_g_kg01, $
     ozone_mixing_ratios_g_kg01, co2_concentrations_ppmv, ch4_concentrations_ppmv, n2o_concentrations_ppmv, $
     liquid_eff_radii_microns, ice_eff_radii_microns, $
     heating_rates_k_day01, upwelling_fluxes_w_m02, downwelling_fluxes_w_m02, toa_upwelling_fluxes_w_m02, sfc_downwelling_fluxes_w_m02
@@ -129,7 +135,9 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
   ncdf_varput,fid,'layerwise_ice_water_path_kg_m02',0.001*ice_paths_g_m02,offset=[0,index]
   ncdf_varput,fid,'temperature_kelvins',temps_kelvins,offset=[0,index]
   ncdf_varput,fid,'pressure_pascals',100*pressures_mb,offset=[0,index]
+  ncdf_varput,fid,'pressure_thickness_pascals',100*pressure_thicknesses_mb,offset=[0,index]
   ncdf_varput,fid,'height_m_agl',1000*heights_km_agl,offset=[0,index]
+  ncdf_varput,fid,'height_thickness_metres',1000*height_thicknesses_km,offset=[0,index]
   ncdf_varput,fid,'vapour_mixing_ratio_kg_kg01',0.001*vapour_mixing_ratios_g_kg01,offset=[0,index]
   ncdf_varput,fid,'ozone_mixing_ratio_kg_kg01',0.001*ozone_mixing_ratios_g_kg01,offset=[0,index]
   ncdf_varput,fid,'co2_concentration_ppmv',co2_concentrations_ppmv,offset=[0,index]
@@ -177,7 +185,9 @@ pro runit, year
     ncdf_varget,fid,'site_longitude_deg_e',site_longitudes_deg_e
     ncdf_varget,fid,'forecast_hour',forecast_hours
     ncdf_varget,fid,'height_m_agl',height_matrix_m_agl
+    ncdf_varget,fid,'height_thickness_metres',height_thickness_matrix_metres
     ncdf_varget,fid,'pressure_pascals',pressure_matrix_pascals
+    ncdf_varget,fid,'pressure_thickness_pascals',pressure_thickness_matrix_pascals
     ncdf_varget,fid,'temperature_kelvins',temperature_matrix_kelvins
     ncdf_varget,fid,'vapour_mixing_ratio_kg_kg01',vapour_mixr_matrix_kg_kg01
     ncdf_varget,fid,'layerwise_liquid_water_path_kg_m02',layerwise_liquid_path_matrix_kg_m02
@@ -230,11 +240,14 @@ pro runit, year
 	      endelse
 	      
 	      these_heights_km_agl = reform(0.001*height_matrix_m_agl(*,foo(0),bar(0)))
+	      these_height_thicknesses_km = reform(0.001*height_thickness_matrix_metres(*,foo(0),bar(0)))
           feh = where(satmos.z(*,stdatmos) gt max(these_heights_km_agl+2) and satmos.z(*,stdatmos) le 50,nfeh)
 	      if(nfeh gt 0) then begin
                 ; Append on the bit of standard atmosphere needed to get high into the stratosphere
 	        these_heights_km_agl = [these_heights_km_agl,                           satmos.z(feh,stdatmos)]
+	        these_height_thicknesses_km = [these_height_thicknesses_km,                           replicate(0.,nfeh)]
 	        these_pressures_mb = [0.01*reform(pressure_matrix_pascals(*,foo(0),bar(0))),        satmos.p(feh,stdatmos)]
+	        these_pressure_thicknesses_mb = [0.01*reform(pressure_thickness_matrix_pascals(*,foo(0),bar(0))),        replicate(0.,nfeh)]
 	        these_temps_kelvins = [reform(temperature_matrix_kelvins(*,foo(0),bar(0))), satmos.t(feh,stdatmos)]
 	        these_vapour_mixing_ratios_g_kg01 = [1000*reform(vapour_mixr_matrix_kg_kg01(*,foo(0),bar(0))),        satmos.q(feh,stdatmos)]
 	        these_liquid_paths_g_m02 = [1000*reform(layerwise_liquid_path_matrix_kg_m02(*,foo(0),bar(0))>0), replicate(0.,nfeh)]
@@ -248,6 +261,7 @@ pro runit, year
           endif else begin
                 ; The model profile is fine, but reform and rename the variables to be consistent
             these_pressures_mb = reform(0.01*pressure_matrix_pascals(*,foo(0),bar(0)))
+            these_pressure_thicknesses_mb = reform(0.01*pressure_thickness_matrix_pascals(*,foo(0),bar(0)))
             these_temps_kelvins = reform(temperature_matrix_kelvins(*,foo(0),bar(0)))
             these_vapour_mixing_ratios_g_kg01 = 1000*reform(vapour_mixr_matrix_kg_kg01(*,foo(0),bar(0)))
             these_liquid_paths_g_m02 = 1000*reform(layerwise_liquid_path_matrix_kg_m02(*,foo(0),bar(0))>0)
@@ -295,7 +309,9 @@ pro runit, year
 	        output_ice_eff_radii_microns = transpose(these_ice_eff_radii_microns)
 	        output_temps_kelvins = transpose(these_temps_kelvins)
 	        output_pressures_mb = transpose(these_pressures_mb)
+	        output_pressure_thicknesses_mb = transpose(these_pressure_thicknesses_mb)
 	        output_heights_km_agl = transpose(these_heights_km_agl)
+	        output_height_thicknesses_km = transpose(these_height_thicknesses_km)
 	        output_vapour_mixing_ratios_g_kg01 = transpose(these_vapour_mixing_ratios_g_kg01)
 	        output_zenith_angles_deg = sza(0)
 	        output_surface_temps_kelvins = reform(surface_temp_matrix_kelvins(foo(0),bar(0)))
@@ -323,7 +339,9 @@ pro runit, year
             output_ice_eff_radii_microns = [output_ice_eff_radii_microns,transpose(these_ice_eff_radii_microns)]
 	        output_temps_kelvins = [output_temps_kelvins,transpose(these_temps_kelvins)]
 	        output_pressures_mb = [output_pressures_mb,transpose(these_pressures_mb)]
+	        output_pressure_thicknesses_mb = [output_pressure_thicknesses_mb,transpose(these_pressure_thicknesses_mb)]
 	        output_heights_km_agl = [output_heights_km_agl,transpose(these_heights_km_agl)]
+	        output_height_thicknesses_km = [output_height_thicknesses_km,transpose(these_height_thicknesses_km)]
 	        output_vapour_mixing_ratios_g_kg01 = [output_vapour_mixing_ratios_g_kg01,transpose(these_vapour_mixing_ratios_g_kg01)]
 	        output_zenith_angles_deg = [output_zenith_angles_deg,sza(0)]
 	        output_surface_temps_kelvins = [output_surface_temps_kelvins,reform(surface_temp_matrix_kelvins(foo(0),bar(0)))]
@@ -349,7 +367,9 @@ pro runit, year
         output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
         output_temps_kelvins = transpose(output_temps_kelvins)
         output_pressures_mb = transpose(output_pressures_mb)
+        output_pressure_thicknesses_mb = transpose(output_pressure_thicknesses_mb)
         output_heights_km_agl = transpose(output_heights_km_agl)
+        output_height_thicknesses_km = transpose(output_height_thicknesses_km)
         output_vapour_mixing_ratios_g_kg01 = transpose(output_vapour_mixing_ratios_g_kg01)
         output_ozone_mixing_ratios_g_kg01 = transpose(output_ozone_mixing_ratios_g_kg01)
         output_co2_concentrations_ppmv = transpose(output_co2_concentrations_ppmv)
@@ -372,7 +392,7 @@ pro runit, year
         index = append_to_output_file(outname, index, output_times_unix_sec, output_julian_days, output_zenith_angles_deg, $
           output_standard_atmo_enums, output_latitudes_deg_n, output_longitudes_deg_e, output_surface_temps_kelvins, output_surface_emissivities, $
 	      output_total_liquid_paths_g_m02, output_total_ice_paths_g_m02, output_liquid_paths_g_m02, output_ice_paths_g_m02, $
-	      output_temps_kelvins, output_pressures_mb, output_heights_km_agl, output_vapour_mixing_ratios_g_kg01, $
+	      output_temps_kelvins, output_pressures_mb, output_pressure_thicknesses_mb, output_heights_km_agl, output_height_thicknesses_km, output_vapour_mixing_ratios_g_kg01, $
 	      output_ozone_mixing_ratios_g_kg01, output_co2_concentrations_ppmv, output_ch4_concentrations_ppmv, output_n2o_concentrations_ppmv, $
           output_liquid_eff_radii_microns, output_ice_eff_radii_microns, $
 	      output_heating_rates_k_day01, output_upwelling_fluxes_w_m02, output_downwelling_fluxes_w_m02, output_toa_upwelling_fluxes_w_m02, output_sfc_downwelling_fluxes_w_m02)
