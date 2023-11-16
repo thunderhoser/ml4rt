@@ -1,5 +1,6 @@
 """Prepares GFS data for input to the RRTM, without interp to height grid."""
 
+import os
 import argparse
 import numpy
 import xarray
@@ -197,6 +198,9 @@ def _process_data_one_profile(
     )
 
     processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pa
+    processed_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
+        edge_pressures_pa
+    )
     processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
     processed_data_dict[PRESSURE_THICKNESS_KEY_ORIG_PASCALS][i, j, :] = (
         pressure_thicknesses_pa
@@ -521,6 +525,9 @@ def _run(input_file_name, output_file_name):
     :param input_file_name: See documentation at top of file.
     :param output_file_name: Same.
     """
+
+    if not os.path.isfile(input_file_name):
+        input_file_name = '{0:s}.gz'.format(input_file_name)
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
