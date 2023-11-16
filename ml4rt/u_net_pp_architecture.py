@@ -298,9 +298,10 @@ def _check_args(option_dict):
     return option_dict
 
 
-def create_model(option_dict, vector_loss_function, use_deep_supervision,
-                 num_output_channels=1, scalar_loss_function=None,
-                 ensemble_size=1):
+def create_model(
+        option_dict, vector_loss_function, use_deep_supervision,
+        num_output_channels=1, scalar_loss_function=None, ensemble_size=1,
+        input_layer_object=None, normalized_input_layer_object=None):
     """Creates U-net++.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -321,6 +322,11 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
         no dense layers, leave this alone.
     :param ensemble_size: Ensemble size.  The U-net will output this many
         predictions for each target variable.
+    :param input_layer_object: [used only if you want inline normalization]
+        See input doc for `inline_normalization.create_normalization_layers`.
+    :param normalized_input_layer_object:
+        [used only if you want inline normalization]
+        See output doc for `inline_normalization.create_normalization_layers`.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
@@ -329,6 +335,10 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     error_checking.assert_is_boolean(use_deep_supervision)
     error_checking.assert_is_integer(ensemble_size)
     ensemble_size = max([ensemble_size, 1])
+
+    inline_norm_flag = not (
+        input_layer_object is None or normalized_input_layer_object is None
+    )
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -366,9 +376,11 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
-    input_layer_object = keras.layers.Input(
-        shape=tuple(input_dimensions.tolist())
-    )
+    if not inline_norm_flag:
+        input_layer_object = keras.layers.Input(
+            shape=tuple(input_dimensions.tolist())
+        )
+
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight
     )
@@ -382,7 +394,10 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
         for k in range(num_conv_layers_by_level[i]):
             if k == 0:
                 if i == 0:
-                    this_input_layer_object = input_layer_object
+                    if inline_norm_flag:
+                        this_input_layer_object = normalized_input_layer_object
+                    else:
+                        this_input_layer_object = input_layer_object
                 else:
                     this_input_layer_object = pooling_layer_by_level[i - 1]
             else:
