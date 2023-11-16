@@ -67,7 +67,9 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.L2_WEIGHT_KEY: 1e-7,
     u_net_pp_architecture.USE_BATCH_NORM_KEY: True,
     # u_net_pp_architecture.DENSE_LAYER_NEURON_NUMS_KEY: DENSE_LAYER_NEURON_COUNTS,
-    u_net_pp_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.)
+    u_net_pp_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.),
+    u_net_pp_architecture.DENSE_LAYER_MC_DROPOUT_FLAGS_KEY:
+        numpy.full(4, 0, dtype=bool)
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -171,10 +173,16 @@ def _run():
                         these_channel_counts_all,
                     u_net_pp_architecture.ENCODER_DROPOUT_RATES_KEY:
                         numpy.full(MODEL_DEPTHS[i] + 1, 0.),
+                    u_net_pp_architecture.ENCODER_MC_DROPOUT_FLAGS_KEY:
+                        numpy.full(MODEL_DEPTHS[i] + 1, 0, dtype=bool),
                     u_net_pp_architecture.UPCONV_DROPOUT_RATES_KEY:
                         numpy.full(MODEL_DEPTHS[i], 0.),
+                    u_net_pp_architecture.UPCONV_MC_DROPOUT_FLAGS_KEY:
+                        numpy.full(MODEL_DEPTHS[i], 0, dtype=bool),
                     u_net_pp_architecture.SKIP_DROPOUT_RATES_KEY:
-                        numpy.full(MODEL_DEPTHS[i], 0.)
+                        numpy.full(MODEL_DEPTHS[i], 0.),
+                    u_net_pp_architecture.SKIP_MC_DROPOUT_FLAGS_KEY:
+                        numpy.full(MODEL_DEPTHS[i], 0, dtype=bool)
                 })
 
                 if MODEL_DEPTHS[i] == 3:
