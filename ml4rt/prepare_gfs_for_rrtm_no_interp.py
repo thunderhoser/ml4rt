@@ -530,6 +530,9 @@ def _run(input_file_name, output_file_name):
     :param output_file_name: Same.
     """
 
+    if not os.path.isfile(input_file_name):
+        input_file_name = '{0:s}.gz'.format(input_file_name)
+
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
     # Read input file and convert specific humidity to vapour mixing ratio.
@@ -801,6 +804,18 @@ def _run(input_file_name, output_file_name):
     new_gfs_table_xarray = xarray.Dataset(
         data_vars=new_data_dict, coords=new_metadata_dict
     )
+
+    for this_key in new_gfs_table_xarray.variables:
+        if this_key == SITE_NAME_KEY:
+            continue
+        if not numpy.any(numpy.isnan(new_gfs_table_xarray[this_key].values)):
+            continue
+
+        print('{0:d} of {1:d} {2:s} values are NaN.'.format(
+            numpy.sum(numpy.isnan(new_gfs_table_xarray[this_key].values)),
+            new_gfs_table_xarray[this_key].values.size,
+            this_key
+        ))
 
     for this_key in new_gfs_table_xarray.variables:
         if this_key == SITE_NAME_KEY:
