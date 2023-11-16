@@ -18,6 +18,9 @@ import error_checking
 import architecture_utils
 import neural_net
 import u_net_architecture
+from inline_normalization import _get_var_slicing_function, \
+    _get_norm_ppf_function, _get_zeroing_function, \
+    _get_pw_linear_regression_function
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
 FLIPOUT_TYPE_STRING = 'flipout'

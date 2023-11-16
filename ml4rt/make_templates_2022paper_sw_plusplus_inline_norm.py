@@ -17,6 +17,9 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import example_utils
 import u_net_pp_architecture
 import inline_normalization
+from inline_normalization import _get_var_slicing_function, \
+    _get_norm_ppf_function, _get_zeroing_function, \
+    _get_pw_linear_regression_function
 import architecture_utils
 import custom_losses
 import file_system_utils
