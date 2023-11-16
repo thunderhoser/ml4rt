@@ -205,6 +205,9 @@ def _process_data_one_profile(
     )
 
     processed_data_dict[PRESSURE_KEY_ORIG_PASCALS][i, j, :] = pressures_pa
+    processed_data_dict[PRESSURE_AT_EDGE_KEY_ORIG_PASCALS][i, j, :] = (
+        edge_pressures_pa
+    )
     processed_data_dict[HEIGHT_KEY_ORIG_M_AGL][i, j, :] = heights_m_agl
     processed_data_dict[PRESSURE_THICKNESS_KEY_ORIG_PASCALS][i, j, :] = (
         pressure_thicknesses_pa
