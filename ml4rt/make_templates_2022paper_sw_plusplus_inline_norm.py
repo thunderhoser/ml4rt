@@ -37,9 +37,13 @@ LOSS_DICT = {
     'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
-MODEL_DEPTHS = numpy.array([3, 4, 5], dtype=int)
-CONV_LAYER_COUNTS = numpy.array([1, 2, 3, 4], dtype=int)
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+# MODEL_DEPTHS = numpy.array([3, 4, 5], dtype=int)
+# CONV_LAYER_COUNTS = numpy.array([1, 2, 3, 4], dtype=int)
+# FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+
+MODEL_DEPTHS = numpy.array([3], dtype=int)
+CONV_LAYER_COUNTS = numpy.array([1], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([128], dtype=int)
 
 SCALAR_PREDICTOR_NAMES = [
     example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
@@ -206,9 +210,9 @@ def _run():
                     u_net_pp_architecture.DENSE_LAYER_NEURON_NUMS_KEY
                 ] = these_neuron_counts
 
-                # this_model_object = u_net_pp_architecture.create_model(
-                #     option_dict=this_option_dict
-                # )
+                this_model_object = u_net_pp_architecture.create_model(
+                    option_dict=this_option_dict
+                )
 
                 this_model_file_name = (
                     '{0:s}/depth={1:d}_num-conv-layers-per-block={2:d}_'
@@ -225,10 +229,9 @@ def _run():
                 print('Writing model to: "{0:s}"...'.format(
                     this_model_file_name
                 ))
-                # this_model_object.save(
-                #     filepath=this_model_file_name, overwrite=True,
-                #     include_optimizer=True
-                # )
+                this_model_object.save_weights(
+                    filepath=this_model_file_name, overwrite=True
+                )
 
                 this_option_dict[
                     u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY
