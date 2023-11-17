@@ -26,8 +26,8 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(1e5)
-MAX_NUM_TRAINING_EXAMPLES = int(1e5)
+MAX_NUM_VALIDATION_EXAMPLES = int(1e4)
+MAX_NUM_TRAINING_EXAMPLES = int(2e4)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -1832,9 +1832,9 @@ def train_model_sans_generator(
     if num_validation_examples > MAX_NUM_VALIDATION_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of validation examples '
-            'from {0:d} to 250 000'
+            'from {0:d} to {1:d}.'
         ).format(
-            num_validation_examples
+            num_validation_examples, MAX_NUM_VALIDATION_EXAMPLES
         ))
 
         random_indices = numpy.linspace(
@@ -1863,9 +1863,9 @@ def train_model_sans_generator(
     if num_training_examples > MAX_NUM_TRAINING_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of training examples '
-            'from {0:d} to 500 000'
+            'from {0:d} to {1:d}.'
         ).format(
-            num_training_examples
+            num_training_examples, MAX_NUM_TRAINING_EXAMPLES
         ))
 
         random_indices = numpy.linspace(
