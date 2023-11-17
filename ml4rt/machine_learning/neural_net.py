@@ -102,12 +102,13 @@ LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
 BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
+U_NET_PP_ARCHITECTURE_KEY = 'u_net_plusplus_architecture_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
     LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
-    BNN_ARCHITECTURE_KEY
+    BNN_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY
 ]
 
 
@@ -379,7 +380,8 @@ def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, net_type_string, loss_function_or_dict,
-        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict):
+        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
+        u_net_plusplus_architecture_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -393,6 +395,7 @@ def _write_metafile(
     :param do_early_stopping: Same.
     :param plateau_lr_multiplier: Same.
     :param bnn_architecture_dict: Same.
+    :param u_net_plusplus_architecture_dict: Same.
     """
 
     metadata_dict = {
@@ -405,7 +408,8 @@ def _write_metafile(
         LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
         EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
-        BNN_ARCHITECTURE_KEY: bnn_architecture_dict
+        BNN_ARCHITECTURE_KEY: bnn_architecture_dict,
+        U_NET_PP_ARCHITECTURE_KEY: u_net_plusplus_architecture_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
@@ -1533,7 +1537,8 @@ def train_model_with_generator(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, net_type_string, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict):
+        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
+        u_net_plusplus_architecture_dict):
     """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1573,6 +1578,9 @@ def train_model_with_generator(
     :param bnn_architecture_dict: Dictionary with architecture options for
         Bayesian neural network (BNN).  If the model being trained is not
         Bayesian, make this None.
+    :param u_net_plusplus_architecture_dict: Dictionary with architecture
+        options for U-net++.  If the model being trained is not a U-net++, make
+        this None.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1659,7 +1667,8 @@ def train_model_with_generator(
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
-        bnn_architecture_dict=bnn_architecture_dict
+        bnn_architecture_dict=bnn_architecture_dict,
+        u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict
     )
 
     training_generator = data_generator(
@@ -1700,7 +1709,7 @@ def train_model_sans_generator(
         validation_option_dict, net_type_string, loss_function_or_dict,
         do_early_stopping, num_training_batches_per_epoch,
         num_validation_batches_per_epoch, plateau_lr_multiplier,
-        bnn_architecture_dict):
+        bnn_architecture_dict, u_net_plusplus_architecture_dict):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1717,6 +1726,7 @@ def train_model_sans_generator(
         epoch.  If None, each validation example will be used once per epoch.
     :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
     :param bnn_architecture_dict: Same.
+    :param u_net_plusplus_architecture_dict: Same.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1794,7 +1804,8 @@ def train_model_sans_generator(
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
-        bnn_architecture_dict=bnn_architecture_dict
+        bnn_architecture_dict=bnn_architecture_dict,
+        u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict
     )
 
     training_predictor_matrix, training_target_array = create_data(
@@ -1810,6 +1821,13 @@ def train_model_sans_generator(
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
     num_validation_examples = validation_predictor_matrix.shape[0]
     if num_validation_examples > int(2.5e5):
+        print((
+            'POTENTIAL ERROR: Reducing number of validation examples '
+            'from {0:d} to 250 000'
+        ).format(
+            num_validation_examples
+        ))
+
         random_indices = numpy.linspace(
             0, num_validation_examples - 1, num=num_validation_examples,
             dtype=int
@@ -1834,6 +1852,13 @@ def train_model_sans_generator(
 
     num_training_examples = training_predictor_matrix.shape[0]
     if num_training_examples > int(5e5):
+        print((
+            'POTENTIAL ERROR: Reducing number of training examples '
+            'from {0:d} to 500 000'
+        ).format(
+            num_validation_examples
+        ))
+
         random_indices = numpy.linspace(
             0, num_training_examples - 1, num=num_training_examples,
             dtype=int
@@ -1888,8 +1913,8 @@ def read_model(hdf5_file_name):
         from ml4rt.machine_learning import u_net_pp_architecture_bayesian
 
         for this_key in [
-            u_net_pp_architecture_bayesian.VECTOR_LOSS_FUNCTION_KEY,
-            u_net_pp_architecture_bayesian.SCALAR_LOSS_FUNCTION_KEY
+                u_net_pp_architecture_bayesian.VECTOR_LOSS_FUNCTION_KEY,
+                u_net_pp_architecture_bayesian.SCALAR_LOSS_FUNCTION_KEY
         ]:
             bnn_architecture_dict[this_key] = eval(
                 bnn_architecture_dict[this_key]
@@ -1897,6 +1922,25 @@ def read_model(hdf5_file_name):
 
         model_object = u_net_pp_architecture_bayesian.create_bayesian_model(
             bnn_architecture_dict
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
+    u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
+
+    if u_net_plusplus_architecture_dict is not None:
+        from ml4rt.machine_learning import u_net_pp_architecture
+
+        for this_key in [
+                u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            u_net_plusplus_architecture_dict[this_key] = eval(
+                u_net_plusplus_architecture_dict[this_key]
+            )
+
+        model_object = u_net_pp_architecture.create_model(
+            u_net_plusplus_architecture_dict
         )
         model_object.load_weights(hdf5_file_name)
         return model_object
@@ -1963,6 +2007,7 @@ def read_metafile(dill_file_name):
     metadata_dict['net_type_string']: Same.
     metadata_dict['loss_function_or_dict']: Same.
     metadata_dict['bnn_architecture_dict']: Same.
+    metadata_dict['u_net_plusplus_architecture_dict']: Same.
 
     :raises: ValueError: if any expected key is not found in dictionary.
     """
@@ -2027,6 +2072,8 @@ def read_metafile(dill_file_name):
 
     if BNN_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[BNN_ARCHITECTURE_KEY] = None
+    if U_NET_PP_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[U_NET_PP_ARCHITECTURE_KEY] = None
 
     # TODO(thunderhoser): HACK!
     if (

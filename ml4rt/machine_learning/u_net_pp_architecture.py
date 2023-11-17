@@ -10,6 +10,7 @@ from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import u_net_architecture
+from ml4rt.machine_learning import inline_normalization
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
 FLIPOUT_TYPE_STRING = 'flipout'
@@ -45,6 +46,17 @@ L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
 
+NUM_OUTPUT_CHANNELS_KEY = 'num_output_channels'
+VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
+SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
+USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
+ENSEMBLE_SIZE_KEY = 'ensemble_size'
+DO_INLINE_NORMALIZATION_KEY = 'do_inline_normalization'
+PW_LINEAR_UNIF_MODEL_KEY = 'pw_linear_unif_model_file_name'
+SCALAR_PREDICTORS_KEY = 'scalar_predictor_names'
+VECTOR_PREDICTORS_KEY = 'vector_predictor_names'
+HEIGHTS_KEY = 'heights_m_agl'
+
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
     CONV_LAYER_COUNTS_KEY: numpy.full(5, 2, dtype=int),
@@ -69,7 +81,14 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    NUM_OUTPUT_CHANNELS_KEY: 1,
+    USE_DEEP_SUPERVISION_KEY: False,
+    DO_INLINE_NORMALIZATION_KEY: False,
+    PW_LINEAR_UNIF_MODEL_KEY: None,
+    SCALAR_PREDICTORS_KEY: None,
+    VECTOR_PREDICTORS_KEY: None,
+    HEIGHTS_KEY: None
 }
 
 KL_SCALING_FACTOR_KEY = 'kl_divergence_scaling_factor'
@@ -157,6 +176,32 @@ def _check_args(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) conv layer.
+    option_dict['num_output_channels']: Number of output channels, i.e.,
+        vector target variables.
+    option_dict['vector_loss_function']: Loss function for vector targets.
+    option_dict['scalar_loss_function']: Loss function for scalar targets.
+    option_dict['use_deep_supervision']: Boolean flag.
+    option_dict['ensemble_size']: Number of ensemble members in output (both
+        vector and scalar predictions).
+    option_dict['do_inline_normalization']: Boolean flag.  If True, will
+        normalize predictors inside the NN architecture.
+    option_dict['pw_linear_unif_model_file_name']:
+        [used only if do_inline_normalization == True]
+        Path to file with piecewise-linear models that approximate the full
+        uniformization step.  This will be read by
+        `normalization.read_piecewise_linear_models_for_unif`
+    option_dict['scalar_predictor_names']:
+        [used only if do_inline_normalization == True]
+        1-D list with names of scalar predictors, in the order that they appear
+        in the input tensor.
+    option_dict['vector_predictor_names']:
+        [used only if do_inline_normalization == True]
+        1-D list with names of vector predictors, in the order that they appear
+        in the input tensor.
+    option_dict['heights_m_agl']:
+        [used only if do_inline_normalization == True]
+        1-D numpy array of heights (metres above ground level), in the order
+        that they appear in the input tensor.
 
     :return: option_dict: Same as input, except defaults may have been added.
     """
@@ -287,13 +332,40 @@ def _check_args(option_dict):
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
 
+    error_checking.assert_is_integer(option_dict[NUM_OUTPUT_CHANNELS_KEY])
+    error_checking.assert_is_greater(option_dict[NUM_OUTPUT_CHANNELS_KEY], 0)
+    error_checking.assert_is_boolean(option_dict[USE_DEEP_SUPERVISION_KEY])
+    error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
+    error_checking.assert_is_greater(option_dict[ENSEMBLE_SIZE_KEY], 0)
+    error_checking.assert_is_boolean(option_dict[DO_INLINE_NORMALIZATION_KEY])
+
+    if not option_dict[DO_INLINE_NORMALIZATION_KEY]:
+        option_dict[PW_LINEAR_UNIF_MODEL_KEY] = None
+        option_dict[SCALAR_PREDICTORS_KEY] = None
+        option_dict[VECTOR_PREDICTORS_KEY] = None
+        option_dict[HEIGHTS_KEY] = None
+
+        return option_dict
+
+    error_checking.assert_is_string(option_dict[PW_LINEAR_UNIF_MODEL_KEY])
+    error_checking.assert_is_string_list(option_dict[SCALAR_PREDICTORS_KEY])
+    error_checking.assert_is_string_list(option_dict[VECTOR_PREDICTORS_KEY])
+    error_checking.assert_is_numpy_array(
+        option_dict[HEIGHTS_KEY], num_dimensions=1
+    )
+    error_checking.assert_is_greater_numpy_array(option_dict[HEIGHTS_KEY], 0)
+
+    num_predictors = len(
+        option_dict[SCALAR_PREDICTORS_KEY] + option_dict[VECTOR_PREDICTORS_KEY]
+    )
+    error_checking.assert_equals(num_predictors, input_dimensions[1])
+    num_heights = len(option_dict[HEIGHTS_KEY])
+    error_checking.assert_equals(num_heights, input_dimensions[0])
+
     return option_dict
 
 
-def create_model(
-        option_dict, vector_loss_function, use_deep_supervision,
-        num_output_channels=1, scalar_loss_function=None, ensemble_size=1,
-        input_layer_object=None, normalized_input_layer_object=None):
+def create_model(option_dict):
     """Creates U-net++.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -324,13 +396,6 @@ def create_model(
     """
 
     option_dict = _check_args(option_dict)
-    error_checking.assert_is_boolean(use_deep_supervision)
-    error_checking.assert_is_integer(ensemble_size)
-    ensemble_size = max([ensemble_size, 1])
-
-    inline_norm_flag = not (
-        input_layer_object is None or normalized_input_layer_object is None
-    )
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -362,16 +427,38 @@ def create_model(
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
 
+    num_output_channels = option_dict[NUM_OUTPUT_CHANNELS_KEY]
+    vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
+    scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
+    use_deep_supervision = option_dict[USE_DEEP_SUPERVISION_KEY]
+    ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
+    do_inline_normalization = option_dict[DO_INLINE_NORMALIZATION_KEY]
+    pw_linear_unif_model_file_name = option_dict[PW_LINEAR_UNIF_MODEL_KEY]
+    scalar_predictor_names = option_dict[SCALAR_PREDICTORS_KEY]
+    vector_predictor_names = option_dict[VECTOR_PREDICTORS_KEY]
+    heights_m_agl = option_dict[HEIGHTS_KEY]
+
     if ensemble_size > 1:
         # include_penultimate_conv = False
         use_deep_supervision = False
 
     has_dense_layers = dense_layer_neuron_nums is not None
+    input_layer_object = keras.layers.Input(
+        shape=tuple(input_dimensions.tolist())
+    )
 
-    if not inline_norm_flag:
-        input_layer_object = keras.layers.Input(
-            shape=tuple(input_dimensions.tolist())
+    if do_inline_normalization:
+        normalized_input_layer_object = (
+            inline_normalization.create_normalization_layers(
+                input_layer_object=input_layer_object,
+                pw_linear_unif_model_file_name=pw_linear_unif_model_file_name,
+                vector_predictor_names=vector_predictor_names,
+                scalar_predictor_names=scalar_predictor_names,
+                heights_m_agl=heights_m_agl
+            )
         )
+    else:
+        normalized_input_layer_object = None
 
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight
@@ -386,7 +473,7 @@ def create_model(
         for k in range(num_conv_layers_by_level[i]):
             if k == 0:
                 if i == 0:
-                    if inline_norm_flag:
+                    if do_inline_normalization:
                         this_input_layer_object = normalized_input_layer_object
                     else:
                         this_input_layer_object = input_layer_object
