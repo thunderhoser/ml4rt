@@ -206,9 +206,9 @@ def _run():
                     u_net_pp_architecture.DENSE_LAYER_NEURON_NUMS_KEY
                 ] = these_neuron_counts
 
-                this_model_object = u_net_pp_architecture.create_model(
-                    option_dict=this_option_dict
-                )
+                # this_model_object = u_net_pp_architecture.create_model(
+                #     option_dict=this_option_dict
+                # )
 
                 this_model_file_name = (
                     '{0:s}/depth={1:d}_num-conv-layers-per-block={2:d}_'
