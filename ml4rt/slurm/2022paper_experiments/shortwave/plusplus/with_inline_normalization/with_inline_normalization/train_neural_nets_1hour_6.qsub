@@ -1,9 +1,9 @@
 #!/bin/tcsh
 
 #SBATCH --job-name="train_neural_nets_1hour"
-#SBATCH --partition="fge"
-#SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpu"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
 #SBATCH --nodes=1
 #SBATCH --ntasks=8           # 8 tasks per node
 #SBATCH --cpus-per-task=2
