@@ -317,14 +317,14 @@ def _read_file_for_generator(
         if example_utils.AEROSOL_EXTINCTION_NAME in field_names:
             pw_linear_model_file_name = (
                 '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/shortwave_examples_600days/orig_heights/training/'
-                'piecewise_linear_models_for_uniformization.nc'
+                'gfs_data/examples_with_correct_vertical_coords/shortwave/'
+                'training/piecewise_linear_models_for_uniformization.nc'
             )
         else:
             pw_linear_model_file_name = (
                 '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/longwave_examples_600days/orig_heights/training/'
-                'piecewise_linear_models_for_uniformization.nc'
+                'gfs_data/examples_with_correct_vertical_coords/longwave/'
+                'training/piecewise_linear_models_for_uniformization.nc'
             )
 
         print((
