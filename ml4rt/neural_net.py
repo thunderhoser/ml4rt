@@ -1,19 +1,25 @@
 """Methods for building, training, and applying neural nets."""
 
+import os
+import sys
 import copy
-import os.path
-import dill
+import pickle
 import numpy
 import keras
 import tensorflow.keras as tf_keras
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from gewittergefahr.deep_learning import cnn
-from ml4rt.io import example_io
-from ml4rt.utils import example_utils
-from ml4rt.utils import normalization
-from ml4rt.machine_learning import keras_losses as custom_losses
-from ml4rt.machine_learning import keras_metrics as custom_metrics
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import error_checking
+import example_io
+import example_utils
+import normalization
+import custom_losses
+import custom_metrics
 
 SENTINEL_VALUE = -9999.
 
@@ -418,7 +424,7 @@ def _write_metafile(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    dill.dump(metadata_dict, dill_file_handle)
+    pickle.dump(metadata_dict, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -1913,7 +1919,7 @@ def read_model(hdf5_file_name):
     bnn_architecture_dict = metadata_dict[BNN_ARCHITECTURE_KEY]
 
     if bnn_architecture_dict is not None:
-        from ml4rt.machine_learning import u_net_pp_architecture_bayesian
+        import u_net_pp_architecture_bayesian
 
         for this_key in [
                 u_net_pp_architecture_bayesian.VECTOR_LOSS_FUNCTION_KEY,
@@ -1932,7 +1938,7 @@ def read_model(hdf5_file_name):
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
 
     if u_net_plusplus_architecture_dict is not None:
-        from ml4rt.machine_learning import u_net_pp_architecture
+        import u_net_pp_architecture
 
         for this_key in [
                 u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
@@ -2018,7 +2024,7 @@ def read_metafile(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    metadata_dict = dill.load(dill_file_handle)
+    metadata_dict = pickle.load(dill_file_handle)
     dill_file_handle.close()
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
@@ -2089,7 +2095,7 @@ def read_metafile(dill_file_name):
         )
 
         new_file_handle = open(new_file_name, 'rb')
-        new_metadata_dict = dill.load(new_file_handle)
+        new_metadata_dict = pickle.load(new_file_handle)
         new_file_handle.close()
 
         metadata_dict[BNN_ARCHITECTURE_KEY] = (
