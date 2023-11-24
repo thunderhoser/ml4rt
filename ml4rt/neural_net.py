@@ -1,33 +1,27 @@
 """Methods for building, training, and applying neural nets."""
 
-import os
-import sys
 import copy
-import pickle
+import os.path
+import dill
 import numpy
 import keras
 import tensorflow.keras as tf_keras
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import file_system_utils
-import error_checking
-import example_io
-import example_utils
-import normalization
-import custom_losses
-import custom_metrics
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.gg_utils import error_checking
+from gewittergefahr.deep_learning import cnn
+from ml4rt.io import example_io
+from ml4rt.utils import example_utils
+from ml4rt.utils import normalization
+from ml4rt.machine_learning import keras_losses as custom_losses
+from ml4rt.machine_learning import keras_metrics as custom_metrics
 
 SENTINEL_VALUE = -9999.
 
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(1e6)
-MAX_NUM_TRAINING_EXAMPLES = int(2e6)
+MAX_NUM_VALIDATION_EXAMPLES = int(1e7)
+MAX_NUM_TRAINING_EXAMPLES = int(2e7)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -323,14 +317,14 @@ def _read_file_for_generator(
         if example_utils.AEROSOL_EXTINCTION_NAME in field_names:
             pw_linear_model_file_name = (
                 '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/shortwave_examples_600days/orig_heights/training/'
-                'piecewise_linear_models_for_uniformization.nc'
+                'gfs_data/examples_with_correct_vertical_coords/shortwave/'
+                'training/piecewise_linear_models_for_uniformization.nc'
             )
         else:
             pw_linear_model_file_name = (
                 '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/longwave_examples_600days/orig_heights/training/'
-                'piecewise_linear_models_for_uniformization.nc'
+                'gfs_data/examples_with_correct_vertical_coords/longwave/'
+                'training/piecewise_linear_models_for_uniformization.nc'
             )
 
         print((
@@ -424,7 +418,7 @@ def _write_metafile(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    pickle.dump(metadata_dict, dill_file_handle)
+    dill.dump(metadata_dict, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -1919,7 +1913,7 @@ def read_model(hdf5_file_name):
     bnn_architecture_dict = metadata_dict[BNN_ARCHITECTURE_KEY]
 
     if bnn_architecture_dict is not None:
-        import u_net_pp_architecture_bayesian
+        from ml4rt.machine_learning import u_net_pp_architecture_bayesian
 
         for this_key in [
                 u_net_pp_architecture_bayesian.VECTOR_LOSS_FUNCTION_KEY,
@@ -1938,7 +1932,7 @@ def read_model(hdf5_file_name):
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
 
     if u_net_plusplus_architecture_dict is not None:
-        import u_net_pp_architecture
+        from ml4rt.machine_learning import u_net_pp_architecture
 
         for this_key in [
                 u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
@@ -2024,7 +2018,7 @@ def read_metafile(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    metadata_dict = pickle.load(dill_file_handle)
+    metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
@@ -2095,7 +2089,7 @@ def read_metafile(dill_file_name):
         )
 
         new_file_handle = open(new_file_name, 'rb')
-        new_metadata_dict = pickle.load(new_file_handle)
+        new_metadata_dict = dill.load(new_file_handle)
         new_file_handle.close()
 
         metadata_dict[BNN_ARCHITECTURE_KEY] = (
@@ -2234,3 +2228,65 @@ def apply_model(
         scalar_prediction_matrix = numpy.full(dimensions, 0.)
 
     return [vector_prediction_matrix, scalar_prediction_matrix]
+
+
+def get_feature_maps(
+        model_object, predictor_matrix, num_examples_per_batch,
+        feature_layer_name, verbose=False):
+    """Uses trained neural net (of any kind) to create feature maps.
+
+    :param model_object: See doc for `apply_model`.
+    :param predictor_matrix: Same.
+    :param num_examples_per_batch: Same.
+    :param feature_layer_name: Feature maps will be returned for this layer.
+    :param verbose: See doc for `apply_model`.
+    :return: feature_matrix: numpy array of feature maps.
+    """
+
+    num_examples_per_batch = _check_inference_args(
+        predictor_matrix=predictor_matrix,
+        num_examples_per_batch=num_examples_per_batch, verbose=verbose
+    )
+
+    partial_model_object = cnn.model_to_feature_generator(
+        model_object=model_object, feature_layer_name=feature_layer_name
+    )
+
+    feature_matrix = None
+    num_examples = predictor_matrix.shape[0]
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        this_first_index = i
+        this_last_index = min(
+            [i + num_examples_per_batch - 1, num_examples - 1]
+        )
+
+        these_indices = numpy.linspace(
+            this_first_index, this_last_index,
+            num=this_last_index - this_first_index + 1, dtype=int
+        )
+
+        if verbose:
+            print((
+                'Creating feature maps for examples {0:d}-{1:d} of {2:d}...'
+            ).format(
+                this_first_index + 1, this_last_index + 1, num_examples
+            ))
+
+        this_feature_matrix = partial_model_object.predict(
+            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
+        )
+
+        if feature_matrix is None:
+            feature_matrix = this_feature_matrix + 0.
+        else:
+            feature_matrix = numpy.concatenate(
+                (feature_matrix, this_feature_matrix), axis=0
+            )
+
+    if verbose:
+        print('Have created feature maps for all {0:d} examples!'.format(
+            num_examples
+        ))
+
+    return feature_matrix
