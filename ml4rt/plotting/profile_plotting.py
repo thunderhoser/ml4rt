@@ -861,6 +861,7 @@ def plot_one_variable(
 
     heights_km_agl = heights_m_agl * METRES_TO_KM
     min_height_km_agl = numpy.min(heights_km_agl)
+    print(1000 * min_height_km_agl)
     max_height_km_agl = numpy.max(heights_km_agl)
 
     axes_object.plot(

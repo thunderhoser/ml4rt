@@ -20,10 +20,13 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
+MAX_NUM_VALIDATION_EXAMPLES = int(1e7)
+MAX_NUM_TRAINING_EXAMPLES = int(2e7)
+
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
-EARLY_STOPPING_PATIENCE_EPOCHS = 100
+EARLY_STOPPING_PATIENCE_EPOCHS = 200
 LOSS_PATIENCE = 0.
 
 CNN_TYPE_STRING = 'cnn'
@@ -1820,12 +1823,12 @@ def train_model_sans_generator(
 
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
     num_validation_examples = validation_predictor_matrix.shape[0]
-    if num_validation_examples > int(2.5e5):
+    if num_validation_examples > MAX_NUM_VALIDATION_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of validation examples '
-            'from {0:d} to 250 000'
+            'from {0:d} to {1:d}.'
         ).format(
-            num_validation_examples
+            num_validation_examples, MAX_NUM_VALIDATION_EXAMPLES
         ))
 
         random_indices = numpy.linspace(
@@ -1833,7 +1836,7 @@ def train_model_sans_generator(
             dtype=int
         )
         random_indices = numpy.random.choice(
-            random_indices, size=int(2.5e5), replace=False
+            random_indices, size=MAX_NUM_VALIDATION_EXAMPLES, replace=False
         )
 
         validation_predictor_matrix = validation_predictor_matrix[
@@ -1851,12 +1854,12 @@ def train_model_sans_generator(
             ]
 
     num_training_examples = training_predictor_matrix.shape[0]
-    if num_training_examples > int(5e5):
+    if num_training_examples > MAX_NUM_TRAINING_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of training examples '
-            'from {0:d} to 500 000'
+            'from {0:d} to {1:d}.'
         ).format(
-            num_validation_examples
+            num_training_examples, MAX_NUM_TRAINING_EXAMPLES
         ))
 
         random_indices = numpy.linspace(
@@ -1864,7 +1867,7 @@ def train_model_sans_generator(
             dtype=int
         )
         random_indices = numpy.random.choice(
-            random_indices, size=int(5e5), replace=False
+            random_indices, size=MAX_NUM_TRAINING_EXAMPLES, replace=False
         )
 
         training_predictor_matrix = training_predictor_matrix[

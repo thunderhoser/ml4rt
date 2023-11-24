@@ -209,10 +209,10 @@ def _process_data_one_profile(
         height_thicknesses_metres
     )
 
-    for this_key in MAIN_KEYS_ORIG:
-        processed_data_dict[this_key][i, j, :] = numpy.flip(
-            orig_gfs_table_xarray[this_key].values[i, :, j]
-        )
+    # for this_key in MAIN_KEYS_ORIG:
+    #     processed_data_dict[this_key][i, j, :] = numpy.flip(
+    #         orig_gfs_table_xarray[this_key].values[i, :, j]
+    #     )
 
     return processed_data_dict
 
