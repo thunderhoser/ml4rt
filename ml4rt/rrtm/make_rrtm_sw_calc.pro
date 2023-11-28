@@ -245,7 +245,7 @@
     return,fail
   endif else begin
     		; Read in the output file
-    read_rrtm_sw, nregions=1, path='.', filename='OUTPUT_RRTM', osr=osr, ssr=ssr, $     
+    read_rrtm_sw, nregions=n_elements(sw_wnum_bands) + 1, path='.', filename='OUTPUT_RRTM', osr=osr, ssr=ssr, $     
       wnum=wnum, wbounds=wbounds, fluxu=fluxu, fluxdtot=fluxdtot, fluxddir=fluxddir,$
       fluxddif=fluxddif, fluxn=fluxn, pres=pres, hr=hr
 
@@ -261,7 +261,7 @@
 		; Note that I am only capturing the entire SW band, at the moment
     output = {success:1, hr:reform(reverse(hr)), fluxn:reform(reverse(fluxn)), $
     		fluxu:reform(reverse(fluxu)), fluxdtot:reform(reverse(fluxdtot)), $
-		    osr:osr(0), ssr:ssr(0)}
+		    osr:osr, ssr:ssr}
   endelse
 
   if(keyword_set(dostop)) then stop,'Stopping at end of routine before returning'
