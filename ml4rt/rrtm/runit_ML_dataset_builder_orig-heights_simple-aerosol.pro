@@ -403,7 +403,7 @@ pro runit, year
     	  ; Transpose the 2d arrays to get them in the right shape
       if(npts gt 0) then begin
         print,size(output_heating_rate_matrix_k_day01)
-        output_heating_rate_matrix_k_day01 = transpose(output_heating_rate_matrix_k_day01, [2, 1, 0])
+        output_heating_rate_matrix_k_day01 = transpose(output_heating_rate_matrix_k_day01, [1, 2, 0])
         print,size(output_heating_rate_matrix_k_day01)
         
         these_dim = size(output_heating_rate_matrix_k_day01, /dimensions)
@@ -412,13 +412,13 @@ pro runit, year
           print,size(output_heating_rate_matrix_k_day01)
         endif
         
-        output_upwelling_flux_matrix_w_m02 = transpose(output_upwelling_flux_matrix_w_m02, [2, 1, 0])
+        output_upwelling_flux_matrix_w_m02 = transpose(output_upwelling_flux_matrix_w_m02, [1, 2, 0])
         these_dim = size(output_upwelling_flux_matrix_w_m02, /dimensions)
         if (n_elements(these_dim) eq 2) then begin
           output_upwelling_flux_matrix_w_m02 = reform(output_upwelling_flux_matrix_w_m02, these_dim[0], these_dim[1], 1)
         endif
         
-        output_downwelling_flux_matrix_w_m02 = transpose(output_downwelling_flux_matrix_w_m02, [2, 1, 0])
+        output_downwelling_flux_matrix_w_m02 = transpose(output_downwelling_flux_matrix_w_m02, [1, 2, 0])
         these_dim = size(output_downwelling_flux_matrix_w_m02, /dimensions)
         if (n_elements(these_dim) eq 2) then begin
           output_downwelling_flux_matrix_w_m02 = reform(output_downwelling_flux_matrix_w_m02, these_dim[0], these_dim[1], 1)
