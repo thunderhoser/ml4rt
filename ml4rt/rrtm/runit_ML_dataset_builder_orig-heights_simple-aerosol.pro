@@ -318,8 +318,6 @@ pro runit, year
 	        continue
 	      endif
 	      
-	      print,outsw.osr
-	      
 	      these_dim = size(transpose(outsw.hr), /dimensions)
 	      num_heights = these_dim[0]
 	      num_bands = these_dim[1]
@@ -334,8 +332,6 @@ pro runit, year
 	      these_toa_upwelling_fluxes_w_m02[0, *] = outsw.osr
 	      these_sfc_downwelling_fluxes_w_m02 = replicate(1., 1, num_bands)
 	      these_sfc_downwelling_fluxes_w_m02[0, *] = outsw.ssr
-	      
-	      print,these_toa_upwelling_fluxes_w_m02[0, *]
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
@@ -368,7 +364,6 @@ pro runit, year
 	        output_upwelling_flux_matrix_w_m02 = this_upwelling_flux_matrix_w_m02
 	        output_downwelling_flux_matrix_w_m02 = this_downwelling_flux_matrix_w_m02
 	        output_toa_upwelling_fluxes_w_m02 = these_toa_upwelling_fluxes_w_m02
-	        print,output_toa_upwelling_fluxes_w_m02
 	        output_sfc_downwelling_fluxes_w_m02 = these_sfc_downwelling_fluxes_w_m02
 	      endif else begin
 	        output_total_liquid_paths_g_m02 = [output_total_liquid_paths_g_m02,this_total_liquid_path_g_m02]
@@ -401,7 +396,6 @@ pro runit, year
 	        output_upwelling_flux_matrix_w_m02 = [output_upwelling_flux_matrix_w_m02,this_upwelling_flux_matrix_w_m02]
 	        output_downwelling_flux_matrix_w_m02 = [output_downwelling_flux_matrix_w_m02,this_downwelling_flux_matrix_w_m02]
 	        output_toa_upwelling_fluxes_w_m02 = [output_toa_upwelling_fluxes_w_m02,these_toa_upwelling_fluxes_w_m02]
-	        print,output_toa_upwelling_fluxes_w_m02
 	        output_sfc_downwelling_fluxes_w_m02 = [output_sfc_downwelling_fluxes_w_m02,these_sfc_downwelling_fluxes_w_m02]
 	      endelse
 	      npts = n_elements(output_zenith_angles_deg)
@@ -410,14 +404,10 @@ pro runit, year
       
     	  ; Transpose the 2d arrays to get them in the right shape
       if(npts gt 0) then begin
-        print,size(output_heating_rate_matrix_k_day01)
         output_heating_rate_matrix_k_day01 = transpose(output_heating_rate_matrix_k_day01, [1, 2, 0])
-        print,size(output_heating_rate_matrix_k_day01)
-        
         these_dim = size(output_heating_rate_matrix_k_day01, /dimensions)
         if (n_elements(these_dim) eq 2) then begin
           output_heating_rate_matrix_k_day01 = reform(output_heating_rate_matrix_k_day01, these_dim[0], these_dim[1], 1)
-          print,size(output_heating_rate_matrix_k_day01)
         endif
         
         output_upwelling_flux_matrix_w_m02 = transpose(output_upwelling_flux_matrix_w_m02, [1, 2, 0])
@@ -465,7 +455,6 @@ pro runit, year
 	      index = 0
 	      these_dim = size(output_toa_upwelling_fluxes_w_m02, /dimensions)
 	      num_bands = these_dim[0]
-	      print,num_bands
 
           do_create_output = create_output_file(outname, n_elements(these_heights_km_agl), num_bands)
         endif
