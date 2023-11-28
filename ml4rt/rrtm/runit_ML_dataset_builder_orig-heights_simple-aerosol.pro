@@ -319,6 +319,10 @@ pro runit, year
 	      endif
 	      
 	      print,size(outsw.hr)
+	      this_heating_rate_matrix_k_day01 = replicate(outsw.hr, 1, 1, 1)
+	      print,size(this_heating_rate_matrix_k_day01)
+	      new_heating_rate_matrix_k_day01 = concat(this_heating_rate_matrix_k_day01, this_heating_rate_matrix_k_day01, 3)
+	      print,size(new_heating_rate_matrix_k_day01)
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
