@@ -126,8 +126,6 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
     ozone_mixing_ratios_g_kg01, co2_concentrations_ppmv, ch4_concentrations_ppmv, n2o_concentrations_ppmv, $
     aerosol_extinctions_km01, liquid_eff_radii_microns, ice_eff_radii_microns, aerosol_albedos, aerosol_asymmetry_params, $
     heating_rate_matrix_k_day01, upwelling_flux_matrix_w_m02, downwelling_flux_matrix_w_m02, toa_upwelling_fluxes_w_m02, sfc_downwelling_fluxes_w_m02
-
-  print,size(heating_rate_matrix_k_day01)
   
   fid = ncdf_open(name, /write)
   ncdf_varput,fid,'valid_time_unix_sec',valid_times_unix_sec,offset=index
@@ -319,9 +317,6 @@ pro runit, year
 	        print,'Warning: RRTM_SW not run properly.  Time to investigate...'
 	        continue
 	      endif
-	      
-	      print,size(outsw.hr)
-	      print,size(transpose(outsw.hr))
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
@@ -387,6 +382,8 @@ pro runit, year
 	        output_downwelling_flux_matrix_w_m02 = [output_downwelling_flux_matrix_w_m02,transpose(outsw.fluxdtot)]
 	        output_toa_upwelling_fluxes_w_m02 = [output_toa_upwelling_fluxes_w_m02,outsw.osr]
 	        output_sfc_downwelling_fluxes_w_m02 = [output_sfc_downwelling_fluxes_w_m02,outsw.ssr]
+	        
+	        print,size(output_heating_rate_matrix_k_day01)
 	      endelse
 	      npts = n_elements(output_zenith_angles_deg)
 	    endif
