@@ -319,6 +319,9 @@ pro runit, year
 	        print,'Warning: RRTM_SW not run properly.  Time to investigate...'
 	        continue
 	      endif
+	      
+	      print,size(outsw.hr)
+	      print,size(transpose(outsw.hr))
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
