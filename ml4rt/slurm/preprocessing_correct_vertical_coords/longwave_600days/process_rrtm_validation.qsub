@@ -1,0 +1,46 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="process_rrtm_validation"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=06:00:00
+#SBATCH --array=1-9
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=process_rrtm_validation_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave/validation"
+
+set FIRST_DATE_STRINGS=("20200102" "20200212" "20200324" "20200505" "20200616" "20200727" "20200906" "20201019" "20201130")
+set LAST_DATE_STRINGS=("20200115" "20200225" "20200406" "20200518" "20200629" "20200809" "20200919" "20201102" "20201213")
+set PATHLESS_OUTPUT_FILE_NAMES=("learning_examples_2020_part01.nc" "learning_examples_2020_part02.nc" "learning_examples_2020_part03.nc" "learning_examples_2020_part04.nc" "learning_examples_2020_part05.nc" "learning_examples_2020_part06.nc" "learning_examples_2020_part07.nc" "learning_examples_2020_part08.nc" "learning_examples_2020_part09.nc")
+
+set first_date_string=${FIRST_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+set last_date_string=${LAST_DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+set output_file_name="${OUTPUT_DIR_NAME}/${PATHLESS_OUTPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+
+python3 -u "${CODE_DIR_NAME}/process_rrtm_files.py" \
+--input_rrtm_dir_name="${INPUT_DIR_NAME}" \
+--first_date_string="${first_date_string}" \
+--last_date_string="${last_date_string}" \
+--dummy_heights_m_agl 21 44 68 93 120 149 179 212 246 282 321 361 405 450 499 550 604 661 722 785 853 924 999 1078 1161 1249 1342 1439 1542 1649 1762 1881 2005 2136 2272 2415 2564 2720 2882 3051 3228 3411 3601 3798 4002 4214 4433 4659 4892 5132 5379 5633 5894 6162 6436 6716 7003 7296 7594 7899 8208 8523 8842 9166 9494 9827 10164 10505 10849 11198 11550 11906 12266 12630 12997 13368 13744 14123 14506 14895 15287 15686 16090 16501 16920 17350 17791 18246 18717 19205 19715 20249 20809 21400 22022 22681 23379 24119 24903 25736 26619 27558 28556 29616 30743 31940 33211 34566 36012 37560 39218 40990 42882 44899 47042 49299 51644 54067 56552 59089 61677 64314 67001 69747 72521 75256 77803 \
+--look_for_shortwave=0 \
+--look_for_longwave=1 \
+--output_example_file_name="${output_file_name}"
