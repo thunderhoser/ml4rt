@@ -126,7 +126,7 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
     ozone_mixing_ratios_g_kg01, co2_concentrations_ppmv, ch4_concentrations_ppmv, n2o_concentrations_ppmv, $
     aerosol_extinctions_km01, liquid_eff_radii_microns, ice_eff_radii_microns, aerosol_albedos, aerosol_asymmetry_params, $
     heating_rate_matrix_k_day01, upwelling_flux_matrix_w_m02, downwelling_flux_matrix_w_m02, toa_upwelling_fluxes_w_m02, sfc_downwelling_fluxes_w_m02
-
+  
   fid = ncdf_open(name, /write)
   ncdf_varput,fid,'valid_time_unix_sec',valid_times_unix_sec,offset=index
   ncdf_varput,fid,'julian_day',julian_days,offset=index
@@ -317,6 +317,21 @@ pro runit, year
 	        print,'Warning: RRTM_SW not run properly.  Time to investigate...'
 	        continue
 	      endif
+	      
+	      these_dim = size(transpose(outsw.hr), /dimensions)
+	      num_heights = these_dim[0]
+	      num_bands = these_dim[1]
+	      
+	      this_heating_rate_matrix_k_day01 = replicate(1., 1, num_heights, num_bands)
+	      this_heating_rate_matrix_k_day01[0, *, *] = transpose(outsw.hr)
+	      this_upwelling_flux_matrix_w_m02 = replicate(1., 1, num_heights, num_bands)
+	      this_upwelling_flux_matrix_w_m02[0, *, *] = transpose(outsw.fluxu)
+	      this_downwelling_flux_matrix_w_m02 = replicate(1., 1, num_heights, num_bands)
+	      this_downwelling_flux_matrix_w_m02[0, *, *] = transpose(outsw.fluxdtot)
+	      these_toa_upwelling_fluxes_w_m02 = replicate(1., 1, num_bands)
+	      these_toa_upwelling_fluxes_w_m02[0, *] = outsw.osr
+	      these_sfc_downwelling_fluxes_w_m02 = replicate(1., 1, num_bands)
+	      these_sfc_downwelling_fluxes_w_m02[0, *] = outsw.ssr
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
@@ -345,11 +360,11 @@ pro runit, year
 	        output_longitudes_deg_e = site_longitudes_deg_e(foo)
 	        output_times_unix_sec = dsecs(bar(0))
 	        output_julian_days = djulian(bar(0))
-	        output_heating_rate_matrix_k_day01 = transpose(outsw.hr)
-	        output_upwelling_flux_matrix_w_m02 = transpose(outsw.fluxu)
-	        output_downwelling_flux_matrix_w_m02 = transpose(outsw.fluxdtot)
-	        output_toa_upwelling_fluxes_w_m02 = outsw.osr
-	        output_sfc_downwelling_fluxes_w_m02 = outsw.ssr
+	        output_heating_rate_matrix_k_day01 = this_heating_rate_matrix_k_day01
+	        output_upwelling_flux_matrix_w_m02 = this_upwelling_flux_matrix_w_m02
+	        output_downwelling_flux_matrix_w_m02 = this_downwelling_flux_matrix_w_m02
+	        output_toa_upwelling_fluxes_w_m02 = these_toa_upwelling_fluxes_w_m02
+	        output_sfc_downwelling_fluxes_w_m02 = these_sfc_downwelling_fluxes_w_m02
 	      endif else begin
 	        output_total_liquid_paths_g_m02 = [output_total_liquid_paths_g_m02,this_total_liquid_path_g_m02]
 	        output_total_ice_paths_g_m02 = [output_total_ice_paths_g_m02,this_total_ice_path_g_m02]
@@ -377,11 +392,11 @@ pro runit, year
 	        output_longitudes_deg_e = [output_longitudes_deg_e,site_longitudes_deg_e(foo)]
 	        output_times_unix_sec= [output_times_unix_sec,dsecs(bar(0))]
 	        output_julian_days = [output_julian_days,djulian(bar(0))]
-	        output_heating_rate_matrix_k_day01 = [output_heating_rate_matrix_k_day01,transpose(outsw.hr)]
-	        output_upwelling_flux_matrix_w_m02 = [output_upwelling_flux_matrix_w_m02,transpose(outsw.fluxu)]
-	        output_downwelling_flux_matrix_w_m02 = [output_downwelling_flux_matrix_w_m02,transpose(outsw.fluxdtot)]
-	        output_toa_upwelling_fluxes_w_m02 = [output_toa_upwelling_fluxes_w_m02,outsw.osr]
-	        output_sfc_downwelling_fluxes_w_m02 = [output_sfc_downwelling_fluxes_w_m02,outsw.ssr]
+	        output_heating_rate_matrix_k_day01 = [output_heating_rate_matrix_k_day01,this_heating_rate_matrix_k_day01]
+	        output_upwelling_flux_matrix_w_m02 = [output_upwelling_flux_matrix_w_m02,this_upwelling_flux_matrix_w_m02]
+	        output_downwelling_flux_matrix_w_m02 = [output_downwelling_flux_matrix_w_m02,this_downwelling_flux_matrix_w_m02]
+	        output_toa_upwelling_fluxes_w_m02 = [output_toa_upwelling_fluxes_w_m02,these_toa_upwelling_fluxes_w_m02]
+	        output_sfc_downwelling_fluxes_w_m02 = [output_sfc_downwelling_fluxes_w_m02,these_sfc_downwelling_fluxes_w_m02]
 	      endelse
 	      npts = n_elements(output_zenith_angles_deg)
 	    endif
@@ -389,6 +404,36 @@ pro runit, year
       
     	  ; Transpose the 2d arrays to get them in the right shape
       if(npts gt 0) then begin
+        output_heating_rate_matrix_k_day01 = transpose(output_heating_rate_matrix_k_day01, [1, 2, 0])
+        these_dim = size(output_heating_rate_matrix_k_day01, /dimensions)
+        if (n_elements(these_dim) eq 2) then begin
+          output_heating_rate_matrix_k_day01 = reform(output_heating_rate_matrix_k_day01, these_dim[0], these_dim[1], 1)
+        endif
+        
+        output_upwelling_flux_matrix_w_m02 = transpose(output_upwelling_flux_matrix_w_m02, [1, 2, 0])
+        these_dim = size(output_upwelling_flux_matrix_w_m02, /dimensions)
+        if (n_elements(these_dim) eq 2) then begin
+          output_upwelling_flux_matrix_w_m02 = reform(output_upwelling_flux_matrix_w_m02, these_dim[0], these_dim[1], 1)
+        endif
+        
+        output_downwelling_flux_matrix_w_m02 = transpose(output_downwelling_flux_matrix_w_m02, [1, 2, 0])
+        these_dim = size(output_downwelling_flux_matrix_w_m02, /dimensions)
+        if (n_elements(these_dim) eq 2) then begin
+          output_downwelling_flux_matrix_w_m02 = reform(output_downwelling_flux_matrix_w_m02, these_dim[0], these_dim[1], 1)
+        endif
+        
+        output_toa_upwelling_fluxes_w_m02 = transpose(output_toa_upwelling_fluxes_w_m02)
+        these_dim = size(output_toa_upwelling_fluxes_w_m02, /dimensions)
+        if (n_elements(these_dim) eq 1) then begin
+          output_toa_upwelling_fluxes_w_m02 = reform(output_toa_upwelling_fluxes_w_m02, these_dim[0], 1)
+        endif
+        
+        output_sfc_downwelling_fluxes_w_m02 = transpose(output_sfc_downwelling_fluxes_w_m02)
+        these_dim = size(output_sfc_downwelling_fluxes_w_m02, /dimensions)
+        if (n_elements(these_dim) eq 1) then begin
+          output_sfc_downwelling_fluxes_w_m02 = reform(output_sfc_downwelling_fluxes_w_m02, these_dim[0], 1)
+        endif
+        
         output_liquid_paths_g_m02 = transpose(output_liquid_paths_g_m02)
         output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
         output_temps_kelvins = transpose(output_temps_kelvins)
@@ -404,14 +449,14 @@ pro runit, year
         output_aerosol_extinctions_km01 = transpose(output_aerosol_extinctions_km01)
         output_liquid_eff_radii_microns = transpose(output_liquid_eff_radii_microns)
         output_ice_eff_radii_microns = transpose(output_ice_eff_radii_microns)
-        output_heating_rate_matrix_k_day01 = transpose(output_heating_rate_matrix_k_day01)
-        output_upwelling_flux_matrix_w_m02 = transpose(output_upwelling_flux_matrix_w_m02)
-        output_downwelling_flux_matrix_w_m02 = transpose(output_downwelling_flux_matrix_w_m02)
 
             ; If the netCDF file has not yet been created, then create it
         if(do_create_output eq 1) then begin
 	      index = 0
-          do_create_output = create_output_file(outname, n_elements(these_heights_km_agl), n_elements(output_toa_upwelling_fluxes_w_m02))
+	      these_dim = size(output_toa_upwelling_fluxes_w_m02, /dimensions)
+	      num_bands = these_dim[0]
+
+          do_create_output = create_output_file(outname, n_elements(these_heights_km_agl), num_bands)
         endif
 
 		    ; Append output to the file
