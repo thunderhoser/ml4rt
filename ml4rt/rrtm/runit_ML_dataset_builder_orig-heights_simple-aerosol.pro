@@ -459,7 +459,10 @@ pro runit, year
             ; If the netCDF file has not yet been created, then create it
         if(do_create_output eq 1) then begin
 	      index = 0
-          do_create_output = create_output_file(outname, n_elements(these_heights_km_agl), size(output_toa_upwelling_fluxes_w_m02, /dimensions)[1])
+	      these_dim = size(output_toa_upwelling_fluxes_w_m02, /dimensions)
+	      num_bands = these_dim[1]
+
+          do_create_output = create_output_file(outname, n_elements(these_heights_km_agl), num_bands)
         endif
 
 		    ; Append output to the file
