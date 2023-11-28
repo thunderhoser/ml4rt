@@ -127,9 +127,6 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
     aerosol_extinctions_km01, liquid_eff_radii_microns, ice_eff_radii_microns, aerosol_albedos, aerosol_asymmetry_params, $
     heating_rate_matrix_k_day01, upwelling_flux_matrix_w_m02, downwelling_flux_matrix_w_m02, toa_upwelling_fluxes_w_m02, sfc_downwelling_fluxes_w_m02
   
-  print,size(sfc_downwelling_fluxes_w_m02)
-  print,size(heating_rate_matrix_k_day01)
-  
   fid = ncdf_open(name, /write)
   ncdf_varput,fid,'valid_time_unix_sec',valid_times_unix_sec,offset=index
   ncdf_varput,fid,'julian_day',julian_days,offset=index
@@ -327,15 +324,15 @@ pro runit, year
 	      num_heights = these_dim[0]
 	      num_bands = these_dim[1]
 	      
-	      this_heating_rate_matrix_k_day01 = replicate(1, 1, num_heights, num_bands)
+	      this_heating_rate_matrix_k_day01 = replicate(1., 1, num_heights, num_bands)
 	      this_heating_rate_matrix_k_day01[0, *, *] = transpose(outsw.hr)
-	      this_upwelling_flux_matrix_w_m02 = replicate(1, 1, num_heights, num_bands)
+	      this_upwelling_flux_matrix_w_m02 = replicate(1., 1, num_heights, num_bands)
 	      this_upwelling_flux_matrix_w_m02[0, *, *] = transpose(outsw.fluxu)
-	      this_downwelling_flux_matrix_w_m02 = replicate(1, 1, num_heights, num_bands)
+	      this_downwelling_flux_matrix_w_m02 = replicate(1., 1, num_heights, num_bands)
 	      this_downwelling_flux_matrix_w_m02[0, *, *] = transpose(outsw.fluxdtot)
-	      these_toa_upwelling_fluxes_w_m02 = replicate(1, 1, num_bands)
+	      these_toa_upwelling_fluxes_w_m02 = replicate(1., 1, num_bands)
 	      these_toa_upwelling_fluxes_w_m02[0, *] = outsw.osr
-	      these_sfc_downwelling_fluxes_w_m02 = replicate(1, 1, num_bands)
+	      these_sfc_downwelling_fluxes_w_m02 = replicate(1., 1, num_bands)
 	      these_sfc_downwelling_fluxes_w_m02[0, *] = outsw.ssr
 	      
 	      print,these_toa_upwelling_fluxes_w_m02[0, *]
