@@ -461,7 +461,8 @@ pro runit, year
         if(do_create_output eq 1) then begin
 	      index = 0
 	      these_dim = size(output_toa_upwelling_fluxes_w_m02, /dimensions)
-	      num_bands = these_dim[1]
+	      num_bands = these_dim[0]
+	      print,num_bands
 
           do_create_output = create_output_file(outname, n_elements(these_heights_km_agl), num_bands)
         endif
