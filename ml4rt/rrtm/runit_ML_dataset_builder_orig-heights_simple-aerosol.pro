@@ -403,8 +403,16 @@ pro runit, year
     	  ; Transpose the 2d arrays to get them in the right shape
       if(npts gt 0) then begin
         print,size(output_heating_rate_matrix_k_day01)
-        foo = transpose(output_heating_rate_matrix_k_day01, [2, 1, 0])
-        print,size(foo)
+        shit = transpose(output_heating_rate_matrix_k_day01, [2, 1, 0])
+        print,size(shit)
+        
+        new_dim = size(shit, /dimensions)
+        if (n_elements(new_dim) == 2) then begin
+          piss = reform(shit, new_dim[0], new_dim[1], 1, /keep_dims)
+          print,size(piss)
+        endif
+        
+        
         
         output_liquid_paths_g_m02 = transpose(output_liquid_paths_g_m02)
         output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
