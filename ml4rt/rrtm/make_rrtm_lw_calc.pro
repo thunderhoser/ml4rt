@@ -178,7 +178,7 @@
     return,fail
   endif else begin
     		; Read in the output file
-    read_rrtm_lw, nregions=1, path='.', filename='OUTPUT_RRTM', olr=olr, slr=slr, $
+    read_rrtm_lw, nregions=n_elements(lw_wnum_bands) + 1, path='.', filename='OUTPUT_RRTM', olr=olr, slr=slr, $
     	wnum=wnum, wbounds=wbounds, fluxu=fluxu, fluxd=fluxd, fluxn=fluxn, pres=pres, hr=hr
 
     		; Simple QC to make sure model ran correctly
@@ -193,7 +193,7 @@
 		; Note that I am only capturing the entire LW band, at the moment
     output = {success:1, hr:reform(reverse(hr)), fluxn:reform(reverse(fluxn)), $
     		fluxu:reform(reverse(fluxu)), fluxd:reform(reverse(fluxd)), $
-		    olr:olr(0), slr:slr(0)}
+		    olr:olr, slr:slr}
   endelse
 
   if(keyword_set(dostop)) then stop,'Stopping at end of routine before returning'
