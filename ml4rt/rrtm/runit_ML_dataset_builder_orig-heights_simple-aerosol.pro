@@ -355,7 +355,12 @@ pro runit, year
 	        output_total_ice_paths_g_m02 = [output_total_ice_paths_g_m02,this_total_ice_path_g_m02]
 	        output_liquid_paths_g_m02 = [output_liquid_paths_g_m02,transpose(these_liquid_paths_g_m02)]
 	        output_ice_paths_g_m02 = [output_ice_paths_g_m02,transpose(these_ice_paths_g_m02)]
+	        
+	        print,size(output_ozone_mixing_ratios_g_kg01)
+	        print,size(transpose(these_ozone_mixing_ratios_g_kg01))
 	        output_ozone_mixing_ratios_g_kg01 = [output_ozone_mixing_ratios_g_kg01,transpose(these_ozone_mixing_ratios_g_kg01)]
+	        print,size(output_ozone_mixing_ratios_g_kg01)
+	        
             output_co2_concentrations_ppmv = [output_co2_concentrations_ppmv,transpose(these_co2_concentrations_ppmv)]
             output_ch4_concentrations_ppmv = [output_ch4_concentrations_ppmv,transpose(these_ch4_concentrations_ppmv)]
             output_n2o_concentrations_ppmv = [output_n2o_concentrations_ppmv,transpose(these_n2o_concentrations_ppmv)]
@@ -384,6 +389,8 @@ pro runit, year
 	        output_sfc_downwelling_fluxes_w_m02 = [output_sfc_downwelling_fluxes_w_m02,outsw.ssr]
 	        
 	        print,size(output_heating_rate_matrix_k_day01)
+	        
+	        
 	      endelse
 	      npts = n_elements(output_zenith_angles_deg)
 	    endif
