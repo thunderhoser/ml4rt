@@ -408,7 +408,7 @@ pro runit, year
         
         new_dim = size(shit, /dimensions)
         if (n_elements(new_dim) eq 2) then begin
-          piss = reform(shit, new_dim[0], new_dim[1], 1, /keep_dims)
+          piss = reform(shit, new_dim[0], new_dim[1], 1, /overdim)
           print,size(piss)
         endif
         
