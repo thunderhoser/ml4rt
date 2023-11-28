@@ -127,6 +127,8 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
     aerosol_extinctions_km01, liquid_eff_radii_microns, ice_eff_radii_microns, aerosol_albedos, aerosol_asymmetry_params, $
     heating_rate_matrix_k_day01, upwelling_flux_matrix_w_m02, downwelling_flux_matrix_w_m02, toa_upwelling_fluxes_w_m02, sfc_downwelling_fluxes_w_m02
   
+  print,size(sfc_downwelling_fluxes_w_m02)
+  
   fid = ncdf_open(name, /write)
   ncdf_varput,fid,'valid_time_unix_sec',valid_times_unix_sec,offset=index
   ncdf_varput,fid,'julian_day',julian_days,offset=index
