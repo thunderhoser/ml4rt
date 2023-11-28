@@ -250,6 +250,7 @@
       fluxddif=fluxddif, fluxn=fluxn, pres=pres, hr=hr
 
     		; Simple QC to make sure model ran correctly
+    print,n_elements(pres)
     if(n_elements(pres) ne n_elements(p)) then begin
       print,'Error: Pressure levels in OUTPUT_RRTM do not match input pressure levels'
       if(keyword_set(dostop)) then stop,'Stopping inside routine for debugging'
