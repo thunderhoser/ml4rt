@@ -400,12 +400,12 @@ pro runit, year
 	    endif
       endfor ; } loop over k
       
-      print,size(output_heating_rate_matrix_k_day01)
-      foo = transpose(output_heating_rate_matrix_k_day01, [2, 1, 0])
-      print,size(foo)
-      
     	  ; Transpose the 2d arrays to get them in the right shape
       if(npts gt 0) then begin
+        print,size(output_heating_rate_matrix_k_day01)
+        foo = transpose(output_heating_rate_matrix_k_day01, [2, 1, 0])
+        print,size(foo)
+        
         output_liquid_paths_g_m02 = transpose(output_liquid_paths_g_m02)
         output_ice_paths_g_m02 = transpose(output_ice_paths_g_m02)
         output_temps_kelvins = transpose(output_temps_kelvins)
