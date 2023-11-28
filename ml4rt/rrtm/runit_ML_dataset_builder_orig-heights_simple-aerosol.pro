@@ -96,13 +96,13 @@ function create_output_file, name, num_heights, num_bands
   vid = ncdf_vardef(fid,'aerosol_asymmetry_param',/float,did0)
       ncdf_attput,fid,vid,'long_name','Aerosol asymmetry parameter'
       ncdf_attput,fid,vid,'units','unitless'
-  vid = ncdf_vardef(fid,'heating_rate_k_day01',/float,[did0,did1,did2])
+  vid = ncdf_vardef(fid,'heating_rate_k_day01',/float,[did1,did2,did0])
     ncdf_attput,fid,vid,'long_name','SW radiative heating rate'
     ncdf_attput,fid,vid,'units','K/day'
-  vid = ncdf_vardef(fid,'downwelling_flux_w_m02',/float,[did0,did1,did2])
+  vid = ncdf_vardef(fid,'downwelling_flux_w_m02',/float,[did1,did2,did0])
     ncdf_attput,fid,vid,'long_name','SW downwelling flux'
     ncdf_attput,fid,vid,'units','W/m2'
-  vid = ncdf_vardef(fid,'upwelling_flux_w_m02',/float,[did0,did1,did2])
+  vid = ncdf_vardef(fid,'upwelling_flux_w_m02',/float,[did1,did2,did0])
     ncdf_attput,fid,vid,'long_name','SW upwelling flux'
     ncdf_attput,fid,vid,'units','W/m2'
   vid = ncdf_vardef(fid,'surface_downwelling_flux_w_m02',/float,[did2,did0])
@@ -154,9 +154,9 @@ function append_to_output_file, name, index, valid_times_unix_sec, julian_days, 
   ncdf_varput,fid,'ice_eff_radius_metres',0.000001*ice_eff_radii_microns,offset=[0,index]
   ncdf_varput,fid,'aerosol_albedo',aerosol_albedos,offset=index
   ncdf_varput,fid,'aerosol_asymmetry_param',aerosol_asymmetry_params,offset=index
-  ncdf_varput,fid,'heating_rate_k_day01',heating_rate_matrix_k_day01,offset=[index,0,0]
-  ncdf_varput,fid,'upwelling_flux_w_m02',upwelling_flux_matrix_w_m02,offset=[index,0,0]
-  ncdf_varput,fid,'downwelling_flux_w_m02',downwelling_flux_matrix_w_m02,offset=[index,0,0]
+  ncdf_varput,fid,'heating_rate_k_day01',heating_rate_matrix_k_day01,offset=[0,0,index]
+  ncdf_varput,fid,'upwelling_flux_w_m02',upwelling_flux_matrix_w_m02,offset=[0,0,index]
+  ncdf_varput,fid,'downwelling_flux_w_m02',downwelling_flux_matrix_w_m02,offset=[0,0,index]
   ncdf_varput,fid,'surface_downwelling_flux_w_m02',sfc_downwelling_fluxes_w_m02,offset=[0,index]
   ncdf_varput,fid,'toa_upwelling_flux_w_m02',toa_upwelling_fluxes_w_m02,offset=[0,index]
   ncdf_close,fid
@@ -399,6 +399,10 @@ pro runit, year
 	      npts = n_elements(output_zenith_angles_deg)
 	    endif
       endfor ; } loop over k
+      
+      print,size(output_heating_rate_matrix_k_day01)
+      foo = transpose(output_heating_rate_matrix_k_day01, [2, 1, 0])
+      print,size(foo)
       
     	  ; Transpose the 2d arrays to get them in the right shape
       if(npts gt 0) then begin
