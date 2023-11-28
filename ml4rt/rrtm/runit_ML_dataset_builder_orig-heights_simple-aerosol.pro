@@ -320,10 +320,10 @@ pro runit, year
 	      
 	      print,size(outsw.hr)
 	      these_dim = size(outsw.hr, /dimensions)
-	      this_heating_rate_matrix_k_day01 = replicate(1, these_dim[0], these_dim[1], 1)
+	      this_heating_rate_matrix_k_day01 = replicate(1, these_dim[0], these_dim[1], 2)
 	      this_heating_rate_matrix_k_day01[*,*,0] = outsw.hr
 	      print,size(this_heating_rate_matrix_k_day01)
-	      new_heating_rate_matrix_k_day01 = concat(this_heating_rate_matrix_k_day01, this_heating_rate_matrix_k_day01, 3)
+	      new_heating_rate_matrix_k_day01 = concatenate(3, this_heating_rate_matrix_k_day01, this_heating_rate_matrix_k_day01)
 	      print,size(new_heating_rate_matrix_k_day01)
 
           if(npts eq 0) then begin
