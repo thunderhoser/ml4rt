@@ -321,6 +321,10 @@ pro runit, year
 	        continue
 	      endif
 	      
+	      print,outsw.osr
+	      print,outsw.ssr
+	      print,outsw.hr
+	      
 	      these_dim = size(transpose(outsw.hr), /dimensions)
 	      num_heights = these_dim[0]
 	      num_bands = these_dim[1]
