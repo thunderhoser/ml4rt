@@ -451,9 +451,6 @@ pro runit, year
         output_aerosol_extinctions_km01 = transpose(output_aerosol_extinctions_km01)
         output_liquid_eff_radii_microns = transpose(output_liquid_eff_radii_microns)
         output_ice_eff_radii_microns = transpose(output_ice_eff_radii_microns)
-        output_heating_rates_k_day01 = transpose(output_heating_rates_k_day01)
-        output_upwelling_fluxes_w_m02 = transpose(output_upwelling_fluxes_w_m02)
-        output_downwelling_fluxes_w_m02 = transpose(output_downwelling_fluxes_w_m02)
 
             ; If the netCDF file has not yet been created, then create it
         if(do_create_output eq 1) then begin
