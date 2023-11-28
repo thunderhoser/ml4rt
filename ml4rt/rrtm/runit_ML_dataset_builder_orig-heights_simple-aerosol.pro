@@ -320,7 +320,7 @@ pro runit, year
 	      
 	      this_hr_matrix_2d_k_day01 = transpose(outsw.hr)
 	      dimensions = size(this_hr_matrix_2d_k_day01, /dimensions)
-	      this_hr_matrix_3d_k_day01 = replicate(1, 2, dimensions[0], dimensions[1])
+	      this_hr_matrix_3d_k_day01 = replicate(1, 1, dimensions[0], dimensions[1])
 	      this_hr_matrix_3d_k_day01[0, *, *] = this_hr_matrix_2d_k_day01
 	      print,size(this_hr_matrix_2d_k_day01)
 	      print,size(this_hr_matrix_3d_k_day01)
