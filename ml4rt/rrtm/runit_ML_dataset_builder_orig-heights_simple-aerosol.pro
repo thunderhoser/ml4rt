@@ -96,13 +96,13 @@ function create_output_file, name, num_heights, num_bands
   vid = ncdf_vardef(fid,'aerosol_asymmetry_param',/float,did0)
       ncdf_attput,fid,vid,'long_name','Aerosol asymmetry parameter'
       ncdf_attput,fid,vid,'units','unitless'
-  vid = ncdf_vardef(fid,'heating_rate_k_day01',/float,[did1,did2,did0])
+  vid = ncdf_vardef(fid,'heating_rate_k_day01',/float,[did2,did1,did0])
     ncdf_attput,fid,vid,'long_name','SW radiative heating rate'
     ncdf_attput,fid,vid,'units','K/day'
-  vid = ncdf_vardef(fid,'downwelling_flux_w_m02',/float,[did1,did2,did0])
+  vid = ncdf_vardef(fid,'downwelling_flux_w_m02',/float,[did2,did1,did0])
     ncdf_attput,fid,vid,'long_name','SW downwelling flux'
     ncdf_attput,fid,vid,'units','W/m2'
-  vid = ncdf_vardef(fid,'upwelling_flux_w_m02',/float,[did1,did2,did0])
+  vid = ncdf_vardef(fid,'upwelling_flux_w_m02',/float,[did2,did1,did0])
     ncdf_attput,fid,vid,'long_name','SW upwelling flux'
     ncdf_attput,fid,vid,'units','W/m2'
   vid = ncdf_vardef(fid,'surface_downwelling_flux_w_m02',/float,[did2,did0])
