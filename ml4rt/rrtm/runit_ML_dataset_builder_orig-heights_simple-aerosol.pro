@@ -318,21 +318,12 @@ pro runit, year
 	        continue
 	      endif
 	      
-	      print,size(outsw.hr)
-	      
-	      these_dim = size(outsw.hr, /dimensions)
-	      this_heating_rate_matrix_k_day01 = replicate(1, these_dim[0], these_dim[1], 2)
-	      this_heating_rate_matrix_k_day01[*,*,0] = outsw.hr
-	      print,size(this_heating_rate_matrix_k_day01)
-
-	      these_dim = size(this_heating_rate_matrix_k_day01, /dimensions)
-	      new_heating_rate_matrix_k_day01 = replicate(this_heating_rate_matrix_k_day01, 1, 1, these_dim[2] + these_dim[2])
-	      new_heating_rate_matrix_k_day01[*, *, these_dim[2]:* - 1] = this_heating_rate_matrix_k_day01
-	      
-	      
-	      
-	      ; new_heating_rate_matrix_k_day01 = concatenate(3, this_heating_rate_matrix_k_day01, this_heating_rate_matrix_k_day01)
-	      print,size(new_heating_rate_matrix_k_day01)
+	      this_hr_matrix_2d_k_day01 = transpose(outsw.hr)
+	      dimensions = size(this_hr_matrix_2d_k_day01, /dimensions)
+	      this_hr_matrix_3d_k_day01 = replicate(1, 2, dimensions[0], dimensions[1])
+	      this_hr_matrix_3d_k_day01[0, *, *] = this_hr_matrix_2d_k_day01
+	      print,size(this_hr_matrix_2d_k_day01)
+	      print,size(this_hr_matrix_3d_k_day01)
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
