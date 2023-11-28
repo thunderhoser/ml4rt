@@ -322,8 +322,6 @@ pro runit, year
 	      endif
 	      
 	      print,outsw.osr
-	      print,outsw.ssr
-	      print,outsw.hr
 	      
 	      these_dim = size(transpose(outsw.hr), /dimensions)
 	      num_heights = these_dim[0]
@@ -339,6 +337,8 @@ pro runit, year
 	      these_toa_upwelling_fluxes_w_m02[0, *] = outsw.osr
 	      these_sfc_downwelling_fluxes_w_m02 = replicate(1, 1, num_bands)
 	      these_sfc_downwelling_fluxes_w_m02[0, *] = outsw.ssr
+	      
+	      print,these_toa_upwelling_fluxes_w_m02[0, *]
 
           if(npts eq 0) then begin
 	        output_total_liquid_paths_g_m02 = this_total_liquid_path_g_m02
@@ -371,6 +371,7 @@ pro runit, year
 	        output_upwelling_flux_matrix_w_m02 = this_upwelling_flux_matrix_w_m02
 	        output_downwelling_flux_matrix_w_m02 = this_downwelling_flux_matrix_w_m02
 	        output_toa_upwelling_fluxes_w_m02 = these_toa_upwelling_fluxes_w_m02
+	        print,output_toa_upwelling_fluxes_w_m02
 	        output_sfc_downwelling_fluxes_w_m02 = these_sfc_downwelling_fluxes_w_m02
 	      endif else begin
 	        output_total_liquid_paths_g_m02 = [output_total_liquid_paths_g_m02,this_total_liquid_path_g_m02]
@@ -403,6 +404,7 @@ pro runit, year
 	        output_upwelling_flux_matrix_w_m02 = [output_upwelling_flux_matrix_w_m02,this_upwelling_flux_matrix_w_m02]
 	        output_downwelling_flux_matrix_w_m02 = [output_downwelling_flux_matrix_w_m02,this_downwelling_flux_matrix_w_m02]
 	        output_toa_upwelling_fluxes_w_m02 = [output_toa_upwelling_fluxes_w_m02,these_toa_upwelling_fluxes_w_m02]
+	        print,output_toa_upwelling_fluxes_w_m02
 	        output_sfc_downwelling_fluxes_w_m02 = [output_sfc_downwelling_fluxes_w_m02,these_sfc_downwelling_fluxes_w_m02]
 	      endelse
 	      npts = n_elements(output_zenith_angles_deg)
