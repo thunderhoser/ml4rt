@@ -711,15 +711,18 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl,
             dataset_object.variables[this_predictor_name_orig][:], dtype=float
         )
 
+    # TODO(thunderhoser): Currently reading only broadband quantities.  Need to
+    # read spectrally resolved (wavelength-specific) quantities.  This applies
+    # to both scalar and vector target variables.
     for k in range(num_scalar_targets):
         scalar_target_matrix[:, k] = numpy.array(
-            dataset_object.variables[scalar_target_names_orig[k]][:],
+            dataset_object.variables[scalar_target_names_orig[k]][:, -1],
             dtype=float
         )
 
     for k in range(num_vector_targets):
         vector_target_matrix[..., k] = numpy.array(
-            dataset_object.variables[vector_target_names_orig[k]][:],
+            dataset_object.variables[vector_target_names_orig[k]][:, -1, :],
             dtype=float
         )
 
