@@ -726,6 +726,7 @@ def _read_file_gfs(netcdf_file_name, allow_bad_values, dummy_heights_m_agl,
             dtype=float
         )
 
+    vector_target_matrix = numpy.flip(vector_target_matrix, axis=1)
     example_dict.update({
         example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
         example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix,
