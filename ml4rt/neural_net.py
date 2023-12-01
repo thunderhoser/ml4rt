@@ -26,8 +26,8 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(1e7)
-MAX_NUM_TRAINING_EXAMPLES = int(2e7)
+MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
+MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -1829,7 +1829,10 @@ def train_model_sans_generator(
 
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
     num_validation_examples = validation_predictor_matrix.shape[0]
-    print('Number of validation examples = {0:d}'.format(num_validation_examples))
+    print('Number of validation examples = {0:d}'.format(
+        num_validation_examples
+    ))
+
     if num_validation_examples > MAX_NUM_VALIDATION_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of validation examples '
@@ -1862,6 +1865,7 @@ def train_model_sans_generator(
 
     num_training_examples = training_predictor_matrix.shape[0]
     print('Number of training examples = {0:d}'.format(num_training_examples))
+
     if num_training_examples > MAX_NUM_TRAINING_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of training examples '
