@@ -1829,6 +1829,7 @@ def train_model_sans_generator(
 
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
     num_validation_examples = validation_predictor_matrix.shape[0]
+    print('Number of validation examples = {0:d}'.format(num_validation_examples))
     if num_validation_examples > MAX_NUM_VALIDATION_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of validation examples '
@@ -1860,6 +1861,7 @@ def train_model_sans_generator(
             ]
 
     num_training_examples = training_predictor_matrix.shape[0]
+    print('Number of training examples = {0:d}'.format(num_training_examples))
     if num_training_examples > MAX_NUM_TRAINING_EXAMPLES:
         print((
             'POTENTIAL ERROR: Reducing number of training examples '
