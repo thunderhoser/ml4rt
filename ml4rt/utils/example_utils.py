@@ -16,7 +16,10 @@ from ml4rt.utils import trace_gases
 from ml4rt.utils import land_ocean_mask
 
 TOLERANCE = 1e-6
+METRES_TO_MICRONS = 1e6
 MAX_AEROSOL_OPTICAL_DEPTH = 1.5
+DUMMY_BROADBAND_WAVELENGTH_METRES = 1000.
+DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
 
 LIQUID_ONLY_CLOUD_TYPE_STRING = 'liquid_only'
 ICE_ONLY_CLOUD_TYPE_STRING = 'ice_only'
@@ -32,12 +35,6 @@ VALID_CLOUD_TYPE_STRINGS = [
 ]
 
 MIN_PATH_DIFF_FOR_CLOUD_EDGE_KG_M02 = 1e-9
-
-DAYS_TO_SECONDS = 86400.
-GRAVITY_CONSTANT_M_S02 = 9.8066
-DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 1004.
-# GRAVITY_CONSTANT_M_S02 = 9.80665
-# DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 = 287.04 * 3.5
 
 LIQUID_EFF_RADIUS_LAND_MEAN_METRES = 6e-6
 LIQUID_EFF_RADIUS_LAND_STDEV_METRES = 1e-6
@@ -56,17 +53,6 @@ MAX_ICE_EFF_RADIUS_METRES = (
 )
 MIN_LIQUID_EFF_RADIUS_METRES = 1e-6
 
-DEFAULT_MAX_PMM_PERCENTILE_LEVEL = 99.
-
-DEFAULT_HEIGHTS_M_AGL = numpy.array([
-    10, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300, 350,
-    400, 450, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600,
-    1700, 1800, 1900, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600,
-    3800, 4000, 4200, 4400, 4600, 4800, 5000, 5500, 6000, 6500, 7000, 8000,
-    9000, 10000, 11000, 12000, 13000, 14000, 15000, 18000, 20000, 22000, 24000,
-    27000, 30000, 33000, 36000, 39000, 42000, 46000, 50000
-], dtype=float)
-
 SCALAR_PREDICTOR_VALS_KEY = 'scalar_predictor_matrix'
 SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
 VECTOR_PREDICTOR_VALS_KEY = 'vector_predictor_matrix'
@@ -77,6 +63,7 @@ VECTOR_TARGET_VALS_KEY = 'vector_target_matrix'
 VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 VALID_TIMES_KEY = 'valid_times_unix_sec'
 HEIGHTS_KEY = 'heights_m_agl'
+TARGET_WAVELENGTHS_KEY = 'target_wavelengths_metres'
 STANDARD_ATMO_FLAGS_KEY = 'standard_atmo_flags'
 EXAMPLE_IDS_KEY = 'example_id_strings'
 NORMALIZATION_METADATA_KEY = 'normalization_metadata_dict'
@@ -87,14 +74,6 @@ ZENITH_ANGLES_KEY = 'zenith_angles_rad'
 ALBEDOS_KEY = 'albedos'
 TEMPERATURES_10M_KEY = 'temperatures_10m_kelvins'
 
-DICTIONARY_KEYS = [
-    SCALAR_PREDICTOR_VALS_KEY, SCALAR_PREDICTOR_NAMES_KEY,
-    VECTOR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_NAMES_KEY,
-    SCALAR_TARGET_VALS_KEY, SCALAR_TARGET_NAMES_KEY,
-    VECTOR_TARGET_VALS_KEY, VECTOR_TARGET_NAMES_KEY,
-    VALID_TIMES_KEY, HEIGHTS_KEY, STANDARD_ATMO_FLAGS_KEY, EXAMPLE_IDS_KEY,
-    NORMALIZATION_METADATA_KEY
-]
 ONE_PER_EXAMPLE_KEYS = [
     SCALAR_PREDICTOR_VALS_KEY, VECTOR_PREDICTOR_VALS_KEY,
     SCALAR_TARGET_VALS_KEY, VECTOR_TARGET_VALS_KEY,
@@ -259,88 +238,6 @@ def _find_nonzero_runs(values):
     index_matrix = numpy.where(differences == 1)[0].reshape(-1, 2)
 
     return index_matrix[:, 0], index_matrix[:, 1] - 1
-
-
-def _add_height_padding(example_dict, desired_heights_m_agl):
-    """Adds height-padding to profiles.
-
-    :param example_dict: See doc for `example_io.read_file`.
-    :param desired_heights_m_agl: 1-D numpy array with all desired heights (real
-        and fake), in metres above ground level.
-    :return: example_dict: Same as input but with extra heights.
-    :raises: ValueError: if `desired_heights_m_agl` contains anything other than
-        heights currently in the example dict, followed by heights not in the
-        example dict.
-    """
-
-    error_checking.assert_is_numpy_array(
-        desired_heights_m_agl, num_dimensions=1
-    )
-    error_checking.assert_is_geq_numpy_array(desired_heights_m_agl, 0.)
-
-    current_heights_m_agl = example_dict[HEIGHTS_KEY]
-    desired_heights_m_agl = numpy.sort(desired_heights_m_agl)
-
-    num_desired_heights = len(desired_heights_m_agl)
-    first_new_height_index = None
-
-    for j in range(num_desired_heights):
-        found_this_height = False
-
-        try:
-            match_heights(
-                heights_m_agl=current_heights_m_agl,
-                desired_height_m_agl=desired_heights_m_agl[j]
-            )
-            found_this_height = True
-        except ValueError:
-            if desired_heights_m_agl[j] <= numpy.max(current_heights_m_agl):
-                raise
-
-        if found_this_height:
-            if first_new_height_index is None:
-                continue
-
-            error_string = (
-                'desired_heights_m_agl should contain heights present in the '
-                'example dict, followed by heights not present in the example.'
-                '  However, desired_heights_m_agl contains {0:d} m AGL (not '
-                'present), followed by {1:d} m AGL (present).'
-            ).format(
-                int(numpy.round(desired_heights_m_agl[j])),
-                int(numpy.round(desired_heights_m_agl[first_new_height_index]))
-            )
-
-            raise ValueError(error_string)
-
-        if first_new_height_index is not None:
-            continue
-
-        first_new_height_index = j
-
-    if first_new_height_index is None:
-        return example_dict
-
-    new_heights_m_agl = desired_heights_m_agl[first_new_height_index:]
-    example_dict[HEIGHTS_KEY] = numpy.concatenate(
-        (example_dict[HEIGHTS_KEY], new_heights_m_agl), axis=0
-    )
-
-    num_new_heights = len(new_heights_m_agl)
-    pad_width_input_arg = (
-        (0, 0), (0, num_new_heights), (0, 0)
-    )
-
-    example_dict[VECTOR_PREDICTOR_VALS_KEY] = numpy.pad(
-        example_dict[VECTOR_PREDICTOR_VALS_KEY],
-        pad_width=pad_width_input_arg, mode='edge'
-    )
-    example_dict[VECTOR_TARGET_VALS_KEY] = numpy.pad(
-        example_dict[VECTOR_TARGET_VALS_KEY],
-        pad_width=pad_width_input_arg, mode='constant', constant_values=0.
-    )
-
-    return example_dict
 
 
 def _interp_concentrations(orig_concentrations_ppmv, orig_heights_m_asl,
@@ -640,385 +537,6 @@ def get_grid_cell_widths(edge_heights_m_agl):
     return numpy.diff(edge_heights_m_agl)
 
 
-def multiply_hr_by_layer_thickness(example_dict):
-    """Multiplies heating rates by layer thickness.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with heating rates multiplied by layer
-        thickness.
-    """
-
-    pressure_matrix_pa = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    )
-    num_examples = pressure_matrix_pa.shape[0]
-
-    edge_pressure_matrix_pa = numpy.vstack([
-        get_grid_cell_edges(pressure_matrix_pa[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_pa = numpy.vstack([
-        get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
-
-    print((
-        'Multiplying heating rates by layer thickness (mean thickness = '
-        '{0:.2f} Pa)...'
-    ).format(
-        numpy.mean(thickness_matrix_pa)
-    ))
-
-    scale_factor = (
-        (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
-        DAYS_TO_SECONDS
-    )
-
-    try:
-        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
-            SHORTWAVE_HEATING_RATE_NAME
-        )
-        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
-            scale_factor * thickness_matrix_pa *
-            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index]
-        )
-    except ValueError:
-        pass
-
-    try:
-        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
-            LONGWAVE_HEATING_RATE_NAME
-        )
-        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
-            scale_factor * thickness_matrix_pa *
-            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index]
-        )
-    except ValueError:
-        pass
-
-    return example_dict
-
-
-def divide_hr_by_layer_thickness(example_dict):
-    """Divides heating rates by layer thickness.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with heating rates divided by layer
-        thickness.
-    """
-
-    pressure_matrix_pa = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    )
-    num_examples = pressure_matrix_pa.shape[0]
-
-    edge_pressure_matrix_pa = numpy.vstack([
-        get_grid_cell_edges(pressure_matrix_pa[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_pa = numpy.vstack([
-        get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
-
-    print((
-        'Dividing heating rates by layer thickness (mean thickness = {0:.2f} '
-        'Pa)...'
-    ).format(
-        numpy.mean(thickness_matrix_pa)
-    ))
-
-    scale_factor = (
-        (DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02) /
-        DAYS_TO_SECONDS
-    )
-
-    try:
-        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
-            SHORTWAVE_HEATING_RATE_NAME
-        )
-        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
-            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] /
-            (scale_factor * thickness_matrix_pa)
-        )
-    except ValueError:
-        pass
-
-    try:
-        this_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(
-            LONGWAVE_HEATING_RATE_NAME
-        )
-        example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] = (
-            example_dict[VECTOR_TARGET_VALS_KEY][..., this_index] /
-            (scale_factor * thickness_matrix_pa)
-        )
-    except ValueError:
-        pass
-
-    return example_dict
-
-
-def multiply_preds_by_layer_thickness(example_dict):
-    """Multiplies relevant predictors by layer thickness.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with relevant predictors multiplied by
-        layer thickness.
-    """
-
-    height_matrix_m_agl = get_field_from_dict(
-        example_dict=example_dict, field_name=HEIGHT_NAME
-    )
-    num_examples = height_matrix_m_agl.shape[0]
-
-    edge_height_matrix_m_agl = numpy.vstack([
-        get_grid_cell_edges(height_matrix_m_agl[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_metres = numpy.vstack([
-        get_grid_cell_widths(edge_height_matrix_m_agl[i, :])
-        for i in range(num_examples)
-    ])
-
-    pressure_matrix_pa = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    )
-    edge_pressure_matrix_pa = numpy.vstack([
-        get_grid_cell_edges(pressure_matrix_pa[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_pa = numpy.vstack([
-        get_grid_cell_widths(edge_pressure_matrix_pa[i, :])
-        for i in range(num_examples)
-    ])
-    thickness_matrix_pa = numpy.absolute(thickness_matrix_pa)
-
-    for this_predictor_name in PREDICTOR_NAMES_Z_THICKNESS_MATTERS:
-        if this_predictor_name not in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
-            continue
-
-        print((
-            'Multiplying {0:s} by layer thickness (mean thickness = '
-            '{1:.2f} m)...'
-        ).format(
-            this_predictor_name, numpy.mean(thickness_matrix_metres)
-        ))
-
-        this_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(
-            this_predictor_name
-        )
-        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index] = (
-            thickness_matrix_metres *
-            example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index]
-        )
-
-    for this_predictor_name in PREDICTOR_NAMES_P_THICKNESS_MATTERS:
-        if this_predictor_name not in example_dict[VECTOR_PREDICTOR_NAMES_KEY]:
-            continue
-
-        print((
-            'Multiplying {0:s} by layer thickness (mean thickness = '
-            '{1:.2f} Pa)...'
-        ).format(
-            this_predictor_name, numpy.mean(thickness_matrix_pa)
-        ))
-
-        this_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(
-            this_predictor_name
-        )
-        example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index] = (
-            thickness_matrix_pa *
-            example_dict[VECTOR_PREDICTOR_VALS_KEY][..., this_index]
-        )
-
-    return example_dict
-
-
-def heating_rate_to_fluxes(example_dict):
-    """For each example at each height, converts heating rate to up/down fluxes.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with upwelling-flux and downwelling-flux
-        profiles.
-    """
-
-    pressure_matrix_pascals = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    ) + 0.
-    dummy_pressure_matrix_pascals = (
-        pressure_matrix_pascals[:, [-1]] +
-        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
-    )
-    pressure_matrix_pascals = numpy.concatenate(
-        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
-    )
-
-    coefficient = DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 / GRAVITY_CONSTANT_M_S02
-
-    heating_rate_names = []
-    up_flux_names = []
-    down_flux_names = []
-
-    if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
-        heating_rate_names.append(SHORTWAVE_HEATING_RATE_NAME)
-        up_flux_names.append(SHORTWAVE_UP_FLUX_NAME)
-        down_flux_names.append(SHORTWAVE_DOWN_FLUX_NAME)
-
-    if LONGWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
-        heating_rate_names.append(LONGWAVE_HEATING_RATE_NAME)
-        up_flux_names.append(LONGWAVE_UP_FLUX_NAME)
-        down_flux_names.append(LONGWAVE_DOWN_FLUX_NAME)
-
-    for k in range(len(heating_rate_names)):
-        heating_rate_matrix_k_day01 = get_field_from_dict(
-            example_dict=example_dict, field_name=heating_rate_names[k]
-        )
-        net_flux_diff_matrix_w_m02 = (
-            -1 * numpy.diff(pressure_matrix_pascals, axis=1) *
-            coefficient * heating_rate_matrix_k_day01 / DAYS_TO_SECONDS
-        )
-        net_flux_matrix_w_m02 = numpy.cumsum(net_flux_diff_matrix_w_m02, axis=1)
-
-        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-        found_down_flux = down_flux_names[k] in vector_target_names
-        found_up_flux = up_flux_names[k] in vector_target_names
-
-        if not found_down_flux:
-            vector_target_names.append(down_flux_names[k])
-        if not found_up_flux:
-            vector_target_names.append(up_flux_names[k])
-
-        down_flux_index = vector_target_names.index(down_flux_names[k])
-        up_flux_index = vector_target_names.index(up_flux_names[k])
-        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-        if found_down_flux:
-            example_dict[VECTOR_TARGET_VALS_KEY][..., down_flux_index] = (
-                net_flux_matrix_w_m02
-            )
-        else:
-            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-                example_dict[VECTOR_TARGET_VALS_KEY],
-                obj=down_flux_index, values=net_flux_matrix_w_m02, axis=-1
-            )
-
-        if found_up_flux:
-            example_dict[VECTOR_TARGET_VALS_KEY][..., up_flux_index] = (
-                numpy.full(net_flux_matrix_w_m02.shape, 0.)
-            )
-        else:
-            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-                example_dict[VECTOR_TARGET_VALS_KEY], obj=up_flux_index,
-                values=numpy.full(net_flux_matrix_w_m02.shape, 0.), axis=-1
-            )
-
-    return example_dict
-
-
-def fluxes_to_heating_rate(example_dict):
-    """For each example at each height, converts up/down fluxes to heating rate.
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: example_dict: Same but with heating-rate profiles.
-    """
-
-    pressure_matrix_pascals = get_field_from_dict(
-        example_dict=example_dict, field_name=PRESSURE_NAME
-    ) + 0.
-    dummy_pressure_matrix_pascals = (
-        pressure_matrix_pascals[:, [-1]] +
-        (pressure_matrix_pascals[:, [-1]] - pressure_matrix_pascals[:, [-2]])
-    )
-    pressure_matrix_pascals = numpy.concatenate(
-        (pressure_matrix_pascals, dummy_pressure_matrix_pascals), axis=1
-    )
-
-    coefficient = GRAVITY_CONSTANT_M_S02 / DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
-
-    heating_rate_names = []
-    up_flux_names = []
-    down_flux_names = []
-
-    if (
-            SHORTWAVE_UP_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY] and
-            SHORTWAVE_DOWN_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]
-    ):
-        heating_rate_names.append(SHORTWAVE_HEATING_RATE_NAME)
-        up_flux_names.append(SHORTWAVE_UP_FLUX_NAME)
-        down_flux_names.append(SHORTWAVE_DOWN_FLUX_NAME)
-
-    if (
-            LONGWAVE_UP_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY] and
-            LONGWAVE_DOWN_FLUX_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]
-    ):
-        heating_rate_names.append(LONGWAVE_HEATING_RATE_NAME)
-        up_flux_names.append(LONGWAVE_UP_FLUX_NAME)
-        down_flux_names.append(LONGWAVE_DOWN_FLUX_NAME)
-
-    for k in range(len(up_flux_names)):
-        down_flux_matrix_w_m02 = get_field_from_dict(
-            example_dict=example_dict, field_name=down_flux_names[k]
-        )
-        up_flux_matrix_w_m02 = get_field_from_dict(
-            example_dict=example_dict, field_name=up_flux_names[k]
-        )
-        net_flux_matrix_w_m02 = down_flux_matrix_w_m02 - up_flux_matrix_w_m02
-
-        dummy_net_flux_matrix_w_m02 = (
-            net_flux_matrix_w_m02[:, [-1]] +
-            (net_flux_matrix_w_m02[:, [-1]] - net_flux_matrix_w_m02[:, [-2]])
-        )
-        net_flux_matrix_w_m02 = numpy.concatenate(
-            (net_flux_matrix_w_m02, dummy_net_flux_matrix_w_m02), axis=1
-        )
-
-        # heating_rate_matrix_k_day01 = DAYS_TO_SECONDS * coefficient * (
-        #     numpy.gradient(net_flux_matrix_w_m02, axis=1) /
-        #     numpy.absolute(numpy.gradient(pressure_matrix_pascals, axis=1))
-        # )
-
-        heating_rate_matrix_k_day01 = -1 * DAYS_TO_SECONDS * coefficient * (
-            numpy.diff(net_flux_matrix_w_m02, axis=1) /
-            numpy.diff(pressure_matrix_pascals, axis=1)
-        )
-
-        error_checking.assert_is_numpy_array_without_nan(net_flux_matrix_w_m02)
-        error_checking.assert_is_numpy_array_without_nan(
-            pressure_matrix_pascals
-        )
-        heating_rate_matrix_k_day01[
-            numpy.isnan(heating_rate_matrix_k_day01)
-        ] = 0.
-
-        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-        found_heating_rate = heating_rate_names[k] in vector_target_names
-        if not found_heating_rate:
-            vector_target_names.append(heating_rate_names[k])
-
-        heating_rate_index = vector_target_names.index(heating_rate_names[k])
-        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-        if found_heating_rate:
-            example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-                heating_rate_matrix_k_day01
-            )
-        else:
-            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-                example_dict[VECTOR_TARGET_VALS_KEY],
-                obj=heating_rate_index, values=heating_rate_matrix_k_day01,
-                axis=-1
-            )
-
-    return example_dict
-
-
 def get_air_density(example_dict):
     """Computes profiles of air density.
 
@@ -1066,147 +584,6 @@ def get_air_density(example_dict):
         virtual_temp_matrix_kelvins
     )
     return pressure_matrix_pascals / denominator_matrix
-
-
-def heating_rate_to_w_m02(example_dict):
-    """Converts heating rates from K day^-1 to W m^-2.
-
-    E = number of examples
-    H = number of heights
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :return: shortwave_hr_matrix_w_m02: E-by-H numpy array of shortwave heating
-        rates in W m^-2.  This may also be None.
-    :return: longwave_hr_matrix_w_m02: E-by-H numpy array of longwave heating
-        rates in W m^-2.  This may also be None.
-    """
-
-    # TODO(thunderhoser): Add unit tests.
-
-    air_density_matrix_kg_m03 = get_air_density(example_dict)
-    grid_cell_widths_metres = get_grid_cell_widths(
-        edge_heights_m_agl=get_grid_cell_edges(example_dict[HEIGHTS_KEY])
-    )
-
-    num_examples = air_density_matrix_kg_m03.shape[0]
-    grid_cell_width_matrix_metres = numpy.expand_dims(
-        grid_cell_widths_metres, axis=0
-    )
-    grid_cell_width_matrix_metres = numpy.repeat(
-        grid_cell_width_matrix_metres, axis=0, repeats=num_examples
-    )
-
-    multiplier_matrix = (
-        (DAYS_TO_SECONDS ** -1) * air_density_matrix_kg_m03 *
-        DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres
-    )
-
-    if SHORTWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
-        shortwave_hr_matrix_w_m02 = multiplier_matrix * get_field_from_dict(
-            example_dict=example_dict, field_name=SHORTWAVE_HEATING_RATE_NAME
-        )
-    else:
-        shortwave_hr_matrix_w_m02 = None
-
-    if LONGWAVE_HEATING_RATE_NAME in example_dict[VECTOR_TARGET_NAMES_KEY]:
-        longwave_hr_matrix_w_m02 = multiplier_matrix * get_field_from_dict(
-            example_dict=example_dict, field_name=LONGWAVE_HEATING_RATE_NAME
-        )
-    else:
-        longwave_hr_matrix_w_m02 = None
-
-    return shortwave_hr_matrix_w_m02, longwave_hr_matrix_w_m02
-
-
-def heating_rate_to_k_day01(example_dict, shortwave_hr_matrix_w_m02,
-                            longwave_hr_matrix_w_m02):
-    """Converts heating rates from W m^-2 to K day^-1.
-
-    E = number of examples
-    H = number of heights
-
-    :param example_dict: Dictionary of examples (in the format returned by
-        `example_io.read_file`).
-    :param shortwave_hr_matrix_w_m02: E-by-H numpy array of shortwave heating
-        rates in W m^-2.  This may also be None.
-    :param longwave_hr_matrix_w_m02: Same but for longeave.
-    :return: example_dict: Same as input but with different heating-rate values.
-    """
-
-    # TODO(thunderhoser): Add unit tests.
-
-    air_density_matrix_kg_m03 = get_air_density(example_dict)
-    grid_cell_widths_metres = get_grid_cell_widths(
-        edge_heights_m_agl=get_grid_cell_edges(example_dict[HEIGHTS_KEY])
-    )
-
-    num_examples = air_density_matrix_kg_m03.shape[0]
-    grid_cell_width_matrix_metres = numpy.expand_dims(
-        grid_cell_widths_metres, axis=0
-    )
-    grid_cell_width_matrix_metres = numpy.repeat(
-        grid_cell_width_matrix_metres, axis=0, repeats=num_examples
-    )
-
-    multiplier_matrix = 1. / (
-        (DAYS_TO_SECONDS ** -1) * air_density_matrix_kg_m03 *
-        DRY_AIR_SPECIFIC_HEAT_J_KG01_K01 * grid_cell_width_matrix_metres
-    )
-
-    if shortwave_hr_matrix_w_m02 is not None:
-        shortwave_hr_matrix_k_day01 = (
-            multiplier_matrix * shortwave_hr_matrix_w_m02
-        )
-
-        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-        found_heating_rate = SHORTWAVE_HEATING_RATE_NAME in vector_target_names
-        if not found_heating_rate:
-            vector_target_names.append(SHORTWAVE_HEATING_RATE_NAME)
-
-        heating_rate_index = vector_target_names.index(
-            SHORTWAVE_HEATING_RATE_NAME
-        )
-        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-        if found_heating_rate:
-            example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-                shortwave_hr_matrix_k_day01
-            )
-        else:
-            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-                example_dict[VECTOR_TARGET_VALS_KEY],
-                obj=heating_rate_index, values=shortwave_hr_matrix_k_day01,
-                axis=-1
-            )
-
-    if longwave_hr_matrix_w_m02 is not None:
-        longwave_hr_matrix_k_day01 = (
-            multiplier_matrix * longwave_hr_matrix_w_m02
-        )
-
-        vector_target_names = example_dict[VECTOR_TARGET_NAMES_KEY]
-        found_heating_rate = LONGWAVE_HEATING_RATE_NAME in vector_target_names
-        if not found_heating_rate:
-            vector_target_names.append(LONGWAVE_HEATING_RATE_NAME)
-
-        heating_rate_index = vector_target_names.index(
-            LONGWAVE_HEATING_RATE_NAME
-        )
-        example_dict[VECTOR_TARGET_NAMES_KEY] = vector_target_names
-
-        if found_heating_rate:
-            example_dict[VECTOR_TARGET_VALS_KEY][..., heating_rate_index] = (
-                longwave_hr_matrix_k_day01
-            )
-        else:
-            example_dict[VECTOR_TARGET_VALS_KEY] = numpy.insert(
-                example_dict[VECTOR_TARGET_VALS_KEY],
-                obj=heating_rate_index, values=longwave_hr_matrix_k_day01,
-                axis=-1
-            )
-
-    return example_dict
 
 
 def add_trace_gases(example_dict, profile_noise_stdev_fractional,
@@ -1849,6 +1226,40 @@ def find_cloud_layers(example_dict, min_path_kg_m02, cloud_type_string,
     return cloud_mask_matrix, cloud_layer_counts
 
 
+def match_wavelengths(wavelengths_metres, desired_wavelength_metres):
+    """Finds nearest available wavelength to desired wavelength.
+
+    :param wavelengths_metres: 1-D numpy array of available wavelengths.
+    :param desired_wavelength_metres: Desired wavelength.
+    :return: matching_index: Index of desired wavelength in array.  If
+        `matching_index == k`, then `wavelengths_metres[k]` is the desired
+        wavelength.
+    :raises: ValueError: if there is no available wavelength within 0.5 microns
+        of the desired wavelength.
+    """
+
+    error_checking.assert_is_greater_numpy_array(wavelengths_metres, 0.)
+    error_checking.assert_is_numpy_array(wavelengths_metres, num_dimensions=1)
+    error_checking.assert_is_greater(desired_wavelength_metres, 0.)
+
+    diffs_metres = numpy.absolute(wavelengths_metres - desired_wavelength_metres)
+    matching_index = numpy.argmin(diffs_metres)
+
+    if diffs_metres[matching_index] <= 5e-7:
+        return matching_index
+
+    error_string = (
+        'Cannot find available wavelength within 0.5 microns of desired '
+        'wavelength ({0:.2f} microns).  Nearest available wavelength is '
+        '{1:.2f} microns.'
+    ).format(
+        METRES_TO_MICRONS * desired_wavelength_metres,
+        METRES_TO_MICRONS * wavelengths_metres[matching_index]
+    )
+
+    raise ValueError(error_string)
+
+
 def match_heights(heights_m_agl, desired_height_m_agl):
     """Finds nearest available height to desired height.
 
@@ -1932,8 +1343,7 @@ def concat_examples(example_dicts):
 
     keys_to_match = [
         SCALAR_PREDICTOR_NAMES_KEY, VECTOR_PREDICTOR_NAMES_KEY,
-        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY, HEIGHTS_KEY,
-        NORMALIZATION_METADATA_KEY
+        SCALAR_TARGET_NAMES_KEY, VECTOR_TARGET_NAMES_KEY
     ]
 
     for i in range(1, len(example_dicts)):
@@ -1946,8 +1356,26 @@ def concat_examples(example_dicts):
                 '(units are m AGL).  1st dictionary:\n{1:s}\n\n'
                 '{0:d}th dictionary:\n{2:s}'
             ).format(
-                i + 1, str(example_dict[HEIGHTS_KEY]),
+                i + 1,
+                str(example_dict[HEIGHTS_KEY]),
                 str(example_dicts[i][HEIGHTS_KEY])
+            )
+
+            raise ValueError(error_string)
+
+        if not numpy.allclose(
+                example_dict[TARGET_WAVELENGTHS_KEY],
+                example_dicts[i][TARGET_WAVELENGTHS_KEY],
+                atol=TOLERANCE
+        ):
+            error_string = (
+                '1st and {0:d}th dictionaries have different wavelengths '
+                '(units are microns).  1st dictionary:\n{1:s}\n\n'
+                '{0:d}th dictionary:\n{2:s}'
+            ).format(
+                i + 1,
+                str(METRES_TO_MICRONS * example_dict[TARGET_WAVELENGTHS_KEY]),
+                str(METRES_TO_MICRONS * example_dicts[i][TARGET_WAVELENGTHS_KEY])
             )
 
             raise ValueError(error_string)
@@ -1957,9 +1385,6 @@ def concat_examples(example_dicts):
         # and put it in this file.
 
         for this_key in keys_to_match:
-            if this_key in [HEIGHTS_KEY, NORMALIZATION_METADATA_KEY]:
-                continue
-
             if example_dict[this_key] == example_dicts[i][this_key]:
                 continue
 
@@ -1974,7 +1399,7 @@ def concat_examples(example_dicts):
 
             raise ValueError(error_string)
 
-        for this_key in DICTIONARY_KEYS:
+        for this_key in ONE_PER_EXAMPLE_KEYS:
             if this_key in keys_to_match:
                 continue
 
@@ -2121,7 +1546,8 @@ def parse_example_ids(example_id_strings):
     }
 
 
-def get_field_from_dict(example_dict, field_name, height_m_agl=None):
+def get_field_from_dict(example_dict, field_name, height_m_agl=None,
+                        target_wavelength_metres=None):
     """Returns field from dictionary of examples.
 
     :param example_dict: Dictionary of examples (in the format returned by
@@ -2130,6 +1556,10 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
     :param height_m_agl: Height (metres above ground level).  For scalar field,
         `height_m_agl` will not be used.  For vector field, `height_m_agl` will
         be used only if `height_m_agl is not None`.
+    :param target_wavelength_metres: Wavelength.  For predictor variable,
+        `target_wavelength_metres` will not be used.  For target variable,
+        `target_wavelength_metres` will be used only if
+        `target_wavelength_metres is not None`.
     :return: data_matrix: numpy array with data values for given field.
     """
 
@@ -2137,6 +1567,7 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
 
     if field_name in ALL_SCALAR_PREDICTOR_NAMES:
         height_m_agl = None
+        target_wavelength_metres = None
         field_index = example_dict[SCALAR_PREDICTOR_NAMES_KEY].index(field_name)
         data_matrix = example_dict[SCALAR_PREDICTOR_VALS_KEY][..., field_index]
     elif field_name in ALL_SCALAR_TARGET_NAMES:
@@ -2144,21 +1575,32 @@ def get_field_from_dict(example_dict, field_name, height_m_agl=None):
         field_index = example_dict[SCALAR_TARGET_NAMES_KEY].index(field_name)
         data_matrix = example_dict[SCALAR_TARGET_VALS_KEY][..., field_index]
     elif field_name in ALL_VECTOR_PREDICTOR_NAMES:
+        target_wavelength_metres = None
         field_index = example_dict[VECTOR_PREDICTOR_NAMES_KEY].index(field_name)
         data_matrix = example_dict[VECTOR_PREDICTOR_VALS_KEY][..., field_index]
     else:
         field_index = example_dict[VECTOR_TARGET_NAMES_KEY].index(field_name)
         data_matrix = example_dict[VECTOR_TARGET_VALS_KEY][..., field_index]
 
-    if height_m_agl is None:
-        return data_matrix
+    if height_m_agl is not None:
+        height_index = match_heights(
+            heights_m_agl=example_dict[HEIGHTS_KEY],
+            desired_height_m_agl=height_m_agl
+        )
 
-    height_index = match_heights(
-        heights_m_agl=example_dict[HEIGHTS_KEY],
-        desired_height_m_agl=height_m_agl
-    )
+        if field_name in ALL_VECTOR_PREDICTOR_NAMES:
+            data_matrix = data_matrix[..., height_index]
+        else:
+            data_matrix = data_matrix[..., height_index, :]
 
-    return data_matrix[..., height_index]
+    if target_wavelength_metres is not None:
+        wavelength_index = match_wavelengths(
+            wavelengths_metres=example_dict[TARGET_WAVELENGTHS_KEY],
+            desired_wavelength_metres=target_wavelength_metres
+        )
+        data_matrix = data_matrix[..., wavelength_index]
+
+    return data_matrix
 
 
 def subset_by_time(example_dict, first_time_unix_sec, last_time_unix_sec):
@@ -2298,6 +1740,41 @@ def subset_by_field(example_dict, field_names):
     return example_dict
 
 
+def subset_by_wavelength(example_dict, target_wavelengths_metres):
+    """Subsets examples by wavelength.
+
+    :param example_dict: Dictionary of examples (in the format returned by
+        `example_io.read_file`).
+    :param target_wavelengths_metres: 1-D numpy array of wavelengths to keep.
+    :return: example_dict: Same as input but with fewer wavelengths.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(target_wavelengths_metres)
+    error_checking.assert_is_numpy_array(
+        numpy.array(target_wavelengths_metres), num_dimensions=1
+    )
+
+    indices_to_keep = [
+        match_wavelengths(
+            wavelengths_metres=example_dict[TARGET_WAVELENGTHS_KEY],
+            desired_wavelength_metres=w
+        ) for w in target_wavelengths_metres
+    ]
+    indices_to_keep = numpy.array(indices_to_keep, dtype=int)
+
+    example_dict[VECTOR_TARGET_VALS_KEY] = (
+        example_dict[VECTOR_TARGET_VALS_KEY][:, :, indices_to_keep, :]
+    )
+    example_dict[SCALAR_TARGET_VALS_KEY] = (
+        example_dict[SCALAR_TARGET_VALS_KEY][:, indices_to_keep, :]
+    )
+    example_dict[TARGET_WAVELENGTHS_KEY] = (
+        example_dict[TARGET_WAVELENGTHS_KEY][indices_to_keep]
+    )
+
+    return example_dict
+
+
 def subset_by_height(example_dict, heights_m_agl):
     """Subsets examples by height.
 
@@ -2307,10 +1784,6 @@ def subset_by_height(example_dict, heights_m_agl):
         ground level).
     :return: example_dict: Same as input but with fewer heights.
     """
-
-    example_dict = _add_height_padding(
-        example_dict=example_dict, desired_heights_m_agl=heights_m_agl
-    )
 
     error_checking.assert_is_numpy_array_without_nan(heights_m_agl)
     error_checking.assert_is_numpy_array(
@@ -2328,7 +1801,7 @@ def subset_by_height(example_dict, heights_m_agl):
         example_dict[VECTOR_PREDICTOR_VALS_KEY][:, indices_to_keep, :]
     )
     example_dict[VECTOR_TARGET_VALS_KEY] = (
-        example_dict[VECTOR_TARGET_VALS_KEY][:, indices_to_keep, :]
+        example_dict[VECTOR_TARGET_VALS_KEY][:, indices_to_keep, :, :]
     )
     example_dict[HEIGHTS_KEY] = example_dict[HEIGHTS_KEY][indices_to_keep]
 
@@ -2685,6 +2158,7 @@ def average_examples(
     P_v = number of vector predictors
     T_s = number of scalar targets
     T_v = number of vector targets
+    W = number of wavelengths
 
     :param example_dict: See doc for `example_io.read_file`.
     :param use_pmm: Boolean flag.  If True, will use probability-matched means
@@ -2699,14 +2173,16 @@ def average_examples(
     mean_example_dict['vector_predictor_matrix']: numpy array (1 x H x P_v) with
         values of vector predictors.
     mean_example_dict['vector_predictor_names']: Same as input.
-    mean_example_dict['scalar_target_matrix']: numpy array (1 x T_s) with values
-        of scalar targets.
+    mean_example_dict['scalar_target_matrix']: numpy array (1 x W x T_s) with
+        values of scalar targets.
     mean_example_dict['scalar_predictor_names']: Same as input.
-    mean_example_dict['vector_target_matrix']: numpy array (1 x H x T_v) with
-        values of vector targets.
+    mean_example_dict['vector_target_matrix']: numpy array (1 x H x W x T_v)
+        with values of vector targets.
     mean_example_dict['vector_predictor_names']: Same as input.
     mean_example_dict['heights_m_agl']: length-H numpy array of heights (metres
         above ground level).
+    mean_example_dict['target_wavelengths_metres']: length-W numpy array of
+        target wavelengths.
     """
 
     error_checking.assert_is_boolean(use_pmm)
@@ -2714,17 +2190,10 @@ def average_examples(
     error_checking.assert_is_leq(max_pmm_percentile_level, 100.)
 
     mean_scalar_predictor_matrix = numpy.mean(
-        example_dict[SCALAR_PREDICTOR_VALS_KEY], axis=0
+        example_dict[SCALAR_PREDICTOR_VALS_KEY], axis=0, keepdims=True
     )
-    mean_scalar_predictor_matrix = numpy.expand_dims(
-        mean_scalar_predictor_matrix, axis=0
-    )
-
     mean_scalar_target_matrix = numpy.mean(
-        example_dict[SCALAR_TARGET_VALS_KEY], axis=0
-    )
-    mean_scalar_target_matrix = numpy.expand_dims(
-        mean_scalar_target_matrix, axis=0
+        example_dict[SCALAR_TARGET_VALS_KEY], axis=0, keepdims=True
     )
 
     if use_pmm:
@@ -2764,5 +2233,6 @@ def average_examples(
         VECTOR_PREDICTOR_VALS_KEY: mean_vector_predictor_matrix,
         VECTOR_TARGET_NAMES_KEY: example_dict[VECTOR_TARGET_NAMES_KEY],
         VECTOR_TARGET_VALS_KEY: mean_vector_target_matrix,
-        HEIGHTS_KEY: example_dict[HEIGHTS_KEY]
+        HEIGHTS_KEY: example_dict[HEIGHTS_KEY],
+        TARGET_WAVELENGTHS_KEY: example_dict[TARGET_WAVELENGTHS_KEY]
     }

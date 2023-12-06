@@ -17,6 +17,8 @@ TOLERANCE = 1e-6
 NUM_EXAMPLES_PER_BATCH = 1000
 # MAX_NUM_CLIMO_EXAMPLES = 10000
 
+METRES_TO_MICRONS = 1e6
+
 SCALAR_CRPS_KEY = 'scalar_crps'
 VECTOR_CRPS_KEY = 'vector_crps'
 AUX_CRPS_KEY = 'aux_crps'
@@ -30,6 +32,7 @@ AUX_CRPSS_KEY = 'aux_crpss'
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
 HEIGHT_DIM = uq_evaluation.HEIGHT_DIM
+WAVELENGTH_DIM = uq_evaluation.WAVELENGTH_DIM
 AUX_TARGET_FIELD_DIM = uq_evaluation.AUX_TARGET_FIELD_DIM
 AUX_PREDICTED_FIELD_DIM = uq_evaluation.AUX_PREDICTED_FIELD_DIM
 
@@ -319,6 +322,8 @@ def get_crps_related_scores_all_vars(
     #     )
 
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
+
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
@@ -328,7 +333,8 @@ def get_crps_related_scores_all_vars(
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_utils.HEIGHTS_KEY: heights_m_agl
+        example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres
     }
 
     aux_prediction_dict = uq_evaluation.get_aux_fields(
@@ -357,51 +363,65 @@ def get_crps_related_scores_all_vars(
     del prediction_dict
 
     num_heights = vector_target_matrix.shape[1]
-    num_vector_targets = vector_target_matrix.shape[2]
-    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_wavelengths = vector_target_matrix.shape[2]
+    num_vector_targets = vector_target_matrix.shape[3]
+    num_scalar_targets = scalar_target_matrix.shape[2]
     num_aux_targets = len(aux_target_field_names)
 
     main_data_dict = {
         SCALAR_CRPS_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_CRPSS_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_DWCRPS_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_CRPS_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_CRPSS_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_DWCRPS_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         )
     }
 
     if num_aux_targets > 0:
         main_data_dict.update({
             AUX_CRPS_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_CRPSS_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_DWCRPS_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             )
         })
 
     metadata_dict = {
         SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
+        VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
         HEIGHT_DIM: heights_m_agl,
-        VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+        WAVELENGTH_DIM: wavelengths_metres
     }
 
     if num_aux_targets > 0:
@@ -413,138 +433,165 @@ def get_crps_related_scores_all_vars(
     )
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+    rtx = result_table_xarray
 
-    for j in range(num_scalar_targets):
-        print('Computing CRPS and DWCRPS for {0:s}...'.format(
-            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
-        ))
-
-        (
-            result_table_xarray[SCALAR_CRPS_KEY].values[j],
-            result_table_xarray[SCALAR_DWCRPS_KEY].values[j]
-        ) = _get_crps_and_dwcrps_one_var(
-            target_values=scalar_target_matrix[:, j],
-            prediction_matrix=scalar_prediction_matrix[:, j, :],
-            num_integration_levels=num_integration_levels
-        )
-
-        print('Computing CRPSS for {0:s}...'.format(
-            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
-        ))
-
-        these_training_values = example_utils.get_field_from_dict(
-            example_dict=training_example_dict,
-            field_name=example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
-        )
-        this_climo_crps = _get_climo_crps_one_var(
-            new_target_values=scalar_target_matrix[:, j],
-            training_target_values=these_training_values,
-            num_integration_levels=num_integration_levels,
-            max_ensemble_size=ensemble_size_for_climo
-        )
-        this_climo_crps = max([this_climo_crps, 1e-9])
-
-        result_table_xarray[SCALAR_CRPSS_KEY].values[j] = (
-            1. - result_table_xarray[SCALAR_CRPS_KEY].values[j] /
-            this_climo_crps
-        )
-
-    for j in range(num_vector_targets):
-        for k in range(num_heights):
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
             print((
-                'Computing CRPS and DWCRPS for {0:s} at {1:d} m AGL...'
+                'Computing CRPS and DWCRPS for {0:s} at {1:.2f} microns...'
             ).format(
-                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
-                int(numpy.round(heights_m_agl[k]))
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             ))
 
             (
-                result_table_xarray[VECTOR_CRPS_KEY].values[j, k],
-                result_table_xarray[VECTOR_DWCRPS_KEY].values[j, k]
+                rtx[SCALAR_CRPS_KEY].values[t, w],
+                rtx[SCALAR_DWCRPS_KEY].values[t, w]
             ) = _get_crps_and_dwcrps_one_var(
-                target_values=vector_target_matrix[:, k, j],
-                prediction_matrix=vector_prediction_matrix[:, k, j, :],
+                target_values=scalar_target_matrix[:, w, t],
+                prediction_matrix=scalar_prediction_matrix[:, w, t, :],
                 num_integration_levels=num_integration_levels
             )
 
-            print('Computing CRPSS for {0:s} at {1:d} m AGL...'.format(
-                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
-                int(numpy.round(heights_m_agl[k]))
+            print('Computing CRPSS for {0:s} at {1:.2f} microns...'.format(
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             ))
 
             these_training_values = example_utils.get_field_from_dict(
                 example_dict=training_example_dict,
                 field_name=
-                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
-                height_m_agl=heights_m_agl[k]
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][t],
+                target_wavelength_metres=wavelengths_metres[w]
             )
             this_climo_crps = _get_climo_crps_one_var(
-                new_target_values=vector_target_matrix[:, k, j],
+                new_target_values=scalar_target_matrix[:, w, t],
                 training_target_values=these_training_values,
                 num_integration_levels=num_integration_levels,
                 max_ensemble_size=ensemble_size_for_climo
             )
             this_climo_crps = max([this_climo_crps, 1e-9])
 
-            result_table_xarray[VECTOR_CRPSS_KEY].values[j, k] = (
-                1. - result_table_xarray[VECTOR_CRPS_KEY].values[j, k] /
+            rtx[SCALAR_CRPSS_KEY].values[t, w] = (
+                1. - rtx[SCALAR_CRPS_KEY].values[t, w] /
                 this_climo_crps
             )
 
-    for j in range(num_aux_targets):
-        print('Computing CRPS and DWCRPS for {0:s}...'.format(
-            aux_target_field_names[j]
-        ))
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            for h in range(num_heights):
+                print((
+                    'Computing CRPS and DWCRPS for {0:s} at {1:.2f} microns '
+                    'and {2:d} m AGL...'
+                ).format(
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    int(numpy.round(heights_m_agl[h]))
+                ))
 
-        (
-            result_table_xarray[AUX_CRPS_KEY].values[j],
-            result_table_xarray[AUX_DWCRPS_KEY].values[j]
-        ) = _get_crps_and_dwcrps_one_var(
-            target_values=aux_target_matrix[:, j],
-            prediction_matrix=aux_prediction_matrix[:, j, :],
-            num_integration_levels=num_integration_levels
-        )
+                (
+                    rtx[VECTOR_CRPS_KEY].values[t, h, w],
+                    rtx[VECTOR_DWCRPS_KEY].values[t, h, w]
+                ) = _get_crps_and_dwcrps_one_var(
+                    target_values=vector_target_matrix[:, h, w, t],
+                    prediction_matrix=vector_prediction_matrix[:, h, w, t, :],
+                    num_integration_levels=num_integration_levels
+                )
 
-        print('Computing CRPSS for {0:s}...'.format(aux_target_field_names[j]))
+                print((
+                    'Computing CRPSS for {0:s} at {1:.2f} microns and '
+                    '{2:d} m AGL...'
+                ).format(
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    int(numpy.round(heights_m_agl[h]))
+                ))
 
-        if aux_target_field_names[j] == SHORTWAVE_NET_FLUX_NAME:
-            these_down_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            these_up_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-            )
-            these_training_values = (
-                these_down_fluxes_w_m02 - these_up_fluxes_w_m02
-            )
-        elif aux_target_field_names[j] == LONGWAVE_NET_FLUX_NAME:
-            these_down_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            these_up_fluxes_w_m02 = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME
-            )
-            these_training_values = (
-                these_down_fluxes_w_m02 - these_up_fluxes_w_m02
+                these_training_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                    height_m_agl=heights_m_agl[h],
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                this_climo_crps = _get_climo_crps_one_var(
+                    new_target_values=vector_target_matrix[:, h, w, t],
+                    training_target_values=these_training_values,
+                    num_integration_levels=num_integration_levels,
+                    max_ensemble_size=ensemble_size_for_climo
+                )
+                this_climo_crps = max([this_climo_crps, 1e-9])
+
+                rtx[VECTOR_CRPSS_KEY].values[t, h, w] = (
+                    1. - rtx[VECTOR_CRPS_KEY].values[t, h, w] /
+                    this_climo_crps
+                )
+
+    for t in range(num_aux_targets):
+        for w in range(num_wavelengths):
+            print((
+                'Computing CRPS and DWCRPS for {0:s} at {1:.2f} microns...'
+            ).format(
+                aux_target_field_names[t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            ))
+
+            (
+                rtx[AUX_CRPS_KEY].values[t, w],
+                rtx[AUX_DWCRPS_KEY].values[t, w]
+            ) = _get_crps_and_dwcrps_one_var(
+                target_values=aux_target_matrix[:, w, t],
+                prediction_matrix=aux_prediction_matrix[:, w, t, :],
+                num_integration_levels=num_integration_levels
             )
 
-        this_climo_crps = _get_climo_crps_one_var(
-            new_target_values=aux_target_matrix[:, j],
-            training_target_values=these_training_values,
-            num_integration_levels=num_integration_levels,
-            max_ensemble_size=ensemble_size_for_climo
-        )
-        this_climo_crps = max([this_climo_crps, 1e-9])
+            print('Computing CRPSS for {0:s} at {1:.2f} microns...'.format(
+                aux_target_field_names[t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            ))
 
-        result_table_xarray[AUX_CRPSS_KEY].values[j] = (
-            1. - result_table_xarray[AUX_CRPS_KEY].values[j] / this_climo_crps
-        )
+            if aux_target_field_names[t] == SHORTWAVE_NET_FLUX_NAME:
+                these_down_fluxes_w_m02 = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                these_up_fluxes_w_m02 = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                these_training_values = (
+                    these_down_fluxes_w_m02 - these_up_fluxes_w_m02
+                )
+            elif aux_target_field_names[t] == LONGWAVE_NET_FLUX_NAME:
+                these_down_fluxes_w_m02 = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                these_up_fluxes_w_m02 = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                these_training_values = (
+                    these_down_fluxes_w_m02 - these_up_fluxes_w_m02
+                )
 
-    return result_table_xarray
+            this_climo_crps = _get_climo_crps_one_var(
+                new_target_values=aux_target_matrix[:, w, t],
+                training_target_values=these_training_values,
+                num_integration_levels=num_integration_levels,
+                max_ensemble_size=ensemble_size_for_climo
+            )
+            this_climo_crps = max([this_climo_crps, 1e-9])
+
+            rtx[AUX_CRPSS_KEY].values[t, w] = (
+                1. - rtx[AUX_CRPS_KEY].values[t, w] / this_climo_crps
+            )
+
+    return rtx
 
 
 def merge_results_over_examples(result_tables_xarray):
@@ -569,6 +616,7 @@ def merge_results_over_examples(result_tables_xarray):
         result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values
     )
     heights_m_agl = result_tables_xarray[0].coords[HEIGHT_DIM].values
+    wavelengths_metres = result_tables_xarray[0].coords[WAVELENGTH_DIM].values
 
     try:
         aux_predicted_field_names = (
@@ -577,93 +625,105 @@ def merge_results_over_examples(result_tables_xarray):
     except:
         aux_predicted_field_names = []
 
-    result_table_xarray = copy.deepcopy(result_tables_xarray[0])
+    rtx = copy.deepcopy(result_tables_xarray[0])
 
-    for j in range(len(scalar_target_names)):
-        these_crps_values = numpy.array([
-            t[SCALAR_CRPS_KEY].values[j] for t in result_tables_xarray
-        ])
-        result_table_xarray[SCALAR_CRPS_KEY].values[j] = numpy.average(
-            these_crps_values, weights=num_examples_by_table
-        )
-
-        these_dwcrps_values = numpy.array([
-            t[SCALAR_DWCRPS_KEY].values[j] for t in result_tables_xarray
-        ])
-        result_table_xarray[SCALAR_DWCRPS_KEY].values[j] = numpy.average(
-            these_dwcrps_values, weights=num_examples_by_table
-        )
-
-        these_crpss_values = numpy.array([
-            t[SCALAR_CRPSS_KEY].values[j] for t in result_tables_xarray
-        ])
-        this_climo_crps = numpy.average(
-            these_crps_values / (1. - these_crpss_values),
-            weights=num_examples_by_table
-        )
-        result_table_xarray[SCALAR_CRPSS_KEY].values[j] = (
-            1. - result_table_xarray[SCALAR_CRPS_KEY].values[j] /
-            this_climo_crps
-        )
-
-    for j in range(len(aux_predicted_field_names)):
-        these_crps_values = numpy.array([
-            t[AUX_CRPS_KEY].values[j] for t in result_tables_xarray
-        ])
-        result_table_xarray[AUX_CRPS_KEY].values[j] = numpy.average(
-            these_crps_values, weights=num_examples_by_table
-        )
-
-        these_dwcrps_values = numpy.array([
-            t[AUX_DWCRPS_KEY].values[j] for t in result_tables_xarray
-        ])
-        result_table_xarray[AUX_DWCRPS_KEY].values[j] = numpy.average(
-            these_dwcrps_values, weights=num_examples_by_table
-        )
-
-        these_crpss_values = numpy.array([
-            t[AUX_CRPSS_KEY].values[j] for t in result_tables_xarray
-        ])
-        this_climo_crps = numpy.average(
-            these_crps_values / (1. - these_crpss_values),
-            weights=num_examples_by_table
-        )
-        result_table_xarray[AUX_CRPSS_KEY].values[j] = (
-            1. - result_table_xarray[AUX_CRPS_KEY].values[j] / this_climo_crps
-        )
-
-    for j in range(len(vector_target_names)):
-        for k in range(len(heights_m_agl)):
+    for t in range(len(scalar_target_names)):
+        for w in range(len(wavelengths_metres)):
             these_crps_values = numpy.array([
-                t[VECTOR_CRPS_KEY].values[j, k] for t in result_tables_xarray
+                this_tbl[SCALAR_CRPS_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
             ])
-            result_table_xarray[VECTOR_CRPS_KEY].values[j, k] = numpy.average(
+            rtx[SCALAR_CRPS_KEY].values[t, w] = numpy.average(
                 these_crps_values, weights=num_examples_by_table
             )
 
             these_dwcrps_values = numpy.array([
-                t[VECTOR_DWCRPS_KEY].values[j, k] for t in result_tables_xarray
+                this_tbl[SCALAR_DWCRPS_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
             ])
-            result_table_xarray[VECTOR_DWCRPS_KEY].values[j, k] = numpy.average(
+            rtx[SCALAR_DWCRPS_KEY].values[t, w] = numpy.average(
                 these_dwcrps_values, weights=num_examples_by_table
             )
 
             these_crpss_values = numpy.array([
-                t[VECTOR_CRPSS_KEY].values[j, k] for t in result_tables_xarray
+                this_tbl[SCALAR_CRPSS_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
             ])
             this_climo_crps = numpy.average(
                 these_crps_values / (1. - these_crpss_values),
                 weights=num_examples_by_table
             )
-            result_table_xarray[VECTOR_CRPSS_KEY].values[j, k] = (
-                1. - result_table_xarray[VECTOR_CRPS_KEY].values[j, k] /
+            rtx[SCALAR_CRPSS_KEY].values[t, w] = (
+                1. - rtx[SCALAR_CRPS_KEY].values[t, w] /
                 this_climo_crps
             )
 
-    result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([
+    for t in range(len(aux_predicted_field_names)):
+        for w in range(len(wavelengths_metres)):
+            these_crps_values = numpy.array([
+                this_tbl[AUX_CRPS_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
+            ])
+            rtx[AUX_CRPS_KEY].values[t, w] = numpy.average(
+                these_crps_values, weights=num_examples_by_table
+            )
+
+            these_dwcrps_values = numpy.array([
+                this_tbl[AUX_DWCRPS_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
+            ])
+            rtx[AUX_DWCRPS_KEY].values[t, w] = numpy.average(
+                these_dwcrps_values, weights=num_examples_by_table
+            )
+
+            these_crpss_values = numpy.array([
+                this_tbl[AUX_CRPSS_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
+            ])
+            this_climo_crps = numpy.average(
+                these_crps_values / (1. - these_crpss_values),
+                weights=num_examples_by_table
+            )
+            rtx[AUX_CRPSS_KEY].values[t, w] = (
+                1. - rtx[AUX_CRPS_KEY].values[t, w] / this_climo_crps
+            )
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_metres)):
+            for h in range(len(heights_m_agl)):
+                these_crps_values = numpy.array([
+                    this_tbl[VECTOR_CRPS_KEY].values[t, h, w]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_CRPS_KEY].values[t, h, w] = numpy.average(
+                    these_crps_values, weights=num_examples_by_table
+                )
+
+                these_dwcrps_values = numpy.array([
+                    this_tbl[VECTOR_DWCRPS_KEY].values[t, h, w]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_DWCRPS_KEY].values[t, h, w] = numpy.average(
+                    these_dwcrps_values, weights=num_examples_by_table
+                )
+
+                these_crpss_values = numpy.array([
+                    this_tbl[VECTOR_CRPSS_KEY].values[t, h, w]
+                    for this_tbl in result_tables_xarray
+                ])
+                this_climo_crps = numpy.average(
+                    these_crps_values / (1. - these_crpss_values),
+                    weights=num_examples_by_table
+                )
+                rtx[VECTOR_CRPSS_KEY].values[t, h, w] = (
+                    1. - rtx[VECTOR_CRPS_KEY].values[t, h, w] /
+                    this_climo_crps
+                )
+
+    rtx.attrs[PREDICTION_FILE_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
     ])
-    return result_table_xarray
+    return rtx
 
 
 def write_results(result_table_xarray, netcdf_file_name):

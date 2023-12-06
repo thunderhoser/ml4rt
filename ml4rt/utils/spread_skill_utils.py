@@ -12,6 +12,7 @@ from ml4rt.utils import uq_evaluation
 from ml4rt.machine_learning import neural_net
 
 TOLERANCE = 1e-6
+METRES_TO_MICRONS = 1e6
 
 MEAN_PREDICTION_STDEVS_KEY = 'mean_prediction_stdevs'
 BIN_EDGE_PREDICTION_STDEVS_KEY = 'bin_edge_prediction_stdevs'
@@ -68,6 +69,7 @@ AUX_MEAN_TARGET_KEY = 'aux_mean_target_value'
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
 HEIGHT_DIM = uq_evaluation.HEIGHT_DIM
+WAVELENGTH_DIM = uq_evaluation.WAVELENGTH_DIM
 AUX_TARGET_FIELD_DIM = uq_evaluation.AUX_TARGET_FIELD_DIM
 AUX_PREDICTED_FIELD_DIM = uq_evaluation.AUX_PREDICTED_FIELD_DIM
 
@@ -371,6 +373,7 @@ def get_results_all_vars(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
 
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY:
@@ -381,7 +384,8 @@ def get_results_all_vars(
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_utils.HEIGHTS_KEY: heights_m_agl
+        example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres
     }
 
     aux_prediction_dict = uq_evaluation.get_aux_fields(
@@ -410,16 +414,23 @@ def get_results_all_vars(
     del prediction_dict
 
     num_heights = vector_target_matrix.shape[1]
-    num_vector_targets = vector_target_matrix.shape[2]
-    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_wavelengths = vector_target_matrix.shape[2]
+    num_vector_targets = vector_target_matrix.shape[3]
+    num_scalar_targets = scalar_target_matrix.shape[2]
 
-    these_dim_no_bins = num_scalar_targets
-    these_dim_no_edge = (num_scalar_targets, num_raw_flux_bins)
-    these_dim_with_edge = (num_scalar_targets, num_raw_flux_bins + 1)
+    these_dim_no_bins = (num_scalar_targets, num_wavelengths)
+    these_dim_no_edge = (num_scalar_targets, num_wavelengths, num_raw_flux_bins)
+    these_dim_with_edge = (
+        num_scalar_targets, num_wavelengths, num_raw_flux_bins + 1
+    )
 
-    these_dim_keys_no_bins = (SCALAR_FIELD_DIM,)
-    these_dim_keys_no_edge = (SCALAR_FIELD_DIM, RAW_FLUX_BIN_DIM)
-    these_dim_keys_with_edge = (SCALAR_FIELD_DIM, RAW_FLUX_BIN_EDGE_DIM)
+    these_dim_keys_no_bins = (SCALAR_FIELD_DIM, WAVELENGTH_DIM)
+    these_dim_keys_no_edge = (
+        SCALAR_FIELD_DIM, WAVELENGTH_DIM, RAW_FLUX_BIN_DIM
+    )
+    these_dim_keys_with_edge = (
+        SCALAR_FIELD_DIM, WAVELENGTH_DIM, RAW_FLUX_BIN_EDGE_DIM
+    )
 
     main_data_dict = {
         SCALAR_MEAN_STDEV_KEY: (
@@ -448,18 +459,20 @@ def get_results_all_vars(
         )
     }
 
-    these_dim_no_bins = (num_vector_targets, num_heights)
-    these_dim_no_edge = (num_vector_targets, num_heights, num_raw_flux_bins)
+    these_dim_no_bins = (num_vector_targets, num_heights, num_wavelengths)
+    these_dim_no_edge = (
+        num_vector_targets, num_heights, num_wavelengths, num_raw_flux_bins
+    )
     these_dim_with_edge = (
-        num_vector_targets, num_heights, num_raw_flux_bins + 1
+        num_vector_targets, num_heights, num_wavelengths, num_raw_flux_bins + 1
     )
 
-    these_dim_keys_no_bins = (VECTOR_FIELD_DIM, HEIGHT_DIM)
+    these_dim_keys_no_bins = (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM)
     these_dim_keys_no_edge = (
-        VECTOR_FIELD_DIM, HEIGHT_DIM, HEATING_RATE_BIN_DIM
+        VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM, HEATING_RATE_BIN_DIM
     )
     these_dim_keys_with_edge = (
-        VECTOR_FIELD_DIM, HEIGHT_DIM, HEATING_RATE_BIN_EDGE_DIM
+        VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM, HEATING_RATE_BIN_EDGE_DIM
     )
 
     main_data_dict.update({
@@ -489,13 +502,19 @@ def get_results_all_vars(
         )
     })
 
-    these_dim_no_bins = num_vector_targets
-    these_dim_no_edge = (num_vector_targets, num_raw_flux_bins)
-    these_dim_with_edge = (num_vector_targets, num_raw_flux_bins + 1)
+    these_dim_no_bins = (num_vector_targets, num_wavelengths)
+    these_dim_no_edge = (num_vector_targets, num_wavelengths, num_raw_flux_bins)
+    these_dim_with_edge = (
+        num_vector_targets, num_wavelengths, num_raw_flux_bins + 1
+    )
 
-    these_dim_keys_no_bins = (VECTOR_FIELD_DIM,)
-    these_dim_keys_no_edge = (VECTOR_FIELD_DIM, HEATING_RATE_BIN_DIM)
-    these_dim_keys_with_edge = (VECTOR_FIELD_DIM, HEATING_RATE_BIN_EDGE_DIM)
+    these_dim_keys_no_bins = (VECTOR_FIELD_DIM, WAVELENGTH_DIM)
+    these_dim_keys_no_edge = (
+        VECTOR_FIELD_DIM, WAVELENGTH_DIM, HEATING_RATE_BIN_DIM
+    )
+    these_dim_keys_with_edge = (
+        VECTOR_FIELD_DIM, WAVELENGTH_DIM, HEATING_RATE_BIN_EDGE_DIM
+    )
 
     main_data_dict.update({
         VECTOR_FLAT_MEAN_STDEV_KEY: (
@@ -527,13 +546,21 @@ def get_results_all_vars(
     num_aux_targets = len(aux_target_field_names)
 
     if num_aux_targets > 0:
-        these_dim_no_bins = num_aux_targets
-        these_dim_no_edge = (num_aux_targets, num_raw_flux_bins)
-        these_dim_with_edge = (num_aux_targets, num_raw_flux_bins + 1)
+        these_dim_no_bins = (num_aux_targets, num_wavelengths)
+        these_dim_no_edge = (
+            num_aux_targets, num_wavelengths, num_raw_flux_bins
+        )
+        these_dim_with_edge = (
+            num_aux_targets, num_wavelengths, num_raw_flux_bins + 1
+        )
 
-        these_dim_keys_no_bins = (AUX_TARGET_FIELD_DIM,)
-        these_dim_keys_no_edge = (AUX_TARGET_FIELD_DIM, NET_FLUX_BIN_DIM)
-        these_dim_keys_with_edge = (AUX_TARGET_FIELD_DIM, NET_FLUX_BIN_EDGE_DIM)
+        these_dim_keys_no_bins = (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM)
+        these_dim_keys_no_edge = (
+            AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM, NET_FLUX_BIN_DIM
+        )
+        these_dim_keys_with_edge = (
+            AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM, NET_FLUX_BIN_EDGE_DIM
+        )
 
         main_data_dict.update({
             AUX_MEAN_STDEV_KEY: (
@@ -576,8 +603,9 @@ def get_results_all_vars(
 
     metadata_dict = {
         SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
-        HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        WAVELENGTH_DIM: wavelengths_metres,
         RAW_FLUX_BIN_DIM: raw_flux_bin_indices,
         NET_FLUX_BIN_DIM: net_flux_bin_indices,
         HEATING_RATE_BIN_DIM: heating_rate_bin_indices
@@ -592,179 +620,130 @@ def get_results_all_vars(
     )
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
+    rtx = result_table_xarray
 
-    for j in range(num_scalar_targets):
-        print('Computing spread-skill relationship for {0:s}...'.format(
-            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
-        ))
-
-        if min_raw_flux_w_m02 is None or max_raw_flux_w_m02 is None:
-            these_stdevs = numpy.std(
-                scalar_prediction_matrix[:, j, :], ddof=1, axis=-1
-            )
-
-            these_bin_edges = numpy.linspace(
-                numpy.percentile(these_stdevs, min_raw_flux_percentile),
-                numpy.percentile(these_stdevs, max_raw_flux_percentile),
-                num=num_raw_flux_bins + 1, dtype=float
-            )[1:-1]
-        else:
-            these_bin_edges = numpy.linspace(
-                min_raw_flux_w_m02, max_raw_flux_w_m02,
-                num=num_raw_flux_bins + 1, dtype=float
-            )[1:-1]
-
-        this_result_dict = get_results_one_var(
-            target_values=scalar_target_matrix[:, j],
-            prediction_matrix=scalar_prediction_matrix[:, j, :],
-            bin_edge_prediction_stdevs=these_bin_edges
-        )
-
-        result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[j, :] = (
-            this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
-        )
-        result_table_xarray[SCALAR_BIN_EDGE_KEY].values[j, :] = (
-            this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
-        )
-        result_table_xarray[SCALAR_RMSE_KEY].values[j, :] = (
-            this_result_dict[RMSE_VALUES_KEY]
-        )
-        result_table_xarray[SCALAR_SSREL_KEY].values[j] = (
-            this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
-        )
-        result_table_xarray[SCALAR_SSRAT_KEY].values[j] = (
-            this_result_dict[SPREAD_SKILL_RATIO_KEY]
-        )
-        result_table_xarray[SCALAR_EXAMPLE_COUNT_KEY].values[j, :] = (
-            this_result_dict[EXAMPLE_COUNTS_KEY]
-        )
-        result_table_xarray[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[j, :] = (
-            this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
-        )
-        result_table_xarray[SCALAR_MEAN_TARGET_KEY].values[j, :] = (
-            this_result_dict[MEAN_TARGET_VALUES_KEY]
-        )
-
-    for j in range(num_aux_targets):
-        print('Computing spread-skill relationship for {0:s}...'.format(
-            aux_target_field_names[j]
-        ))
-
-        if min_net_flux_w_m02 is None or max_net_flux_w_m02 is None:
-            these_stdevs = numpy.std(
-                aux_prediction_matrix[:, j, :], ddof=1, axis=-1
-            )
-
-            these_bin_edges = numpy.linspace(
-                numpy.percentile(these_stdevs, min_net_flux_percentile),
-                numpy.percentile(these_stdevs, max_net_flux_percentile),
-                num=num_net_flux_bins + 1, dtype=float
-            )[1:-1]
-        else:
-            these_bin_edges = numpy.linspace(
-                min_net_flux_w_m02, max_net_flux_w_m02,
-                num=num_net_flux_bins + 1, dtype=float
-            )[1:-1]
-
-        this_result_dict = get_results_one_var(
-            target_values=aux_target_matrix[:, j],
-            prediction_matrix=aux_prediction_matrix[:, j, :],
-            bin_edge_prediction_stdevs=these_bin_edges
-        )
-
-        result_table_xarray[AUX_MEAN_STDEV_KEY].values[j, :] = (
-            this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
-        )
-        result_table_xarray[AUX_BIN_EDGE_KEY].values[j, :] = (
-            this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
-        )
-        result_table_xarray[AUX_RMSE_KEY].values[j, :] = (
-            this_result_dict[RMSE_VALUES_KEY]
-        )
-        result_table_xarray[AUX_SSREL_KEY].values[j] = (
-            this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
-        )
-        result_table_xarray[AUX_SSRAT_KEY].values[j] = (
-            this_result_dict[SPREAD_SKILL_RATIO_KEY]
-        )
-        result_table_xarray[AUX_EXAMPLE_COUNT_KEY].values[j, :] = (
-            this_result_dict[EXAMPLE_COUNTS_KEY]
-        )
-        result_table_xarray[AUX_MEAN_MEAN_PREDICTION_KEY].values[j, :] = (
-            this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
-        )
-        result_table_xarray[AUX_MEAN_TARGET_KEY].values[j, :] = (
-            this_result_dict[MEAN_TARGET_VALUES_KEY]
-        )
-
-    for j in range(num_vector_targets):
-        print('Computing spread-skill relationship for {0:s}...'.format(
-            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j]
-        ))
-
-        if (
-                min_heating_rate_k_day01 is None or
-                max_heating_rate_k_day01 is None
-        ):
-            these_stdevs = numpy.std(
-                vector_prediction_matrix[:, :, j, :], ddof=1, axis=-1
-            )
-
-            these_bin_edges = numpy.linspace(
-                numpy.percentile(these_stdevs, min_heating_rate_percentile),
-                numpy.percentile(these_stdevs, max_heating_rate_percentile),
-                num=num_heating_rate_bins + 1, dtype=float
-            )[1:-1]
-        else:
-            these_bin_edges = numpy.linspace(
-                min_heating_rate_k_day01, max_heating_rate_k_day01,
-                num=num_heating_rate_bins + 1, dtype=float
-            )[1:-1]
-
-        these_targets = numpy.ravel(vector_target_matrix[..., j])
-        this_prediction_matrix = numpy.reshape(
-            vector_prediction_matrix[:, :, j, :],
-            (len(these_targets), vector_prediction_matrix.shape[-1])
-        )
-
-        this_result_dict = get_results_one_var(
-            target_values=these_targets,
-            prediction_matrix=this_prediction_matrix,
-            bin_edge_prediction_stdevs=these_bin_edges
-        )
-
-        result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, :] = (
-            this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_BIN_EDGE_KEY].values[j, :] = (
-            this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, :] = (
-            this_result_dict[RMSE_VALUES_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_SSREL_KEY].values[j] = (
-            this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_SSRAT_KEY].values[j] = (
-            this_result_dict[SPREAD_SKILL_RATIO_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, :] = (
-            this_result_dict[EXAMPLE_COUNTS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, :] = (
-            this_result_dict[MEAN_TARGET_VALUES_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[
-            j, :
-        ] = this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
-
-        for k in range(num_heights):
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
             print((
-                'Computing spread-skill relationship for {0:s} at {1:d} '
-                'm AGL...'
+                'Computing spread-skill relationship for {0:s} at {1:.2f} '
+                'microns...'
             ).format(
-                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
-                int(numpy.round(heights_m_agl[k]))
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            ))
+
+            if min_raw_flux_w_m02 is None or max_raw_flux_w_m02 is None:
+                these_stdevs = numpy.std(
+                    scalar_prediction_matrix[:, w, t, :], ddof=1, axis=-1
+                )
+
+                these_bin_edges = numpy.linspace(
+                    numpy.percentile(these_stdevs, min_raw_flux_percentile),
+                    numpy.percentile(these_stdevs, max_raw_flux_percentile),
+                    num=num_raw_flux_bins + 1, dtype=float
+                )[1:-1]
+            else:
+                these_bin_edges = numpy.linspace(
+                    min_raw_flux_w_m02, max_raw_flux_w_m02,
+                    num=num_raw_flux_bins + 1, dtype=float
+                )[1:-1]
+
+            this_result_dict = get_results_one_var(
+                target_values=scalar_target_matrix[:, w, t],
+                prediction_matrix=scalar_prediction_matrix[:, w, t, :],
+                bin_edge_prediction_stdevs=these_bin_edges
+            )
+
+            rtx[SCALAR_MEAN_STDEV_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
+            )
+            rtx[SCALAR_BIN_EDGE_KEY].values[t, w, :] = (
+                this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
+            )
+            rtx[SCALAR_RMSE_KEY].values[t, w, :] = (
+                this_result_dict[RMSE_VALUES_KEY]
+            )
+            rtx[SCALAR_SSREL_KEY].values[t, w] = (
+                this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
+            )
+            rtx[SCALAR_SSRAT_KEY].values[t, w] = (
+                this_result_dict[SPREAD_SKILL_RATIO_KEY]
+            )
+            rtx[SCALAR_EXAMPLE_COUNT_KEY].values[t, w, :] = (
+                this_result_dict[EXAMPLE_COUNTS_KEY]
+            )
+            rtx[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
+            )
+            rtx[SCALAR_MEAN_TARGET_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_TARGET_VALUES_KEY]
+            )
+
+    for t in range(num_aux_targets):
+        for w in range(num_wavelengths):
+            print((
+                'Computing spread-skill relationship for {0:s} at {1:.2f} '
+                'microns...'
+            ).format(
+                aux_target_field_names[t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            ))
+
+            if min_net_flux_w_m02 is None or max_net_flux_w_m02 is None:
+                these_stdevs = numpy.std(
+                    aux_prediction_matrix[:, w, t, :], ddof=1, axis=-1
+                )
+
+                these_bin_edges = numpy.linspace(
+                    numpy.percentile(these_stdevs, min_net_flux_percentile),
+                    numpy.percentile(these_stdevs, max_net_flux_percentile),
+                    num=num_net_flux_bins + 1, dtype=float
+                )[1:-1]
+            else:
+                these_bin_edges = numpy.linspace(
+                    min_net_flux_w_m02, max_net_flux_w_m02,
+                    num=num_net_flux_bins + 1, dtype=float
+                )[1:-1]
+
+            this_result_dict = get_results_one_var(
+                target_values=aux_target_matrix[:, w, t],
+                prediction_matrix=aux_prediction_matrix[:, w, t, :],
+                bin_edge_prediction_stdevs=these_bin_edges
+            )
+
+            rtx[AUX_MEAN_STDEV_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
+            )
+            rtx[AUX_BIN_EDGE_KEY].values[t, w, :] = (
+                this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
+            )
+            rtx[AUX_RMSE_KEY].values[t, w, :] = (
+                this_result_dict[RMSE_VALUES_KEY]
+            )
+            rtx[AUX_SSREL_KEY].values[t, w] = (
+                this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
+            )
+            rtx[AUX_SSRAT_KEY].values[t, w] = (
+                this_result_dict[SPREAD_SKILL_RATIO_KEY]
+            )
+            rtx[AUX_EXAMPLE_COUNT_KEY].values[t, w, :] = (
+                this_result_dict[EXAMPLE_COUNTS_KEY]
+            )
+            rtx[AUX_MEAN_MEAN_PREDICTION_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
+            )
+            rtx[AUX_MEAN_TARGET_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_TARGET_VALUES_KEY]
+            )
+
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            print((
+                'Computing spread-skill relationship for {0:s} at {1:.2f} '
+                'microns...'
+            ).format(
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             ))
 
             if (
@@ -772,15 +751,12 @@ def get_results_all_vars(
                     max_heating_rate_k_day01 is None
             ):
                 these_stdevs = numpy.std(
-                    vector_prediction_matrix[:, k, j, :], ddof=1, axis=-1
-                )
-                this_max_value = numpy.percentile(
-                    these_stdevs, max_heating_rate_percentile
+                    vector_prediction_matrix[..., w, t, :], ddof=1, axis=-1
                 )
 
                 these_bin_edges = numpy.linspace(
                     numpy.percentile(these_stdevs, min_heating_rate_percentile),
-                    this_max_value,
+                    numpy.percentile(these_stdevs, max_heating_rate_percentile),
                     num=num_heating_rate_bins + 1, dtype=float
                 )[1:-1]
             else:
@@ -789,39 +765,107 @@ def get_results_all_vars(
                     num=num_heating_rate_bins + 1, dtype=float
                 )[1:-1]
 
+            these_targets = numpy.ravel(vector_target_matrix[..., w, t])
+            this_prediction_matrix = numpy.reshape(
+                vector_prediction_matrix[..., w, t, :],
+                (len(these_targets), vector_prediction_matrix.shape[-1])
+            )
+
             this_result_dict = get_results_one_var(
-                target_values=vector_target_matrix[:, k, j],
-                prediction_matrix=vector_prediction_matrix[:, k, j, :],
+                target_values=these_targets,
+                prediction_matrix=this_prediction_matrix,
                 bin_edge_prediction_stdevs=these_bin_edges
             )
 
-            result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[j, k, :] = (
+            rtx[VECTOR_FLAT_MEAN_STDEV_KEY].values[t, w, :] = (
                 this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
             )
-            result_table_xarray[VECTOR_BIN_EDGE_KEY].values[j, k, :] = (
+            rtx[VECTOR_FLAT_BIN_EDGE_KEY].values[t, w, :] = (
                 this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
             )
-            result_table_xarray[VECTOR_RMSE_KEY].values[j, k, :] = (
+            rtx[VECTOR_FLAT_RMSE_KEY].values[t, w, :] = (
                 this_result_dict[RMSE_VALUES_KEY]
             )
-            result_table_xarray[VECTOR_SSREL_KEY].values[j, k] = (
+            rtx[VECTOR_FLAT_SSREL_KEY].values[t, w] = (
                 this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
             )
-            result_table_xarray[VECTOR_SSRAT_KEY].values[j, k] = (
+            rtx[VECTOR_FLAT_SSRAT_KEY].values[t, w] = (
                 this_result_dict[SPREAD_SKILL_RATIO_KEY]
             )
-            result_table_xarray[VECTOR_EXAMPLE_COUNT_KEY].values[j, k, :] = (
+            rtx[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[t, w, :] = (
                 this_result_dict[EXAMPLE_COUNTS_KEY]
             )
-            result_table_xarray[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[
-                j, k, :
-            ] = this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
-
-            result_table_xarray[VECTOR_MEAN_TARGET_KEY].values[j, k, :] = (
+            rtx[VECTOR_FLAT_MEAN_TARGET_KEY].values[t, w, :] = (
                 this_result_dict[MEAN_TARGET_VALUES_KEY]
             )
+            rtx[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[t, w, :] = (
+                this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
+            )
 
-    return result_table_xarray
+            for h in range(num_heights):
+                print((
+                    'Computing spread-skill relationship for {0:s} at {1:.2f} '
+                    'microns and {2:d} m AGL...'
+                ).format(
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    int(numpy.round(heights_m_agl[h]))
+                ))
+
+                if (
+                        min_heating_rate_k_day01 is None or
+                        max_heating_rate_k_day01 is None
+                ):
+                    these_stdevs = numpy.std(
+                        vector_prediction_matrix[:, h, w, t, :], ddof=1, axis=-1
+                    )
+                    this_max_value = numpy.percentile(
+                        these_stdevs, max_heating_rate_percentile
+                    )
+
+                    these_bin_edges = numpy.linspace(
+                        numpy.percentile(these_stdevs, min_heating_rate_percentile),
+                        this_max_value,
+                        num=num_heating_rate_bins + 1, dtype=float
+                    )[1:-1]
+                else:
+                    these_bin_edges = numpy.linspace(
+                        min_heating_rate_k_day01, max_heating_rate_k_day01,
+                        num=num_heating_rate_bins + 1, dtype=float
+                    )[1:-1]
+
+                this_result_dict = get_results_one_var(
+                    target_values=vector_target_matrix[:, h, w, t],
+                    prediction_matrix=vector_prediction_matrix[:, h, w, t, :],
+                    bin_edge_prediction_stdevs=these_bin_edges
+                )
+
+                rtx[VECTOR_MEAN_STDEV_KEY].values[t, h, w, :] = (
+                    this_result_dict[MEAN_PREDICTION_STDEVS_KEY]
+                )
+                rtx[VECTOR_BIN_EDGE_KEY].values[t, h, w, :] = (
+                    this_result_dict[BIN_EDGE_PREDICTION_STDEVS_KEY]
+                )
+                rtx[VECTOR_RMSE_KEY].values[t, h, w, :] = (
+                    this_result_dict[RMSE_VALUES_KEY]
+                )
+                rtx[VECTOR_SSREL_KEY].values[t, h, w] = (
+                    this_result_dict[SPREAD_SKILL_RELIABILITY_KEY]
+                )
+                rtx[VECTOR_SSRAT_KEY].values[t, h, w] = (
+                    this_result_dict[SPREAD_SKILL_RATIO_KEY]
+                )
+                rtx[VECTOR_EXAMPLE_COUNT_KEY].values[t, h, w, :] = (
+                    this_result_dict[EXAMPLE_COUNTS_KEY]
+                )
+                rtx[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[t, h, w, :] = (
+                    this_result_dict[MEAN_MEAN_PREDICTIONS_KEY]
+                )
+                rtx[VECTOR_MEAN_TARGET_KEY].values[t, h, w, :] = (
+                    this_result_dict[MEAN_TARGET_VALUES_KEY]
+                )
+
+    return rtx
 
 
 def merge_results_over_examples(result_tables_xarray):
@@ -846,6 +890,7 @@ def merge_results_over_examples(result_tables_xarray):
         result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values
     )
     heights_m_agl = result_tables_xarray[0].coords[HEIGHT_DIM].values
+    wavelengths_metres = result_tables_xarray[0].coords[WAVELENGTH_DIM].values
 
     try:
         aux_predicted_field_names = (
@@ -878,202 +923,42 @@ def merge_results_over_examples(result_tables_xarray):
         )
 
     result_table_xarray = copy.deepcopy(result_tables_xarray[0])
-    num_raw_flux_bins = len(result_table_xarray.coords[RAW_FLUX_BIN_DIM].values)
+    rtx = result_table_xarray
+    num_raw_flux_bins = len(rtx.coords[RAW_FLUX_BIN_DIM].values)
 
-    for j in range(len(scalar_target_names)):
-        for i in range(num_raw_flux_bins):
-            these_example_counts = numpy.array([
-                t[SCALAR_EXAMPLE_COUNT_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-            result_table_xarray[SCALAR_EXAMPLE_COUNT_KEY].values[j, i] = (
-                numpy.sum(these_example_counts)
-            )
-
-            these_mean_stdevs = numpy.array([
-                t[SCALAR_MEAN_STDEV_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_rmse = numpy.array([
-                t[SCALAR_RMSE_KEY].values[j, i] for t in result_tables_xarray
-            ])
-            these_mean_mean_predictions = numpy.array([
-                t[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_mean_targets = numpy.array([
-                t[SCALAR_MEAN_TARGET_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-            (
-                result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[j, i],
-                result_table_xarray[SCALAR_RMSE_KEY].values[j, i],
-                result_table_xarray[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[j, i],
-                result_table_xarray[SCALAR_MEAN_TARGET_KEY].values[j, i]
-            ) = _merge_basic_quantities_1bin_1var(
-                num_examples_by_table=these_example_counts,
-                mean_stdev_by_table=these_mean_stdevs,
-                rmse_by_table=these_rmse,
-                mean_mean_prediction_by_table=these_mean_mean_predictions,
-                mean_target_by_table=these_mean_targets
-            )
-
-        (
-            result_table_xarray[SCALAR_SSREL_KEY].values[j],
-            result_table_xarray[SCALAR_SSRAT_KEY].values[j]
-        ) = _get_ssrel_ssrat_1var(
-            mean_stdev_by_bin=
-            result_table_xarray[SCALAR_MEAN_STDEV_KEY].values[j, :],
-            rmse_by_bin=result_table_xarray[SCALAR_RMSE_KEY].values[j, :],
-            num_examples_by_bin=
-            result_table_xarray[SCALAR_EXAMPLE_COUNT_KEY].values[j, :]
-        )
-
-    num_net_flux_bins = len(result_table_xarray.coords[NET_FLUX_BIN_DIM].values)
-
-    for j in range(len(aux_predicted_field_names)):
-        for i in range(num_net_flux_bins):
-            these_example_counts = numpy.array([
-                t[AUX_EXAMPLE_COUNT_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-            result_table_xarray[AUX_EXAMPLE_COUNT_KEY].values[j, i] = (
-                numpy.sum(these_example_counts)
-            )
-
-            these_mean_stdevs = numpy.array([
-                t[AUX_MEAN_STDEV_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_rmse = numpy.array([
-                t[AUX_RMSE_KEY].values[j, i] for t in result_tables_xarray
-            ])
-            these_mean_mean_predictions = numpy.array([
-                t[AUX_MEAN_MEAN_PREDICTION_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_mean_targets = numpy.array([
-                t[AUX_MEAN_TARGET_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-            (
-                result_table_xarray[AUX_MEAN_STDEV_KEY].values[j, i],
-                result_table_xarray[AUX_RMSE_KEY].values[j, i],
-                result_table_xarray[AUX_MEAN_MEAN_PREDICTION_KEY].values[j, i],
-                result_table_xarray[AUX_MEAN_TARGET_KEY].values[j, i]
-            ) = _merge_basic_quantities_1bin_1var(
-                num_examples_by_table=these_example_counts,
-                mean_stdev_by_table=these_mean_stdevs,
-                rmse_by_table=these_rmse,
-                mean_mean_prediction_by_table=these_mean_mean_predictions,
-                mean_target_by_table=these_mean_targets
-            )
-
-        (
-            result_table_xarray[AUX_SSREL_KEY].values[j],
-            result_table_xarray[AUX_SSRAT_KEY].values[j]
-        ) = _get_ssrel_ssrat_1var(
-            mean_stdev_by_bin=
-            result_table_xarray[AUX_MEAN_STDEV_KEY].values[j, :],
-            rmse_by_bin=result_table_xarray[AUX_RMSE_KEY].values[j, :],
-            num_examples_by_bin=
-            result_table_xarray[AUX_EXAMPLE_COUNT_KEY].values[j, :]
-        )
-
-    num_heating_rate_bins = len(
-        result_table_xarray.coords[HEATING_RATE_BIN_DIM].values
-    )
-
-    for j in range(len(vector_target_names)):
-        for i in range(num_heating_rate_bins):
-            these_example_counts = numpy.array([
-                t[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-            result_table_xarray[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, i] = (
-                numpy.sum(these_example_counts)
-            )
-
-            these_mean_stdevs = numpy.array([
-                t[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_rmse = numpy.array([
-                t[VECTOR_FLAT_RMSE_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_mean_mean_predictions = numpy.array([
-                t[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            these_mean_targets = numpy.array([
-                t[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-            (
-                result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, i],
-                result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, i],
-                result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, i],
-                result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, i]
-            ) = _merge_basic_quantities_1bin_1var(
-                num_examples_by_table=these_example_counts,
-                mean_stdev_by_table=these_mean_stdevs,
-                rmse_by_table=these_rmse,
-                mean_mean_prediction_by_table=these_mean_mean_predictions,
-                mean_target_by_table=these_mean_targets
-            )
-
-        (
-            result_table_xarray[VECTOR_FLAT_SSREL_KEY].values[j],
-            result_table_xarray[VECTOR_FLAT_SSRAT_KEY].values[j]
-        ) = _get_ssrel_ssrat_1var(
-            mean_stdev_by_bin=
-            result_table_xarray[VECTOR_FLAT_MEAN_STDEV_KEY].values[j, :],
-            rmse_by_bin=result_table_xarray[VECTOR_FLAT_RMSE_KEY].values[j, :],
-            num_examples_by_bin=
-            result_table_xarray[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[j, :]
-        )
-
-    for j in range(len(vector_target_names)):
-        for k in range(len(heights_m_agl)):
-            for i in range(num_heating_rate_bins):
+    for t in range(len(scalar_target_names)):
+        for w in range(len(wavelengths_metres)):
+            for b in range(num_raw_flux_bins):
                 these_example_counts = numpy.array([
-                    t[VECTOR_EXAMPLE_COUNT_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[SCALAR_EXAMPLE_COUNT_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
                 ])
-
-                result_table_xarray[VECTOR_EXAMPLE_COUNT_KEY].values[
-                    j, k, i
-                ] = numpy.sum(these_example_counts)
+                rtx[SCALAR_EXAMPLE_COUNT_KEY].values[t, w, b] = numpy.sum(
+                    these_example_counts
+                )
 
                 these_mean_stdevs = numpy.array([
-                    t[VECTOR_MEAN_STDEV_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[SCALAR_MEAN_STDEV_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
                 ])
                 these_rmse = numpy.array([
-                    t[VECTOR_RMSE_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[SCALAR_RMSE_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
                 ])
                 these_mean_mean_predictions = numpy.array([
-                    t[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
                 ])
                 these_mean_targets = numpy.array([
-                    t[VECTOR_MEAN_TARGET_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[SCALAR_MEAN_TARGET_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
                 ])
 
                 (
-                    result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[j, k, i],
-                    result_table_xarray[VECTOR_RMSE_KEY].values[j, k, i],
-                    result_table_xarray[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[j, k, i],
-                    result_table_xarray[VECTOR_MEAN_TARGET_KEY].values[j, k, i]
+                    rtx[SCALAR_MEAN_STDEV_KEY].values[t, w, b],
+                    rtx[SCALAR_RMSE_KEY].values[t, w, b],
+                    rtx[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[t, w, b],
+                    rtx[SCALAR_MEAN_TARGET_KEY].values[t, w, b]
                 ) = _merge_basic_quantities_1bin_1var(
                     num_examples_by_table=these_example_counts,
                     mean_stdev_by_table=these_mean_stdevs,
@@ -1083,20 +968,181 @@ def merge_results_over_examples(result_tables_xarray):
                 )
 
             (
-                result_table_xarray[VECTOR_SSREL_KEY].values[j, k],
-                result_table_xarray[VECTOR_SSRAT_KEY].values[j, k]
+                rtx[SCALAR_SSREL_KEY].values[t, w],
+                rtx[SCALAR_SSRAT_KEY].values[t, w]
             ) = _get_ssrel_ssrat_1var(
-                mean_stdev_by_bin=
-                result_table_xarray[VECTOR_MEAN_STDEV_KEY].values[j, k, :],
-                rmse_by_bin=result_table_xarray[VECTOR_RMSE_KEY].values[j, k, :],
+                mean_stdev_by_bin=rtx[SCALAR_MEAN_STDEV_KEY].values[t, w, :],
+                rmse_by_bin=rtx[SCALAR_RMSE_KEY].values[t, w, :],
                 num_examples_by_bin=
-                result_table_xarray[VECTOR_EXAMPLE_COUNT_KEY].values[j, k, :]
+                rtx[SCALAR_EXAMPLE_COUNT_KEY].values[t, w, :]
             )
 
-    result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([
+    num_net_flux_bins = len(rtx.coords[NET_FLUX_BIN_DIM].values)
+
+    for t in range(len(aux_predicted_field_names)):
+        for w in range(len(wavelengths_metres)):
+            for b in range(num_net_flux_bins):
+                these_example_counts = numpy.array([
+                    this_tbl[AUX_EXAMPLE_COUNT_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[AUX_EXAMPLE_COUNT_KEY].values[t, w, b] = numpy.sum(
+                    these_example_counts
+                )
+
+                these_mean_stdevs = numpy.array([
+                    this_tbl[AUX_MEAN_STDEV_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                these_rmse = numpy.array([
+                    this_tbl[AUX_RMSE_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                these_mean_mean_predictions = numpy.array([
+                    this_tbl[AUX_MEAN_MEAN_PREDICTION_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                these_mean_targets = numpy.array([
+                    this_tbl[AUX_MEAN_TARGET_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+
+                (
+                    rtx[AUX_MEAN_STDEV_KEY].values[t, w, b],
+                    rtx[AUX_RMSE_KEY].values[t, w, b],
+                    rtx[AUX_MEAN_MEAN_PREDICTION_KEY].values[t, w, b],
+                    rtx[AUX_MEAN_TARGET_KEY].values[t, w, b]
+                ) = _merge_basic_quantities_1bin_1var(
+                    num_examples_by_table=these_example_counts,
+                    mean_stdev_by_table=these_mean_stdevs,
+                    rmse_by_table=these_rmse,
+                    mean_mean_prediction_by_table=these_mean_mean_predictions,
+                    mean_target_by_table=these_mean_targets
+                )
+
+            (
+                rtx[AUX_SSREL_KEY].values[t, w],
+                rtx[AUX_SSRAT_KEY].values[t, w]
+            ) = _get_ssrel_ssrat_1var(
+                mean_stdev_by_bin=rtx[AUX_MEAN_STDEV_KEY].values[t, w, :],
+                rmse_by_bin=rtx[AUX_RMSE_KEY].values[t, w, :],
+                num_examples_by_bin=rtx[AUX_EXAMPLE_COUNT_KEY].values[t, w, :]
+            )
+
+    num_heating_rate_bins = len(
+        rtx.coords[HEATING_RATE_BIN_DIM].values
+    )
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_metres)):
+            for b in range(num_heating_rate_bins):
+                these_example_counts = numpy.array([
+                    this_tbl[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[t, w, b] = numpy.sum(
+                    these_example_counts
+                )
+
+                these_mean_stdevs = numpy.array([
+                    this_tbl[VECTOR_FLAT_MEAN_STDEV_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                these_rmse = numpy.array([
+                    this_tbl[VECTOR_FLAT_RMSE_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                these_mean_mean_predictions = numpy.array([
+                    this_tbl[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+                these_mean_targets = numpy.array([
+                    this_tbl[VECTOR_FLAT_MEAN_TARGET_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+
+                (
+                    rtx[VECTOR_FLAT_MEAN_STDEV_KEY].values[t, w, b],
+                    rtx[VECTOR_FLAT_RMSE_KEY].values[t, w, b],
+                    rtx[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[t, w, b],
+                    rtx[VECTOR_FLAT_MEAN_TARGET_KEY].values[t, w, b]
+                ) = _merge_basic_quantities_1bin_1var(
+                    num_examples_by_table=these_example_counts,
+                    mean_stdev_by_table=these_mean_stdevs,
+                    rmse_by_table=these_rmse,
+                    mean_mean_prediction_by_table=these_mean_mean_predictions,
+                    mean_target_by_table=these_mean_targets
+                )
+
+            (
+                rtx[VECTOR_FLAT_SSREL_KEY].values[t, w],
+                rtx[VECTOR_FLAT_SSRAT_KEY].values[t, w]
+            ) = _get_ssrel_ssrat_1var(
+                mean_stdev_by_bin=
+                rtx[VECTOR_FLAT_MEAN_STDEV_KEY].values[t, w, :],
+                rmse_by_bin=rtx[VECTOR_FLAT_RMSE_KEY].values[t, w, :],
+                num_examples_by_bin=
+                rtx[VECTOR_FLAT_EXAMPLE_COUNT_KEY].values[t, w, :]
+            )
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_metres)):
+            for h in range(len(heights_m_agl)):
+                for b in range(num_heating_rate_bins):
+                    these_example_counts = numpy.array([
+                        this_tbl[VECTOR_EXAMPLE_COUNT_KEY].values[t, h, w, b]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    rtx[VECTOR_EXAMPLE_COUNT_KEY].values[t, h, w, b] = (
+                        numpy.sum(these_example_counts)
+                    )
+
+                    these_mean_stdevs = numpy.array([
+                        this_tbl[VECTOR_MEAN_STDEV_KEY].values[t, h, w, b]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    these_rmse = numpy.array([
+                        this_tbl[VECTOR_RMSE_KEY].values[t, h, w, b]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    these_mean_mean_predictions = numpy.array([
+                        this_tbl[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[t, h, w, b]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    these_mean_targets = numpy.array([
+                        this_tbl[VECTOR_MEAN_TARGET_KEY].values[t, h, w, b]
+                        for this_tbl in result_tables_xarray
+                    ])
+
+                    (
+                        rtx[VECTOR_MEAN_STDEV_KEY].values[t, h, w, b],
+                        rtx[VECTOR_RMSE_KEY].values[t, h, w, b],
+                        rtx[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[t, h, w, b],
+                        rtx[VECTOR_MEAN_TARGET_KEY].values[t, h, w, b]
+                    ) = _merge_basic_quantities_1bin_1var(
+                        num_examples_by_table=these_example_counts,
+                        mean_stdev_by_table=these_mean_stdevs,
+                        rmse_by_table=these_rmse,
+                        mean_mean_prediction_by_table=
+                        these_mean_mean_predictions,
+                        mean_target_by_table=these_mean_targets
+                    )
+
+                (
+                    rtx[VECTOR_SSREL_KEY].values[t, h, w],
+                    rtx[VECTOR_SSRAT_KEY].values[t, h, w]
+                ) = _get_ssrel_ssrat_1var(
+                    mean_stdev_by_bin=
+                    rtx[VECTOR_MEAN_STDEV_KEY].values[t, h, w, :],
+                    rmse_by_bin=rtx[VECTOR_RMSE_KEY].values[t, h, w, :],
+                    num_examples_by_bin=
+                    rtx[VECTOR_EXAMPLE_COUNT_KEY].values[t, h, w, :]
+                )
+
+    rtx.attrs[PREDICTION_FILE_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
     ])
-    return result_table_xarray
+    return rtx
 
 
 def write_results(result_table_xarray, netcdf_file_name):

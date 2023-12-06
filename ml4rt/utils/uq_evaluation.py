@@ -33,6 +33,7 @@ LONGWAVE_TOA_UP_FLUX_INDEX_KEY = 'longwave_toa_up_flux_index'
 SCALAR_FIELD_DIM = 'scalar_field'
 VECTOR_FIELD_DIM = 'vector_field'
 HEIGHT_DIM = 'height_m_agl'
+WAVELENGTH_DIM = 'wavelength_metres'
 AUX_TARGET_FIELD_DIM = 'aux_target_field'
 AUX_PREDICTED_FIELD_DIM = 'aux_predicted_field'
 
@@ -43,8 +44,9 @@ PREDICTION_FILE_KEY = 'prediction_file_name'
 def get_aux_fields(prediction_dict, example_dict):
     """Returns auxiliary fields.
 
-    F = number of pairs of auxiliary fields
     E = number of examples
+    W = number of wavelengths
+    F = number of pairs of auxiliary fields
     S = number of ensemble members
 
     :param prediction_dict: See doc for `prediction_io.read_file`.
@@ -57,18 +59,18 @@ def get_aux_fields(prediction_dict, example_dict):
         target fields.
     aux_prediction_dict['aux_predicted_field_names']: length-F list with names
         of predicted fields.
-    aux_prediction_dict['aux_target_matrix']: E-by-F numpy array of target
+    aux_prediction_dict['aux_target_matrix']: E-by-W-by-F numpy array of target
         (actual) values.
-    aux_prediction_dict['aux_prediction_matrix']: E-by-F numpy array of
-        predicted values.
+    aux_prediction_dict['aux_prediction_matrix']: E-by-W-by-F-by-S numpy array
+        of predicted values.
     aux_prediction_dict['shortwave_surface_down_flux_index']: Array index of
         shortwave surface downwelling flux in `mean_training_example_dict`.  If
-        surface downwelling flux is not available, this is -1.
+        not available, this is -1.
     aux_prediction_dict['longwave_surface_down_flux_index']: Same but for
         longwave.
     aux_prediction_dict['shortwave_toa_up_flux_index']: Array index of shortwave
-        TOA upwelling flux in `mean_training_example_dict`.  If TOA upwelling
-        flux is not available, this is -1.
+        TOA upwelling flux in `mean_training_example_dict`.  If not available,
+        this is -1.
     aux_prediction_dict['longwave_toa_up_flux_index']: Same but for longwave.
     """
 
@@ -78,19 +80,17 @@ def get_aux_fields(prediction_dict, example_dict):
     )
 
     num_examples = scalar_prediction_matrix.shape[0]
-    num_ensemble_members = scalar_prediction_matrix.shape[-1]
+    num_wavelengths = scalar_prediction_matrix.shape[1]
+    num_ensemble_members = scalar_prediction_matrix.shape[3]
 
-    aux_target_matrix = numpy.full((num_examples, 0), numpy.nan)
+    aux_target_matrix = numpy.full(
+        (num_examples, num_wavelengths, 0), numpy.nan
+    )
     aux_prediction_matrix = numpy.full(
-        (num_examples, 0, num_ensemble_members), numpy.nan
+        (num_examples, num_wavelengths, 0, num_ensemble_members), numpy.nan
     )
     aux_target_field_names = []
     aux_predicted_field_names = []
-
-    shortwave_surface_down_flux_index = -1
-    shortwave_toa_up_flux_index = -1
-    longwave_surface_down_flux_index = -1
-    longwave_toa_up_flux_index = -1
 
     scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
     these_flux_names = [
@@ -98,11 +98,18 @@ def get_aux_fields(prediction_dict, example_dict):
         example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
     ]
 
+    aux_prediction_dict = {
+        SHORTWAVE_SURFACE_DOWN_FLUX_INDEX_KEY: -1,
+        SHORTWAVE_TOA_UP_FLUX_INDEX_KEY: -1,
+        LONGWAVE_SURFACE_DOWN_FLUX_INDEX_KEY: -1,
+        LONGWAVE_TOA_UP_FLUX_INDEX_KEY: -1
+    }
+
     if all([n in scalar_target_names for n in these_flux_names]):
-        shortwave_surface_down_flux_index = scalar_target_names.index(
+        d_idx = scalar_target_names.index(
             example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        shortwave_toa_up_flux_index = scalar_target_names.index(
+        u_idx = scalar_target_names.index(
             example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
         )
 
@@ -110,20 +117,23 @@ def get_aux_fields(prediction_dict, example_dict):
         aux_predicted_field_names.append(SHORTWAVE_NET_FLUX_NAME)
 
         this_target_matrix = (
-            scalar_target_matrix[:, [shortwave_surface_down_flux_index]] -
-            scalar_target_matrix[:, [shortwave_toa_up_flux_index]]
+            scalar_target_matrix[..., [d_idx]] -
+            scalar_target_matrix[..., [u_idx]]
         )
         aux_target_matrix = numpy.concatenate(
-            (aux_target_matrix, this_target_matrix), axis=1
+            (aux_target_matrix, this_target_matrix), axis=-1
         )
 
         this_prediction_matrix = (
-            scalar_prediction_matrix[:, [shortwave_surface_down_flux_index], :]
-            - scalar_prediction_matrix[:, [shortwave_toa_up_flux_index], :]
+            scalar_prediction_matrix[..., [d_idx], :]
+            - scalar_prediction_matrix[..., [u_idx], :]
         )
         aux_prediction_matrix = numpy.concatenate(
-            (aux_prediction_matrix, this_prediction_matrix), axis=1
+            (aux_prediction_matrix, this_prediction_matrix), axis=-2
         )
+
+        aux_prediction_dict[SHORTWAVE_SURFACE_DOWN_FLUX_INDEX_KEY] = d_idx + 0
+        aux_prediction_dict[SHORTWAVE_TOA_UP_FLUX_INDEX_KEY] = u_idx + 0
 
     these_flux_names = [
         example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
@@ -131,10 +141,10 @@ def get_aux_fields(prediction_dict, example_dict):
     ]
 
     if all([n in scalar_target_names for n in these_flux_names]):
-        longwave_surface_down_flux_index = scalar_target_names.index(
+        d_idx = scalar_target_names.index(
             example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        longwave_toa_up_flux_index = scalar_target_names.index(
+        u_idx = scalar_target_names.index(
             example_utils.LONGWAVE_TOA_UP_FLUX_NAME
         )
 
@@ -142,32 +152,32 @@ def get_aux_fields(prediction_dict, example_dict):
         aux_predicted_field_names.append(LONGWAVE_NET_FLUX_NAME)
 
         this_target_matrix = (
-            scalar_target_matrix[:, [longwave_surface_down_flux_index]] -
-            scalar_target_matrix[:, [longwave_toa_up_flux_index]]
+            scalar_target_matrix[..., [d_idx]] -
+            scalar_target_matrix[..., [u_idx]]
         )
         aux_target_matrix = numpy.concatenate(
-            (aux_target_matrix, this_target_matrix), axis=1
+            (aux_target_matrix, this_target_matrix), axis=-1
         )
 
         this_prediction_matrix = (
-            scalar_prediction_matrix[:, [longwave_surface_down_flux_index], :] -
-            scalar_prediction_matrix[:, [longwave_toa_up_flux_index], :]
+            scalar_prediction_matrix[..., [d_idx], :] -
+            scalar_prediction_matrix[..., [u_idx], :]
         )
         aux_prediction_matrix = numpy.concatenate(
-            (aux_prediction_matrix, this_prediction_matrix), axis=1
+            (aux_prediction_matrix, this_prediction_matrix), axis=-2
         )
 
-    return {
+        aux_prediction_dict[LONGWAVE_SURFACE_DOWN_FLUX_INDEX_KEY] = d_idx + 0
+        aux_prediction_dict[LONGWAVE_TOA_UP_FLUX_INDEX_KEY] = u_idx + 0
+
+    aux_prediction_dict.update({
         AUX_TARGET_NAMES_KEY: aux_target_field_names,
         AUX_PREDICTED_NAMES_KEY: aux_predicted_field_names,
         AUX_TARGET_VALS_KEY: aux_target_matrix,
-        AUX_PREDICTED_VALS_KEY: aux_prediction_matrix,
-        SHORTWAVE_SURFACE_DOWN_FLUX_INDEX_KEY:
-            shortwave_surface_down_flux_index,
-        SHORTWAVE_TOA_UP_FLUX_INDEX_KEY: shortwave_toa_up_flux_index,
-        LONGWAVE_SURFACE_DOWN_FLUX_INDEX_KEY: longwave_surface_down_flux_index,
-        LONGWAVE_TOA_UP_FLUX_INDEX_KEY: longwave_toa_up_flux_index
-    }
+        AUX_PREDICTED_VALS_KEY: aux_prediction_matrix
+    })
+
+    return aux_prediction_dict
 
 
 def check_results_before_merging(result_tables_xarray):
@@ -192,6 +202,7 @@ def check_results_before_merging(result_tables_xarray):
         result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values.tolist()
     )
     heights_m_agl = result_tables_xarray[0].coords[HEIGHT_DIM].values
+    wavelengths_metres = result_tables_xarray[0].coords[WAVELENGTH_DIM].values
 
     try:
         aux_target_field_names = (
@@ -216,7 +227,13 @@ def check_results_before_merging(result_tables_xarray):
             vector_target_names
         )
         assert numpy.allclose(
-            result_tables_xarray[i].coords[HEIGHT_DIM].values, heights_m_agl,
+            result_tables_xarray[i].coords[HEIGHT_DIM].values,
+            heights_m_agl,
+            atol=TOLERANCE
+        )
+        assert numpy.allclose(
+            result_tables_xarray[i].coords[WAVELENGTH_DIM].values,
+            wavelengths_metres,
             atol=TOLERANCE
         )
 
@@ -306,12 +323,16 @@ def make_heating_rate_stdev_function():
         num_ensemble_members = predicted_hr_matrix_k_day01.shape[-1]
         assert num_ensemble_members > 1
 
-        pixelwise_stdev_matrix_k_day01 = numpy.std(
+        elementwise_stdev_matrix_k_day01 = numpy.std(
             predicted_hr_matrix_k_day01, ddof=1, axis=-1
         )
-        return numpy.sqrt(
-            numpy.mean(pixelwise_stdev_matrix_k_day01 ** 2, axis=-1)
+
+        all_axes_except0 = tuple(
+            range(1, elementwise_stdev_matrix_k_day01.ndim)
         )
+        return numpy.sqrt(numpy.mean(
+            elementwise_stdev_matrix_k_day01 ** 2, axis=all_axes_except0
+        ))
 
     return uncertainty_function
 
@@ -332,12 +353,13 @@ def make_flux_stdev_function():
         :return: uncertainty_values: length-E numpy array of uncertainty values.
         """
 
+        pdict = prediction_dict
         num_ensemble_members = (
-            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[-1]
+            pdict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[-1]
         )
         assert num_ensemble_members > 1
 
-        model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+        model_file_name = pdict[prediction_io.MODEL_FILE_KEY]
         model_metafile_name = neural_net.find_metafile(
             model_dir_name=os.path.split(model_file_name)[0],
             raise_error_if_missing=True
@@ -351,11 +373,10 @@ def make_flux_stdev_function():
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
 
-        num_examples = (
-            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[0]
-        )
+        num_examples = pdict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[0]
+        num_wavelengths = pdict[prediction_io.VECTOR_PREDICTIONS_KEY].shape[2]
         predicted_flux_matrix_w_m02 = numpy.full(
-            (num_examples, 0, num_ensemble_members), numpy.nan
+            (num_examples, num_wavelengths, 0, num_ensemble_members), numpy.nan
         )
 
         for this_name in SHORTWAVE_RAW_FLUX_NAMES + LONGWAVE_RAW_FLUX_NAMES:
@@ -366,29 +387,34 @@ def make_flux_stdev_function():
 
             predicted_flux_matrix_w_m02 = numpy.concatenate((
                 predicted_flux_matrix_w_m02,
-                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][:, [j], :]
-            ), axis=1)
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][..., [j], :]
+            ), axis=-2)
 
         if all([n in scalar_target_names for n in SHORTWAVE_RAW_FLUX_NAMES]):
-            down_index = scalar_target_names.index(
+            d_idx = scalar_target_names.index(
                 example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
             )
-            up_index = scalar_target_names.index(
+            u_idx = scalar_target_names.index(
                 example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
             )
-            this_matrix = prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY]
+            net_flux_matrix_w_m02 = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][..., [d_idx], :] -
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][..., [u_idx], :]
+            )
+            predicted_flux_matrix_w_m02 = numpy.concatenate(
+                (predicted_flux_matrix_w_m02, net_flux_matrix_w_m02), axis=-2
+            )
 
-            predicted_flux_matrix_w_m02 = numpy.concatenate((
-                predicted_flux_matrix_w_m02,
-                this_matrix[:, [down_index], :] - this_matrix[:, [up_index], :]
-            ), axis=1)
-
-        elementwise_stdev_matrix_k_day01 = numpy.std(
+        elementwise_stdev_matrix_w_m02 = numpy.std(
             predicted_flux_matrix_w_m02, ddof=1, axis=-1
         )
-        return numpy.sqrt(
-            numpy.mean(elementwise_stdev_matrix_k_day01 ** 2, axis=-1)
+
+        all_axes_except0 = tuple(
+            range(1, elementwise_stdev_matrix_w_m02.ndim)
         )
+        return numpy.sqrt(numpy.mean(
+            elementwise_stdev_matrix_w_m02 ** 2, axis=all_axes_except0
+        ))
 
     return uncertainty_function
 
@@ -402,36 +428,37 @@ def make_error_function_dwmse_1height():
     """
 
     def error_function(
-            actual_heating_rates_k_day01, predicted_hr_matrix_k_day01,
+            actual_hr_matrix_k_day01, predicted_hr_matrix_k_day01,
             use_example_flags):
         """Computes DWMSE.
 
         E = number of examples
+        W = number of wavelengths
         S = ensemble size
 
-        :param actual_heating_rates_k_day01: length-E numpy array of actual
-            heating rates at one height.
-        :param predicted_hr_matrix_k_day01: E-by-S numpy array of predicted
+        :param actual_hr_matrix_k_day01: E-by-W numpy array of actual heating
+            rates at one height.
+        :param predicted_hr_matrix_k_day01: E-by-W-by-S numpy array of predicted
             heating rates at the same height.
         :param use_example_flags: length-E numpy array of Boolean flags,
             indicating which examples to use.
         :return: dwmse_k3_day03: Scalar DWMSE value.
         """
 
-        mean_pred_heating_rates_k_day01 = numpy.mean(
-            predicted_hr_matrix_k_day01[use_example_flags, :], axis=-1
+        mean_pred_hr_matrix_k_day01 = numpy.mean(
+            predicted_hr_matrix_k_day01[use_example_flags, ...], axis=-1
         )
 
-        weights_k_day01 = numpy.maximum(
-            numpy.absolute(mean_pred_heating_rates_k_day01),
-            numpy.absolute(actual_heating_rates_k_day01[use_example_flags])
+        weight_matrix_k_day01 = numpy.maximum(
+            numpy.absolute(mean_pred_hr_matrix_k_day01),
+            numpy.absolute(actual_hr_matrix_k_day01[use_example_flags, :])
         )
-        squared_errors = (
-            mean_pred_heating_rates_k_day01 -
-            actual_heating_rates_k_day01[use_example_flags]
+        squared_error_matrix_k2_day02 = (
+            mean_pred_hr_matrix_k_day01 -
+            actual_hr_matrix_k_day01[use_example_flags, :]
         ) ** 2
 
-        return numpy.mean(weights_k_day01 * squared_errors)
+        return numpy.mean(weight_matrix_k_day01 * squared_error_matrix_k2_day02)
 
     return error_function
 
@@ -442,27 +469,29 @@ def make_error_function_flux_mse_1var():
     :return: error_function: Function handle.
     """
 
-    def error_function(actual_fluxes_w_m02, predicted_flux_matrix_w_m02,
+    def error_function(actual_flux_matrix_w_m02, predicted_flux_matrix_w_m02,
                        use_example_flags):
         """Computes MSE.
 
         E = number of examples
+        W = number of wavelengths
         S = ensemble size
 
-        :param actual_fluxes_w_m02: length-E numpy array of actual values for
+        :param actual_flux_matrix_w_m02: E-by-W numpy array of actual values for
             one flux variable.
-        :param predicted_flux_matrix_w_m02: E-by-S numpy array of predicted
+        :param predicted_flux_matrix_w_m02: E-by-W-by-S numpy array of predicted
             values for the same flux variable.
         :param use_example_flags: length-E numpy array of Boolean flags,
             indicating which examples to use.
         :return: mse_w2_m04: Scalar MSE value.
         """
 
-        mean_pred_fluxes_w_m02 = numpy.mean(
-            predicted_flux_matrix_w_m02[use_example_flags, :], axis=-1
+        mean_pred_flux_matrix_w_m02 = numpy.mean(
+            predicted_flux_matrix_w_m02[use_example_flags, ...], axis=-1
         )
         return numpy.mean(
-            (mean_pred_fluxes_w_m02 - actual_fluxes_w_m02[use_example_flags])
+            (mean_pred_flux_matrix_w_m02 -
+             actual_flux_matrix_w_m02[use_example_flags, :])
             ** 2
         )
 
@@ -498,23 +527,22 @@ def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
         :return: total_error: Scalar error value.
         """
 
+        pdict = prediction_dict
         predicted_flux_matrix_w_m02 = numpy.mean(
-            prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][
-                use_example_flags, ...
-            ],
+            pdict[prediction_io.SCALAR_PREDICTIONS_KEY][use_example_flags, ...],
             axis=-1
         )
-        actual_flux_matrix_w_m02 = prediction_dict[
-            prediction_io.SCALAR_TARGETS_KEY
-        ][use_example_flags, :]
+        actual_flux_matrix_w_m02 = (
+            pdict[prediction_io.SCALAR_TARGETS_KEY][use_example_flags, ...]
+        )
 
         predicted_net_flux_matrix_w_m02 = (
-            predicted_flux_matrix_w_m02[:, 0] -
-            predicted_flux_matrix_w_m02[:, 1]
+            predicted_flux_matrix_w_m02[..., 0] -
+            predicted_flux_matrix_w_m02[..., 1]
         )
         actual_net_flux_matrix_w_m02 = (
-            actual_flux_matrix_w_m02[:, 0] -
-            actual_flux_matrix_w_m02[:, 1]
+            actual_flux_matrix_w_m02[..., 0] -
+            actual_flux_matrix_w_m02[..., 1]
         )
 
         net_flux_sse_w2_m04 = numpy.sum(
@@ -531,14 +559,12 @@ def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
         )
 
         predicted_hr_matrix_k_day01 = numpy.mean(
-            prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][
-                use_example_flags, ...
-            ],
+            pdict[prediction_io.VECTOR_PREDICTIONS_KEY][use_example_flags, ...],
             axis=-1
         )
-        actual_hr_matrix_k_day01 = prediction_dict[
-            prediction_io.VECTOR_TARGETS_KEY
-        ][use_example_flags, ...]
+        actual_hr_matrix_k_day01 = (
+            pdict[prediction_io.VECTOR_TARGETS_KEY][use_example_flags, ...]
+        )
 
         weight_matrix_k_day01 = numpy.maximum(
             numpy.absolute(predicted_hr_matrix_k_day01),

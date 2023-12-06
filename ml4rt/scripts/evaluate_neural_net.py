@@ -8,6 +8,8 @@ from ml4rt.utils import evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+METRES_TO_MICRONS = 1e6
+
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_BOOTSTRAP_REPS_ARG_NAME = 'num_bootstrap_reps'
 NUM_HEATING_RATE_BINS_ARG_NAME = 'num_heating_rate_bins'
@@ -19,8 +21,6 @@ RAW_FLUX_LIMITS_PRCTILE_ARG_NAME = 'raw_flux_limits_percentile'
 NUM_NET_FLUX_BINS_ARG_NAME = 'num_net_flux_bins'
 NET_FLUX_LIMITS_ARG_NAME = 'net_flux_limits_w_m02'
 NET_FLUX_LIMITS_PRCTILE_ARG_NAME = 'net_flux_limits_percentile'
-HR_LIMITS_TO_EVAL_ARG_NAME = 'heating_rate_limits_to_eval_k_day01'
-APPLY_EVAL_LIMITS_PER_HEIGHT_ARG_NAME = 'apply_eval_limits_per_height'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -68,17 +68,6 @@ NET_FLUX_LIMITS_PRCTILE_HELP_STRING = (
     'Min and max net-flux percentiles for reliability curve.  If you want to '
     'specify min/max by physical values instead, leave this argument alone.'
 )
-HR_LIMITS_TO_EVAL_HELP_STRING = (
-    'Min and max heating rates (list of two values, in Kelvins per day) to '
-    'evaluate.  This script will evaluate only profiles containing at least '
-    'one pixel in the given range.'
-)
-APPLY_EVAL_LIMITS_PER_HEIGHT_HELP_STRING = (
-    'Boolean flag.  If 0, `{0:s}` will apply to full profiles.  If 1, `{0:s}` '
-    'will apply to individual pixels, so this script will evaluate only pixels '
-    'with a heating rate in the given range.'
-).format(HR_LIMITS_TO_EVAL_ARG_NAME)
-
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Evaluation scores will be written here by '
     '`evaluation.write_file`, to a file name determined by '
@@ -134,14 +123,6 @@ INPUT_ARG_PARSER.add_argument(
     help=NET_FLUX_LIMITS_PRCTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + HR_LIMITS_TO_EVAL_ARG_NAME, type=float, nargs=2, required=False,
-    default=[-1e10, 1e10], help=HR_LIMITS_TO_EVAL_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + APPLY_EVAL_LIMITS_PER_HEIGHT_ARG_NAME, type=int, required=False,
-    default=0, help=APPLY_EVAL_LIMITS_PER_HEIGHT_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -151,7 +132,6 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
          heating_rate_limits_k_day01, heating_rate_limits_percentile,
          num_raw_flux_bins, raw_flux_limits_w_m02, raw_flux_limits_percentile,
          num_net_flux_bins, net_flux_limits_w_m02, net_flux_limits_percentile,
-         heating_rate_limits_to_eval_k_day01, apply_eval_limits_per_height,
          output_dir_name):
     """Evaluates trained neural net.
 
@@ -168,18 +148,8 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
     :param num_net_flux_bins: Same.
     :param net_flux_limits_w_m02: Same.
     :param net_flux_limits_percentile: Same.
-    :param heating_rate_limits_to_eval_k_day01: Same.
-    :param apply_eval_limits_per_height: Same.
     :param output_dir_name: Same.
     """
-
-    min_actual_hr_to_eval_k_day01 = heating_rate_limits_to_eval_k_day01[0]
-    max_actual_hr_to_eval_k_day01 = heating_rate_limits_to_eval_k_day01[1]
-
-    if min_actual_hr_to_eval_k_day01 < -1e9:
-        min_actual_hr_to_eval_k_day01 = -numpy.inf
-    if max_actual_hr_to_eval_k_day01 > 1e9:
-        max_actual_hr_to_eval_k_day01 = numpy.inf
 
     min_heating_rate_k_day01 = heating_rate_limits_k_day01[0]
     max_heating_rate_k_day01 = heating_rate_limits_k_day01[1]
@@ -265,115 +235,117 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
         min_net_flux_w_m02=min_net_flux_w_m02,
         max_net_flux_w_m02=max_net_flux_w_m02,
         min_net_flux_percentile=min_net_flux_percentile,
-        max_net_flux_percentile=max_net_flux_percentile,
-        min_actual_hr_to_eval_k_day01=min_actual_hr_to_eval_k_day01,
-        max_actual_hr_to_eval_k_day01=max_actual_hr_to_eval_k_day01,
-        apply_minmax_at_each_height=apply_eval_limits_per_height
+        max_net_flux_percentile=max_net_flux_percentile
     )
     print(SEPARATOR_STRING)
 
-    t = result_table_xarray
-    scalar_target_names = t.coords[evaluation.SCALAR_FIELD_DIM].values
+    rtx = result_table_xarray
+    scalar_target_names = rtx.coords[evaluation.SCALAR_FIELD_DIM].values
+    wavelengths_microns = (
+        METRES_TO_MICRONS * rtx.coords[evaluation.WAVELENGTH_DIM].values
+    )
 
-    for k in range(len(scalar_target_names)):
-        print((
-            'Variable = "{0:s}" ... stdev of target and predicted values = '
-            '{1:f}, {2:f} ... MSE and skill score = {3:f}, {4:f} ... '
-            'MAE and skill score = {5:f}, {6:f} ... bias = {7:f} ... '
-            'correlation = {8:f} ... KGE = {9:f}'
-        ).format(
-            scalar_target_names[k],
-            numpy.nanmean(t[evaluation.SCALAR_TARGET_STDEV_KEY].values[k, :]),
-            numpy.nanmean(
-                t[evaluation.SCALAR_PREDICTION_STDEV_KEY].values[k, :]
-            ),
-            numpy.nanmean(t[evaluation.SCALAR_MSE_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.SCALAR_MSE_SKILL_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.SCALAR_MAE_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.SCALAR_MAE_SKILL_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.SCALAR_BIAS_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.SCALAR_CORRELATION_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.SCALAR_KGE_KEY].values[k, :])
-        ))
-
-    print(SEPARATOR_STRING)
-
-    vector_target_names = t.coords[evaluation.VECTOR_FIELD_DIM].values
-    heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
-
-    for k in range(len(vector_target_names)):
-        print('Variable = "{0:s}" ... PRMSE = {1:f}'.format(
-            vector_target_names[k],
-            numpy.nanmean(t[evaluation.VECTOR_PRMSE_KEY].values[k, :])
-        ))
-
-    print(SEPARATOR_STRING)
-
-    for k in range(len(vector_target_names)):
-        for j in range(len(heights_m_agl)):
+    for t in range(len(scalar_target_names)):
+        for w in range(len(wavelengths_microns)):
             print((
-                'Variable = "{0:s}" at {1:d} m AGL ... '
+                'Variable = "{0:s}" at {1:.2f} microns ... '
                 'stdev of target and predicted values = {2:f}, {3:f} ... '
                 'MSE and skill score = {4:f}, {5:f} ... '
-                'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
-                'correlation = {9:f} ... KGE = {10:f}'
+                'MAE and skill score = {6:f}, {7:f} ... '
+                'bias = {8:f} ... correlation = {9:f} ... KGE = {10:f}'
             ).format(
-                vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                numpy.nanmean(
-                    t[evaluation.VECTOR_TARGET_STDEV_KEY].values[j, k, :]
-                ),
-                numpy.nanmean(
-                    t[evaluation.VECTOR_PREDICTION_STDEV_KEY].values[j, k, :]
-                ),
-                numpy.nanmean(t[evaluation.VECTOR_MSE_KEY].values[j, k, :]),
-                numpy.nanmean(
-                    t[evaluation.VECTOR_MSE_SKILL_KEY].values[j, k, :]
-                ),
-                numpy.nanmean(t[evaluation.VECTOR_MAE_KEY].values[j, k, :]),
-                numpy.nanmean(
-                    t[evaluation.VECTOR_MAE_SKILL_KEY].values[j, k, :]
-                ),
-                numpy.nanmean(t[evaluation.VECTOR_BIAS_KEY].values[j, k, :]),
-                numpy.nanmean(
-                    t[evaluation.VECTOR_CORRELATION_KEY].values[j, k, :]
-                ),
-                numpy.nanmean(t[evaluation.VECTOR_KGE_KEY].values[j, k, :])
+                scalar_target_names[t],
+                wavelengths_microns[w],
+                numpy.nanmean(rtx[evaluation.SCALAR_TARGET_STDEV_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_PREDICTION_STDEV_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_MSE_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_MSE_SKILL_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_MAE_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_MAE_SKILL_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_BIAS_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_CORRELATION_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.SCALAR_KGE_KEY].values[w, t, :])
             ))
 
         print(SEPARATOR_STRING)
 
+    vector_target_names = rtx.coords[evaluation.VECTOR_FIELD_DIM].values
+    heights_m_agl = rtx.coords[evaluation.HEIGHT_DIM].values
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_microns)):
+            print((
+                'Variable = "{0:s}" at {1:.2f} microns ... PRMSE = {2:f}'
+            ).format(
+                vector_target_names[t],
+                wavelengths_microns[w],
+                numpy.nanmean(rtx[evaluation.VECTOR_PRMSE_KEY].values[w, t, :])
+            ))
+
+    print(SEPARATOR_STRING)
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_microns)):
+            for h in range(len(heights_m_agl)):
+                print((
+                    'Variable = "{0:s}" at {1:.2f} microns and {2:d} m AGL ... '
+                    'stdev of target and predicted values = {2:f}, {3:f} ... '
+                    'MSE and skill score = {4:f}, {5:f} ... '
+                    'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
+                    'correlation = {9:f} ... KGE = {10:f}'
+                ).format(
+                    vector_target_names[t],
+                    wavelengths_microns[w],
+                    int(numpy.round(heights_m_agl[h])),
+                    numpy.nanmean(rtx[evaluation.VECTOR_TARGET_STDEV_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_PREDICTION_STDEV_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_MSE_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_MSE_SKILL_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_MAE_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_MAE_SKILL_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_BIAS_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_CORRELATION_KEY].values[h, w, t, :]),
+                    numpy.nanmean(rtx[evaluation.VECTOR_KGE_KEY].values[h, w, t, :])
+                ))
+
+            print(SEPARATOR_STRING)
+
     try:
         aux_target_field_names = (
-            t.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+            rtx.coords[evaluation.AUX_TARGET_FIELD_DIM].values
         )
         aux_predicted_field_names = (
-            t.coords[evaluation.AUX_PREDICTED_FIELD_DIM].values
+            rtx.coords[evaluation.AUX_PREDICTED_FIELD_DIM].values
         )
     except:
         aux_target_field_names = []
         aux_predicted_field_names = []
 
-    for k in range(len(aux_target_field_names)):
-        print((
-            'Target variable = "{0:s}" ... predicted variable = "{1:s}" ... '
-            'stdev of target and predicted values = {2:f}, {3:f} ... '
-            'MSE and skill score = {4:f}, {5:f} ... '
-            'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
-            'correlation = {9:f} ... KGE = {10:f}'
-        ).format(
-            aux_target_field_names[k], aux_predicted_field_names[k],
-            numpy.nanmean(t[evaluation.AUX_TARGET_STDEV_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_PREDICTION_STDEV_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_MSE_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_MSE_SKILL_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_MAE_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_MAE_SKILL_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_BIAS_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_CORRELATION_KEY].values[k, :]),
-            numpy.nanmean(t[evaluation.AUX_KGE_KEY].values[k, :])
-        ))
+    for t in range(len(aux_target_field_names)):
+        for w in range(len(wavelengths_microns)):
+            print((
+                'Target variable = "{0:s}" at {1:.2f} microns ... '
+                'predicted variable = "{2:s}" at {1:.2f} microns ... '
+                'stdev of target and predicted values = {3:f}, {4:f} ... '
+                'MSE and skill score = {5:f}, {6:f} ... '
+                'MAE and skill score = {7:f}, {8:f} ... '
+                'bias = {9:f} ... correlation = {10:f} ... KGE = {11:f}'
+            ).format(
+                aux_target_field_names[t],
+                wavelengths_microns[w],
+                aux_predicted_field_names[t],
+                numpy.nanmean(rtx[evaluation.AUX_TARGET_STDEV_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_PREDICTION_STDEV_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_MSE_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_MSE_SKILL_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_MAE_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_MAE_SKILL_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_BIAS_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_CORRELATION_KEY].values[w, t, :]),
+                numpy.nanmean(rtx[evaluation.AUX_KGE_KEY].values[w, t, :])
+            ))
 
-    print(SEPARATOR_STRING)
+        print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
     evaluation.write_file(
@@ -419,12 +391,5 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, NET_FLUX_LIMITS_PRCTILE_ARG_NAME),
             dtype=float
         ),
-        heating_rate_limits_to_eval_k_day01=numpy.array(
-            getattr(INPUT_ARG_OBJECT, HR_LIMITS_TO_EVAL_ARG_NAME),
-            dtype=float
-        ),
-        apply_eval_limits_per_height=bool(getattr(
-            INPUT_ARG_OBJECT, APPLY_EVAL_LIMITS_PER_HEIGHT_ARG_NAME
-        )),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

@@ -2,11 +2,9 @@
 
 import os
 import glob
-import warnings
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
@@ -14,11 +12,9 @@ from ml4rt.utils import normalization
 
 TOLERANCE = 1e-6
 
-SUMMIT_LATITUDE_DEG_N = 72.5790
-SUMMIT_LONGITUDE_DEG_E = 321.6873
-
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
+TARGET_WAVELENGTH_DIM_KEY = 'target_wavelength'
 SCALAR_PREDICTOR_DIM_KEY = 'scalar_predictor'
 VECTOR_PREDICTOR_DIM_KEY = 'vector_predictor'
 SCALAR_TARGET_DIM_KEY = 'scalar_target'
@@ -374,9 +370,8 @@ def find_many_files(
 
 
 def read_file(
-        netcdf_file_name, exclude_summit_greenland=False,
-        max_shortwave_heating_k_day01=41.5, min_longwave_heating_k_day01=-90.,
-        max_longwave_heating_k_day01=50.):
+        netcdf_file_name, max_shortwave_heating_k_day01=41.5,
+        min_longwave_heating_k_day01=-90., max_longwave_heating_k_day01=50.):
     """Reads learning examples from NetCDF file.
 
     E = number of examples
@@ -385,10 +380,9 @@ def read_file(
     P_v = number of vector predictors
     T_s = number of scalar targets
     T_v = number of vector targets
+    W = number of wavelengths
 
     :param netcdf_file_name: Path to input file.
-    :param exclude_summit_greenland: Boolean flag.  If True, will not read data
-        from Summit, Greenland.
     :param max_shortwave_heating_k_day01: Max shortwave heating rate.  Will not
         read any examples with greater heating rate anywhere in profile.
     :param min_longwave_heating_k_day01: Same but for minimum longwave heating.
@@ -403,12 +397,14 @@ def read_file(
         values of vector predictors.
     example_dict['vector_predictor_names']: list (length P_v) with names of
         vector predictors.
-    example_dict['scalar_target_matrix']: numpy array (E x T_s) with values of
-        scalar targets.
+    example_dict['scalar_target_matrix']: numpy array (E x W x T_s) with values
+        of scalar targets.
     example_dict['scalar_target_names']: list (length T_s) with names of scalar
         targets.
-    example_dict['vector_target_matrix']: numpy array (E x H x T_v) with values
-        of vector targets.
+    example_dict['target_wavelengths_metres']: length-W numpy array of
+        wavelengths.
+    example_dict['vector_target_matrix']: numpy array (E x H x W x T_v) with
+        values of vector targets.
     example_dict['vector_target_names']: list (length T_v) with names of vector
         targets.
     example_dict['valid_times_unix_sec']: length-E numpy array of valid times
@@ -422,17 +418,10 @@ def read_file(
         `_check_normalization_metadata`.
     """
 
-    error_checking.assert_is_boolean(exclude_summit_greenland)
     error_checking.assert_is_not_nan(max_shortwave_heating_k_day01)
     error_checking.assert_is_greater(
         max_longwave_heating_k_day01, min_longwave_heating_k_day01
     )
-
-    # TODO(thunderhoser): This is a HACK.
-    if not os.path.isfile(netcdf_file_name):
-        netcdf_file_name = netcdf_file_name.replace(
-            '/home/ryan.lagerquist', '/home/ralager'
-        )
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
     normalization_metadata_dict = dict()
@@ -468,41 +457,23 @@ def read_file(
         )
     ]
 
-    error_checking.assert_is_boolean(exclude_summit_greenland)
-
-    num_examples = dataset_object.dimensions[EXAMPLE_DIMENSION_KEY].size
-    indices_to_read = numpy.linspace(
-        0, num_examples - 1, num=num_examples, dtype=int
+    found_wavelengths = (
+        example_utils.TARGET_WAVELENGTHS_KEY in dataset_object.variables
     )
-
-    # TODO(thunderhoser): This is a HACK to deal with potentially bad data.
-    if exclude_summit_greenland:
-        metadata_dict = example_utils.parse_example_ids(example_id_strings)
-        latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
-        longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
-            metadata_dict[example_utils.LONGITUDES_KEY]
+    if found_wavelengths:
+        target_wavelengths_metres = numpy.array(
+            dataset_object.variables[example_utils.TARGET_WAVELENGTHS_KEY][:],
+            dtype=numpy.float
         )
-
-        bad_flags = numpy.logical_and(
-            numpy.isclose(latitudes_deg_n, SUMMIT_LATITUDE_DEG_N, atol=1e-4),
-            numpy.isclose(longitudes_deg_e, SUMMIT_LONGITUDE_DEG_E, atol=1e-4)
+    else:
+        target_wavelengths_metres = numpy.array(
+            [example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES]
         )
-        good_indices = numpy.where(numpy.invert(bad_flags))[0]
-
-        warning_string = (
-            'Removing {0:d} of {1:d} examples (profiles), because they are at '
-            'Summit GL.'
-        ).format(
-            len(indices_to_read) - len(good_indices), len(indices_to_read)
-        )
-        warnings.warn(warning_string)
-
-        indices_to_read = indices_to_read[good_indices]
 
     example_dict = {
-        example_utils.EXAMPLE_IDS_KEY:
-            [example_id_strings[k] for k in indices_to_read],
-        example_utils.NORMALIZATION_METADATA_KEY: normalization_metadata_dict
+        example_utils.EXAMPLE_IDS_KEY: example_id_strings,
+        example_utils.NORMALIZATION_METADATA_KEY: normalization_metadata_dict,
+        example_utils.TARGET_WAVELENGTHS_KEY: target_wavelengths_metres
     }
 
     string_keys = [
@@ -529,9 +500,17 @@ def read_file(
 
     for this_key in main_data_keys:
         example_dict[this_key] = numpy.array(
-            dataset_object.variables[this_key][indices_to_read, ...],
-            dtype=numpy.float32
+            dataset_object.variables[this_key][:], dtype=numpy.float32
         )
+
+    if not found_wavelengths:
+        for this_key in [
+                example_utils.SCALAR_TARGET_VALS_KEY,
+                example_utils.VECTOR_TARGET_VALS_KEY
+        ]:
+            example_dict[this_key] = numpy.expand_dims(
+                example_dict[this_key], axis=-2
+            )
 
     if normalization_metadata_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
         for this_key in [
@@ -554,8 +533,7 @@ def read_file(
 
     for this_key in integer_keys:
         example_dict[this_key] = numpy.array(
-            numpy.round(dataset_object.variables[this_key][indices_to_read]),
-            dtype=int
+            numpy.round(dataset_object.variables[this_key][:]), dtype=int
         )
 
     example_dict[example_utils.HEIGHTS_KEY] = numpy.array(
@@ -668,6 +646,9 @@ def write_file(example_dict, netcdf_file_name):
     num_vector_targets = len(
         example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
     )
+    num_target_wavelengths = len(
+        example_dict[example_utils.TARGET_WAVELENGTHS_KEY]
+    )
 
     dataset_object.createDimension(EXAMPLE_DIMENSION_KEY, num_examples)
     dataset_object.createDimension(HEIGHT_DIMENSION_KEY, num_heights)
@@ -679,6 +660,9 @@ def write_file(example_dict, netcdf_file_name):
     )
     dataset_object.createDimension(SCALAR_TARGET_DIM_KEY, num_scalar_targets)
     dataset_object.createDimension(VECTOR_TARGET_DIM_KEY, num_vector_targets)
+    dataset_object.createDimension(
+        TARGET_WAVELENGTH_DIM_KEY, num_target_wavelengths
+    )
 
     example_id_strings = example_dict[example_utils.EXAMPLE_IDS_KEY]
     num_example_id_chars = numpy.max(numpy.array([
@@ -815,7 +799,10 @@ def write_file(example_dict, netcdf_file_name):
 
     dataset_object.createVariable(
         example_utils.SCALAR_TARGET_VALS_KEY, datatype=numpy.float32,
-        dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIM_KEY)
+        dimensions=(
+            EXAMPLE_DIMENSION_KEY, TARGET_WAVELENGTH_DIM_KEY,
+            SCALAR_TARGET_DIM_KEY
+        )
     )
     dataset_object.variables[example_utils.SCALAR_TARGET_VALS_KEY][:] = (
         example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
@@ -824,7 +811,8 @@ def write_file(example_dict, netcdf_file_name):
     dataset_object.createVariable(
         example_utils.VECTOR_TARGET_VALS_KEY, datatype=numpy.float32,
         dimensions=(
-            EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIM_KEY
+            EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+            TARGET_WAVELENGTH_DIM_KEY, VECTOR_TARGET_DIM_KEY
         )
     )
     dataset_object.variables[example_utils.VECTOR_TARGET_VALS_KEY][:] = (

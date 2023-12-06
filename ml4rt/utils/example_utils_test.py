@@ -362,113 +362,6 @@ EXAMPLE_DICT_WITH_RADII = {
         example_io._check_normalization_metadata(dict())
 }
 
-# The following constants are used to test fluxes_to_heating_rate and
-# heating_rate_to_fluxes.
-THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
-    [100, 150, 200, 250, 300, 350],
-    [400, 500, 600, 700, 800, 900],
-    [0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
-    [125, 200, 275, 350, 425, 500],
-    [450, 600, 750, 900, 1050, 1200],
-    [0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_PRESSURE_MATRIX_PASCALS = 100 * numpy.array([
-    [1000, 950, 900, 850, 800, 750],
-    [1000, 900, 800, 700, 600, 500],
-    [1000, 950, 900, 850, 800, 750]
-], dtype=float)
-
-THIS_PRESSURE_DIFF_MATRIX_PASCALS = 100 * numpy.array([
-    [-50, -50, -50, -50, -50, -50],
-    [-100, -100, -100, -100, -100, -100],
-    [-50, -50, -50, -50, -50, -50]
-], dtype=float)
-
-THIS_NET_FLUX_DIFF_MATRIX_W_M02 = numpy.array([
-    [25, 25, 25, 25, 25, 25],
-    [50, 50, 50, 50, 50, 50],
-    [0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THESE_HEIGHTS_M_AGL = numpy.array([25, 50, 100, 500, 1000, 5000], dtype=float)
-VALID_TIMES_UNIX_SEC = numpy.array([300, 600, 900], dtype=int)
-
-THIS_WIDTH_MATRIX_METRES = numpy.array([
-    [25, 37.5, 225, 450, 2250, 4000],
-    [25, 37.5, 225, 450, 2250, 4000],
-    [25, 37.5, 225, 450, 2250, 4000]
-])
-
-THIS_COEFF = example_utils.DAYS_TO_SECONDS * (
-    example_utils.GRAVITY_CONSTANT_M_S02 /
-    example_utils.DRY_AIR_SPECIFIC_HEAT_J_KG01_K01
-)
-
-THIS_HEATING_RATE_MATRIX_K_DAY01 = -1 * THIS_COEFF * (
-    THIS_NET_FLUX_DIFF_MATRIX_W_M02 / THIS_PRESSURE_DIFF_MATRIX_PASCALS
-)
-
-THIS_VECTOR_PREDICTOR_MATRIX = numpy.expand_dims(
-    THIS_PRESSURE_MATRIX_PASCALS, axis=-1
-)
-THESE_VECTOR_PREDICTOR_NAMES = [example_utils.PRESSURE_NAME]
-
-THIS_VECTOR_TARGET_MATRIX = numpy.stack(
-    (THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02), axis=-1
-)
-THESE_VECTOR_TARGET_NAMES = [
-    example_utils.SHORTWAVE_UP_FLUX_NAME, example_utils.SHORTWAVE_DOWN_FLUX_NAME
-]
-
-EXAMPLE_DICT_FLUXES_ONLY = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_utils.VECTOR_TARGET_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
-    example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
-}
-
-THIS_VECTOR_TARGET_MATRIX = numpy.stack((
-    THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02,
-    THIS_HEATING_RATE_MATRIX_K_DAY01
-), axis=-1)
-
-THESE_VECTOR_TARGET_NAMES = [
-    example_utils.SHORTWAVE_UP_FLUX_NAME,
-    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
-    example_utils.SHORTWAVE_HEATING_RATE_NAME
-]
-
-EXAMPLE_DICT_WITH_HEATING_RATE = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_utils.VECTOR_TARGET_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
-    example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_utils.HEIGHTS_KEY: THESE_HEIGHTS_M_AGL
-}
-
-DUMMY_NET_FLUX_MATRIX_W_M02 = numpy.array([
-    [25, 50, 75, 100, 125, 150],
-    [50, 100, 150, 200, 250, 300],
-    [0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-DUMMY_NET_FLUX_DIFF_MATRIX_W_M02 = numpy.array([
-    [25, 25, 25, 25, 25, 25],
-    [50, 50, 50, 50, 50, 50],
-    [0, 0, 0, 0, 0, 0]
-], dtype=float)
-
 # The following constants are used to test get_air_density.
 THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
     [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7],
@@ -661,6 +554,7 @@ FIRST_SCALAR_PREDICTOR_MATRIX = numpy.transpose(numpy.vstack(
 
 VECTOR_PREDICTOR_NAMES = [example_utils.TEMPERATURE_NAME]
 HEIGHTS_M_AGL = numpy.array([100, 500], dtype=float)
+TARGET_WAVELENGTHS_METRES = numpy.array([1e-6])
 
 FIRST_TEMP_MATRIX_KELVINS = numpy.array([
     [290, 295],
@@ -679,7 +573,7 @@ FIRST_SURFACE_DOWN_FLUXES_W_M02 = numpy.array(
 )
 FIRST_SCALAR_TARGET_MATRIX = numpy.reshape(
     FIRST_SURFACE_DOWN_FLUXES_W_M02,
-    (len(FIRST_SURFACE_DOWN_FLUXES_W_M02), 1)
+    (len(FIRST_SURFACE_DOWN_FLUXES_W_M02), 1, 1)
 )
 
 VECTOR_TARGET_NAMES = [
@@ -703,6 +597,9 @@ FIRST_UP_FLUX_MATRIX_W_M02 = numpy.array([
 FIRST_VECTOR_TARGET_MATRIX = numpy.stack(
     (FIRST_DOWN_FLUX_MATRIX_W_M02, FIRST_UP_FLUX_MATRIX_W_M02), axis=-1
 )
+FIRST_VECTOR_TARGET_MATRIX = numpy.expand_dims(
+    FIRST_VECTOR_TARGET_MATRIX, axis=-2
+)
 
 FIRST_EXAMPLE_DICT = {
     example_utils.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
@@ -714,6 +611,7 @@ FIRST_EXAMPLE_DICT = {
     example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
     example_utils.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX,
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
     example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS,
@@ -729,10 +627,11 @@ SECOND_EXAMPLE_DICT = {
     example_utils.VECTOR_PREDICTOR_NAMES_KEY: VECTOR_PREDICTOR_NAMES,
     example_utils.VECTOR_PREDICTOR_VALS_KEY: FIRST_VECTOR_PREDICTOR_MATRIX * 3,
     example_utils.SCALAR_TARGET_NAMES_KEY: SCALAR_TARGET_NAMES,
-    example_utils.SCALAR_TARGET_VALS_KEY: FIRST_SCALAR_TARGET_MATRIX * 4,
+    example_utils.SCALAR_TARGET_VALS_KEY: 4 * FIRST_SCALAR_TARGET_MATRIX,
     example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
-    example_utils.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX * 5,
+    example_utils.VECTOR_TARGET_VALS_KEY: 5 * FIRST_VECTOR_TARGET_MATRIX,
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC * 6,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS + 1,
     example_utils.EXAMPLE_IDS_KEY: SECOND_EXAMPLE_ID_STRINGS,
@@ -762,6 +661,7 @@ CONCAT_EXAMPLE_DICT = {
         axis=0
     ),
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: numpy.concatenate(
         (FIRST_TIMES_UNIX_SEC, FIRST_TIMES_UNIX_SEC * 6),
         axis=0
@@ -793,6 +693,7 @@ FIRST_EXAMPLE_DICT_SELECT_TIMES = {
     example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
     example_utils.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[1:3, ...],
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[1:3, ...],
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[1:3, ...],
     example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS[1:3],
@@ -816,6 +717,7 @@ FIRST_EXAMPLE_DICT_SELECT_ATMO_TYPES = {
     example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
     example_utils.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[[2], ...],
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2], ...],
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS[[2], ...],
     example_utils.EXAMPLE_IDS_KEY: [FIRST_EXAMPLE_ID_STRINGS[2]],
@@ -841,6 +743,7 @@ FIRST_EXAMPLE_DICT_SELECT_FIELDS = {
     example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES[::-1],
     example_utils.VECTOR_TARGET_VALS_KEY: FIRST_VECTOR_TARGET_MATRIX[..., ::-1],
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
     example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS,
@@ -863,6 +766,7 @@ FIRST_EXAMPLE_DICT_SELECT_HEIGHTS = {
     example_utils.VECTOR_TARGET_VALS_KEY:
         FIRST_VECTOR_TARGET_MATRIX[:, ::-1, :],
     example_utils.HEIGHTS_KEY: HEIGHTS_TO_KEEP_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC,
     example_utils.STANDARD_ATMO_FLAGS_KEY: FIRST_STANDARD_ATMO_FLAGS,
     example_utils.EXAMPLE_IDS_KEY: FIRST_EXAMPLE_ID_STRINGS,
@@ -958,6 +862,7 @@ FIRST_EXAMPLE_DICT_SELECT_INDICES = {
     example_utils.VECTOR_TARGET_VALS_KEY:
         FIRST_VECTOR_TARGET_MATRIX[[2, 1], ...],
     example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
     example_utils.VALID_TIMES_KEY: FIRST_TIMES_UNIX_SEC[[2, 1], ...],
     example_utils.STANDARD_ATMO_FLAGS_KEY:
         FIRST_STANDARD_ATMO_FLAGS[[2, 1], ...],
@@ -979,6 +884,13 @@ THIS_VECTOR_TARGET_MATRIX = numpy.array([
     [262.5, 187.5]
 ])
 
+THIS_SCALAR_TARGET_MATRIX = numpy.expand_dims(
+    THIS_SCALAR_TARGET_MATRIX, axis=-2
+)
+THIS_VECTOR_TARGET_MATRIX = numpy.expand_dims(
+    THIS_VECTOR_TARGET_MATRIX, axis=-2
+)
+
 FIRST_EXAMPLE_DICT_AVERAGE = {
     example_utils.SCALAR_PREDICTOR_NAMES_KEY: SCALAR_PREDICTOR_NAMES,
     example_utils.SCALAR_PREDICTOR_VALS_KEY: THIS_SCALAR_PREDICTOR_MATRIX,
@@ -988,7 +900,8 @@ FIRST_EXAMPLE_DICT_AVERAGE = {
     example_utils.SCALAR_TARGET_VALS_KEY: THIS_SCALAR_TARGET_MATRIX,
     example_utils.VECTOR_TARGET_NAMES_KEY: VECTOR_TARGET_NAMES,
     example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX,
-    example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL
+    example_utils.HEIGHTS_KEY: HEIGHTS_M_AGL,
+    example_utils.TARGET_WAVELENGTHS_KEY: TARGET_WAVELENGTHS_METRES,
 }
 
 # The following constants are used to test create_example_ids and
@@ -1058,125 +971,6 @@ EXAMPLE_ID_STRINGS = [
     )
 ]
 
-# The following constants are used to test _add_height_padding.
-REAL_HEIGHTS_M_AGL = numpy.array(
-    [10, 20, 40, 60, 80, 10000, 50000], dtype=float
-)
-PADDED_HEIGHTS_M_AGL = numpy.array([
-    10, 20, 40, 60, 80, 10000, 50000, 1050000, 2050000, 3050000, 4050000,
-    5050000, 6050000, 7050000, 8050000, 9050000, 10050000
-], dtype=float)
-
-THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
-    [1, 2, 3, 4, 5, 6, 7],
-    [2, 4, 6, 8, 10, 12, 14],
-    [3, 6, 9, 12, 15, 18, 21]
-], dtype=float)
-
-THIS_TEMPERATURE_MATRIX_KELVINS = 273.15 + numpy.array([
-    [10, 11, 12, 13, 14, 15, 16],
-    [20, 21, 22, 23, 24, 25, 26],
-    [30, 31, 32, 33, 34, 35, 36]
-], dtype=float)
-
-THESE_VECTOR_PREDICTOR_NAMES = [
-    example_utils.SPECIFIC_HUMIDITY_NAME, example_utils.TEMPERATURE_NAME
-]
-THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
-    THIS_HUMIDITY_MATRIX_KG_KG01, THIS_TEMPERATURE_MATRIX_KELVINS,
-), axis=-1)
-
-THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
-    [100, 150, 200, 250, 300, 350, 400],
-    [400, 500, 600, 700, 800, 900, 1000],
-    [0, 0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
-    [50, 125, 200, 275, 350, 425, 525],
-    [500, 550, 600, 650, 700, 750, 850],
-    [1000, 1000, 1000, 1000, 1000, 1000, 1400]
-], dtype=float)
-
-THESE_VECTOR_TARGET_NAMES = [
-    example_utils.SHORTWAVE_UP_FLUX_NAME, example_utils.SHORTWAVE_DOWN_FLUX_NAME
-]
-THIS_VECTOR_TARGET_MATRIX = numpy.stack(
-    (THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02), axis=-1
-)
-
-EXAMPLE_DICT_SANS_PADDING = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_utils.VECTOR_TARGET_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
-    example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_utils.HEIGHTS_KEY: REAL_HEIGHTS_M_AGL + 0.
-}
-
-THIS_HUMIDITY_MATRIX_KG_KG01 = 0.001 * numpy.array([
-    [1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-    [2, 4, 6, 8, 10, 12, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
-    [3, 6, 9, 12, 15, 18, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21]
-], dtype=float)
-
-THIS_TEMPERATURE_MATRIX_KELVINS = 273.15 + numpy.array([
-    [10, 11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16],
-    [20, 21, 22, 23, 24, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
-    [30, 31, 32, 33, 34, 35, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36]
-], dtype=float)
-
-THIS_VECTOR_PREDICTOR_MATRIX = numpy.stack((
-    THIS_HUMIDITY_MATRIX_KG_KG01, THIS_TEMPERATURE_MATRIX_KELVINS,
-), axis=-1)
-
-THIS_UP_FLUX_MATRIX_W_M02 = numpy.array([
-    [100, 150, 200, 250, 300, 350, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [400, 500, 600, 700, 800, 900, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_DOWN_FLUX_MATRIX_W_M02 = numpy.array([
-    [50, 125, 200, 275, 350, 425, 525, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [500, 550, 600, 650, 700, 750, 850, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1000, 1000, 1000, 1000, 1000, 1000, 1400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-], dtype=float)
-
-THIS_VECTOR_TARGET_MATRIX = numpy.stack(
-    (THIS_UP_FLUX_MATRIX_W_M02, THIS_DOWN_FLUX_MATRIX_W_M02), axis=-1
-)
-
-EXAMPLE_DICT_WITH_PADDING = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_utils.VECTOR_PREDICTOR_VALS_KEY: THIS_VECTOR_PREDICTOR_MATRIX + 0.,
-    example_utils.VECTOR_TARGET_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
-    example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX + 0.,
-    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_utils.HEIGHTS_KEY: PADDED_HEIGHTS_M_AGL + 0.
-}
-
-# The following constants are used to test subset_by_height with padding.
-PADDED_HEIGHTS_TO_KEEP_M_AGL = numpy.array([
-    2050000, 3050000, 4050000, 5050000, 6050000, 7050000, 8050000, 9050000,
-    10050000
-], dtype=float)
-
-EXAMPLE_DICT_PADDED_SELECT_HEIGHTS = {
-    example_utils.VECTOR_PREDICTOR_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_PREDICTOR_NAMES),
-    example_utils.VECTOR_PREDICTOR_VALS_KEY:
-        THIS_VECTOR_PREDICTOR_MATRIX[:, -9:, :],
-    example_utils.VECTOR_TARGET_NAMES_KEY:
-        copy.deepcopy(THESE_VECTOR_TARGET_NAMES),
-    example_utils.VECTOR_TARGET_VALS_KEY: THIS_VECTOR_TARGET_MATRIX[:, -9:, :],
-    example_utils.VALID_TIMES_KEY: VALID_TIMES_UNIX_SEC,
-    example_utils.HEIGHTS_KEY: PADDED_HEIGHTS_TO_KEEP_M_AGL + 0.
-}
-
 
 def _compare_example_dicts(first_example_dict, second_example_dict):
     """Compares two dictionaries with learning examples.
@@ -1196,7 +990,8 @@ def _compare_example_dicts(first_example_dict, second_example_dict):
         example_utils.VECTOR_PREDICTOR_VALS_KEY,
         example_utils.SCALAR_TARGET_VALS_KEY,
         example_utils.VECTOR_TARGET_VALS_KEY,
-        example_utils.HEIGHTS_KEY
+        example_utils.HEIGHTS_KEY,
+        example_utils.TARGET_WAVELENGTHS_KEY
     ]
 
     for this_key in keys_to_compare:
@@ -1366,48 +1161,6 @@ class ExampleUtilsTests(unittest.TestCase):
         )
         self.assertTrue(_compare_example_dicts(
             this_example_dict, EXAMPLE_DICT_WITH_AEROSOLS
-        ))
-
-    def test_fluxes_to_heating_rate(self):
-        """Ensures correct output from fluxes_to_heating_rate."""
-
-        this_example_dict = example_utils.fluxes_to_heating_rate(
-            copy.deepcopy(EXAMPLE_DICT_FLUXES_ONLY)
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_WITH_HEATING_RATE
-        ))
-
-    def test_heating_rate_to_fluxes(self):
-        """Ensures correct output from heating_rate_to_fluxes."""
-
-        this_example_dict = example_utils.heating_rate_to_fluxes(
-            copy.deepcopy(EXAMPLE_DICT_WITH_HEATING_RATE)
-        )
-        this_net_flux_matrix_w_m02 = example_utils.get_field_from_dict(
-            example_dict=this_example_dict,
-            field_name=example_utils.SHORTWAVE_DOWN_FLUX_NAME
-        )
-        self.assertTrue(numpy.allclose(
-            this_net_flux_matrix_w_m02, DUMMY_NET_FLUX_MATRIX_W_M02,
-            atol=TOLERANCE
-        ))
-
-        this_example_dict = example_utils.fluxes_to_heating_rate(
-            this_example_dict
-        )
-        this_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-            example_dict=this_example_dict,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
-        exp_heating_rate_matrix_k_day01 = example_utils.get_field_from_dict(
-            example_dict=EXAMPLE_DICT_WITH_HEATING_RATE,
-            field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
-        self.assertTrue(numpy.allclose(
-            this_heating_rate_matrix_k_day01, exp_heating_rate_matrix_k_day01,
-            atol=TOLERANCE
         ))
 
     def test_get_air_density(self):
@@ -2069,34 +1822,6 @@ class ExampleUtilsTests(unittest.TestCase):
         self.assertTrue(numpy.allclose(
             these_10m_temps_kelvins, TEMPERATURES_FOR_ID_KELVINS,
             atol=TOLERANCE
-        ))
-
-    def test_add_height_padding(self):
-        """Ensures correct output from _add_height_padding."""
-
-        this_example_dict = example_utils._add_height_padding(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_SANS_PADDING),
-            desired_heights_m_agl=PADDED_HEIGHTS_M_AGL
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_WITH_PADDING
-        ))
-
-    def test_subset_by_height_with_padding(self):
-        """Ensures correct output from subset_by_height.
-
-        In this case, some of the desired heights are not there yet (and should
-        be added at the top of the profile).
-        """
-
-        this_example_dict = example_utils.subset_by_height(
-            example_dict=copy.deepcopy(EXAMPLE_DICT_SANS_PADDING),
-            heights_m_agl=PADDED_HEIGHTS_TO_KEEP_M_AGL
-        )
-
-        self.assertTrue(_compare_example_dicts(
-            this_example_dict, EXAMPLE_DICT_PADDED_SELECT_HEIGHTS
         ))
 
 

@@ -48,6 +48,7 @@ AUX_MEAN_TARGET_KEY = 'aux_mean_target_value'
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
 HEIGHT_DIM = uq_evaluation.HEIGHT_DIM
+WAVELENGTH_DIM = uq_evaluation.WAVELENGTH_DIM
 AUX_TARGET_FIELD_DIM = uq_evaluation.AUX_TARGET_FIELD_DIM
 AUX_PREDICTED_FIELD_DIM = uq_evaluation.AUX_PREDICTED_FIELD_DIM
 
@@ -68,123 +69,96 @@ def _compute_mf_and_di(result_table_xarray, is_error_pos_oriented):
         (monotonicity fraction and mean discard improvement) updated.
     """
 
-    num_scalar_targets = len(
-        result_table_xarray.coords[SCALAR_FIELD_DIM].values
-    )
-    num_vector_targets = len(
-        result_table_xarray.coords[VECTOR_FIELD_DIM].values
-    )
-    num_heights = len(result_table_xarray.coords[HEIGHT_DIM].values)
+    rtx = result_table_xarray
+    num_scalar_targets = len(rtx.coords[SCALAR_FIELD_DIM].values)
+    num_vector_targets = len(rtx.coords[VECTOR_FIELD_DIM].values)
+    num_heights = len(rtx.coords[HEIGHT_DIM].values)
+    num_wavelengths = len(rtx.coords[WAVELENGTH_DIM].values)
 
     try:
-        num_aux_targets = len(
-            result_table_xarray.coords[AUX_PREDICTED_FIELD_DIM].values
-        )
+        num_aux_targets = len(rtx.coords[AUX_PREDICTED_FIELD_DIM].values)
     except:
         num_aux_targets = 0
 
-    discard_fractions = 1. - result_table_xarray[EXAMPLE_FRACTION_KEY].values
-    t = result_table_xarray
+    discard_fractions = 1. - rtx[EXAMPLE_FRACTION_KEY].values
 
-    for k in range(num_scalar_targets):
-        if is_error_pos_oriented:
-            t[SCALAR_MONO_FRACTION_KEY].values[k] = numpy.mean(
-                numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) > 0
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
+            rtx[SCALAR_MONO_FRACTION_KEY].values[t, w] = numpy.mean(
+                numpy.diff(rtx[SCALAR_POST_DISCARD_ERROR_KEY].values[t, w, :]) > 0
             )
-            t[SCALAR_MEAN_DI_KEY].values[k] = numpy.mean(
-                numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) /
-                numpy.diff(discard_fractions)
-            )
-        else:
-            t[SCALAR_MONO_FRACTION_KEY].values[k] = numpy.mean(
-                numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) < 0
-            )
-            t[SCALAR_MEAN_DI_KEY].values[k] = numpy.mean(
-                -1 * numpy.diff(t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, :]) /
+            rtx[SCALAR_MEAN_DI_KEY].values[t, w] = numpy.mean(
+                numpy.diff(rtx[SCALAR_POST_DISCARD_ERROR_KEY].values[t, w, :]) /
                 numpy.diff(discard_fractions)
             )
 
-    for k in range(num_aux_targets):
-        if is_error_pos_oriented:
-            t[AUX_MONO_FRACTION_KEY].values[k] = numpy.mean(
-                numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) > 0
+            if not is_error_pos_oriented:
+                rtx[SCALAR_MONO_FRACTION_KEY].values[t, w] = (
+                    1. - rtx[SCALAR_MONO_FRACTION_KEY].values[t, w]
+                )
+                rtx[SCALAR_MEAN_DI_KEY].values[t, w] *= -1.
+
+    for t in range(num_aux_targets):
+        for w in range(num_wavelengths):
+            rtx[AUX_MONO_FRACTION_KEY].values[t, w] = numpy.mean(
+                numpy.diff(rtx[AUX_POST_DISCARD_ERROR_KEY].values[t, w, :]) > 0
             )
-            t[AUX_MEAN_DI_KEY].values[k] = numpy.mean(
-                numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) /
-                numpy.diff(discard_fractions)
-            )
-        else:
-            t[AUX_MONO_FRACTION_KEY].values[k] = numpy.mean(
-                numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) < 0
-            )
-            t[AUX_MEAN_DI_KEY].values[k] = numpy.mean(
-                -1 * numpy.diff(t[AUX_POST_DISCARD_ERROR_KEY].values[k, :]) /
+            rtx[AUX_MEAN_DI_KEY].values[t, w] = numpy.mean(
+                numpy.diff(rtx[AUX_POST_DISCARD_ERROR_KEY].values[t, w, :]) /
                 numpy.diff(discard_fractions)
             )
 
-    for k in range(num_vector_targets):
-        if is_error_pos_oriented:
-            t[VECTOR_FLAT_MONO_FRACTION_KEY].values[k] = numpy.mean(
-                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :])
+            if not is_error_pos_oriented:
+                rtx[AUX_MONO_FRACTION_KEY].values[t, w] = (
+                    1. - rtx[AUX_MONO_FRACTION_KEY].values[t, w]
+                )
+                rtx[AUX_MEAN_DI_KEY].values[t, w] *= -1.
+
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            rtx[VECTOR_FLAT_MONO_FRACTION_KEY].values[t, w] = numpy.mean(
+                numpy.diff(rtx[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[t, w, :])
                 > 0
             )
-            t[VECTOR_FLAT_MEAN_DI_KEY].values[k] = numpy.mean(
-                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :]) /
-                numpy.diff(discard_fractions)
-            )
-        else:
-            t[VECTOR_FLAT_MONO_FRACTION_KEY].values[k] = numpy.mean(
-                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :])
-                < 0
-            )
-            t[VECTOR_FLAT_MEAN_DI_KEY].values[k] = numpy.mean(
-                -1 *
-                numpy.diff(t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, :]) /
+            rtx[VECTOR_FLAT_MEAN_DI_KEY].values[t, w] = numpy.mean(
+                numpy.diff(rtx[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[t, w, :]) /
                 numpy.diff(discard_fractions)
             )
 
-        for j in range(num_heights):
-            if is_error_pos_oriented:
-                t[VECTOR_MONO_FRACTION_KEY].values[k, j] = numpy.mean(
-                    numpy.diff(
-                        t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :]
-                    ) > 0
+            if not is_error_pos_oriented:
+                rtx[VECTOR_FLAT_MONO_FRACTION_KEY].values[t, w] = (
+                    1. - rtx[VECTOR_FLAT_MONO_FRACTION_KEY].values[t, w]
                 )
+                rtx[VECTOR_FLAT_MEAN_DI_KEY].values[t, w] *= -1.
 
-                t[VECTOR_MEAN_DI_KEY].values[k, j] = numpy.mean(
-                    numpy.diff(t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :])
-                    / numpy.diff(discard_fractions)
+            for h in range(num_heights):
+                rtx[VECTOR_MONO_FRACTION_KEY].values[t, h, w] = numpy.mean(
+                    numpy.diff(rtx[VECTOR_POST_DISCARD_ERROR_KEY].values[t, h, w, :]) > 0
                 )
-            else:
-                t[VECTOR_MONO_FRACTION_KEY].values[k, j] = numpy.mean(
-                    numpy.diff(t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :])
-                    < 0
-                )
-
-                t[VECTOR_MEAN_DI_KEY].values[k, j] = numpy.mean(
-                    -1 *
-                    numpy.diff(t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, :])
+                rtx[VECTOR_MEAN_DI_KEY].values[t, h, w] = numpy.mean(
+                    numpy.diff(rtx[VECTOR_POST_DISCARD_ERROR_KEY].values[t, h, w, :])
                     / numpy.diff(discard_fractions)
                 )
 
-    if is_error_pos_oriented:
-        t.attrs[MONO_FRACTION_KEY] = numpy.mean(
-            numpy.diff(t[POST_DISCARD_ERROR_KEY].values) > 0
-        )
-        t.attrs[MEAN_DI_KEY] = numpy.mean(
-            numpy.diff(t[POST_DISCARD_ERROR_KEY].values) /
-            numpy.diff(discard_fractions)
-        )
-    else:
-        t.attrs[MONO_FRACTION_KEY] = numpy.mean(
-            numpy.diff(t[POST_DISCARD_ERROR_KEY].values) < 0
-        )
-        t.attrs[MEAN_DI_KEY] = numpy.mean(
-            -1 * numpy.diff(t[POST_DISCARD_ERROR_KEY].values)
-            / numpy.diff(discard_fractions)
-        )
+                if not is_error_pos_oriented:
+                    rtx[VECTOR_MONO_FRACTION_KEY].values[t, h, w] = (
+                        1. - rtx[VECTOR_MONO_FRACTION_KEY].values[t, h, w]
+                    )
+                    rtx[VECTOR_MEAN_DI_KEY].values[t, h, w] *= -1.
 
-    result_table_xarray = t
+    rtx.attrs[MONO_FRACTION_KEY] = numpy.mean(
+        numpy.diff(rtx[POST_DISCARD_ERROR_KEY].values) > 0
+    )
+    rtx.attrs[MEAN_DI_KEY] = numpy.mean(
+        numpy.diff(rtx[POST_DISCARD_ERROR_KEY].values) /
+        numpy.diff(discard_fractions)
+    )
+
+    if not is_error_pos_oriented:
+        rtx.attrs[MONO_FRACTION_KEY] = 1. - rtx.attrs[MONO_FRACTION_KEY]
+        rtx.attrs[MEAN_DI_KEY] *= -1.
+
+    result_table_xarray = rtx
     return result_table_xarray
 
 
@@ -195,6 +169,7 @@ def run_discard_test(
     """Runs the discard test.
 
     E = number of examples
+    W = number of wavelengths
     F = number of discard fractions
     S = ensemble size
 
@@ -221,20 +196,20 @@ def run_discard_test(
 
     :param error_function_for_hr_1height: Function with the following inputs and
         outputs...
-    Input: actual_heating_rates_k_day01: length-E numpy array of actual heating
-        rates at one height.
-    Input: predicted_hr_matrix_k_day01: E-by-S numpy array of predicted heating
-        rates at the same height.
+    Input: actual_hr_matrix_k_day01: E-by-W numpy array of actual heating rates
+        at one height.
+    Input: predicted_hr_matrix_k_day01: E-by-W-by-S numpy array of predicted
+        heating rates at the same height.
     Input: use_example_flags: length-E numpy array of Boolean flags,
         indicating which examples to use.
     Output: error_value: Scalar value of error metric.
 
     :param error_function_for_flux_1var: Function with the following inputs and
         outputs...
-    Input: actual_fluxes_w_m02: length-E numpy array of actual values for one
+    Input: actual_flux_matrix_w_m02: E-by-W numpy array of actual values for one
         flux variable.
-    Input: predicted_fluxes_w_m02: E-by-S numpy array of predicted values for
-        one flux variable.
+    Input: predicted_flux_matrix_w_m02: E-by-W-by-S numpy array of predicted
+        values for one flux variable.
     Input: use_example_flags: length-E numpy array of Boolean flags,
         indicating which examples to use.
     Output: error_value: Scalar value of error metric.
@@ -268,6 +243,7 @@ def run_discard_test(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
 
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY:
@@ -278,7 +254,8 @@ def run_discard_test(
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_utils.HEIGHTS_KEY: heights_m_agl
+        example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres
     }
 
     aux_prediction_dict = uq_evaluation.get_aux_fields(
@@ -305,8 +282,10 @@ def run_discard_test(
     )
 
     num_heights = vector_target_matrix.shape[1]
-    num_vector_targets = vector_target_matrix.shape[2]
-    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_wavelengths = vector_target_matrix.shape[2]
+    num_vector_targets = vector_target_matrix.shape[3]
+    num_scalar_targets = scalar_target_matrix.shape[2]
+    ensemble_size = vector_prediction_matrix.shape[-1]
 
     main_data_dict = {
         POST_DISCARD_ERROR_KEY: (
@@ -317,10 +296,12 @@ def run_discard_test(
         )
     }
 
-    these_dim_keys_1d = (SCALAR_FIELD_DIM,)
-    these_dim_keys_2d = (SCALAR_FIELD_DIM, UNCERTAINTY_THRESHOLD_DIM)
-    these_dim_1d = num_scalar_targets
-    these_dim_2d = (num_scalar_targets, num_thresholds)
+    these_dim_keys_1d = (SCALAR_FIELD_DIM, WAVELENGTH_DIM)
+    these_dim_keys_2d = (
+        SCALAR_FIELD_DIM, WAVELENGTH_DIM, UNCERTAINTY_THRESHOLD_DIM
+    )
+    these_dim_1d = (num_scalar_targets, num_wavelengths)
+    these_dim_2d = (num_scalar_targets, num_wavelengths, num_thresholds)
 
     main_data_dict.update({
         SCALAR_POST_DISCARD_ERROR_KEY: (
@@ -340,12 +321,14 @@ def run_discard_test(
         )
     })
 
-    these_dim_keys_2d = (VECTOR_FIELD_DIM, HEIGHT_DIM)
+    these_dim_keys_2d = (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM)
     these_dim_keys_3d = (
-        VECTOR_FIELD_DIM, HEIGHT_DIM, UNCERTAINTY_THRESHOLD_DIM
+        VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM, UNCERTAINTY_THRESHOLD_DIM
     )
-    these_dim_2d = (num_vector_targets, num_heights)
-    these_dim_3d = (num_vector_targets, num_heights, num_thresholds)
+    these_dim_2d = (num_vector_targets, num_heights, num_wavelengths)
+    these_dim_3d = (
+        num_vector_targets, num_heights, num_wavelengths, num_thresholds
+    )
 
     main_data_dict.update({
         VECTOR_POST_DISCARD_ERROR_KEY: (
@@ -365,10 +348,12 @@ def run_discard_test(
         )
     })
 
-    these_dim_keys_2d = (VECTOR_FIELD_DIM,)
-    these_dim_keys_3d = (VECTOR_FIELD_DIM, UNCERTAINTY_THRESHOLD_DIM)
-    these_dim_2d = num_vector_targets
-    these_dim_3d = (num_vector_targets, num_thresholds)
+    these_dim_keys_2d = (VECTOR_FIELD_DIM, WAVELENGTH_DIM)
+    these_dim_keys_3d = (
+        VECTOR_FIELD_DIM, WAVELENGTH_DIM, UNCERTAINTY_THRESHOLD_DIM
+    )
+    these_dim_2d = (num_vector_targets, num_wavelengths)
+    these_dim_3d = (num_vector_targets, num_wavelengths, num_thresholds)
 
     main_data_dict.update({
         VECTOR_FLAT_POST_DISCARD_ERROR_KEY: (
@@ -391,10 +376,12 @@ def run_discard_test(
     num_aux_targets = len(aux_target_field_names)
 
     if num_aux_targets > 0:
-        these_dim_keys_1d = (AUX_TARGET_FIELD_DIM,)
-        these_dim_keys_2d = (AUX_TARGET_FIELD_DIM, UNCERTAINTY_THRESHOLD_DIM)
-        these_dim_1d = num_aux_targets
-        these_dim_2d = (num_aux_targets, num_thresholds)
+        these_dim_keys_1d = (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM)
+        these_dim_keys_2d = (
+            AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM, UNCERTAINTY_THRESHOLD_DIM
+        )
+        these_dim_1d = (num_aux_targets, num_wavelengths)
+        these_dim_2d = (num_aux_targets, num_wavelengths, num_thresholds)
 
         main_data_dict.update({
             AUX_POST_DISCARD_ERROR_KEY: (
@@ -416,8 +403,9 @@ def run_discard_test(
 
     metadata_dict = {
         SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
-        HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        WAVELENGTH_DIM: wavelengths_metres,
         UNCERTAINTY_THRESHOLD_DIM: uncertainty_thresholds
     }
 
@@ -445,102 +433,112 @@ def run_discard_test(
             prediction_dict, use_example_flags
         )
 
-        t = result_table_xarray
+        rtx = result_table_xarray
 
-        for k in range(num_scalar_targets):
-            t[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[k, i] = numpy.mean(
-                numpy.mean(
-                    scalar_prediction_matrix[:, k, :][use_example_flags, :],
+        for t in range(num_scalar_targets):
+            for w in range(num_wavelengths):
+                rtx[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[
+                    t, w, i
+                ] = numpy.mean(numpy.mean(
+                    scalar_prediction_matrix[:, w, t, :][
+                        use_example_flags, ...
+                    ],
                     axis=-1
-                )
-            )
+                ))
 
-            t[SCALAR_MEAN_TARGET_KEY].values[k, i] = numpy.mean(
-                scalar_target_matrix[:, k][use_example_flags]
-            )
-
-            t[SCALAR_POST_DISCARD_ERROR_KEY].values[k, i] = (
-                error_function_for_flux_1var(
-                    scalar_target_matrix[:, k],
-                    scalar_prediction_matrix[:, k, :],
-                    use_example_flags
-                )
-            )
-
-        for k in range(num_aux_targets):
-            t[AUX_MEAN_MEAN_PREDICTION_KEY].values[k, i] = numpy.mean(
-                numpy.mean(
-                    aux_prediction_matrix[:, k, :][use_example_flags, :],
-                    axis=-1
-                )
-            )
-
-            t[AUX_MEAN_TARGET_KEY].values[k, i] = numpy.mean(
-                aux_target_matrix[:, k][use_example_flags]
-            )
-
-            t[AUX_POST_DISCARD_ERROR_KEY].values[k, i] = (
-                error_function_for_flux_1var(
-                    aux_target_matrix[:, k],
-                    aux_prediction_matrix[:, k, :],
-                    use_example_flags
-                )
-            )
-
-        for k in range(num_vector_targets):
-            this_mean_pred_by_example = numpy.mean(
-                vector_prediction_matrix[:, :, k, :][use_example_flags, ...],
-                axis=-1
-            )
-
-            t[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[k, i] = numpy.mean(
-                this_mean_pred_by_example
-            )
-
-            t[VECTOR_FLAT_MEAN_TARGET_KEY].values[k, i] = numpy.mean(
-                vector_target_matrix[:, :, k][use_example_flags, :]
-            )
-
-            these_targets = numpy.ravel(vector_target_matrix[:, :, k])
-            this_prediction_matrix = numpy.reshape(
-                vector_prediction_matrix[:, :, k, :],
-                (len(these_targets), vector_prediction_matrix.shape[-1])
-            )
-
-            num_heights = vector_prediction_matrix.shape[1]
-            these_flags = numpy.repeat(
-                use_example_flags, axis=0, repeats=num_heights
-            )
-
-            t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[k, i] = (
-                error_function_for_hr_1height(
-                    these_targets, this_prediction_matrix, these_flags
-                )
-            )
-
-            for j in range(num_heights):
-                this_mean_pred_by_example = numpy.mean(
-                    vector_prediction_matrix[:, j, k, :][use_example_flags, :],
-                    axis=-1
+                rtx[SCALAR_MEAN_TARGET_KEY].values[t, w, i] = numpy.mean(
+                    scalar_target_matrix[:, w, t][use_example_flags]
                 )
 
-                t[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[k, j, i] = numpy.mean(
-                    this_mean_pred_by_example
-                )
-
-                t[VECTOR_MEAN_TARGET_KEY].values[k, j, i] = numpy.mean(
-                    vector_target_matrix[:, j, k][use_example_flags]
-                )
-
-                t[VECTOR_POST_DISCARD_ERROR_KEY].values[k, j, i] = (
-                    error_function_for_hr_1height(
-                        vector_target_matrix[:, j, k],
-                        vector_prediction_matrix[:, j, k, :],
+                rtx[SCALAR_POST_DISCARD_ERROR_KEY].values[t, w, i] = (
+                    error_function_for_flux_1var(
+                        scalar_target_matrix[:, [w], t],
+                        scalar_prediction_matrix[:, [w], t, :],
                         use_example_flags
                     )
                 )
 
-        result_table_xarray = t
+        for t in range(num_aux_targets):
+            for w in range(num_wavelengths):
+                rtx[AUX_MEAN_MEAN_PREDICTION_KEY].values[
+                    t, w, i
+                ] = numpy.mean(numpy.mean(
+                    aux_prediction_matrix[:, w, t, :][use_example_flags, ...],
+                    axis=-1
+                ))
+
+                rtx[AUX_MEAN_TARGET_KEY].values[t, w, i] = numpy.mean(
+                    aux_target_matrix[:, w, t][use_example_flags]
+                )
+
+                rtx[AUX_POST_DISCARD_ERROR_KEY].values[t, w, i] = (
+                    error_function_for_flux_1var(
+                        aux_target_matrix[:, [w], t],
+                        aux_prediction_matrix[:, [w], t, :],
+                        use_example_flags
+                    )
+                )
+
+        for t in range(num_vector_targets):
+            for w in range(num_wavelengths):
+                this_mean_pred_by_example = numpy.mean(
+                    vector_prediction_matrix[..., w, t, :][
+                        use_example_flags, ...
+                    ],
+                    axis=-1
+                )
+
+                rtx[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[t, w, i] = (
+                    numpy.mean(this_mean_pred_by_example)
+                )
+                rtx[VECTOR_FLAT_MEAN_TARGET_KEY].values[t, w, i] = numpy.mean(
+                    vector_target_matrix[..., w, t][use_example_flags, ...]
+                )
+
+                this_target_matrix = numpy.expand_dims(
+                    numpy.ravel(vector_target_matrix[..., w, t]),
+                    axis=-1
+                )
+                this_prediction_matrix = numpy.reshape(
+                    vector_prediction_matrix[..., w, t, :],
+                    (this_target_matrix.shape[0], ensemble_size)
+                )
+                this_prediction_matrix = numpy.expand_dims(
+                    this_prediction_matrix, axis=-2
+                )
+                these_flags = numpy.repeat(
+                    use_example_flags, axis=0, repeats=num_heights
+                )
+
+                rtx[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[t, w, i] = (
+                    error_function_for_hr_1height(
+                        this_target_matrix, this_prediction_matrix, these_flags
+                    )
+                )
+
+                for h in range(num_heights):
+                    this_mean_pred_by_example = numpy.mean(
+                        vector_prediction_matrix[:, h, w, t, :][
+                            use_example_flags, ...
+                        ],
+                        axis=-1
+                    )
+
+                    rtx[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[t, h, w, i] = (
+                        numpy.mean(this_mean_pred_by_example)
+                    )
+                    rtx[VECTOR_MEAN_TARGET_KEY].values[t, h, w, i] = numpy.mean(
+                        vector_target_matrix[:, h, w, t][use_example_flags]
+                    )
+                    rtx[VECTOR_POST_DISCARD_ERROR_KEY].values[t, h, w, i] = (
+                        error_function_for_hr_1height(
+                            vector_target_matrix[:, h, [w], t],
+                            vector_prediction_matrix[:, h, [w], t, :],
+                            use_example_flags
+                        )
+                    )
+
+        result_table_xarray = rtx
 
     return _compute_mf_and_di(
         result_table_xarray=result_table_xarray,
@@ -579,6 +577,7 @@ def merge_results_over_examples(result_tables_xarray):
         result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values
     )
     heights_m_agl = result_tables_xarray[0].coords[HEIGHT_DIM].values
+    wavelengths_metres = result_tables_xarray[0].coords[WAVELENGTH_DIM].values
 
     try:
         aux_predicted_field_names = (
@@ -607,165 +606,165 @@ def merge_results_over_examples(result_tables_xarray):
             atol=TOLERANCE
         )
 
-    result_table_xarray = copy.deepcopy(result_tables_xarray[0])
+    rtx = copy.deepcopy(result_tables_xarray[0])
     num_thresholds = len(
-        result_table_xarray.coords[UNCERTAINTY_THRESHOLD_DIM].values
+        rtx.coords[UNCERTAINTY_THRESHOLD_DIM].values
     )
 
     for i in range(num_thresholds):
         example_fraction_by_table_this_bin = numpy.array([
-            t[EXAMPLE_FRACTION_KEY].values[i] for t in result_tables_xarray
+            this_tbl[EXAMPLE_FRACTION_KEY].values[i]
+            for this_tbl in result_tables_xarray
         ])
         num_examples_by_table_this_bin = (
             example_fraction_by_table_this_bin * num_examples_by_table
         )
-
-        result_table_xarray[EXAMPLE_FRACTION_KEY].values[i] = (
+        rtx[EXAMPLE_FRACTION_KEY].values[i] = (
             float(numpy.sum(num_examples_by_table_this_bin)) /
             numpy.sum(num_examples_by_table)
         )
 
         these_errors = numpy.array([
-            t[POST_DISCARD_ERROR_KEY].values[i] for t in result_tables_xarray
+            this_tbl[POST_DISCARD_ERROR_KEY].values[i]
+            for this_tbl in result_tables_xarray
         ])
-        result_table_xarray[POST_DISCARD_ERROR_KEY].values[i] = numpy.average(
+        rtx[POST_DISCARD_ERROR_KEY].values[i] = numpy.average(
             these_errors, weights=num_examples_by_table_this_bin
         )
 
-        for j in range(len(scalar_target_names)):
-            these_errors = numpy.array([
-                t[SCALAR_POST_DISCARD_ERROR_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[SCALAR_POST_DISCARD_ERROR_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_errors, weights=num_examples_by_table_this_bin
-            )
-
-            these_mean_mean_predictions = numpy.array([
-                t[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_mean_predictions,
-                weights=num_examples_by_table_this_bin
-            )
-
-            these_mean_targets = numpy.array([
-                t[SCALAR_MEAN_TARGET_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[SCALAR_MEAN_TARGET_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_targets, weights=num_examples_by_table_this_bin
-            )
-
-        for j in range(len(aux_predicted_field_names)):
-            these_errors = numpy.array([
-                t[AUX_POST_DISCARD_ERROR_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[AUX_POST_DISCARD_ERROR_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_errors, weights=num_examples_by_table_this_bin
-            )
-
-            these_mean_mean_predictions = numpy.array([
-                t[AUX_MEAN_MEAN_PREDICTION_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[AUX_MEAN_MEAN_PREDICTION_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_mean_predictions,
-                weights=num_examples_by_table_this_bin
-            )
-
-            these_mean_targets = numpy.array([
-                t[AUX_MEAN_TARGET_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[AUX_MEAN_TARGET_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_targets, weights=num_examples_by_table_this_bin
-            )
-
-        for j in range(len(vector_target_names)):
-            these_errors = numpy.array([
-                t[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_errors, weights=num_examples_by_table_this_bin
-            )
-
-            these_mean_mean_predictions = numpy.array([
-                t[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_mean_predictions,
-                weights=num_examples_by_table_this_bin
-            )
-
-            these_mean_targets = numpy.array([
-                t[VECTOR_FLAT_MEAN_TARGET_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-            result_table_xarray[VECTOR_FLAT_MEAN_TARGET_KEY].values[
-                j, i
-            ] = numpy.average(
-                these_mean_targets, weights=num_examples_by_table_this_bin
-            )
-
-            for k in range(len(heights_m_agl)):
+        for t in range(len(scalar_target_names)):
+            for w in range(len(wavelengths_metres)):
                 these_errors = numpy.array([
-                    t[VECTOR_POST_DISCARD_ERROR_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[SCALAR_POST_DISCARD_ERROR_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
                 ])
-                result_table_xarray[VECTOR_POST_DISCARD_ERROR_KEY].values[
-                    j, k, i
-                ] = numpy.average(
+                rtx[SCALAR_POST_DISCARD_ERROR_KEY].values[t, w, i] = (
+                    numpy.average(
+                        these_errors, weights=num_examples_by_table_this_bin
+                    )
+                )
+
+                these_mean_mean_predictions = numpy.array([
+                    this_tbl[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[SCALAR_MEAN_MEAN_PREDICTION_KEY].values[t, w, i] = (
+                    numpy.average(
+                        these_mean_mean_predictions,
+                        weights=num_examples_by_table_this_bin
+                    )
+                )
+
+                these_mean_targets = numpy.array([
+                    this_tbl[SCALAR_MEAN_TARGET_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[SCALAR_MEAN_TARGET_KEY].values[t, w, i] = numpy.average(
+                    these_mean_targets, weights=num_examples_by_table_this_bin
+                )
+
+        for t in range(len(aux_predicted_field_names)):
+            for w in range(len(wavelengths_metres)):
+                these_errors = numpy.array([
+                    this_tbl[AUX_POST_DISCARD_ERROR_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[AUX_POST_DISCARD_ERROR_KEY].values[t, w, i] = numpy.average(
                     these_errors, weights=num_examples_by_table_this_bin
                 )
 
                 these_mean_mean_predictions = numpy.array([
-                    t[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[AUX_MEAN_MEAN_PREDICTION_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
                 ])
-                result_table_xarray[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[
-                    j, k, i
-                ] = numpy.average(
-                    these_mean_mean_predictions,
-                    weights=num_examples_by_table_this_bin
+                rtx[AUX_MEAN_MEAN_PREDICTION_KEY].values[t, w, i] = (
+                    numpy.average(
+                        these_mean_mean_predictions,
+                        weights=num_examples_by_table_this_bin
+                    )
                 )
 
                 these_mean_targets = numpy.array([
-                    t[VECTOR_MEAN_TARGET_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+                    this_tbl[AUX_MEAN_TARGET_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
                 ])
-                result_table_xarray[VECTOR_MEAN_TARGET_KEY].values[
-                    j, k, i
-                ] = numpy.average(
+                rtx[AUX_MEAN_TARGET_KEY].values[t, w, i] = numpy.average(
                     these_mean_targets, weights=num_examples_by_table_this_bin
                 )
 
-    result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([
+        for t in range(len(vector_target_names)):
+            for w in range(len(wavelengths_metres)):
+                these_errors = numpy.array([
+                    this_tbl[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_FLAT_POST_DISCARD_ERROR_KEY].values[t, w, i] = (
+                    numpy.average(
+                        these_errors, weights=num_examples_by_table_this_bin
+                    )
+                )
+
+                these_mean_mean_predictions = numpy.array([
+                    this_tbl[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_FLAT_MEAN_MEAN_PREDICTION_KEY].values[t, w, i] = (
+                    numpy.average(
+                        these_mean_mean_predictions,
+                        weights=num_examples_by_table_this_bin
+                    )
+                )
+
+                these_mean_targets = numpy.array([
+                    this_tbl[VECTOR_FLAT_MEAN_TARGET_KEY].values[t, w, i]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_FLAT_MEAN_TARGET_KEY].values[t, w, i] = (
+                    numpy.average(
+                        these_mean_targets,
+                        weights=num_examples_by_table_this_bin
+                    )
+                )
+
+                for h in range(len(heights_m_agl)):
+                    these_errors = numpy.array([
+                        this_tbl[VECTOR_POST_DISCARD_ERROR_KEY].values[t, h, w, i]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    rtx[VECTOR_POST_DISCARD_ERROR_KEY].values[t, h, w, i] = (
+                        numpy.average(
+                            these_errors, weights=num_examples_by_table_this_bin
+                        )
+                    )
+
+                    these_mean_mean_predictions = numpy.array([
+                        this_tbl[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[t, h, w, i]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    rtx[VECTOR_MEAN_MEAN_PREDICTION_KEY].values[t, h, w, i] = (
+                        numpy.average(
+                            these_mean_mean_predictions,
+                            weights=num_examples_by_table_this_bin
+                        )
+                    )
+
+                    these_mean_targets = numpy.array([
+                        this_tbl[VECTOR_MEAN_TARGET_KEY].values[t, h, w, i]
+                        for this_tbl in result_tables_xarray
+                    ])
+                    rtx[VECTOR_MEAN_TARGET_KEY].values[t, h, w, i] = (
+                        numpy.average(
+                            these_mean_targets,
+                            weights=num_examples_by_table_this_bin
+                        )
+                    )
+
+    rtx.attrs[PREDICTION_FILE_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
     ])
 
     return _compute_mf_and_di(
-        result_table_xarray=result_table_xarray,
+        result_table_xarray=rtx,
         is_error_pos_oriented=is_error_pos_oriented
     )
 
