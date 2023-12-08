@@ -315,7 +315,9 @@ def plot_inset_histogram(
         0.5 + numpy.linspace(0, num_bins - 1, num=num_bins, dtype=float)
     )
 
+    print(bin_centers)
     real_indices = numpy.where(numpy.invert(numpy.isnan(bin_centers)))[0]
+    print(real_indices)
 
     inset_axes_object.bar(
         fake_bin_centers[real_indices], bin_frequencies[real_indices], 1.,
@@ -326,14 +328,20 @@ def plot_inset_histogram(
     this_spacing = int(numpy.floor(
         (1. / 6) * len(real_indices)
     ))
+    print(this_spacing)
     this_spacing = max([this_spacing, 1])
+    print(this_spacing)
 
     tick_indices = numpy.concatenate((
         real_indices[::this_spacing], real_indices[[-1]]
     ))
     tick_indices = numpy.unique(tick_indices)
+    print(tick_indices)
+
     if numpy.diff(tick_indices[-2:])[0] < 2:
         tick_indices = tick_indices[:-1]
+
+    print(tick_indices)
 
     x_tick_values = fake_bin_centers[tick_indices]
 
