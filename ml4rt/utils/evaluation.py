@@ -1,6 +1,7 @@
 """Methods for model evaluation."""
 
-import os.path
+import os
+import copy
 import numpy
 import xarray
 from scipy.stats import ks_2samp
@@ -121,6 +122,56 @@ SCALAR_TARGET_VALS_KEY = 'scalar_target_matrix'
 SCALAR_PREDICTED_VALS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGET_VALS_KEY = 'vector_target_matrix'
 VECTOR_PREDICTED_VALS_KEY = 'vector_prediction_matrix'
+
+
+def _add_wavelength_dim_to_table(evaluation_table_xarray):
+    """Adds wavelength dimension to evaluation table.
+
+    :param evaluation_table_xarray: xarray table in format created by
+        `get_scores_all_variables`.
+    :return: evaluation_table_xarray: Same but including wavelength dimension.
+    """
+
+    if WAVELENGTH_DIM in evaluation_table_xarray.coords:
+        return evaluation_table_xarray
+
+    data_dict = {}
+    coord_dict = {}
+
+    for var_name in evaluation_table_xarray.data_vars:
+        dimension_keys = list(evaluation_table_xarray[var_name].dims)
+        data_matrix = evaluation_table_xarray[var_name].values
+
+        if SCALAR_FIELD_DIM in dimension_keys:
+            i = dimension_keys.index(SCALAR_FIELD_DIM)
+            dimension_keys.insert(i, WAVELENGTH_DIM)
+            data_matrix = numpy.expand_dims(data_matrix, axis=i)
+
+        if VECTOR_FIELD_DIM in dimension_keys:
+            i = dimension_keys.index(VECTOR_FIELD_DIM)
+            dimension_keys.insert(i, WAVELENGTH_DIM)
+            data_matrix = numpy.expand_dims(data_matrix, axis=i)
+
+        if AUX_TARGET_FIELD_DIM in dimension_keys:
+            i = dimension_keys.index(AUX_TARGET_FIELD_DIM)
+            dimension_keys.insert(i, WAVELENGTH_DIM)
+            data_matrix = numpy.expand_dims(data_matrix, axis=i)
+
+        data_dict[var_name] = (copy.deepcopy(dimension_keys), data_matrix + 0.)
+
+    for coord_name in evaluation_table_xarray.coords:
+        coord_dict[coord_name] = (
+            evaluation_table_xarray.coords[coord_name].values
+        )
+
+    coord_dict[WAVELENGTH_DIM] = numpy.array(
+        [example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES]
+    )
+
+    return xarray.Dataset(
+        data_vars=data_dict, coords=coord_dict,
+        attrs=evaluation_table_xarray.attrs
+    )
 
 
 def _check_args(
@@ -1867,4 +1918,4 @@ def read_file(netcdf_file_name):
         `get_scores_all_variables`.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    return _add_wavelength_dim_to_table(xarray.open_dataset(netcdf_file_name))

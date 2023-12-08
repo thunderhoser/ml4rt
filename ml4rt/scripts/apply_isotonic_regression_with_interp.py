@@ -159,10 +159,7 @@ def _match_examples(prediction_dict, new_grid_example_dir_name):
         print('Reading data on new grid from: "{0:s}"...'.format(
             this_file_name
         ))
-        this_example_dict = example_io.read_file(
-            netcdf_file_name=this_file_name,
-            exclude_summit_greenland=False
-        )
+        this_example_dict = example_io.read_file(this_file_name)
 
         new_grid_id_strings += this_example_dict[example_utils.EXAMPLE_IDS_KEY]
         new_heights_m_agl = this_example_dict[example_utils.HEIGHTS_KEY]

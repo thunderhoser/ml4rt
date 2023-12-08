@@ -5,6 +5,7 @@ import numpy
 from ml4rt.utils import crps_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+METRES_TO_MICRONS = 1e6
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_LEVELS_ARG_NAME = 'num_integration_levels'
@@ -65,61 +66,74 @@ def _run(prediction_file_name, num_integration_levels, ensemble_size_for_climo,
     )
     print(SEPARATOR_STRING)
 
-    t = result_table_xarray
-    scalar_target_names = t.coords[crps_utils.SCALAR_FIELD_DIM].values
+    rtx = result_table_xarray
+    scalar_target_names = rtx.coords[crps_utils.SCALAR_FIELD_DIM].values
+    wavelengths_microns = (
+        METRES_TO_MICRONS * rtx.coords[crps_utils.WAVELENGTH_DIM].values
+    )
 
-    for k in range(len(scalar_target_names)):
-        print((
-            'Variable = {0:s} ... CRPS = {1:f} ... CRPSS = {2:f} ... '
-            'DWCRPS = {3:f}'
-        ).format(
-            scalar_target_names[k],
-            t[crps_utils.SCALAR_CRPS_KEY].values[k],
-            t[crps_utils.SCALAR_CRPSS_KEY].values[k],
-            t[crps_utils.SCALAR_DWCRPS_KEY].values[k]
-        ))
-
-    print(SEPARATOR_STRING)
-    vector_target_names = t.coords[crps_utils.VECTOR_FIELD_DIM].values
-    heights_m_agl = t.coords[crps_utils.HEIGHT_DIM].values
-
-    for k in range(len(vector_target_names)):
-        for j in range(len(heights_m_agl)):
+    for t in range(len(scalar_target_names)):
+        for w in range(len(wavelengths_microns)):
             print((
-                'Variable = {0:s} at {1:d} m AGL ... CRPS = {2:f} ... '
-                'CRPSS = {3:f} ... DWCRPS = {4:f}'
+                'Variable = {0:s} at {1:.2f} microns ... '
+                'CRPS = {2:f} ... CRPSS = {3:f} ... DWCRPS = {4:f}'
             ).format(
-                vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                t[crps_utils.VECTOR_CRPS_KEY].values[k, j],
-                t[crps_utils.VECTOR_CRPSS_KEY].values[k, j],
-                t[crps_utils.VECTOR_DWCRPS_KEY].values[k, j]
+                scalar_target_names[t],
+                wavelengths_microns[w],
+                rtx[crps_utils.SCALAR_CRPS_KEY].values[t, w],
+                rtx[crps_utils.SCALAR_CRPSS_KEY].values[t, w],
+                rtx[crps_utils.SCALAR_DWCRPS_KEY].values[t, w]
             ))
 
         print(SEPARATOR_STRING)
 
+    vector_target_names = rtx.coords[crps_utils.VECTOR_FIELD_DIM].values
+    heights_m_agl = rtx.coords[crps_utils.HEIGHT_DIM].values
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_microns)):
+            for h in range(len(heights_m_agl)):
+                print((
+                    'Variable = {0:s} at {1:.2f} microns and {2:d} m AGL ... '
+                    'CRPS = {3:f} ... CRPSS = {4:f} ... DWCRPS = {5:f}'
+                ).format(
+                    vector_target_names[t],
+                    wavelengths_microns[w],
+                    int(numpy.round(heights_m_agl[h])),
+                    rtx[crps_utils.VECTOR_CRPS_KEY].values[t, h, w],
+                    rtx[crps_utils.VECTOR_CRPSS_KEY].values[t, h, w],
+                    rtx[crps_utils.VECTOR_DWCRPS_KEY].values[t, h, w]
+                ))
+
+            print(SEPARATOR_STRING)
+
     try:
         aux_target_field_names = (
-            t.coords[crps_utils.AUX_TARGET_FIELD_DIM].values
+            rtx.coords[crps_utils.AUX_TARGET_FIELD_DIM].values
         )
         aux_predicted_field_names = (
-            t.coords[crps_utils.AUX_PREDICTED_FIELD_DIM].values
+            rtx.coords[crps_utils.AUX_PREDICTED_FIELD_DIM].values
         )
     except:
         aux_target_field_names = []
         aux_predicted_field_names = []
 
-    for k in range(len(aux_target_field_names)):
-        print((
-            'Target variable = {0:s} ... predicted variable = {1:s} ... '
-            'CRPS = {2:f} ... CRPSS = {3:f} ... DWCRPS = {4:f}'
-        ).format(
-            aux_target_field_names[k], aux_predicted_field_names[k],
-            t[crps_utils.AUX_CRPS_KEY].values[k],
-            t[crps_utils.AUX_CRPSS_KEY].values[k],
-            t[crps_utils.AUX_DWCRPS_KEY].values[k]
-        ))
+    for t in range(len(aux_target_field_names)):
+        for w in range(len(wavelengths_microns)):
+            print((
+                'Target variable = {0:s} at {1:.2f} microns ... '
+                'predicted variable = {2:s} at {1:.2f} microns ... '
+                'CRPS = {3:f} ... CRPSS = {4:f} ... DWCRPS = {5:f}'
+            ).format(
+                aux_target_field_names[t],
+                wavelengths_microns[w],
+                aux_predicted_field_names[t],
+                rtx[crps_utils.AUX_CRPS_KEY].values[t],
+                rtx[crps_utils.AUX_CRPSS_KEY].values[t],
+                rtx[crps_utils.AUX_DWCRPS_KEY].values[t]
+            ))
 
-    print(SEPARATOR_STRING)
+        print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
     crps_utils.write_results(

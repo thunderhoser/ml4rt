@@ -136,7 +136,6 @@ def get_examples_for_inference(
         predictor_matrix, target_array = (
             neural_net.create_data_specific_examples(
                 option_dict=generator_option_dict,
-                net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
                 example_id_strings=example_id_strings
             )
         )
@@ -161,8 +160,7 @@ def get_examples_for_inference(
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
-        option_dict=generator_option_dict,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+        generator_option_dict
     )
 
     num_examples_total = len(example_id_strings)

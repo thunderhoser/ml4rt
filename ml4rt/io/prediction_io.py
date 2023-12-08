@@ -920,6 +920,8 @@ def subset_by_shortwave_sfc_down_flux(
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
+    # TODO(thunderhoser): Deal with wavelength.
+
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
         max_flux_w_m02, min_flux_w_m02
@@ -960,6 +962,8 @@ def subset_by_longwave_sfc_down_flux(
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
+    # TODO(thunderhoser): Deal with wavelength.
+
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
         max_flux_w_m02, min_flux_w_m02
@@ -999,6 +1003,8 @@ def subset_by_longwave_toa_up_flux(
     :param max_flux_w_m02: Max flux.
     :return: prediction_dict: Same as input but with fewer examples.
     """
+
+    # TODO(thunderhoser): Deal with wavelength.
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(

@@ -15,7 +15,7 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
 
-def _run(net_type_string, training_dir_name, validation_dir_name,
+def _run(training_dir_name, validation_dir_name,
          input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
          joined_output_layer, num_deep_supervision_layers, predictor_names,
@@ -31,8 +31,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
          num_validn_batches_per_epoch, plateau_lr_multiplier):
     """Trains neural net
 
-    :param net_type_string: See documentation at top of training_args.py.
-    :param training_dir_name: Same.
+    :param training_dir_name: See documentation at top of training_args.py.
     :param validation_dir_name: Same.
     :param input_model_file_name: Same.
     :param output_model_dir_name: Same.
@@ -73,8 +72,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         vector_target_norm_type_string = None
     if scalar_target_norm_type_string in NONE_STRINGS:
         scalar_target_norm_type_string = None
-
-    neural_net.check_net_type(net_type_string)
 
     for n in predictor_names:
         example_utils.check_field_name(n)
@@ -173,7 +170,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
             use_generator_for_validn=use_generator_for_validn,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             validation_option_dict=validation_option_dict,
-            net_type_string=net_type_string,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
             plateau_lr_multiplier=plateau_lr_multiplier,
             bnn_architecture_dict=bnn_architecture_dict,
@@ -184,7 +180,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
             model_object=model_object, output_dir_name=output_model_dir_name,
             num_epochs=num_epochs, training_option_dict=training_option_dict,
             validation_option_dict=validation_option_dict,
-            net_type_string=net_type_string,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
             num_training_batches_per_epoch=num_training_batches_per_epoch,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
@@ -198,9 +193,6 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        net_type_string=getattr(
-            INPUT_ARG_OBJECT, training_args.NET_TYPE_ARG_NAME
-        ),
         training_dir_name=getattr(
             INPUT_ARG_OBJECT, training_args.TRAINING_DIR_ARG_NAME
         ),

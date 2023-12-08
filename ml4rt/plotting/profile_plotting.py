@@ -371,14 +371,15 @@ def plot_predictors(
 
 
 def plot_targets(
-        example_dict, example_index, use_log_scale, for_shortwave=True,
-        line_width=DEFAULT_LINE_WIDTH, line_style='solid',
-        handle_dict=None):
+        example_dict, example_index, wavelength_metres, use_log_scale,
+        for_shortwave=True, line_width=DEFAULT_LINE_WIDTH,
+        line_style='solid', handle_dict=None):
     """Plots targets (upwelling flux, downwelling flux, heating rate).
 
     :param example_dict: See doc for `plot_predictors`.
     :param example_index: Same.
-    :param use_log_scale: Same.
+    :param wavelength_metres: Will plot targets at this wavelength.
+    :param use_log_scale: See doc for `plot_predictors`.
     :param for_shortwave: Boolean flag.  If True (False), will plot targets for
         shortwave (longwave) flux.
     :param line_width: See doc for `plot_predictors`.
@@ -436,7 +437,8 @@ def plot_targets(
         field_name=(
             example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
             else example_utils.LONGWAVE_HEATING_RATE_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )[example_index, ...]
 
     heating_rate_axes_object.plot(
@@ -449,7 +451,8 @@ def plot_targets(
         field_name=(
             example_utils.SHORTWAVE_DOWN_FLUX_NAME if for_shortwave
             else example_utils.LONGWAVE_DOWN_FLUX_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )[example_index, ...]
 
     down_flux_axes_object.plot(
@@ -463,7 +466,8 @@ def plot_targets(
         field_name=(
             example_utils.SHORTWAVE_UP_FLUX_NAME if for_shortwave
             else example_utils.LONGWAVE_UP_FLUX_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )[example_index, ...]
 
     up_flux_axes_object.plot(

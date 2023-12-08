@@ -22,7 +22,10 @@ from ml4rt.machine_learning import neural_net
 from ml4rt.plotting import plotting_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
 TOLERANCE = 1e-6
+METRES_TO_MICRONS = 1e6
+
 DUMMY_FIELD_NAME = 'reflectivity_column_max_dbz'
 
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
@@ -183,6 +186,7 @@ PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 HEATING_RATE_HEIGHT_ARG_NAME = 'heating_rate_height_m_agl'
 GRID_SPACING_ARG_NAME = 'grid_spacing_deg'
 MIN_EXAMPLES_ARG_NAME = 'min_num_examples'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
@@ -197,6 +201,9 @@ GRID_SPACING_HELP_STRING = 'Grid spacing (degrees).'
 MIN_EXAMPLES_HELP_STRING = (
     'Minimum number of examples.  For any grid cell with fewer examples, error '
     'metrics will not be plotted.'
+)
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one set of plots for each.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -218,6 +225,11 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + MIN_EXAMPLES_ARG_NAME, type=int, required=True,
     help=MIN_EXAMPLES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -418,7 +430,7 @@ def _plot_one_score(
 
 
 def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
-         min_num_examples, output_dir_name):
+         min_num_examples, wavelengths_metres, output_dir_name):
     """Plots error metrics as a function of lat-long location.
 
     This is effectively the main method.
@@ -427,9 +439,11 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
     :param heating_rate_height_m_agl: Same.
     :param grid_spacing_deg: Same.
     :param min_num_examples: Same.
+    :param wavelengths_metres: Same.
     :param output_dir_name: Same.
     """
 
+    # Check input args.
     error_checking.assert_is_greater(grid_spacing_deg, 0.)
     error_checking.assert_is_leq(grid_spacing_deg, 10.)
     error_checking.assert_is_greater(min_num_examples, 0)
@@ -440,13 +454,15 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
         directory_name=output_dir_name
     )
 
+    # Housekeeping.
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_dict = prediction_io.read_file(prediction_file_name)
     prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
+    pdict = prediction_dict
 
-    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_file_name = pdict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
@@ -489,48 +505,8 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
             if n in training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
         ]
 
-    num_target_vars = len(target_names)
-    climo_value_by_target = numpy.full(num_target_vars, numpy.nan)
-
-    for k in range(num_target_vars):
-        if target_names[k] in [
-                example_utils.SHORTWAVE_HEATING_RATE_NAME,
-                example_utils.LONGWAVE_HEATING_RATE_NAME
-        ]:
-            these_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=target_names[k],
-                height_m_agl=heating_rate_height_m_agl
-            )
-        elif target_names[k] == SHORTWAVE_NET_FLUX_NAME:
-            down_flux_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            up_flux_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-            )
-            these_values = down_flux_values - up_flux_values
-        elif target_names[k] == LONGWAVE_NET_FLUX_NAME:
-            down_flux_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
-            )
-            up_flux_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME
-            )
-            these_values = down_flux_values - up_flux_values
-        else:
-            these_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict, field_name=target_names[k]
-            )
-
-        climo_value_by_target[k] = numpy.mean(these_values)
-
     metadata_dict = example_utils.parse_example_ids(
-        prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
+        pdict[prediction_io.EXAMPLE_IDS_KEY]
     )
     latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
     longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
@@ -571,323 +547,417 @@ def _run(prediction_file_name, heating_rate_height_m_agl, grid_spacing_deg,
     )
 
     # Do actual stuff.
-    for k in range(len(target_names)):
-        print(SEPARATOR_STRING)
-
-        dimensions = (num_grid_rows, num_grid_columns)
-        bias_matrix = numpy.full(dimensions, numpy.nan)
-        correlation_matrix = numpy.full(dimensions, numpy.nan)
-        mae_matrix = numpy.full(dimensions, numpy.nan)
-        mae_skill_score_matrix = numpy.full(dimensions, numpy.nan)
-        mse_matrix = numpy.full(dimensions, numpy.nan)
-        mse_skill_score_matrix = numpy.full(dimensions, numpy.nan)
-        kge_matrix = numpy.full(dimensions, numpy.nan)
-        num_examples_matrix = numpy.full(dimensions, -1, dtype=int)
-
-        if target_names[k] in [
-                example_utils.SHORTWAVE_HEATING_RATE_NAME,
-                example_utils.LONGWAVE_HEATING_RATE_NAME
-        ]:
-            height_diffs_metres = numpy.absolute(
-                prediction_dict[prediction_io.HEIGHTS_KEY] -
-                heating_rate_height_m_agl
+    for t in range(len(target_names)):
+        for w in range(len(wavelengths_metres)):
+            w_idx = example_utils.match_wavelengths(
+                wavelengths_metres=
+                training_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=wavelengths_metres[w]
             )
-            assert numpy.min(height_diffs_metres) <= TOLERANCE
-            height_index = numpy.argmin(height_diffs_metres)
 
-            channel_index = training_option_dict[
-                neural_net.VECTOR_TARGET_NAMES_KEY
-            ].index(target_names[k])
+            print(SEPARATOR_STRING)
 
-            actual_values = prediction_dict[
-                prediction_io.VECTOR_TARGETS_KEY
-            ][:, height_index, channel_index]
-
-            predicted_values = prediction_dict[
-                prediction_io.VECTOR_PREDICTIONS_KEY
-            ][:, height_index, channel_index]
-
-        elif target_names[k] in [
-                SHORTWAVE_NET_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
-        ]:
-            if target_names[k] == SHORTWAVE_NET_FLUX_NAME:
-                down_flux_index = training_option_dict[
-                    neural_net.SCALAR_TARGET_NAMES_KEY
-                ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
-
-                up_flux_index = training_option_dict[
-                    neural_net.SCALAR_TARGET_NAMES_KEY
-                ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+            if target_names[t] in [
+                    example_utils.SHORTWAVE_HEATING_RATE_NAME,
+                    example_utils.LONGWAVE_HEATING_RATE_NAME
+            ]:
+                all_training_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=target_names[t],
+                    target_wavelength_metres=wavelengths_metres[w],
+                    height_m_agl=heating_rate_height_m_agl
+                )
+            elif target_names[t] == SHORTWAVE_NET_FLUX_NAME:
+                down_flux_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                up_flux_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.SHORTWAVE_TOA_UP_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                all_training_values = down_flux_values - up_flux_values
+            elif target_names[t] == LONGWAVE_NET_FLUX_NAME:
+                down_flux_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                up_flux_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=example_utils.LONGWAVE_TOA_UP_FLUX_NAME,
+                    target_wavelength_metres=wavelengths_metres[w]
+                )
+                all_training_values = down_flux_values - up_flux_values
             else:
-                down_flux_index = training_option_dict[
-                    neural_net.SCALAR_TARGET_NAMES_KEY
-                ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
-
-                up_flux_index = training_option_dict[
-                    neural_net.SCALAR_TARGET_NAMES_KEY
-                ].index(example_utils.LONGWAVE_TOA_UP_FLUX_NAME)
-
-            actual_values = (
-                prediction_dict[prediction_io.SCALAR_TARGETS_KEY][
-                    :, down_flux_index
-                ] -
-                prediction_dict[prediction_io.SCALAR_TARGETS_KEY][
-                    :, up_flux_index
-                ]
-            )
-
-            predicted_values = (
-                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][
-                    :, down_flux_index
-                ] -
-                prediction_dict[prediction_io.SCALAR_PREDICTIONS_KEY][
-                    :, up_flux_index
-                ]
-            )
-
-        else:
-            channel_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(target_names[k])
-
-            actual_values = prediction_dict[
-                prediction_io.SCALAR_TARGETS_KEY
-            ][:, channel_index]
-
-            predicted_values = prediction_dict[
-                prediction_io.SCALAR_PREDICTIONS_KEY
-            ][:, channel_index]
-
-        for i in range(num_grid_rows):
-            print((
-                'Have computed {0:s} errors for {1:d} of {2:d} grid rows...'
-            ).format(
-                target_names[k], i, num_grid_rows
-            ))
-
-            for j in range(num_grid_columns):
-                these_indices = grids.find_events_in_grid_cell(
-                    event_x_coords_metres=longitudes_deg_e,
-                    event_y_coords_metres=latitudes_deg_n,
-                    grid_edge_x_coords_metres=grid_edge_longitudes_deg,
-                    grid_edge_y_coords_metres=grid_edge_latitudes_deg,
-                    row_index=i, column_index=j, verbose=False
+                all_training_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=target_names[t],
+                    target_wavelength_metres=wavelengths_metres[w]
                 )
 
-                num_examples_matrix[i, j] = len(these_indices)
-                if len(these_indices) < min_num_examples:
-                    continue
+            climo_value = numpy.mean(all_training_values)
 
-                bias_matrix[i, j] = evaluation._get_bias_one_scalar(
-                    target_values=actual_values[these_indices],
-                    predicted_values=predicted_values[these_indices]
+            dimensions = (num_grid_rows, num_grid_columns)
+            bias_matrix = numpy.full(dimensions, numpy.nan)
+            correlation_matrix = numpy.full(dimensions, numpy.nan)
+            mae_matrix = numpy.full(dimensions, numpy.nan)
+            mae_skill_score_matrix = numpy.full(dimensions, numpy.nan)
+            mse_matrix = numpy.full(dimensions, numpy.nan)
+            mse_skill_score_matrix = numpy.full(dimensions, numpy.nan)
+            kge_matrix = numpy.full(dimensions, numpy.nan)
+            num_examples_matrix = numpy.full(dimensions, -1, dtype=int)
+
+            if target_names[t] in [
+                    example_utils.SHORTWAVE_HEATING_RATE_NAME,
+                    example_utils.LONGWAVE_HEATING_RATE_NAME
+            ]:
+                h_idx = example_utils.match_heights(
+                    heights_m_agl=pdict[prediction_io.HEIGHTS_KEY],
+                    desired_height_m_agl=heating_rate_height_m_agl
                 )
-                correlation_matrix[i, j] = (
-                    evaluation._get_correlation_one_scalar(
+
+                t_idx = training_option_dict[
+                    neural_net.VECTOR_TARGET_NAMES_KEY
+                ].index(target_names[t])
+
+                actual_values = pdict[prediction_io.VECTOR_TARGETS_KEY][
+                    :, h_idx, w_idx, t_idx
+                ]
+                predicted_values = pdict[prediction_io.VECTOR_PREDICTIONS_KEY][
+                    :, h_idx, w_idx, t_idx
+                ]
+
+            elif target_names[t] in [
+                    SHORTWAVE_NET_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
+            ]:
+                if target_names[t] == SHORTWAVE_NET_FLUX_NAME:
+                    d_idx = training_option_dict[
+                        neural_net.SCALAR_TARGET_NAMES_KEY
+                    ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
+
+                    u_idx = training_option_dict[
+                        neural_net.SCALAR_TARGET_NAMES_KEY
+                    ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+                else:
+                    d_idx = training_option_dict[
+                        neural_net.SCALAR_TARGET_NAMES_KEY
+                    ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
+
+                    u_idx = training_option_dict[
+                        neural_net.SCALAR_TARGET_NAMES_KEY
+                    ].index(example_utils.LONGWAVE_TOA_UP_FLUX_NAME)
+
+                actual_values = (
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx] -
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx]
+                )
+                predicted_values = (
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx] -
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx]
+                )
+            else:
+                t_idx = training_option_dict[
+                    neural_net.SCALAR_TARGET_NAMES_KEY
+                ].index(target_names[t])
+
+                actual_values = (
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, t_idx]
+                )
+                predicted_values = (
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, t_idx]
+                )
+
+            for i in range(num_grid_rows):
+                print((
+                    'Have computed errors in {0:.2f}-micron {1:s} for '
+                    '{2:d} of {3:d} grid rows...'
+                ).format(
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    target_names[t],
+                    i, num_grid_rows
+                ))
+
+                for j in range(num_grid_columns):
+                    these_indices = grids.find_events_in_grid_cell(
+                        event_x_coords_metres=longitudes_deg_e,
+                        event_y_coords_metres=latitudes_deg_n,
+                        grid_edge_x_coords_metres=grid_edge_longitudes_deg,
+                        grid_edge_y_coords_metres=grid_edge_latitudes_deg,
+                        row_index=i, column_index=j, verbose=False
+                    )
+
+                    num_examples_matrix[i, j] = len(these_indices)
+                    if len(these_indices) < min_num_examples:
+                        continue
+
+                    bias_matrix[i, j] = evaluation._get_bias_one_scalar(
                         target_values=actual_values[these_indices],
                         predicted_values=predicted_values[these_indices]
                     )
-                )
-                mae_matrix[i, j] = evaluation._get_mae_one_scalar(
-                    target_values=actual_values[these_indices],
-                    predicted_values=predicted_values[these_indices]
-                )
-                mse_matrix[i, j] = evaluation._get_mse_one_scalar(
-                    target_values=actual_values[these_indices],
-                    predicted_values=predicted_values[these_indices]
-                )[0]
-                kge_matrix[i, j] = evaluation._get_kge_one_scalar(
-                    target_values=actual_values[these_indices],
-                    predicted_values=predicted_values[these_indices]
-                )
-
-                mae_skill_score_matrix[i, j] = (
-                    evaluation._get_mae_ss_one_scalar(
-                        target_values=actual_values[these_indices],
-                        predicted_values=predicted_values[these_indices],
-                        mean_training_target_value=climo_value_by_target[k]
+                    correlation_matrix[i, j] = (
+                        evaluation._get_correlation_one_scalar(
+                            target_values=actual_values[these_indices],
+                            predicted_values=predicted_values[these_indices]
+                        )
                     )
-                )
-                mse_skill_score_matrix[i, j] = (
-                    evaluation._get_mse_ss_one_scalar(
+                    mae_matrix[i, j] = evaluation._get_mae_one_scalar(
                         target_values=actual_values[these_indices],
-                        predicted_values=predicted_values[these_indices],
-                        mean_training_target_value=climo_value_by_target[k]
+                        predicted_values=predicted_values[these_indices]
                     )
-                )
+                    mse_matrix[i, j] = evaluation._get_mse_one_scalar(
+                        target_values=actual_values[these_indices],
+                        predicted_values=predicted_values[these_indices]
+                    )[0]
+                    kge_matrix[i, j] = evaluation._get_kge_one_scalar(
+                        target_values=actual_values[these_indices],
+                        predicted_values=predicted_values[these_indices]
+                    )
 
-        print('Have computed {0:s} errors for all {1:d} grid rows!'.format(
-            target_names[k], num_grid_rows
-        ))
-        print(SEPARATOR_STRING)
+                    mae_skill_score_matrix[i, j] = (
+                        evaluation._get_mae_ss_one_scalar(
+                            target_values=actual_values[these_indices],
+                            predicted_values=predicted_values[these_indices],
+                            mean_training_target_value=climo_value
+                        )
+                    )
+                    mse_skill_score_matrix[i, j] = (
+                        evaluation._get_mse_ss_one_scalar(
+                            target_values=actual_values[these_indices],
+                            predicted_values=predicted_values[these_indices],
+                            mean_training_target_value=climo_value
+                        )
+                    )
 
-        title_string = (
-            'Bias for {0:s}{1:s} ({2:s}) where sample size >= {3:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            TARGET_NAME_TO_UNITS[target_names[k]],
-            min_num_examples
-        )
+            print((
+                'Have computed errors in {0:.2f}-micron {1:s} for all {2:d} '
+                'grid rows!'
+            ).format(
+                METRES_TO_MICRONS * wavelengths_metres[w],
+                target_names[t],
+                num_grid_rows
+            ))
+            print(SEPARATOR_STRING)
 
-        _plot_one_score(
-            score_matrix=bias_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=BIAS_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_bias.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            title_string = 'Bias for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             )
-        )
-
-        title_string = (
-            'Correlation for {0:s}{1:s} where sample size >= {2:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            min_num_examples
-        )
-
-        _plot_one_score(
-            score_matrix=correlation_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=CORRELATION_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_correlation.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            title_string += r' $\mu$m'
+            title_string += '{0:s} ({1:s})\nwhere sample size >= {2:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                TARGET_NAME_TO_UNITS[target_names[t]],
+                min_num_examples
             )
-        )
 
-        title_string = (
-            'MAE for {0:s}{1:s} ({2:s}) where sample size >= {3:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            TARGET_NAME_TO_UNITS[target_names[k]],
-            min_num_examples
-        )
-
-        _plot_one_score(
-            score_matrix=mae_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=MAE_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_mae.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            output_file_name = '{0:s}/{1:s}_{2:.2f}microns_bias.jpg'.format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
             )
-        )
 
-        title_string = (
-            'MSE for {0:s}{1:s} ({2:s}) where sample size >= {3:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            TARGET_NAME_TO_SQUARED_UNITS[target_names[k]],
-            min_num_examples
-        )
-
-        _plot_one_score(
-            score_matrix=mse_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=MSE_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_mse.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            _plot_one_score(
+                score_matrix=bias_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=BIAS_NAME,
+                target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
             )
-        )
 
-        title_string = (
-            'KGE for {0:s}{1:s} where sample size >= {2:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            min_num_examples
-        )
-
-        _plot_one_score(
-            score_matrix=kge_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=KGE_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_kge.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            title_string = 'Correlation for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             )
-        )
-
-        title_string = (
-            'MAESS for {0:s}{1:s} where sample size >= {2:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            min_num_examples
-        )
-
-        _plot_one_score(
-            score_matrix=mae_skill_score_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=MAE_SKILL_SCORE_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_maess.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            title_string += r' $\mu$m'
+            title_string += '{0:s}\nwhere sample size >= {1:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                min_num_examples
             )
-        )
 
-        title_string = (
-            'MSESS for {0:s}{1:s} where sample size >= {2:d}'
-        ).format(
-            '' if heating_rate_height_m_agl is None
-            else '{0:d}-m-AGL '.format(heating_rate_height_m_agl),
-            TARGET_NAME_TO_VERBOSE[target_names[k]],
-            min_num_examples
-        )
-
-        _plot_one_score(
-            score_matrix=mse_skill_score_matrix,
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name=MSE_SKILL_SCORE_NAME, target_name=target_names[k],
-            title_string=title_string,
-            output_file_name='{0:s}/{1:s}_msess.jpg'.format(
-                output_dir_name, target_names[k].replace('_', '-')
+            output_file_name = (
+                '{0:s}/{1:s}_{2:.2f}microns_correlation.jpg'
+            ).format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
             )
-        )
 
-        _plot_one_score(
-            score_matrix=num_examples_matrix.astype(float),
-            grid_latitudes_deg_n=grid_latitudes_deg_n,
-            grid_longitudes_deg_e=grid_longitudes_deg_e,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            score_name='', target_name=target_names[k],
-            title_string='Number of examples',
-            output_file_name='{0:s}/num_examples.jpg'.format(output_dir_name)
-        )
+            _plot_one_score(
+                score_matrix=correlation_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=CORRELATION_NAME,
+                target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
+            )
+
+            title_string = 'MAE for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+            title_string += r' $\mu$m'
+            title_string += '{0:s} ({1:s})\nwhere sample size >= {2:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                TARGET_NAME_TO_UNITS[target_names[t]],
+                min_num_examples
+            )
+
+            output_file_name = '{0:s}/{1:s}_{2:.2f}microns_mae.jpg'.format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+
+            _plot_one_score(
+                score_matrix=mae_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=MAE_NAME,
+                target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
+            )
+
+            title_string = 'MSE for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+            title_string += r' $\mu$m'
+            title_string += '{0:s} ({1:s})\nwhere sample size >= {2:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                TARGET_NAME_TO_SQUARED_UNITS[target_names[t]],
+                min_num_examples
+            )
+
+            output_file_name = '{0:s}/{1:s}_{2:.2f}microns_mse.jpg'.format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+
+            _plot_one_score(
+                score_matrix=mse_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=MSE_NAME, target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
+            )
+
+            title_string = 'KGE for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+            title_string += r' $\mu$m'
+            title_string += '{0:s}\nwhere sample size >= {1:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                min_num_examples
+            )
+
+            output_file_name = '{0:s}/{1:s}_{2:.2f}microns_kge.jpg'.format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+
+            _plot_one_score(
+                score_matrix=kge_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=KGE_NAME,
+                target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
+            )
+
+            title_string = 'MAESS for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+            title_string += r' $\mu$m'
+            title_string += '{0:s}\nwhere sample size >= {1:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                min_num_examples
+            )
+
+            output_file_name = '{0:s}/{1:s}_{2:.2f}microns_maess.jpg'.format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+
+            _plot_one_score(
+                score_matrix=mae_skill_score_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=MAE_SKILL_SCORE_NAME, target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
+            )
+
+            title_string = 'MSESS for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[target_names[t]],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+            title_string += r' $\mu$m'
+            title_string += '{0:s}\nwhere sample size >= {1:d}'.format(
+                '' if heating_rate_height_m_agl is None
+                else ' and {0:d} m AGL '.format(heating_rate_height_m_agl),
+                min_num_examples
+            )
+
+            output_file_name = '{0:s}/{1:s}_{2:.2f}microns_msess.jpg'.format(
+                output_dir_name,
+                target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            )
+
+            _plot_one_score(
+                score_matrix=mse_skill_score_matrix,
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name=MSE_SKILL_SCORE_NAME,
+                target_name=target_names[t],
+                title_string=title_string,
+                output_file_name=output_file_name
+            )
+
+            _plot_one_score(
+                score_matrix=num_examples_matrix.astype(float),
+                grid_latitudes_deg_n=grid_latitudes_deg_n,
+                grid_longitudes_deg_e=grid_longitudes_deg_e,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                score_name='', target_name=target_names[t],
+                title_string='Number of examples',
+                output_file_name=
+                '{0:s}/num_examples.jpg'.format(output_dir_name)
+            )
 
 
 if __name__ == '__main__':
@@ -902,5 +972,8 @@ if __name__ == '__main__':
         ),
         grid_spacing_deg=getattr(INPUT_ARG_OBJECT, GRID_SPACING_ARG_NAME),
         min_num_examples=getattr(INPUT_ARG_OBJECT, MIN_EXAMPLES_ARG_NAME),
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

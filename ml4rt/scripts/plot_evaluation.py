@@ -24,6 +24,7 @@ from ml4rt.plotting import evaluation_plotting
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 METRES_TO_KM = 0.001
+METRES_TO_MICRONS = 1e6
 
 SCORE_NAME_TO_VERBOSE = {
     evaluation_plotting.MSE_NAME: 'Mean squared error',
@@ -134,6 +135,7 @@ SET_DESCRIPTIONS_ARG_NAME = 'set_descriptions'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 PLOT_BY_HEIGHT_ARG_NAME = 'plot_by_height'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 METRICS_IN_TITLES_ARG_NAME = 'report_metrics_in_titles'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -169,6 +171,9 @@ USE_LOG_SCALE_HELP_STRING = (
 PLOT_BY_HEIGHT_HELP_STRING = (
     'Boolean flag.  If 1, will plot Taylor diagram and attributes diagram for '
     'each vector field at each height.  If 0, will not plot these things.'
+)
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one set of plots for each.'
 )
 METRICS_IN_TITLES_HELP_STRING = (
     'Boolean flag.  If 1 (0), will (not) report overall metrics in panel '
@@ -208,6 +213,11 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_BY_HEIGHT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + METRICS_IN_TITLES_ARG_NAME, type=int, required=False, default=1,
     help=METRICS_IN_TITLES_HELP_STRING
 )
@@ -220,14 +230,12 @@ INPUT_ARG_PARSER.add_argument(
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
-        mean_training_example_dict, target_name, report_reliability_in_title,
-        output_dir_name, height_m_agl=None, force_plot_legend=False):
+        mean_training_example_dict, target_name, wavelength_metres,
+        report_reliability_in_title, output_dir_name,
+        height_m_agl=None, force_plot_legend=False):
     """Plots attributes diagram for each set and each target variable.
 
     S = number of evaluation sets
-    T_v = number of vector target variables
-    T_s = number of scalar target variables
-    H = number of heights
 
     :param evaluation_tables_xarray: length-S list of xarray tables in format
         returned by `evaluation.read_file`.
@@ -241,6 +249,7 @@ def _plot_attributes_diagram(
     :param mean_training_example_dict: Dictionary created by
         `normalization.create_mean_example`.
     :param target_name: Name of target variable.
+    :param wavelength_metres: Wavelength for target variable.
     :param report_reliability_in_title: Boolean flag.  If True, will report
         overall reliability in title.
     :param output_dir_name: Name of output directory.  Figures will be saved
@@ -249,233 +258,213 @@ def _plot_attributes_diagram(
     :param force_plot_legend: Boolean flag.
     """
 
-    t = evaluation_tables_xarray[0]
-    is_scalar = target_name in t.coords[evaluation.SCALAR_FIELD_DIM].values
-    is_aux = target_name in t.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+    eval_tables_xarray = evaluation_tables_xarray
+    mted = mean_training_example_dict
+
+    etx = eval_tables_xarray[0]
+    is_scalar = target_name in etx.coords[evaluation.SCALAR_FIELD_DIM].values
+    is_aux = target_name in etx.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+
+    wave_inds = numpy.array([
+        example_utils.match_wavelengths(
+            wavelengths_metres=etx.coords[evaluation.WAVELENGTH_DIM].values,
+            desired_wavelength_metres=wavelength_metres
+        )
+        for etx in eval_tables_xarray
+    ], dtype=int)
+
+    wave_idx_mean = example_utils.match_wavelengths(
+        wavelengths_metres=mted[example_utils.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
+    )
 
     if is_scalar:
-        target_indices = numpy.array([
+        tgt_inds = numpy.array([
             numpy.where(
-                t.coords[evaluation.SCALAR_FIELD_DIM].values == target_name
+                etx.coords[evaluation.SCALAR_FIELD_DIM].values == target_name
             )[0][0]
-            for t in evaluation_tables_xarray
+            for etx in eval_tables_xarray
         ], dtype=int)
 
         mean_predictions_by_set = [
-            t[evaluation.SCALAR_RELIABILITY_X_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.SCALAR_RELIABILITY_X_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         mean_observations_by_set = [
-            t[evaluation.SCALAR_RELIABILITY_Y_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.SCALAR_RELIABILITY_Y_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         bin_centers_by_set = [
-            t[evaluation.SCALAR_RELIA_BIN_CENTER_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.SCALAR_RELIA_BIN_CENTER_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         example_counts_by_set = [
-            t[evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.SCALAR_RELIABILITY_COUNT_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         inverted_example_counts_by_set = [
-            t[evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.SCALAR_INV_RELIABILITY_COUNT_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         reliabilities_by_set = [
-            t[evaluation.SCALAR_RELIABILITY_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
-        ]
-        mse_skill_scores_by_set = [
-            t[evaluation.SCALAR_MSE_SKILL_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.SCALAR_RELIABILITY_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
 
-        k = mean_training_example_dict[
-            example_utils.SCALAR_TARGET_NAMES_KEY
-        ].index(target_name)
-
-        climo_value = mean_training_example_dict[
-            example_utils.SCALAR_TARGET_VALS_KEY
-        ][0, k]
-
+        k = mted[example_utils.SCALAR_TARGET_NAMES_KEY].index(target_name)
+        climo_value = (
+            mted[example_utils.SCALAR_TARGET_VALS_KEY][0, wave_idx_mean, k]
+        )
     elif is_aux:
-        target_indices = numpy.array([
+        tgt_inds = numpy.array([
             numpy.where(
-                t.coords[evaluation.AUX_TARGET_FIELD_DIM].values == target_name
+                etx.coords[evaluation.AUX_TARGET_FIELD_DIM].values ==
+                target_name
             )[0][0]
-            for t in evaluation_tables_xarray
+            for etx in eval_tables_xarray
         ], dtype=int)
 
         mean_predictions_by_set = [
-            t[evaluation.AUX_RELIABILITY_X_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.AUX_RELIABILITY_X_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         mean_observations_by_set = [
-            t[evaluation.AUX_RELIABILITY_Y_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.AUX_RELIABILITY_Y_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         bin_centers_by_set = [
-            t[evaluation.AUX_RELIA_BIN_CENTER_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.AUX_RELIA_BIN_CENTER_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         example_counts_by_set = [
-            t[evaluation.AUX_RELIABILITY_COUNT_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.AUX_RELIABILITY_COUNT_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         inverted_example_counts_by_set = [
-            t[evaluation.AUX_INV_RELIABILITY_COUNT_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.AUX_INV_RELIABILITY_COUNT_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
         reliabilities_by_set = [
-            t[evaluation.AUX_RELIABILITY_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
-        ]
-        mse_skill_scores_by_set = [
-            t[evaluation.AUX_MSE_SKILL_KEY].values[k, ...]
-            for t, k in zip(evaluation_tables_xarray, target_indices)
+            etx[evaluation.AUX_RELIABILITY_KEY].values[w, t, ...]
+            for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
         ]
 
-        training_target_names = mean_training_example_dict[
-            example_utils.SCALAR_TARGET_NAMES_KEY
-        ]
-        training_target_matrix = mean_training_example_dict[
-            example_utils.SCALAR_TARGET_VALS_KEY
-        ]
+        training_target_names = mted[example_utils.SCALAR_TARGET_NAMES_KEY]
+        training_target_matrix = mted[example_utils.SCALAR_TARGET_VALS_KEY]
 
         if target_name == evaluation.SHORTWAVE_NET_FLUX_NAME:
-            down_flux_index = training_target_names.index(
+            d_idx = training_target_names.index(
                 example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
             )
-            up_flux_index = training_target_names.index(
+            u_idx = training_target_names.index(
                 example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
             )
             climo_value = (
-                training_target_matrix[0, down_flux_index] -
-                training_target_matrix[0, up_flux_index]
+                training_target_matrix[0, wave_idx_mean, d_idx] -
+                training_target_matrix[0, wave_idx_mean, u_idx]
             )
         elif target_name == evaluation.LONGWAVE_NET_FLUX_NAME:
-            down_flux_index = training_target_names.index(
+            d_idx = training_target_names.index(
                 example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
             )
-            up_flux_index = training_target_names.index(
+            u_idx = training_target_names.index(
                 example_utils.LONGWAVE_TOA_UP_FLUX_NAME
             )
             climo_value = (
-                training_target_matrix[0, down_flux_index] -
-                training_target_matrix[0, up_flux_index]
+                training_target_matrix[0, wave_idx_mean, d_idx] -
+                training_target_matrix[0, wave_idx_mean, u_idx]
             )
         else:
             k = training_target_names.index(target_name)
-            climo_value = training_target_matrix[0, k]
+            climo_value = training_target_matrix[0, wave_idx_mean, k]
     else:
-        target_indices = numpy.array([
+        tgt_inds = numpy.array([
             numpy.where(
-                t.coords[evaluation.VECTOR_FIELD_DIM].values == target_name
+                etx.coords[evaluation.VECTOR_FIELD_DIM].values == target_name
             )[0][0]
-            for t in evaluation_tables_xarray
+            for etx in eval_tables_xarray
         ], dtype=int)
 
         if height_m_agl is None:
             mean_predictions_by_set = [
-                t[evaluation.VECTOR_FLAT_RELIABILITY_X_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
+                etx[evaluation.VECTOR_FLAT_RELIABILITY_X_KEY].values[w, t, ...]
+                for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
             ]
             mean_observations_by_set = [
-                t[evaluation.VECTOR_FLAT_RELIABILITY_Y_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
+                etx[evaluation.VECTOR_FLAT_RELIABILITY_Y_KEY].values[w, t, ...]
+                for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
             ]
             bin_centers_by_set = [
-                t[evaluation.VECTOR_FLAT_RELIA_BIN_CENTER_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
+                etx[evaluation.VECTOR_FLAT_RELIA_BIN_CENTER_KEY].values[w, t, ...]
+                for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
             ]
             example_counts_by_set = [
-                t[evaluation.VECTOR_FLAT_RELIABILITY_COUNT_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
+                etx[evaluation.VECTOR_FLAT_RELIABILITY_COUNT_KEY].values[w, t, ...]
+                for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
             ]
             inverted_example_counts_by_set = [
-                t[evaluation.VECTOR_FLAT_INV_RELIABILITY_COUNT_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
+                etx[evaluation.VECTOR_FLAT_INV_RELIABILITY_COUNT_KEY].values[w, t, ...]
+                for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
             ]
             reliabilities_by_set = [
-                t[evaluation.VECTOR_FLAT_RELIABILITY_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
-            ]
-            mse_skill_scores_by_set = [
-                t[evaluation.VECTOR_FLAT_MSE_SKILL_KEY].values[k, ...]
-                for t, k in
-                zip(evaluation_tables_xarray, target_indices)
+                etx[evaluation.VECTOR_FLAT_RELIABILITY_KEY].values[w, t, ...]
+                for etx, w, t in zip(eval_tables_xarray, wave_inds, tgt_inds)
             ]
 
-            k = mean_training_example_dict[
-                example_utils.VECTOR_TARGET_NAMES_KEY
-            ].index(target_name)
-
+            k = mted[example_utils.VECTOR_TARGET_NAMES_KEY].index(target_name)
             climo_value = numpy.mean(
-                mean_training_example_dict[
-                    example_utils.VECTOR_TARGET_VALS_KEY
-                ][0, :, k]
+                mted[example_utils.VECTOR_TARGET_VALS_KEY][
+                    0, :, wave_idx_mean, k
+                ]
             )
         else:
-            height_indices = numpy.array([
-                numpy.argmin(numpy.absolute(
-                    t.coords[evaluation.HEIGHT_DIM].values - height_m_agl
-                )) for t in evaluation_tables_xarray
+            hgt_inds = numpy.array([
+                example_utils.match_heights(
+                    heights_m_agl=etx.coords[evaluation.HEIGHT_DIM].values,
+                    desired_height_m_agl=height_m_agl
+                )
+                for etx in eval_tables_xarray
             ], dtype=int)
 
             mean_predictions_by_set = [
-                t[evaluation.VECTOR_RELIABILITY_X_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
+                etx[evaluation.VECTOR_RELIABILITY_X_KEY].values[h, w, t, ...]
+                for etx, h, w, t in
+                zip(eval_tables_xarray, hgt_inds, wave_inds, tgt_inds)
             ]
             mean_observations_by_set = [
-                t[evaluation.VECTOR_RELIABILITY_Y_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
+                etx[evaluation.VECTOR_RELIABILITY_Y_KEY].values[h, w, t, ...]
+                for etx, h, w, t in
+                zip(eval_tables_xarray, hgt_inds, wave_inds, tgt_inds)
             ]
             bin_centers_by_set = [
-                t[evaluation.VECTOR_RELIA_BIN_CENTER_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
+                etx[evaluation.VECTOR_RELIA_BIN_CENTER_KEY].values[h, w, t, ...]
+                for etx, h, w, t in
+                zip(eval_tables_xarray, hgt_inds, wave_inds, tgt_inds)
             ]
             example_counts_by_set = [
-                t[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
+                etx[evaluation.VECTOR_RELIABILITY_COUNT_KEY].values[h, w, t, ...]
+                for etx, h, w, t in
+                zip(eval_tables_xarray, hgt_inds, wave_inds, tgt_inds)
             ]
             inverted_example_counts_by_set = [
-                t[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
+                etx[evaluation.VECTOR_INV_RELIABILITY_COUNT_KEY].values[h, w, t, ...]
+                for etx, h, w, t in
+                zip(eval_tables_xarray, hgt_inds, wave_inds, tgt_inds)
             ]
             reliabilities_by_set = [
-                t[evaluation.VECTOR_RELIABILITY_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
-            ]
-            mse_skill_scores_by_set = [
-                t[evaluation.VECTOR_MSE_SKILL_KEY].values[j, k, ...]
-                for t, j, k in
-                zip(evaluation_tables_xarray, height_indices, target_indices)
+                etx[evaluation.VECTOR_RELIABILITY_KEY].values[h, w, t, ...]
+                for etx, h, w, t in
+                zip(eval_tables_xarray, hgt_inds, wave_inds, tgt_inds)
             ]
 
-            j = numpy.argmin(numpy.absolute(
-                mean_training_example_dict[example_utils.HEIGHTS_KEY] -
-                height_m_agl
-            ))
-
-            k = mean_training_example_dict[
-                example_utils.VECTOR_TARGET_NAMES_KEY
-            ].index(target_name)
-
-            climo_value = mean_training_example_dict[
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][0, j, k]
+            j = example_utils.match_heights(
+                heights_m_agl=mted[example_utils.HEIGHTS_KEY],
+                desired_height_m_agl=height_m_agl
+            )
+            k = mted[example_utils.VECTOR_TARGET_NAMES_KEY].index(target_name)
+            climo_value = mted[example_utils.VECTOR_TARGET_VALS_KEY][
+                0, j, wave_idx_mean, k
+            ]
 
     concat_values = numpy.concatenate([
         numpy.nanmean(a, axis=-1)
@@ -489,7 +478,7 @@ def _plot_attributes_diagram(
     max_value_to_plot = numpy.nanpercentile(concat_values, 100.)
     min_value_to_plot = numpy.nanpercentile(concat_values, 0.)
 
-    num_evaluation_sets = len(evaluation_tables_xarray)
+    num_evaluation_sets = len(eval_tables_xarray)
 
     for main_index in range(num_evaluation_sets):
         figure_object, axes_object = pyplot.subplots(
@@ -561,17 +550,21 @@ def _plot_attributes_diagram(
             TARGET_NAME_TO_UNITS[target_name]
         ))
 
-        title_string = 'Attributes diagram for {0:s}'.format(
-            TARGET_NAME_TO_VERBOSE[target_name]
+        title_string = 'Attributes diagram for {0:s} at {1:.2f}'.format(
+            TARGET_NAME_TO_VERBOSE[target_name],
+            METRES_TO_MICRONS * wavelength_metres
         )
+        title_string += r' $\mu$m'
+
         if height_m_agl is not None:
-            title_string += ' at {0:d} m AGL'.format(
+            title_string += ' and {0:d} m AGL'.format(
                 int(numpy.round(height_m_agl))
             )
         if report_reliability_in_title:
             title_string += '\nREL = {0:.2f} {1:s}'.format(
                 numpy.mean(reliabilities_by_set[main_index]),
-                r'W$^2$ m$^{-4}$' if is_scalar or is_aux else r'K$^2$ day$^{-2}$'
+                r'W$^2$ m$^{-4}$' if is_scalar or is_aux
+                else r'K$^2$ day$^{-2}$'
             )
 
         axes_object.set_title(title_string)
@@ -623,8 +616,10 @@ def _plot_attributes_diagram(
                 facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
             )
 
-        figure_file_name = '{0:s}/{1:s}'.format(
-            output_dir_name, target_name.replace('_', '-')
+        figure_file_name = '{0:s}/{1:s}_{2:.2f}microns'.format(
+            output_dir_name,
+            target_name.replace('_', '-'),
+            METRES_TO_MICRONS * wavelength_metres
         )
 
         if height_m_agl is not None:
@@ -646,7 +641,8 @@ def _plot_attributes_diagram(
 
 def _plot_score_profile(
         evaluation_tables_xarray, line_styles, line_colours,
-        set_descriptions_verbose, confidence_level, target_name, score_name,
+        set_descriptions_verbose, confidence_level, target_name,
+        wavelength_metres, score_name,
         use_log_scale, report_max_in_title, output_dir_name):
     """Plots vertical profile of one score.
 
@@ -655,7 +651,9 @@ def _plot_score_profile(
     :param line_colours: Same.
     :param set_descriptions_verbose: Same.
     :param confidence_level: Same.
-    :param target_name: Name of target variable for which score is being plotted.
+    :param target_name: Name of target variable for which score is being
+        plotted.
+    :param wavelength_metres: Wavelength of target variable.
     :param score_name: Name of score being plotted.
     :param use_log_scale: Boolean flag.  If True, will plot heights (y-axis) in
         log scale.
@@ -665,11 +663,19 @@ def _plot_score_profile(
         here.
     """
 
-    target_indices = numpy.array([
+    tgt_inds = numpy.array([
         numpy.where(
-            t.coords[evaluation.VECTOR_FIELD_DIM].values == target_name
+            etx.coords[evaluation.VECTOR_FIELD_DIM].values == target_name
         )[0][0]
-        for t in evaluation_tables_xarray
+        for etx in evaluation_tables_xarray
+    ], dtype=int)
+
+    wave_inds = numpy.array([
+        example_utils.match_wavelengths(
+            wavelengths_metres=etx.coords[evaluation.WAVELENGTH_DIM].values,
+            desired_wavelength_metres=wavelength_metres
+        )
+        for etx in evaluation_tables_xarray
     ], dtype=int)
 
     figure_object, axes_object = pyplot.subplots(
@@ -682,20 +688,21 @@ def _plot_score_profile(
     num_evaluation_sets = len(evaluation_tables_xarray)
 
     for i in range(num_evaluation_sets):
-        k = target_indices[i]
-        t = evaluation_tables_xarray[i]
+        w = wave_inds[i]
+        t = tgt_inds[i]
+        etx = evaluation_tables_xarray[i]
 
         if score_key in [
                 evaluation.VECTOR_KS_STATISTIC_KEY,
                 evaluation.VECTOR_KS_P_VALUE_KEY
         ]:
             this_score_matrix = numpy.expand_dims(
-                t[score_key].values[:, k], axis=-1
+                etx[score_key].values[:, w, t], axis=-1
             )
         else:
-            this_score_matrix = t[score_key].values[:, k, :]
+            this_score_matrix = etx[score_key].values[:, w, t, :]
 
-        heights_m_agl = t.coords[evaluation.HEIGHT_DIM].values
+        heights_m_agl = etx.coords[evaluation.HEIGHT_DIM].values
 
         this_handle = evaluation_plotting.plot_score_profile(
             heights_m_agl=heights_m_agl,
@@ -738,10 +745,12 @@ def _plot_score_profile(
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
-    title_string = '{0:s} for {1:s}'.format(
+    title_string = '{0:s} for {1:s} at {2:.2f}'.format(
         SCORE_NAME_TO_VERBOSE[score_name],
-        TARGET_NAME_TO_VERBOSE[target_name]
+        TARGET_NAME_TO_VERBOSE[target_name],
+        METRES_TO_MICRONS * wavelength_metres
     )
+    title_string += r' $\mu$m'
 
     if report_max_in_title:
         if score_name == evaluation_plotting.MAE_NAME:
@@ -767,8 +776,10 @@ def _plot_score_profile(
     axes_object.set_xlabel(x_label_string)
     axes_object.set_title(title_string)
 
-    figure_file_name = '{0:s}/{1:s}_{2:s}_profile.jpg'.format(
-        output_dir_name, target_name.replace('_', '-'),
+    figure_file_name = '{0:s}/{1:s}_{2:.2f}microns_{3:s}_profile.jpg'.format(
+        output_dir_name,
+        target_name.replace('_', '-'),
+        METRES_TO_MICRONS * wavelength_metres,
         score_name.replace('_', '-')
     )
 
@@ -782,7 +793,8 @@ def _plot_score_profile(
 
 def _plot_error_distributions(
         prediction_dicts, model_metadata_dict, aux_target_names,
-        set_descriptions_abbrev, set_descriptions_verbose, output_dir_name):
+        wavelength_metres, set_descriptions_abbrev, set_descriptions_verbose,
+        output_dir_name):
     """Plots error distribution for each set and each target variable.
 
     S = number of evaluation sets
@@ -796,6 +808,7 @@ def _plot_error_distributions(
         generated predictions (in format returned by
         `neural_net.read_metafile`).
     :param aux_target_names: 1-D list with names of auxiliary target variables.
+    :param wavelength_metres: Will plot for target variables at this wavelength.
     :param set_descriptions_abbrev: length-S list of abbreviated descriptions
         for evaluation sets.
     :param set_descriptions_verbose: length-S list of verbose descriptions for
@@ -813,22 +826,28 @@ def _plot_error_distributions(
     )
     heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
 
+    w = example_utils.match_wavelengths(
+        wavelengths_metres=
+        generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
+    )
+
     num_vector_targets = len(vector_target_names)
     num_scalar_targets = len(scalar_target_names)
     num_aux_targets = len(aux_target_names)
     num_evaluation_sets = len(set_descriptions_verbose)
 
-    for k in range(num_vector_targets):
+    pdicts = prediction_dicts
+
+    for t in range(num_vector_targets):
         for i in range(num_evaluation_sets):
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
             error_matrix = (
-                prediction_dicts[i][prediction_io.VECTOR_PREDICTIONS_KEY][
-                    ..., k
-                ] -
-                prediction_dicts[i][prediction_io.VECTOR_TARGETS_KEY][..., k]
+                pdicts[i][prediction_io.VECTOR_PREDICTIONS_KEY][..., w, t] -
+                pdicts[i][prediction_io.VECTOR_TARGETS_KEY][..., w, t]
             )
 
             evaluation_plotting.plot_error_dist_many_heights(
@@ -838,17 +857,25 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            title_string = 'Error distribution for {0:s} ({1:s})'.format(
-                TARGET_NAME_TO_VERBOSE[vector_target_names[k]],
-                TARGET_NAME_TO_UNITS[vector_target_names[k]]
+            title_string = (
+                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+            ).format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
+                TARGET_NAME_TO_UNITS[vector_target_names[t]],
+                METRES_TO_MICRONS * wavelength_metres
             )
+            title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
             axes_object.set_title(title_string)
 
-            figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
-                output_dir_name, vector_target_names[k].replace('_', '-'),
+            figure_file_name = (
+                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{2:s}.jpg'
+            ).format(
+                output_dir_name,
+                vector_target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelength_metres,
                 set_descriptions_abbrev[i]
             )
 
@@ -862,17 +889,14 @@ def _plot_error_distributions(
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
-
             these_actual_values = numpy.ravel(
-                prediction_dicts[i][prediction_io.VECTOR_TARGETS_KEY][..., k]
+                pdicts[i][prediction_io.VECTOR_TARGETS_KEY][..., w, t]
             )
             these_predicted_values = numpy.ravel(
-                prediction_dicts[i][prediction_io.VECTOR_PREDICTIONS_KEY][
-                    ..., k
-                ]
+                pdicts[i][prediction_io.VECTOR_PREDICTIONS_KEY][..., w, t]
             )
 
-            if 'shortwave' in vector_target_names[k]:
+            if 'shortwave' in vector_target_names[t]:
                 evaluation_plotting.plot_error_dist_by_actual_value(
                     actual_values=these_actual_values,
                     predicted_values=these_predicted_values,
@@ -911,19 +935,26 @@ def _plot_error_distributions(
             axes_object.set_yticklabels(y_tick_strings)
             axes_object.set_ylabel(r'Actual heating rate (K day$^{-1}$)')
 
-            title_string = 'Error distribution for {0:s} ({1:s})'.format(
-                TARGET_NAME_TO_VERBOSE[vector_target_names[k]],
-                TARGET_NAME_TO_UNITS[vector_target_names[k]]
+            title_string = (
+                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+            ).format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
+                TARGET_NAME_TO_UNITS[vector_target_names[t]],
+                METRES_TO_MICRONS * wavelength_metres,
             )
+            title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_error-dist-by-actual-value_{2:s}.jpg'
+                '{0:s}/{1:s}_{2:.2f}microns_'
+                'error-dist-by-actual-value_{3:s}.jpg'
             ).format(
-                output_dir_name, vector_target_names[k].replace('_', '-'),
+                output_dir_name,
+                vector_target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelength_metres,
                 set_descriptions_abbrev[i]
             )
 
@@ -934,17 +965,15 @@ def _plot_error_distributions(
             )
             pyplot.close(figure_object)
 
-    for k in range(num_scalar_targets):
+    for t in range(num_scalar_targets):
         for i in range(num_evaluation_sets):
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
             error_values = (
-                prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
-                    ..., k
-                ] -
-                prediction_dicts[i][prediction_io.SCALAR_TARGETS_KEY][..., k]
+                pdicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][..., w, t] -
+                pdicts[i][prediction_io.SCALAR_TARGETS_KEY][..., w, t]
             )
 
             evaluation_plotting.plot_error_distribution(
@@ -954,17 +983,25 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            title_string = 'Error distribution for {0:s} ({1:s})'.format(
-                TARGET_NAME_TO_VERBOSE[scalar_target_names[k]],
-                TARGET_NAME_TO_UNITS[scalar_target_names[k]]
+            title_string = (
+                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+            ).format(
+                TARGET_NAME_TO_VERBOSE[scalar_target_names[t]],
+                TARGET_NAME_TO_UNITS[scalar_target_names[t]],
+                METRES_TO_MICRONS * wavelength_metres
             )
+            title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
             axes_object.set_title(title_string)
 
-            figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
-                output_dir_name, scalar_target_names[k].replace('_', '-'),
+            figure_file_name = (
+                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{3:s}.jpg'
+            ).format(
+                output_dir_name,
+                scalar_target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelength_metres,
                 set_descriptions_abbrev[i]
             )
 
@@ -975,60 +1012,50 @@ def _plot_error_distributions(
             )
             pyplot.close(figure_object)
 
-    for k in range(num_aux_targets):
+    for t in range(num_aux_targets):
         for i in range(num_evaluation_sets):
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
-            if aux_target_names[k] in [
+            if aux_target_names[t] in [
                     evaluation.SHORTWAVE_NET_FLUX_NAME,
                     evaluation.LONGWAVE_NET_FLUX_NAME
             ]:
-                if aux_target_names[k] == evaluation.SHORTWAVE_NET_FLUX_NAME:
-                    down_flux_index = scalar_target_names.index(
+                if aux_target_names[t] == evaluation.SHORTWAVE_NET_FLUX_NAME:
+                    d_idx = scalar_target_names.index(
                         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
                     )
-                    up_flux_index = scalar_target_names.index(
+                    u_idx = scalar_target_names.index(
                         example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
                     )
                 else:
-                    down_flux_index = scalar_target_names.index(
+                    d_idx = scalar_target_names.index(
                         example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
                     )
-                    up_flux_index = scalar_target_names.index(
+                    u_idx = scalar_target_names.index(
                         example_utils.LONGWAVE_TOA_UP_FLUX_NAME
                     )
 
                 predicted_values = (
-                    prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
-                        ..., down_flux_index
+                    pdicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
+                        ..., w, d_idx
                     ] -
-                    prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
-                        ..., up_flux_index
+                    pdicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
+                        ..., w, u_idx
                     ]
                 )
-
                 target_values = (
-                    prediction_dicts[i][prediction_io.SCALAR_TARGETS_KEY][
-                        ..., down_flux_index
-                    ] -
-                    prediction_dicts[i][prediction_io.SCALAR_TARGETS_KEY][
-                        ..., up_flux_index
-                    ]
+                    pdicts[i][prediction_io.SCALAR_TARGETS_KEY][..., w, d_idx] -
+                    pdicts[i][prediction_io.SCALAR_TARGETS_KEY][..., w, u_idx]
                 )
-
                 error_values = predicted_values - target_values
             else:
-                this_index = scalar_target_names.index(aux_target_names[k])
+                tt = scalar_target_names.index(aux_target_names[t])
 
                 error_values = (
-                    prediction_dicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][
-                        ..., this_index
-                    ] -
-                    prediction_dicts[i][prediction_io.SCALAR_TARGETS_KEY][
-                        ..., this_index
-                    ]
+                    pdicts[i][prediction_io.SCALAR_PREDICTIONS_KEY][..., w, tt]
+                    - pdicts[i][prediction_io.SCALAR_TARGETS_KEY][..., w, tt]
                 )
 
             evaluation_plotting.plot_error_distribution(
@@ -1038,17 +1065,25 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            title_string = 'Error distribution for {0:s} ({1:s})'.format(
-                TARGET_NAME_TO_VERBOSE[aux_target_names[k]],
-                TARGET_NAME_TO_UNITS[aux_target_names[k]],
+            title_string = (
+                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+            ).format(
+                TARGET_NAME_TO_VERBOSE[aux_target_names[t]],
+                TARGET_NAME_TO_UNITS[aux_target_names[t]],
+                METRES_TO_MICRONS * wavelength_metres
             )
+            title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
             axes_object.set_title(title_string)
 
-            figure_file_name = '{0:s}/{1:s}_error-dist_{2:s}.jpg'.format(
-                output_dir_name, aux_target_names[k].replace('_', '-'),
+            figure_file_name = (
+                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{2:s}.jpg'
+            ).format(
+                output_dir_name,
+                aux_target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelength_metres,
                 set_descriptions_abbrev[i]
             )
 
@@ -1062,12 +1097,14 @@ def _plot_error_distributions(
 
 def _plot_reliability_by_height(
         evaluation_tables_xarray, vector_target_names, heights_m_agl,
-        set_descriptions_abbrev, set_descriptions_verbose, output_dir_name):
+        wavelength_metres, set_descriptions_abbrev, set_descriptions_verbose,
+        output_dir_name):
     """Plots height-dependent reliability curve for each set and vector target.
 
     :param evaluation_tables_xarray: See doc for `_plot_attributes_diagram`.
     :param vector_target_names: See doc for `_plot_error_distributions`.
     :param heights_m_agl: Same.
+    :param wavelength_metres: Same.
     :param set_descriptions_abbrev: Same.
     :param set_descriptions_verbose: Same.
     :param output_dir_name: Same.
@@ -1076,15 +1113,24 @@ def _plot_reliability_by_height(
     num_vector_targets = len(vector_target_names)
     num_evaluation_sets = len(set_descriptions_verbose)
 
-    for k in range(num_vector_targets):
-        for i in range(num_evaluation_sets):
-            t = evaluation_tables_xarray[i]
+    wave_inds = numpy.array([
+        example_utils.match_wavelengths(
+            wavelengths_metres=etx.coords[evaluation.WAVELENGTH_DIM].values,
+            desired_wavelength_metres=wavelength_metres
+        )
+        for etx in evaluation_tables_xarray
+    ], dtype=int)
 
-            mean_prediction_matrix = numpy.take(
-                t[evaluation.VECTOR_RELIABILITY_X_KEY].values, axis=1, indices=k
+    for t in range(num_vector_targets):
+        for i in range(num_evaluation_sets):
+            etx = evaluation_tables_xarray[i]
+            w = wave_inds[i]
+
+            mean_prediction_matrix = (
+                etx[evaluation.VECTOR_RELIABILITY_X_KEY].values[:, w, t, ...]
             )
-            mean_target_matrix = numpy.take(
-                t[evaluation.VECTOR_RELIABILITY_Y_KEY].values, axis=1, indices=k
+            mean_target_matrix = (
+                etx[evaluation.VECTOR_RELIABILITY_Y_KEY].values[:, w, t, ...]
             )
 
             mean_prediction_matrix = numpy.nanmean(
@@ -1111,25 +1157,31 @@ def _plot_reliability_by_height(
                 axes_object=axes_object
             )
 
-            title_string = 'Reliability curves for {0:s}'.format(
-                TARGET_NAME_TO_VERBOSE[vector_target_names[k]]
+            title_string = 'Reliability curves for {0:s} at {1:.2f}'.format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
+                METRES_TO_MICRONS * wavelength_metres
             )
+            title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
             axes_object.set_title(title_string)
 
             axes_object.set_xlabel('Prediction ({0:s})'.format(
-                TARGET_NAME_TO_UNITS[vector_target_names[k]]
+                TARGET_NAME_TO_UNITS[vector_target_names[t]]
             ))
             axes_object.set_ylabel(
                 'Conditional mean observation ({0:s})'.format(
-                    TARGET_NAME_TO_UNITS[vector_target_names[k]]
+                    TARGET_NAME_TO_UNITS[vector_target_names[t]]
                 )
             )
 
-            figure_file_name = '{0:s}/{1:s}_reliability_{2:s}.jpg'.format(
-                output_dir_name, vector_target_names[k].replace('_', '-'),
+            figure_file_name = (
+                '{0:s}/{1:s}_{2:.2f}microns_reliability_{3:s}.jpg'
+            ).format(
+                output_dir_name,
+                vector_target_names[t].replace('_', '-'),
+                METRES_TO_MICRONS * wavelength_metres,
                 set_descriptions_abbrev[i]
             )
 
@@ -1143,7 +1195,8 @@ def _plot_reliability_by_height(
 
 def _run(evaluation_file_names, line_styles, line_colour_strings,
          set_descriptions_verbose, confidence_level, use_log_scale,
-         plot_by_height, report_metrics_in_titles, output_dir_name):
+         plot_by_height, wavelengths_metres, report_metrics_in_titles,
+         output_dir_name):
     """Plots model evaluation.
 
     This is effectively the main method.
@@ -1155,6 +1208,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     :param confidence_level: Same.
     :param use_log_scale: Same.
     :param plot_by_height: Same.
+    :param wavelengths_metres: Same.
     :param report_metrics_in_titles: Same.
     :param output_dir_name: Same.
     """
@@ -1257,8 +1311,8 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
 
     try:
-        t = evaluation_tables_xarray[0]
-        aux_target_names = t.coords[evaluation.AUX_TARGET_FIELD_DIM].values
+        etx = evaluation_tables_xarray[0]
+        aux_target_names = etx.coords[evaluation.AUX_TARGET_FIELD_DIM].values
     except:
         aux_target_names = []
 
@@ -1271,6 +1325,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
         example_utils.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
         example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
         example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres,
         example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
@@ -1290,6 +1345,10 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
+    training_example_dict = example_utils.subset_by_wavelength(
+        example_dict=training_example_dict,
+        target_wavelengths_metres=wavelengths_metres
+    )
     mean_training_example_dict = normalization.create_mean_example(
         new_example_dict=example_dict,
         training_example_dict=training_example_dict
@@ -1298,97 +1357,57 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     print(SEPARATOR_STRING)
 
     # Do actual stuff.
-    _plot_error_distributions(
-        prediction_dicts=prediction_dicts,
-        model_metadata_dict=model_metadata_dict,
-        aux_target_names=aux_target_names,
-        set_descriptions_abbrev=set_descriptions_abbrev,
-        set_descriptions_verbose=set_descriptions_verbose,
-        output_dir_name=output_dir_name
-    )
+    for this_wavelength_metres in wavelengths_metres:
+        _plot_error_distributions(
+            prediction_dicts=prediction_dicts,
+            model_metadata_dict=model_metadata_dict,
+            aux_target_names=aux_target_names,
+            wavelength_metres=this_wavelength_metres,
+            set_descriptions_abbrev=set_descriptions_abbrev,
+            set_descriptions_verbose=set_descriptions_verbose,
+            output_dir_name=output_dir_name
+        )
+
     print(SEPARATOR_STRING)
 
-    _plot_reliability_by_height(
-        evaluation_tables_xarray=evaluation_tables_xarray,
-        vector_target_names=vector_target_names,
-        heights_m_agl=heights_m_agl,
-        set_descriptions_abbrev=set_descriptions_abbrev,
-        set_descriptions_verbose=set_descriptions_verbose,
-        output_dir_name=output_dir_name
-    )
+    for this_wavelength_metres in wavelengths_metres:
+        _plot_reliability_by_height(
+            evaluation_tables_xarray=evaluation_tables_xarray,
+            vector_target_names=vector_target_names,
+            heights_m_agl=heights_m_agl,
+            wavelength_metres=this_wavelength_metres,
+            set_descriptions_abbrev=set_descriptions_abbrev,
+            set_descriptions_verbose=set_descriptions_verbose,
+            output_dir_name=output_dir_name
+        )
+
     print(SEPARATOR_STRING)
 
     for k in range(num_vector_targets):
         for this_score_name in list(SCORE_NAME_TO_PROFILE_KEY.keys()):
-
             this_score_key = SCORE_NAME_TO_PROFILE_KEY[this_score_name]
             if this_score_key not in evaluation_tables_xarray[0]:
                 continue
 
-            _plot_score_profile(
-                evaluation_tables_xarray=evaluation_tables_xarray,
-                line_styles=line_styles, line_colours=line_colours,
-                set_descriptions_verbose=set_descriptions_verbose,
-                confidence_level=confidence_level,
-                target_name=vector_target_names[k], score_name=this_score_name,
-                use_log_scale=use_log_scale,
-                report_max_in_title=report_metrics_in_titles,
-                output_dir_name=output_dir_name
-            )
+            for this_wavelength_metres in wavelengths_metres:
+                _plot_score_profile(
+                    evaluation_tables_xarray=evaluation_tables_xarray,
+                    line_styles=line_styles,
+                    line_colours=line_colours,
+                    set_descriptions_verbose=set_descriptions_verbose,
+                    confidence_level=confidence_level,
+                    target_name=vector_target_names[k],
+                    wavelength_metres=this_wavelength_metres,
+                    score_name=this_score_name,
+                    use_log_scale=use_log_scale,
+                    report_max_in_title=report_metrics_in_titles,
+                    output_dir_name=output_dir_name
+                )
 
     print(SEPARATOR_STRING)
 
     for k in range(num_scalar_targets):
-        _plot_attributes_diagram(
-            evaluation_tables_xarray=evaluation_tables_xarray,
-            line_styles=line_styles,
-            line_colours=line_colours,
-            set_descriptions_abbrev=set_descriptions_abbrev,
-            set_descriptions_verbose=set_descriptions_verbose,
-            confidence_level=confidence_level,
-            mean_training_example_dict=mean_training_example_dict,
-            target_name=scalar_target_names[k],
-            report_reliability_in_title=report_metrics_in_titles,
-            output_dir_name=output_dir_name
-        )
-
-    for k in range(num_aux_targets):
-        _plot_attributes_diagram(
-            evaluation_tables_xarray=evaluation_tables_xarray,
-            line_styles=line_styles,
-            line_colours=line_colours,
-            set_descriptions_abbrev=set_descriptions_abbrev,
-            set_descriptions_verbose=set_descriptions_verbose,
-            confidence_level=confidence_level,
-            mean_training_example_dict=mean_training_example_dict,
-            target_name=aux_target_names[k],
-            report_reliability_in_title=report_metrics_in_titles,
-            output_dir_name=output_dir_name
-        )
-
-    for k in range(num_vector_targets):
-        for i in range(num_evaluation_sets):
-            _plot_attributes_diagram(
-                evaluation_tables_xarray=[evaluation_tables_xarray[i]],
-                line_styles=[line_styles[i]],
-                line_colours=[line_colours[i]],
-                set_descriptions_abbrev=[set_descriptions_abbrev[i]],
-                set_descriptions_verbose=[set_descriptions_verbose[i]],
-                confidence_level=confidence_level,
-                mean_training_example_dict=mean_training_example_dict,
-                height_m_agl=None, target_name=vector_target_names[k],
-                report_reliability_in_title=report_metrics_in_titles,
-                output_dir_name=output_dir_name,
-                force_plot_legend=num_evaluation_sets > 1
-            )
-
-    if not plot_by_height:
-        return
-
-    print(SEPARATOR_STRING)
-
-    for k in range(num_vector_targets):
-        for j in range(num_heights):
+        for this_wavelength_metres in wavelengths_metres:
             _plot_attributes_diagram(
                 evaluation_tables_xarray=evaluation_tables_xarray,
                 line_styles=line_styles,
@@ -1397,14 +1416,75 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 set_descriptions_verbose=set_descriptions_verbose,
                 confidence_level=confidence_level,
                 mean_training_example_dict=mean_training_example_dict,
-                height_m_agl=heights_m_agl[j],
-                target_name=vector_target_names[k],
+                target_name=scalar_target_names[k],
+                wavelength_metres=this_wavelength_metres,
                 report_reliability_in_title=report_metrics_in_titles,
                 output_dir_name=output_dir_name
             )
 
-        if k != num_vector_targets - 1:
-            print(SEPARATOR_STRING)
+    print(SEPARATOR_STRING)
+
+    for k in range(num_aux_targets):
+        for this_wavelength_metres in wavelengths_metres:
+            _plot_attributes_diagram(
+                evaluation_tables_xarray=evaluation_tables_xarray,
+                line_styles=line_styles,
+                line_colours=line_colours,
+                set_descriptions_abbrev=set_descriptions_abbrev,
+                set_descriptions_verbose=set_descriptions_verbose,
+                confidence_level=confidence_level,
+                mean_training_example_dict=mean_training_example_dict,
+                target_name=aux_target_names[k],
+                wavelength_metres=this_wavelength_metres,
+                report_reliability_in_title=report_metrics_in_titles,
+                output_dir_name=output_dir_name
+            )
+
+    print(SEPARATOR_STRING)
+
+    for k in range(num_vector_targets):
+        for i in range(num_evaluation_sets):
+            for this_wavelength_metres in wavelengths_metres:
+                _plot_attributes_diagram(
+                    evaluation_tables_xarray=[evaluation_tables_xarray[i]],
+                    line_styles=[line_styles[i]],
+                    line_colours=[line_colours[i]],
+                    set_descriptions_abbrev=[set_descriptions_abbrev[i]],
+                    set_descriptions_verbose=[set_descriptions_verbose[i]],
+                    confidence_level=confidence_level,
+                    mean_training_example_dict=mean_training_example_dict,
+                    height_m_agl=None,
+                    target_name=vector_target_names[k],
+                    wavelength_metres=this_wavelength_metres,
+                    report_reliability_in_title=report_metrics_in_titles,
+                    output_dir_name=output_dir_name,
+                    force_plot_legend=num_evaluation_sets > 1
+                )
+
+    if not plot_by_height:
+        return
+
+    print(SEPARATOR_STRING)
+
+    for k in range(num_vector_targets):
+        for j in range(num_heights):
+            for this_wavelength_metres in wavelengths_metres:
+                _plot_attributes_diagram(
+                    evaluation_tables_xarray=evaluation_tables_xarray,
+                    line_styles=line_styles,
+                    line_colours=line_colours,
+                    set_descriptions_abbrev=set_descriptions_abbrev,
+                    set_descriptions_verbose=set_descriptions_verbose,
+                    confidence_level=confidence_level,
+                    mean_training_example_dict=mean_training_example_dict,
+                    height_m_agl=heights_m_agl[j],
+                    target_name=vector_target_names[k],
+                    wavelength_metres=this_wavelength_metres,
+                    report_reliability_in_title=report_metrics_in_titles,
+                    output_dir_name=output_dir_name
+                )
+
+        print(SEPARATOR_STRING)
 
 
 if __name__ == '__main__':
@@ -1420,6 +1500,9 @@ if __name__ == '__main__':
         confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         plot_by_height=bool(getattr(INPUT_ARG_OBJECT, PLOT_BY_HEIGHT_ARG_NAME)),
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         report_metrics_in_titles=bool(
             getattr(INPUT_ARG_OBJECT, METRICS_IN_TITLES_ARG_NAME)
         ),

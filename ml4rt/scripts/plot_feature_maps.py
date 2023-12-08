@@ -157,19 +157,6 @@ def _run(model_file_name, layer_names, example_file_name, num_examples,
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
 
-    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
-    valid_net_type_strings = [
-        neural_net.CNN_TYPE_STRING, neural_net.U_NET_TYPE_STRING
-    ]
-
-    if net_type_string not in valid_net_type_strings:
-        error_string = (
-            '\nThis script does not work for net type "{0:s}".  Works only for '
-            'those listed below:\n{1:s}'
-        ).format(net_type_string, str(valid_net_type_strings))
-
-        raise ValueError(error_string)
-
     predictor_matrix, _, example_id_strings = (
         misc_utils.get_examples_for_inference(
             model_metadata_dict=metadata_dict,

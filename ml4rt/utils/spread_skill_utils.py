@@ -1168,4 +1168,6 @@ def read_results(netcdf_file_name):
         xarray table should make values self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    return uq_evaluation.add_wavelength_dim_to_table(
+        xarray.open_dataset(netcdf_file_name)
+    )

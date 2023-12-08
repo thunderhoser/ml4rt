@@ -217,6 +217,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
@@ -269,6 +271,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
@@ -310,6 +314,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
             vector_prediction_matrix=
             this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+            target_wavelengths_metres=
+            this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],
@@ -365,6 +371,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
@@ -421,6 +429,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
@@ -477,6 +487,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
@@ -514,7 +526,7 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
     for this_file_name in example_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
         this_example_dict = example_io.read_file(
-            netcdf_file_name=this_file_name, exclude_summit_greenland=False,
+            netcdf_file_name=this_file_name,
             max_shortwave_heating_k_day01=numpy.inf,
             min_longwave_heating_k_day01=-1 * numpy.inf,
             max_longwave_heating_k_day01=numpy.inf
@@ -624,6 +636,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=
@@ -720,6 +734,8 @@ def _run(input_file_name, num_zenith_angle_bins, num_albedo_bins,
             vector_prediction_matrix=
             this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+            target_wavelengths_metres=
+            this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=

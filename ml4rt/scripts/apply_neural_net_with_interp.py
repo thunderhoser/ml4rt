@@ -197,17 +197,13 @@ def _get_data_on_orig_grid(
     option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     predictor_matrix, _, example_id_strings = neural_net.create_data(
-        option_dict=option_dict,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        exclude_summit_greenland=True
+        option_dict
     )
     print(SEPARATOR_STRING)
 
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
-        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-        verbose=True
+        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
     )
 
     for i in range(len(prediction_array)):
@@ -316,11 +312,7 @@ def _get_data_on_new_grid(
 
     try:
         predictor_matrix, target_array, example_id_strings = (
-            neural_net.create_data(
-                option_dict=option_dict,
-                net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-                exclude_summit_greenland=True
-            )
+            neural_net.create_data(option_dict)
         )
 
         height_matrix_m_agl = predictor_matrix[..., 0]
@@ -328,9 +320,7 @@ def _get_data_on_new_grid(
         option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY] = []
 
         _, target_array, example_id_strings = neural_net.create_data(
-            option_dict=option_dict,
-            net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
-            exclude_summit_greenland=True
+            option_dict
         )
 
     actual_hr_matrix_k_day01 = target_array[0][..., 0]
@@ -600,9 +590,12 @@ def _run(model_file_name, orig_example_dir_name, new_example_dir_name,
         vector_prediction_matrix=
         numpy.expand_dims(new_predicted_hr_matrix_k_day01, axis=-1),
         heights_m_agl=new_example_dict[example_utils.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        new_example_dict[example_utils.TARGET_WAVELENGTHS_KEY],
         example_id_strings=new_example_dict[example_utils.EXAMPLE_IDS_KEY],
         model_file_name=model_file_name,
-        isotonic_model_file_name=None, uncertainty_calib_model_file_name=None,
+        isotonic_model_file_name=None,
+        uncertainty_calib_model_file_name=None,
         normalization_file_name=new_norm_file_name
     )
 

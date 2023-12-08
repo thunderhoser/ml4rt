@@ -1,7 +1,9 @@
 """Evaluation methods for uncertainty quantification (UQ)."""
 
 import os
+import copy
 import numpy
+import xarray
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
@@ -581,3 +583,64 @@ def make_error_function_dwmse_plus_flux_mse(scaling_factor_for_dwmse,
         )
 
     return error_function
+
+
+def add_wavelength_dim_to_table(evaluation_table_xarray):
+    """Adds wavelength dimension to UQ-evaluation table.
+
+    :param evaluation_table_xarray: xarray table in format created by
+        `crps_utils.get_crps_related_scores_all_vars` or
+        `spread_skill_utils.get_results_all_vars` or
+        `discard_test_utils.run_discard_test` or
+        `pit_utils.get_histogram_all_vars`.
+    :return: evaluation_table_xarray: Same but including wavelength dimension.
+    """
+
+    if WAVELENGTH_DIM in evaluation_table_xarray.coords:
+        return evaluation_table_xarray
+
+    data_dict = {}
+    coord_dict = {}
+
+    for var_name in evaluation_table_xarray.data_vars:
+        dimension_keys = list(evaluation_table_xarray[var_name].dims)
+        data_matrix = evaluation_table_xarray[var_name].values
+
+        if SCALAR_FIELD_DIM in dimension_keys:
+            i = dimension_keys.index(SCALAR_FIELD_DIM)
+            dimension_keys.insert(i + 1, WAVELENGTH_DIM)
+            data_matrix = numpy.expand_dims(data_matrix, axis=i + 1)
+
+        if VECTOR_FIELD_DIM in dimension_keys:
+            i = dimension_keys.index(VECTOR_FIELD_DIM)
+
+            if (
+                    HEIGHT_DIM in dimension_keys and
+                    dimension_keys.index(HEIGHT_DIM) == i + 1
+            ):
+                dimension_keys.insert(i + 2, WAVELENGTH_DIM)
+                data_matrix = numpy.expand_dims(data_matrix, axis=i + 2)
+            else:
+                dimension_keys.insert(i + 1, WAVELENGTH_DIM)
+                data_matrix = numpy.expand_dims(data_matrix, axis=i + 1)
+
+        if AUX_TARGET_FIELD_DIM in dimension_keys:
+            i = dimension_keys.index(AUX_TARGET_FIELD_DIM)
+            dimension_keys.insert(i + 1, WAVELENGTH_DIM)
+            data_matrix = numpy.expand_dims(data_matrix, axis=i + 1)
+
+        data_dict[var_name] = (copy.deepcopy(dimension_keys), data_matrix + 0.)
+
+    for coord_name in evaluation_table_xarray.coords:
+        coord_dict[coord_name] = (
+            evaluation_table_xarray.coords[coord_name].values
+        )
+
+    coord_dict[WAVELENGTH_DIM] = numpy.array(
+        [example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES]
+    )
+
+    return xarray.Dataset(
+        data_vars=data_dict, coords=coord_dict,
+        attrs=evaluation_table_xarray.attrs
+    )

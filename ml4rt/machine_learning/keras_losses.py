@@ -1,4 +1,13 @@
-"""Custom loss functions for Keras models."""
+"""Custom loss functions for Keras models.
+
+Definitions:
+
+E = number of examples
+H = number of heights
+W = number of wavelengths
+T = number of target variables
+S = ensemble size
+"""
 
 import numpy
 import keras.backend as K
@@ -7,6 +16,9 @@ from gewittergefahr.gg_utils import error_checking
 
 def scaled_mse(scaling_factor):
     """Scaled MSE (mean squared error).
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     :param scaling_factor: Scaling factor.
     :return: loss: Loss function (defined below).
@@ -25,28 +37,23 @@ def scaled_mse(scaling_factor):
     return loss
 
 
-def scaled_mse_for_net_fluxes(scaling_factor, down_flux_indices,
-                              up_flux_indices):
+def scaled_mse_for_net_fluxes(scaling_factor, down_flux_index, up_flux_index):
     """Scaled MSE for net fluxes, both shortwave and longwave.
 
-    B = number of wavelength bands simulated.  The shortwave is one band, and
-        the longwave is another.
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     :param scaling_factor: Scaling factor.
-    :param down_flux_indices: length-B numpy array with channel indices for
-        surface downwelling flux.
-    :param up_flux_indices: length-B numpy array with channel indices for
-        top-of-atmosphere upwelling flux.
+    :param down_flux_index: Array index for surface downwelling flux.
+    :param up_flux_index: Array index for top-of-atmosphere upwelling flux.
     :return: loss: Loss function (defined below).
     """
 
     error_checking.assert_is_greater(scaling_factor, 0.)
-    error_checking.assert_is_numpy_array(down_flux_indices, num_dimensions=1)
-    error_checking.assert_is_integer_numpy_array(down_flux_indices)
-    error_checking.assert_is_geq_numpy_array(down_flux_indices, 0)
-    error_checking.assert_is_numpy_array(up_flux_indices, num_dimensions=1)
-    error_checking.assert_is_integer_numpy_array(up_flux_indices)
-    error_checking.assert_is_geq_numpy_array(up_flux_indices, 0)
+    error_checking.assert_is_integer(down_flux_index)
+    error_checking.assert_is_geq(down_flux_index, 0)
+    error_checking.assert_is_integer(up_flux_index)
+    error_checking.assert_is_geq(up_flux_index, 0)
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss (scaled MSE for net fluxex).
@@ -57,12 +64,12 @@ def scaled_mse_for_net_fluxes(scaling_factor, down_flux_indices,
         """
 
         predicted_net_flux_tensor = (
-            prediction_tensor[..., down_flux_indices] -
-            prediction_tensor[..., up_flux_indices]
+            prediction_tensor[..., down_flux_index] -
+            prediction_tensor[..., up_flux_index]
         )
         target_net_flux_tensor = (
-            target_tensor[..., down_flux_indices] -
-            target_tensor[..., up_flux_indices]
+            target_tensor[..., down_flux_index] -
+            target_tensor[..., up_flux_index]
         )
 
         net_flux_term = K.mean(
@@ -77,6 +84,9 @@ def scaled_mse_for_net_fluxes(scaling_factor, down_flux_indices,
 
 def scaled_mse_for_net_flux(scaling_factor):
     """Scaled MSE (mean squared error) for net flux.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     This method expects two channels: surface downwelling flux and
     top-of-atmosphere (TOA) upwelling flux.  This method penalizes only errors
@@ -114,6 +124,9 @@ def dual_weighted_mse(
         height_weighting_type_string=None):
     """Dual-weighted MSE (mean squared error).
 
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
     Weight = max(magnitude of target value, magnitude of predicted value).
 
     :param use_lowest_n_heights: Will use this number of heights in the loss
@@ -148,6 +161,7 @@ def dual_weighted_mse(
         )[::-1]
         height_weight_matrix = numpy.expand_dims(height_weights, axis=0)
         height_weight_matrix = numpy.expand_dims(height_weights, axis=-1)
+        height_weight_matrix = numpy.expand_dims(height_weights, axis=-1)
 
         if height_weighting_type_string == 'log2':
             height_weight_matrix = numpy.log2(height_weight_matrix + 1.)
@@ -163,8 +177,8 @@ def dual_weighted_mse(
         """
 
         if use_lowest_n_heights is not None:
-            target_tensor = target_tensor[..., :use_lowest_n_heights, :]
-            prediction_tensor = prediction_tensor[..., :use_lowest_n_heights, :]
+            target_tensor = target_tensor[:, :use_lowest_n_heights, ...]
+            prediction_tensor = prediction_tensor[:, :use_lowest_n_heights, ...]
 
         heating_rate_weight_tensor = K.pow(
             K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
@@ -187,6 +201,9 @@ def dual_weighted_mse(
 def dual_weighted_crps():
     """Dual-weighted CRPS (continuous ranked probability score) for htng rates.
 
+    Assumes ensemble model -- i.e., prediction_tensor should have an extra axis
+    for ensemble member.
+
     Weight = max(magnitude of target value, magnitude of predicted value).
 
     :return: loss: Loss function (defined below).
@@ -200,17 +217,23 @@ def dual_weighted_crps():
         :return: loss: Dual-weighted CRPS.
         """
 
+        # E x H x W x T x S
         weight_tensor = K.maximum(
             K.abs(K.expand_dims(target_tensor, axis=-1)),
             K.abs(prediction_tensor)
         )
+
+        # E x H x W x T x S
         absolute_error_tensor = K.abs(
             prediction_tensor - K.expand_dims(target_tensor, axis=-1)
         )
+
+        # E x H x W x T
         mean_prediction_error_tensor = K.mean(
             weight_tensor * absolute_error_tensor, axis=-1
         )
 
+        # E x H x W x T
         mean_prediction_diff_tensor = K.map_fn(
             fn=lambda p: K.mean(
                 K.maximum(
@@ -248,6 +271,9 @@ def dual_weighted_crps():
 def unscaled_crps_for_net_flux():
     """Unscaled CRPS (continuous ranked probability score) for net flux.
 
+    Assumes ensemble model -- i.e., prediction_tensor should have an extra axis
+    for ensemble member.
+
     This method expects two channels: surface downwelling flux and
     top-of-atmosphere (TOA) upwelling flux.  This method penalizes only errors
     in the net flux, which is surface downwelling minus TOA upwelling.
@@ -263,18 +289,26 @@ def unscaled_crps_for_net_flux():
         :return: loss: Unscaled CRPS for net flux.
         """
 
+        # E x W
         target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
+
+        # E x W x T
         full_target_tensor = K.concatenate((
             target_tensor, K.expand_dims(target_net_flux_tensor, axis=-1)
         ), axis=-1)
 
+        # E x W x S
         predicted_net_flux_tensor = (
             prediction_tensor[..., 0, :] - prediction_tensor[..., 1, :]
         )
+
+        # E x W x T x S
         full_prediction_tensor = K.concatenate((
-            prediction_tensor, K.expand_dims(predicted_net_flux_tensor, axis=-2)
+            prediction_tensor,
+            K.expand_dims(predicted_net_flux_tensor, axis=-2)
         ), axis=-2)
 
+        # E x W x T
         mean_prediction_error_tensor = K.mean(
             K.abs(
                 full_prediction_tensor -
@@ -283,6 +317,7 @@ def unscaled_crps_for_net_flux():
             axis=-1
         )
 
+        # E x W x T
         mean_prediction_diff_tensor = K.map_fn(
             fn=lambda p: K.mean(
                 K.abs(K.expand_dims(p, axis=-1) - K.expand_dims(p, axis=-2)),
@@ -309,6 +344,9 @@ def unscaled_crps_for_net_flux():
 def joined_output_loss(num_heights, flux_scaling_factor):
     """Loss function for joined output.
 
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
     This loss function is dual-weighted MSE for heating rates plus scaled MSE
     for fluxes.
 
@@ -325,19 +363,23 @@ def joined_output_loss(num_heights, flux_scaling_factor):
         :return: loss: Scalar.
         """
 
+        # E x W x H
         target_hr_tensor = target_tensor[..., :num_heights]
         predicted_hr_tensor = prediction_tensor[..., :num_heights]
 
+        # Scalar
         first_term = K.mean(
             K.maximum(K.abs(target_hr_tensor), K.abs(predicted_hr_tensor))
             * (predicted_hr_tensor - target_hr_tensor) ** 2
         )
 
+        # E x W
         predicted_net_flux_tensor = (
             prediction_tensor[..., -2] - prediction_tensor[..., -1]
         )
         target_net_flux_tensor = target_tensor[..., -2] - target_tensor[..., -1]
 
+        # Scalars
         net_flux_term = K.mean(
             (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
         )
@@ -355,6 +397,9 @@ def joined_output_loss(num_heights, flux_scaling_factor):
 
 def dual_weighted_mse_simple():
     """Dual-weighted MSE (mean squared error).
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     Weight = max(magnitude of target value, magnitude of predicted value).
 

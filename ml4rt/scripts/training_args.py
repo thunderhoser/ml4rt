@@ -4,7 +4,6 @@ from ml4rt.utils import normalization
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
-NET_TYPE_ARG_NAME = 'net_type_string'
 TRAINING_DIR_ARG_NAME = 'input_training_dir_name'
 VALIDATION_DIR_ARG_NAME = 'input_validation_dir_name'
 INPUT_MODEL_FILE_ARG_NAME = 'input_model_file_name'
@@ -37,9 +36,6 @@ NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
 NUM_VALIDN_BATCHES_ARG_NAME = 'num_validn_batches_per_epoch'
 PLATEAU_LR_MULTIPLIER_ARG_NAME = 'plateau_lr_multiplier'
 
-NET_TYPE_HELP_STRING = (
-    'Neural-net type (must be accepted by `neural_net.check_net_type`).'
-)
 TRAINING_DIR_HELP_STRING = (
     'Name of directory with training examples.  Files therein will be found by '
     '`example_io.find_file` and read by `example_io.read_file`.'
@@ -156,10 +152,6 @@ def add_input_args(parser_object):
     :return: parser_object: Same as input but with new args added.
     """
 
-    parser_object.add_argument(
-        '--' + NET_TYPE_ARG_NAME, type=str, required=True,
-        help=NET_TYPE_HELP_STRING
-    )
     parser_object.add_argument(
         '--' + TRAINING_DIR_ARG_NAME, type=str, required=True,
         help=TRAINING_DIR_HELP_STRING
