@@ -91,6 +91,8 @@ def _run(input_file_name, use_pmm, max_pmm_percentile_level, output_file_name):
             mean_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
         ),
         heights_m_agl=mean_prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        mean_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=example_id_strings,
         model_file_name=mean_prediction_dict[prediction_io.MODEL_FILE_KEY],
         isotonic_model_file_name=

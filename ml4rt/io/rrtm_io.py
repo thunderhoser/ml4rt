@@ -808,6 +808,10 @@ def read_file(netcdf_file_name, dummy_heights_m_agl, look_for_shortwave,
 
     # Heights are in descending order; put them in ascending order.
     vector_target_matrix = numpy.flip(vector_target_matrix, axis=1)
+
+    # Wavenumbers are in descending order; put them in ascending order.
+    scalar_target_matrix = numpy.flip(scalar_target_matrix, axis=1)
+
     example_dict.update({
         example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
         example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix,

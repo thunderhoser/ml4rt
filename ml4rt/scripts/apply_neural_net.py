@@ -235,7 +235,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
     generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY] = False
-
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
@@ -337,16 +336,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
 
-        while len(vector_prediction_matrix.shape) < 4:
-            vector_prediction_matrix = numpy.expand_dims(
-                vector_prediction_matrix, axis=-1
-            )
-
-        while len(scalar_prediction_matrix.shape) < 3:
-            scalar_prediction_matrix = numpy.expand_dims(
-                scalar_prediction_matrix, axis=-1
-            )
-
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
         ensemble_indices = numpy.linspace(
@@ -386,10 +375,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict,
-        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
-    )
 
     num_examples = len(example_id_strings)
     num_heights = len(target_example_dict[example_utils.HEIGHTS_KEY])
@@ -504,12 +489,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         except ValueError:
             continue
 
-        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, j] = 0.
-
-        for k in range(ensemble_size):
-            prediction_example_dict_by_member[k][
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][:, -1, j] = 0.
+        target_example_dict[
+            example_utils.VECTOR_TARGET_VALS_KEY
+        ][:, -1, :, j] = 0.
 
     scalar_prediction_matrix = numpy.stack([
         d[example_utils.SCALAR_TARGET_VALS_KEY]

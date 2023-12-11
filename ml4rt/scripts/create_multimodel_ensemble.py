@@ -95,6 +95,11 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
             prediction_dict[prediction_io.HEIGHTS_KEY],
             atol=TOLERANCE
         )
+        assert numpy.allclose(
+            this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
+            prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
+            atol=TOLERANCE
+        )
         assert (
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY] ==
             prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
@@ -184,6 +189,8 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
         vector_prediction_matrix=
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
         isotonic_model_file_name=
