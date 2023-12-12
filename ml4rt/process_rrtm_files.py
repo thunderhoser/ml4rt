@@ -27,7 +27,6 @@ INPUT_DIR_ARG_NAME = 'input_rrtm_dir_name'
 FIRST_DATE_ARG_NAME = 'first_date_string'
 LAST_DATE_ARG_NAME = 'last_date_string'
 LOOK_FOR_SHORTWAVE_ARG_NAME = 'look_for_shortwave'
-LOOK_FOR_LONGWAVE_ARG_NAME = 'look_for_longwave'
 DUMMY_HEIGHTS_ARG_NAME = 'dummy_heights_m_agl'
 OUTPUT_FILE_ARG_NAME = 'output_example_file_name'
 
@@ -42,9 +41,6 @@ DATE_HELP_STRING = (
 
 LOOK_FOR_SHORTWAVE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will (not) look for results from shortwave RRTM.'
-)
-LOOK_FOR_LONGWAVE_HELP_STRING = (
-    'Boolean flag.  If 1 (0), will (not) look for results from longwave RRTM.'
 )
 DUMMY_HEIGHTS_HELP_STRING = (
     'List of dummy heights (metres above ground level).  These will be used '
@@ -69,10 +65,6 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + LOOK_FOR_SHORTWAVE_ARG_NAME, type=int, required=True,
     help=LOOK_FOR_SHORTWAVE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + LOOK_FOR_LONGWAVE_ARG_NAME, type=int, required=True,
-    help=LOOK_FOR_LONGWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + DUMMY_HEIGHTS_ARG_NAME, type=int, nargs='+', required=False,
@@ -106,8 +98,7 @@ def _remove_duplicate_examples(example_dict):
 
 
 def _run(top_rrtm_dir_name, first_date_string, last_date_string,
-         look_for_shortwave, look_for_longwave, dummy_heights_m_agl,
-         output_file_name):
+         look_for_shortwave, dummy_heights_m_agl, output_file_name):
     """Converts daily RRTM files to example files.
 
     This is effectively the main method.
@@ -116,13 +107,10 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
     :param first_date_string: Same.
     :param last_date_string: Same.
     :param look_for_shortwave: Same.
-    :param look_for_longwave: Same.
     :param dummy_heights_m_agl: Same.
     :param output_file_name: Same.
     :raises: ValueError: if no RRTM files can be found.
     """
-
-    assert look_for_shortwave or look_for_longwave
 
     if len(dummy_heights_m_agl) == 1 and dummy_heights_m_agl[0] < 0:
         dummy_heights_m_agl = None
@@ -142,10 +130,7 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
     rrtm_file_names = []
 
     if look_for_shortwave:
-        if look_for_longwave:
-            band_string = '_lwsw'
-        else:
-            band_string = ''
+        band_string = ''
     else:
         band_string = '_lw'
 
@@ -175,8 +160,7 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
         this_example_dict = rrtm_io.read_file(
             netcdf_file_name=this_file_name, allow_bad_values=True,
             dummy_heights_m_agl=dummy_heights_m_agl,
-            look_for_shortwave=look_for_shortwave,
-            look_for_longwave=look_for_longwave
+            look_for_shortwave=look_for_shortwave
         )
 
         example_dicts.append(this_example_dict)
@@ -277,9 +261,6 @@ if __name__ == '__main__':
         last_date_string=getattr(INPUT_ARG_OBJECT, LAST_DATE_ARG_NAME),
         look_for_shortwave=bool(
             getattr(INPUT_ARG_OBJECT, LOOK_FOR_SHORTWAVE_ARG_NAME)
-        ),
-        look_for_longwave=bool(
-            getattr(INPUT_ARG_OBJECT, LOOK_FOR_LONGWAVE_ARG_NAME)
         ),
         dummy_heights_m_agl=numpy.array(
             getattr(INPUT_ARG_OBJECT, DUMMY_HEIGHTS_ARG_NAME), dtype=int
