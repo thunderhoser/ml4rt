@@ -1,10 +1,22 @@
-"""Evaluation scores used during training."""
+"""Evaluation scores used during training.
+
+Definitions:
+
+E = number of examples
+H = number of heights
+W = number of wavelengths
+T = number of target variables
+S = ensemble size
+"""
 
 import keras.backend as K
 
 
 def mean_bias(target_tensor, prediction_tensor):
     """Computes mean bias (mean signed error).
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     :param target_tensor: Keras tensor with target values.
     :param prediction_tensor: Keras tensor with predicted values.
@@ -18,6 +30,9 @@ def mean_bias(target_tensor, prediction_tensor):
 def mean_absolute_error(target_tensor, prediction_tensor):
     """Computes mean absolute error.
 
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
     :param target_tensor: Keras tensor with target values.
     :param prediction_tensor: Keras tensor with predicted values.
     :return: mean_absolute_error: Mean absolute error.
@@ -28,6 +43,9 @@ def mean_absolute_error(target_tensor, prediction_tensor):
 
 def mae_skill_score(target_tensor, prediction_tensor):
     """Computes mean-absolute-error (MAE) skill score.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     :param target_tensor: Keras tensor with target values.
     :param prediction_tensor: Keras tensor with predicted values.
@@ -44,6 +62,9 @@ def mae_skill_score(target_tensor, prediction_tensor):
 def mean_squared_error(target_tensor, prediction_tensor):
     """Computes mean squared error.
 
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
     :param target_tensor: Keras tensor with target values.
     :param prediction_tensor: Keras tensor with predicted values.
     :return: mean_squared_error: Mean squared error.
@@ -54,6 +75,9 @@ def mean_squared_error(target_tensor, prediction_tensor):
 
 def mse_skill_score(target_tensor, prediction_tensor):
     """Computes mean-squared-error (MSE) skill score.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     :param target_tensor: Keras tensor with target values.
     :param prediction_tensor: Keras tensor with predicted values.
@@ -69,6 +93,9 @@ def mse_skill_score(target_tensor, prediction_tensor):
 
 def correlation(target_tensor, prediction_tensor):
     """Computes correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
 
     :param target_tensor: Keras tensor with target values.
     :param prediction_tensor: Keras tensor with predicted values.

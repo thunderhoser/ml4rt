@@ -26,6 +26,7 @@ TITLE_FONT_SIZE = 15
 FIGURE_RESOLUTION_DPI = 300
 
 KG_TO_GRAMS = 1000.
+METRES_TO_MICRONS = 1e6
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
 SHORTWAVE_VECTOR_TARGET_NAMES = [
@@ -68,6 +69,7 @@ LEGEND_BOUNDING_BOX_DICT = {
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 PLOT_UNCERTAINTY_ARG_NAME = 'plot_uncertainty'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 NUM_EXAMPLES_ARG_NAME = 'num_examples'
@@ -83,6 +85,9 @@ PREDICTION_FILE_HELP_STRING = (
 )
 PLOT_SHORTWAVE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot shortwave (longwave) values.'
+)
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one set of plots for each.'
 )
 PLOT_UNCERTAINTY_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot uncertainty in predictions.'
@@ -126,6 +131,11 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_UNCERTAINTY_ARG_NAME, type=int, required=True,
     help=PLOT_UNCERTAINTY_HELP_STRING
 )
@@ -161,7 +171,8 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_comparisons_fancy(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
-        model_metadata_dict, use_log_scale, plot_shortwave, output_dir_name):
+        model_metadata_dict, use_log_scale, plot_shortwave, wavelength_metres,
+        output_dir_name):
     """Plots fancy comparisons (with all target variables in the same plot).
 
     E = number of examples
@@ -178,6 +189,7 @@ def _plot_comparisons_fancy(
         `neural_net.read_metadata`.
     :param use_log_scale: See documentation at top of file.
     :param plot_shortwave: Same.
+    :param wavelength_metres: Will plot for this wavelength only.
     :param output_dir_name: Path to output directory (figures will be saved
         here).
     """
@@ -187,6 +199,8 @@ def _plot_comparisons_fancy(
     target_example_dict = {
         example_utils.HEIGHTS_KEY:
             generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.TARGET_WAVELENGTHS_KEY:
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
         example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
         example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
@@ -195,6 +209,8 @@ def _plot_comparisons_fancy(
     prediction_example_dict = {
         example_utils.HEIGHTS_KEY:
             generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.TARGET_WAVELENGTHS_KEY:
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
         example_utils.VECTOR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
         example_utils.VECTOR_TARGET_VALS_KEY:
@@ -206,17 +222,20 @@ def _plot_comparisons_fancy(
     for i in range(num_examples):
         this_handle_dict = profile_plotting.plot_targets(
             example_dict=target_example_dict, example_index=i,
-            use_log_scale=use_log_scale, for_shortwave=plot_shortwave,
-            line_style='solid', handle_dict=None
+            for_shortwave=plot_shortwave, wavelength_metres=wavelength_metres,
+            use_log_scale=use_log_scale, line_style='solid', handle_dict=None
         )
         profile_plotting.plot_targets(
             example_dict=prediction_example_dict, example_index=i,
-            use_log_scale=use_log_scale, for_shortwave=plot_shortwave,
+            for_shortwave=plot_shortwave, wavelength_metres=wavelength_metres,
+            use_log_scale=use_log_scale,
             line_style='dashed', handle_dict=this_handle_dict
         )
 
-        this_file_name = '{0:s}/{1:s}_comparison.jpg'.format(
-            output_dir_name, example_id_strings[i].replace('_', '-')
+        this_file_name = '{0:s}/{1:s}_comparison_{2:.2f}microns.jpg'.format(
+            output_dir_name,
+            example_id_strings[i].replace('_', '-'),
+            METRES_TO_MICRONS * wavelength_metres
         )
         print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
@@ -233,7 +252,7 @@ def _plot_comparisons_fancy(
 def _plot_comparisons_simple(
         vector_target_matrix, vector_prediction_matrix, example_id_strings,
         model_metadata_dict, use_log_scale, add_two_dummy_axes, plot_shortwave,
-        plot_uncertainty, confidence_level,
+        wavelength_metres, plot_uncertainty, confidence_level,
         annotation_strings, model_description_string, output_dir_name):
     """Plots simple comparisons (with each target var in a different plot).
 
@@ -244,6 +263,7 @@ def _plot_comparisons_simple(
     :param use_log_scale: Same.
     :param add_two_dummy_axes: Same.
     :param plot_shortwave: Same.
+    :param wavelength_metres: Same.
     :param plot_uncertainty: Same.
     :param confidence_level: Same.
     :param annotation_strings: 1-D list of annotations, one per example.
@@ -268,9 +288,15 @@ def _plot_comparisons_simple(
     num_examples = vector_target_matrix.shape[0]
     num_target_vars = len(target_names)
 
+    w = example_utils.match_wavelengths(
+        wavelengths_metres=
+        generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
+    )
+
     for i in range(num_examples):
         for j in range(num_target_vars):
-            k = generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+            t = generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
                 target_names[j]
             )
 
@@ -281,8 +307,8 @@ def _plot_comparisons_simple(
             )
 
             handle_dict = profile_plotting.plot_actual_and_predicted(
-                actual_values=vector_target_matrix[i, :, k],
-                prediction_matrix=vector_prediction_matrix[i, :, k, :],
+                actual_values=vector_target_matrix[i, :, w, t],
+                prediction_matrix=vector_prediction_matrix[i, :, w, t, :],
                 heights_m_agl=heights_m_agl,
                 fancy_target_name=fancy_target_name,
                 line_colours=[TARGET_COLOUR, PREDICTION_COLOUR],
@@ -308,9 +334,9 @@ def _plot_comparisons_simple(
                 these_axes_objects[1].set_xlim(left=x_min)
 
             this_mae = evaluation._get_mae_one_scalar(
-                target_values=vector_target_matrix[i, :, k],
+                target_values=vector_target_matrix[i, :, w, t],
                 predicted_values=
-                numpy.mean(vector_prediction_matrix[i, :, k, :], axis=-1)
+                numpy.mean(vector_prediction_matrix[i, :, w, t, :], axis=-1)
             )
             this_annotation_string = 'HR MAE = {0:.2f} {1:s}'.format(
                 this_mae, TARGET_NAME_TO_UNITS[target_names[j]]
@@ -342,9 +368,11 @@ def _plot_comparisons_simple(
                     transform=these_axes_objects[1].transAxes, zorder=1e13
                 )
 
-            this_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
-                output_dir_name, example_id_strings[i].replace('_', '-'),
-                target_names[j].replace('_', '-')
+            this_file_name = '{0:s}/{1:s}_{2:s}_{3:.2f}microns.jpg'.format(
+                output_dir_name,
+                example_id_strings[i].replace('_', '-'),
+                target_names[j].replace('_', '-'),
+                METRES_TO_MICRONS * wavelength_metres
             )
             print('Saving figure to: "{0:s}"...'.format(this_file_name))
 
@@ -355,137 +383,17 @@ def _plot_comparisons_simple(
             pyplot.close(this_figure_object)
 
 
-def _get_flux_strings(
-        scalar_target_matrix, scalar_prediction_matrix, model_metadata_dict,
-        plot_shortwave):
-    """For each example, returns string with actual and predicted fluxes.
-
-    E = number of examples
-    S = number of scalar target variables
-
-    :param scalar_target_matrix: E-by-S numpy array of actual values.
-    :param scalar_prediction_matrix: E-by-S numpy array of predicted values.
-    :param model_metadata_dict: Dictionary returned by
-        `neural_net.read_metadata`.
-    :param plot_shortwave: See documentation at top of file.
-    :return: flux_strings: length-E list of strings.
-    """
-
-    scalar_target_names = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
-        neural_net.SCALAR_TARGET_NAMES_KEY
-    ]
-    num_examples = scalar_target_matrix.shape[0]
-
-    try:
-        down_flux_index = scalar_target_names.index(
-            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME if plot_shortwave
-            else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
-        )
-
-        actual_down_flux_strings = [
-            '{0:.1f}'.format(f)
-            for f in scalar_target_matrix[:, down_flux_index]
-        ]
-        actual_down_flux_strings = [
-            r'$F_{down}^{sfc}$ = ' + s + r' W m$^{-2}$'
-            for s in actual_down_flux_strings
-        ]
-
-        predicted_down_flux_strings = [
-            '{0:.1f}'.format(f)
-            for f in scalar_prediction_matrix[:, down_flux_index]
-        ]
-        predicted_down_flux_strings = [
-            r'$F_{down}^{sfc}$ = ' + s + r' W m$^{-2}$'
-            for s in predicted_down_flux_strings
-        ]
-    except ValueError:
-        actual_down_flux_strings = None
-        predicted_down_flux_strings = None
-
-    try:
-        up_flux_index = scalar_target_names.index(
-            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME if plot_shortwave
-            else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
-        )
-
-        actual_up_flux_strings = [
-            '{0:.1f}'.format(f)
-            for f in scalar_target_matrix[:, up_flux_index]
-        ]
-        actual_up_flux_strings = [
-            r'$F_{up}^{TOA}$ = ' + s + r' W m$^{-2}$'
-            for s in actual_up_flux_strings
-        ]
-
-        predicted_up_flux_strings = [
-            '{0:.1f}'.format(f)
-            for f in scalar_prediction_matrix[:, up_flux_index]
-        ]
-        predicted_up_flux_strings = [
-            r'$F_{up}^{TOA}$ = ' + s + r' W m$^{-2}$'
-            for s in predicted_up_flux_strings
-        ]
-    except ValueError:
-        actual_up_flux_strings = None
-        predicted_up_flux_strings = None
-
-    flux_strings = ['True'] * num_examples
-
-    if actual_down_flux_strings is not None:
-        flux_strings = [
-            '{0:s} ({1:s}'.format(a, b)
-            for a, b in zip(flux_strings, actual_down_flux_strings)
-        ]
-
-        if actual_up_flux_strings is not None:
-            flux_strings = [
-                '{0:s}, {1:s}'.format(a, b)
-                for a, b in zip(flux_strings, actual_up_flux_strings)
-            ]
-
-        flux_strings = ['{0:s})'.format(s) for s in flux_strings]
-
-    elif actual_up_flux_strings is not None:
-        flux_strings = [
-            '{0:s} ({1:s})'.format(a, b)
-            for a, b in zip(flux_strings, actual_up_flux_strings)
-        ]
-
-    flux_strings = ['{0:s} vs.\npred'.format(s) for s in flux_strings]
-
-    if predicted_down_flux_strings is not None:
-        flux_strings = [
-            '{0:s} ({1:s}'.format(a, b)
-            for a, b in zip(flux_strings, predicted_down_flux_strings)
-        ]
-
-        if predicted_up_flux_strings is not None:
-            flux_strings = [
-                '{0:s}, {1:s}'.format(a, b)
-                for a, b in zip(flux_strings, predicted_up_flux_strings)
-            ]
-
-        flux_strings = ['{0:s})'.format(s) for s in flux_strings]
-
-    elif predicted_up_flux_strings is not None:
-        flux_strings = [
-            '{0:s} ({1:s})'.format(a, b)
-            for a, b in zip(flux_strings, predicted_up_flux_strings)
-        ]
-
-    return flux_strings
-
-
-def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
-         confidence_level, num_examples, use_log_scale, add_two_dummy_axes,
-         example_dir_name, model_description_string, output_dir_name):
+def _run(prediction_file_name, plot_shortwave, wavelengths_metres,
+         plot_uncertainty, confidence_level, num_examples, use_log_scale,
+         add_two_dummy_axes, example_dir_name, model_description_string,
+         output_dir_name):
     """Plots comparisons between predicted and actual (target) profiles.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
     :param plot_shortwave: Same.
+    :param wavelengths_metres: Same.
     :param plot_uncertainty: Same.
     :param confidence_level: Same.
     :param num_examples: Same.
@@ -496,6 +404,7 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
     :param output_dir_name: Same.
     """
 
+    # Check input args.
     if example_dir_name in ['', 'None', 'none']:
         example_dir_name = None
     if model_description_string in ['', 'None', 'none']:
@@ -507,6 +416,7 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
     if num_examples < 1:
         num_examples = None
 
+    # Do actual stuff.
     print((
         'Reading predicted and actual (target) profiles from: "{0:s}"...'
     ).format(
@@ -595,118 +505,128 @@ def _run(prediction_file_name, plot_shortwave, plot_uncertainty,
 
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
-    model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
-        neural_net.HEIGHTS_KEY
-    ] = prediction_dict[prediction_io.HEIGHTS_KEY]
+    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    generator_option_dict[neural_net.HEIGHTS_KEY] = prediction_dict[
+        prediction_io.HEIGHTS_KEY
+    ]
+    generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY] = prediction_dict[
+        prediction_io.TARGET_WAVELENGTHS_KEY
+    ]
+    model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = generator_option_dict
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    vector_target_names = (
-        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
-    )
-    scalar_target_names = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
+    vector_target_names = generator_option_dict[
+        neural_net.VECTOR_TARGET_NAMES_KEY
+    ]
+    scalar_target_names = generator_option_dict[
         neural_net.SCALAR_TARGET_NAMES_KEY
     ]
 
-    down_flux_index = scalar_target_names.index(
-        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME if plot_shortwave
-        else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
-    )
-    down_flux_strings = [
-        'Fdown error = {0:.1f} WW'.format(b) for b in (
-            numpy.mean(scalar_prediction_matrix[:, down_flux_index, :], axis=1)
-            - scalar_target_matrix[:, down_flux_index]
+    for this_wavelength_metres in wavelengths_metres:
+        w = example_utils.match_wavelengths(
+            wavelengths_metres=
+            prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
+            desired_wavelength_metres=this_wavelength_metres
         )
-    ]
-    down_flux_strings = [
-        s.replace('Fdown', r'$F_{down}^{sfc}$')
-        for s in down_flux_strings
-    ]
 
-    up_flux_index = scalar_target_names.index(
-        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME if plot_shortwave
-        else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
-    )
-    up_flux_strings = [
-        'Fup error = {0:.1f} WW'.format(b) for b in (
-            numpy.mean(scalar_prediction_matrix[:, up_flux_index, :], axis=1)
-            - scalar_target_matrix[:, up_flux_index]
+        d_idx = scalar_target_names.index(
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME if plot_shortwave
+            else example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
         )
-    ]
-    up_flux_strings = [
-        s.replace('Fup', r'$F_{up}^{TOA}$') for s in up_flux_strings
-    ]
-
-    actual_net_fluxes_w_m02 = (
-        scalar_target_matrix[:, down_flux_index] -
-        scalar_target_matrix[:, up_flux_index]
-    )
-    predicted_net_fluxes_w_m02 = (
-        numpy.mean(scalar_prediction_matrix[:, down_flux_index, :], axis=1) -
-        numpy.mean(scalar_prediction_matrix[:, up_flux_index, :], axis=1)
-    )
-    net_flux_strings = [
-        'Fnet error = {0:.1f} WW'.format(b) for b in
-        predicted_net_fluxes_w_m02 - actual_net_fluxes_w_m02
-    ]
-    net_flux_strings = [
-        s.replace('Fnet', r'$F_{net}$') for s in net_flux_strings
-    ]
-
-    flux_strings = [
-        '{0:s}\n{1:s}\n{2:s}'.format(d, u, n) for d, u, n in
-        zip(down_flux_strings, up_flux_strings, net_flux_strings)
-    ]
-    flux_strings = [
-        s.replace('WW', r'W m$^{-2}$') for s in flux_strings
-    ]
-
-    if example_dir_name is None:
-        annotation_strings = flux_strings
-    else:
-        annotation_strings = [
-            '{0:s}\n{1:s}'.format(f, a) for f, a in
-            zip(flux_strings, annotation_strings)
+        down_flux_strings = [
+            'Fdown error = {0:.1f} WW'.format(b) for b in (
+                numpy.mean(scalar_prediction_matrix[:, w, d_idx, :], axis=-1)
+                - scalar_target_matrix[:, w, d_idx]
+            )
+        ]
+        down_flux_strings = [
+            s.replace('Fdown', r'$F_{down}^{sfc}$')
+            for s in down_flux_strings
         ]
 
-    if plot_shortwave:
-        plot_fancy = all([
-            t in vector_target_names for t in SHORTWAVE_VECTOR_TARGET_NAMES
-        ])
-    else:
-        plot_fancy = all([
-            t in vector_target_names for t in LONGWAVE_VECTOR_TARGET_NAMES
-        ])
-
-    if plot_fancy:
-        _plot_comparisons_fancy(
-            vector_target_matrix=vector_target_matrix,
-            vector_prediction_matrix=vector_prediction_matrix,
-            example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-            model_metadata_dict=model_metadata_dict,
-            use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
-            output_dir_name=output_dir_name
+        u_idx = scalar_target_names.index(
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME if plot_shortwave
+            else example_utils.LONGWAVE_TOA_UP_FLUX_NAME
         )
-    else:
-        # title_strings = _get_flux_strings(
-        #     scalar_target_matrix=scalar_target_matrix,
-        #     scalar_prediction_matrix=scalar_prediction_matrix,
-        #     model_metadata_dict=model_metadata_dict,
-        #     plot_shortwave=plot_shortwave
-        # )
+        up_flux_strings = [
+            'Fup error = {0:.1f} WW'.format(b) for b in (
+                numpy.mean(scalar_prediction_matrix[:, w, u_idx, :], axis=-1)
+                - scalar_target_matrix[:, w, u_idx]
+            )
+        ]
+        up_flux_strings = [
+            s.replace('Fup', r'$F_{up}^{TOA}$') for s in up_flux_strings
+        ]
 
-        _plot_comparisons_simple(
-            vector_target_matrix=vector_target_matrix,
-            vector_prediction_matrix=vector_prediction_matrix,
-            example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
-            model_metadata_dict=model_metadata_dict,
-            use_log_scale=use_log_scale, add_two_dummy_axes=add_two_dummy_axes,
-            plot_shortwave=plot_shortwave,
-            plot_uncertainty=plot_uncertainty,
-            confidence_level=confidence_level,
-            annotation_strings=annotation_strings,
-            model_description_string=model_description_string,
-            output_dir_name=output_dir_name
+        actual_net_fluxes_w_m02 = (
+            scalar_target_matrix[:, w, d_idx] -
+            scalar_target_matrix[:, w, u_idx]
         )
+        predicted_net_fluxes_w_m02 = (
+            numpy.mean(scalar_prediction_matrix[:, w, d_idx, :], axis=-1) -
+            numpy.mean(scalar_prediction_matrix[:, w, u_idx, :], axis=-1)
+        )
+        net_flux_strings = [
+            'Fnet error = {0:.1f} WW'.format(b) for b in
+            predicted_net_fluxes_w_m02 - actual_net_fluxes_w_m02
+        ]
+        net_flux_strings = [
+            s.replace('Fnet', r'$F_{net}$') for s in net_flux_strings
+        ]
+
+        flux_strings = [
+            '{0:s}\n{1:s}\n{2:s}'.format(d, u, n) for d, u, n in
+            zip(down_flux_strings, up_flux_strings, net_flux_strings)
+        ]
+        flux_strings = [
+            s.replace('WW', r'W m$^{-2}$') for s in flux_strings
+        ]
+
+        if example_dir_name is None:
+            annotation_strings = flux_strings
+        else:
+            annotation_strings = [
+                '{0:s}\n{1:s}'.format(f, a) for f, a in
+                zip(flux_strings, annotation_strings)
+            ]
+
+        if plot_shortwave:
+            plot_fancy = all([
+                t in vector_target_names for t in SHORTWAVE_VECTOR_TARGET_NAMES
+            ])
+        else:
+            plot_fancy = all([
+                t in vector_target_names for t in LONGWAVE_VECTOR_TARGET_NAMES
+            ])
+
+        if plot_fancy:
+            _plot_comparisons_fancy(
+                vector_target_matrix=vector_target_matrix,
+                vector_prediction_matrix=vector_prediction_matrix,
+                example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
+                model_metadata_dict=model_metadata_dict,
+                use_log_scale=use_log_scale,
+                plot_shortwave=plot_shortwave,
+                wavelength_metres=this_wavelength_metres,
+                output_dir_name=output_dir_name
+            )
+        else:
+            _plot_comparisons_simple(
+                vector_target_matrix=vector_target_matrix,
+                vector_prediction_matrix=vector_prediction_matrix,
+                example_id_strings=
+                prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
+                model_metadata_dict=model_metadata_dict,
+                use_log_scale=use_log_scale,
+                add_two_dummy_axes=add_two_dummy_axes,
+                plot_shortwave=plot_shortwave,
+                wavelength_metres=this_wavelength_metres,
+                plot_uncertainty=plot_uncertainty,
+                confidence_level=confidence_level,
+                annotation_strings=annotation_strings,
+                model_description_string=model_description_string,
+                output_dir_name=output_dir_name
+            )
 
 
 if __name__ == '__main__':
@@ -717,6 +637,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
         plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         plot_uncertainty=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_UNCERTAINTY_ARG_NAME)
         ),

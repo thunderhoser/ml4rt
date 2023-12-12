@@ -22,11 +22,11 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
 
-def _run(net_type_string, training_dir_name, validation_dir_name,
+def _run(training_dir_name, validation_dir_name,
          input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
          joined_output_layer, num_deep_supervision_layers, predictor_names,
-         target_names, heights_m_agl, multiply_preds_by_layer_thickness,
+         target_names, heights_m_agl, target_wavelengths_metres,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
          normalization_file_name, uniformize, predictor_norm_type_string,
@@ -38,8 +38,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
          num_validn_batches_per_epoch, plateau_lr_multiplier):
     """Trains neural net
 
-    :param net_type_string: See documentation at top of training_args.py.
-    :param training_dir_name: Same.
+    :param training_dir_name: See documentation at top of training_args.py.
     :param validation_dir_name: Same.
     :param input_model_file_name: Same.
     :param output_model_dir_name: Same.
@@ -50,7 +49,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
     :param predictor_names: Same.
     :param target_names: Same.
     :param heights_m_agl: Same.
-    :param multiply_preds_by_layer_thickness: Same.
+    :param target_wavelengths_metres: Same.
     :param first_training_time_string: Same.
     :param last_training_time_string: Same.
     :param first_validn_time_string: Same.
@@ -81,8 +80,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         vector_target_norm_type_string = None
     if scalar_target_norm_type_string in NONE_STRINGS:
         scalar_target_norm_type_string = None
-
-    neural_net.check_net_type(net_type_string)
 
     for n in predictor_names:
         example_utils.check_field_name(n)
@@ -127,8 +124,7 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
         neural_net.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
         neural_net.VECTOR_TARGET_NAMES_KEY: vector_target_names,
         neural_net.HEIGHTS_KEY: heights_m_agl,
-        neural_net.MULTIPLY_PREDS_BY_THICKNESS_KEY:
-            multiply_preds_by_layer_thickness,
+        neural_net.TARGET_WAVELENGTHS_KEY: target_wavelengths_metres,
         neural_net.NORMALIZATION_FILE_KEY: normalization_file_name,
         neural_net.UNIFORMIZE_FLAG_KEY: uniformize,
         neural_net.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
@@ -183,7 +179,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
             use_generator_for_validn=use_generator_for_validn,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             validation_option_dict=validation_option_dict,
-            net_type_string=net_type_string,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
             plateau_lr_multiplier=plateau_lr_multiplier,
             bnn_architecture_dict=bnn_architecture_dict,
@@ -194,7 +189,6 @@ def _run(net_type_string, training_dir_name, validation_dir_name,
             model_object=model_object, output_dir_name=output_model_dir_name,
             num_epochs=num_epochs, training_option_dict=training_option_dict,
             validation_option_dict=validation_option_dict,
-            net_type_string=net_type_string,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
             num_training_batches_per_epoch=num_training_batches_per_epoch,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
@@ -208,9 +202,6 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        net_type_string=getattr(
-            INPUT_ARG_OBJECT, training_args.NET_TYPE_ARG_NAME
-        ),
         training_dir_name=getattr(
             INPUT_ARG_OBJECT, training_args.TRAINING_DIR_ARG_NAME
         ),
@@ -245,9 +236,10 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, training_args.HEIGHTS_ARG_NAME),
             dtype=float
         ),
-        multiply_preds_by_layer_thickness=bool(getattr(
-            INPUT_ARG_OBJECT, training_args.MULTIPLY_PREDICTORS_ARG_NAME
-        )),
+        target_wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, training_args.TARGET_WAVELENGTHS_ARG_NAME),
+            dtype=float
+        ),
         first_training_time_string=getattr(
             INPUT_ARG_OBJECT, training_args.FIRST_TRAIN_TIME_ARG_NAME
         ),

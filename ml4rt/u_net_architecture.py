@@ -301,7 +301,7 @@ def zero_top_heating_rate_function(height_index):
     return zeroing_function
 
 
-def create_model(option_dict, vector_loss_function, num_output_channels=1,
+def create_model(option_dict, vector_loss_function, num_output_wavelengths,
                  scalar_loss_function=None, ensemble_size=1):
     """Creates U-net.
 
@@ -313,7 +313,7 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
 
     :param option_dict: See doc for `_check_architecture_args`.
     :param vector_loss_function: Loss function for vector outputs.
-    :param num_output_channels: Number of output channels.
+    :param num_output_wavelengths: Number of output wavelengths.
     :param scalar_loss_function: Loss function for scalar outputs.  If there are
         no dense layers, leave this alone.
     :param ensemble_size: Ensemble size.  The U-net will output this many
@@ -529,7 +529,7 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
     if include_penultimate_conv:
         skip_layer_by_level[0] = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=2 * num_output_channels,
+            num_filters=2 * num_output_wavelengths * ensemble_size,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object, layer_name='penultimate_conv'
         )(skip_layer_by_level[0])
@@ -556,7 +556,7 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
 
     conv_output_layer_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=1, num_rows_per_stride=1,
-        num_filters=num_output_channels * ensemble_size,
+        num_filters=num_output_wavelengths * ensemble_size,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object, layer_name='last_conv'
     )(skip_layer_by_level[0])
@@ -564,7 +564,12 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
             target_shape=
-            (input_dimensions[0], num_output_channels, ensemble_size)
+            (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+        )(conv_output_layer_object)
+    else:
+        conv_output_layer_object = keras.layers.Reshape(
+            target_shape=
+            (input_dimensions[0], num_output_wavelengths, 1)
         )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
@@ -593,33 +598,41 @@ def create_model(option_dict, vector_loss_function, num_output_channels=1,
         dense_output_layer_object = None
 
     for j in range(num_dense_layers):
-        if (
-                j == num_dense_layers - 1 and
-                dense_layer_dropout_rates[j] <= 0 and
-                dense_output_activ_func_name is None
-        ):
-            this_name = 'dense_output'
-        else:
-            this_name = 'dense{0:d}'.format(j)
+        this_name = 'dense{0:d}'.format(j)
 
         dense_output_layer_object = architecture_utils.get_dense_layer(
             num_output_units=dense_layer_neuron_nums[j], layer_name=this_name
         )(dense_output_layer_object)
 
         if j == num_dense_layers - 1:
-            if ensemble_size > 1:
-                num_dense_output_vars = (
-                    float(dense_layer_neuron_nums[j]) / ensemble_size
-                )
-                assert numpy.isclose(
-                    num_dense_output_vars, numpy.round(num_dense_output_vars),
-                    atol=1e-6
-                )
+            if (
+                    dense_layer_dropout_rates[j] <= 0 and
+                    dense_output_activ_func_name is None
+            ):
+                this_name = 'dense_output'
+            else:
+                this_name = 'dense{0:d}_reshape'.format(j)
 
-                num_dense_output_vars = int(numpy.round(num_dense_output_vars))
-                dense_output_layer_object = keras.layers.Reshape(
-                    target_shape=(num_dense_output_vars, ensemble_size)
-                )(dense_output_layer_object)
+            num_dense_output_vars = (
+                float(dense_layer_neuron_nums[j]) /
+                (ensemble_size * num_output_wavelengths)
+            )
+            assert numpy.isclose(
+                num_dense_output_vars, numpy.round(num_dense_output_vars),
+                atol=1e-6
+            )
+            num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+
+            if ensemble_size > 1:
+                these_dim = (
+                    num_output_wavelengths, num_dense_output_vars, ensemble_size
+                )
+            else:
+                these_dim = (num_output_wavelengths, num_dense_output_vars)
+
+            dense_output_layer_object = keras.layers.Reshape(
+                target_shape=these_dim, name=this_name
+            )(dense_output_layer_object)
 
             if dense_output_activ_func_name is not None:
                 if dense_layer_dropout_rates[j] > 0:

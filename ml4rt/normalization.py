@@ -851,8 +851,8 @@ def normalize_data(
                     height_m_agl=heights_m_agl[j]
                 )
 
-                new_vector_target_matrix[..., j, k] = _normalize_one_variable(
-                    orig_values_new=new_vector_target_matrix[..., j, k],
+                new_vector_target_matrix[:, j, :, k] = _normalize_one_variable(
+                    orig_values_new=new_vector_target_matrix[:, j, :, k],
                     orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
                     uniformize=uniformize,
@@ -1056,8 +1056,8 @@ def denormalize_data(
                     height_m_agl=heights_m_agl[j]
                 )
 
-                new_vector_target_matrix[..., j, k] = _denorm_one_variable(
-                    normalized_values_new=new_vector_target_matrix[..., j, k],
+                new_vector_target_matrix[:, j, :, k] = _denorm_one_variable(
+                    normalized_values_new=new_vector_target_matrix[:, j, :, k],
                     orig_values_training=these_training_values,
                     normalization_type_string=normalization_type_string,
                     uniformize=uniformize,
@@ -1093,33 +1093,41 @@ def create_mean_example(new_example_dict, training_example_dict):
     :return: mean_example_dict: See doc for `example_utils.average_examples`.
     """
 
-    scalar_predictor_names = (
-        new_example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
-    )
-    scalar_target_names = (
-        new_example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
-    )
-    vector_predictor_names = (
-        new_example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-    )
-    vector_target_names = (
-        new_example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
-    )
-    heights_m_agl = new_example_dict[example_utils.HEIGHTS_KEY]
+    scalar_predictor_names = new_example_dict[
+        example_utils.SCALAR_PREDICTOR_NAMES_KEY
+    ]
+    scalar_target_names = new_example_dict[
+        example_utils.SCALAR_TARGET_NAMES_KEY
+    ]
+    vector_predictor_names = new_example_dict[
+        example_utils.VECTOR_PREDICTOR_NAMES_KEY
+    ]
+    vector_target_names = new_example_dict[
+        example_utils.VECTOR_TARGET_NAMES_KEY
+    ]
+    heights_m_agl = new_example_dict[
+        example_utils.HEIGHTS_KEY
+    ]
+    target_wavelengths_metres = new_example_dict[
+        example_utils.TARGET_WAVELENGTHS_KEY
+    ]
 
     num_scalar_predictors = len(scalar_predictor_names)
     num_scalar_targets = len(scalar_target_names)
     num_vector_predictors = len(vector_predictor_names)
     num_vector_targets = len(vector_target_names)
     num_heights = len(heights_m_agl)
+    num_target_wavelengths = len(target_wavelengths_metres)
 
     mean_scalar_predictor_values = numpy.full(num_scalar_predictors, numpy.nan)
-    mean_scalar_target_values = numpy.full(num_scalar_targets, numpy.nan)
+    mean_scalar_target_matrix = numpy.full(
+        (num_target_wavelengths, num_scalar_targets), numpy.nan
+    )
     mean_vector_predictor_matrix = numpy.full(
         (num_heights, num_vector_predictors), numpy.nan
     )
     mean_vector_target_matrix = numpy.full(
-        (num_heights, num_vector_targets), numpy.nan
+        (num_heights, num_target_wavelengths, num_vector_targets), numpy.nan
     )
 
     for k in range(num_scalar_predictors):
@@ -1130,11 +1138,13 @@ def create_mean_example(new_example_dict, training_example_dict):
         mean_scalar_predictor_values[k] = numpy.mean(these_training_values)
 
     for k in range(num_scalar_targets):
-        these_training_values = example_utils.get_field_from_dict(
-            example_dict=training_example_dict,
-            field_name=scalar_target_names[k]
-        )
-        mean_scalar_target_values[k] = numpy.mean(these_training_values)
+        for w in range(num_target_wavelengths):
+            these_training_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=scalar_target_names[k],
+                target_wavelength_metres=target_wavelengths_metres[w]
+            )
+            mean_scalar_target_matrix[w, k] = numpy.mean(these_training_values)
 
     for j in range(num_heights):
         for k in range(num_vector_predictors):
@@ -1148,12 +1158,16 @@ def create_mean_example(new_example_dict, training_example_dict):
             )
 
         for k in range(num_vector_targets):
-            these_training_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=vector_target_names[k],
-                height_m_agl=heights_m_agl[j]
-            )
-            mean_vector_target_matrix[j, k] = numpy.mean(these_training_values)
+            for w in range(num_target_wavelengths):
+                these_training_values = example_utils.get_field_from_dict(
+                    example_dict=training_example_dict,
+                    field_name=vector_target_names[k],
+                    height_m_agl=heights_m_agl[j],
+                    target_wavelength_metres=target_wavelengths_metres[w]
+                )
+                mean_vector_target_matrix[j, w, k] = numpy.mean(
+                    these_training_values
+                )
 
     return {
         example_utils.SCALAR_PREDICTOR_NAMES_KEY: scalar_predictor_names,
@@ -1161,10 +1175,11 @@ def create_mean_example(new_example_dict, training_example_dict):
         example_utils.VECTOR_PREDICTOR_NAMES_KEY: vector_predictor_names,
         example_utils.VECTOR_TARGET_NAMES_KEY: vector_target_names,
         example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.TARGET_WAVELENGTHS_KEY: target_wavelengths_metres,
         example_utils.SCALAR_PREDICTOR_VALS_KEY:
             numpy.expand_dims(mean_scalar_predictor_values, axis=0),
         example_utils.SCALAR_TARGET_VALS_KEY:
-            numpy.expand_dims(mean_scalar_target_values, axis=0),
+            numpy.expand_dims(mean_scalar_target_matrix, axis=0),
         example_utils.VECTOR_PREDICTOR_VALS_KEY:
             numpy.expand_dims(mean_vector_predictor_matrix, axis=0),
         example_utils.VECTOR_TARGET_VALS_KEY:

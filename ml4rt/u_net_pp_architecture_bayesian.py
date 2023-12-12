@@ -62,7 +62,7 @@ L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
 
-NUM_OUTPUT_CHANNELS_KEY = 'num_output_channels'
+NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
 SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
 
@@ -90,8 +90,7 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY: 0.,
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
-    USE_BATCH_NORM_KEY: True,
-    NUM_OUTPUT_CHANNELS_KEY: 1
+    USE_BATCH_NORM_KEY: True
 }
 
 KL_SCALING_FACTOR_KEY = 'kl_divergence_scaling_factor'
@@ -342,8 +341,8 @@ def _check_args(option_dict):
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
 
-    error_checking.assert_is_integer(option_dict[NUM_OUTPUT_CHANNELS_KEY])
-    error_checking.assert_is_greater(option_dict[NUM_OUTPUT_CHANNELS_KEY], 0)
+    error_checking.assert_is_integer(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY])
+    error_checking.assert_is_greater(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY], 0)
     error_checking.assert_is_greater(option_dict[KL_SCALING_FACTOR_KEY], 0.)
     error_checking.assert_is_less_than(option_dict[KL_SCALING_FACTOR_KEY], 1.)
     _check_layer_type(option_dict[CONV_OUTPUT_BNN_LAYER_TYPE_KEY])
@@ -502,7 +501,7 @@ def create_bayesian_model(option_dict):
     dense_layer_type_strings = option_dict[DENSE_BNN_LAYER_TYPES_KEY]
     conv_output_layer_type_string = option_dict[CONV_OUTPUT_BNN_LAYER_TYPE_KEY]
 
-    num_output_channels = option_dict[NUM_OUTPUT_CHANNELS_KEY]
+    num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
@@ -736,7 +735,7 @@ def create_bayesian_model(option_dict):
         last_conv_layer_matrix[0, -1] = _get_1d_conv_layer(
             previous_layer_object=last_conv_layer_matrix[0, -1],
             layer_type_string=penultimate_conv_layer_type_string,
-            num_filters=2 * num_output_channels * ensemble_size,
+            num_filters=2 * num_output_wavelengths * ensemble_size,
             weight_regularizer=regularizer_object,
             layer_name='penultimate_conv',
             kl_divergence_scaling_factor=kl_divergence_scaling_factor
@@ -767,7 +766,7 @@ def create_bayesian_model(option_dict):
     conv_output_layer_object = _get_1d_conv_layer(
         previous_layer_object=last_conv_layer_matrix[0, -1],
         layer_type_string=conv_output_layer_type_string,
-        num_filters=num_output_channels * ensemble_size,
+        num_filters=num_output_wavelengths * ensemble_size,
         weight_regularizer=regularizer_object,
         layer_name='last_conv',
         kl_divergence_scaling_factor=kl_divergence_scaling_factor
@@ -776,7 +775,12 @@ def create_bayesian_model(option_dict):
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
             target_shape=
-            (input_dimensions[0], num_output_channels, ensemble_size)
+            (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+        )(conv_output_layer_object)
+    else:
+        conv_output_layer_object = keras.layers.Reshape(
+            target_shape=
+            (input_dimensions[0], num_output_wavelengths, 1)
         )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
@@ -808,37 +812,43 @@ def create_bayesian_model(option_dict):
         dense_output_layer_object = None
 
     for j in range(num_dense_layers):
-        if (
-                j == num_dense_layers - 1 and
-                dense_layer_dropout_rates[j] <= 0 and
-                dense_output_activ_func_name is None
-        ):
-            this_name = 'dense_output'
-        else:
-            this_name = None
-
         dense_output_layer_object = _get_dense_layer(
             previous_layer_object=dense_output_layer_object,
             layer_type_string=dense_layer_type_strings[j],
             num_units=dense_layer_neuron_nums[j],
-            layer_name=this_name,
+            layer_name=None,
             kl_divergence_scaling_factor=kl_divergence_scaling_factor
         )
 
         if j == num_dense_layers - 1:
-            if ensemble_size > 1:
-                num_dense_output_vars = (
-                    float(dense_layer_neuron_nums[j]) / ensemble_size
-                )
-                assert numpy.isclose(
-                    num_dense_output_vars, numpy.round(num_dense_output_vars),
-                    atol=1e-6
-                )
+            if (
+                    dense_layer_dropout_rates[j] <= 0 and
+                    dense_output_activ_func_name is None
+            ):
+                this_name = 'dense_output'
+            else:
+                this_name = None
 
-                num_dense_output_vars = int(numpy.round(num_dense_output_vars))
-                dense_output_layer_object = keras.layers.Reshape(
-                    target_shape=(num_dense_output_vars, ensemble_size)
-                )(dense_output_layer_object)
+            num_dense_output_vars = (
+                float(dense_layer_neuron_nums[j]) /
+                (ensemble_size * num_output_wavelengths)
+            )
+            assert numpy.isclose(
+                num_dense_output_vars, numpy.round(num_dense_output_vars),
+                atol=1e-6
+            )
+            num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+
+            if ensemble_size > 1:
+                these_dim = (
+                    num_output_wavelengths, num_dense_output_vars, ensemble_size
+                )
+            else:
+                these_dim = (num_output_wavelengths, num_dense_output_vars)
+
+            dense_output_layer_object = keras.layers.Reshape(
+                target_shape=these_dim, name=this_name
+            )(dense_output_layer_object)
 
             if dense_output_activ_func_name is not None:
                 this_name = (

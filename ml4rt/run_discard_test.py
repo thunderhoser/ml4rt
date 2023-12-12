@@ -16,6 +16,7 @@ import uq_evaluation
 import discard_test_utils as dt_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+METRES_TO_MICRONS = 1e6
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 DISCARD_FRACTIONS_ARG_NAME = 'discard_fractions'
@@ -167,12 +168,9 @@ def _run(prediction_file_name, discard_fractions,
     )
     print(SEPARATOR_STRING)
 
-    discard_fractions = (
-        1. - result_table_xarray[dt_utils.EXAMPLE_FRACTION_KEY].values
-    )
-    post_discard_errors = (
-        result_table_xarray[dt_utils.POST_DISCARD_ERROR_KEY].values
-    )
+    rtx = result_table_xarray
+    discard_fractions = 1. - rtx[dt_utils.EXAMPLE_FRACTION_KEY].values
+    post_discard_errors = rtx[dt_utils.POST_DISCARD_ERROR_KEY].values
 
     for i in range(len(discard_fractions)):
         print('Error with discard fraction of {0:.4f} = {1:.4g}'.format(
@@ -180,71 +178,95 @@ def _run(prediction_file_name, discard_fractions,
         ))
 
     print('\nMonotonicity fraction = {0:.4f}'.format(
-        result_table_xarray.attrs[dt_utils.MONO_FRACTION_KEY]
+        rtx.attrs[dt_utils.MONO_FRACTION_KEY]
     ))
     print('Mean discard improvement = {0:.4f}'.format(
-        result_table_xarray.attrs[dt_utils.MEAN_DI_KEY]
+        rtx.attrs[dt_utils.MEAN_DI_KEY]
     ))
     print(SEPARATOR_STRING)
 
-    t = result_table_xarray
-    scalar_target_names = t.coords[dt_utils.SCALAR_FIELD_DIM].values
+    scalar_target_names = rtx.coords[dt_utils.SCALAR_FIELD_DIM].values
+    wavelengths_microns = (
+        METRES_TO_MICRONS * rtx.coords[dt_utils.WAVELENGTH_DIM].values
+    )
 
-    for k in range(len(scalar_target_names)):
-        print('Variable = {0:s} ... MF = {1:f} ... DI = {2:f}'.format(
-            scalar_target_names[k],
-            t[dt_utils.SCALAR_MONO_FRACTION_KEY].values[k],
-            t[dt_utils.SCALAR_MEAN_DI_KEY].values[k]
-        ))
-
-    print(SEPARATOR_STRING)
-    vector_target_names = t.coords[dt_utils.VECTOR_FIELD_DIM].values
-    heights_m_agl = t.coords[dt_utils.HEIGHT_DIM].values
-
-    for k in range(len(vector_target_names)):
-        print('Variable = {0:s} ... MF = {1:f} ... DI = {2:f}'.format(
-            vector_target_names[k],
-            t[dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY].values[k],
-            t[dt_utils.VECTOR_FLAT_MEAN_DI_KEY].values[k]
-        ))
-
-        for j in range(len(heights_m_agl)):
+    for t in range(len(scalar_target_names)):
+        for w in range(len(wavelengths_microns)):
             print((
-                'Variable = {0:s} at {1:d} m AGL ... MF = {2:f} ... DI = {3:f}'
+                'Variable = {0:s} at {1:.2f} microns ... '
+                'MF = {2:f} ... DI = {3:f}'
             ).format(
-                vector_target_names[k], int(numpy.round(heights_m_agl[j])),
-                t[dt_utils.VECTOR_MONO_FRACTION_KEY].values[k, j],
-                t[dt_utils.VECTOR_MEAN_DI_KEY].values[k, j]
+                scalar_target_names[t],
+                wavelengths_microns[w],
+                rtx[dt_utils.SCALAR_MONO_FRACTION_KEY].values[t, w],
+                rtx[dt_utils.SCALAR_MEAN_DI_KEY].values[t, w]
             ))
 
         print(SEPARATOR_STRING)
 
+    vector_target_names = rtx.coords[dt_utils.VECTOR_FIELD_DIM].values
+    heights_m_agl = rtx.coords[dt_utils.HEIGHT_DIM].values
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_microns)):
+            print((
+                'Variable = {0:s} at {1:.2f} microns ... '
+                'MF = {2:f} ... DI = {3:f}'
+            ).format(
+                vector_target_names[t],
+                wavelengths_microns[w],
+                rtx[dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY].values[t, w],
+                rtx[dt_utils.VECTOR_FLAT_MEAN_DI_KEY].values[t, w]
+            ))
+
+        print(SEPARATOR_STRING)
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_microns)):
+            for h in range(len(heights_m_agl)):
+                print((
+                    'Variable = {0:s} at {1:.2f} microns and {2:d} m AGL ... '
+                    'MF = {3:f} ... DI = {4:f}'
+                ).format(
+                    vector_target_names[t],
+                    wavelengths_microns[w],
+                    int(numpy.round(heights_m_agl[h])),
+                    rtx[dt_utils.VECTOR_MONO_FRACTION_KEY].values[t, h, w],
+                    rtx[dt_utils.VECTOR_MEAN_DI_KEY].values[t, h, w]
+                ))
+
+            print(SEPARATOR_STRING)
+
     try:
         aux_target_field_names = (
-            t.coords[dt_utils.AUX_TARGET_FIELD_DIM].values
+            rtx.coords[dt_utils.AUX_TARGET_FIELD_DIM].values
         )
         aux_predicted_field_names = (
-            t.coords[dt_utils.AUX_PREDICTED_FIELD_DIM].values
+            rtx.coords[dt_utils.AUX_PREDICTED_FIELD_DIM].values
         )
     except:
         aux_target_field_names = []
         aux_predicted_field_names = []
 
-    for k in range(len(aux_target_field_names)):
-        print((
-            'Target variable = {0:s} ... predicted variable = "{1:s}" ... '
-            'MF = {2:f} ... DI = {3:f}'
-        ).format(
-            aux_target_field_names[k], aux_predicted_field_names[k],
-            t[dt_utils.AUX_MONO_FRACTION_KEY].values[k],
-            t[dt_utils.AUX_MEAN_DI_KEY].values[k]
-        ))
+    for t in range(len(aux_target_field_names)):
+        for w in range(len(wavelengths_microns)):
+            print((
+                'Target variable = {0:s} at {1:.2f} microns ... '
+                'predicted variable = {2:s} at {1:.2f} microns ... '
+                'MF = {3:f} ... DI = {4:f}'
+            ).format(
+                aux_target_field_names[t],
+                wavelengths_microns[w],
+                aux_predicted_field_names[t],
+                rtx[dt_utils.AUX_MONO_FRACTION_KEY].values[t, w],
+                rtx[dt_utils.AUX_MEAN_DI_KEY].values[t, w]
+            ))
 
     print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
     dt_utils.write_results(
-        result_table_xarray=result_table_xarray,
+        result_table_xarray=rtx,
         netcdf_file_name=output_file_name
     )
 

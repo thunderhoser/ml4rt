@@ -270,10 +270,24 @@ def plot_predictors(
         for k in range(1, num_predictors):
             axes_objects.append(axes_objects[0].twiny())
 
-            if k == 2:
-                axes_objects[k].spines['top'].set_position(('axes', 1.15))
+            if k == 1:
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
                 _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['top'].set_visible(True)
+                axes_objects[k].spines['bottom'].set_visible(True)
+
+            if k == 2:
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_position(('axes', -0.3))
+                _make_spines_invisible(axes_objects[k])
+                axes_objects[k].spines['bottom'].set_visible(True)
+
+            # if k == 2:
+            #     axes_objects[k].spines['top'].set_position(('axes', 1.15))
+            #     _make_spines_invisible(axes_objects[k])
+            #     axes_objects[k].spines['top'].set_visible(True)
 
             if k == 3:
                 axes_objects[k].xaxis.set_ticks_position('bottom')
@@ -365,14 +379,15 @@ def plot_predictors(
 
 
 def plot_targets(
-        example_dict, example_index, use_log_scale, for_shortwave=True,
-        line_width=DEFAULT_LINE_WIDTH, line_style='solid',
-        handle_dict=None):
+        example_dict, example_index, wavelength_metres, use_log_scale,
+        for_shortwave=True, line_width=DEFAULT_LINE_WIDTH,
+        line_style='solid', handle_dict=None):
     """Plots targets (upwelling flux, downwelling flux, heating rate).
 
     :param example_dict: See doc for `plot_predictors`.
     :param example_index: Same.
-    :param use_log_scale: Same.
+    :param wavelength_metres: Will plot targets at this wavelength.
+    :param use_log_scale: See doc for `plot_predictors`.
     :param for_shortwave: Boolean flag.  If True (False), will plot targets for
         shortwave (longwave) flux.
     :param line_width: See doc for `plot_predictors`.
@@ -430,7 +445,8 @@ def plot_targets(
         field_name=(
             example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
             else example_utils.LONGWAVE_HEATING_RATE_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )[example_index, ...]
 
     heating_rate_axes_object.plot(
@@ -443,7 +459,8 @@ def plot_targets(
         field_name=(
             example_utils.SHORTWAVE_DOWN_FLUX_NAME if for_shortwave
             else example_utils.LONGWAVE_DOWN_FLUX_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )[example_index, ...]
 
     down_flux_axes_object.plot(
@@ -457,7 +474,8 @@ def plot_targets(
         field_name=(
             example_utils.SHORTWAVE_UP_FLUX_NAME if for_shortwave
             else example_utils.LONGWAVE_UP_FLUX_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )[example_index, ...]
 
     up_flux_axes_object.plot(
@@ -675,12 +693,13 @@ def plot_actual_and_predicted(
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(2):
-        axes_objects[k].plot(
-            actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
-            heights_km_agl, color=line_colours[k],
-            linewidth=line_widths[k], linestyle=line_styles[k],
-            zorder=1e12
-        )
+        if not (plot_uncertainty_with_shading and k == 1):
+            axes_objects[k].plot(
+                actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
+                heights_km_agl, color=line_colours[k],
+                linewidth=line_widths[k], linestyle=line_styles[k],
+                zorder=1e12
+            )
 
         axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
             'Actual' if k == 0 else 'Predicted', fancy_target_name
@@ -772,12 +791,6 @@ def plot_actual_and_predicted(
     axes_objects[1].plot(
         actual_values, heights_km_agl, color=line_colours[0],
         linewidth=line_widths[0], linestyle=line_styles[0],
-        zorder=1e12
-    )
-    axes_objects[1].plot(
-        numpy.mean(prediction_matrix, axis=1),
-        heights_km_agl, color=line_colours[1],
-        linewidth=line_widths[1], linestyle=line_styles[1],
         zorder=1e12
     )
 

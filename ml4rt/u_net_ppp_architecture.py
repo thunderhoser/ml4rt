@@ -265,7 +265,7 @@ def _check_args(option_dict):
 
 
 def create_model(option_dict, vector_loss_function, use_deep_supervision,
-                 num_output_channels=1, scalar_loss_function=None,
+                 num_output_wavelengths, scalar_loss_function=None,
                  ensemble_size=1):
     """Creates U-net 3+.
 
@@ -276,7 +276,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     :param vector_loss_function: Loss function for vector outputs.
     :param use_deep_supervision: Boolean flag.  If True (False), will (not) use
         deep supervision.
-    :param num_output_channels: Number of output channels.
+    :param num_output_wavelengths: Number of output wavelengths.
     :param scalar_loss_function: Loss function for scalar outputs.  If there are
         no dense layers, leave this alone.
     :param ensemble_size: Ensemble size.  The U-net will output this many
@@ -625,7 +625,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     if include_penultimate_conv:
         conv_output_layer_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=2 * num_output_channels * ensemble_size,
+            num_filters=2 * num_output_wavelengths * ensemble_size,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object, layer_name='penultimate_conv'
         )(decoder_conv_layer_objects[0])
@@ -658,7 +658,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
 
     conv_output_layer_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=1, num_rows_per_stride=1,
-        num_filters=num_output_channels * ensemble_size,
+        num_filters=num_output_wavelengths * ensemble_size,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object, layer_name='last_conv'
     )(conv_output_layer_object)
@@ -666,7 +666,12 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
             target_shape=
-            (input_dimensions[0], num_output_channels, ensemble_size)
+            (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+        )(conv_output_layer_object)
+    else:
+        conv_output_layer_object = keras.layers.Reshape(
+            target_shape=
+            (input_dimensions[0], num_output_wavelengths, 1)
         )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
@@ -729,7 +734,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
             deep_supervision_layer_objects[i] = (
                 architecture_utils.get_1d_conv_layer(
                     num_kernel_rows=1, num_rows_per_stride=1,
-                    num_filters=num_output_channels,
+                    num_filters=num_output_wavelengths,
                     padding_type_string=architecture_utils.YES_PADDING_STRING,
                     weight_regularizer=regularizer_object, layer_name=this_name
                 )(deep_supervision_layer_objects[i])
@@ -746,6 +751,10 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                         layer_name=this_name
                     )(deep_supervision_layer_objects[i])
                 )
+
+            deep_supervision_layer_objects[i] = keras.layers.Reshape(
+                target_shape=(input_dimensions[0], num_output_wavelengths, 1)
+            )(deep_supervision_layer_objects[i])
 
             this_function = u_net_architecture.zero_top_heating_rate_function(
                 height_index=input_dimensions[0] - 1
@@ -769,33 +778,39 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
         dense_output_layer_object = None
 
     for j in range(num_dense_layers):
-        if (
-                j == num_dense_layers - 1 and
-                dense_layer_dropout_rates[j] <= 0 and
-                dense_output_activ_func_name is None
-        ):
-            this_name = 'dense_output'
-        else:
-            this_name = None
-
         dense_output_layer_object = architecture_utils.get_dense_layer(
-            num_output_units=dense_layer_neuron_nums[j], layer_name=this_name
+            num_output_units=dense_layer_neuron_nums[j]
         )(dense_output_layer_object)
 
         if j == num_dense_layers - 1:
-            if ensemble_size > 1:
-                num_dense_output_vars = (
-                    float(dense_layer_neuron_nums[j]) / ensemble_size
-                )
-                assert numpy.isclose(
-                    num_dense_output_vars, numpy.round(num_dense_output_vars),
-                    atol=1e-6
-                )
+            if (
+                    dense_layer_dropout_rates[j] <= 0 and
+                    dense_output_activ_func_name is None
+            ):
+                this_name = 'dense_output'
+            else:
+                this_name = None
 
-                num_dense_output_vars = int(numpy.round(num_dense_output_vars))
-                dense_output_layer_object = keras.layers.Reshape(
-                    target_shape=(num_dense_output_vars, ensemble_size)
-                )(dense_output_layer_object)
+            num_dense_output_vars = (
+                float(dense_layer_neuron_nums[j]) /
+                (ensemble_size * num_output_wavelengths)
+            )
+            assert numpy.isclose(
+                num_dense_output_vars, numpy.round(num_dense_output_vars),
+                atol=1e-6
+            )
+            num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+
+            if ensemble_size > 1:
+                these_dim = (
+                    num_output_wavelengths, num_dense_output_vars, ensemble_size
+                )
+            else:
+                these_dim = (num_output_wavelengths, num_dense_output_vars)
+
+            dense_output_layer_object = keras.layers.Reshape(
+                target_shape=these_dim, name=this_name
+            )(dense_output_layer_object)
 
             if dense_output_activ_func_name is not None:
                 this_name = (
@@ -861,12 +876,12 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
 
 
 def create_model_1output_layer(
-        option_dict, loss_function, num_output_channels=1):
+        option_dict, loss_function, num_output_wavelengths):
     """Same as `create_model`, except that output layers are joined into one.
 
     :param option_dict: See doc for `_check_args`.
     :param loss_function: Loss function.
-    :param num_output_channels: Number of output channels.
+    :param num_output_wavelengths: Number of output wavelengths.
     :return: model_object: Instance of `keras.models.Model`.
     """
 
@@ -1203,7 +1218,7 @@ def create_model_1output_layer(
     if include_penultimate_conv:
         conv_output_layer_object = architecture_utils.get_1d_conv_layer(
             num_kernel_rows=3, num_rows_per_stride=1,
-            num_filters=2 * num_output_channels,
+            num_filters=2 * num_output_wavelengths,
             padding_type_string=architecture_utils.YES_PADDING_STRING,
             weight_regularizer=regularizer_object, layer_name='penultimate_conv'
         )(decoder_conv_layer_objects[0])
@@ -1236,7 +1251,7 @@ def create_model_1output_layer(
 
     conv_output_layer_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=1, num_rows_per_stride=1,
-        num_filters=num_output_channels,
+        num_filters=num_output_wavelengths,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=regularizer_object, layer_name='last_conv'
     )(conv_output_layer_object)
@@ -1267,20 +1282,33 @@ def create_model_1output_layer(
         dense_output_layer_object = None
 
     for j in range(num_dense_layers):
-        if (
-                j == num_dense_layers - 1 and
-                dense_layer_dropout_rates[j] <= 0 and
-                dense_output_activ_func_name is None
-        ):
-            this_name = 'dense_output'
-        else:
-            this_name = None
-
         dense_output_layer_object = architecture_utils.get_dense_layer(
-            num_output_units=dense_layer_neuron_nums[j], layer_name=this_name
+            num_output_units=dense_layer_neuron_nums[j]
         )(dense_output_layer_object)
 
         if j == num_dense_layers - 1:
+            if (
+                    dense_layer_dropout_rates[j] <= 0 and
+                    dense_output_activ_func_name is None
+            ):
+                this_name = 'dense_output'
+            else:
+                this_name = None
+
+            num_dense_output_vars = (
+                float(dense_layer_neuron_nums[j]) / num_output_wavelengths
+            )
+            assert numpy.isclose(
+                num_dense_output_vars, numpy.round(num_dense_output_vars),
+                atol=1e-6
+            )
+            num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+
+            dense_output_layer_object = keras.layers.Reshape(
+                target_shape=(num_output_wavelengths, num_dense_output_vars),
+                name=this_name
+            )(dense_output_layer_object)
+
             if dense_output_activ_func_name is not None:
                 this_name = (
                     None if dense_layer_dropout_rates[j] > 0 else 'dense_output'
@@ -1324,15 +1352,12 @@ def create_model_1output_layer(
             )
 
     if has_dense_layers:
-        num_heights = input_dimensions[0]
-        conv_output_layer_object = keras.layers.Reshape(
-            target_shape=(num_heights,)
-        )(conv_output_layer_object)
-
+        conv_output_layer_object = keras.layers.Permute(dims=(1, 2))(
+            conv_output_layer_object
+        )
         output_layer_object = keras.layers.Concatenate(axis=-1)(
             [conv_output_layer_object, dense_output_layer_object]
         )
-
         model_object = keras.models.Model(
             inputs=input_layer_object, outputs=output_layer_object
         )

@@ -8,11 +8,11 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import example_utils
 import normalization
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
-NET_TYPE_ARG_NAME = 'net_type_string'
 TRAINING_DIR_ARG_NAME = 'input_training_dir_name'
 VALIDATION_DIR_ARG_NAME = 'input_validation_dir_name'
 INPUT_MODEL_FILE_ARG_NAME = 'input_model_file_name'
@@ -24,7 +24,7 @@ NUM_DEEP_SUPER_LAYERS_ARG_NAME = 'num_deep_supervision_layers'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
-MULTIPLY_PREDICTORS_ARG_NAME = 'multiply_preds_by_layer_thickness'
+TARGET_WAVELENGTHS_ARG_NAME = 'target_wavelengths_metres'
 FIRST_TRAIN_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
 FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
@@ -46,9 +46,6 @@ NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
 NUM_VALIDN_BATCHES_ARG_NAME = 'num_validn_batches_per_epoch'
 PLATEAU_LR_MULTIPLIER_ARG_NAME = 'plateau_lr_multiplier'
 
-NET_TYPE_HELP_STRING = (
-    'Neural-net type (must be accepted by `neural_net.check_net_type`).'
-)
 TRAINING_DIR_HELP_STRING = (
     'Name of directory with training examples.  Files therein will be found by '
     '`example_io.find_file` and read by `example_io.read_file`.'
@@ -89,9 +86,7 @@ HEIGHTS_HELP_STRING = (
     'List of heights (metres above ground level) for profile (vector) '
     'variables.'
 )
-MULTIPLY_PREDICTORS_HELP_STRING = (
-    'Boolean flag.  If 1, will multiply relevant predictors by layer thickness.'
-)
+TARGET_WAVELENGTHS_HELP_STRING = 'List of wavelengths for target variables.'
 TRAIN_TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The training period will be '
     '`{0:s}`...`{1:s}`.'
@@ -169,10 +164,6 @@ def add_input_args(parser_object):
     """
 
     parser_object.add_argument(
-        '--' + NET_TYPE_ARG_NAME, type=str, required=True,
-        help=NET_TYPE_HELP_STRING
-    )
-    parser_object.add_argument(
         '--' + TRAINING_DIR_ARG_NAME, type=str, required=True,
         help=TRAINING_DIR_HELP_STRING
     )
@@ -217,8 +208,10 @@ def add_input_args(parser_object):
         default=[-1], help=HEIGHTS_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + MULTIPLY_PREDICTORS_ARG_NAME, type=int, required=False,
-        default=0, help=MULTIPLY_PREDICTORS_HELP_STRING
+        '--' + TARGET_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
+        required=False,
+        default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+        help=TARGET_WAVELENGTHS_HELP_STRING
     )
     parser_object.add_argument(
         '--' + FIRST_TRAIN_TIME_ARG_NAME, type=str, required=False,

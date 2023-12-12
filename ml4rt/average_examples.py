@@ -94,9 +94,7 @@ def _run(example_file_name, num_examples, example_dir_name,
         example_id_file_name=example_id_file_name
     )[0]
 
-    num_examples = len(
-        example_dict[example_utils.VALID_TIMES_KEY]
-    )
+    num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
 
     print('Averaging {0:d} examples...'.format(num_examples))
     mean_example_dict = example_utils.average_examples(

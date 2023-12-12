@@ -23,6 +23,7 @@ import uq_evaluation
 import neural_net
 
 TOLERANCE = 1e-6
+METRES_TO_MICRONS = 1e6
 
 MAX_PIT_FOR_LOW_BINS = 0.3
 MIN_PIT_FOR_HIGH_BINS = 0.7
@@ -75,6 +76,7 @@ AUX_EXTREME_PIT_FREQ_KEY = 'aux_extreme_pit_frequency'
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
 HEIGHT_DIM = uq_evaluation.HEIGHT_DIM
+WAVELENGTH_DIM = uq_evaluation.WAVELENGTH_DIM
 AUX_TARGET_FIELD_DIM = uq_evaluation.AUX_TARGET_FIELD_DIM
 AUX_PREDICTED_FIELD_DIM = uq_evaluation.AUX_PREDICTED_FIELD_DIM
 
@@ -245,6 +247,7 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
 
     example_dict = {
         example_utils.SCALAR_TARGET_NAMES_KEY:
@@ -255,7 +258,8 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
             generator_option_dict[neural_net.SCALAR_PREDICTOR_NAMES_KEY],
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             generator_option_dict[neural_net.VECTOR_PREDICTOR_NAMES_KEY],
-        example_utils.HEIGHTS_KEY: heights_m_agl
+        example_utils.HEIGHTS_KEY: heights_m_agl,
+        example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres
     }
 
     aux_prediction_dict = uq_evaluation.get_aux_fields(
@@ -284,110 +288,148 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
     del prediction_dict
 
     num_heights = vector_target_matrix.shape[1]
-    num_vector_targets = vector_target_matrix.shape[2]
-    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_wavelengths = vector_target_matrix.shape[2]
+    num_vector_targets = vector_target_matrix.shape[3]
+    num_scalar_targets = scalar_target_matrix.shape[2]
     num_aux_targets = len(aux_target_field_names)
 
     main_data_dict = {
         SCALAR_PITD_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_PERFECT_PITD_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_BIN_COUNT_KEY: (
-            (SCALAR_FIELD_DIM, BIN_CENTER_DIM),
-            numpy.full((num_scalar_targets, num_bins), -1, dtype=int)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM, BIN_CENTER_DIM),
+            numpy.full(
+                (num_scalar_targets, num_wavelengths, num_bins), -1, dtype=int
+            )
         ),
         SCALAR_LOW_BIN_BIAS_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_MIDDLE_BIN_BIAS_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_HIGH_BIN_BIAS_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         SCALAR_EXTREME_PIT_FREQ_KEY: (
-            (SCALAR_FIELD_DIM,), numpy.full(num_scalar_targets, numpy.nan)
+            (SCALAR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_scalar_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_PITD_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_PERFECT_PITD_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_BIN_COUNT_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_CENTER_DIM),
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM, BIN_CENTER_DIM),
             numpy.full(
-                (num_vector_targets, num_heights, num_bins), -1, dtype=int
+                (num_vector_targets, num_heights, num_wavelengths, num_bins),
+                -1, dtype=int
             )
         ),
         VECTOR_LOW_BIN_BIAS_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_MIDDLE_BIN_BIAS_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_HIGH_BIN_BIAS_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_EXTREME_PIT_FREQ_KEY: (
-            (VECTOR_FIELD_DIM, HEIGHT_DIM),
-            numpy.full((num_vector_targets, num_heights), numpy.nan)
+            (VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM),
+            numpy.full(
+                (num_vector_targets, num_heights, num_wavelengths), numpy.nan
+            )
         ),
         VECTOR_FLAT_PITD_KEY: (
-            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_vector_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_FLAT_PERFECT_PITD_KEY: (
-            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_vector_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_FLAT_BIN_COUNT_KEY: (
-            (VECTOR_FIELD_DIM, BIN_CENTER_DIM),
-            numpy.full((num_vector_targets, num_bins), -1, dtype=int)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM, BIN_CENTER_DIM),
+            numpy.full(
+                (num_vector_targets, num_wavelengths, num_bins), -1, dtype=int
+            )
         ),
         VECTOR_FLAT_LOW_BIN_BIAS_KEY: (
-            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_vector_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY: (
-            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_vector_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_FLAT_HIGH_BIN_BIAS_KEY: (
-            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_vector_targets, num_wavelengths), numpy.nan)
         ),
         VECTOR_FLAT_EXTREME_PIT_FREQ_KEY: (
-            (VECTOR_FIELD_DIM,), numpy.full(num_vector_targets, numpy.nan)
+            (VECTOR_FIELD_DIM, WAVELENGTH_DIM),
+            numpy.full((num_vector_targets, num_wavelengths), numpy.nan)
         )
     }
 
     if num_aux_targets > 0:
         main_data_dict.update({
             AUX_PITD_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_PERFECT_PITD_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_BIN_COUNT_KEY: (
-                (AUX_TARGET_FIELD_DIM, BIN_CENTER_DIM),
-                numpy.full((num_aux_targets, num_bins), -1, dtype=int)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM, BIN_CENTER_DIM),
+                numpy.full(
+                    (num_aux_targets, num_wavelengths, num_bins), -1, dtype=int
+                )
             ),
             AUX_LOW_BIN_BIAS_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_MIDDLE_BIN_BIAS_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_HIGH_BIN_BIAS_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             ),
             AUX_EXTREME_PIT_FREQ_KEY: (
-                (AUX_TARGET_FIELD_DIM,), numpy.full(num_aux_targets, numpy.nan)
+                (AUX_TARGET_FIELD_DIM, WAVELENGTH_DIM),
+                numpy.full((num_aux_targets, num_wavelengths), numpy.nan)
             )
         })
 
@@ -396,8 +438,9 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
 
     metadata_dict = {
         SCALAR_FIELD_DIM: example_dict[example_utils.SCALAR_TARGET_NAMES_KEY],
-        HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM: example_dict[example_utils.VECTOR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        WAVELENGTH_DIM: wavelengths_metres,
         BIN_CENTER_DIM: bin_centers,
         BIN_EDGE_DIM: bin_edges
     }
@@ -412,139 +455,155 @@ def get_histogram_all_vars(prediction_file_name, num_bins):
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
 
-    for j in range(num_scalar_targets):
-        print('Computing PIT histogram for {0:s}...'.format(
-            example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j]
-        ))
-
-        this_result_dict = _get_histogram_one_var(
-            target_values=scalar_target_matrix[:, j],
-            prediction_matrix=scalar_prediction_matrix[:, j, :],
-            num_bins=num_bins
-        )
-        result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :] = (
-            this_result_dict[BIN_COUNTS_KEY]
-        )
-        result_table_xarray[SCALAR_PITD_KEY].values[j] = (
-            this_result_dict[PITD_KEY]
-        )
-        result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[j] = (
-            this_result_dict[PERFECT_PITD_KEY]
-        )
-        result_table_xarray[SCALAR_LOW_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[LOW_BIN_BIAS_KEY]
-        )
-        result_table_xarray[SCALAR_MIDDLE_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[MIDDLE_BIN_BIAS_KEY]
-        )
-        result_table_xarray[SCALAR_HIGH_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[HIGH_BIN_BIAS_KEY]
-        )
-        result_table_xarray[SCALAR_EXTREME_PIT_FREQ_KEY].values[j] = (
-            this_result_dict[EXTREME_PIT_FREQ_KEY]
-        )
-
-    for j in range(num_vector_targets):
-        print('Computing PIT histogram for {0:s}...'.format(
-            example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j]
-        ))
-
-        these_targets = numpy.ravel(vector_target_matrix[:, :, j])
-        this_prediction_matrix = numpy.reshape(
-            vector_prediction_matrix[:, :, j, :],
-            (len(these_targets), vector_prediction_matrix.shape[-1])
-        )
-
-        this_result_dict = _get_histogram_one_var(
-            target_values=these_targets,
-            prediction_matrix=this_prediction_matrix, num_bins=num_bins
-        )
-        result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :] = (
-            this_result_dict[BIN_COUNTS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_PITD_KEY].values[j] = (
-            this_result_dict[PITD_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_PERFECT_PITD_KEY].values[j] = (
-            this_result_dict[PERFECT_PITD_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[LOW_BIN_BIAS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[MIDDLE_BIN_BIAS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[HIGH_BIN_BIAS_KEY]
-        )
-        result_table_xarray[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[j] = (
-            this_result_dict[EXTREME_PIT_FREQ_KEY]
-        )
-
-        for k in range(num_heights):
-            print('Computing PIT histogram for {0:s} at {1:d} m AGL...'.format(
-                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
-                int(numpy.round(heights_m_agl[k]))
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
+            print((
+                'Computing PIT histogram for {0:s} at {1:.2f} microns...'
+            ).format(
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             ))
 
             this_result_dict = _get_histogram_one_var(
-                target_values=vector_target_matrix[:, k, j],
-                prediction_matrix=vector_prediction_matrix[:, k, j, :],
+                target_values=scalar_target_matrix[:, w, t],
+                prediction_matrix=scalar_prediction_matrix[:, w, t, :],
                 num_bins=num_bins
             )
-            result_table_xarray[VECTOR_BIN_COUNT_KEY].values[j, k, :] = (
+            result_table_xarray[SCALAR_BIN_COUNT_KEY].values[t, w, :] = (
                 this_result_dict[BIN_COUNTS_KEY]
             )
-            result_table_xarray[VECTOR_PITD_KEY].values[j, k] = (
+            result_table_xarray[SCALAR_PITD_KEY].values[t, w] = (
                 this_result_dict[PITD_KEY]
             )
-            result_table_xarray[VECTOR_PERFECT_PITD_KEY].values[j, k] = (
+            result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[t, w] = (
                 this_result_dict[PERFECT_PITD_KEY]
             )
-            result_table_xarray[VECTOR_LOW_BIN_BIAS_KEY].values[j, k] = (
+            result_table_xarray[SCALAR_LOW_BIN_BIAS_KEY].values[t, w] = (
                 this_result_dict[LOW_BIN_BIAS_KEY]
             )
-            result_table_xarray[VECTOR_MIDDLE_BIN_BIAS_KEY].values[j, k] = (
+            result_table_xarray[SCALAR_MIDDLE_BIN_BIAS_KEY].values[t, w] = (
                 this_result_dict[MIDDLE_BIN_BIAS_KEY]
             )
-            result_table_xarray[VECTOR_HIGH_BIN_BIAS_KEY].values[j, k] = (
+            result_table_xarray[SCALAR_HIGH_BIN_BIAS_KEY].values[t, w] = (
                 this_result_dict[HIGH_BIN_BIAS_KEY]
             )
-            result_table_xarray[VECTOR_EXTREME_PIT_FREQ_KEY].values[j, k] = (
+            result_table_xarray[SCALAR_EXTREME_PIT_FREQ_KEY].values[t, w] = (
                 this_result_dict[EXTREME_PIT_FREQ_KEY]
             )
 
-    for j in range(num_aux_targets):
-        print('Computing PIT histogram for {0:s}...'.format(
-            aux_target_field_names[j]
-        ))
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            print((
+                'Computing PIT histogram for {0:s} at {1:.2f} microns...'
+            ).format(
+                example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            ))
 
-        this_result_dict = _get_histogram_one_var(
-            target_values=aux_target_matrix[:, j],
-            prediction_matrix=aux_prediction_matrix[:, j, :],
-            num_bins=num_bins
-        )
-        result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :] = (
-            this_result_dict[BIN_COUNTS_KEY]
-        )
-        result_table_xarray[AUX_PITD_KEY].values[j] = (
-            this_result_dict[PITD_KEY]
-        )
-        result_table_xarray[AUX_PERFECT_PITD_KEY].values[j] = (
-            this_result_dict[PERFECT_PITD_KEY]
-        )
-        result_table_xarray[AUX_LOW_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[LOW_BIN_BIAS_KEY]
-        )
-        result_table_xarray[AUX_MIDDLE_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[MIDDLE_BIN_BIAS_KEY]
-        )
-        result_table_xarray[AUX_HIGH_BIN_BIAS_KEY].values[j] = (
-            this_result_dict[HIGH_BIN_BIAS_KEY]
-        )
-        result_table_xarray[AUX_EXTREME_PIT_FREQ_KEY].values[j] = (
-            this_result_dict[EXTREME_PIT_FREQ_KEY]
-        )
+            these_targets = numpy.ravel(vector_target_matrix[..., w, t])
+            this_prediction_matrix = numpy.reshape(
+                vector_prediction_matrix[..., w, t, :],
+                (len(these_targets), vector_prediction_matrix.shape[-1])
+            )
+
+            this_result_dict = _get_histogram_one_var(
+                target_values=these_targets,
+                prediction_matrix=this_prediction_matrix, num_bins=num_bins
+            )
+            result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[t, w, :] = (
+                this_result_dict[BIN_COUNTS_KEY]
+            )
+            result_table_xarray[VECTOR_FLAT_PITD_KEY].values[t, w] = (
+                this_result_dict[PITD_KEY]
+            )
+            result_table_xarray[VECTOR_FLAT_PERFECT_PITD_KEY].values[t, w] = (
+                this_result_dict[PERFECT_PITD_KEY]
+            )
+            result_table_xarray[VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[t, w] = (
+                this_result_dict[LOW_BIN_BIAS_KEY]
+            )
+            result_table_xarray[VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[t, w] = (
+                this_result_dict[MIDDLE_BIN_BIAS_KEY]
+            )
+            result_table_xarray[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[t, w] = (
+                this_result_dict[HIGH_BIN_BIAS_KEY]
+            )
+            result_table_xarray[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[t, w] = (
+                this_result_dict[EXTREME_PIT_FREQ_KEY]
+            )
+
+            for h in range(num_heights):
+                print((
+                    'Computing PIT histogram for {0:s} at {1:.2f} microns and '
+                    '{2:d} m AGL...'
+                ).format(
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][t],
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    int(numpy.round(heights_m_agl[h]))
+                ))
+
+                this_result_dict = _get_histogram_one_var(
+                    target_values=vector_target_matrix[:, h, w, t],
+                    prediction_matrix=vector_prediction_matrix[:, h, w, t, :],
+                    num_bins=num_bins
+                )
+                result_table_xarray[VECTOR_BIN_COUNT_KEY].values[t, h, w, :] = (
+                    this_result_dict[BIN_COUNTS_KEY]
+                )
+                result_table_xarray[VECTOR_PITD_KEY].values[t, h, w] = (
+                    this_result_dict[PITD_KEY]
+                )
+                result_table_xarray[VECTOR_PERFECT_PITD_KEY].values[t, h, w] = (
+                    this_result_dict[PERFECT_PITD_KEY]
+                )
+                result_table_xarray[VECTOR_LOW_BIN_BIAS_KEY].values[t, h, w] = (
+                    this_result_dict[LOW_BIN_BIAS_KEY]
+                )
+                result_table_xarray[VECTOR_MIDDLE_BIN_BIAS_KEY].values[t, h, w] = (
+                    this_result_dict[MIDDLE_BIN_BIAS_KEY]
+                )
+                result_table_xarray[VECTOR_HIGH_BIN_BIAS_KEY].values[t, h, w] = (
+                    this_result_dict[HIGH_BIN_BIAS_KEY]
+                )
+                result_table_xarray[VECTOR_EXTREME_PIT_FREQ_KEY].values[t, h, w] = (
+                    this_result_dict[EXTREME_PIT_FREQ_KEY]
+                )
+
+    for t in range(num_aux_targets):
+        for w in range(num_wavelengths):
+            print((
+                'Computing PIT histogram for {0:s} at {1:.2f} microns...'
+            ).format(
+                aux_target_field_names[t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
+            ))
+
+            this_result_dict = _get_histogram_one_var(
+                target_values=aux_target_matrix[:, w, t],
+                prediction_matrix=aux_prediction_matrix[:, w, t, :],
+                num_bins=num_bins
+            )
+            result_table_xarray[AUX_BIN_COUNT_KEY].values[t, w, :] = (
+                this_result_dict[BIN_COUNTS_KEY]
+            )
+            result_table_xarray[AUX_PITD_KEY].values[t, w] = (
+                this_result_dict[PITD_KEY]
+            )
+            result_table_xarray[AUX_PERFECT_PITD_KEY].values[t, w] = (
+                this_result_dict[PERFECT_PITD_KEY]
+            )
+            result_table_xarray[AUX_LOW_BIN_BIAS_KEY].values[t, w] = (
+                this_result_dict[LOW_BIN_BIAS_KEY]
+            )
+            result_table_xarray[AUX_MIDDLE_BIN_BIAS_KEY].values[t, w] = (
+                this_result_dict[MIDDLE_BIN_BIAS_KEY]
+            )
+            result_table_xarray[AUX_HIGH_BIN_BIAS_KEY].values[t, w] = (
+                this_result_dict[HIGH_BIN_BIAS_KEY]
+            )
+            result_table_xarray[AUX_EXTREME_PIT_FREQ_KEY].values[t, w] = (
+                this_result_dict[EXTREME_PIT_FREQ_KEY]
+            )
 
     return result_table_xarray
 
@@ -585,6 +644,7 @@ def merge_results_over_examples(result_tables_xarray):
         result_tables_xarray[0].coords[VECTOR_FIELD_DIM].values
     )
     heights_m_agl = result_tables_xarray[0].coords[HEIGHT_DIM].values
+    wavelengths_metres = result_tables_xarray[0].coords[WAVELENGTH_DIM].values
 
     try:
         aux_predicted_field_names = (
@@ -594,225 +654,190 @@ def merge_results_over_examples(result_tables_xarray):
         aux_predicted_field_names = []
 
     result_table_xarray = copy.deepcopy(result_tables_xarray[0])
+    rtx = result_table_xarray
 
     num_examples_total = numpy.sum(num_examples_by_table)
-    num_bins = len(result_table_xarray.coords[BIN_CENTER_DIM].values)
+    num_bins = len(rtx.coords[BIN_CENTER_DIM].values)
     perfect_bin_frequency = 1. / num_bins
 
     low_bin_indices, middle_bin_indices, high_bin_indices = (
-        _get_low_mid_hi_bins(result_table_xarray.coords[BIN_EDGE_DIM].values)
+        _get_low_mid_hi_bins(rtx.coords[BIN_EDGE_DIM].values)
     )
 
-    for j in range(len(scalar_target_names)):
-        for i in range(num_bins):
-            result_table_xarray[SCALAR_BIN_COUNT_KEY].values[
-                j, i
-            ] = numpy.sum([
-                t[SCALAR_BIN_COUNT_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-        extreme_freq_by_table = numpy.array([
-            t[SCALAR_EXTREME_PIT_FREQ_KEY].values[j]
-            for t in result_tables_xarray
-        ])
-
-        result_table_xarray[SCALAR_EXTREME_PIT_FREQ_KEY].values[j] = (
-            numpy.average(
-                a=extreme_freq_by_table[num_examples_by_table > 0],
-                weights=num_examples_by_table[num_examples_by_table > 0]
-            )
-        )
-
-        error_checking.assert_equals(
-            num_examples_total,
-            numpy.sum(result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :])
-        )
-
-        these_frequencies = (
-            result_table_xarray[SCALAR_BIN_COUNT_KEY].values[j, :].astype(float)
-            / num_examples_total
-        )
-
-        result_table_xarray[SCALAR_PITD_KEY].values[j] = numpy.sqrt(
-            numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
-        )
-        result_table_xarray[SCALAR_PERFECT_PITD_KEY].values[j] = numpy.sqrt(
-            (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
-        )
-        result_table_xarray[SCALAR_LOW_BIN_BIAS_KEY].values[j] = numpy.mean(
-            these_frequencies[low_bin_indices] - perfect_bin_frequency
-        )
-        result_table_xarray[SCALAR_MIDDLE_BIN_BIAS_KEY].values[j] = numpy.mean(
-            these_frequencies[middle_bin_indices] - perfect_bin_frequency
-        )
-        result_table_xarray[SCALAR_HIGH_BIN_BIAS_KEY].values[j] = numpy.mean(
-            these_frequencies[high_bin_indices] - perfect_bin_frequency
-        )
-
-    for j in range(len(aux_predicted_field_names)):
-        for i in range(num_bins):
-            result_table_xarray[AUX_BIN_COUNT_KEY].values[
-                j, i
-            ] = numpy.sum([
-                t[AUX_BIN_COUNT_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-        extreme_freq_by_table = numpy.array([
-            t[AUX_EXTREME_PIT_FREQ_KEY].values[j]
-            for t in result_tables_xarray
-        ])
-
-        result_table_xarray[AUX_EXTREME_PIT_FREQ_KEY].values[j] = (
-            numpy.average(
-                a=extreme_freq_by_table[num_examples_by_table > 0],
-                weights=num_examples_by_table[num_examples_by_table > 0]
-            )
-        )
-
-        error_checking.assert_equals(
-            num_examples_total,
-            numpy.sum(result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :])
-        )
-
-        these_frequencies = (
-            result_table_xarray[AUX_BIN_COUNT_KEY].values[j, :].astype(float)
-            / num_examples_total
-        )
-
-        result_table_xarray[AUX_PITD_KEY].values[j] = numpy.sqrt(
-            numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
-        )
-        result_table_xarray[AUX_PERFECT_PITD_KEY].values[j] = numpy.sqrt(
-            (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
-        )
-        result_table_xarray[AUX_LOW_BIN_BIAS_KEY].values[j] = numpy.mean(
-            these_frequencies[low_bin_indices] - perfect_bin_frequency
-        )
-        result_table_xarray[AUX_MIDDLE_BIN_BIAS_KEY].values[j] = numpy.mean(
-            these_frequencies[middle_bin_indices] - perfect_bin_frequency
-        )
-        result_table_xarray[AUX_HIGH_BIN_BIAS_KEY].values[j] = numpy.mean(
-            these_frequencies[high_bin_indices] - perfect_bin_frequency
-        )
-
-    for j in range(len(vector_target_names)):
-        for i in range(num_bins):
-            result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[
-                j, i
-            ] = numpy.sum([
-                t[VECTOR_FLAT_BIN_COUNT_KEY].values[j, i]
-                for t in result_tables_xarray
-            ])
-
-        extreme_freq_by_table = numpy.array([
-            t[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[j]
-            for t in result_tables_xarray
-        ])
-
-        result_table_xarray[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[j] = (
-            numpy.average(
-                a=extreme_freq_by_table[num_examples_by_table > 0],
-                weights=num_examples_by_table[num_examples_by_table > 0]
-            )
-        )
-
-        these_counts = (
-            result_table_xarray[VECTOR_FLAT_BIN_COUNT_KEY].values[j, :]
-        )
-        these_frequencies = these_counts.astype(float) / numpy.sum(these_counts)
-
-        result_table_xarray[VECTOR_FLAT_PITD_KEY].values[j] = numpy.sqrt(
-            numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
-        )
-        result_table_xarray[VECTOR_FLAT_PERFECT_PITD_KEY].values[
-            j
-        ] = numpy.sqrt(
-            (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
-        )
-
-        result_table_xarray[VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[j] = (
-            numpy.mean(
-                these_frequencies[low_bin_indices] - perfect_bin_frequency
-            )
-        )
-        result_table_xarray[VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[j] = (
-            numpy.mean(
-                these_frequencies[middle_bin_indices] - perfect_bin_frequency
-            )
-        )
-        result_table_xarray[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[j] = (
-            numpy.mean(
-                these_frequencies[high_bin_indices] - perfect_bin_frequency
-            )
-        )
-
-        for k in range(len(heights_m_agl)):
-            for i in range(num_bins):
-                result_table_xarray[VECTOR_BIN_COUNT_KEY].values[
-                    j, k, i
-                ] = numpy.sum([
-                    t[VECTOR_BIN_COUNT_KEY].values[j, k, i]
-                    for t in result_tables_xarray
+    for t in range(len(scalar_target_names)):
+        for w in range(len(wavelengths_metres)):
+            for b in range(num_bins):
+                rtx[SCALAR_BIN_COUNT_KEY].values[t, w, b] = numpy.sum([
+                    this_tbl[SCALAR_BIN_COUNT_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
                 ])
 
             extreme_freq_by_table = numpy.array([
-                t[VECTOR_EXTREME_PIT_FREQ_KEY].values[j, k]
-                for t in result_tables_xarray
+                this_tbl[SCALAR_EXTREME_PIT_FREQ_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
             ])
-
-            result_table_xarray[VECTOR_EXTREME_PIT_FREQ_KEY].values[j, k] = (
-                numpy.average(
-                    a=extreme_freq_by_table[num_examples_by_table > 0],
-                    weights=num_examples_by_table[num_examples_by_table > 0]
-                )
+            rtx[SCALAR_EXTREME_PIT_FREQ_KEY].values[t, w] = numpy.average(
+                a=extreme_freq_by_table[num_examples_by_table > 0],
+                weights=num_examples_by_table[num_examples_by_table > 0]
             )
 
             error_checking.assert_equals(
                 num_examples_total,
-                numpy.sum(
-                    result_table_xarray[VECTOR_BIN_COUNT_KEY].values[j, k, :]
-                )
+                numpy.sum(rtx[SCALAR_BIN_COUNT_KEY].values[t, w, :])
             )
-
             these_frequencies = (
-                result_table_xarray[VECTOR_BIN_COUNT_KEY].values[
-                    j, k, :
-                ].astype(float)
+                rtx[SCALAR_BIN_COUNT_KEY].values[t, w, :].astype(float)
                 / num_examples_total
             )
 
-            result_table_xarray[VECTOR_PITD_KEY].values[j, k] = numpy.sqrt(
+            rtx[SCALAR_PITD_KEY].values[t, w] = numpy.sqrt(
                 numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
             )
-            result_table_xarray[VECTOR_PERFECT_PITD_KEY].values[
-                j, k
-            ] = numpy.sqrt(
-                (1. - perfect_bin_frequency) / (num_examples_total * num_bins)
+            rtx[SCALAR_PERFECT_PITD_KEY].values[t, w] = numpy.sqrt(
+                (1. - perfect_bin_frequency) /
+                (num_examples_total * num_bins)
+            )
+            rtx[SCALAR_LOW_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[low_bin_indices] - perfect_bin_frequency
+            )
+            rtx[SCALAR_MIDDLE_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[middle_bin_indices] - perfect_bin_frequency
+            )
+            rtx[SCALAR_HIGH_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[high_bin_indices] - perfect_bin_frequency
             )
 
-            result_table_xarray[VECTOR_LOW_BIN_BIAS_KEY].values[j, k] = (
-                numpy.mean(
+    for t in range(len(aux_predicted_field_names)):
+        for w in range(len(wavelengths_metres)):
+            for b in range(num_bins):
+                rtx[AUX_BIN_COUNT_KEY].values[t, w, b] = numpy.sum([
+                    this_tbl[AUX_BIN_COUNT_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+
+            extreme_freq_by_table = numpy.array([
+                this_tbl[AUX_EXTREME_PIT_FREQ_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
+            ])
+            rtx[AUX_EXTREME_PIT_FREQ_KEY].values[t, w] = numpy.average(
+                a=extreme_freq_by_table[num_examples_by_table > 0],
+                weights=num_examples_by_table[num_examples_by_table > 0]
+            )
+
+            error_checking.assert_equals(
+                num_examples_total,
+                numpy.sum(rtx[AUX_BIN_COUNT_KEY].values[t, w, :])
+            )
+            these_frequencies = (
+                rtx[AUX_BIN_COUNT_KEY].values[t, w, :].astype(float)
+                / num_examples_total
+            )
+
+            rtx[AUX_PITD_KEY].values[t, w] = numpy.sqrt(
+                numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
+            )
+            rtx[AUX_PERFECT_PITD_KEY].values[t, w] = numpy.sqrt(
+                (1. - perfect_bin_frequency) /
+                (num_examples_total * num_bins)
+            )
+            rtx[AUX_LOW_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[low_bin_indices] - perfect_bin_frequency
+            )
+            rtx[AUX_MIDDLE_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[middle_bin_indices] - perfect_bin_frequency
+            )
+            rtx[AUX_HIGH_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[high_bin_indices] - perfect_bin_frequency
+            )
+
+    for t in range(len(vector_target_names)):
+        for w in range(len(wavelengths_metres)):
+            for b in range(num_bins):
+                rtx[VECTOR_FLAT_BIN_COUNT_KEY].values[t, w, b] = numpy.sum([
+                    this_tbl[VECTOR_FLAT_BIN_COUNT_KEY].values[t, w, b]
+                    for this_tbl in result_tables_xarray
+                ])
+
+            extreme_freq_by_table = numpy.array([
+                this_tbl[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[t, w]
+                for this_tbl in result_tables_xarray
+            ])
+            rtx[VECTOR_FLAT_EXTREME_PIT_FREQ_KEY].values[t, w] = numpy.average(
+                a=extreme_freq_by_table[num_examples_by_table > 0],
+                weights=num_examples_by_table[num_examples_by_table > 0]
+            )
+
+            these_counts = rtx[VECTOR_FLAT_BIN_COUNT_KEY].values[t, w, :]
+            these_frequencies = (
+                these_counts.astype(float) / numpy.sum(these_counts)
+            )
+
+            rtx[VECTOR_FLAT_PITD_KEY].values[t, w] = numpy.sqrt(
+                numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
+            )
+            rtx[VECTOR_FLAT_PERFECT_PITD_KEY].values[t, w] = numpy.sqrt(
+                (1. - perfect_bin_frequency) /
+                (num_examples_total * num_bins)
+            )
+            rtx[VECTOR_FLAT_LOW_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[low_bin_indices] - perfect_bin_frequency
+            )
+            rtx[VECTOR_FLAT_MIDDLE_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[middle_bin_indices] - perfect_bin_frequency
+            )
+            rtx[VECTOR_FLAT_HIGH_BIN_BIAS_KEY].values[t, w] = numpy.mean(
+                these_frequencies[high_bin_indices] - perfect_bin_frequency
+            )
+
+            for h in range(len(heights_m_agl)):
+                for b in range(num_bins):
+                    rtx[VECTOR_BIN_COUNT_KEY].values[t, h, w, b] = numpy.sum([
+                        this_tbl[VECTOR_BIN_COUNT_KEY].values[t, h, w, b]
+                        for this_tbl in result_tables_xarray
+                    ])
+
+                extreme_freq_by_table = numpy.array([
+                    this_tbl[VECTOR_EXTREME_PIT_FREQ_KEY].values[t, h, w]
+                    for this_tbl in result_tables_xarray
+                ])
+                rtx[VECTOR_EXTREME_PIT_FREQ_KEY].values[t, h, w] = (
+                    numpy.average(
+                        a=extreme_freq_by_table[num_examples_by_table > 0],
+                        weights=num_examples_by_table[num_examples_by_table > 0]
+                    )
+                )
+
+                error_checking.assert_equals(
+                    num_examples_total,
+                    numpy.sum(rtx[VECTOR_BIN_COUNT_KEY].values[t, h, w, :])
+                )
+                these_frequencies = (
+                    rtx[VECTOR_BIN_COUNT_KEY].values[t, h, w, :].astype(float)
+                    / num_examples_total
+                )
+
+                rtx[VECTOR_PITD_KEY].values[t, h, w] = numpy.sqrt(
+                    numpy.mean((these_frequencies - perfect_bin_frequency) ** 2)
+                )
+                rtx[VECTOR_PERFECT_PITD_KEY].values[t, h, w] = numpy.sqrt(
+                    (1. - perfect_bin_frequency) /
+                    (num_examples_total * num_bins)
+                )
+                rtx[VECTOR_LOW_BIN_BIAS_KEY].values[t, h, w] = numpy.mean(
                     these_frequencies[low_bin_indices] - perfect_bin_frequency
                 )
-            )
-            result_table_xarray[VECTOR_MIDDLE_BIN_BIAS_KEY].values[j, k] = (
-                numpy.mean(
+                rtx[VECTOR_MIDDLE_BIN_BIAS_KEY].values[t, h, w] = numpy.mean(
                     these_frequencies[middle_bin_indices] -
                     perfect_bin_frequency
                 )
-            )
-            result_table_xarray[VECTOR_HIGH_BIN_BIAS_KEY].values[j, k] = (
-                numpy.mean(
+                rtx[VECTOR_HIGH_BIN_BIAS_KEY].values[t, h, w] = numpy.mean(
                     these_frequencies[high_bin_indices] - perfect_bin_frequency
                 )
-            )
 
-    result_table_xarray.attrs[PREDICTION_FILE_KEY] = ' '.join([
+    rtx.attrs[PREDICTION_FILE_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
     ])
-    return result_table_xarray
+    return rtx
 
 
 def write_results(result_table_xarray, netcdf_file_name):
@@ -838,4 +863,6 @@ def read_results(netcdf_file_name):
         xarray table should make values self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    return uq_evaluation.add_wavelength_dim_to_table(
+        xarray.open_dataset(netcdf_file_name)
+    )

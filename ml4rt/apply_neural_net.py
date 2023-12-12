@@ -35,7 +35,6 @@ LAST_TIME_ARG_NAME = 'last_time_string'
 NUM_DROPOUT_ITERS_ARG_NAME = 'num_dropout_iterations'
 NUM_BNN_ITERS_ARG_NAME = 'num_bnn_iterations'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_ensemble_size'
-EXCLUDE_SUMMIT_ARG_NAME = 'exclude_summit_greenland'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 MODEL_FILE_HELP_STRING = (
@@ -62,9 +61,6 @@ MAX_ENSEMBLE_SIZE_HELP_STRING = (
     'Max ensemble size.  If the NN does uncertainty quantification and yields '
     'more ensemble members, the desired number of members will be randomly '
     'selected.'
-)
-EXCLUDE_SUMMIT_HELP_STRING = (
-    'Boolean flag.  If 1, will not apply to examples from Summit.'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file (will be written by `prediction_io.write_file`).'
@@ -98,10 +94,6 @@ INPUT_ARG_PARSER.add_argument(
     help=MAX_ENSEMBLE_SIZE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + EXCLUDE_SUMMIT_ARG_NAME, type=int, required=False, default=0,
-    help=EXCLUDE_SUMMIT_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
@@ -121,8 +113,6 @@ def _targets_numpy_to_dict(
         `example_io.read_file`.
     """
 
-    net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
-
     generator_option_dict = copy.deepcopy(
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
@@ -137,13 +127,12 @@ def _targets_numpy_to_dict(
         example_utils.SCALAR_TARGET_NAMES_KEY:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
         example_utils.HEIGHTS_KEY:
-            generator_option_dict[neural_net.HEIGHTS_KEY]
+            generator_option_dict[neural_net.HEIGHTS_KEY],
+        example_utils.TARGET_WAVELENGTHS_KEY:
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY]
     }
 
-    new_example_dict = neural_net.targets_numpy_to_dict(
-        target_matrices=target_matrices,
-        example_dict=example_dict, net_type_string=net_type_string
-    )
+    new_example_dict = neural_net.targets_numpy_to_dict(target_matrices)
     for this_key in TARGET_VALUE_KEYS:
         example_dict[this_key] = new_example_dict[this_key]
 
@@ -173,13 +162,12 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
     joined_output_layer = copy.deepcopy(
         generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]
     )
-    net_type_string = model_metadata_dict[neural_net.NET_TYPE_KEY]
 
     exec_start_time_unix_sec = time.time()
     prediction_array = neural_net.apply_model(
         model_object=model_object, predictor_matrix=predictor_matrix,
         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-        net_type_string=net_type_string, use_dropout=use_dropout, verbose=True
+        use_dropout=use_dropout, verbose=True
     )
 
     print(SEPARATOR_STRING)
@@ -213,7 +201,7 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
 
 def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
          num_dropout_iterations, num_bnn_iterations, max_ensemble_size,
-         exclude_summit_greenland, output_file_name):
+         output_file_name):
     """Applies trained neural net in inference mode.
 
     This is effectively the main method.
@@ -225,7 +213,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     :param num_dropout_iterations: Same.
     :param num_bnn_iterations: Same.
     :param max_ensemble_size: Same.
-    :param exclude_summit_greenland: Same.
     :param output_file_name: Same.
     """
 
@@ -255,15 +242,11 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
     generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY] = False
-    net_type_string = metadata_dict[neural_net.NET_TYPE_KEY]
-
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
-        option_dict=generator_option_dict,
-        net_type_string=net_type_string,
-        exclude_summit_greenland=exclude_summit_greenland
+        generator_option_dict
     )
     print(SEPARATOR_STRING)
 
@@ -360,16 +343,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
 
-        while len(vector_prediction_matrix.shape) < 4:
-            vector_prediction_matrix = numpy.expand_dims(
-                vector_prediction_matrix, axis=-1
-            )
-
-        while len(scalar_prediction_matrix.shape) < 3:
-            scalar_prediction_matrix = numpy.expand_dims(
-                scalar_prediction_matrix, axis=-1
-            )
-
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
         ensemble_indices = numpy.linspace(
@@ -409,10 +382,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         normalization_file_name
     ))
     training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict,
-        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
-    )
 
     num_examples = len(example_id_strings)
     num_heights = len(target_example_dict[example_utils.HEIGHTS_KEY])
@@ -527,12 +496,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         except ValueError:
             continue
 
-        target_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][:, -1, j] = 0.
-
-        for k in range(ensemble_size):
-            prediction_example_dict_by_member[k][
-                example_utils.VECTOR_TARGET_VALS_KEY
-            ][:, -1, j] = 0.
+        target_example_dict[
+            example_utils.VECTOR_TARGET_VALS_KEY
+        ][:, -1, :, j] = 0.
 
     scalar_prediction_matrix = numpy.stack([
         d[example_utils.SCALAR_TARGET_VALS_KEY]
@@ -556,9 +522,12 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         scalar_prediction_matrix=scalar_prediction_matrix,
         vector_prediction_matrix=vector_prediction_matrix,
         heights_m_agl=target_example_dict[example_utils.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        target_example_dict[example_utils.TARGET_WAVELENGTHS_KEY],
         example_id_strings=example_id_strings,
         model_file_name=model_file_name,
-        isotonic_model_file_name=None, uncertainty_calib_model_file_name=None,
+        isotonic_model_file_name=None,
+        uncertainty_calib_model_file_name=None,
         normalization_file_name=None
     )
 
@@ -576,8 +545,5 @@ if __name__ == '__main__':
         ),
         num_bnn_iterations=getattr(INPUT_ARG_OBJECT, NUM_BNN_ITERS_ARG_NAME),
         max_ensemble_size=getattr(INPUT_ARG_OBJECT, MAX_ENSEMBLE_SIZE_ARG_NAME),
-        exclude_summit_greenland=bool(getattr(
-            INPUT_ARG_OBJECT, EXCLUDE_SUMMIT_ARG_NAME
-        )),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

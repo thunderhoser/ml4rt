@@ -35,13 +35,6 @@ PLATEAU_COOLDOWN_EPOCHS = 0
 EARLY_STOPPING_PATIENCE_EPOCHS = 200
 LOSS_PATIENCE = 0.
 
-CNN_TYPE_STRING = 'cnn'
-DENSE_NET_TYPE_STRING = 'dense_net'
-U_NET_TYPE_STRING = 'u_net'
-VALID_NET_TYPE_STRINGS = [
-    CNN_TYPE_STRING, DENSE_NET_TYPE_STRING, U_NET_TYPE_STRING
-]
-
 EXAMPLE_DIRECTORY_KEY = 'example_dir_name'
 BATCH_SIZE_KEY = 'num_examples_per_batch'
 SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
@@ -49,7 +42,7 @@ VECTOR_PREDICTOR_NAMES_KEY = 'vector_predictor_names'
 SCALAR_TARGET_NAMES_KEY = 'scalar_target_names'
 VECTOR_TARGET_NAMES_KEY = 'vector_target_names'
 HEIGHTS_KEY = 'heights_m_agl'
-MULTIPLY_PREDS_BY_THICKNESS_KEY = 'multiply_preds_by_layer_thickness'
+TARGET_WAVELENGTHS_KEY = 'target_wavelengths_metres'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
@@ -71,8 +64,6 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     VECTOR_PREDICTOR_NAMES_KEY: example_utils.BASIC_VECTOR_PREDICTOR_NAMES,
     SCALAR_TARGET_NAMES_KEY: example_utils.ALL_SCALAR_TARGET_NAMES,
     VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
-    HEIGHTS_KEY: example_utils.DEFAULT_HEIGHTS_M_AGL,
-    MULTIPLY_PREDS_BY_THICKNESS_KEY: False,
     PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
     PREDICTOR_MIN_NORM_VALUE_KEY: None,
     PREDICTOR_MAX_NORM_VALUE_KEY: None,
@@ -106,7 +97,6 @@ NUM_TRAINING_BATCHES_KEY = 'num_training_batches_per_epoch'
 TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
-NET_TYPE_KEY = 'net_type_string'
 LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
@@ -115,7 +105,7 @@ U_NET_PP_ARCHITECTURE_KEY = 'u_net_plusplus_architecture_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
-    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, NET_TYPE_KEY,
+    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
     BNN_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY
 ]
@@ -152,8 +142,12 @@ def _check_generator_args(option_dict):
         option_dict[HEIGHTS_KEY], num_dimensions=1
     )
     error_checking.assert_is_geq_numpy_array(option_dict[HEIGHTS_KEY], 0.)
-    error_checking.assert_is_boolean(
-        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
+
+    error_checking.assert_is_numpy_array(
+        option_dict[TARGET_WAVELENGTHS_KEY], num_dimensions=1
+    )
+    error_checking.assert_is_geq_numpy_array(
+        option_dict[TARGET_WAVELENGTHS_KEY], 0.
     )
 
     if option_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
@@ -198,13 +192,12 @@ def _check_inference_args(predictor_matrix, num_examples_per_batch, verbose):
 
 def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
-        heights_m_agl, multiply_preds_by_layer_thickness,
-        normalization_file_name, uniformize,
-        predictor_norm_type_string, predictor_min_norm_value,
+        heights_m_agl, target_wavelengths_metres, normalization_file_name,
+        uniformize, predictor_norm_type_string, predictor_min_norm_value,
         predictor_max_norm_value, vector_target_norm_type_string,
         vector_target_min_norm_value, vector_target_max_norm_value,
         scalar_target_norm_type_string, scalar_target_min_norm_value,
-        scalar_target_max_norm_value, exclude_summit_greenland=False):
+        scalar_target_max_norm_value):
     """Reads one file for generator.
 
     :param example_file_name: Path to input file (will be read by
@@ -214,8 +207,8 @@ def _read_file_for_generator(
     :param field_names: 1-D list of fields to keep.
     :param heights_m_agl: 1-D numpy array of heights to keep (metres above
         ground level).
-    :param multiply_preds_by_layer_thickness: See doc for `data_generator`.
-    :param normalization_file_name: Same.
+    :param target_wavelengths_metres: 1-D numpy array of wavelengths to keep.
+    :param normalization_file_name: See doc for `data_generator`.
     :param uniformize: Same.
     :param predictor_norm_type_string: Same.
     :param predictor_min_norm_value: Same.
@@ -226,16 +219,11 @@ def _read_file_for_generator(
     :param scalar_target_norm_type_string: Same.
     :param scalar_target_min_norm_value: Same.
     :param scalar_target_max_norm_value: Same.
-    :param exclude_summit_greenland: Boolean flag.  If True, will exclude
-        examples from Summit.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
     print('\nReading data from: "{0:s}"...'.format(example_file_name))
-    example_dict = example_io.read_file(
-        netcdf_file_name=example_file_name,
-        exclude_summit_greenland=exclude_summit_greenland
-    )
+    example_dict = example_io.read_file(netcdf_file_name=example_file_name)
 
     example_dict = example_utils.subset_by_time(
         example_dict=example_dict,
@@ -243,6 +231,10 @@ def _read_file_for_generator(
         last_time_unix_sec=last_time_unix_sec
     )[0]
 
+    example_dict = example_utils.subset_by_wavelength(
+        example_dict=example_dict,
+        target_wavelengths_metres=target_wavelengths_metres
+    )
     example_dict = example_utils.subset_by_field(
         example_dict=example_dict, field_names=field_names
     )
@@ -282,11 +274,6 @@ def _read_file_for_generator(
 
         return example_dict
 
-    if multiply_preds_by_layer_thickness:
-        example_dict = example_utils.multiply_preds_by_layer_thickness(
-            example_dict
-        )
-
     if normalization_file_name is None:
         return example_dict
 
@@ -299,11 +286,10 @@ def _read_file_for_generator(
     training_example_dict = example_utils.subset_by_height(
         example_dict=training_example_dict, heights_m_agl=heights_m_agl
     )
-
-    if multiply_preds_by_layer_thickness:
-        training_example_dict = example_utils.multiply_preds_by_layer_thickness(
-            training_example_dict
-        )
+    training_example_dict = example_utils.subset_by_wavelength(
+        example_dict=training_example_dict,
+        target_wavelengths_metres=target_wavelengths_metres
+    )
 
     if predictor_norm_type_string is not None:
         print('Applying {0:s} normalization to predictors...'.format(
@@ -388,7 +374,7 @@ def _read_file_for_generator(
 def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
-        validation_option_dict, net_type_string, loss_function_or_dict,
+        validation_option_dict, loss_function_or_dict,
         do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
         u_net_plusplus_architecture_dict):
     """Writes metadata to Dill file.
@@ -399,7 +385,6 @@ def _write_metafile(
     :param training_option_dict: Same.
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
-    :param net_type_string: Same.
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
     :param plateau_lr_multiplier: Same.
@@ -413,7 +398,6 @@ def _write_metafile(
         TRAINING_OPTIONS_KEY: training_option_dict,
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
-        NET_TYPE_KEY: net_type_string,
         LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
         EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
@@ -428,32 +412,11 @@ def _write_metafile(
     dill_file_handle.close()
 
 
-def check_net_type(net_type_string):
-    """Ensures that neural-net type is valid.
-
-    :param net_type_string: Neural-net type.
-    :raises: ValueError: if `net_type_string not in VALID_NET_TYPE_STRINGS`.
-    """
-
-    error_checking.assert_is_string(net_type_string)
-    if net_type_string in VALID_NET_TYPE_STRINGS:
-        return
-
-    error_string = (
-        '\nField "{0:s}" is not valid neural-net type.  Valid options listed '
-        'below:\n{1:s}'
-    ).format(net_type_string, str(VALID_NET_TYPE_STRINGS))
-
-    raise ValueError(error_string)
-
-
-def predictors_dict_to_numpy(example_dict, net_type_string):
+def predictors_dict_to_numpy(example_dict):
     """Converts predictors from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
     :return: predictor_matrix: See output doc for `data_generator`.
     :return: predictor_name_matrix: numpy array of predictor names (strings), in
         the same shape as predictor_matrix[0, ...].
@@ -461,8 +424,6 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
         level), in the same shape as predictor_matrix[0, ...].  For scalar
         variables, the matrix entry will be NaN.
     """
-
-    check_net_type(net_type_string)
 
     heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
     vector_predictor_names = numpy.array(
@@ -479,6 +440,7 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
     vector_predictor_matrix = (
         example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
     )
+
     vector_height_matrix_m_agl = numpy.reshape(
         heights_m_agl, (num_heights, 1)
     )
@@ -496,66 +458,36 @@ def predictors_dict_to_numpy(example_dict, net_type_string):
         example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY]
     )
 
-    if net_type_string != DENSE_NET_TYPE_STRING:
-        scalar_predictor_matrix = numpy.expand_dims(
-            scalar_predictor_matrix, axis=1
-        )
-        scalar_predictor_matrix = numpy.repeat(
-            scalar_predictor_matrix, repeats=num_heights, axis=1
-        )
-        scalar_height_matrix_m_agl = numpy.full(
-            scalar_predictor_matrix.shape[1:], numpy.nan
-        )
-        scalar_predictor_name_matrix = numpy.reshape(
-            scalar_predictor_names, (1, num_scalar_predictors)
-        )
-        scalar_predictor_name_matrix = numpy.repeat(
-            scalar_predictor_name_matrix, repeats=num_heights, axis=0
-        )
-
-        predictor_matrix = numpy.concatenate(
-            (vector_predictor_matrix, scalar_predictor_matrix), axis=-1
-        )
-        height_matrix_m_agl = numpy.concatenate(
-            (vector_height_matrix_m_agl, scalar_height_matrix_m_agl), axis=-1
-        )
-        predictor_name_matrix = numpy.concatenate((
-            vector_predictor_name_matrix, scalar_predictor_name_matrix
-        ), axis=-1)
-
-        return predictor_matrix, predictor_name_matrix, height_matrix_m_agl
-
-    num_examples = vector_predictor_matrix.shape[0]
-
-    vector_predictor_matrix = numpy.reshape(
-        vector_predictor_matrix,
-        (num_examples, num_heights * num_vector_predictors),
-        order='F'
+    scalar_predictor_matrix = numpy.expand_dims(
+        scalar_predictor_matrix, axis=1
     )
-    vector_predictor_name_matrix = numpy.reshape(
-        vector_predictor_name_matrix, num_heights * num_vector_predictors,
-        order='F'
+    scalar_predictor_matrix = numpy.repeat(
+        scalar_predictor_matrix, repeats=num_heights, axis=1
     )
-    vector_height_matrix_m_agl = numpy.reshape(
-        vector_height_matrix_m_agl, num_heights * num_vector_predictors,
-        order='F'
+    scalar_height_matrix_m_agl = numpy.full(
+        scalar_predictor_matrix.shape[1:], numpy.nan
+    )
+    scalar_predictor_name_matrix = numpy.reshape(
+        scalar_predictor_names, (1, num_scalar_predictors)
+    )
+    scalar_predictor_name_matrix = numpy.repeat(
+        scalar_predictor_name_matrix, repeats=num_heights, axis=0
     )
 
     predictor_matrix = numpy.concatenate(
         (vector_predictor_matrix, scalar_predictor_matrix), axis=-1
     )
-    scalar_height_matrix_m_agl = numpy.full(num_scalar_predictors, numpy.nan)
     height_matrix_m_agl = numpy.concatenate(
-        (vector_height_matrix_m_agl, scalar_height_matrix_m_agl), axis=0
+        (vector_height_matrix_m_agl, scalar_height_matrix_m_agl), axis=-1
     )
-    predictor_name_matrix = numpy.concatenate(
-        (vector_predictor_name_matrix, scalar_predictor_names), axis=0
-    )
+    predictor_name_matrix = numpy.concatenate((
+        vector_predictor_name_matrix, scalar_predictor_name_matrix
+    ), axis=-1)
 
     return predictor_matrix, predictor_name_matrix, height_matrix_m_agl
 
 
-def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
+def predictors_numpy_to_dict(predictor_matrix, example_dict):
     """Converts predictors from numpy array to dictionary.
 
     This method is the inverse of `predictors_dict_to_numpy`.
@@ -567,9 +499,6 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     example_dict['vector_predictor_names']
     example_dict['heights_m_agl']
 
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
-
     :return: example_dict: Dictionary with the following keys.  See doc for
         `example_io.read_file` for details on each key.
     example_dict['scalar_predictor_matrix']
@@ -577,44 +506,11 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     """
 
     error_checking.assert_is_numpy_array_without_nan(predictor_matrix)
-    check_net_type(net_type_string)
+    error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=3)
 
     num_scalar_predictors = len(
         example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY]
     )
-
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=2)
-
-        if num_scalar_predictors == 0:
-            scalar_predictor_matrix = predictor_matrix[:, :0]
-            vector_predictor_matrix = predictor_matrix + 0.
-        else:
-            scalar_predictor_matrix = (
-                predictor_matrix[:, -num_scalar_predictors:]
-            )
-            vector_predictor_matrix = (
-                predictor_matrix[:, :-num_scalar_predictors]
-            )
-
-        num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
-        num_vector_predictors = len(
-            example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY]
-        )
-        num_examples = vector_predictor_matrix.shape[0]
-
-        vector_predictor_matrix = numpy.reshape(
-            vector_predictor_matrix,
-            (num_examples, num_heights, num_vector_predictors),
-            order='F'
-        )
-
-        return {
-            example_utils.SCALAR_PREDICTOR_VALS_KEY: scalar_predictor_matrix,
-            example_utils.VECTOR_PREDICTOR_VALS_KEY: vector_predictor_matrix
-        }
-
-    error_checking.assert_is_numpy_array(predictor_matrix, num_dimensions=3)
 
     if num_scalar_predictors == 0:
         scalar_predictor_matrix = predictor_matrix[:, 0, :0]
@@ -631,40 +527,13 @@ def predictors_numpy_to_dict(predictor_matrix, example_dict, net_type_string):
     }
 
 
-def targets_dict_to_numpy(example_dict, net_type_string):
+def targets_dict_to_numpy(example_dict):
     """Converts targets from dictionary to numpy array.
 
     :param example_dict: Dictionary of examples (in the format returned by
         `example_io.read_file`).
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
-    :return: target_matrices: If net type is CNN, same as output from
-        `data_generator`.  Otherwise, same as output from `data_generator` but
-        in a one-element list.
+    :return: target_matrices: Same as output from `data_generator`.
     """
-
-    check_net_type(net_type_string)
-
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        vector_target_matrix = (
-            example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
-        )
-        scalar_target_matrix = (
-            example_dict[example_utils.SCALAR_TARGET_VALS_KEY]
-        )
-
-        num_examples = vector_target_matrix.shape[0]
-        num_heights = vector_target_matrix.shape[1]
-        num_fields = vector_target_matrix.shape[2]
-        vector_target_matrix = numpy.reshape(
-            vector_target_matrix, (num_examples, num_heights * num_fields),
-            order='F'
-        )
-
-        if scalar_target_matrix.size == 0:
-            return [vector_target_matrix]
-
-        return [vector_target_matrix, scalar_target_matrix]
 
     vector_target_matrix = (
         example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
@@ -679,64 +548,35 @@ def targets_dict_to_numpy(example_dict, net_type_string):
     return [vector_target_matrix, scalar_target_matrix]
 
 
-def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
+def targets_numpy_to_dict(target_matrices):
     """Converts targets from numpy array to dictionary.
 
     This method is the inverse of `targets_dict_to_numpy`.
 
     :param target_matrices: List created by `targets_dict_to_numpy`.
-    :param example_dict: Dictionary with the following keys.  See doc for
-        `example_io.read_file` for details on each key.
-    example_dict['scalar_target_names']
-    example_dict['vector_target_names']
-    example_dict['heights_m_agl']
-
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
-
     :return: example_dict: Dictionary with the following keys.  See doc for
         `example_io.read_file` for details on each key.
     example_dict['scalar_target_matrix']
     example_dict['vector_target_matrix']
     """
 
-    check_net_type(net_type_string)
-
     vector_target_matrix = target_matrices[0]
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-    error_checking.assert_is_numpy_array(
-        vector_target_matrix,
-        num_dimensions=3 - int(net_type_string == DENSE_NET_TYPE_STRING)
-    )
+    error_checking.assert_is_numpy_array(vector_target_matrix, num_dimensions=4)
+
+    num_examples = vector_target_matrix.shape[0]
+    num_wavelengths = vector_target_matrix.shape[2]
 
     if len(target_matrices) == 1:
         scalar_target_matrix = numpy.full(
-            (vector_target_matrix.shape[0], 0), 0.
+            (num_examples, num_wavelengths, 0), 0.
         )
     else:
         scalar_target_matrix = target_matrices[1]
 
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
     error_checking.assert_is_numpy_array(
-        scalar_target_matrix, num_dimensions=2
-    )
-
-    if net_type_string != DENSE_NET_TYPE_STRING:
-        return {
-            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix,
-            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix
-        }
-
-    num_heights = len(example_dict[example_utils.HEIGHTS_KEY])
-    num_vector_targets = len(
-        example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
-    )
-    num_examples = vector_target_matrix.shape[0]
-
-    vector_target_matrix = numpy.reshape(
-        vector_target_matrix,
-        (num_examples, num_heights, num_vector_targets),
-        order='F'
+        scalar_target_matrix, num_dimensions=3
     )
 
     return {
@@ -745,202 +585,96 @@ def targets_numpy_to_dict(target_matrices, example_dict, net_type_string):
     }
 
 
-def neuron_indices_to_target_var(neuron_indices, example_dict, net_type_string,
-                                 for_scalar_output=False):
+def neuron_indices_to_target_var(neuron_indices, example_dict):
     """Converts indices of output neuron to metadata for target variable.
 
     :param neuron_indices: 1-D numpy array with indices of output neuron.  Must
         have length of either 1 (for scalar target variable) or 2 (for vector
         target variable).
-    :param example_dict: See doc for `targets_numpy_to_dict`.
-    :param net_type_string: Same.
-    :param for_scalar_output: Boolean flag, used only for dense nets.
+    :param example_dict: Dictionary with the following keys.  See doc for
+        `example_io.read_file` for details on each key.
+    example_dict['scalar_target_names']
+    example_dict['vector_target_names']
+    example_dict['heights_m_agl']
+    example_dict['target_wavelengths_metres']
+
     :return: target_name: Name of target variable.
     :return: height_m_agl: Height (metres above ground level) of target
         variable.  If target variable is scalar, this will be None.
+    :return: wavelength_metres: Wavelength of target variable.
     """
 
     # TODO(thunderhoser): This won't work for NNs that output an ensemble.
 
     error_checking.assert_is_integer_numpy_array(neuron_indices)
     error_checking.assert_is_geq_numpy_array(neuron_indices, 0)
-    check_net_type(net_type_string)
+    error_checking.assert_is_numpy_array(neuron_indices, num_dimensions=1)
 
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        min_num_indices = 1
-        max_num_indices = 1
-        error_checking.assert_is_boolean(for_scalar_output)
-    else:
-        min_num_indices = 1
-        max_num_indices = 2
-        for_scalar_output = False
-
-    num_indices = len(neuron_indices)
-    error_checking.assert_is_geq(num_indices, min_num_indices)
-    error_checking.assert_is_leq(num_indices, max_num_indices)
-
-    vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
-
-    if num_indices == 2:
-        return (
-            vector_target_names[neuron_indices[1]],
-            heights_m_agl[neuron_indices[0]]
-        )
+    error_checking.assert_is_geq(len(neuron_indices), 2)
+    error_checking.assert_is_leq(len(neuron_indices), 3)
 
     scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
-    num_scalar_targets = len(scalar_target_names)
-    num_vector_targets = len(vector_target_names)
-    num_heights = len(heights_m_agl)
+    vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
+    wavelengths_metres = example_dict[example_utils.TARGET_WAVELENGTHS_KEY]
 
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        vector_target_matrix_keras = numpy.full(
-            (1, num_vector_targets * num_heights), 0.
-        )
-
-        if for_scalar_output:
-            scalar_target_matrix_keras = numpy.full((1, num_scalar_targets), 0.)
-            scalar_target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
-            target_matrices_keras = [
-                vector_target_matrix_keras, scalar_target_matrix_keras
-            ]
-        else:
-            vector_target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
-            target_matrices_keras = [vector_target_matrix_keras]
-
-        example_dict = targets_numpy_to_dict(
-            target_matrices=target_matrices_keras,
-            example_dict=example_dict, net_type_string=net_type_string
-        )
-
-        if for_scalar_output:
-            scalar_target_matrix_orig = (
-                example_dict[example_utils.SCALAR_TARGET_VALS_KEY][0, ...]
-            )
-            this_index = numpy.where(
-                scalar_target_matrix_orig < SENTINEL_VALUE + 1
-            )[0][0]
-
-            return scalar_target_names[this_index], None
-
-        vector_target_matrix_orig = (
-            example_dict[example_utils.VECTOR_TARGET_VALS_KEY][0, ...]
-        )
-        these_height_indices, these_field_indices = numpy.where(
-            vector_target_matrix_orig < SENTINEL_VALUE + 1
-        )
+    if len(neuron_indices) == 3:
         return (
-            vector_target_names[these_field_indices[0]],
-            heights_m_agl[these_height_indices[0]]
+            vector_target_names[neuron_indices[2]],
+            heights_m_agl[neuron_indices[0]],
+            wavelengths_metres[neuron_indices[1]]
         )
 
-    # If execution reaches this point, the net is a CNN or U-net.
-    vector_target_matrix_keras = numpy.full(
-        (1, num_heights, num_vector_targets), 0.
-    )
-    scalar_target_matrix_keras = numpy.full((1, num_scalar_targets), 0.)
-    scalar_target_matrix_keras[0, neuron_indices[0]] = SENTINEL_VALUE
-
-    example_dict = targets_numpy_to_dict(
-        target_matrices=
-        [vector_target_matrix_keras, scalar_target_matrix_keras],
-        example_dict=example_dict, net_type_string=net_type_string
-    )
-    scalar_target_matrix_orig = (
-        example_dict[example_utils.SCALAR_TARGET_VALS_KEY][0, ...]
+    return (
+        scalar_target_names[neuron_indices[1]],
+        None,
+        wavelengths_metres[neuron_indices[0]]
     )
 
-    these_indices = numpy.where(
-        scalar_target_matrix_orig < SENTINEL_VALUE + 1
-    )[0]
-    return scalar_target_names[these_indices[0]], None
 
-
-def target_var_to_neuron_indices(example_dict, net_type_string, target_name,
-                                 height_m_agl=None):
+def target_var_to_neuron_indices(
+        example_dict, target_name, wavelength_metres, height_m_agl=None):
     """Converts metadata for target variable to indices of output neuron.
 
     This method is the inverse of `neuron_indices_to_target_var`.
 
     :param example_dict: See doc for `neuron_indices_to_target_var`.
-    :param net_type_string: Same.
     :param target_name: Same.
+    :param wavelength_metres: Same.
     :param height_m_agl: Same.
     :return: neuron_indices: Same.
     """
 
     # TODO(thunderhoser): This won't work for NNs that output an ensemble.
 
-    check_net_type(net_type_string)
     error_checking.assert_is_string(target_name)
 
     scalar_target_names = example_dict[example_utils.SCALAR_TARGET_NAMES_KEY]
     vector_target_names = example_dict[example_utils.VECTOR_TARGET_NAMES_KEY]
-    heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
 
-    num_scalar_targets = len(scalar_target_names)
-    num_vector_targets = len(vector_target_names)
-    num_heights = len(heights_m_agl)
-
-    vector_target_matrix_orig = numpy.full(
-        (1, num_heights, num_vector_targets), 0.
+    w = example_utils.match_wavelengths(
+        wavelengths_metres=example_dict[example_utils.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
     )
-    scalar_target_matrix_orig = numpy.full((1, num_scalar_targets), 0.)
 
     if height_m_agl is None:
-        channel_index = scalar_target_names.index(target_name)
-        scalar_target_matrix_orig[:, channel_index] = SENTINEL_VALUE
+        t = numpy.where(numpy.array(scalar_target_names) == target_name)[0][0]
+        return numpy.array([w, t], dtype=int)
 
-        new_example_dict = {
-            example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
-            example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
-        }
-
-        scalar_target_matrix_keras = targets_dict_to_numpy(
-            example_dict=new_example_dict, net_type_string=net_type_string
-        )[-1][0, ...]
-
-        neuron_index = numpy.where(
-            scalar_target_matrix_keras < SENTINEL_VALUE + 1
-        )[0][0]
-
-        return numpy.array([neuron_index], dtype=int)
-
-    channel_index = vector_target_names.index(target_name)
-    height_index = example_utils.match_heights(
-        heights_m_agl=heights_m_agl, desired_height_m_agl=height_m_agl
+    h = example_utils.match_heights(
+        heights_m_agl=example_dict[example_utils.HEIGHTS_KEY],
+        desired_height_m_agl=height_m_agl
     )
-    vector_target_matrix_orig[:, height_index, channel_index] = SENTINEL_VALUE
-
-    new_example_dict = {
-        example_utils.SCALAR_TARGET_VALS_KEY: scalar_target_matrix_orig,
-        example_utils.VECTOR_TARGET_VALS_KEY: vector_target_matrix_orig
-    }
-
-    target_matrices_keras = targets_dict_to_numpy(
-        example_dict=new_example_dict, net_type_string=net_type_string
-    )
-    vector_target_matrix_keras = target_matrices_keras[0][0, ...]
-
-    if net_type_string == DENSE_NET_TYPE_STRING:
-        neuron_index = numpy.where(
-            vector_target_matrix_keras < SENTINEL_VALUE + 1
-        )[0][0]
-
-        return numpy.array([neuron_index], dtype=int)
-
-    height_indices, field_indices = numpy.where(
-        vector_target_matrix_keras < SENTINEL_VALUE + 1
-    )
-
-    return numpy.array([height_indices[0], field_indices[0]], dtype=int)
+    t = numpy.where(numpy.array(vector_target_names) == target_name)[0][0]
+    return numpy.array([h, w, t], dtype=int)
 
 
-def data_generator(option_dict, for_inference, net_type_string):
+def data_generator(option_dict, for_inference):
     """Generates training data for any kind of neural net.
 
     E = number of examples per batch (batch size)
     H = number of heights
+    W = number of wavelengths
     P = number of predictor variables (channels)
     T_v = number of vector target variables (channels)
     T_s = number of scalar target variables
@@ -954,12 +688,14 @@ def data_generator(option_dict, for_inference, net_type_string):
     option_dict['predictor_names']: 1-D list with names of predictor variables
         (valid names listed in example_utils.py).
     option_dict['target_names']: Same but for target variables.
+    option_dict['heights_m_agl']: length-H numpy array of heights (metres above
+        ground level).  Applies to both predictor and target variables.
+    option_dict['target_wavelengths_metres']: length-W numpy array of
+        wavelengths to model.
     option_dict['first_time_unix_sec']: Start time (will not generate examples
         before this time).
     option_dict['last_time_unix_sec']: End time (will not generate examples
         after this time).
-    option_dict['multiply_preds_by_layer_thickness']: Boolean flag.  If True,
-        will multiply relevant predictors by layer thickness.
     option_dict['normalization_file_name']: File with training examples to use
         for normalization (will be read by `example_io.read_file`).
     option_dict['uniformize']: Boolean flag, used only for z-score
@@ -993,8 +729,6 @@ def data_generator(option_dict, for_inference, net_type_string):
         inference stage (applying trained model to new data).  If False,
         generator is being used for training or monitoring (on-the-fly
         validation).
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
 
     :return: predictor_matrix: numpy array of predictor values.  If net type is
         dense, the array will be E x P.  Otherwise, will be E x H x P.
@@ -1013,7 +747,6 @@ def data_generator(option_dict, for_inference, net_type_string):
 
     option_dict = _check_generator_args(option_dict)
     error_checking.assert_is_boolean(for_inference)
-    check_net_type(net_type_string)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
@@ -1022,9 +755,7 @@ def data_generator(option_dict, for_inference, net_type_string):
     scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
     vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = option_dict[HEIGHTS_KEY]
-    multiply_preds_by_layer_thickness = (
-        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
-    )
+    target_wavelengths_metres = option_dict[TARGET_WAVELENGTHS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
@@ -1060,8 +791,9 @@ def data_generator(option_dict, for_inference, net_type_string):
         example_file_name=example_file_names[0],
         first_time_unix_sec=first_time_unix_sec,
         last_time_unix_sec=last_time_unix_sec,
-        field_names=all_field_names, heights_m_agl=heights_m_agl,
-        multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
+        field_names=all_field_names,
+        heights_m_agl=heights_m_agl,
+        target_wavelengths_metres=target_wavelengths_metres,
         normalization_file_name=normalization_file_name,
         uniformize=uniformize,
         predictor_norm_type_string=predictor_norm_type_string,
@@ -1119,9 +851,9 @@ def data_generator(option_dict, for_inference, net_type_string):
                     example_file_name=example_file_names[file_index],
                     first_time_unix_sec=first_time_unix_sec,
                     last_time_unix_sec=last_time_unix_sec,
-                    field_names=all_field_names, heights_m_agl=heights_m_agl,
-                    multiply_preds_by_layer_thickness=
-                    multiply_preds_by_layer_thickness,
+                    field_names=all_field_names,
+                    heights_m_agl=heights_m_agl,
+                    target_wavelengths_metres=target_wavelengths_metres,
                     normalization_file_name=normalization_file_name,
                     uniformize=uniformize,
                     predictor_norm_type_string=predictor_norm_type_string,
@@ -1188,11 +920,9 @@ def data_generator(option_dict, for_inference, net_type_string):
             first_example_index = last_example_index + 0
 
             this_predictor_matrix = predictors_dict_to_numpy(
-                example_dict=this_example_dict, net_type_string=net_type_string
+                this_example_dict
             )[0]
-            this_target_list = targets_dict_to_numpy(
-                example_dict=this_example_dict, net_type_string=net_type_string
-            )
+            this_target_list = targets_dict_to_numpy(this_example_dict)
 
             this_vector_target_matrix = this_target_list[0]
             if len(this_target_list) == 1:
@@ -1235,7 +965,7 @@ def data_generator(option_dict, for_inference, net_type_string):
             if scalar_target_matrix is not None:
                 target_array = numpy.concatenate(
                     (target_array, scalar_target_matrix.astype('float16')),
-                    axis=1
+                    axis=-1
                 )
         else:
             target_array = [vector_target_matrix.astype('float16')]
@@ -1251,24 +981,19 @@ def data_generator(option_dict, for_inference, net_type_string):
             yield predictor_matrix, target_array
 
 
-def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
+def create_data(option_dict):
     """Creates data for any kind of neural net.
 
     This method is the same as `data_generator`, except that it returns all the
     data at once, rather than generating batches on the fly.
 
     :param option_dict: See doc for `data_generator`.
-    :param net_type_string: Same.
-    :param exclude_summit_greenland: Boolean flag.  If True, will exclude
-        examples from Summit.
     :return: predictor_matrix: Same.
     :return: target_array: Same.
     :return: example_id_strings: Same.
     """
 
     option_dict = _check_generator_args(option_dict)
-    check_net_type(net_type_string)
-    error_checking.assert_is_boolean(exclude_summit_greenland)
 
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     scalar_predictor_names = option_dict[SCALAR_PREDICTOR_NAMES_KEY]
@@ -1276,9 +1001,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
     vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = option_dict[HEIGHTS_KEY]
-    multiply_preds_by_layer_thickness = (
-        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
-    )
+    target_wavelengths_metres = option_dict[TARGET_WAVELENGTHS_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
     last_time_unix_sec = option_dict[LAST_TIME_KEY]
 
@@ -1317,8 +1040,9 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             example_file_name=this_file_name,
             first_time_unix_sec=first_time_unix_sec,
             last_time_unix_sec=last_time_unix_sec,
-            field_names=all_field_names, heights_m_agl=heights_m_agl,
-            multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
+            field_names=all_field_names,
+            heights_m_agl=heights_m_agl,
+            target_wavelengths_metres=target_wavelengths_metres,
             normalization_file_name=normalization_file_name,
             uniformize=uniformize,
             predictor_norm_type_string=predictor_norm_type_string,
@@ -1329,26 +1053,20 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             vector_target_max_norm_value=vector_target_max_norm_value,
             scalar_target_norm_type_string=scalar_target_norm_type_string,
             scalar_target_min_norm_value=scalar_target_min_norm_value,
-            scalar_target_max_norm_value=scalar_target_max_norm_value,
-            exclude_summit_greenland=exclude_summit_greenland
+            scalar_target_max_norm_value=scalar_target_max_norm_value
         )
 
         example_dicts.append(this_example_dict)
 
     example_dict = example_utils.concat_examples(example_dicts)
-
-    predictor_matrix = predictors_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string
-    )[0]
+    predictor_matrix = predictors_dict_to_numpy(example_dict)[0]
 
     if numpy.max(numpy.absolute(predictor_matrix)) > 2**16 - 1:
         predictor_matrix = predictor_matrix.astype('float32')
     else:
         predictor_matrix = predictor_matrix.astype('float16')
 
-    prelim_target_list = targets_dict_to_numpy(
-        example_dict=example_dict, net_type_string=net_type_string
-    )
+    prelim_target_list = targets_dict_to_numpy(example_dict)
     vector_target_matrix = prelim_target_list[0]
 
     if joined_output_layer:
@@ -1358,7 +1076,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
             scalar_target_matrix = prelim_target_list[1]
             target_array = numpy.concatenate(
                 (target_array, scalar_target_matrix.astype('float16')),
-                axis=1
+                axis=-1
             )
     else:
         target_array = [vector_target_matrix.astype('float16')]
@@ -1377,8 +1095,7 @@ def create_data(option_dict, net_type_string, exclude_summit_greenland=False):
     )
 
 
-def create_data_specific_examples(
-        option_dict, net_type_string, example_id_strings):
+def create_data_specific_examples(option_dict, example_id_strings):
     """Creates data for specific examples.
 
     This method is the same as `create_data`, except that it creates specific
@@ -1386,14 +1103,12 @@ def create_data_specific_examples(
     (not in training mode).
 
     :param option_dict: See doc for `data_generator`.
-    :param net_type_string: Same.
     :param example_id_strings: 1-D list of example IDs.
     :return: predictor_matrix: See doc for `data_generator`.
     :return: target_array: Same.
     """
 
     option_dict = _check_generator_args(option_dict)
-    check_net_type(net_type_string)
 
     example_times_unix_sec = example_utils.parse_example_ids(
         example_id_strings
@@ -1405,9 +1120,7 @@ def create_data_specific_examples(
     scalar_target_names = option_dict[SCALAR_TARGET_NAMES_KEY]
     vector_target_names = option_dict[VECTOR_TARGET_NAMES_KEY]
     heights_m_agl = option_dict[HEIGHTS_KEY]
-    multiply_preds_by_layer_thickness = (
-        option_dict[MULTIPLY_PREDS_BY_THICKNESS_KEY]
-    )
+    target_wavelengths_metres = option_dict[TARGET_WAVELENGTHS_KEY]
 
     all_field_names = (
         scalar_predictor_names + vector_predictor_names +
@@ -1452,8 +1165,9 @@ def create_data_specific_examples(
             example_file_name=this_file_name,
             first_time_unix_sec=numpy.min(example_times_unix_sec),
             last_time_unix_sec=numpy.max(example_times_unix_sec),
-            field_names=all_field_names, heights_m_agl=heights_m_agl,
-            multiply_preds_by_layer_thickness=multiply_preds_by_layer_thickness,
+            field_names=all_field_names,
+            heights_m_agl=heights_m_agl,
+            target_wavelengths_metres=target_wavelengths_metres,
             normalization_file_name=normalization_file_name,
             uniformize=uniformize,
             predictor_norm_type_string=predictor_norm_type_string,
@@ -1492,13 +1206,8 @@ def create_data_specific_examples(
             desired_indices=missing_to_dict_indices
         )
 
-        this_predictor_matrix = predictors_dict_to_numpy(
-            example_dict=this_example_dict, net_type_string=net_type_string
-        )[0]
-
-        prelim_target_list = targets_dict_to_numpy(
-            example_dict=this_example_dict, net_type_string=net_type_string
-        )
+        this_predictor_matrix = predictors_dict_to_numpy(this_example_dict)[0]
+        prelim_target_list = targets_dict_to_numpy(this_example_dict)
 
         if predictor_matrix is None:
             predictor_matrix = numpy.full(
@@ -1544,7 +1253,7 @@ def create_data_specific_examples(
 def train_model_with_generator(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
-        validation_option_dict, net_type_string, loss_function_or_dict,
+        validation_option_dict, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
         do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
         u_net_plusplus_architecture_dict):
@@ -1566,8 +1275,6 @@ def train_model_with_generator(
     validation_option_dict['first_time_unix_sec']
     validation_option_dict['last_time_unix_sec']
 
-    :param net_type_string: Neural-net type (must be accepted by
-        `check_net_type`).
     :param loss_function_or_dict: Loss function(s).  If the net has one loss
         function, this should be a function handle.  If the net has multiple
         loss functions, this should be a dictionary.
@@ -1600,7 +1307,6 @@ def train_model_with_generator(
     error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_integer(num_training_batches_per_epoch)
     error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
-    check_net_type(net_type_string)
     error_checking.assert_is_boolean(use_generator_for_validn)
     error_checking.assert_is_boolean(do_early_stopping)
 
@@ -1672,7 +1378,6 @@ def train_model_with_generator(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string,
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
@@ -1681,22 +1386,19 @@ def train_model_with_generator(
     )
 
     training_generator = data_generator(
-        option_dict=training_option_dict, for_inference=False,
-        net_type_string=net_type_string
+        option_dict=training_option_dict, for_inference=False
     )
 
     if use_generator_for_validn:
         validation_generator = data_generator(
-            option_dict=validation_option_dict, for_inference=False,
-            net_type_string=net_type_string
+            option_dict=validation_option_dict, for_inference=False
         )
 
         validation_data_arg = validation_generator
         validation_steps_arg = num_validation_batches_per_epoch
     else:
         validation_predictor_matrix, validation_target_array = create_data(
-            option_dict=validation_option_dict,
-            net_type_string=net_type_string
+            validation_option_dict
         )[:2]
 
         validation_data_arg = (
@@ -1715,7 +1417,7 @@ def train_model_with_generator(
 
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
-        validation_option_dict, net_type_string, loss_function_or_dict,
+        validation_option_dict, loss_function_or_dict,
         do_early_stopping, num_training_batches_per_epoch,
         num_validation_batches_per_epoch, plateau_lr_multiplier,
         bnn_architecture_dict, u_net_plusplus_architecture_dict):
@@ -1726,7 +1428,6 @@ def train_model_sans_generator(
     :param num_epochs: Same.
     :param training_option_dict: Same.
     :param validation_option_dict: Same.
-    :param net_type_string: Same.
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
     :param num_training_batches_per_epoch: Number of training batches per epoch.
@@ -1744,7 +1445,6 @@ def train_model_sans_generator(
 
     error_checking.assert_is_integer(num_epochs)
     error_checking.assert_is_geq(num_epochs, 2)
-    check_net_type(net_type_string)
     error_checking.assert_is_boolean(do_early_stopping)
 
     if do_early_stopping:
@@ -1809,7 +1509,6 @@ def train_model_sans_generator(
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=None,
         validation_option_dict=validation_option_dict,
-        net_type_string=net_type_string,
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
@@ -1818,13 +1517,11 @@ def train_model_sans_generator(
     )
 
     training_predictor_matrix, training_target_array = create_data(
-        option_dict=training_option_dict,
-        net_type_string=net_type_string
+        training_option_dict
     )[:2]
 
     validation_predictor_matrix, validation_target_array = create_data(
-        option_dict=validation_option_dict,
-        net_type_string=net_type_string
+        validation_option_dict
     )[:2]
 
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
@@ -1864,7 +1561,9 @@ def train_model_sans_generator(
             ]
 
     num_training_examples = training_predictor_matrix.shape[0]
-    print('Number of training examples = {0:d}'.format(num_training_examples))
+    print('Number of training examples = {0:d}'.format(
+        num_training_examples
+    ))
 
     if num_training_examples > MAX_NUM_TRAINING_EXAMPLES:
         print((
@@ -1946,6 +1645,14 @@ def read_model(hdf5_file_name):
     if u_net_plusplus_architecture_dict is not None:
         import u_net_pp_architecture
 
+        if (
+                u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
+                not in u_net_plusplus_architecture_dict
+        ):
+            u_net_plusplus_architecture_dict[
+                u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
+            ] = u_net_plusplus_architecture_dict['num_output_channels']
+
         for this_key in [
                 u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
                 u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
@@ -2019,7 +1726,6 @@ def read_metafile(dill_file_name):
     metadata_dict['training_option_dict']: Same.
     metadata_dict['num_validation_batches_per_epoch']: Same.
     metadata_dict['validation_option_dict']: Same.
-    metadata_dict['net_type_string']: Same.
     metadata_dict['loss_function_or_dict']: Same.
     metadata_dict['bnn_architecture_dict']: Same.
     metadata_dict['u_net_plusplus_architecture_dict']: Same.
@@ -2055,6 +1761,14 @@ def read_metafile(dill_file_name):
         v[SCALAR_TARGET_MIN_VALUE_KEY] = target_min_norm_value
         v[SCALAR_TARGET_MAX_VALUE_KEY] = target_max_norm_value
 
+    if TARGET_WAVELENGTHS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[TARGET_WAVELENGTHS_KEY] = numpy.array([
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+        ])
+        v[TARGET_WAVELENGTHS_KEY] = numpy.array([
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+        ])
+
     if UNIFORMIZE_FLAG_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         t[UNIFORMIZE_FLAG_KEY] = True
         v[UNIFORMIZE_FLAG_KEY] = True
@@ -2066,10 +1780,6 @@ def read_metafile(dill_file_name):
     if NUM_DEEP_SUPER_LAYERS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         t[NUM_DEEP_SUPER_LAYERS_KEY] = 0
         v[NUM_DEEP_SUPER_LAYERS_KEY] = 0
-
-    if MULTIPLY_PREDS_BY_THICKNESS_KEY not in t:
-        t[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
-        v[MULTIPLY_PREDS_BY_THICKNESS_KEY] = False
 
     metadata_dict[TRAINING_OPTIONS_KEY] = t
     metadata_dict[VALIDATION_OPTIONS_KEY] = v
@@ -2121,12 +1831,13 @@ def read_metafile(dill_file_name):
 
 
 def apply_model(
-        model_object, predictor_matrix, num_examples_per_batch, net_type_string,
+        model_object, predictor_matrix, num_examples_per_batch,
         use_dropout=False, verbose=False):
     """Applies trained neural net (of any kind) to new data.
 
     E = number of examples
     H = number of heights
+    W = number of wavelengths
     T_v = number of vector target variables (channels)
     T_s = number of scalar target variables
     S = ensemble size
@@ -2135,22 +1846,19 @@ def apply_model(
         `keras.models.Sequential`).
     :param predictor_matrix: See output doc for `data_generator`.
     :param num_examples_per_batch: Batch size.
-    :param net_type_string: Type of neural net (must be accepted by
-        `check_net_type`).
     :param use_dropout: Boolean flag.  If True, will keep dropout in all layers
         turned on.  Using dropout at inference time is called "Monte Carlo
         dropout".
     :param verbose: Boolean flag.  If True, will print progress messages.
 
     :return: prediction_list: See below.
-    prediction_list[0] = vector_prediction_matrix: numpy array (E x H x T_v x S)
+    prediction_list[0] = vector_prediction_matrix: numpy array
+        (E x H x W x T_v x S) of predicted values.
+    prediction_list[1] = scalar_prediction_matrix: numpy array (E x W x T_s x S)
         of predicted values.
-    prediction_list[1] = scalar_prediction_matrix: numpy array (E x T_s x S) of
-        predicted values.
     """
 
-    check_net_type(net_type_string)
-
+    # Check input args.
     num_examples_per_batch = _check_inference_args(
         predictor_matrix=predictor_matrix,
         num_examples_per_batch=num_examples_per_batch, verbose=verbose
@@ -2165,6 +1873,7 @@ def apply_model(
                 ))
                 layer_object.trainable = False
 
+    # Do actual stuff.
     vector_prediction_matrix = None
     scalar_prediction_matrix = None
     num_examples = predictor_matrix.shape[0]
@@ -2180,10 +1889,7 @@ def apply_model(
         )
 
         if verbose:
-            print((
-                'Applying {0:s} to examples {1:d}-{2:d} of {3:d}...'
-            ).format(
-                net_type_string.upper(),
+            print('Applying NN to examples {0:d}-{1:d} of {2:d}...'.format(
                 this_first_index + 1, this_last_index + 1, num_examples
             ))
 
@@ -2204,11 +1910,21 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
+        # Add ensemble dimension if necessary.
         if len(this_output[0].shape) == 3:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
 
+        # Add wavelength dimension if necessary.
+        if len(this_output[0].shape) == 4:
+            this_output[0] = numpy.expand_dims(this_output[0], axis=-3)
+
+        # Add ensemble dimension if necessary.
         if len(this_output) > 1 and len(this_output[1].shape) == 2:
             this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
+
+        # Add wavelength dimension if necessary.
+        if len(this_output) > 1 and len(this_output[1].shape) == 3:
+            this_output[1] = numpy.expand_dims(this_output[1], axis=-3)
 
         if vector_prediction_matrix is None:
             vector_prediction_matrix = this_output[0] + 0.
@@ -2226,79 +1942,14 @@ def apply_model(
                 )
 
     if verbose:
-        print('Have applied {0:s} to all {1:d} examples!'.format(
-            net_type_string.upper(), num_examples
-        ))
+        print('Have applied NN to all {0:d} examples!'.format(num_examples))
 
     if scalar_prediction_matrix is None:
-        dimensions = (
-            vector_prediction_matrix.shape[0],
-            0,
-            vector_prediction_matrix.shape[-1]
+        num_examples = vector_prediction_matrix.shape[0]
+        num_wavelengths = vector_prediction_matrix.shape[2]
+        ensemble_size = vector_prediction_matrix.shape[4]
+        scalar_prediction_matrix = numpy.full(
+            (num_examples, num_wavelengths, 0, ensemble_size), 0.
         )
-
-        scalar_prediction_matrix = numpy.full(dimensions, 0.)
 
     return [vector_prediction_matrix, scalar_prediction_matrix]
-
-
-def get_feature_maps(
-        model_object, predictor_matrix, num_examples_per_batch,
-        feature_layer_name, verbose=False):
-    """Uses trained neural net (of any kind) to create feature maps.
-
-    :param model_object: See doc for `apply_model`.
-    :param predictor_matrix: Same.
-    :param num_examples_per_batch: Same.
-    :param feature_layer_name: Feature maps will be returned for this layer.
-    :param verbose: See doc for `apply_model`.
-    :return: feature_matrix: numpy array of feature maps.
-    """
-
-    num_examples_per_batch = _check_inference_args(
-        predictor_matrix=predictor_matrix,
-        num_examples_per_batch=num_examples_per_batch, verbose=verbose
-    )
-
-    partial_model_object = cnn.model_to_feature_generator(
-        model_object=model_object, feature_layer_name=feature_layer_name
-    )
-
-    feature_matrix = None
-    num_examples = predictor_matrix.shape[0]
-
-    for i in range(0, num_examples, num_examples_per_batch):
-        this_first_index = i
-        this_last_index = min(
-            [i + num_examples_per_batch - 1, num_examples - 1]
-        )
-
-        these_indices = numpy.linspace(
-            this_first_index, this_last_index,
-            num=this_last_index - this_first_index + 1, dtype=int
-        )
-
-        if verbose:
-            print((
-                'Creating feature maps for examples {0:d}-{1:d} of {2:d}...'
-            ).format(
-                this_first_index + 1, this_last_index + 1, num_examples
-            ))
-
-        this_feature_matrix = partial_model_object.predict(
-            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
-        )
-
-        if feature_matrix is None:
-            feature_matrix = this_feature_matrix + 0.
-        else:
-            feature_matrix = numpy.concatenate(
-                (feature_matrix, this_feature_matrix), axis=0
-            )
-
-    if verbose:
-        print('Have created feature maps for all {0:d} examples!'.format(
-            num_examples
-        ))
-
-    return feature_matrix

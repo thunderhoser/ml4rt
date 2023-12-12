@@ -23,6 +23,8 @@ import make_saliency_maps
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
+METRES_TO_MICRONS = 1e6
+
 BLACK_COLOUR = numpy.full(3, 0.)
 ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
@@ -126,6 +128,7 @@ EXAMPLE_ID_FILE_ARG_NAME = make_saliency_maps.EXAMPLE_ID_FILE_ARG_NAME
 USE_LOG_SCALE_ARG_NAME = 'use_log_scale'
 MODEL_FILE_ARG_NAME = 'model_file_name'
 PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
+WAVELENGTHS_ARG_NAME = 'target_wavelengths_metres'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 EXAMPLE_FILE_HELP_STRING = make_saliency_maps.EXAMPLE_FILE_HELP_STRING
@@ -143,6 +146,9 @@ MODEL_FILE_HELP_STRING = (
 )
 PLOT_SHORTWAVE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot shortwave (longwave) variables.'
+)
+WAVELENGTHS_HELP_STRING = (
+    'List of target wavelengths.  Will create one set of plots for each.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory (figures will be saved here).'
@@ -178,6 +184,11 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -185,13 +196,14 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_one_example(
         example_dict, example_index, use_log_scale, plot_shortwave,
-        output_dir_name):
+        target_wavelengths_metres, output_dir_name):
     """Plots data for one example.
 
     :param example_dict: See doc for `example_io.read_file`.
     :param example_index: Will plot results for example with this array index.
     :param use_log_scale: See documentation at top of file.
     :param plot_shortwave: Same.
+    :param target_wavelengths_metres: Same.
     :param output_dir_name: Name of output directory.  Figures will be saved
         here.
     """
@@ -244,24 +256,29 @@ def _plot_one_example(
         )
         pyplot.close(figure_object)
 
-    handle_dict = profile_plotting.plot_targets(
-        example_dict=example_dict, example_index=example_index,
-        for_shortwave=plot_shortwave, use_log_scale=use_log_scale,
-        line_width=LINE_WIDTH, line_style='solid'
-    )
-    figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    for this_wavelength_metres in target_wavelengths_metres:
+        handle_dict = profile_plotting.plot_targets(
+            example_dict=example_dict, example_index=example_index,
+            for_shortwave=plot_shortwave,
+            wavelength_metres=this_wavelength_metres,
+            use_log_scale=use_log_scale,
+            line_width=LINE_WIDTH, line_style='solid'
+        )
+        figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 
-    this_file_name = '{0:s}/{1:s}_targets.jpg'.format(
-        output_dir_name, example_id_string.replace('_', '-')
-    )
-    panel_file_names.append(this_file_name)
+        this_file_name = '{0:s}/{1:s}_targets_{2:.2f}microns.jpg'.format(
+            output_dir_name,
+            example_id_string.replace('_', '-'),
+            METRES_TO_MICRONS * this_wavelength_metres
+        )
+        panel_file_names.append(this_file_name)
 
-    print('Saving figure to: "{0:s}"...'.format(this_file_name))
-    figure_object.savefig(
-        this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
-        bbox_inches='tight'
-    )
-    pyplot.close(figure_object)
+        print('Saving figure to: "{0:s}"...'.format(this_file_name))
+        figure_object.savefig(
+            this_file_name, dpi=FIGURE_RESOLUTION_DPI, pad_inches=0,
+            bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
 
     num_panels = len(panel_file_names)
     num_panel_rows = int(numpy.floor(
@@ -290,7 +307,7 @@ def _plot_one_example(
 
 def _run(example_file_name, num_examples, example_dir_name,
          example_id_file_name, use_log_scale, model_file_name, plot_shortwave,
-         output_dir_name):
+         target_wavelengths_metres, output_dir_name):
     """Plots profiles (vector predictor and target variables) for each example.
 
     This is effectively the main method.
@@ -302,6 +319,7 @@ def _run(example_file_name, num_examples, example_dir_name,
     :param use_log_scale: Same.
     :param model_file_name: Same.
     :param plot_shortwave: Same.
+    :param target_wavelengths_metres: Same.
     :param output_dir_name: Same.
     """
 
@@ -353,13 +371,20 @@ def _run(example_file_name, num_examples, example_dir_name,
             example_dict=example_dict,
             heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY]
         )
+        example_dict = example_utils.subset_by_wavelength(
+            example_dict=example_dict,
+            target_wavelengths_metres=
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY]
+        )
 
     num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
 
     for i in range(num_examples):
         _plot_one_example(
             example_dict=example_dict, example_index=i,
-            use_log_scale=use_log_scale, plot_shortwave=plot_shortwave,
+            use_log_scale=use_log_scale,
+            plot_shortwave=plot_shortwave,
+            target_wavelengths_metres=target_wavelengths_metres,
             output_dir_name=output_dir_name
         )
 
@@ -379,5 +404,8 @@ if __name__ == '__main__':
         use_log_scale=bool(getattr(INPUT_ARG_OBJECT, USE_LOG_SCALE_ARG_NAME)),
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
+        target_wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

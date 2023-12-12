@@ -16,17 +16,11 @@ import isotonic_regression
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 INPUT_FILES_ARG_NAME = 'input_prediction_file_names'
-SEPARATE_BY_HEIGHT_ARG_NAME = 'separate_by_height'
 OUTPUT_DIR_ARG_NAME = 'output_model_dir_name'
 
 INPUT_FILES_HELP_STRING = (
     'Paths to input files, each containing model predictions without isotonic '
     'regression.  Will be read by `prediction_io.read_file`.'
-)
-SEPARATE_BY_HEIGHT_HELP_STRING = (
-    'Boolean flag.  If 1, will train one isotonic-regression model for each '
-    'pair of target variable and height  If 0, will train just one model for '
-    'each target variable.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Isotonic-regression models will be written here'
@@ -40,22 +34,17 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + SEPARATE_BY_HEIGHT_ARG_NAME, type=int, required=False, default=1,
-    help=SEPARATE_BY_HEIGHT_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _run(prediction_file_names, separate_by_height, output_dir_name):
+def _run(prediction_file_names, output_dir_name):
     """Trains isotonic-regression model.
 
     This is effectively the main method.
 
     :param prediction_file_names: See documentation at top of file.
-    :param separate_by_height: Same.
     :param output_dir_name: Same.
     :raises: ValueError: if predictions in `prediction_file_names` were made
         with isotonic regression.
@@ -96,53 +85,42 @@ def _run(prediction_file_names, separate_by_height, output_dir_name):
         else prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
     )
 
-    separate_by_height = separate_by_height and vector_target_matrix is not None
-
     print(SEPARATOR_STRING)
 
-    if separate_by_height:
+    # Training for one height/wavelength per method call, to avoid out-of-memory
+    # errors.
+    num_heights = vector_target_matrix.shape[-3]
+    num_wavelengths = vector_target_matrix.shape[-2]
+    num_vector_targets = vector_target_matrix.shape[-1]
+    vector_model_object_matrix = numpy.full(
+        (num_heights, num_wavelengths, num_vector_targets), '', dtype=object
+    )
 
-        # TODO(thunderhoser): Doing this to avoid out-of-memory errors.
-        num_heights = vector_target_matrix.shape[-2]
-        num_vector_targets = vector_target_matrix.shape[-1]
-        vector_model_object_matrix = numpy.full(
-            (num_heights, num_vector_targets), '', dtype=object
-        )
-
-        for k in range(num_heights):
-            if k == 0:
-                scalar_model_objects, this_matrix = (
+    for h in range(num_heights):
+        for w in range(num_wavelengths):
+            if h == w == 0:
+                scalar_model_object_matrix, this_matrix = (
                     isotonic_regression.train_models(
                         orig_vector_prediction_matrix=
-                        orig_vector_prediction_matrix[:, [k], ...],
+                        orig_vector_prediction_matrix[:, [h], ...][:, :, [w], ...],
                         orig_scalar_prediction_matrix=
                         orig_scalar_prediction_matrix,
-                        vector_target_matrix=vector_target_matrix[:, [k], :],
-                        scalar_target_matrix=scalar_target_matrix,
-                        separate_by_height=separate_by_height
+                        vector_target_matrix=
+                        vector_target_matrix[:, [h], ...][:, :, [w], ...],
+                        scalar_target_matrix=scalar_target_matrix
                     )
                 )
             else:
                 _, this_matrix = isotonic_regression.train_models(
                     orig_vector_prediction_matrix=
-                    orig_vector_prediction_matrix[:, [k], ...],
+                    orig_vector_prediction_matrix[:, [h], ...][:, :, [w], ...],
                     orig_scalar_prediction_matrix=None,
-                    vector_target_matrix=vector_target_matrix[:, [k], :],
-                    scalar_target_matrix=None,
-                    separate_by_height=separate_by_height
+                    vector_target_matrix=
+                    vector_target_matrix[:, [h], ...][:, :, [w], ...],
+                    scalar_target_matrix=None
                 )
 
-            vector_model_object_matrix[k, :] = this_matrix[0, :]
-    else:
-        scalar_model_objects, vector_model_object_matrix = (
-            isotonic_regression.train_models(
-                orig_vector_prediction_matrix=orig_vector_prediction_matrix,
-                orig_scalar_prediction_matrix=orig_scalar_prediction_matrix,
-                vector_target_matrix=vector_target_matrix,
-                scalar_target_matrix=scalar_target_matrix,
-                separate_by_height=separate_by_height
-            )
-        )
+            vector_model_object_matrix[h, w, :] = this_matrix[0, 0, :]
 
     print(SEPARATOR_STRING)
 
@@ -156,7 +134,7 @@ def _run(prediction_file_names, separate_by_height, output_dir_name):
 
     isotonic_regression.write_file(
         dill_file_name=output_file_name,
-        scalar_model_objects=scalar_model_objects,
+        scalar_model_object_matrix=scalar_model_object_matrix,
         vector_model_object_matrix=vector_model_object_matrix
     )
 
@@ -166,8 +144,5 @@ if __name__ == '__main__':
 
     _run(
         prediction_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
-        separate_by_height=bool(
-            getattr(INPUT_ARG_OBJECT, SEPARATE_BY_HEIGHT_ARG_NAME)
-        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

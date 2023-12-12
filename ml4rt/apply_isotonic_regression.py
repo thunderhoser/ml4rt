@@ -84,7 +84,7 @@ def _run(input_prediction_file_name, model_file_name,
     print('Reading isotonic-regression models from: "{0:s}"...'.format(
         model_file_name
     ))
-    scalar_model_objects, vector_model_object_matrix = (
+    scalar_model_object_matrix, vector_model_object_matrix = (
         isotonic_regression.read_file(model_file_name)
     )
 
@@ -93,7 +93,7 @@ def _run(input_prediction_file_name, model_file_name,
         isotonic_regression.apply_models(
             orig_vector_prediction_matrix=orig_vector_prediction_matrix,
             orig_scalar_prediction_matrix=orig_scalar_prediction_matrix,
-            scalar_model_objects=scalar_model_objects,
+            scalar_model_object_matrix=scalar_model_object_matrix,
             vector_model_object_matrix=vector_model_object_matrix
         )
     )
@@ -120,8 +120,8 @@ def _run(input_prediction_file_name, model_file_name,
         except ValueError:
             continue
 
-        new_vector_prediction_matrix[:, -1, k] = 0.
-        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, k] = 0.
+        new_vector_prediction_matrix[:, -1, :, k, ...] = 0.
+        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, :, k, ...] = 0.
 
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name
@@ -133,6 +133,8 @@ def _run(input_prediction_file_name, model_file_name,
         scalar_prediction_matrix=new_scalar_prediction_matrix,
         vector_prediction_matrix=new_vector_prediction_matrix,
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
         isotonic_model_file_name=model_file_name,

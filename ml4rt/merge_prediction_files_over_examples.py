@@ -93,6 +93,8 @@ def _run(input_file_names, take_ensemble_mean, output_file_name):
         vector_prediction_matrix=
         prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=prediction_dict[prediction_io.MODEL_FILE_KEY],
         isotonic_model_file_name=

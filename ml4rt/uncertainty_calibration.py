@@ -20,6 +20,7 @@ import example_utils
 import neural_net
 
 TOLERANCE = 1e-6
+METRES_TO_MICRONS = 1e6
 
 SCALAR_BIN_EDGE_KEY = 'scalar_bin_edge_prediction_stdev'
 SCALAR_STDEV_INFLATION_KEY = 'scalar_stdev_inflation_factor'
@@ -31,6 +32,7 @@ BIN_EDGE_DIM = 'bin_edge'
 SCALAR_FIELD_DIM = uq_evaluation.SCALAR_FIELD_DIM
 VECTOR_FIELD_DIM = uq_evaluation.VECTOR_FIELD_DIM
 HEIGHT_DIM = uq_evaluation.HEIGHT_DIM
+WAVELENGTH_DIM = uq_evaluation.WAVELENGTH_DIM
 
 MODEL_FILE_KEY = uq_evaluation.MODEL_FILE_KEY
 PREDICTION_FILE_KEY = uq_evaluation.PREDICTION_FILE_KEY
@@ -155,6 +157,7 @@ def train_models_all_vars(
     T_v = number of vector target variables
     T_s = number of scalar target variables
     H = number of heights
+    W = number of wavelengths
     B = number of spread bins
 
     :param prediction_file_name: Path to input file (will be read by
@@ -191,6 +194,7 @@ def train_models_all_vars(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
 
     scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
     scalar_prediction_matrix = (
@@ -204,13 +208,16 @@ def train_models_all_vars(
     del prediction_dict
 
     num_heights = vector_target_matrix.shape[1]
-    num_vector_targets = vector_target_matrix.shape[2]
-    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_wavelengths = vector_target_matrix.shape[2]
+    num_vector_targets = vector_target_matrix.shape[3]
+    num_scalar_targets = scalar_target_matrix.shape[2]
 
-    these_dim_no_edge = (num_scalar_targets, num_spread_bins)
-    these_dim_keys_no_edge = (SCALAR_FIELD_DIM, BIN_DIM)
-    these_dim_with_edge = (num_scalar_targets, num_spread_bins + 1)
-    these_dim_keys_with_edge = (SCALAR_FIELD_DIM, BIN_EDGE_DIM)
+    these_dim_no_edge = (num_scalar_targets, num_wavelengths, num_spread_bins)
+    these_dim_keys_no_edge = (SCALAR_FIELD_DIM, WAVELENGTH_DIM, BIN_DIM)
+    these_dim_with_edge = (
+        num_scalar_targets, num_wavelengths, num_spread_bins + 1
+    )
+    these_dim_keys_with_edge = (SCALAR_FIELD_DIM, WAVELENGTH_DIM, BIN_EDGE_DIM)
 
     main_data_dict = {
         SCALAR_BIN_EDGE_KEY: (
@@ -221,10 +228,18 @@ def train_models_all_vars(
         )
     }
 
-    these_dim_no_edge = (num_vector_targets, num_heights, num_spread_bins)
-    these_dim_keys_no_edge = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_DIM)
-    these_dim_with_edge = (num_vector_targets, num_heights, num_spread_bins + 1)
-    these_dim_keys_with_edge = (VECTOR_FIELD_DIM, HEIGHT_DIM, BIN_EDGE_DIM)
+    these_dim_no_edge = (
+        num_vector_targets, num_heights, num_wavelengths, num_spread_bins
+    )
+    these_dim_keys_no_edge = (
+        VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM, BIN_DIM
+    )
+    these_dim_with_edge = (
+        num_vector_targets, num_heights, num_wavelengths, num_spread_bins + 1
+    )
+    these_dim_keys_with_edge = (
+        VECTOR_FIELD_DIM, HEIGHT_DIM, WAVELENGTH_DIM, BIN_EDGE_DIM
+    )
 
     main_data_dict.update({
         VECTOR_BIN_EDGE_KEY: (
@@ -238,9 +253,10 @@ def train_models_all_vars(
     metadata_dict = {
         SCALAR_FIELD_DIM:
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY],
-        HEIGHT_DIM: heights_m_agl,
         VECTOR_FIELD_DIM:
             generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY],
+        HEIGHT_DIM: heights_m_agl,
+        WAVELENGTH_DIM: wavelengths_metres,
         BIN_DIM: numpy.linspace(
             0, num_spread_bins - 1, num=num_spread_bins, dtype=int
         )
@@ -251,47 +267,20 @@ def train_models_all_vars(
     )
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILE_KEY] = prediction_file_name
-    t = result_table_xarray
+    rtx = result_table_xarray
 
-    for k in range(num_scalar_targets):
-        print('Training uncertainty calibration for {0:s}...'.format(
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY][k]
-        ))
-
-        these_stdevs = numpy.std(
-            scalar_prediction_matrix[:, k, :], ddof=1, axis=-1
-        )
-        these_bin_edges = numpy.linspace(
-            numpy.percentile(these_stdevs, min_spread_percentile),
-            numpy.percentile(these_stdevs, max_spread_percentile),
-            num=num_spread_bins + 1, dtype=float
-        )[1:-1]
-
-        these_fudge_factors = TOLERANCE * numpy.linspace(
-            1, len(these_bin_edges), num=len(these_bin_edges), dtype=float
-        )
-        these_bin_edges = these_bin_edges + these_fudge_factors
-
-        (
-            t[SCALAR_BIN_EDGE_KEY].values[k, :],
-            t[SCALAR_STDEV_INFLATION_KEY].values[k, :]
-        ) = _train_model_one_variable(
-            target_values=scalar_target_matrix[:, k],
-            prediction_matrix=scalar_prediction_matrix[:, k, :],
-            bin_edge_prediction_stdevs=these_bin_edges
-        )
-
-    for k in range(num_vector_targets):
-        for j in range(num_heights):
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
             print((
-                'Training uncertainty calibration for {0:s} at {1:d} m AGL...'
+                'Training uncertainty calibration for {0:s} at {1:.2f} '
+                'microns...'
             ).format(
-                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY][k],
-                int(numpy.round(heights_m_agl[j]))
+                generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY][t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             ))
 
             these_stdevs = numpy.std(
-                vector_prediction_matrix[:, j, k, :], ddof=1, axis=-1
+                scalar_prediction_matrix[:, w, t, :], ddof=1, axis=-1
             )
             these_bin_edges = numpy.linspace(
                 numpy.percentile(these_stdevs, min_spread_percentile),
@@ -305,15 +294,50 @@ def train_models_all_vars(
             these_bin_edges = these_bin_edges + these_fudge_factors
 
             (
-                t[VECTOR_BIN_EDGE_KEY].values[k, j, :],
-                t[VECTOR_STDEV_INFLATION_KEY].values[k, j, :]
+                rtx[SCALAR_BIN_EDGE_KEY].values[t, w, :],
+                rtx[SCALAR_STDEV_INFLATION_KEY].values[t, w, :]
             ) = _train_model_one_variable(
-                target_values=vector_target_matrix[:, j, k],
-                prediction_matrix=vector_prediction_matrix[:, j, k, :],
+                target_values=scalar_target_matrix[:, w, t],
+                prediction_matrix=scalar_prediction_matrix[:, w, t, :],
                 bin_edge_prediction_stdevs=these_bin_edges
             )
 
-    result_table_xarray = t
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            for h in range(num_heights):
+                print((
+                    'Training uncertainty calibration for {0:s} at {1:.2f} '
+                    'microns and {2:d} m AGL...'
+                ).format(
+                    generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY][t],
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    int(numpy.round(heights_m_agl[h]))
+                ))
+
+                these_stdevs = numpy.std(
+                    vector_prediction_matrix[:, h, w, t, :], ddof=1, axis=-1
+                )
+                these_bin_edges = numpy.linspace(
+                    numpy.percentile(these_stdevs, min_spread_percentile),
+                    numpy.percentile(these_stdevs, max_spread_percentile),
+                    num=num_spread_bins + 1, dtype=float
+                )[1:-1]
+
+                these_fudge_factors = TOLERANCE * numpy.linspace(
+                    1, len(these_bin_edges), num=len(these_bin_edges), dtype=float
+                )
+                these_bin_edges = these_bin_edges + these_fudge_factors
+
+                (
+                    rtx[VECTOR_BIN_EDGE_KEY].values[t, h, w, :],
+                    rtx[VECTOR_STDEV_INFLATION_KEY].values[t, h, w, :]
+                ) = _train_model_one_variable(
+                    target_values=vector_target_matrix[:, h, w, t],
+                    prediction_matrix=vector_prediction_matrix[:, h, w, t, :],
+                    bin_edge_prediction_stdevs=these_bin_edges
+                )
+
+    result_table_xarray = rtx
     return result_table_xarray
 
 
@@ -343,6 +367,7 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
     heights_m_agl = prediction_dict[prediction_io.HEIGHTS_KEY]
+    wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
     scalar_target_names = (
         generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     )
@@ -351,75 +376,93 @@ def apply_models_all_vars(prediction_file_name, uncertainty_calib_table_xarray):
     )
 
     uct = uncertainty_calib_table_xarray
-    pd = prediction_dict
+    pdict = prediction_dict
 
-    for k in range(len(scalar_target_names)):
-        print('Applying uncertainty calibration for {0:s}...'.format(
-            scalar_target_names[k]
-        ))
-
-        var_idx = uct.coords[SCALAR_FIELD_DIM].values.tolist().index(
-            scalar_target_names[k]
+    for t in range(len(scalar_target_names)):
+        t_idx = uct.coords[SCALAR_FIELD_DIM].values.tolist().index(
+            scalar_target_names[t]
         )
 
-        pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :] = (
-            _apply_model_one_variable(
-                prediction_matrix=
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :],
-                bin_edge_prediction_stdevs=
-                uct[SCALAR_BIN_EDGE_KEY].values[var_idx, :],
-                stdev_inflation_factors=
-                uct[SCALAR_STDEV_INFLATION_KEY].values[var_idx, :]
-            )
-        )
-
-        pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :] = numpy.maximum(
-            pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, k, :],
-            0.
-        )
-
-    for k in range(len(vector_target_names)):
-        for j in range(len(heights_m_agl)):
+        for w in range(len(wavelengths_metres)):
             print((
-                'Applying uncertainty calibration for {0:s} at {1:d} m AGL...'
+                'Applying uncertainty calibration for {0:s} at {1:.2f} '
+                'microns...'
             ).format(
-                vector_target_names[k],
-                int(numpy.round(heights_m_agl[j]))
+                scalar_target_names[t],
+                METRES_TO_MICRONS * wavelengths_metres[w]
             ))
 
-            var_idx = uct.coords[VECTOR_FIELD_DIM].values.tolist().index(
-                vector_target_names[k]
+            w_idx = example_utils.match_wavelengths(
+                wavelengths_metres=uct.coords[WAVELENGTH_DIM].values,
+                desired_wavelength_metres=wavelengths_metres[w]
             )
-            hgt_idx = numpy.where(
-                numpy.absolute(uct.coords[HEIGHT_DIM].values - heights_m_agl[j])
-                < TOLERANCE
-            )[0][0]
 
-            pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :] = (
+            pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w, t, :] = (
                 _apply_model_one_variable(
                     prediction_matrix=
-                    pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :],
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w, t, :],
                     bin_edge_prediction_stdevs=
-                    uct[VECTOR_BIN_EDGE_KEY].values[var_idx, hgt_idx, :],
+                    uct[SCALAR_BIN_EDGE_KEY].values[t_idx, w_idx, :],
                     stdev_inflation_factors=
-                    uct[VECTOR_STDEV_INFLATION_KEY].values[var_idx, hgt_idx, :]
+                    uct[SCALAR_STDEV_INFLATION_KEY].values[t_idx, w_idx, :]
                 )
             )
 
-            if (
-                    vector_target_names[k] ==
-                    example_utils.LONGWAVE_HEATING_RATE_NAME
-            ):
-                continue
-
-            pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :] = (
+            pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w, t, :] = (
                 numpy.maximum(
-                    pd[prediction_io.VECTOR_PREDICTIONS_KEY][:, j, k, :],
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w, t, :],
                     0.
                 )
             )
 
-    prediction_dict = pd
+    for t in range(len(vector_target_names)):
+        t_idx = uct.coords[SCALAR_FIELD_DIM].values.tolist().index(
+            scalar_target_names[t]
+        )
+
+        for w in range(len(wavelengths_metres)):
+            w_idx = example_utils.match_wavelengths(
+                wavelengths_metres=uct.coords[WAVELENGTH_DIM].values,
+                desired_wavelength_metres=wavelengths_metres[w]
+            )
+
+            for h in range(len(heights_m_agl)):
+                print((
+                    'Applying uncertainty calibration for {0:s} at {1:.2f} '
+                    'microns and {2:d} m AGL...'
+                ).format(
+                    vector_target_names[t],
+                    METRES_TO_MICRONS * wavelengths_metres[w],
+                    int(numpy.round(heights_m_agl[h]))
+                ))
+
+                h_idx = example_utils.match_heights(
+                    heights_m_agl=uct.coords[HEIGHT_DIM].values,
+                    desired_height_m_agl=heights_m_agl[h]
+                )
+
+                pdict[prediction_io.VECTOR_PREDICTIONS_KEY][:, h, w, t, :] = (
+                    _apply_model_one_variable(
+                        prediction_matrix=
+                        pdict[prediction_io.VECTOR_PREDICTIONS_KEY][:, h, w, t, :],
+                        bin_edge_prediction_stdevs=
+                        uct[VECTOR_BIN_EDGE_KEY].values[t_idx, h_idx, w_idx, :],
+                        stdev_inflation_factors=
+                        uct[VECTOR_STDEV_INFLATION_KEY].values[t_idx, h_idx, w_idx, :]
+                    )
+                )
+
+        if (
+                vector_target_names[t] ==
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+        ):
+            continue
+
+        pdict[prediction_io.VECTOR_PREDICTIONS_KEY][..., t, :] = numpy.maximum(
+            pdict[prediction_io.VECTOR_PREDICTIONS_KEY][..., t, :], 0.
+        )
+
+    prediction_dict = pdict
     return prediction_dict
 
 
@@ -446,4 +489,6 @@ def read_results(netcdf_file_name):
         xarray table should make values self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    return uq_evaluation.add_wavelength_dim_to_table(
+        xarray.open_dataset(netcdf_file_name)
+    )

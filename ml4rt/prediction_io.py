@@ -20,9 +20,11 @@ import example_utils
 import neural_net
 
 TOLERANCE = 1e-6
+METRES_TO_MICRONS = 1e6
 
 EXAMPLE_DIMENSION_KEY = 'example'
 HEIGHT_DIMENSION_KEY = 'height'
+TARGET_WAVELENGTH_DIMENSION_KEY = 'target_wavelength'
 VECTOR_TARGET_DIMENSION_KEY = 'vector_target'
 SCALAR_TARGET_DIMENSION_KEY = 'scalar_target'
 ENSEMBLE_MEMBER_DIM_KEY = 'ensemble_member'
@@ -37,6 +39,7 @@ SCALAR_PREDICTIONS_KEY = 'scalar_prediction_matrix'
 VECTOR_TARGETS_KEY = 'vector_target_matrix'
 VECTOR_PREDICTIONS_KEY = 'vector_prediction_matrix'
 HEIGHTS_KEY = 'heights_m_agl'
+TARGET_WAVELENGTHS_KEY = 'target_wavelengths_metres'
 EXAMPLE_IDS_KEY = 'example_id_strings'
 
 ONE_PER_EXAMPLE_KEYS = [
@@ -273,7 +276,8 @@ def file_name_to_metadata(prediction_file_name):
 def write_file(
         netcdf_file_name, scalar_target_matrix, vector_target_matrix,
         scalar_prediction_matrix, vector_prediction_matrix, heights_m_agl,
-        example_id_strings, model_file_name, isotonic_model_file_name,
+        target_wavelengths_metres, example_id_strings,
+        model_file_name, isotonic_model_file_name,
         uncertainty_calib_model_file_name, normalization_file_name):
     """Writes predictions to NetCDF file.
 
@@ -282,18 +286,20 @@ def write_file(
     T_s = number of scalar targets
     T_v = number of vector targets
     S = number of ensemble members
+    W = number of target wavelengths
 
     :param netcdf_file_name: Path to output file.
-    :param scalar_target_matrix: numpy array (E x T_s) with actual values of
+    :param scalar_target_matrix: numpy array (E x W x T_s) with actual values of
         scalar targets.
-    :param vector_target_matrix: numpy array (E x H x T_v) with actual values of
-        vector targets.
-    :param scalar_prediction_matrix: numpy array (E x T_s x S) with predicted
-        values of scalar targets.
-    :param vector_prediction_matrix: numpy array (E x H x T_v x S) with
+    :param vector_target_matrix: numpy array (E x H x W x T_v) with actual
+        values of vector targets.
+    :param scalar_prediction_matrix: numpy array (E x W x T_s x S) with
+        predicted values of scalar targets.
+    :param vector_prediction_matrix: numpy array (E x H x W x T_v x S) with
         predicted values of vector targets.
     :param heights_m_agl: length-H numpy array of heights (metres above ground
         level).
+    :param target_wavelengths_metres: length-W numpy array of wavelengths.
     :param example_id_strings: length-E list of IDs created by
         `example_utils.create_example_ids`.
     :param model_file_name: Path to file with trained model (readable by
@@ -314,10 +320,10 @@ def write_file(
 
     # Check input args.
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
-    error_checking.assert_is_numpy_array(scalar_target_matrix, num_dimensions=2)
+    error_checking.assert_is_numpy_array(scalar_target_matrix, num_dimensions=3)
     error_checking.assert_is_numpy_array_without_nan(scalar_prediction_matrix)
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
-    # error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
+    error_checking.assert_is_numpy_array_without_nan(vector_prediction_matrix)
 
     num_ensemble_members = scalar_prediction_matrix.shape[-1]
     these_dim = numpy.array(
@@ -347,6 +353,13 @@ def write_file(
     error_checking.assert_is_numpy_array(
         heights_m_agl,
         exact_dimensions=numpy.array([num_heights], dtype=int)
+    )
+
+    num_wavelengths = vector_target_matrix.shape[2]
+    error_checking.assert_is_greater_numpy_array(target_wavelengths_metres, 0.)
+    error_checking.assert_is_numpy_array(
+        target_wavelengths_metres,
+        exact_dimensions=numpy.array([num_wavelengths], dtype=int)
     )
 
     error_checking.assert_is_numpy_array(
@@ -387,16 +400,19 @@ def write_file(
         HEIGHT_DIMENSION_KEY, vector_target_matrix.shape[1]
     )
     dataset_object.createDimension(
-        VECTOR_TARGET_DIMENSION_KEY, vector_target_matrix.shape[2]
+        TARGET_WAVELENGTH_DIMENSION_KEY, vector_target_matrix.shape[2]
+    )
+    dataset_object.createDimension(
+        VECTOR_TARGET_DIMENSION_KEY, vector_target_matrix.shape[3]
     )
     dataset_object.createDimension(
         ENSEMBLE_MEMBER_DIM_KEY, num_ensemble_members
     )
 
-    num_scalar_targets = scalar_target_matrix.shape[1]
+    num_scalar_targets = scalar_target_matrix.shape[-1]
     if num_scalar_targets > 0:
         dataset_object.createDimension(
-            SCALAR_TARGET_DIMENSION_KEY, scalar_target_matrix.shape[1]
+            SCALAR_TARGET_DIMENSION_KEY, num_scalar_targets
         )
 
     if num_examples == 0:
@@ -426,16 +442,27 @@ def write_file(
     )
     dataset_object.variables[HEIGHTS_KEY][:] = heights_m_agl
 
+    dataset_object.createVariable(
+        TARGET_WAVELENGTHS_KEY, datatype=numpy.float32,
+        dimensions=TARGET_WAVELENGTH_DIMENSION_KEY
+    )
+    dataset_object.variables[TARGET_WAVELENGTHS_KEY][:] = (
+        target_wavelengths_metres
+    )
+
     if num_scalar_targets > 0:
         dataset_object.createVariable(
             SCALAR_TARGETS_KEY, datatype=numpy.float32,
-            dimensions=(EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY)
+            dimensions=(
+                EXAMPLE_DIMENSION_KEY, TARGET_WAVELENGTH_DIMENSION_KEY,
+                SCALAR_TARGET_DIMENSION_KEY
+            )
         )
         dataset_object.variables[SCALAR_TARGETS_KEY][:] = scalar_target_matrix
 
         these_dim = (
-            EXAMPLE_DIMENSION_KEY, SCALAR_TARGET_DIMENSION_KEY,
-            ENSEMBLE_MEMBER_DIM_KEY
+            EXAMPLE_DIMENSION_KEY, TARGET_WAVELENGTH_DIMENSION_KEY,
+            SCALAR_TARGET_DIMENSION_KEY, ENSEMBLE_MEMBER_DIM_KEY
         )
         dataset_object.createVariable(
             SCALAR_PREDICTIONS_KEY, datatype=numpy.float32, dimensions=these_dim
@@ -445,7 +472,8 @@ def write_file(
         )
 
     these_dim = (
-        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY
+        EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
+        TARGET_WAVELENGTH_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY
     )
     dataset_object.createVariable(
         VECTOR_TARGETS_KEY, datatype=numpy.float32, dimensions=these_dim
@@ -454,7 +482,8 @@ def write_file(
 
     these_dim = (
         EXAMPLE_DIMENSION_KEY, HEIGHT_DIMENSION_KEY,
-        VECTOR_TARGET_DIMENSION_KEY, ENSEMBLE_MEMBER_DIM_KEY
+        TARGET_WAVELENGTH_DIMENSION_KEY, VECTOR_TARGET_DIMENSION_KEY,
+        ENSEMBLE_MEMBER_DIM_KEY
     )
     dataset_object.createVariable(
         VECTOR_PREDICTIONS_KEY, datatype=numpy.float32,
@@ -477,6 +506,8 @@ def read_file(netcdf_file_name):
     prediction_dict['vector_target_matrix']: Same.
     prediction_dict['vector_prediction_matrix']: Same.
     prediction_dict['example_id_strings']: Same.
+    prediction_dict['heights_m_agl']: Same.
+    prediction_dict['target_wavelengths_metres']: Same.
     prediction_dict['model_file_name']: Same.
     prediction_dict['isotonic_model_file_name']: Same.
     prediction_dict['uncertainty_calib_model_file_name']: Same.
@@ -497,9 +528,28 @@ def read_file(netcdf_file_name):
         MODEL_FILE_KEY: str(getattr(dataset_object, MODEL_FILE_KEY))
     }
 
+    if TARGET_WAVELENGTHS_KEY in dataset_object.variables:
+        prediction_dict[TARGET_WAVELENGTHS_KEY] = (
+            dataset_object.variables[TARGET_WAVELENGTHS_KEY][:]
+        )
+    else:
+        prediction_dict[TARGET_WAVELENGTHS_KEY] = numpy.array(
+            [example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES]
+        )
+
+    # Add ensemble dimension if necessary.
     if len(prediction_dict[VECTOR_PREDICTIONS_KEY].shape) == 3:
         prediction_dict[VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
             prediction_dict[VECTOR_PREDICTIONS_KEY], axis=-1
+        )
+
+    # Add wavelength dimension if necessary.
+    if len(prediction_dict[VECTOR_PREDICTIONS_KEY].shape) == 4:
+        prediction_dict[VECTOR_PREDICTIONS_KEY] = numpy.expand_dims(
+            prediction_dict[VECTOR_PREDICTIONS_KEY], axis=-2
+        )
+        prediction_dict[VECTOR_TARGETS_KEY] = numpy.expand_dims(
+            prediction_dict[VECTOR_TARGETS_KEY], axis=-2
         )
 
     try:
@@ -548,6 +598,8 @@ def read_file(netcdf_file_name):
             generator_option_dict[neural_net.HEIGHTS_KEY]
         )
 
+    num_target_wavelengths = len(prediction_dict[TARGET_WAVELENGTHS_KEY])
+
     if SCALAR_TARGETS_KEY in dataset_object.variables:
         prediction_dict[SCALAR_TARGETS_KEY] = (
             dataset_object.variables[SCALAR_TARGETS_KEY][:]
@@ -557,14 +609,26 @@ def read_file(netcdf_file_name):
         )
     else:
         num_examples = prediction_dict[VECTOR_TARGETS_KEY].shape[0]
-        prediction_dict[SCALAR_TARGETS_KEY] = numpy.full((num_examples, 0), 0.)
+        prediction_dict[SCALAR_TARGETS_KEY] = numpy.full(
+            (num_examples, num_target_wavelengths, 0), 0.
+        )
         prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.full(
-            (num_examples, 0, 1), 0.
+            (num_examples, num_target_wavelengths, 0, 1), 0.
         )
 
+    # Add ensemble dimension if necessary.
     if len(prediction_dict[SCALAR_PREDICTIONS_KEY].shape) == 2:
         prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.expand_dims(
             prediction_dict[SCALAR_PREDICTIONS_KEY], axis=-1
+        )
+
+    # Add wavelength dimension if necessary.
+    if len(prediction_dict[SCALAR_PREDICTIONS_KEY].shape) == 3:
+        prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.expand_dims(
+            prediction_dict[SCALAR_PREDICTIONS_KEY], axis=-2
+        )
+        prediction_dict[SCALAR_TARGETS_KEY] = numpy.expand_dims(
+            prediction_dict[SCALAR_TARGETS_KEY], axis=-2
         )
 
     dataset_object.close()
@@ -681,6 +745,7 @@ def average_predictions_many_examples(
     H = number of heights
     T_s = number of scalar targets
     T_v = number of vector targets
+    W = number of target wavelengths
 
     :param prediction_dict: See doc for `write_file`.
     :param use_pmm: Boolean flag.  If True, will use probability-matched means
@@ -690,16 +755,18 @@ def average_predictions_many_examples(
         Max percentile level for probability-matched means.
     :param test_mode: Leave this alone.
     :return: mean_prediction_dict: Dictionary with the following keys.
-    mean_prediction_dict['scalar_target_matrix']: numpy array (1 x T_s) with
+    mean_prediction_dict['scalar_target_matrix']: numpy array (1 x W x T_s) with
         mean target (actual) values for scalar variables.
     mean_prediction_dict['scalar_prediction_matrix']: Same but with predicted
         values.
-    mean_prediction_dict['vector_target_matrix']: numpy array (1 x H x T_v) with
-        mean target (actual) values for vector variables.
+    mean_prediction_dict['vector_target_matrix']: numpy array (1 x H x W x T_v)
+        with mean target (actual) values for vector variables.
     mean_prediction_dict['vector_prediction_matrix']: Same but with predicted
         values.
     mean_prediction_dict['heights_m_agl']: length-H numpy array of heights
         (metres above ground level).
+    mean_prediction_dict['target_wavelengths_metres']: length-W numpy array of
+        target wavelengths.
     mean_prediction_dict['model_file_name']: Path to file with trained model
         (readable by `neural_net.read_model`).
     mean_prediction_dict['isotonic_model_file_name']: Path to file with trained
@@ -721,17 +788,10 @@ def average_predictions_many_examples(
     error_checking.assert_is_leq(max_pmm_percentile_level, 100.)
 
     mean_scalar_target_matrix = numpy.mean(
-        prediction_dict[SCALAR_TARGETS_KEY], axis=0
+        prediction_dict[SCALAR_TARGETS_KEY], axis=0, keepdims=True
     )
-    mean_scalar_target_matrix = numpy.expand_dims(
-        mean_scalar_target_matrix, axis=0
-    )
-
     mean_scalar_prediction_matrix = numpy.mean(
-        prediction_dict[SCALAR_PREDICTIONS_KEY], axis=0
-    )
-    mean_scalar_prediction_matrix = numpy.expand_dims(
-        mean_scalar_prediction_matrix, axis=0
+        prediction_dict[SCALAR_PREDICTIONS_KEY], axis=0, keepdims=True
     )
 
     if use_pmm:
@@ -768,6 +828,7 @@ def average_predictions_many_examples(
         VECTOR_TARGETS_KEY: mean_vector_target_matrix,
         VECTOR_PREDICTIONS_KEY: mean_vector_prediction_matrix,
         HEIGHTS_KEY: prediction_dict[HEIGHTS_KEY],
+        TARGET_WAVELENGTHS_KEY: prediction_dict[TARGET_WAVELENGTHS_KEY],
         MODEL_FILE_KEY: prediction_dict[MODEL_FILE_KEY],
         ISOTONIC_MODEL_FILE_KEY: prediction_dict[ISOTONIC_MODEL_FILE_KEY],
         UNCERTAINTY_CALIB_MODEL_FILE_KEY:
@@ -857,14 +918,36 @@ def subset_by_zenith_angle(
 
 
 def subset_by_shortwave_sfc_down_flux(
-        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+        prediction_dict, min_flux_w_m02, max_flux_w_m02,
+        wavelengths_metres=None):
     """Subsets examples by shortwave surface downwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
     :param min_flux_w_m02: Minimum flux.
     :param max_flux_w_m02: Max flux.
+    :param wavelengths_metres: 1-D numpy array of wavelengths over which to sum
+        SW sfc downwelling flux.  If None, will sum over all wavelengths (i.e.,
+        will use broadband flux).
     :return: prediction_dict: Same as input but with fewer examples.
     """
+
+    if wavelengths_metres is None:
+        try:
+            w = example_utils.match_wavelengths(
+                wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=
+                numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
+            )
+            wavelengths_metres = numpy.array([
+                prediction_dict[TARGET_WAVELENGTHS_KEY][w]
+            ])
+        except ValueError:
+            wavelengths_metres = prediction_dict[TARGET_WAVELENGTHS_KEY] + 0.
+
+    wave_inds = example_utils.match_wavelengths(
+        wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelengths_metres
+    )
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
@@ -881,10 +964,13 @@ def subset_by_shortwave_sfc_down_flux(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+    t = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = numpy.sum(
+        prediction_dict[SCALAR_TARGETS_KEY][..., t][:, wave_inds],
+        axis=1
+    )
 
     desired_indices = numpy.where(numpy.logical_and(
         actual_fluxes_w_m02 >= min_flux_w_m02,
@@ -897,14 +983,36 @@ def subset_by_shortwave_sfc_down_flux(
 
 
 def subset_by_longwave_sfc_down_flux(
-        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+        prediction_dict, min_flux_w_m02, max_flux_w_m02,
+        wavelengths_metres=None):
     """Subsets examples by longwave surface downwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
     :param min_flux_w_m02: Minimum flux.
     :param max_flux_w_m02: Max flux.
+    :param wavelengths_metres: 1-D numpy array of wavelengths over which to sum
+        LW sfc downwelling flux.  If None, will sum over all wavelengths (i.e.,
+        will use broadband flux).
     :return: prediction_dict: Same as input but with fewer examples.
     """
+
+    if wavelengths_metres is None:
+        try:
+            w = example_utils.match_wavelengths(
+                wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=
+                numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
+            )
+            wavelengths_metres = numpy.array([
+                prediction_dict[TARGET_WAVELENGTHS_KEY][w]
+            ])
+        except ValueError:
+            wavelengths_metres = prediction_dict[TARGET_WAVELENGTHS_KEY] + 0.
+
+    wave_inds = example_utils.match_wavelengths(
+        wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelengths_metres
+    )
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
@@ -921,10 +1029,13 @@ def subset_by_longwave_sfc_down_flux(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+    t = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = numpy.sum(
+        prediction_dict[SCALAR_TARGETS_KEY][..., t][:, wave_inds],
+        axis=1
+    )
 
     desired_indices = numpy.where(numpy.logical_and(
         actual_fluxes_w_m02 >= min_flux_w_m02,
@@ -937,14 +1048,36 @@ def subset_by_longwave_sfc_down_flux(
 
 
 def subset_by_longwave_toa_up_flux(
-        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+        prediction_dict, min_flux_w_m02, max_flux_w_m02,
+        wavelengths_metres=None):
     """Subsets examples by longwave TOA upwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
     :param min_flux_w_m02: Minimum flux.
     :param max_flux_w_m02: Max flux.
+    :param wavelengths_metres: 1-D numpy array of wavelengths over which to sum
+        LW sfc downwelling flux.  If None, will sum over all wavelengths (i.e.,
+        will use broadband flux).
     :return: prediction_dict: Same as input but with fewer examples.
     """
+
+    if wavelengths_metres is None:
+        try:
+            w = example_utils.match_wavelengths(
+                wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=
+                numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
+            )
+            wavelengths_metres = numpy.array([
+                prediction_dict[TARGET_WAVELENGTHS_KEY][w]
+            ])
+        except ValueError:
+            wavelengths_metres = prediction_dict[TARGET_WAVELENGTHS_KEY] + 0.
+
+    wave_inds = example_utils.match_wavelengths(
+        wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelengths_metres
+    )
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
@@ -961,10 +1094,13 @@ def subset_by_longwave_toa_up_flux(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+    t = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.LONGWAVE_TOA_UP_FLUX_NAME
     )
-    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = numpy.sum(
+        prediction_dict[SCALAR_TARGETS_KEY][..., t][:, wave_inds],
+        axis=1
+    )
 
     desired_indices = numpy.where(numpy.logical_and(
         actual_fluxes_w_m02 >= min_flux_w_m02,
@@ -1083,8 +1219,7 @@ def concat_predictions(prediction_dicts):
     prediction_dict = copy.deepcopy(prediction_dicts[0])
     keys_to_match = [
         MODEL_FILE_KEY, ISOTONIC_MODEL_FILE_KEY,
-        UNCERTAINTY_CALIB_MODEL_FILE_KEY, NORMALIZATION_FILE_KEY,
-        HEIGHTS_KEY
+        UNCERTAINTY_CALIB_MODEL_FILE_KEY, NORMALIZATION_FILE_KEY
     ]
 
     for i in range(1, len(prediction_dicts)):
@@ -1097,16 +1232,31 @@ def concat_predictions(prediction_dicts):
                 '(units are m AGL).  1st dictionary:\n{1:s}\n\n'
                 '{0:d}th dictionary:\n{2:s}'
             ).format(
-                i + 1, str(prediction_dict[HEIGHTS_KEY]),
+                i + 1,
+                str(prediction_dict[HEIGHTS_KEY]),
                 str(prediction_dicts[i][HEIGHTS_KEY])
             )
 
             raise ValueError(error_string)
 
-        for this_key in keys_to_match:
-            if this_key == HEIGHTS_KEY:
-                continue
+        if not numpy.allclose(
+                prediction_dict[TARGET_WAVELENGTHS_KEY],
+                prediction_dicts[i][TARGET_WAVELENGTHS_KEY],
+                atol=TOLERANCE
+        ):
+            error_string = (
+                '1st and {0:d}th dictionaries have different target '
+                'wavelengths (units are microns).  1st dictionary:\n{1:s}\n\n'
+                '{0:d}th dictionary:\n{2:s}'
+            ).format(
+                i + 1,
+                str(METRES_TO_MICRONS * prediction_dict[HEIGHTS_KEY]),
+                str(METRES_TO_MICRONS * prediction_dicts[i][HEIGHTS_KEY])
+            )
 
+            raise ValueError(error_string)
+
+        for this_key in keys_to_match:
             if prediction_dict[this_key] == prediction_dicts[i][this_key]:
                 continue
 

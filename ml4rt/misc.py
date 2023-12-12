@@ -143,7 +143,6 @@ def get_examples_for_inference(
         predictor_matrix, target_array = (
             neural_net.create_data_specific_examples(
                 option_dict=generator_option_dict,
-                net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY],
                 example_id_strings=example_id_strings
             )
         )
@@ -168,8 +167,7 @@ def get_examples_for_inference(
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     predictor_matrix, target_array, example_id_strings = neural_net.create_data(
-        option_dict=generator_option_dict,
-        net_type_string=model_metadata_dict[neural_net.NET_TYPE_KEY]
+        generator_option_dict
     )
 
     num_examples_total = len(example_id_strings)
@@ -360,16 +358,18 @@ def get_raw_examples(
     return example_dict, found_example_flags
 
 
-def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,
+def find_best_and_worst_predictions(bias_matrix_3d, absolute_error_matrix_3d,
                                     num_examples_per_set):
     """Finds best and worst predictions.
 
     E = total number of examples
     H = number of heights
+    W = number of wavelengths
     e = number of examples per set
 
-    :param bias_matrix: E-by-H numpy array of biases (predicted minus actual).
-    :param absolute_error_matrix: E-by-H numpy array of absolute errors.
+    :param bias_matrix_3d: E-by-H-by-W numpy array of biases (predicted minus
+        actual).
+    :param absolute_error_matrix_3d: E-by-H-by-W numpy array of absolute errors.
     :param num_examples_per_set: Number of examples per set.
     :return: high_bias_indices: length-e numpy array with indices of high-bias
         examples.
@@ -379,7 +379,7 @@ def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,
         low-absolute-error examples.
     """
 
-    max_bias_by_example = numpy.max(bias_matrix, axis=1)
+    max_bias_by_example = numpy.max(bias_matrix_3d, axis=(1, 2))
     sort_indices = numpy.argsort(-1 * max_bias_by_example)
     high_bias_indices = sort_indices[:num_examples_per_set]
 
@@ -390,7 +390,7 @@ def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,
 
     print(SEPARATOR_STRING)
 
-    min_bias_by_example = numpy.min(bias_matrix, axis=1)
+    min_bias_by_example = numpy.min(bias_matrix_3d, axis=(1, 2))
     sort_indices = numpy.argsort(min_bias_by_example)
     low_bias_indices = sort_indices[:num_examples_per_set]
 
@@ -401,7 +401,7 @@ def find_best_and_worst_predictions(bias_matrix, absolute_error_matrix,
 
     print(SEPARATOR_STRING)
 
-    max_abs_error_by_example = numpy.max(absolute_error_matrix, axis=1)
+    max_abs_error_by_example = numpy.max(absolute_error_matrix_3d, axis=(1, 2))
     sort_indices = numpy.argsort(max_abs_error_by_example)
     low_abs_error_indices = sort_indices[:num_examples_per_set]
 

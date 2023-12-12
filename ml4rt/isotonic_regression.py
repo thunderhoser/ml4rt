@@ -17,37 +17,36 @@ import error_checking
 
 def train_models(
         orig_vector_prediction_matrix, orig_scalar_prediction_matrix,
-        vector_target_matrix, scalar_target_matrix, separate_by_height=True):
+        vector_target_matrix, scalar_target_matrix):
     """Trains isotonic-regression models.
 
     E = number of examples
     H = number of heights
     T_v = number of vector target variables
     T_s = number of scalar target variables
+    W = number of wavelengths
     S = number of ensemble members
 
-    :param orig_vector_prediction_matrix: numpy array (E x H x T_v x S) of
+    :param orig_vector_prediction_matrix: numpy array (E x H x W x T_v x S) of
         predicted values for vector target variables.
-    :param orig_scalar_prediction_matrix: numpy array (E x T_s x S) of predicted
-        values for scalar target variables.
-    :param vector_target_matrix: numpy array (E x H x T_v) of actual values
+    :param orig_scalar_prediction_matrix: numpy array (E x W x T_s x S) of
+        predicted values for scalar target variables.
+    :param vector_target_matrix: numpy array (E x H x W x T_v) of actual values
         for vector target variables.
-    :param scalar_target_matrix: numpy array (E x T_s) of actual values for
+    :param scalar_target_matrix: numpy array (E x W x T_s) of actual values for
         scalar target variables.
-    :param separate_by_height: Boolean flag.  If True, will train one model for
-        each target variable (channel).  If False, will train one model for each
-        pair of target variable and height.
-    :return: scalar_model_objects: List (length T_s) of models (instances of
-        `sklearn.isotonic.IsotonicRegression`) for scalar target variables.
+    :return: scalar_model_object_matrix: numpy array of models
+        (instances of `sklearn.isotonic.IsotonicRegression`) for scalar target
+        variables.  Dimensions are W x T_s.
     :return: vector_model_object_matrix: numpy array of models
         (instances of `sklearn.isotonic.IsotonicRegression`) for vector target
-        variables.  If `separate_by_height == True`, this array is H x T_v.
-        If `separate_by_height == False`, this array has is 1 x T_v.
+        variables.  Dimensions are H x W x T_v.
     """
 
     # Check input args.
     num_examples = None
     num_heights = 0
+    num_wavelengths = None
     num_vector_targets = 0
     num_scalar_targets = 0
     ensemble_size = None
@@ -64,7 +63,7 @@ def train_models(
         vector_target_matrix = vector_target_matrix.astype(numpy.float16)
 
         error_checking.assert_is_numpy_array(
-            orig_vector_prediction_matrix, num_dimensions=4
+            orig_vector_prediction_matrix, num_dimensions=5
         )
         error_checking.assert_is_numpy_array_without_nan(
             orig_vector_prediction_matrix
@@ -80,8 +79,9 @@ def train_models(
 
         num_examples = vector_target_matrix.shape[0]
         num_heights = vector_target_matrix.shape[1]
-        num_vector_targets = vector_target_matrix.shape[2]
-        ensemble_size = orig_vector_prediction_matrix.shape[3]
+        num_wavelengths = vector_target_matrix.shape[2]
+        num_vector_targets = vector_target_matrix.shape[3]
+        ensemble_size = orig_vector_prediction_matrix.shape[4]
 
     have_scalars = (
         orig_scalar_prediction_matrix is not None
@@ -90,16 +90,19 @@ def train_models(
 
     if have_scalars:
         error_checking.assert_is_numpy_array(
-            orig_scalar_prediction_matrix, num_dimensions=3
+            orig_scalar_prediction_matrix, num_dimensions=4
         )
 
         if num_examples is None:
             num_examples = orig_scalar_prediction_matrix.shape[0]
+        if num_wavelengths is None:
+            num_wavelengths = orig_scalar_prediction_matrix.shape[1]
         if ensemble_size is None:
-            ensemble_size = orig_scalar_prediction_matrix.shape[2]
+            ensemble_size = orig_scalar_prediction_matrix.shape[3]
 
         expected_dim = numpy.array([
-            num_examples, orig_scalar_prediction_matrix.shape[1], ensemble_size
+            num_examples, num_wavelengths,
+            orig_scalar_prediction_matrix.shape[2], ensemble_size
         ], dtype=int)
 
         error_checking.assert_is_numpy_array(
@@ -117,97 +120,91 @@ def train_models(
         )
         error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
 
-        num_scalar_targets = scalar_target_matrix.shape[1]
-
-    error_checking.assert_is_boolean(separate_by_height)
+        num_scalar_targets = scalar_target_matrix.shape[2]
 
     # Do actual stuff.
-    scalar_model_objects = [None] * num_scalar_targets
-    num_modeling_heights = num_heights if separate_by_height else 1
+    scalar_model_object_matrix = numpy.full(
+        (num_wavelengths, num_scalar_targets), '', dtype=object
+    )
     vector_model_object_matrix = numpy.full(
-        (num_modeling_heights, num_vector_targets), '', dtype=object
+        (num_heights, num_wavelengths, num_vector_targets), '', dtype=object
     )
 
-    for k in range(num_scalar_targets):
-        print((
-            'Training isotonic-regression model for {0:d}th of {1:d} scalar '
-            'target variables...'
-        ).format(
-            k + 1, num_scalar_targets
-        ))
-
-        this_prediction_matrix = orig_scalar_prediction_matrix[:, k, :] + 0.
-        this_target_matrix = numpy.expand_dims(
-            scalar_target_matrix[:, k], axis=-1
-        )
-        this_target_matrix = numpy.repeat(
-            this_target_matrix, axis=-1, repeats=ensemble_size
-        )
-
-        scalar_model_objects[k] = IsotonicRegression(
-            increasing=True, out_of_bounds='clip'
-        )
-        scalar_model_objects[k].fit(
-            X=numpy.ravel(this_prediction_matrix),
-            y=numpy.ravel(this_target_matrix)
-        )
-
-    if num_scalar_targets > 0:
-        print('\n')
-
-    for k in range(num_vector_targets):
-        for j in range(num_modeling_heights):
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
             print((
-                'Training isotonic-regression model for {0:d}th of {1:d} vector'
-                ' target variables at {2:d}th of {3:d} modeling heights...'
+                'Training isotonic-regression model for {0:d}th of {1:d} '
+                'scalar target variables at {2:d}th of {3:d} wavelengths...'
             ).format(
-                k + 1, num_vector_targets, j + 1, num_modeling_heights
+                t + 1, num_scalar_targets,
+                w + 1, num_wavelengths
             ))
 
-            vector_model_object_matrix[j, k] = IsotonicRegression(
-                increasing=True, out_of_bounds='clip'
+            this_prediction_matrix = (
+                orig_scalar_prediction_matrix[:, w, t, :] + 0.
+            )
+            this_target_matrix = numpy.expand_dims(
+                scalar_target_matrix[:, w, t], axis=-1
+            )
+            this_target_matrix = numpy.repeat(
+                this_target_matrix, axis=-1, repeats=ensemble_size
             )
 
-            if separate_by_height:
-                this_prediction_matrix = (
-                    orig_vector_prediction_matrix[:, j, k, :] + 0.
-                )
-                this_target_matrix = numpy.expand_dims(
-                    vector_target_matrix[:, j, k], axis=-1
-                )
-                this_target_matrix = numpy.repeat(
-                    this_target_matrix, axis=-1, repeats=ensemble_size
-                )
-            else:
-                this_prediction_matrix = (
-                    orig_vector_prediction_matrix[:, :, k, :] + 0.
-                )
-                this_target_matrix = numpy.expand_dims(
-                    vector_target_matrix[:, :, k], axis=-1
-                )
-                this_target_matrix = numpy.repeat(
-                    this_target_matrix, axis=-1, repeats=ensemble_size
-                )
-
-            vector_model_object_matrix[j, k].fit(
+            scalar_model_object_matrix[w, t] = IsotonicRegression(
+                increasing=True, out_of_bounds='clip'
+            )
+            scalar_model_object_matrix[w, t].fit(
                 X=numpy.ravel(this_prediction_matrix),
                 y=numpy.ravel(this_target_matrix)
             )
 
-        if k != num_vector_targets - 1:
+        print('\n')
+
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            for h in range(num_heights):
+                print((
+                    'Training isotonic-regression model for {0:d}th of {1:d} '
+                    'vector target variables at {2:d}th of {3:d} wavelengths '
+                    'and {4:d}th of {5:d} heights...'
+                ).format(
+                    t + 1, num_vector_targets,
+                    w + 1, num_wavelengths,
+                    h + 1, num_heights
+                ))
+
+                vector_model_object_matrix[h, w, t] = IsotonicRegression(
+                    increasing=True, out_of_bounds='clip'
+                )
+
+                this_prediction_matrix = (
+                    orig_vector_prediction_matrix[:, h, w, t, :] + 0.
+                )
+                this_target_matrix = numpy.expand_dims(
+                    vector_target_matrix[:, h, w, t], axis=-1
+                )
+                this_target_matrix = numpy.repeat(
+                    this_target_matrix, axis=-1, repeats=ensemble_size
+                )
+
+                vector_model_object_matrix[h, w, t].fit(
+                    X=numpy.ravel(this_prediction_matrix),
+                    y=numpy.ravel(this_target_matrix)
+                )
+
             print('\n')
 
-    return scalar_model_objects, vector_model_object_matrix
+    return scalar_model_object_matrix, vector_model_object_matrix
 
 
 def apply_models(
         orig_vector_prediction_matrix, orig_scalar_prediction_matrix,
-        scalar_model_objects, vector_model_object_matrix):
+        scalar_model_object_matrix, vector_model_object_matrix):
     """Applies isotonic-regression models.
 
     :param orig_vector_prediction_matrix: See doc for `train_models`.
     :param orig_scalar_prediction_matrix: Same.
-    :param scalar_model_objects: Same.
+    :param scalar_model_object_matrix: Same.
     :param vector_model_object_matrix: Same.
     :return: new_vector_prediction_matrix: Same as
         `orig_vector_prediction_matrix` but with transformed values.
@@ -217,7 +214,8 @@ def apply_models(
 
     # Check input args.
     num_examples = None
-    num_modeling_heights = 0
+    num_heights = 0
+    num_wavelengths = None
     num_vector_targets = 0
     num_scalar_targets = 0
     ensemble_size = None
@@ -233,46 +231,48 @@ def apply_models(
         )
 
         error_checking.assert_is_numpy_array(
-            orig_vector_prediction_matrix, num_dimensions=4
+            orig_vector_prediction_matrix, num_dimensions=5
         )
         error_checking.assert_is_numpy_array_without_nan(
             orig_vector_prediction_matrix
         )
 
         error_checking.assert_is_numpy_array(
-            vector_model_object_matrix, num_dimensions=2
+            vector_model_object_matrix, num_dimensions=3
         )
 
-        num_modeling_heights = vector_model_object_matrix.shape[0]
-        num_vector_targets = orig_vector_prediction_matrix.shape[2]
+        num_heights = orig_vector_prediction_matrix.shape[1]
+        num_wavelengths = orig_vector_prediction_matrix.shape[2]
+        num_vector_targets = orig_vector_prediction_matrix.shape[3]
         expected_dim = numpy.array(
-            [num_modeling_heights, num_vector_targets], dtype=int
+            [num_heights, num_wavelengths, num_vector_targets], dtype=int
         )
         error_checking.assert_is_numpy_array(
             vector_model_object_matrix, exact_dimensions=expected_dim
         )
 
         num_examples = orig_vector_prediction_matrix.shape[0]
-        ensemble_size = orig_vector_prediction_matrix.shape[3]
+        ensemble_size = orig_vector_prediction_matrix.shape[4]
 
     have_scalars = (
         orig_scalar_prediction_matrix is not None
-        or len(scalar_model_objects) > 0
+        or scalar_model_object_matrix.size > 0
     )
 
     if have_scalars:
         error_checking.assert_is_numpy_array(
-            orig_scalar_prediction_matrix, num_dimensions=3
+            orig_scalar_prediction_matrix, num_dimensions=4
         )
 
         if num_examples is None:
             num_examples = orig_scalar_prediction_matrix.shape[0]
         if ensemble_size is None:
-            ensemble_size = orig_scalar_prediction_matrix.shape[2]
+            ensemble_size = orig_scalar_prediction_matrix.shape[3]
 
-        num_scalar_targets = orig_scalar_prediction_matrix.shape[1]
+        num_scalar_targets = orig_scalar_prediction_matrix.shape[2]
         expected_dim = numpy.array(
-            [num_examples, num_scalar_targets, ensemble_size], dtype=int
+            [num_examples, num_wavelengths, num_scalar_targets, ensemble_size],
+            dtype=int
         )
 
         error_checking.assert_is_numpy_array(
@@ -282,9 +282,12 @@ def apply_models(
             orig_scalar_prediction_matrix
         )
 
+        expected_dim = numpy.array(
+            [num_wavelengths, num_scalar_targets], dtype=int
+        )
         error_checking.assert_is_numpy_array(
-            numpy.array(scalar_model_objects),
-            exact_dimensions=numpy.array([num_scalar_targets], dtype=int)
+            numpy.array(scalar_model_object_matrix),
+            exact_dimensions=expected_dim
         )
 
     if have_vectors:
@@ -293,7 +296,8 @@ def apply_models(
         )
     else:
         new_vector_prediction_matrix = numpy.full(
-            (num_examples, 0, 0, ensemble_size), numpy.nan, dtype=numpy.float16
+            (num_examples, 0, num_wavelengths, 0, ensemble_size),
+            numpy.nan, dtype=numpy.float16
         )
 
     if have_scalars:
@@ -302,53 +306,48 @@ def apply_models(
         )
     else:
         new_scalar_prediction_matrix = numpy.full(
-            (num_examples, 0, ensemble_size), numpy.nan
+            (num_examples, num_wavelengths, 0, ensemble_size), numpy.nan
         )
 
-    for k in range(num_scalar_targets):
-        print((
-            'Applying isotonic-regression model to {0:d}th of {1:d} scalar '
-            'target variables...'
-        ).format(
-            k + 1, num_scalar_targets
-        ))
-
-        for m in range(ensemble_size):
-            new_scalar_prediction_matrix[:, k, m] = (
-                scalar_model_objects[k].predict(
-                    orig_scalar_prediction_matrix[:, k, m]
-                )
-            )
-
-    if num_scalar_targets > 0:
-        print('\n')
-
-    for k in range(num_vector_targets):
-        for j in range(num_modeling_heights):
+    for t in range(num_scalar_targets):
+        for w in range(num_wavelengths):
             print((
-                'Applying isotonic-regression model to {0:d}th of {1:d} vector'
-                ' target variables at {2:d}th of {3:d} modeling heights...'
+                'Applying isotonic-regression model to {0:d}th of {1:d} scalar '
+                'target variables at {2:d}th of {3:d} wavelengths...'
             ).format(
-                k + 1, num_vector_targets, j + 1, num_modeling_heights
+                t + 1, num_scalar_targets,
+                w + 1, num_wavelengths
             ))
 
-            for m in range(ensemble_size):
-                if num_modeling_heights == 1:
-                    these_predictions = vector_model_object_matrix[j, k].predict(
-                        numpy.ravel(orig_vector_prediction_matrix[..., k, m])
+            for s in range(ensemble_size):
+                new_scalar_prediction_matrix[:, w, t, s] = (
+                    scalar_model_object_matrix[w, t].predict(
+                        orig_scalar_prediction_matrix[:, w, t, s]
                     )
-                    new_vector_prediction_matrix[..., k, m] = numpy.reshape(
-                        these_predictions,
-                        orig_vector_prediction_matrix.shape[:2]
-                    )
-                else:
-                    new_vector_prediction_matrix[:, j, k, m] = (
-                        vector_model_object_matrix[j, k].predict(
-                            orig_vector_prediction_matrix[:, j, k, m]
+                )
+
+        print('\n')
+
+    for t in range(num_vector_targets):
+        for w in range(num_wavelengths):
+            for h in range(num_heights):
+                print((
+                    'Applying isotonic-regression model to {0:d}th of {1:d} '
+                    'vector target variables at {2:d}th of {3:d} heights '
+                    'and {4:d}th of {5:d} wavelengths...'
+                ).format(
+                    t + 1, num_vector_targets,
+                    h + 1, num_heights,
+                    w + 1, num_wavelengths
+                ))
+
+                for s in range(ensemble_size):
+                    new_vector_prediction_matrix[:, h, w, t, s] = (
+                        vector_model_object_matrix[h, w, t].predict(
+                            orig_vector_prediction_matrix[:, h, w, t, s]
                         )
                     )
 
-        if k != num_vector_targets - 1:
             print('\n')
 
     return new_vector_prediction_matrix, new_scalar_prediction_matrix
@@ -378,26 +377,26 @@ def find_file(model_dir_name, raise_error_if_missing=True):
     return dill_file_name
 
 
-def write_file(dill_file_name, scalar_model_objects,
+def write_file(dill_file_name, scalar_model_object_matrix,
                vector_model_object_matrix):
     """Writes set of isotonic-regression models to Dill file.
 
     :param dill_file_name: Path to output file.
-    :param scalar_model_objects: See doc for `train_models`.
+    :param scalar_model_object_matrix: See doc for `train_models`.
     :param vector_model_object_matrix: Same.
     """
 
     error_checking.assert_is_numpy_array(
-        numpy.array(scalar_model_objects), num_dimensions=1
+        numpy.array(scalar_model_object_matrix), num_dimensions=2
     )
     error_checking.assert_is_numpy_array(
-        vector_model_object_matrix, num_dimensions=2
+        vector_model_object_matrix, num_dimensions=3
     )
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    pickle.dump(scalar_model_objects, dill_file_handle)
+    pickle.dump(scalar_model_object_matrix, dill_file_handle)
     pickle.dump(vector_model_object_matrix, dill_file_handle)
     dill_file_handle.close()
 
@@ -406,15 +405,26 @@ def read_file(dill_file_name):
     """Reads set of isotonic-regression models from Dill file.
 
     :param dill_file_name: Path to input file.
-    :return: scalar_model_objects: See doc for `train_models`.
+    :return: scalar_model_object_matrix: See doc for `train_models`.
     :return: vector_model_object_matrix: Same.
     """
 
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    scalar_model_objects = pickle.load(dill_file_handle)
+    scalar_model_object_matrix = pickle.load(dill_file_handle)
     vector_model_object_matrix = pickle.load(dill_file_handle)
     dill_file_handle.close()
 
-    return scalar_model_objects, vector_model_object_matrix
+    scalar_model_object_matrix = numpy.array(scalar_model_object_matrix)
+    if len(scalar_model_object_matrix.shape) == 1:
+        scalar_model_object_matrix = numpy.expand_dims(
+            scalar_model_object_matrix, axis=0
+        )
+
+    if len(vector_model_object_matrix.shape) == 1:
+        vector_model_object_matrix = numpy.expand_dims(
+            vector_model_object_matrix, axis=-2
+        )
+
+    return scalar_model_object_matrix, vector_model_object_matrix

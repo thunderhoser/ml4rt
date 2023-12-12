@@ -24,6 +24,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 FOR_SHORTWAVE_ARG_NAME = 'for_shortwave'
 AVERAGE_OVER_HEIGHT_ARG_NAME = 'average_over_height'
+AVERAGE_OVER_WAVELENGTH_ARG_NAME = 'average_over_wavelength'
 SCALE_BY_CLIMO_ARG_NAME = 'scale_by_climo'
 NUM_EXAMPLES_ARG_NAME = 'num_examples_per_set'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -39,6 +40,10 @@ FOR_SHORTWAVE_HELP_STRING = (
 AVERAGE_OVER_HEIGHT_HELP_STRING = (
     'Boolean flag.  If 1, will average errors over height for each profile.  '
     'If 0, will look for height with worst error in each profile.'
+)
+AVERAGE_OVER_WAVELENGTH_HELP_STRING = (
+    'Boolean flag.  If 1, will average errors over wavelength for each '
+    'profile.  If 0, will look for wavelength with worst error in each profile.'
 )
 SCALE_BY_CLIMO_HELP_STRING = (
     'Boolean flag.  If 1, will scale error at each height z by climatology '
@@ -66,6 +71,10 @@ INPUT_ARG_PARSER.add_argument(
     help=AVERAGE_OVER_HEIGHT_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + AVERAGE_OVER_WAVELENGTH_ARG_NAME, type=int, required=True,
+    help=AVERAGE_OVER_WAVELENGTH_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + SCALE_BY_CLIMO_ARG_NAME, type=int, required=True,
     help=SCALE_BY_CLIMO_HELP_STRING
 )
@@ -79,7 +88,8 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_prediction_file_name, for_shortwave, average_over_height,
+def _run(input_prediction_file_name, for_shortwave,
+         average_over_height, average_over_wavelength,
          scale_by_climo, num_examples_per_set, output_dir_name):
     """Finds best and worst heating-rate predictions.
 
@@ -88,6 +98,7 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
     :param input_prediction_file_name: See documentation at top of file.
     :param for_shortwave: Same.
     :param average_over_height: Same.
+    :param average_over_wavelength: Same.
     :param scale_by_climo: Same.
     :param num_examples_per_set: Same.
     :param output_dir_name: Same.
@@ -96,7 +107,11 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
     # TODO(thunderhoser): Maybe allow specific height again (e.g., 15 km).
 
     error_checking.assert_is_greater(num_examples_per_set, 0)
-    scale_by_climo = scale_by_climo and not average_over_height
+    scale_by_climo = (
+        scale_by_climo
+        and not average_over_height
+        and not average_over_wavelength
+    )
 
     print('Reading data from: "{0:s}"...'.format(input_prediction_file_name))
     prediction_dict = prediction_io.read_file(input_prediction_file_name)
@@ -118,6 +133,7 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         else example_utils.LONGWAVE_HEATING_RATE_NAME
     )
 
+    # Both matrices have dimensions E x H x W
     target_matrix_k_day01 = (
         prediction_dict[prediction_io.VECTOR_TARGETS_KEY][..., hr_index]
     )
@@ -133,6 +149,12 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         bias_matrix = numpy.mean(bias_matrix, axis=1, keepdims=True)
         absolute_error_matrix = numpy.mean(
             absolute_error_matrix, axis=1, keepdims=True
+        )
+
+    if average_over_wavelength:
+        bias_matrix = numpy.mean(bias_matrix, axis=2, keepdims=True)
+        absolute_error_matrix = numpy.mean(
+            absolute_error_matrix, axis=2, keepdims=True
         )
 
     if scale_by_climo:
@@ -169,11 +191,21 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
 
         if prediction_dict[prediction_io.NORMALIZATION_FILE_KEY] is None:
             heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+            wavelengths_metres = generator_option_dict[
+                neural_net.TARGET_WAVELENGTHS_KEY
+            ]
         else:
             heights_m_agl = training_example_dict[example_utils.HEIGHTS_KEY]
+            wavelengths_metres = training_example_dict[
+                example_utils.TARGET_WAVELENGTHS_KEY
+            ]
 
         training_example_dict = example_utils.subset_by_height(
             example_dict=training_example_dict, heights_m_agl=heights_m_agl
+        )
+        training_example_dict = example_utils.subset_by_wavelength(
+            example_dict=training_example_dict,
+            target_wavelengths_metres=wavelengths_metres
         )
 
         dummy_example_dict = {
@@ -184,7 +216,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
                 example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
                 else example_utils.LONGWAVE_HEATING_RATE_NAME
             ],
-            example_utils.HEIGHTS_KEY: heights_m_agl
+            example_utils.HEIGHTS_KEY: heights_m_agl,
+            example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres
         }
 
         mean_training_example_dict = normalization.create_mean_example(
@@ -201,8 +234,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
     print(SEPARATOR_STRING)
     high_bias_indices, low_bias_indices, low_abs_error_indices = (
         misc_utils.find_best_and_worst_predictions(
-            bias_matrix=bias_matrix,
-            absolute_error_matrix=absolute_error_matrix,
+            bias_matrix_3d=bias_matrix,
+            absolute_error_matrix_3d=absolute_error_matrix,
             num_examples_per_set=num_examples_per_set
         )
     )
@@ -230,6 +263,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         vector_prediction_matrix=
         high_bias_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=high_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        high_bias_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=
         high_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=high_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
@@ -264,6 +299,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         vector_prediction_matrix=
         low_bias_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=low_bias_prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        low_bias_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=
         low_bias_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=low_bias_prediction_dict[prediction_io.MODEL_FILE_KEY],
@@ -298,6 +335,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         vector_prediction_matrix=
         low_abs_error_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=low_abs_error_prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        low_abs_error_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=
         low_abs_error_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=
@@ -348,6 +387,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         vector_prediction_matrix=
         large_hr_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=large_hr_prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        large_hr_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=
         large_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=large_hr_prediction_dict[prediction_io.MODEL_FILE_KEY],
@@ -391,6 +432,8 @@ def _run(input_prediction_file_name, for_shortwave, average_over_height,
         vector_prediction_matrix=
         small_hr_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
         heights_m_agl=small_hr_prediction_dict[prediction_io.HEIGHTS_KEY],
+        target_wavelengths_metres=
+        small_hr_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
         example_id_strings=
         small_hr_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
         model_file_name=small_hr_prediction_dict[prediction_io.MODEL_FILE_KEY],
@@ -414,6 +457,9 @@ if __name__ == '__main__':
         for_shortwave=bool(getattr(INPUT_ARG_OBJECT, FOR_SHORTWAVE_ARG_NAME)),
         average_over_height=bool(
             getattr(INPUT_ARG_OBJECT, AVERAGE_OVER_HEIGHT_ARG_NAME)
+        ),
+        average_over_wavelength=bool(
+            getattr(INPUT_ARG_OBJECT, AVERAGE_OVER_WAVELENGTH_ARG_NAME)
         ),
         scale_by_climo=bool(getattr(INPUT_ARG_OBJECT, SCALE_BY_CLIMO_ARG_NAME)),
         num_examples_per_set=getattr(INPUT_ARG_OBJECT, NUM_EXAMPLES_ARG_NAME),
