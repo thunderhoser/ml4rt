@@ -266,8 +266,8 @@ def _read_metrics_one_model(model_dir_name):
     this_eval_table_xarray = evaluation.read_file(this_file_name)
 
     this_mae_matrix = numpy.concatenate((
-        this_eval_table_xarray[evaluation.SCALAR_MAE_KEY].values,
-        this_eval_table_xarray[evaluation.AUX_MAE_KEY].values
+        this_eval_table_xarray[evaluation.SCALAR_MAE_KEY].values[0, ...],
+        this_eval_table_xarray[evaluation.AUX_MAE_KEY].values[0, ...]
     ), axis=0)
 
     assert this_mae_matrix.shape[0] == 3
@@ -276,7 +276,7 @@ def _read_metrics_one_model(model_dir_name):
     )
 
     this_mae_matrix = (
-        this_eval_table_xarray[evaluation.VECTOR_MAE_KEY].values
+        this_eval_table_xarray[evaluation.VECTOR_MAE_KEY].values[:, 0, ...]
     )
     assert this_mae_matrix.shape[1] == 1
     this_mae_matrix = this_mae_matrix[:, 0, :]
@@ -285,8 +285,8 @@ def _read_metrics_one_model(model_dir_name):
     )
 
     this_reliability_matrix = numpy.concatenate((
-        this_eval_table_xarray[evaluation.SCALAR_RELIABILITY_KEY].values,
-        this_eval_table_xarray[evaluation.AUX_RELIABILITY_KEY].values
+        this_eval_table_xarray[evaluation.SCALAR_RELIABILITY_KEY].values[0, ...],
+        this_eval_table_xarray[evaluation.AUX_RELIABILITY_KEY].values[0, ...]
     ), axis=0)
 
     metric_dict[ALL_FLUX_REL_NAME] = numpy.mean(
@@ -295,7 +295,7 @@ def _read_metrics_one_model(model_dir_name):
 
     this_reliability_matrix = this_eval_table_xarray[
         evaluation.VECTOR_FLAT_RELIABILITY_KEY
-    ].values
+    ].values[0, ...]
     metric_dict[HEATING_RATE_REL_NAME] = numpy.nanmean(
         this_reliability_matrix
     )
@@ -308,22 +308,22 @@ def _read_metrics_one_model(model_dir_name):
     this_ss_table_xarray = ss_utils.read_results(this_file_name)
 
     these_ssrel = numpy.concatenate((
-        this_ss_table_xarray[ss_utils.SCALAR_SSREL_KEY].values,
-        this_ss_table_xarray[ss_utils.AUX_SSREL_KEY].values
+        this_ss_table_xarray[ss_utils.SCALAR_SSREL_KEY].values[..., 0],
+        this_ss_table_xarray[ss_utils.AUX_SSREL_KEY].values[..., 0]
     ))
     metric_dict[ALL_FLUX_SSREL_NAME] = numpy.mean(these_ssrel)
 
     these_ssrat = numpy.concatenate((
-        this_ss_table_xarray[ss_utils.SCALAR_SSRAT_KEY].values,
-        this_ss_table_xarray[ss_utils.AUX_SSRAT_KEY].values
+        this_ss_table_xarray[ss_utils.SCALAR_SSRAT_KEY].values[..., 0],
+        this_ss_table_xarray[ss_utils.AUX_SSRAT_KEY].values[..., 0]
     ))
     metric_dict[ALL_FLUX_SSRAT_NAME] = numpy.mean(these_ssrat)
 
     metric_dict[HEATING_RATE_SSREL_NAME] = (
-        this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSREL_KEY].values[0]
+        this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSREL_KEY].values[0, 0]
     )
     metric_dict[HEATING_RATE_SSRAT_NAME] = (
-        this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSRAT_KEY].values[0]
+        this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSRAT_KEY].values[0, 0]
     )
 
     this_file_name = (
@@ -334,12 +334,12 @@ def _read_metrics_one_model(model_dir_name):
     this_pit_table_xarray = pit_utils.read_results(this_file_name)
 
     these_pitd = numpy.concatenate((
-        this_pit_table_xarray[pit_utils.SCALAR_PITD_KEY].values,
-        this_pit_table_xarray[pit_utils.AUX_PITD_KEY].values
+        this_pit_table_xarray[pit_utils.SCALAR_PITD_KEY].values[..., 0],
+        this_pit_table_xarray[pit_utils.AUX_PITD_KEY].values[..., 0]
     ))
     metric_dict[ALL_FLUX_PITD_NAME] = numpy.mean(these_pitd)
     metric_dict[HEATING_RATE_PITD_NAME] = (
-        this_pit_table_xarray[pit_utils.VECTOR_FLAT_PITD_KEY].values[0]
+        this_pit_table_xarray[pit_utils.VECTOR_FLAT_PITD_KEY].values[0, 0]
     )
 
     this_file_name = (
@@ -350,13 +350,13 @@ def _read_metrics_one_model(model_dir_name):
     this_dt_table_xarray = dt_utils.read_results(this_file_name)
 
     these_mf = numpy.concatenate((
-        this_dt_table_xarray[dt_utils.SCALAR_MONO_FRACTION_KEY].values,
-        this_dt_table_xarray[dt_utils.AUX_MONO_FRACTION_KEY].values
+        this_dt_table_xarray[dt_utils.SCALAR_MONO_FRACTION_KEY].values[..., 0],
+        this_dt_table_xarray[dt_utils.AUX_MONO_FRACTION_KEY].values[..., 0]
     ))
     metric_dict[ALL_FLUX_MF_NAME] = numpy.mean(these_mf)
     metric_dict[HEATING_RATE_MF_NAME] = this_dt_table_xarray[
         dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY
-    ].values[0]
+    ].values[0, 0]
 
     return metric_dict
 

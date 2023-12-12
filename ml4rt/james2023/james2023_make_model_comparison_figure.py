@@ -136,6 +136,8 @@ def _plot_one_bar_graph(
             reference_line_x_coords, reference_line_y_coords,
             color=REFERENCE_LINE_COLOUR, linewidth=4, linestyle='dashed'
         )
+    else:
+        reference_line_x_coords = numpy.array([])
 
     axes_object.set_ylabel(y_label_string)
     axes_object.set_xticks(first_x_coords + numpy.mean(bar_offset_by_metric))
@@ -243,11 +245,12 @@ def _run(model_evaluation_dir_names, model_description_strings,
             prediction_io.VECTOR_TARGETS_KEY
         ]
         assert this_target_matrix.shape[2] == 1
-        this_target_matrix = this_target_matrix[..., 0]
+        assert this_target_matrix.shape[3] == 1
+        this_target_matrix = this_target_matrix[..., 0, 0]
 
         this_prediction_matrix = this_prediction_dict[
             prediction_io.VECTOR_PREDICTIONS_KEY
-        ][..., 0, :]
+        ][..., 0, 0, :]
         this_mean_prediction_matrix = numpy.mean(
             this_prediction_matrix, axis=-1
         )
@@ -274,7 +277,10 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_target_matrix = this_prediction_dict[
             prediction_io.SCALAR_TARGETS_KEY
         ]
-        assert this_target_matrix.shape[1] == 2
+        assert this_target_matrix.shape[1] == 1
+        assert this_target_matrix.shape[2] == 2
+
+        this_target_matrix = this_target_matrix[:, 0, :]
         this_target_matrix = numpy.concatenate((
             this_target_matrix,
             this_target_matrix[:, [0]] - this_target_matrix[:, [1]]
@@ -283,6 +289,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_prediction_matrix = this_prediction_dict[
             prediction_io.SCALAR_PREDICTIONS_KEY
         ]
+        this_prediction_matrix = this_prediction_matrix[:, 0, ...]
         this_prediction_matrix = numpy.concatenate((
             this_prediction_matrix,
             this_prediction_matrix[:, [0], :] - this_prediction_matrix[:, [1], :]
@@ -318,8 +325,8 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_eval_table_xarray = evaluation.read_file(this_file_name)
 
         this_mae_matrix = numpy.concatenate((
-            this_eval_table_xarray[evaluation.SCALAR_MAE_KEY].values,
-            this_eval_table_xarray[evaluation.AUX_MAE_KEY].values
+            this_eval_table_xarray[evaluation.SCALAR_MAE_KEY].values[0, ...],
+            this_eval_table_xarray[evaluation.AUX_MAE_KEY].values[0, ...]
         ), axis=0)
 
         assert this_mae_matrix.shape[0] == 3
@@ -328,7 +335,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         )
 
         this_mae_matrix = (
-            this_eval_table_xarray[evaluation.VECTOR_MAE_KEY].values
+            this_eval_table_xarray[evaluation.VECTOR_MAE_KEY].values[:, 0, ...]
         )
         assert this_mae_matrix.shape[1] == 1
         this_mae_matrix = this_mae_matrix[:, 0, :]
@@ -337,8 +344,8 @@ def _run(model_evaluation_dir_names, model_description_strings,
         )
 
         this_reliability_matrix = numpy.concatenate((
-            this_eval_table_xarray[evaluation.SCALAR_RELIABILITY_KEY].values,
-            this_eval_table_xarray[evaluation.AUX_RELIABILITY_KEY].values
+            this_eval_table_xarray[evaluation.SCALAR_RELIABILITY_KEY].values[0, ...],
+            this_eval_table_xarray[evaluation.AUX_RELIABILITY_KEY].values[0, ...]
         ), axis=0)
 
         flux_rel_values_w2_m04[i] = numpy.mean(
@@ -347,7 +354,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         this_reliability_matrix = this_eval_table_xarray[
             evaluation.VECTOR_FLAT_RELIABILITY_KEY
-        ].values
+        ].values[0, ...]
         heating_rate_rel_values_k2_day02[i] = numpy.nanmean(
             this_reliability_matrix
         )
@@ -359,22 +366,22 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_ss_table_xarray = ss_utils.read_results(this_file_name)
 
         these_ssrel = numpy.concatenate((
-            this_ss_table_xarray[ss_utils.SCALAR_SSREL_KEY].values,
-            this_ss_table_xarray[ss_utils.AUX_SSREL_KEY].values
+            this_ss_table_xarray[ss_utils.SCALAR_SSREL_KEY].values[..., 0],
+            this_ss_table_xarray[ss_utils.AUX_SSREL_KEY].values[..., 0]
         ))
         flux_ssrel_values_w_m02[i] = numpy.mean(these_ssrel)
 
         these_ssrat = numpy.concatenate((
-            this_ss_table_xarray[ss_utils.SCALAR_SSRAT_KEY].values,
-            this_ss_table_xarray[ss_utils.AUX_SSRAT_KEY].values
+            this_ss_table_xarray[ss_utils.SCALAR_SSRAT_KEY].values[..., 0],
+            this_ss_table_xarray[ss_utils.AUX_SSRAT_KEY].values[..., 0]
         ))
         flux_ssrat_values[i] = numpy.mean(these_ssrat)
 
         heating_rate_ssrel_values_k_day01[i] = (
-            this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSREL_KEY].values[0]
+            this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSREL_KEY].values[0, 0]
         )
         heating_rate_ssrat_values[i] = (
-            this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSRAT_KEY].values[0]
+            this_ss_table_xarray[ss_utils.VECTOR_FLAT_SSRAT_KEY].values[0, 0]
         )
 
         this_file_name = '{0:s}/pit_histograms.nc'.format(
@@ -384,13 +391,13 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_pit_table_xarray = pit_utils.read_results(this_file_name)
 
         these_pitd = numpy.concatenate((
-            this_pit_table_xarray[pit_utils.SCALAR_PITD_KEY].values,
-            this_pit_table_xarray[pit_utils.AUX_PITD_KEY].values
+            this_pit_table_xarray[pit_utils.SCALAR_PITD_KEY].values[..., 0],
+            this_pit_table_xarray[pit_utils.AUX_PITD_KEY].values[..., 0]
         ))
         flux_pitd_values[i] = numpy.mean(these_pitd)
 
         heating_rate_pitd_values[i] = (
-            this_pit_table_xarray[pit_utils.VECTOR_FLAT_PITD_KEY].values[0]
+            this_pit_table_xarray[pit_utils.VECTOR_FLAT_PITD_KEY].values[0, 0]
         )
 
         this_file_name = '{0:s}/discard_test_for_heating_rates.nc'.format(
@@ -400,14 +407,14 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_dt_table_xarray = dt_utils.read_results(this_file_name)
 
         these_mf = numpy.concatenate((
-            this_dt_table_xarray[dt_utils.SCALAR_MONO_FRACTION_KEY].values,
-            this_dt_table_xarray[dt_utils.AUX_MONO_FRACTION_KEY].values
+            this_dt_table_xarray[dt_utils.SCALAR_MONO_FRACTION_KEY].values[..., 0],
+            this_dt_table_xarray[dt_utils.AUX_MONO_FRACTION_KEY].values[..., 0]
         ))
         flux_mf_values[i] = numpy.mean(these_mf)
 
         heating_rate_mf_values[i] = this_dt_table_xarray[
             dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY
-        ].values[0]
+        ].values[0, 0]
 
     # TODO(thunderhoser): Make sure none of the code in the above for-loop is
     # fucked up.

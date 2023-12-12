@@ -165,7 +165,9 @@ def _make_violin_plot_one_dataset(
     del example_dicts
 
     data_matrix = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=field_name
+        example_dict=example_dict,
+        field_name=field_name,
+        target_wavelength_metres=example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
     )
     assert len(data_matrix.shape) == 2
 

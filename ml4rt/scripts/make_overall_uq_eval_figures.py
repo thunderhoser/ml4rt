@@ -174,6 +174,10 @@ def _run(input_dir_name, for_shortwave, wavelengths_metres, output_dir_name):
             for_heating_rates=True,
             wavelength_metres=this_wavelength_metres
         )
+        resized_panel_file_names = [
+            '{0:s}/{1:s}'.format(f.split('/')[0], f.split('/')[-1])
+            for f in resized_panel_file_names
+        ]
 
         # Handles case where CRPS and CRPSS panels are missing.
         if not any([os.path.isfile(f) for f in panel_file_names[-2:]]):
