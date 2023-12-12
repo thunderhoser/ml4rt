@@ -186,6 +186,8 @@ def _run(perturbed_prediction_file_name, clean_example_dir_name,
             vector_prediction_matrix=
             this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
             heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+            target_wavelengths_metres=
+            this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
             example_id_strings=
             this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
             model_file_name=this_prediction_dict[prediction_io.MODEL_FILE_KEY],

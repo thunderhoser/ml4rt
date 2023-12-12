@@ -911,16 +911,36 @@ def subset_by_zenith_angle(
 
 
 def subset_by_shortwave_sfc_down_flux(
-        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+        prediction_dict, min_flux_w_m02, max_flux_w_m02,
+        wavelengths_metres=None):
     """Subsets examples by shortwave surface downwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
     :param min_flux_w_m02: Minimum flux.
     :param max_flux_w_m02: Max flux.
+    :param wavelengths_metres: 1-D numpy array of wavelengths over which to sum
+        SW sfc downwelling flux.  If None, will sum over all wavelengths (i.e.,
+        will use broadband flux).
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
-    # TODO(thunderhoser): Deal with wavelength.
+    if wavelengths_metres is None:
+        try:
+            w = example_utils.match_wavelengths(
+                wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=
+                numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
+            )
+            wavelengths_metres = numpy.array([
+                prediction_dict[TARGET_WAVELENGTHS_KEY][w]
+            ])
+        except ValueError:
+            wavelengths_metres = prediction_dict[TARGET_WAVELENGTHS_KEY] + 0.
+
+    wave_inds = example_utils.match_wavelengths(
+        wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelengths_metres
+    )
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
@@ -937,10 +957,13 @@ def subset_by_shortwave_sfc_down_flux(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+    t = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = numpy.sum(
+        prediction_dict[SCALAR_TARGETS_KEY][..., t][:, wave_inds],
+        axis=1
+    )
 
     desired_indices = numpy.where(numpy.logical_and(
         actual_fluxes_w_m02 >= min_flux_w_m02,
@@ -953,16 +976,36 @@ def subset_by_shortwave_sfc_down_flux(
 
 
 def subset_by_longwave_sfc_down_flux(
-        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+        prediction_dict, min_flux_w_m02, max_flux_w_m02,
+        wavelengths_metres=None):
     """Subsets examples by longwave surface downwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
     :param min_flux_w_m02: Minimum flux.
     :param max_flux_w_m02: Max flux.
+    :param wavelengths_metres: 1-D numpy array of wavelengths over which to sum
+        LW sfc downwelling flux.  If None, will sum over all wavelengths (i.e.,
+        will use broadband flux).
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
-    # TODO(thunderhoser): Deal with wavelength.
+    if wavelengths_metres is None:
+        try:
+            w = example_utils.match_wavelengths(
+                wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=
+                numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
+            )
+            wavelengths_metres = numpy.array([
+                prediction_dict[TARGET_WAVELENGTHS_KEY][w]
+            ])
+        except ValueError:
+            wavelengths_metres = prediction_dict[TARGET_WAVELENGTHS_KEY] + 0.
+
+    wave_inds = example_utils.match_wavelengths(
+        wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelengths_metres
+    )
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
@@ -979,10 +1022,13 @@ def subset_by_longwave_sfc_down_flux(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+    t = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
     )
-    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = numpy.sum(
+        prediction_dict[SCALAR_TARGETS_KEY][..., t][:, wave_inds],
+        axis=1
+    )
 
     desired_indices = numpy.where(numpy.logical_and(
         actual_fluxes_w_m02 >= min_flux_w_m02,
@@ -995,16 +1041,36 @@ def subset_by_longwave_sfc_down_flux(
 
 
 def subset_by_longwave_toa_up_flux(
-        prediction_dict, min_flux_w_m02, max_flux_w_m02):
+        prediction_dict, min_flux_w_m02, max_flux_w_m02,
+        wavelengths_metres=None):
     """Subsets examples by longwave TOA upwelling flux.
 
     :param prediction_dict: See doc for `write_file`.
     :param min_flux_w_m02: Minimum flux.
     :param max_flux_w_m02: Max flux.
+    :param wavelengths_metres: 1-D numpy array of wavelengths over which to sum
+        LW sfc downwelling flux.  If None, will sum over all wavelengths (i.e.,
+        will use broadband flux).
     :return: prediction_dict: Same as input but with fewer examples.
     """
 
-    # TODO(thunderhoser): Deal with wavelength.
+    if wavelengths_metres is None:
+        try:
+            w = example_utils.match_wavelengths(
+                wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+                desired_wavelength_metres=
+                numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
+            )
+            wavelengths_metres = numpy.array([
+                prediction_dict[TARGET_WAVELENGTHS_KEY][w]
+            ])
+        except ValueError:
+            wavelengths_metres = prediction_dict[TARGET_WAVELENGTHS_KEY] + 0.
+
+    wave_inds = example_utils.match_wavelengths(
+        wavelengths_metres=prediction_dict[TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelengths_metres
+    )
 
     error_checking.assert_is_geq(min_flux_w_m02, 0.)
     error_checking.assert_is_greater(
@@ -1021,10 +1087,13 @@ def subset_by_longwave_toa_up_flux(
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
 
-    k = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+    t = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY].index(
         example_utils.LONGWAVE_TOA_UP_FLUX_NAME
     )
-    actual_fluxes_w_m02 = prediction_dict[SCALAR_TARGETS_KEY][:, k]
+    actual_fluxes_w_m02 = numpy.sum(
+        prediction_dict[SCALAR_TARGETS_KEY][..., t][:, wave_inds],
+        axis=1
+    )
 
     desired_indices = numpy.where(numpy.logical_and(
         actual_fluxes_w_m02 >= min_flux_w_m02,

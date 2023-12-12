@@ -186,6 +186,8 @@ def _run(input_file_name, min_latitude_deg, max_latitude_deg, min_longitude_deg,
                 vector_prediction_matrix=
                 this_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY],
                 heights_m_agl=this_prediction_dict[prediction_io.HEIGHTS_KEY],
+                target_wavelengths_metres=
+                this_prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY],
                 example_id_strings=
                 this_prediction_dict[prediction_io.EXAMPLE_IDS_KEY],
                 model_file_name=

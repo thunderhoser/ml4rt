@@ -1,5 +1,6 @@
 """Contains list of input arguments for training a neural net."""
 
+from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
@@ -15,6 +16,7 @@ NUM_DEEP_SUPER_LAYERS_ARG_NAME = 'num_deep_supervision_layers'
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
+TARGET_WAVELENGTHS_ARG_NAME = 'target_wavelengths_metres'
 FIRST_TRAIN_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
 FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
@@ -76,6 +78,7 @@ HEIGHTS_HELP_STRING = (
     'List of heights (metres above ground level) for profile (vector) '
     'variables.'
 )
+TARGET_WAVELENGTHS_HELP_STRING = 'List of wavelengths for target variables.'
 TRAIN_TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The training period will be '
     '`{0:s}`...`{1:s}`.'
@@ -195,6 +198,12 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + HEIGHTS_ARG_NAME, type=float, nargs='+', required=False,
         default=[-1], help=HEIGHTS_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + TARGET_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
+        required=False,
+        default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+        help=TARGET_WAVELENGTHS_HELP_STRING
     )
     parser_object.add_argument(
         '--' + FIRST_TRAIN_TIME_ARG_NAME, type=str, required=False,

@@ -19,7 +19,7 @@ def _run(training_dir_name, validation_dir_name,
          input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
          joined_output_layer, num_deep_supervision_layers, predictor_names,
-         target_names, heights_m_agl,
+         target_names, heights_m_agl, target_wavelengths_metres,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
          normalization_file_name, uniformize, predictor_norm_type_string,
@@ -42,6 +42,7 @@ def _run(training_dir_name, validation_dir_name,
     :param predictor_names: Same.
     :param target_names: Same.
     :param heights_m_agl: Same.
+    :param target_wavelengths_metres: Same.
     :param first_training_time_string: Same.
     :param last_training_time_string: Same.
     :param first_validn_time_string: Same.
@@ -116,6 +117,7 @@ def _run(training_dir_name, validation_dir_name,
         neural_net.SCALAR_TARGET_NAMES_KEY: scalar_target_names,
         neural_net.VECTOR_TARGET_NAMES_KEY: vector_target_names,
         neural_net.HEIGHTS_KEY: heights_m_agl,
+        neural_net.TARGET_WAVELENGTHS_KEY: target_wavelengths_metres,
         neural_net.NORMALIZATION_FILE_KEY: normalization_file_name,
         neural_net.UNIFORMIZE_FLAG_KEY: uniformize,
         neural_net.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
@@ -225,6 +227,10 @@ if __name__ == '__main__':
         ),
         heights_m_agl=numpy.array(
             getattr(INPUT_ARG_OBJECT, training_args.HEIGHTS_ARG_NAME),
+            dtype=float
+        ),
+        target_wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, training_args.TARGET_WAVELENGTHS_ARG_NAME),
             dtype=float
         ),
         first_training_time_string=getattr(
