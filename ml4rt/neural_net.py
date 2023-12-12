@@ -26,8 +26,8 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
-MAX_NUM_TRAINING_EXAMPLES = int(1e6)
+MAX_NUM_VALIDATION_EXAMPLES = int(2.5e5)
+MAX_NUM_TRAINING_EXAMPLES = int(7.5e5)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -266,10 +266,6 @@ def _read_file_for_generator(
             example_io.SCALAR_TARGET_MAX_VALUE_KEY:
                 scalar_target_max_norm_value
         }
-
-        print(normalization_metadata_dict)
-        print('\n\n')
-        print(example_dict[example_utils.NORMALIZATION_METADATA_KEY])
 
         assert example_io.are_normalization_metadata_same(
             normalization_metadata_dict,
