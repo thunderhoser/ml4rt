@@ -127,7 +127,7 @@ def _run(example_dir_name, first_training_time_string,
 
         if this_num_examples > 0 and fraction_to_delete_while_reading > 0:
             num_examples_to_keep = int(numpy.ceil(
-                fraction_to_delete_while_reading * this_num_examples
+                (1. - fraction_to_delete_while_reading) * this_num_examples
             ))
             indices_to_keep = numpy.linspace(
                 0, this_num_examples - 1, num=this_num_examples, dtype=int

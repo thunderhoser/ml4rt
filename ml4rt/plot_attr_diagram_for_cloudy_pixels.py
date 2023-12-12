@@ -24,6 +24,8 @@ import evaluation_plotting
 
 LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
+METRES_TO_MICRONS = 1e6
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -32,7 +34,8 @@ INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 MIN_LWC_ARG_NAME = 'minimum_lwc_kg_m03'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 PLOT_SHORTWAVE_ARG_NAME = 'plot_shortwave'
-OUTPUT_FILE_ARG_NAME = 'output_file_name'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
+OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing actual and predicted heating rates.  Will '
@@ -50,7 +53,12 @@ PLOT_SHORTWAVE_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot attributes diagram for shortwave '
     '(longwave) heating rate.'
 )
-OUTPUT_FILE_HELP_STRING = 'Path to output file.  Figure will be saved here.'
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one attributes diagram for each.'
+)
+OUTPUT_DIR_HELP_STRING = (
+    'Name of output directory.  Figures will be saved here.'
+)
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
@@ -69,8 +77,13 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_SHORTWAVE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
-    help=OUTPUT_FILE_HELP_STRING
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
+    help=OUTPUT_DIR_HELP_STRING
 )
 
 
@@ -131,32 +144,29 @@ def _get_lwc_values(prediction_dict, example_dir_name):
     return lwc_matrix_kg_m03[desired_indices, :]
 
 
-def _run(prediction_file_name, min_lwc_kg_m03, example_dir_name, plot_shortwave,
-         output_file_name):
-    """Plots height-agnostic attributes diagram for cloudy pixels.
+def _plot_attr_diagram_1wavelength(
+        training_example_dict, prediction_dict, example_dir_name,
+        plot_shortwave, wavelength_metres, min_lwc_kg_m03, output_dir_name):
+    """Plots attributes diagram for heating rate at one wavelength.
 
-    This is effectively the main method.
-
-    :param prediction_file_name: See documentation at top of file.
-    :param min_lwc_kg_m03: Same.
-    :param example_dir_name: Same.
+    :param training_example_dict: Dictionary with training examples for
+        normalization, in format returned by `example_io.read_file`.
+    :param prediction_dict: Dictionary with predictions, in format returned by
+        `prediction_io.read_file`.
+    :param example_dir_name: See documentation at top of this script.
     :param plot_shortwave: Same.
-    :param output_file_name: Same.
+    :param wavelength_metres: Wavelength.
+    :param min_lwc_kg_m03: See documentation at top of this script.
+    :param output_dir_name: Same.
     """
 
-    error_checking.assert_is_greater(min_lwc_kg_m03, 0.)
-
-    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
-    prediction_dict = prediction_io.read_file(prediction_file_name)
-    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
-
+    # Housekeeping.
     model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
 
-    print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     vector_target_names = (
@@ -164,54 +174,38 @@ def _run(prediction_file_name, min_lwc_kg_m03, example_dir_name, plot_shortwave,
     )
 
     if plot_shortwave:
-        target_index = vector_target_names.index(
-            example_utils.SHORTWAVE_HEATING_RATE_NAME
-        )
+        t = vector_target_names.index(example_utils.SHORTWAVE_HEATING_RATE_NAME)
     else:
-        target_index = vector_target_names.index(
-            example_utils.LONGWAVE_HEATING_RATE_NAME
-        )
+        t = vector_target_names.index(example_utils.LONGWAVE_HEATING_RATE_NAME)
 
-    normalization_file_name = (
-        prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
+    w = example_utils.match_wavelengths(
+        wavelengths_metres=
+        training_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
     )
-    if normalization_file_name is None:
-        normalization_file_name = (
-            training_option_dict[neural_net.NORMALIZATION_FILE_KEY]
-        )
 
-    print((
-        'Reading training examples (for climatology) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict,
-        heights_m_agl=training_option_dict[neural_net.HEIGHTS_KEY]
-    )
+    # Do actual stuff.
     training_hr_matrix_k_day01 = example_utils.get_field_from_dict(
         example_dict=training_example_dict,
         field_name=(
             example_utils.SHORTWAVE_HEATING_RATE_NAME if plot_shortwave
             else example_utils.LONGWAVE_HEATING_RATE_NAME
-        )
+        ),
+        target_wavelength_metres=wavelength_metres
     )
     climo_heating_rate_k_day01 = numpy.mean(training_hr_matrix_k_day01)
 
     lwc_matrix_kg_m03 = _get_lwc_values(
         prediction_dict=prediction_dict, example_dir_name=example_dir_name
     )
-    actual_heating_rates_k_day01 = (
-        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][
-            ..., target_index
-        ][lwc_matrix_kg_m03 >= min_lwc_kg_m03]
-    )
-    predicted_heating_rates_k_day01 = (
-        prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][
-            ..., target_index
-        ][lwc_matrix_kg_m03 >= min_lwc_kg_m03]
-    )
+
+    actual_heating_rates_k_day01 = prediction_dict[
+        prediction_io.VECTOR_TARGETS_KEY
+    ][..., w, t][lwc_matrix_kg_m03 >= min_lwc_kg_m03]
+
+    predicted_heating_rates_k_day01 = prediction_dict[
+        prediction_io.VECTOR_PREDICTIONS_KEY
+    ][..., w, t][lwc_matrix_kg_m03 >= min_lwc_kg_m03]
 
     if plot_shortwave:
         (
@@ -278,16 +272,23 @@ def _run(prediction_file_name, min_lwc_kg_m03, example_dir_name, plot_shortwave,
     axes_object.set_ylabel(r'Conditional mean observation (K day$^{-1}$)')
 
     title_string = (
-        'Attributes diagram for {0:s} HR with LWC >= {1:.1f} g'
+        'Attributes diagram for {0:s} HR at {1:.2f} microns\n'
+        'with LWC >= {2:.1f} g'
     ).format(
         'shortwave' if plot_shortwave else 'longwave',
+        METRES_TO_MICRONS * wavelength_metres,
         1000 * min_lwc_kg_m03
     )
 
     title_string += r' m$^{-3}$'
     axes_object.set_title(title_string)
 
-    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
+    output_file_name = (
+        '{0:s}/attributes_diagram_cloudy_pixels_{1:.2f}microns.jpg'
+    ).format(
+        output_dir_name,
+        METRES_TO_MICRONS * wavelength_metres
+    )
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -295,6 +296,70 @@ def _run(prediction_file_name, min_lwc_kg_m03, example_dir_name, plot_shortwave,
         pad_inches=0, bbox_inches='tight'
     )
     pyplot.close(figure_object)
+
+
+def _run(prediction_file_name, min_lwc_kg_m03, example_dir_name, plot_shortwave,
+         wavelengths_metres, output_dir_name):
+    """Plots height-agnostic attributes diagram for cloudy pixels.
+
+    This is effectively the main method.
+
+    :param prediction_file_name: See documentation at top of file.
+    :param min_lwc_kg_m03: Same.
+    :param example_dir_name: Same.
+    :param plot_shortwave: Same.
+    :param wavelengths_metres: Same.
+    :param output_dir_name: Same.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+    error_checking.assert_is_greater(min_lwc_kg_m03, 0.)
+
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_dict = prediction_io.read_file(prediction_file_name)
+    prediction_dict = prediction_io.get_ensemble_mean(prediction_dict)
+
+    model_file_name = prediction_dict[prediction_io.MODEL_FILE_KEY]
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+
+    normalization_file_name = (
+        prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
+    )
+    if normalization_file_name is None:
+        normalization_file_name = (
+            training_option_dict[neural_net.NORMALIZATION_FILE_KEY]
+        )
+
+    print((
+        'Reading training examples (for climatology) from: "{0:s}"...'
+    ).format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+    training_example_dict = example_utils.subset_by_height(
+        example_dict=training_example_dict,
+        heights_m_agl=training_option_dict[neural_net.HEIGHTS_KEY]
+    )
+
+    for this_wavelength_metres in wavelengths_metres:
+        _plot_attr_diagram_1wavelength(
+            training_example_dict=training_example_dict,
+            prediction_dict=prediction_dict,
+            example_dir_name=example_dir_name,
+            plot_shortwave=plot_shortwave,
+            wavelength_metres=this_wavelength_metres,
+            min_lwc_kg_m03=min_lwc_kg_m03,
+            output_dir_name=output_dir_name
+        )
 
 
 if __name__ == '__main__':
@@ -305,5 +370,8 @@ if __name__ == '__main__':
         min_lwc_kg_m03=getattr(INPUT_ARG_OBJECT, MIN_LWC_ARG_NAME),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         plot_shortwave=bool(getattr(INPUT_ARG_OBJECT, PLOT_SHORTWAVE_ARG_NAME)),
-        output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
+        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

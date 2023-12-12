@@ -22,6 +22,8 @@ import example_utils
 import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+METRES_TO_MICRONS = 1e6
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
 MAX_ZENITH_ANGLE_RAD = numpy.pi
@@ -78,6 +80,7 @@ MAIN_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 NUM_SURFACE_TEMP_BINS_ARG_NAME = 'num_surface_temp_bins'
 MIN_TEMP_GRADIENT_ARG_NAME = 'min_temp_gradient_k_km01'
 MAX_TEMP_GRADIENT_ARG_NAME = 'max_temp_gradient_k_km01'
@@ -89,6 +92,9 @@ OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 INPUT_FILE_HELP_STRING = (
     'Path to input file, containing predictions and observations.  Will be read'
     ' by `prediction_io.read_file`.'
+)
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one set of plots for each.'
 )
 NUM_SURFACE_TEMP_BINS_HELP_STRING = 'Number of bins for surface temperature.'
 MIN_TEMP_GRADIENT_HELP_STRING = (
@@ -118,6 +124,11 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_FILE_ARG_NAME, type=str, required=True,
     help=INPUT_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_SURFACE_TEMP_BINS_ARG_NAME, type=int, required=False, default=14,
@@ -300,14 +311,237 @@ def _plot_score_2d(
     return figure_object, axes_object
 
 
-def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
-         max_temp_gradient_k_km01, num_zenith_angle_bins,
-         plot_fractional_errors, example_dir_name, output_dir_name):
+def _make_figure_1wavelength(
+        prediction_dict, available_target_names, training_option_dict,
+        zenith_angle_bin_indices, surface_temp_bin_indices,
+        zenith_angle_tick_labels, surface_temp_tick_labels,
+        wavelength_metres, plot_fractional_errors, plot_temp_gradients,
+        output_dir_name):
+    """Makes full paneled figure for one wavelength.
+
+    E = number of examples
+    Z = number of zenith-angle bins
+    T = number of surface-temperature bins
+
+    :param prediction_dict: Dictionary in format returned by
+        `prediction_io.read_file`.
+    :param available_target_names: 1-D list with names of target variables.
+    :param training_option_dict: Dictionary with training options, in format
+        accepted by `neural_net.data_generator`.
+    :param zenith_angle_bin_indices: length-E numpy array of indices ranging
+        from 0...(Z - 1).
+    :param surface_temp_bin_indices: length-E numpy array of indices ranging
+        from 0...(T - 1).
+    :param zenith_angle_tick_labels: length-Z list of tick labels (strings).
+    :param surface_temp_tick_labels: length-T list of tick labels (strings).
+    :param wavelength_metres: Wavelength.
+    :param plot_fractional_errors: Boolean flag.
+    :param plot_temp_gradients: Boolean flag.
+    :param output_dir_name: Name of output directory.
+    """
+
+    found_data_flags = numpy.array(
+        [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
+        dtype=bool
+    )
+    plot_statistic_indices = numpy.where(found_data_flags)[0]
+
+    tod = training_option_dict
+    w_idx = example_utils.match_wavelengths(
+        wavelengths_metres=tod[neural_net.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
+    )
+
+    num_statistics = len(plot_statistic_indices)
+    num_surface_temp_bins = len(surface_temp_tick_labels)
+    num_zenith_angle_bins = len(zenith_angle_tick_labels)
+
+    pdict = prediction_dict
+    letter_label = None
+    panel_file_names = [''] * num_statistics
+
+    for m in range(num_statistics):
+        print(SEPARATOR_STRING)
+
+        k = plot_statistic_indices[m]
+        metric_matrix = numpy.full(
+            (num_surface_temp_bins, num_zenith_angle_bins), numpy.nan
+        )
+
+        if (
+                TARGET_NAME_BY_STATISTIC[k] ==
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+        ):
+            t_idx = tod[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                TARGET_NAME_BY_STATISTIC[k]
+            )
+            actual_values = (
+                pdict[prediction_io.VECTOR_TARGETS_KEY][..., w_idx, t_idx]
+            )
+            predicted_values = (
+                pdict[prediction_io.VECTOR_PREDICTIONS_KEY][..., w_idx, t_idx]
+            )
+
+            if TARGET_HEIGHT_INDEX_BY_STATISTIC[k] > -1:
+                actual_values = (
+                    actual_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
+                )
+                predicted_values = (
+                    predicted_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
+                )
+        else:
+            d_idx = tod[
+                neural_net.SCALAR_TARGET_NAMES_KEY
+            ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
+
+            u_idx = tod[
+                neural_net.SCALAR_TARGET_NAMES_KEY
+            ].index(example_utils.LONGWAVE_TOA_UP_FLUX_NAME)
+
+            actual_net_flux_values = (
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx]
+            )
+            predicted_net_flux_values = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx]
+            )
+
+            if TARGET_NAME_BY_STATISTIC[k] == LONGWAVE_NET_FLUX_NAME:
+                actual_values = actual_net_flux_values
+                predicted_values = predicted_net_flux_values
+            else:
+                actual_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx],
+                    actual_net_flux_values
+                ))
+                predicted_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx],
+                    predicted_net_flux_values
+                ))
+
+        for i in range(num_surface_temp_bins):
+            for j in range(num_zenith_angle_bins):
+                these_indices = numpy.where(numpy.logical_and(
+                    surface_temp_bin_indices == i, zenith_angle_bin_indices == j
+                ))[0]
+
+                if 'mae' in STATISTIC_NAMES[k]:
+                    these_errors = numpy.absolute(
+                        actual_values[these_indices] -
+                        predicted_values[these_indices]
+                    )
+                else:
+                    these_errors = (
+                        predicted_values[these_indices] -
+                        actual_values[these_indices]
+                    )
+
+                if plot_fractional_errors:
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
+                    )
+                else:
+                    metric_matrix[i, j] = numpy.mean(these_errors)
+
+        if letter_label is None:
+            letter_label = 'a'
+        else:
+            letter_label = chr(ord(letter_label) + 1)
+
+        if 'bias' in STATISTIC_NAMES[k]:
+            max_colour_value = numpy.nanmax(
+                numpy.absolute(metric_matrix)
+            )
+            min_colour_value = -1 * max_colour_value
+            colour_map_object = BIAS_COLOUR_MAP_OBJECT
+        else:
+            min_colour_value = numpy.nanmin(metric_matrix)
+            max_colour_value = numpy.nanmax(metric_matrix)
+            colour_map_object = MAIN_COLOUR_MAP_OBJECT
+
+        colour_norm_object = pyplot.Normalize(
+            vmin=min_colour_value, vmax=max_colour_value
+        )
+
+        figure_object, axes_object = _plot_score_2d(
+            score_matrix=metric_matrix,
+            colour_map_object=colour_map_object,
+            colour_norm_object=colour_norm_object,
+            x_tick_labels=zenith_angle_tick_labels,
+            y_tick_labels=surface_temp_tick_labels
+        )
+
+        axes_object.set_xlabel('Solar zenith angle (deg)')
+        if plot_temp_gradients:
+            axes_object.set_ylabel(
+                r'Near-surface temperature gradient (K km$^{-1}$)'
+            )
+        else:
+            axes_object.set_ylabel('Surface temperature (K)')
+
+        axes_object.set_title(
+            STATISTIC_NAMES_FANCY_FRACTIONAL[k] if plot_fractional_errors
+            else STATISTIC_NAMES_FANCY[k]
+        )
+        gg_plotting_utils.label_axes(
+            axes_object=axes_object,
+            label_string='({0:s})'.format(letter_label)
+        )
+
+        panel_file_names[m] = '{0:s}/{1:s}_{2:.2f}microns.jpg'.format(
+            output_dir_name,
+            STATISTIC_NAMES[k],
+            METRES_TO_MICRONS * wavelength_metres
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(panel_file_names[m]))
+        figure_object.savefig(
+            panel_file_names[m], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    num_panel_columns = int(numpy.floor(
+        numpy.sqrt(num_statistics)
+    ))
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / num_panel_columns
+    ))
+
+    concat_file_name = (
+        '{0:s}/errors_by_sfc_temp_and_sza_{1:.2f}microns.jpg'
+    ).format(
+        output_dir_name,
+        METRES_TO_MICRONS * wavelength_metres
+    )
+
+    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
+    imagemagick_utils.concatenate_images(
+        input_file_names=panel_file_names,
+        output_file_name=concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=concat_file_name,
+        output_file_name=concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+
+def _run(prediction_file_name, wavelengths_metres, num_surface_temp_bins,
+         min_temp_gradient_k_km01, max_temp_gradient_k_km01,
+         num_zenith_angle_bins, plot_fractional_errors,
+         example_dir_name, output_dir_name):
     """Plots error metrics vs. surface temperature and solar zenith angle.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
+    :param wavelengths_metres: Same.
     :param num_surface_temp_bins: Same.
     :param min_temp_gradient_k_km01: Same.
     :param max_temp_gradient_k_km01: Same.
@@ -446,190 +680,20 @@ def _run(prediction_file_name, num_surface_temp_bins, min_temp_gradient_k_km01,
             LONGWAVE_ALL_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
         ]
 
-    found_data_flags = numpy.array(
-        [t in available_target_names for t in TARGET_NAME_BY_STATISTIC],
-        dtype=bool
-    )
-    plot_statistic_indices = numpy.where(found_data_flags)[0]
-    num_statistics = len(plot_statistic_indices)
-
-    pd = prediction_dict
-    letter_label = None
-    panel_file_names = [''] * num_statistics
-
-    for m in range(num_statistics):
-        print(SEPARATOR_STRING)
-
-        k = plot_statistic_indices[m]
-        metric_matrix = numpy.full(
-            (num_surface_temp_bins, num_zenith_angle_bins), numpy.nan
+    for this_wavelength_metres in wavelengths_metres:
+        _make_figure_1wavelength(
+            prediction_dict=prediction_dict,
+            available_target_names=available_target_names,
+            training_option_dict=training_option_dict,
+            zenith_angle_bin_indices=zenith_angle_bin_indices,
+            surface_temp_bin_indices=surface_temp_bin_indices,
+            zenith_angle_tick_labels=zenith_angle_tick_labels,
+            surface_temp_tick_labels=surface_temp_tick_labels,
+            wavelength_metres=this_wavelength_metres,
+            plot_fractional_errors=plot_fractional_errors,
+            plot_temp_gradients=plot_temp_gradients,
+            output_dir_name=output_dir_name
         )
-
-        if (
-                TARGET_NAME_BY_STATISTIC[k] ==
-                example_utils.LONGWAVE_HEATING_RATE_NAME
-        ):
-            channel_index = training_option_dict[
-                neural_net.VECTOR_TARGET_NAMES_KEY
-            ].index(TARGET_NAME_BY_STATISTIC[k])
-
-            actual_values = (
-                pd[prediction_io.VECTOR_TARGETS_KEY][..., channel_index]
-            )
-            predicted_values = (
-                pd[prediction_io.VECTOR_PREDICTIONS_KEY][..., channel_index]
-            )
-
-            if TARGET_HEIGHT_INDEX_BY_STATISTIC[k] > -1:
-                actual_values = (
-                    actual_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
-                )
-                predicted_values = (
-                    predicted_values[:, TARGET_HEIGHT_INDEX_BY_STATISTIC[k]]
-                )
-        else:
-            down_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
-
-            up_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.LONGWAVE_TOA_UP_FLUX_NAME)
-
-            actual_net_flux_values = (
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index]
-            )
-            predicted_net_flux_values = (
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index]
-            )
-
-            if TARGET_NAME_BY_STATISTIC[k] == LONGWAVE_NET_FLUX_NAME:
-                actual_values = actual_net_flux_values
-                predicted_values = predicted_net_flux_values
-            else:
-                actual_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index],
-                    actual_net_flux_values
-                ))
-                predicted_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
-                    predicted_net_flux_values
-                ))
-
-        for i in range(num_surface_temp_bins):
-            for j in range(num_zenith_angle_bins):
-                these_indices = numpy.where(numpy.logical_and(
-                    surface_temp_bin_indices == i, zenith_angle_bin_indices == j
-                ))[0]
-
-                if 'mae' in STATISTIC_NAMES[k]:
-                    these_errors = numpy.absolute(
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    )
-                # elif 'dwmse' in STATISTIC_NAMES[k]:
-                #     these_weights = numpy.maximum(
-                #         numpy.absolute(actual_values[these_indices]),
-                #         numpy.absolute(predicted_values[these_indices])
-                #     )
-                #     these_errors = these_weights * (
-                #         actual_values[these_indices] -
-                #         predicted_values[these_indices]
-                #     ) ** 2
-
-                else:
-                    these_errors = (
-                        predicted_values[these_indices] -
-                        actual_values[these_indices]
-                    )
-
-                if plot_fractional_errors:
-                    metric_matrix[i, j] = (
-                        100 * numpy.mean(these_errors) /
-                        numpy.mean(numpy.absolute(actual_values[these_indices]))
-                    )
-                else:
-                    metric_matrix[i, j] = numpy.mean(these_errors)
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        if 'bias' in STATISTIC_NAMES[k]:
-            max_colour_value = numpy.nanmax(
-                numpy.absolute(metric_matrix)
-            )
-            min_colour_value = -1 * max_colour_value
-            colour_map_object = BIAS_COLOUR_MAP_OBJECT
-        else:
-            min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanmax(metric_matrix)
-            colour_map_object = MAIN_COLOUR_MAP_OBJECT
-
-        colour_norm_object = pyplot.Normalize(
-            vmin=min_colour_value, vmax=max_colour_value
-        )
-
-        figure_object, axes_object = _plot_score_2d(
-            score_matrix=metric_matrix, colour_map_object=colour_map_object,
-            colour_norm_object=colour_norm_object,
-            x_tick_labels=zenith_angle_tick_labels,
-            y_tick_labels=surface_temp_tick_labels
-        )
-
-        axes_object.set_xlabel('Solar zenith angle (deg)')
-        if plot_temp_gradients:
-            axes_object.set_ylabel(
-                r'Near-surface temperature gradient (K km$^{-1}$)'
-            )
-        else:
-            axes_object.set_ylabel('Surface temperature (K)')
-
-        axes_object.set_title(
-            STATISTIC_NAMES_FANCY_FRACTIONAL[k] if plot_fractional_errors
-            else STATISTIC_NAMES_FANCY[k]
-        )
-        gg_plotting_utils.label_axes(
-            axes_object=axes_object, label_string='({0:s})'.format(letter_label)
-        )
-
-        panel_file_names[m] = '{0:s}/{1:s}.jpg'.format(
-            output_dir_name, STATISTIC_NAMES[k]
-        )
-
-        print('Saving figure to: "{0:s}"...'.format(panel_file_names[m]))
-        figure_object.savefig(
-            panel_file_names[m], dpi=FIGURE_RESOLUTION_DPI,
-            pad_inches=0, bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    num_panel_columns = int(numpy.floor(
-        numpy.sqrt(num_statistics)
-    ))
-    num_panel_rows = int(numpy.ceil(
-        float(num_statistics) / num_panel_columns
-    ))
-
-    concat_file_name = '{0:s}/errors_by_sfc_temp_and_sza.jpg'.format(
-        output_dir_name
-    )
-    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
-    imagemagick_utils.concatenate_images(
-        input_file_names=panel_file_names,
-        output_file_name=concat_file_name,
-        num_panel_rows=num_panel_rows, num_panel_columns=num_panel_columns
-    )
-    imagemagick_utils.resize_image(
-        input_file_name=concat_file_name,
-        output_file_name=concat_file_name,
-        output_size_pixels=int(1e7)
-    )
 
 
 if __name__ == '__main__':
@@ -637,6 +701,9 @@ if __name__ == '__main__':
 
     _run(
         prediction_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         num_surface_temp_bins=getattr(
             INPUT_ARG_OBJECT, NUM_SURFACE_TEMP_BINS_ARG_NAME
         ),

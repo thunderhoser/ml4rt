@@ -199,10 +199,10 @@ def _run(top_experiment_dir_name, plusplusplus_flag, deep_supervision_flag,
                     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
                 )[0][0]
                 mae_matrix_w_m02[i, j, k] = numpy.nanmean(
-                    et[evaluation.SCALAR_MAE_KEY].values[target_var_index, :]
+                    et[evaluation.SCALAR_MAE_KEY].values[0, target_var_index, :]
                 )
                 mse_matrix_w_m04[i, j, k] = numpy.nanmean(
-                    et[evaluation.SCALAR_MSE_KEY].values[target_var_index, :]
+                    et[evaluation.SCALAR_MSE_KEY].values[0, target_var_index, :]
                 )
 
     print('Writing summary to: "{0:s}"...'.format(output_file_name))
