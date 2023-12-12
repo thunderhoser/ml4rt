@@ -568,7 +568,8 @@ def read_file(
             field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01, axis=1
+            heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01,
+            axis=(1, 2)
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
@@ -582,7 +583,8 @@ def read_file(
             field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            heating_rate_matrix_k_day01 >= min_longwave_heating_k_day01, axis=1
+            heating_rate_matrix_k_day01 >= min_longwave_heating_k_day01,
+            axis=(1, 2)
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
@@ -596,7 +598,8 @@ def read_file(
             field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            heating_rate_matrix_k_day01 <= max_longwave_heating_k_day01, axis=1
+            heating_rate_matrix_k_day01 <= max_longwave_heating_k_day01,
+            axis=(1, 2)
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
