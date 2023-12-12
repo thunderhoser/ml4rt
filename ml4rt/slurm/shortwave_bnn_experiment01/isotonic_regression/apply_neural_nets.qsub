@@ -28,4 +28,4 @@ set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "repar
 
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}"
 
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt/slurm/shortwave_bnn_experiment01/isotonic_regression; bash apply_neural_net.sh ${model_dir_name}"
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt/slurm/shortwave_bnn_experiment01/isotonic_regression; bash apply_neural_net.sh ${model_dir_name}"

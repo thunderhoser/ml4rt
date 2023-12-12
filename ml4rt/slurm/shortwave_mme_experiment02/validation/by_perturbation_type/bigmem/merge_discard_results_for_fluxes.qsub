@@ -18,7 +18,7 @@ module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
 set PATHLESS_INPUT_FILE_NAMES=("discard_test_for_fluxes_part01.nc" "discard_test_for_fluxes_part02.nc" "discard_test_for_fluxes_part03.nc" "discard_test_for_fluxes_part04.nc" "discard_test_for_fluxes_part05.nc" "discard_test_for_fluxes_part06.nc" "discard_test_for_fluxes_part07.nc" "discard_test_for_fluxes_part08.nc" "discard_test_for_fluxes_part09.nc")

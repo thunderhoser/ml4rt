@@ -14,4 +14,4 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=create_templates_%A.out
 
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt/slurm/bnn_plusplus_test; sh create_template.sh"
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt/slurm/bnn_plusplus_test; sh create_template.sh"

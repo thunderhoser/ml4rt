@@ -18,7 +18,7 @@ module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment00"
 
 set PATHLESS_INPUT_FILE_NAMES=("spread_vs_skill_part01.nc" "spread_vs_skill_part02.nc" "spread_vs_skill_part03.nc" "spread_vs_skill_part04.nc" "spread_vs_skill_part05.nc" "spread_vs_skill_part06.nc" "spread_vs_skill_part07.nc" "spread_vs_skill_part08.nc" "spread_vs_skill_part09.nc")

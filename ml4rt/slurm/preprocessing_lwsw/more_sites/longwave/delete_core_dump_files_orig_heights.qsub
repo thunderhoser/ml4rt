@@ -19,7 +19,7 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=delete_core_dump_files_orig_heights_%A.out
 
-CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
 TOP_RRTM_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/more_sites/processed/orig_heights"
 
 chmod +x "${CODE_DIR_NAME}/rrtm/singularity_hera/delete_core_dump_files.sh"

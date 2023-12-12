@@ -21,6 +21,6 @@
 
 while :
 do
-	rm -v /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt/slurm/2022paper_experiments/shortwave/plusplus_deep/core.*
+	rm -v /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt/slurm/2022paper_experiments/shortwave/plusplus_deep/core.*
 	sleep 300
 done

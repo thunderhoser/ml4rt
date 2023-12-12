@@ -19,7 +19,7 @@ module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
 set MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs/test/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/gfs/test"
 
 set ANGLE_BIN_STRINGS=("000" "001" "002" "003" "004" "005" "006" "007" "008")

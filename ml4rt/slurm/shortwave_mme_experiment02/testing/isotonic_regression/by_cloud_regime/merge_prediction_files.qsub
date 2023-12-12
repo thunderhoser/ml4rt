@@ -23,7 +23,7 @@ module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_mme_experiment02"
 
 set PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "predictions_part03.nc" "predictions_part04.nc" "predictions_part05.nc" "predictions_part06.nc" "predictions_part07.nc" "predictions_part08.nc" "predictions_part09.nc")
