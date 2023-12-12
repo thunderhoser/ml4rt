@@ -38,6 +38,9 @@ LOSS_DICT = {
     'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
+ENSEMBLE_SIZE = 1
+NUM_WAVELENGTHS = 14
+
 MODEL_DEPTHS = numpy.array([3, 4, 5], dtype=int)
 CONV_LAYER_COUNTS = numpy.array([1, 2, 3, 4], dtype=int)
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
@@ -150,11 +153,16 @@ def _run():
                         num_input_units=int(numpy.round(
                             multiplier * these_channel_counts_all[-1]
                         )),
-                        num_classes=2,
+                        num_classes=2 * ENSEMBLE_SIZE * NUM_WAVELENGTHS,
                         num_dense_layers=4,
                         for_classification=False
                     )[1]
                 )
+
+                these_neuron_counts[-2] = max([
+                    these_neuron_counts[-2],
+                    2 * these_neuron_counts[-1]
+                ])
 
                 this_option_dict[
                     u_net_pp_architecture.DENSE_LAYER_NEURON_NUMS_KEY
