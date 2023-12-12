@@ -24,15 +24,6 @@ import profile_plotting
 
 # TODO(thunderhoser): Specify min and max to plot for each field
 
-DEFAULT_FONT_SIZE = 30
-pyplot.rc('font', size=DEFAULT_FONT_SIZE)
-pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
-pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
-pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
-pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
-pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
-pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
-
 METRES_TO_KM = 0.001
 
 DUMMY_FIRST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
@@ -45,7 +36,7 @@ DUMMY_LAST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
 VIOLIN_LINE_COLOUR = numpy.full(3, 0.)
 
 CONVERT_EXE_NAME = '/usr/bin/convert'
-TITLE_FONT_SIZE = 250
+TITLE_FONT_SIZE = 100
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
 FIGURE_WIDTH_INCHES = 15
@@ -181,18 +172,16 @@ def _make_violin_plot_one_dataset(
     del example_dicts
 
     data_matrix = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=field_name
+        example_dict=example_dict,
+        field_name=field_name,
+        target_wavelength_metres=example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
     )
     assert len(data_matrix.shape) == 2
-
-    print(data_matrix.shape)
-    data_matrix = data_matrix[:100000, :]
-    print(data_matrix.shape)
 
     heights_m_agl = example_dict[example_utils.HEIGHTS_KEY]
     heights_km_agl = METRES_TO_KM * heights_m_agl
     num_heights = len(heights_m_agl)
-    height_indices = numpy.linspace(
+    height_indices = 0.5 + numpy.linspace(
         0, num_heights - 1, num=num_heights, dtype=float
     )
 
@@ -215,9 +204,9 @@ def _make_violin_plot_one_dataset(
         )
 
     violin_handles = axes_object.violinplot(
-        data_matrix, positions=height_indices,
+        numpy.transpose(data_matrix), positions=height_indices,
         vert=False, widths=1.,
-        showmeans=False, showmedians=False, showextrema=True
+        showmeans=True, showmedians=True, showextrema=True
     )
 
     for part_name in ['cbars', 'cmins', 'cmaxes', 'cmeans', 'cmedians']:
@@ -227,28 +216,22 @@ def _make_violin_plot_one_dataset(
             continue
 
         this_handle.set_edgecolor(VIOLIN_LINE_COLOUR)
-        # this_handle.set_linewidth(1)
+        this_handle.set_linewidth(1)
 
     for this_handle in violin_handles['bodies']:
         this_handle.set_facecolor(dataset_colour)
         this_handle.set_edgecolor(dataset_colour)
-        this_handle.set_linewidth(0)
+        # this_handle.set_linewidth(0)
 
     y_tick_indices = axes_object.get_yticks()
-    y_tick_indices = numpy.round(y_tick_indices).astype(int)
-    y_tick_indices = y_tick_indices[y_tick_indices > 0]
-    y_tick_indices = y_tick_indices[y_tick_indices < num_heights]
-
-    print(['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices])
-
-    axes_object.set_yticks(y_tick_indices)
     axes_object.set_yticklabels(
-        ['{0:.2g}'.format(heights_km_agl[k]) for k in y_tick_indices]
+        y_tick_indices,
+        ['{0:.2g}'.format(h) for h in heights_km_agl[y_tick_indices]]
     )
 
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_xlabel(
-        profile_plotting.PREDICTOR_NAME_TO_VERBOSE[field_name]
+        profile_plotting.PREDICTOR_NAME_TO_CONV_FACTOR[field_name]
     )
 
     return figure_object, axes_object

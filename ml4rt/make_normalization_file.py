@@ -94,7 +94,7 @@ def _run(example_dir_name, first_training_time_string,
     fraction_to_delete_while_reading = max([
         fraction_to_delete_while_reading, 0.
     ])
-    error_checking.assert_is_leq(fraction_to_delete_while_reading, 0.9)
+    error_checking.assert_is_less_than(fraction_to_delete_while_reading, 1.)
 
     first_training_time_unix_sec = time_conversion.string_to_unix_sec(
         first_training_time_string, TIME_FORMAT
