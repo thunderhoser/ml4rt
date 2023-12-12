@@ -701,6 +701,15 @@ def write_file(example_dict, netcdf_file_name):
         example_dict[example_utils.HEIGHTS_KEY]
     )
 
+    # Add target wavelengths.
+    dataset_object.createVariable(
+        example_utils.TARGET_WAVELENGTHS_KEY, datatype=numpy.float32,
+        dimensions=TARGET_WAVELENGTH_DIM_KEY
+    )
+    dataset_object.variables[example_utils.TARGET_WAVELENGTHS_KEY][:] = (
+        example_dict[example_utils.TARGET_WAVELENGTHS_KEY]
+    )
+
     # Add standard-atmosphere flags.
     dataset_object.createVariable(
         example_utils.STANDARD_ATMO_FLAGS_KEY, datatype=numpy.int32,
