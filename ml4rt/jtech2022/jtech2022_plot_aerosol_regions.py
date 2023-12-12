@@ -10,8 +10,8 @@ from matplotlib import pyplot
 from gewittergefahr.gg_utils import general_utils as gg_general_utils
 from gewittergefahr.gg_utils import file_system_utils
 from ml4tc.io import border_io
-from ml4rt.utils import aerosols
 from ml4tc.plotting import plotting_utils
+from ml4rt.utils import aerosols
 
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 OUTPUT_FILE_HELP_STRING = 'Path to output file.  Figure will be saved here.'
@@ -62,7 +62,7 @@ def _run(output_file_name):
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
-    region_dict = aerosols._read_region_coords()
+    region_dict = aerosols.REGION_TO_COORDS_DICT
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
     figure_object, axes_object = pyplot.subplots(

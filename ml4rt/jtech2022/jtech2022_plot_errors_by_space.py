@@ -23,6 +23,8 @@ from ml4rt.plotting import plotting_utils
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 DUMMY_FIELD_NAME = 'reflectivity_column_max_dbz'
 
+METRES_TO_MICRONS = 1e6
+
 PERCENTILES_TO_REPORT = numpy.array([
     0, 1, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 50,
     75, 80, 82.5, 85, 87.5, 90, 92.5, 95, 97.5, 99, 100
@@ -196,6 +198,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 GRID_SPACING_ARG_NAME = 'grid_spacing_deg'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 MAX_COLOUR_PERCENTILE_ARG_NAME = 'max_colour_percentile'
 PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
 PLOT_DETAILS_ARG_NAME = 'plot_details'
@@ -208,6 +211,9 @@ PREDICTION_FILE_HELP_STRING = (
     '`prediction_io.read_file`.'
 )
 GRID_SPACING_HELP_STRING = 'Grid spacing (degrees).'
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one set of plots for each.'
+)
 MAX_COLOUR_PERCENTILE_HELP_STRING = (
     'Max percentile (from 0...100) to show in colour bars.'
 )
@@ -240,6 +246,11 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + GRID_SPACING_ARG_NAME, type=float, required=True,
     help=GRID_SPACING_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MAX_COLOUR_PERCENTILE_ARG_NAME, type=float, required=False,
@@ -497,15 +508,304 @@ def _plot_one_score(
     pyplot.close(figure_object)
 
 
-def _run(prediction_file_name, grid_spacing_deg, max_colour_percentile,
-         plot_fractional_errors, plot_details, min_num_examples,
-         plot_num_examples, output_dir_name):
+def _make_figure_1wavelength(
+        prediction_dict, available_target_names, training_option_dict,
+        example_latitudes_deg_n, example_longitudes_deg_e,
+        grid_latitudes_deg_n, grid_longitudes_deg_e,
+        grid_edge_latitudes_deg_n, grid_edge_longitudes_deg_e,
+        border_latitudes_deg_n, border_longitudes_deg_e,
+        wavelength_metres, min_num_examples, max_colour_percentile,
+        plot_fractional_errors, plot_details, plot_num_examples,
+        output_dir_name):
+    """Makes full paneled figure for one wavelength.
+
+    E = number of examples
+    M = number of rows in spatial grid
+    N = number of columns in spatial grid
+    V = number of vertices in borders
+
+    :param prediction_dict: Dictionary in format returned by
+        `prediction_io.read_file`.
+    :param available_target_names: 1-D list with names of target variables.
+    :param training_option_dict: Dictionary with training options, in format
+        accepted by `neural_net.data_generator`.
+    :param example_latitudes_deg_n: length-E numpy array of latitudes
+        (deg north).
+    :param example_longitudes_deg_e: length-E numpy array of longitudes
+        (deg east).
+    :param grid_latitudes_deg_n: length-M numpy array of latitudes (deg north).
+    :param grid_longitudes_deg_e: length-N numpy array of longitudes (deg east).
+    :param grid_edge_latitudes_deg_n: length-(M + 1) numpy array of latitudes
+        (deg north).
+    :param grid_edge_longitudes_deg_e: length-(N + 1) numpy array of longitudes
+        (deg east).
+    :param border_latitudes_deg_n: length-V numpy array of latitudes
+        (deg north).
+    :param border_longitudes_deg_e: length-V numpy array of longitudes
+        (deg east).
+    :param wavelength_metres: Wavelength.
+    :param min_num_examples: See documentation at top of this script.
+    :param max_colour_percentile: Same.
+    :param plot_fractional_errors: Same.
+    :param plot_details: Same.
+    :param plot_num_examples: Same.
+    :param output_dir_name: Same.
+    """
+
+    if plot_details:
+        statistic_names = STATISTIC_NAMES_DETAILED
+    else:
+        statistic_names = STATISTIC_NAMES_BASIC
+
+    target_name_by_statistic = [
+        STATISTIC_NAME_TO_TARGET_NAME[s] for s in statistic_names
+    ]
+    target_height_index_by_statistic = numpy.array([
+        STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX[s] for s in statistic_names
+    ], dtype=int)
+
+    found_data_flags = numpy.array(
+        [t in available_target_names for t in target_name_by_statistic],
+        dtype=bool
+    )
+    found_data_flags = numpy.array([
+        True if target_name_by_statistic[i] == '' and plot_num_examples
+        else found_data_flags[i]
+        for i in range(len(found_data_flags))
+    ], dtype=bool)
+
+    tod = training_option_dict
+    w_idx = example_utils.match_wavelengths(
+        wavelengths_metres=tod[neural_net.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
+    )
+
+    plot_statistic_indices = numpy.where(found_data_flags)[0]
+    num_statistics = len(plot_statistic_indices)
+    num_grid_rows = len(grid_edge_latitudes_deg_n) - 1
+    num_grid_columns = len(grid_edge_longitudes_deg_e) - 1
+
+    pdict = prediction_dict
+    letter_label = None
+    panel_file_names = [''] * num_statistics
+
+    for m in range(num_statistics):
+        print(SEPARATOR_STRING)
+
+        k = plot_statistic_indices[m]
+        metric_matrix = numpy.full((num_grid_rows, num_grid_columns), numpy.nan)
+
+        if target_name_by_statistic[k] == '':
+            actual_values = numpy.array([])
+            predicted_values = numpy.array([])
+
+        elif target_name_by_statistic[k] in [
+                example_utils.SHORTWAVE_HEATING_RATE_NAME,
+                example_utils.LONGWAVE_HEATING_RATE_NAME
+        ]:
+            t_idx = tod[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                target_name_by_statistic[k]
+            )
+            actual_values = (
+                pdict[prediction_io.VECTOR_TARGETS_KEY][..., w_idx, t_idx]
+            )
+            predicted_values = (
+                pdict[prediction_io.VECTOR_PREDICTIONS_KEY][..., w_idx, t_idx]
+            )
+
+            if target_height_index_by_statistic[k] > -1:
+                actual_values = (
+                    actual_values[:, target_height_index_by_statistic[k]]
+                )
+                predicted_values = (
+                    predicted_values[:, target_height_index_by_statistic[k]]
+                )
+
+        elif target_name_by_statistic[k] in [
+                SHORTWAVE_NET_FLUX_NAME, SHORTWAVE_ALL_FLUX_NAME
+        ]:
+            d_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            u_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+
+            actual_net_flux_values = (
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx]
+            )
+            predicted_net_flux_values = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx]
+            )
+
+            if target_name_by_statistic[k] == SHORTWAVE_NET_FLUX_NAME:
+                actual_values = actual_net_flux_values
+                predicted_values = predicted_net_flux_values
+            else:
+                actual_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx],
+                    actual_net_flux_values
+                ))
+                predicted_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx],
+                    predicted_net_flux_values
+                ))
+        elif target_name_by_statistic[k] in [
+                LONGWAVE_NET_FLUX_NAME, LONGWAVE_ALL_FLUX_NAME
+        ]:
+            d_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            u_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+            )
+
+            actual_net_flux_values = (
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx]
+            )
+            predicted_net_flux_values = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx]
+            )
+
+            if target_name_by_statistic[k] == LONGWAVE_NET_FLUX_NAME:
+                actual_values = actual_net_flux_values
+                predicted_values = predicted_net_flux_values
+            else:
+                actual_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx],
+                    actual_net_flux_values
+                ))
+                predicted_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx],
+                    predicted_net_flux_values
+                ))
+        else:
+            t_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                target_name_by_statistic[k]
+            )
+            actual_values = (
+                pdict[prediction_io.SCALAR_TARGETS_KEY][..., w_idx, t_idx]
+            )
+            predicted_values = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][..., w_idx, t_idx]
+            )
+
+        for i in range(num_grid_rows):
+            print((
+                'Have computed {0:s} at {1:d} of {2:d} grid rows...'
+            ).format(
+                statistic_names[k], i, num_grid_rows
+            ))
+
+            for j in range(num_grid_columns):
+                these_indices = grids.find_events_in_grid_cell(
+                    event_x_coords_metres=example_longitudes_deg_e,
+                    event_y_coords_metres=example_latitudes_deg_n,
+                    grid_edge_x_coords_metres=grid_edge_longitudes_deg_e,
+                    grid_edge_y_coords_metres=grid_edge_latitudes_deg_n,
+                    row_index=i, column_index=j, verbose=False
+                )
+
+                if statistic_names[k] == 'num_examples':
+                    metric_matrix[i, j] = len(these_indices)
+                    continue
+
+                if len(these_indices) < min_num_examples:
+                    continue
+
+                if 'mae' in statistic_names[k]:
+                    these_errors = numpy.absolute(
+                        actual_values[these_indices] -
+                        predicted_values[these_indices]
+                    )
+                else:
+                    these_errors = (
+                        predicted_values[these_indices] -
+                        actual_values[these_indices]
+                    )
+
+                if plot_fractional_errors:
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
+                    )
+                else:
+                    metric_matrix[i, j] = numpy.mean(these_errors)
+
+        print('Have computed {0:s} for all {1:d} grid rows!'.format(
+            statistic_names[k], num_grid_rows
+        ))
+        print(SEPARATOR_STRING)
+
+        if letter_label is None:
+            letter_label = 'a'
+        else:
+            letter_label = chr(ord(letter_label) + 1)
+
+        panel_file_names[m] = '{0:s}/{1:s}_{2:.2f}.jpg'.format(
+            output_dir_name,
+            statistic_names[k],
+            METRES_TO_MICRONS * wavelength_metres
+        )
+        title_string = (
+            STATISTIC_NAME_TO_FANCY_FRACTIONAL[statistic_names[k]]
+            if plot_fractional_errors
+            else STATISTIC_NAME_TO_FANCY[statistic_names[k]]
+        )
+
+        _plot_one_score(
+            score_matrix=metric_matrix,
+            score_is_bias='bias' in statistic_names[k],
+            score_is_num_examples=statistic_names[k] == 'num_examples',
+            max_colour_percentile=max_colour_percentile,
+            grid_latitudes_deg_n=grid_latitudes_deg_n,
+            grid_longitudes_deg_e=grid_longitudes_deg_e,
+            border_latitudes_deg_n=border_latitudes_deg_n,
+            border_longitudes_deg_e=border_longitudes_deg_e,
+            title_string=title_string, letter_label=letter_label,
+            output_file_name=panel_file_names[m]
+        )
+
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / NUM_PANEL_COLUMNS
+    ))
+
+    concat_file_name = '{0:s}/errors_by_space_{1:.2f}microns.jpg'.format(
+        output_dir_name,
+        METRES_TO_MICRONS * wavelength_metres
+    )
+
+    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
+    imagemagick_utils.concatenate_images(
+        input_file_names=panel_file_names,
+        output_file_name=concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=concat_file_name,
+        output_file_name=concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+
+def _run(prediction_file_name, grid_spacing_deg, wavelengths_metres,
+         max_colour_percentile, plot_fractional_errors, plot_details,
+         min_num_examples, plot_num_examples, output_dir_name):
     """Plots error metrics vs. geographic location on a world map.
 
     This is effectively the main method.
 
     :param prediction_file_name: See documentation at top of file.
     :param grid_spacing_deg: Same.
+    :param wavelengths_metres: Same.
     :param max_colour_percentile: Same.
     :param plot_fractional_errors: Same.
     :param plot_details: Same.
@@ -543,8 +843,8 @@ def _run(prediction_file_name, grid_spacing_deg, max_colour_percentile,
     metadata_dict = example_utils.parse_example_ids(
         prediction_dict[prediction_io.EXAMPLE_IDS_KEY]
     )
-    latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
-    longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+    example_latitudes_deg_n = metadata_dict[example_utils.LATITUDES_KEY]
+    example_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
         metadata_dict[example_utils.LONGITUDES_KEY]
     )
 
@@ -561,7 +861,7 @@ def _run(prediction_file_name, grid_spacing_deg, max_colour_percentile,
     num_grid_rows = len(grid_latitudes_deg_n)
     num_grid_columns = len(grid_longitudes_deg_e)
 
-    grid_edge_latitudes_deg, grid_edge_longitudes_deg = (
+    grid_edge_latitudes_deg_n, grid_edge_longitudes_deg_e = (
         grids.get_latlng_grid_cell_edges(
             min_latitude_deg=grid_latitudes_deg_n[0],
             min_longitude_deg=grid_longitudes_deg_e[0],
@@ -571,8 +871,8 @@ def _run(prediction_file_name, grid_spacing_deg, max_colour_percentile,
         )
     )
 
-    grid_edge_longitudes_deg = lng_conversion.convert_lng_positive_in_west(
-        grid_edge_longitudes_deg
+    grid_edge_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+        grid_edge_longitudes_deg_e
     )
     border_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         border_longitudes_deg_e
@@ -607,248 +907,27 @@ def _run(prediction_file_name, grid_spacing_deg, max_colour_percentile,
             LONGWAVE_ALL_FLUX_NAME, LONGWAVE_NET_FLUX_NAME
         ]
 
-    if plot_details:
-        statistic_names = STATISTIC_NAMES_DETAILED
-    else:
-        statistic_names = STATISTIC_NAMES_BASIC
-
-    target_name_by_statistic = [
-        STATISTIC_NAME_TO_TARGET_NAME[s] for s in statistic_names
-    ]
-    target_height_index_by_statistic = numpy.array([
-        STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX[s] for s in statistic_names
-    ], dtype=int)
-
-    found_data_flags = numpy.array(
-        [t in available_target_names for t in target_name_by_statistic],
-        dtype=bool
-    )
-    found_data_flags = numpy.array([
-        True if target_name_by_statistic[i] == '' and plot_num_examples
-        else found_data_flags[i]
-        for i in range(len(found_data_flags))
-    ], dtype=bool)
-
-    plot_statistic_indices = numpy.where(found_data_flags)[0]
-    num_statistics = len(plot_statistic_indices)
-
-    pd = prediction_dict
-    letter_label = None
-    panel_file_names = [''] * num_statistics
-
-    for m in range(num_statistics):
-        print(SEPARATOR_STRING)
-
-        k = plot_statistic_indices[m]
-        metric_matrix = numpy.full((num_grid_rows, num_grid_columns), numpy.nan)
-
-        if target_name_by_statistic[k] == '':
-            actual_values = numpy.array([])
-            predicted_values = numpy.array([])
-
-        elif target_name_by_statistic[k] in [
-                example_utils.SHORTWAVE_HEATING_RATE_NAME,
-                example_utils.LONGWAVE_HEATING_RATE_NAME
-        ]:
-            channel_index = training_option_dict[
-                neural_net.VECTOR_TARGET_NAMES_KEY
-            ].index(target_name_by_statistic[k])
-
-            actual_values = (
-                pd[prediction_io.VECTOR_TARGETS_KEY][..., channel_index]
-            )
-            predicted_values = (
-                pd[prediction_io.VECTOR_PREDICTIONS_KEY][..., channel_index]
-            )
-
-            if target_height_index_by_statistic[k] > -1:
-                actual_values = (
-                    actual_values[:, target_height_index_by_statistic[k]]
-                )
-                predicted_values = (
-                    predicted_values[:, target_height_index_by_statistic[k]]
-                )
-
-        elif target_name_by_statistic[k] in [
-                SHORTWAVE_NET_FLUX_NAME, SHORTWAVE_ALL_FLUX_NAME
-        ]:
-            down_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
-
-            up_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
-
-            actual_net_flux_values = (
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index]
-            )
-            predicted_net_flux_values = (
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index]
-            )
-
-            if target_name_by_statistic[k] == SHORTWAVE_NET_FLUX_NAME:
-                actual_values = actual_net_flux_values
-                predicted_values = predicted_net_flux_values
-            else:
-                actual_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index],
-                    actual_net_flux_values
-                ))
-                predicted_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
-                    predicted_net_flux_values
-                ))
-        elif target_name_by_statistic[k] in [
-                LONGWAVE_NET_FLUX_NAME, LONGWAVE_ALL_FLUX_NAME
-        ]:
-            down_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME)
-
-            up_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.LONGWAVE_TOA_UP_FLUX_NAME)
-
-            actual_net_flux_values = (
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index]
-            )
-            predicted_net_flux_values = (
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index]
-            )
-
-            if target_name_by_statistic[k] == LONGWAVE_NET_FLUX_NAME:
-                actual_values = actual_net_flux_values
-                predicted_values = predicted_net_flux_values
-            else:
-                actual_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index],
-                    actual_net_flux_values
-                ))
-                predicted_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
-                    predicted_net_flux_values
-                ))
-        else:
-            channel_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(target_name_by_statistic[k])
-
-            actual_values = (
-                pd[prediction_io.SCALAR_TARGETS_KEY][..., channel_index]
-            )
-            predicted_values = (
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][..., channel_index]
-            )
-
-        for i in range(num_grid_rows):
-            print((
-                'Have computed {0:s} at {1:d} of {2:d} grid rows...'
-            ).format(
-                statistic_names[k], i, num_grid_rows
-            ))
-
-            for j in range(num_grid_columns):
-                these_indices = grids.find_events_in_grid_cell(
-                    event_x_coords_metres=longitudes_deg_e,
-                    event_y_coords_metres=latitudes_deg_n,
-                    grid_edge_x_coords_metres=grid_edge_longitudes_deg,
-                    grid_edge_y_coords_metres=grid_edge_latitudes_deg,
-                    row_index=i, column_index=j, verbose=False
-                )
-
-                if statistic_names[k] == 'num_examples':
-                    metric_matrix[i, j] = len(these_indices)
-                    continue
-
-                if len(these_indices) < min_num_examples:
-                    continue
-
-                if 'mae' in statistic_names[k]:
-                    these_errors = numpy.absolute(
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    )
-                # elif 'dwmse' in STATISTIC_NAMES[k]:
-                #     these_weights = numpy.maximum(
-                #         numpy.absolute(actual_values[these_indices]),
-                #         numpy.absolute(predicted_values[these_indices])
-                #     )
-                #     these_errors = these_weights * (
-                #         actual_values[these_indices] -
-                #         predicted_values[these_indices]
-                #     ) ** 2
-
-                else:
-                    these_errors = (
-                        predicted_values[these_indices] -
-                        actual_values[these_indices]
-                    )
-
-                if plot_fractional_errors:
-                    metric_matrix[i, j] = (
-                        100 * numpy.mean(these_errors) /
-                        numpy.mean(numpy.absolute(actual_values[these_indices]))
-                    )
-                else:
-                    metric_matrix[i, j] = numpy.mean(these_errors)
-
-        print('Have computed {0:s} for all {1:d} grid rows!'.format(
-            statistic_names[k], num_grid_rows
-        ))
-        print(SEPARATOR_STRING)
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        panel_file_names[m] = '{0:s}/{1:s}.jpg'.format(
-            output_dir_name, statistic_names[k]
-        )
-        title_string = (
-            STATISTIC_NAME_TO_FANCY_FRACTIONAL[statistic_names[k]]
-            if plot_fractional_errors
-            else STATISTIC_NAME_TO_FANCY[statistic_names[k]]
-        )
-
-        _plot_one_score(
-            score_matrix=metric_matrix,
-            score_is_bias='bias' in statistic_names[k],
-            score_is_num_examples=statistic_names[k] == 'num_examples',
-            max_colour_percentile=max_colour_percentile,
+    for this_wavelength_metres in wavelengths_metres:
+        _make_figure_1wavelength(
+            prediction_dict=prediction_dict,
+            available_target_names=available_target_names,
+            training_option_dict=training_option_dict,
+            example_latitudes_deg_n=example_latitudes_deg_n,
+            example_longitudes_deg_e=example_longitudes_deg_e,
             grid_latitudes_deg_n=grid_latitudes_deg_n,
             grid_longitudes_deg_e=grid_longitudes_deg_e,
+            grid_edge_latitudes_deg_n=grid_edge_latitudes_deg_n,
+            grid_edge_longitudes_deg_e=grid_edge_longitudes_deg_e,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            title_string=title_string, letter_label=letter_label,
-            output_file_name=panel_file_names[m]
+            wavelength_metres=this_wavelength_metres,
+            min_num_examples=min_num_examples,
+            max_colour_percentile=max_colour_percentile,
+            plot_fractional_errors=plot_fractional_errors,
+            plot_details=plot_details,
+            plot_num_examples=plot_num_examples,
+            output_dir_name=output_dir_name
         )
-
-    num_panel_rows = int(numpy.ceil(
-        float(num_statistics) / NUM_PANEL_COLUMNS
-    ))
-
-    concat_file_name = '{0:s}/errors_by_space.jpg'.format(output_dir_name)
-    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
-    imagemagick_utils.concatenate_images(
-        input_file_names=panel_file_names,
-        output_file_name=concat_file_name,
-        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
-    )
-    imagemagick_utils.resize_image(
-        input_file_name=concat_file_name,
-        output_file_name=concat_file_name,
-        output_size_pixels=int(1e7)
-    )
 
 
 if __name__ == '__main__':
@@ -859,6 +938,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
         grid_spacing_deg=getattr(INPUT_ARG_OBJECT, GRID_SPACING_ARG_NAME),
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         max_colour_percentile=getattr(
             INPUT_ARG_OBJECT, MAX_COLOUR_PERCENTILE_ARG_NAME
         ),

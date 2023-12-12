@@ -7,6 +7,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from scipy.stats import gaussian_kde
 from scipy.integrate import simps
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.utils import aerosols
@@ -68,6 +69,10 @@ def _run(output_dir_name):
 
     :param output_dir_name: See documentation at top of file.
     """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
 
     # Plot baseline extinction profile.
     num_heights = len(GRID_HEIGHTS_M_AGL)
