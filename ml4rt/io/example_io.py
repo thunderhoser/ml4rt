@@ -561,7 +561,8 @@ def read_file(
             field_name=example_utils.SHORTWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01, axis=1
+            heating_rate_matrix_k_day01 <= max_shortwave_heating_k_day01,
+            axis=(1, 2)
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
@@ -575,7 +576,8 @@ def read_file(
             field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            heating_rate_matrix_k_day01 >= min_longwave_heating_k_day01, axis=1
+            heating_rate_matrix_k_day01 >= min_longwave_heating_k_day01,
+            axis=(1, 2)
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
@@ -589,7 +591,8 @@ def read_file(
             field_name=example_utils.LONGWAVE_HEATING_RATE_NAME
         )
         good_example_flags = numpy.all(
-            heating_rate_matrix_k_day01 <= max_longwave_heating_k_day01, axis=1
+            heating_rate_matrix_k_day01 <= max_longwave_heating_k_day01,
+            axis=(1, 2)
         )
         good_example_indices = numpy.where(good_example_flags)[0]
 
@@ -692,6 +695,15 @@ def write_file(example_dict, netcdf_file_name):
     )
     dataset_object.variables[example_utils.HEIGHTS_KEY][:] = (
         example_dict[example_utils.HEIGHTS_KEY]
+    )
+
+    # Add target wavelengths.
+    dataset_object.createVariable(
+        example_utils.TARGET_WAVELENGTHS_KEY, datatype=numpy.float32,
+        dimensions=TARGET_WAVELENGTH_DIM_KEY
+    )
+    dataset_object.variables[example_utils.TARGET_WAVELENGTHS_KEY][:] = (
+        example_dict[example_utils.TARGET_WAVELENGTHS_KEY]
     )
 
     # Add standard-atmosphere flags.

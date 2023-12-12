@@ -832,8 +832,8 @@ def read_file(netcdf_file_name, dummy_heights_m_agl, look_for_shortwave,
         )
 
         bad_target_flags = numpy.logical_or(
-            numpy.any(scalar_target_matrix >= MIN_BAD_VALUE, axis=1),
-            numpy.any(vector_target_matrix >= MIN_BAD_VALUE, axis=(1, 2))
+            numpy.any(scalar_target_matrix >= MIN_BAD_VALUE, axis=(1, 2)),
+            numpy.any(vector_target_matrix >= MIN_BAD_VALUE, axis=(1, 2, 3))
         )
 
         good_indices = numpy.where(numpy.invert(
