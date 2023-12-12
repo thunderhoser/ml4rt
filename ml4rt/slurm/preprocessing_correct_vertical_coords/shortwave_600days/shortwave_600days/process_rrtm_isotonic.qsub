@@ -26,7 +26,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/processed/orig_heights"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave/isotonic_regression"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/isotonic_regression"
 
 set FIRST_DATE_STRINGS=("20191224" "20200203" "20200315" "20200426" "20200607" "20200718" "20200828" "20201010" "20201121")
 set LAST_DATE_STRINGS=("20191230" "20200209" "20200321" "20200502" "20200613" "20200724" "20200903" "20201016" "20201127")
