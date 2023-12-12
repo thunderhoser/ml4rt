@@ -32,5 +32,5 @@ python3 -u "${CODE_DIR_NAME}/make_normalization_file.py" \
 --first_training_time_string="2018-09-01-000000" \
 --last_training_time_string="2019-12-21-235959" \
 --num_examples=100000 \
---fraction_to_delete_while_reading=0.95 \
+--fraction_to_delete_while_reading=0.5 \
 --output_norm_file_name="${NORMALIZATION_FILE_NAME}"
