@@ -1595,8 +1595,6 @@ def train_model_sans_generator(
                 random_indices, ...
             ]
 
-    print('BATCH SIZE = {0:d}'.format(training_option_dict[BATCH_SIZE_KEY]))
-
     model_object.fit(
         x=training_predictor_matrix, y=training_target_array,
         batch_size=training_option_dict[BATCH_SIZE_KEY],
