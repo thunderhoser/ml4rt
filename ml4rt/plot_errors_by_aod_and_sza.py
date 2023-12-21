@@ -23,6 +23,8 @@ import example_utils
 import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+METRES_TO_MICRONS = 1e6
 RADIANS_TO_DEGREES = 180. / numpy.pi
 
 MAX_ZENITH_ANGLE_RAD = numpy.pi / 2
@@ -114,6 +116,7 @@ BIAS_COLOUR_MAP_OBJECT.set_bad(numpy.full(3, 152. / 255))
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 NUM_ANGLE_BINS_ARG_NAME = 'num_zenith_angle_bins'
 NUM_AOD_BINS_ARG_NAME = 'num_aod_bins'
+WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 PLOT_FRACTIONAL_ERRORS_ARG_NAME = 'plot_fractional_errors'
 PLOT_DETAILS_ARG_NAME = 'plot_details'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
@@ -125,6 +128,9 @@ INPUT_FILE_HELP_STRING = (
 )
 NUM_ANGLE_BINS_HELP_STRING = 'Number of bins for solar zenith angle.'
 NUM_AOD_BINS_HELP_STRING = 'Number of bins for aerosol optical depth (AOD).'
+WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths.  Will create one set of plots for each.'
+)
 PLOT_FRACTIONAL_ERRORS_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot fractional (raw) errors for each '
     'metric -- "fractional" meaning as a fraction of the mean.'
@@ -153,6 +159,11 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_AOD_BINS_ARG_NAME, type=int, required=False, default=10,
     help=NUM_AOD_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
+    help=WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_FRACTIONAL_ERRORS_ARG_NAME, type=int, required=False, default=0,
@@ -288,7 +299,7 @@ def _get_aerosol_optical_depths(prediction_dict, example_dir_name):
     return aerosol_optical_depths
 
 
-def _plot_score_2d(
+def _plot_one_score(
         score_matrix, colour_map_object, colour_norm_object, x_tick_labels,
         y_tick_labels):
     """Plots one score on 2-D grid.
@@ -343,9 +354,241 @@ def _plot_score_2d(
     return figure_object, axes_object
 
 
+def _make_figure_1wavelength(
+        prediction_dict, available_target_names, training_option_dict,
+        aod_tick_labels, zenith_angle_tick_labels,
+        aod_bin_indices, zenith_angle_bin_indices,
+        wavelength_metres, plot_fractional_errors, plot_details,
+        output_dir_name):
+    """Makes full paneled figure for one wavelength.
+
+    E = number of examples
+    A = number of AOD bins
+    Z = number of zenith-angle bins
+
+    :param prediction_dict: Dictionary in format returned by
+        `prediction_io.read_file`.
+    :param available_target_names: 1-D list with names of target variables.
+    :param training_option_dict: Dictionary with training options, in format
+        accepted by `neural_net.data_generator`.
+    :param aod_tick_labels: length-A list of tick labels.
+    :param zenith_angle_tick_labels: length-Z list of tick labels.
+    :param aod_bin_indices: length-E numpy array with AOD-bin index (ranging
+        from 0...[A - 1]) for each example.
+    :param zenith_angle_bin_indices: length-E numpy array with zenith-angle-bin
+        index (ranging from 0...[Z - 1]) for each example.
+    :param wavelength_metres: Wavelength.
+    :param plot_fractional_errors: See documentation at top of this script.
+    :param plot_details: Same.
+    :param output_dir_name: Same.
+    """
+
+    if plot_details:
+        statistic_names = STATISTIC_NAMES_DETAILED
+    else:
+        statistic_names = STATISTIC_NAMES_BASIC
+
+    target_name_by_statistic = [
+        STATISTIC_NAME_TO_TARGET_NAME[s] for s in statistic_names
+    ]
+    target_height_index_by_statistic = numpy.array([
+        STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX[s] for s in statistic_names
+    ], dtype=int)
+
+    found_data_flags = numpy.array(
+        [t in available_target_names for t in target_name_by_statistic],
+        dtype=bool
+    )
+
+    tod = training_option_dict
+    w_idx = example_utils.match_wavelengths(
+        wavelengths_metres=tod[neural_net.TARGET_WAVELENGTHS_KEY],
+        desired_wavelength_metres=wavelength_metres
+    )
+
+    plot_statistic_indices = numpy.where(found_data_flags)[0]
+    num_statistics = len(plot_statistic_indices)
+    num_aod_bins = len(aod_tick_labels)
+    num_zenith_angle_bins = len(zenith_angle_tick_labels)
+
+    pdict = prediction_dict
+    letter_label = None
+    panel_file_names = [''] * num_statistics
+
+    for m in range(num_statistics):
+        print(SEPARATOR_STRING)
+
+        k = plot_statistic_indices[m]
+        metric_matrix = numpy.full(
+            (num_zenith_angle_bins, num_aod_bins), numpy.nan
+        )
+
+        if (
+                target_name_by_statistic[k] ==
+                example_utils.SHORTWAVE_HEATING_RATE_NAME
+        ):
+            t_idx = tod[neural_net.VECTOR_TARGET_NAMES_KEY].index(
+                target_name_by_statistic[k]
+            )
+            actual_values = (
+                pdict[prediction_io.VECTOR_TARGETS_KEY][..., w_idx, t_idx]
+            )
+            predicted_values = (
+                pdict[prediction_io.VECTOR_PREDICTIONS_KEY][..., w_idx, t_idx]
+            )
+
+            if target_height_index_by_statistic[k] > -1:
+                actual_values = (
+                    actual_values[:, target_height_index_by_statistic[k]]
+                )
+                predicted_values = (
+                    predicted_values[:, target_height_index_by_statistic[k]]
+                )
+        elif target_name_by_statistic[k] in [
+                SHORTWAVE_NET_FLUX_NAME, SHORTWAVE_ALL_FLUX_NAME
+        ]:
+            d_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+            )
+            u_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+            )
+
+            actual_net_flux_values = (
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx]
+            )
+            predicted_net_flux_values = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx] -
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx]
+            )
+
+            if target_name_by_statistic[k] == SHORTWAVE_NET_FLUX_NAME:
+                actual_values = actual_net_flux_values
+                predicted_values = predicted_net_flux_values
+            else:
+                actual_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_TARGETS_KEY][:, w_idx, u_idx],
+                    actual_net_flux_values
+                ))
+                predicted_values = numpy.concatenate((
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, d_idx],
+                    pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, w_idx, u_idx],
+                    predicted_net_flux_values
+                ))
+        else:
+            t_idx = tod[neural_net.SCALAR_TARGET_NAMES_KEY].index(
+                target_name_by_statistic[k]
+            )
+            actual_values = (
+                pdict[prediction_io.SCALAR_TARGETS_KEY][..., w_idx, t_idx]
+            )
+            predicted_values = (
+                pdict[prediction_io.SCALAR_PREDICTIONS_KEY][..., w_idx, t_idx]
+            )
+
+        for i in range(num_zenith_angle_bins):
+            for j in range(num_aod_bins):
+                these_indices = numpy.where(numpy.logical_and(
+                    zenith_angle_bin_indices == i, aod_bin_indices == j
+                ))[0]
+
+                if 'mae' in statistic_names[k]:
+                    these_errors = numpy.absolute(
+                        actual_values[these_indices] -
+                        predicted_values[these_indices]
+                    )
+                else:
+                    these_errors = (
+                        predicted_values[these_indices] -
+                        actual_values[these_indices]
+                    )
+
+                if plot_fractional_errors:
+                    metric_matrix[i, j] = (
+                        100 * numpy.mean(these_errors) /
+                        numpy.mean(numpy.absolute(actual_values[these_indices]))
+                    )
+                else:
+                    metric_matrix[i, j] = numpy.mean(these_errors)
+
+        if letter_label is None:
+            letter_label = 'a'
+        else:
+            letter_label = chr(ord(letter_label) + 1)
+
+        if 'bias' in statistic_names[k]:
+            max_colour_value = numpy.nanmax(
+                numpy.absolute(metric_matrix)
+            )
+            min_colour_value = -1 * max_colour_value
+            colour_map_object = BIAS_COLOUR_MAP_OBJECT
+        else:
+            min_colour_value = numpy.nanmin(metric_matrix)
+            max_colour_value = numpy.nanmax(metric_matrix)
+            colour_map_object = MAIN_COLOUR_MAP_OBJECT
+
+        colour_norm_object = pyplot.Normalize(
+            vmin=min_colour_value, vmax=max_colour_value
+        )
+
+        figure_object, axes_object = _plot_one_score(
+            score_matrix=metric_matrix, colour_map_object=colour_map_object,
+            colour_norm_object=colour_norm_object,
+            x_tick_labels=aod_tick_labels,
+            y_tick_labels=zenith_angle_tick_labels
+        )
+
+        axes_object.set_xlabel('Aerosol optical depth (unitless)')
+        axes_object.set_ylabel('Solar zenith angle (deg)')
+        axes_object.set_title(
+            STATISTIC_NAME_TO_FANCY_FRACTIONAL[statistic_names[k]]
+            if plot_fractional_errors
+            else STATISTIC_NAME_TO_FANCY[statistic_names[k]]
+        )
+        gg_plotting_utils.label_axes(
+            axes_object=axes_object, label_string='({0:s})'.format(letter_label)
+        )
+
+        panel_file_names[m] = '{0:s}/{1:s}_{2:.2f}.jpg'.format(
+            output_dir_name,
+            statistic_names[k],
+            METRES_TO_MICRONS * wavelength_metres
+        )
+
+        print('Saving figure to: "{0:s}"...'.format(panel_file_names[m]))
+        figure_object.savefig(
+            panel_file_names[m], dpi=FIGURE_RESOLUTION_DPI,
+            pad_inches=0, bbox_inches='tight'
+        )
+        pyplot.close(figure_object)
+
+    num_panel_rows = int(numpy.ceil(
+        float(num_statistics) / NUM_PANEL_COLUMNS
+    ))
+
+    concat_file_name = '{0:s}/errors_by_aod_and_sza_{1:.2f}microns.jpg'.format(
+        output_dir_name,
+        METRES_TO_MICRONS * wavelength_metres
+    )
+
+    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
+    imagemagick_utils.concatenate_images(
+        input_file_names=panel_file_names,
+        output_file_name=concat_file_name,
+        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
+    )
+    imagemagick_utils.resize_image(
+        input_file_name=concat_file_name,
+        output_file_name=concat_file_name,
+        output_size_pixels=int(1e7)
+    )
+
+
 def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
-         plot_fractional_errors, plot_details, example_dir_name,
-         output_dir_name):
+         wavelengths_metres, plot_fractional_errors, plot_details,
+         example_dir_name, output_dir_name):
     """Plots error metrics vs. aerosol optical depth and solar zenith angle.
 
     This is effectively the main method.
@@ -353,6 +596,7 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
     :param prediction_file_name: See documentation at top of file.
     :param num_zenith_angle_bins: Same.
     :param num_aod_bins: Same.
+    :param wavelengths_metres: Same.
     :param plot_fractional_errors: Same.
     :param plot_details: Same.
     :param example_dir_name: Same.
@@ -442,205 +686,20 @@ def _run(prediction_file_name, num_zenith_angle_bins, num_aod_bins,
             SHORTWAVE_ALL_FLUX_NAME, SHORTWAVE_NET_FLUX_NAME
         ]
 
-    if plot_details:
-        statistic_names = STATISTIC_NAMES_DETAILED
-    else:
-        statistic_names = STATISTIC_NAMES_BASIC
-
-    target_name_by_statistic = [
-        STATISTIC_NAME_TO_TARGET_NAME[s] for s in statistic_names
-    ]
-    target_height_index_by_statistic = numpy.array([
-        STATISTIC_NAME_TO_TARGET_HEIGHT_INDEX[s] for s in statistic_names
-    ], dtype=int)
-
-    found_data_flags = numpy.array(
-        [t in available_target_names for t in target_name_by_statistic],
-        dtype=bool
-    )
-    plot_statistic_indices = numpy.where(found_data_flags)[0]
-    num_statistics = len(plot_statistic_indices)
-
-    pd = prediction_dict
-    letter_label = None
-    panel_file_names = [''] * num_statistics
-
-    for m in range(num_statistics):
-        print(SEPARATOR_STRING)
-
-        k = plot_statistic_indices[m]
-        metric_matrix = numpy.full(
-            (num_zenith_angle_bins, num_aod_bins), numpy.nan
+    for this_wavelength_metres in wavelengths_metres:
+        _make_figure_1wavelength(
+            prediction_dict=prediction_dict,
+            available_target_names=available_target_names,
+            training_option_dict=training_option_dict,
+            aod_tick_labels=aod_tick_labels,
+            zenith_angle_tick_labels=zenith_angle_tick_labels,
+            aod_bin_indices=aod_bin_indices,
+            zenith_angle_bin_indices=zenith_angle_bin_indices,
+            wavelength_metres=this_wavelength_metres,
+            plot_fractional_errors=plot_fractional_errors,
+            plot_details=plot_details,
+            output_dir_name=output_dir_name
         )
-
-        if (
-                target_name_by_statistic[k] ==
-                example_utils.SHORTWAVE_HEATING_RATE_NAME
-        ):
-            channel_index = training_option_dict[
-                neural_net.VECTOR_TARGET_NAMES_KEY
-            ].index(target_name_by_statistic[k])
-
-            actual_values = (
-                pd[prediction_io.VECTOR_TARGETS_KEY][..., channel_index]
-            )
-            predicted_values = (
-                pd[prediction_io.VECTOR_PREDICTIONS_KEY][..., channel_index]
-            )
-
-            if target_height_index_by_statistic[k] > -1:
-                actual_values = (
-                    actual_values[:, target_height_index_by_statistic[k]]
-                )
-                predicted_values = (
-                    predicted_values[:, target_height_index_by_statistic[k]]
-                )
-        elif target_name_by_statistic[k] in [
-                SHORTWAVE_NET_FLUX_NAME, SHORTWAVE_ALL_FLUX_NAME
-        ]:
-            down_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME)
-
-            up_flux_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
-
-            actual_net_flux_values = (
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index]
-            )
-            predicted_net_flux_values = (
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index] -
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index]
-            )
-
-            if target_name_by_statistic[k] == SHORTWAVE_NET_FLUX_NAME:
-                actual_values = actual_net_flux_values
-                predicted_values = predicted_net_flux_values
-            else:
-                actual_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_TARGETS_KEY][:, up_flux_index],
-                    actual_net_flux_values
-                ))
-                predicted_values = numpy.concatenate((
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, down_flux_index],
-                    pd[prediction_io.SCALAR_PREDICTIONS_KEY][:, up_flux_index],
-                    predicted_net_flux_values
-                ))
-        else:
-            channel_index = training_option_dict[
-                neural_net.SCALAR_TARGET_NAMES_KEY
-            ].index(target_name_by_statistic[k])
-
-            actual_values = (
-                pd[prediction_io.SCALAR_TARGETS_KEY][..., channel_index]
-            )
-            predicted_values = (
-                pd[prediction_io.SCALAR_PREDICTIONS_KEY][..., channel_index]
-            )
-
-        for i in range(num_zenith_angle_bins):
-            for j in range(num_aod_bins):
-                these_indices = numpy.where(numpy.logical_and(
-                    zenith_angle_bin_indices == i, aod_bin_indices == j
-                ))[0]
-
-                if 'mae' in statistic_names[k]:
-                    these_errors = numpy.absolute(
-                        actual_values[these_indices] -
-                        predicted_values[these_indices]
-                    )
-                # elif 'dwmse' in STATISTIC_NAMES[k]:
-                #     these_weights = numpy.maximum(
-                #         numpy.absolute(actual_values[these_indices]),
-                #         numpy.absolute(predicted_values[these_indices])
-                #     )
-                #     these_errors = these_weights * (
-                #         actual_values[these_indices] -
-                #         predicted_values[these_indices]
-                #     ) ** 2
-
-                else:
-                    these_errors = (
-                        predicted_values[these_indices] -
-                        actual_values[these_indices]
-                    )
-
-                if plot_fractional_errors:
-                    metric_matrix[i, j] = (
-                        100 * numpy.mean(these_errors) /
-                        numpy.mean(numpy.absolute(actual_values[these_indices]))
-                    )
-                else:
-                    metric_matrix[i, j] = numpy.mean(these_errors)
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        if 'bias' in statistic_names[k]:
-            max_colour_value = numpy.nanmax(
-                numpy.absolute(metric_matrix)
-            )
-            min_colour_value = -1 * max_colour_value
-            colour_map_object = BIAS_COLOUR_MAP_OBJECT
-        else:
-            min_colour_value = numpy.nanmin(metric_matrix)
-            max_colour_value = numpy.nanmax(metric_matrix)
-            colour_map_object = MAIN_COLOUR_MAP_OBJECT
-
-        colour_norm_object = pyplot.Normalize(
-            vmin=min_colour_value, vmax=max_colour_value
-        )
-
-        figure_object, axes_object = _plot_score_2d(
-            score_matrix=metric_matrix, colour_map_object=colour_map_object,
-            colour_norm_object=colour_norm_object,
-            x_tick_labels=aod_tick_labels,
-            y_tick_labels=zenith_angle_tick_labels
-        )
-
-        axes_object.set_xlabel('Aerosol optical depth (unitless)')
-        axes_object.set_ylabel('Solar zenith angle (deg)')
-        axes_object.set_title(
-            STATISTIC_NAME_TO_FANCY_FRACTIONAL[statistic_names[k]]
-            if plot_fractional_errors
-            else STATISTIC_NAME_TO_FANCY[statistic_names[k]]
-        )
-        gg_plotting_utils.label_axes(
-            axes_object=axes_object, label_string='({0:s})'.format(letter_label)
-        )
-
-        panel_file_names[m] = '{0:s}/{1:s}.jpg'.format(
-            output_dir_name, statistic_names[k]
-        )
-
-        print('Saving figure to: "{0:s}"...'.format(panel_file_names[m]))
-        figure_object.savefig(
-            panel_file_names[m], dpi=FIGURE_RESOLUTION_DPI,
-            pad_inches=0, bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    num_panel_rows = int(numpy.ceil(
-        float(num_statistics) / NUM_PANEL_COLUMNS
-    ))
-
-    concat_file_name = '{0:s}/errors_by_aod_and_sza.jpg'.format(output_dir_name)
-    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
-    imagemagick_utils.concatenate_images(
-        input_file_names=panel_file_names,
-        output_file_name=concat_file_name,
-        num_panel_rows=num_panel_rows, num_panel_columns=NUM_PANEL_COLUMNS
-    )
-    imagemagick_utils.resize_image(
-        input_file_name=concat_file_name,
-        output_file_name=concat_file_name,
-        output_size_pixels=int(1e7)
-    )
 
 
 if __name__ == '__main__':
@@ -652,6 +711,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_ANGLE_BINS_ARG_NAME
         ),
         num_aod_bins=getattr(INPUT_ARG_OBJECT, NUM_AOD_BINS_ARG_NAME),
+        wavelengths_metres=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
+        ),
         plot_fractional_errors=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_FRACTIONAL_ERRORS_ARG_NAME)
         ),
