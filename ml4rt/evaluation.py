@@ -815,8 +815,10 @@ def _get_scores_one_replicate(
                     alternative='two-sided', mode='auto'
                 )
 
-            flat_target_values = vector_target_matrix[..., w, t]
-            flat_predicted_values = vector_prediction_matrix[..., w, t]
+            flat_target_values = numpy.ravel(vector_target_matrix[..., w, t])
+            flat_predicted_values = numpy.ravel(
+                vector_prediction_matrix[..., w, t]
+            )
             this_climo_value = numpy.mean(
                 mted[example_utils.VECTOR_TARGET_VALS_KEY][0, :, w, t]
             )
@@ -871,8 +873,10 @@ def _get_scores_one_replicate(
             if r > 0:
                 continue
 
-            full_flat_target_values = full_vector_target_matrix[..., w, t]
-            full_flat_predicted_values = (
+            full_flat_target_values = numpy.ravel(
+                full_vector_target_matrix[..., w, t]
+            )
+            full_flat_predicted_values = numpy.ravel(
                 full_vector_prediction_matrix[..., w, t]
             )
 
