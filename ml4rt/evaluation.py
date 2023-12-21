@@ -909,10 +909,10 @@ def _get_scores_one_replicate(
     for t in range(num_aux_targets):
         for w in range(num_wavelengths):
             if aux_target_field_names[t] == SHORTWAVE_NET_FLUX_NAME:
-                d_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                d_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].tolist().index(
                     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
                 )
-                u_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                u_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].tolist().index(
                     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
                 )
                 this_climo_value = (
@@ -920,10 +920,10 @@ def _get_scores_one_replicate(
                     mted[example_utils.SCALAR_TARGET_VALS_KEY][0, w, u_idx]
                 )
             elif aux_target_field_names[t] == LONGWAVE_NET_FLUX_NAME:
-                d_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                d_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].tolist().index(
                     example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
                 )
-                u_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                u_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].tolist().index(
                     example_utils.LONGWAVE_TOA_UP_FLUX_NAME
                 )
                 this_climo_value = (
@@ -1189,10 +1189,10 @@ def get_aux_fields(prediction_dict, example_dict):
     ]
 
     if all([n in scalar_target_names for n in these_flux_names]):
-        shortwave_surface_down_flux_index = scalar_target_names.index(
+        shortwave_surface_down_flux_index = scalar_target_names.tolist().index(
             example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        shortwave_toa_up_flux_index = scalar_target_names.index(
+        shortwave_toa_up_flux_index = scalar_target_names.tolist().index(
             example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
         )
 
@@ -1221,10 +1221,10 @@ def get_aux_fields(prediction_dict, example_dict):
     ]
 
     if all([n in scalar_target_names for n in these_flux_names]):
-        longwave_surface_down_flux_index = scalar_target_names.index(
+        longwave_surface_down_flux_index = scalar_target_names.tolist().index(
             example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        longwave_toa_up_flux_index = scalar_target_names.index(
+        longwave_toa_up_flux_index = scalar_target_names.tolist().index(
             example_utils.LONGWAVE_TOA_UP_FLUX_NAME
         )
 
