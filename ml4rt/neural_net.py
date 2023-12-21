@@ -1927,19 +1927,23 @@ def apply_model(
             this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
 
         if vector_prediction_matrix is None:
-            vector_prediction_matrix = this_output[0] + 0.
-
-            if len(this_output) > 1:
-                scalar_prediction_matrix = this_output[1] + 0.
-        else:
-            vector_prediction_matrix = numpy.concatenate(
-                (vector_prediction_matrix, this_output[0]), axis=0
+            vector_prediction_matrix = numpy.full(
+                (num_examples,) + this_output[0].shape[1:], numpy.nan
             )
 
             if len(this_output) > 1:
-                scalar_prediction_matrix = numpy.concatenate(
-                    (scalar_prediction_matrix, this_output[1]), axis=0
+                scalar_prediction_matrix = numpy.full(
+                    (num_examples,) + this_output[1].shape[1:], numpy.nan
                 )
+
+        vector_prediction_matrix[
+            this_first_index:(this_last_index + 1), ...
+        ] = this_output[0]
+
+        if len(this_output) > 1:
+            scalar_prediction_matrix[
+                this_first_index:(this_last_index + 1), ...
+            ] = this_output[1]
 
     if verbose:
         print('Have applied NN to all {0:d} examples!'.format(num_examples))
