@@ -1910,24 +1910,21 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
-        for this_output_array in this_output:
-            print('FOOOOOO: {0:s}'.format(str(this_output_array.shape)))
-
-        # Add ensemble dimension if necessary.
-        if len(this_output[0].shape) == 3:
-            this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
-
         # Add wavelength dimension if necessary.
-        if len(this_output[0].shape) == 4:
+        if len(this_output[0].shape) == 3:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-3)
 
         # Add ensemble dimension if necessary.
-        if len(this_output) > 1 and len(this_output[1].shape) == 2:
-            this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
+        if len(this_output[0].shape) == 4:
+            this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
 
         # Add wavelength dimension if necessary.
-        if len(this_output) > 1 and len(this_output[1].shape) == 3:
+        if len(this_output) > 1 and len(this_output[1].shape) == 2:
             this_output[1] = numpy.expand_dims(this_output[1], axis=-3)
+
+        # Add ensemble dimension if necessary.
+        if len(this_output) > 1 and len(this_output[1].shape) == 3:
+            this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
 
         if vector_prediction_matrix is None:
             vector_prediction_matrix = this_output[0] + 0.
