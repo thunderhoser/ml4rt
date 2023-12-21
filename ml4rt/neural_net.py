@@ -1910,6 +1910,9 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
+        for this_output_array in this_output:
+            print('FOOOOOO: {0:s}'.format(str(this_output_array.shape)))
+
         # Add ensemble dimension if necessary.
         if len(this_output[0].shape) == 3:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
