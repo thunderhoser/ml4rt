@@ -287,6 +287,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                 )
             )
 
+            print('FOO1: {0:s}'.format(str(this_scalar_prediction_matrix.shape)))
+
             if k == 0:
                 max_ensemble_size_per_iter = int(numpy.ceil(
                     float(max_ensemble_size) / num_iterations
@@ -308,6 +310,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                         (ensemble_size,),
                         numpy.nan
                     )
+
+                    print('FOO2: {0:s}'.format(str(scalar_prediction_matrix.shape)))
 
             if this_vector_prediction_matrix.shape[-1] > ensemble_size_per_iter:
                 ensemble_indices = numpy.linspace(
@@ -342,6 +346,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             model_metadata_dict=metadata_dict,
             predictor_matrix=predictor_matrix, use_dropout=False
         )
+
+        print('FOO1a: {0:s}'.format(str(scalar_prediction_matrix.shape)))
 
     ensemble_size = vector_prediction_matrix.shape[-1]
     if max_ensemble_size < ensemble_size:
@@ -400,6 +406,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     prediction_example_dict_by_member = [dict()] * ensemble_size
 
     for k in range(ensemble_size):
+        print('FOO3: {0:s}'.format(str(scalar_prediction_matrix[..., k].shape)))
+
         prediction_example_dict_by_member[k] = _targets_numpy_to_dict(
             scalar_target_matrix=scalar_prediction_matrix[..., k],
             vector_target_matrix=vector_prediction_matrix[..., k],
