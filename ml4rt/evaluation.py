@@ -1189,10 +1189,10 @@ def get_aux_fields(prediction_dict, example_dict):
     ]
 
     if all([n in scalar_target_names for n in these_flux_names]):
-        shortwave_surface_down_flux_index = scalar_target_names.tolist().index(
+        shortwave_surface_down_flux_index = scalar_target_names.index(
             example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        shortwave_toa_up_flux_index = scalar_target_names.tolist().index(
+        shortwave_toa_up_flux_index = scalar_target_names.index(
             example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
         )
 
@@ -1221,10 +1221,10 @@ def get_aux_fields(prediction_dict, example_dict):
     ]
 
     if all([n in scalar_target_names for n in these_flux_names]):
-        longwave_surface_down_flux_index = scalar_target_names.tolist().index(
+        longwave_surface_down_flux_index = scalar_target_names.index(
             example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
         )
-        longwave_toa_up_flux_index = scalar_target_names.tolist().index(
+        longwave_toa_up_flux_index = scalar_target_names.index(
             example_utils.LONGWAVE_TOA_UP_FLUX_NAME
         )
 
