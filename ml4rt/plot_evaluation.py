@@ -878,7 +878,7 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{2:s}.jpg'
+                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
@@ -1086,7 +1086,7 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{2:s}.jpg'
+                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 aux_target_names[t].replace('_', '-'),
