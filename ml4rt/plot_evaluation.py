@@ -1364,16 +1364,16 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     print(SEPARATOR_STRING)
 
     # Do actual stuff.
-    for this_wavelength_metres in wavelengths_metres:
-        _plot_error_distributions(
-            prediction_dicts=prediction_dicts,
-            model_metadata_dict=model_metadata_dict,
-            aux_target_names=aux_target_names,
-            wavelength_metres=this_wavelength_metres,
-            set_descriptions_abbrev=set_descriptions_abbrev,
-            set_descriptions_verbose=set_descriptions_verbose,
-            output_dir_name=output_dir_name
-        )
+    # for this_wavelength_metres in wavelengths_metres:
+    #     _plot_error_distributions(
+    #         prediction_dicts=prediction_dicts,
+    #         model_metadata_dict=model_metadata_dict,
+    #         aux_target_names=aux_target_names,
+    #         wavelength_metres=this_wavelength_metres,
+    #         set_descriptions_abbrev=set_descriptions_abbrev,
+    #         set_descriptions_verbose=set_descriptions_verbose,
+    #         output_dir_name=output_dir_name
+    #     )
 
     print(SEPARATOR_STRING)
 
