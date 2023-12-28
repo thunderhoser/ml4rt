@@ -43,7 +43,7 @@ set wavelength_metres=${WAVELENGTHS_METRES[$SLURM_ARRAY_TASK_ID]}
 
 set prediction_file_name="${model_dir_name}/testing/predictions.nc"
 set evaluation_dir_name="${model_dir_name}/testing/evaluation/wavelength_metres=${wavelength_metres}"
-set evaluation_file_name="${evaluation_dir_name}.nc"
+set evaluation_file_name="${evaluation_dir_name}/testing/evaluation.nc"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
 --input_eval_file_names "${evaluation_file_name}" \
