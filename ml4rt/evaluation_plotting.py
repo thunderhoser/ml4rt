@@ -756,7 +756,9 @@ def plot_error_distribution(
 
     error_checking.assert_is_numpy_array_without_nan(error_values)
     error_checking.assert_is_numpy_array(error_values, num_dimensions=1)
-    error_checking.assert_is_greater(max_error_to_plot, min_error_to_plot)
+    error_checking.assert_is_not_nan(min_error_to_plot)
+    error_checking.assert_is_not_nan(max_error_to_plot)
+    max_error_to_plot = max([max_error_to_plot, min_error_to_plot + 1e-6])
 
     boxplot_style_dict = {
         'color': 'k',
