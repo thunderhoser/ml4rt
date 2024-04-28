@@ -1070,18 +1070,20 @@ def create_data(option_dict):
     vector_target_matrix = prelim_target_list[0]
 
     if joined_output_layer:
-        target_array = vector_target_matrix.astype('float16')[..., 0]
+        target_array = vector_target_matrix.astype('float16')
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
 
-            print(target_array.shape)
-            print(scalar_target_matrix.shape)
+            print('FOO1: {0:s}'.format(str(target_array.shape)))
+            print('FOO2: {0:s}'.format(str(scalar_target_matrix.shape)))
 
             target_array = numpy.concatenate(
                 (target_array, scalar_target_matrix.astype('float16')),
-                axis=-1
+                axis=-2
             )
+
+            print('FOO3: {0:s}'.format(str(target_array.shape)))
     else:
         target_array = [vector_target_matrix.astype('float16')]
 
