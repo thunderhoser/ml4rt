@@ -1070,10 +1070,13 @@ def create_data(option_dict):
     vector_target_matrix = prelim_target_list[0]
 
     if joined_output_layer:
-        target_array = vector_target_matrix.astype('float16')
+
+        # TODO(thunderhoser): Whatever solution I come up with here, it needs to go in two places in this file.
+        target_array = vector_target_matrix[..., 0].astype('float16')
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
+            scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
 
             print('FOO1: {0:s}'.format(str(target_array.shape)))
             print('FOO2: {0:s}'.format(str(scalar_target_matrix.shape)))
