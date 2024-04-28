@@ -1074,6 +1074,10 @@ def create_data(option_dict):
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
+
+            print(target_array.shape)
+            print(scalar_target_matrix.shape)
+
             target_array = numpy.concatenate(
                 (target_array, scalar_target_matrix.astype('float16')),
                 axis=-1
