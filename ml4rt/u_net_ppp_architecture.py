@@ -1358,14 +1358,9 @@ def create_model_1output_layer(
             )
 
     if has_dense_layers:
-        print('FOO1')
-        print(dense_output_layer_object.shape)
         dense_output_layer_object = keras.layers.Permute((2, 1))(
             dense_output_layer_object
         )
-        print('FOO2')
-        print(dense_output_layer_object.shape)
-        print(keras.layers.Permute((1, 2))(dense_output_layer_object).shape)
         output_layer_object = keras.layers.Concatenate(axis=1)(
             [conv_output_layer_object, dense_output_layer_object]
         )
@@ -1378,7 +1373,8 @@ def create_model_1output_layer(
         )
 
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        loss=loss_function,
+        optimizer=keras.optimizers.Nadam(),
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
 
