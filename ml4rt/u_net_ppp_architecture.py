@@ -1227,12 +1227,16 @@ def create_model_1output_layer(
             weight_regularizer=regularizer_object, layer_name='penultimate_conv'
         )(decoder_conv_layer_objects[0])
 
+        print('FOO1: {0:s}'.format(str(conv_output_layer_object.shape)))
+
         conv_output_layer_object = architecture_utils.get_activation_layer(
             activation_function_string=inner_activ_function_name,
             alpha_for_relu=inner_activ_function_alpha,
             alpha_for_elu=inner_activ_function_alpha,
             layer_name='penultimate_conv_activation'
         )(conv_output_layer_object)
+
+        print('FOO2: {0:s}'.format(str(conv_output_layer_object.shape)))
 
         if penultimate_conv_dropout_rate > 0:
             this_mc_flag = bool(penultimate_conv_mc_dropout_flag)
@@ -1244,14 +1248,19 @@ def create_model_1output_layer(
                 )(conv_output_layer_object, training=this_mc_flag)
             )
 
+            print('FOO3: {0:s}'.format(str(conv_output_layer_object.shape)))
+
         if use_batch_normalization:
             conv_output_layer_object = (
                 architecture_utils.get_batch_norm_layer(
                     layer_name='penultimate_conv_bn'
                 )(conv_output_layer_object)
             )
+
+            print('FOO4: {0:s}'.format(str(conv_output_layer_object.shape)))
     else:
         conv_output_layer_object = decoder_conv_layer_objects[0]
+        print('FOO5: {0:s}'.format(str(conv_output_layer_object.shape)))
 
     conv_output_layer_object = architecture_utils.get_1d_conv_layer(
         num_kernel_rows=1, num_rows_per_stride=1,
@@ -1260,6 +1269,8 @@ def create_model_1output_layer(
         weight_regularizer=regularizer_object, layer_name='last_conv'
     )(conv_output_layer_object)
 
+    print('FOO6: {0:s}'.format(str(conv_output_layer_object.shape)))
+
     if conv_output_activ_func_name is not None:
         conv_output_layer_object = architecture_utils.get_activation_layer(
             activation_function_string=conv_output_activ_func_name,
@@ -1267,6 +1278,8 @@ def create_model_1output_layer(
             alpha_for_elu=conv_output_activ_func_alpha,
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
+
+        print('FOO7: {0:s}'.format(str(conv_output_layer_object.shape)))
 
     this_function = u_net_architecture.zero_top_heating_rate_function(
         height_index=input_dimensions[0] - 1
@@ -1277,6 +1290,8 @@ def create_model_1output_layer(
         output_shape=conv_output_layer_object.shape,
         name='conv_output'
     )(conv_output_layer_object)
+
+    print('FOO8: {0:s}'.format(str(conv_output_layer_object.shape)))
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
@@ -1358,7 +1373,7 @@ def create_model_1output_layer(
             )
 
     if has_dense_layers:
-        print(conv_output_layer_object.shape)
+        print('FOO9: {0:s}'.format(str(conv_output_layer_object.shape)))
         conv_output_layer_object = keras.layers.Permute(dims=(1, 2))(
             conv_output_layer_object
         )
