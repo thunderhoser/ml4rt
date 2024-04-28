@@ -687,7 +687,9 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     )
 
     conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+        this_function,
+        output_shape=conv_output_layer_object.shape,
+        name='conv_output'
     )(conv_output_layer_object)
 
     output_layer_objects = [conv_output_layer_object]
@@ -762,7 +764,9 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
             this_name = 'deepsup{0:d}_output'.format(i)
 
             deep_supervision_layer_objects[i] = keras.layers.Lambda(
-                this_function, name=this_name
+                this_function,
+                output_shape=deep_supervision_layer_objects[i].shape,
+                name=this_name
             )(deep_supervision_layer_objects[i])
 
             output_layer_objects.append(deep_supervision_layer_objects[i])
@@ -1269,7 +1273,9 @@ def create_model_1output_layer(
     )
 
     conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+        this_function,
+        output_shape=conv_output_layer_object.shape,
+        name='conv_output'
     )(conv_output_layer_object)
 
     if has_dense_layers:
