@@ -5,6 +5,7 @@ import sys
 import numpy
 import keras
 from keras import backend as K
+from tensorflow.keras import backend as tf_K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -352,7 +353,7 @@ def zero_top_heating_rate_function(height_index):
             orig_prediction_tensor[:, height_index, ...],
             1e12
         )
-        zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
+        zero_tensor = tf_K.cast(zero_tensor, dtype=tf_K.floatx())
 
         heating_rate_tensor = K.concatenate((
             orig_prediction_tensor[:, :height_index, ...],
