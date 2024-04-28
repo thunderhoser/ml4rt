@@ -346,7 +346,9 @@ def zero_top_heating_rate_function(height_index):
 
         num_heights = orig_prediction_tensor.shape[1]
 
-        zero_tensor = K.greater_equal(
+        import tensorflow.math
+
+        zero_tensor = tensorflow.math.greater_equal(
             orig_prediction_tensor[:, height_index, ...],
             1e12
         )
