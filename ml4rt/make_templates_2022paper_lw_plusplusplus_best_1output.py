@@ -58,7 +58,9 @@ DEFAULT_OPTION_DICT = {
     # u_net_ppp_architecture.DENSE_LAYER_NEURON_NUMS_KEY: DENSE_LAYER_NEURON_COUNTS,
     u_net_ppp_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.),
     u_net_ppp_architecture.DENSE_LAYER_MC_DROPOUT_FLAGS_KEY:
-        numpy.full(4, 0, dtype=bool)
+        numpy.full(4, 0, dtype=bool),
+    u_net_ppp_architecture.JOINED_LOSS_FUNCTION_KEY: LOSS_FUNCTION,
+    u_net_ppp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY: 1
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -141,9 +143,7 @@ def _run():
 
                 this_model_object = (
                     u_net_ppp_architecture.create_model_1output_layer(
-                        option_dict=this_option_dict,
-                        loss_function=LOSS_FUNCTION,
-                        num_output_wavelengths=1
+                        this_option_dict
                     )
                 )
 
@@ -173,18 +173,25 @@ def _run():
                     raise_error_if_missing=False
                 )
 
+                this_option_dict[
+                    u_net_ppp_architecture.JOINED_LOSS_FUNCTION_KEY
+                ] = LOSS_FUNCTION_STRING
+
                 print('Writing metadata to: "{0:s}"...'.format(
                     this_metafile_name
                 ))
                 neural_net._write_metafile(
-                    dill_file_name=this_metafile_name, num_epochs=100,
+                    dill_file_name=this_metafile_name,
+                    num_epochs=100,
                     num_training_batches_per_epoch=100,
                     training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                     num_validation_batches_per_epoch=100,
                     validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                     loss_function_or_dict=LOSS_FUNCTION_STRING,
-                    do_early_stopping=True, plateau_lr_multiplier=0.6,
-                    u_net_plusplus_architecture_dict=this_option_dict,
+                    do_early_stopping=True,
+                    plateau_lr_multiplier=0.6,
+                    u_net_3plus_architecture_dict=this_option_dict,
+                    u_net_plusplus_architecture_dict=None,
                     bnn_architecture_dict=None
                 )
 
