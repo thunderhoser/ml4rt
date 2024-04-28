@@ -18,8 +18,9 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(5e6)
-MAX_NUM_TRAINING_EXAMPLES = int(1e7)
+# TODO(thunderhoser): This should become an input arg.
+MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
+MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -94,12 +95,13 @@ EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
 BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
 U_NET_PP_ARCHITECTURE_KEY = 'u_net_plusplus_architecture_dict'
+U_NET_PPP_ARCHITECTURE_KEY = 'u_net_3plus_architecture_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
-    BNN_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY
+    BNN_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY, U_NET_PPP_ARCHITECTURE_KEY
 ]
 
 
@@ -368,7 +370,7 @@ def _write_metafile(
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_or_dict,
         do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
-        u_net_plusplus_architecture_dict):
+        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -382,6 +384,7 @@ def _write_metafile(
     :param plateau_lr_multiplier: Same.
     :param bnn_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
+    :param u_net_3plus_architecture_dict: Same.
     """
 
     metadata_dict = {
@@ -394,7 +397,8 @@ def _write_metafile(
         EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
         BNN_ARCHITECTURE_KEY: bnn_architecture_dict,
-        U_NET_PP_ARCHITECTURE_KEY: u_net_plusplus_architecture_dict
+        U_NET_PP_ARCHITECTURE_KEY: u_net_plusplus_architecture_dict,
+        U_NET_PPP_ARCHITECTURE_KEY: u_net_3plus_architecture_dict
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
@@ -1250,7 +1254,7 @@ def train_model_with_generator(
         validation_option_dict, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
         do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
-        u_net_plusplus_architecture_dict):
+        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
     """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1291,6 +1295,9 @@ def train_model_with_generator(
     :param u_net_plusplus_architecture_dict: Dictionary with architecture
         options for U-net++.  If the model being trained is not a U-net++, make
         this None.
+    :param u_net_3plus_architecture_dict: Dictionary with architecture
+        options for U-net 3+.  If the model being trained is not a U-net 3+,
+        make this None.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1378,7 +1385,8 @@ def train_model_with_generator(
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
         bnn_architecture_dict=bnn_architecture_dict,
-        u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict
+        u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict=u_net_3plus_architecture_dict
     )
 
     training_generator = data_generator(
@@ -1416,7 +1424,8 @@ def train_model_sans_generator(
         validation_option_dict, loss_function_or_dict,
         do_early_stopping, num_training_batches_per_epoch,
         num_validation_batches_per_epoch, plateau_lr_multiplier,
-        bnn_architecture_dict, u_net_plusplus_architecture_dict):
+        bnn_architecture_dict, u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1433,6 +1442,7 @@ def train_model_sans_generator(
     :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
     :param bnn_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
+    :param u_net_3plus_architecture_dict: Same.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1511,7 +1521,8 @@ def train_model_sans_generator(
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
         bnn_architecture_dict=bnn_architecture_dict,
-        u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict
+        u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict=u_net_3plus_architecture_dict
     )
 
     training_predictor_matrix, training_target_array = create_data(
@@ -1671,7 +1682,7 @@ def read_model(hdf5_file_name):
         model_object.load_weights(hdf5_file_name)
         return model_object
 
-    u_net_3plus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
+    u_net_3plus_architecture_dict = metadata_dict[U_NET_PPP_ARCHITECTURE_KEY]
     assert u_net_3plus_architecture_dict is not None
 
     from ml4rt.machine_learning import u_net_ppp_architecture
@@ -1739,6 +1750,7 @@ def read_metafile(dill_file_name):
     metadata_dict['loss_function_or_dict']: Same.
     metadata_dict['bnn_architecture_dict']: Same.
     metadata_dict['u_net_plusplus_architecture_dict']: Same.
+    metadata_dict['u_net_3plus_architecture_dict']: Same.
 
     :raises: ValueError: if any expected key is not found in dictionary.
     """
@@ -1809,6 +1821,8 @@ def read_metafile(dill_file_name):
         metadata_dict[BNN_ARCHITECTURE_KEY] = None
     if U_NET_PP_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[U_NET_PP_ARCHITECTURE_KEY] = None
+    if U_NET_PPP_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[U_NET_PPP_ARCHITECTURE_KEY] = None
 
     # TODO(thunderhoser): HACK!
     if (
