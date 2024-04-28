@@ -314,6 +314,7 @@ def plot_inset_histogram(
     fake_bin_centers = (
         0.5 + numpy.linspace(0, num_bins - 1, num=num_bins, dtype=float)
     )
+
     real_indices = numpy.where(numpy.invert(numpy.isnan(bin_centers)))[0]
 
     inset_axes_object.bar(

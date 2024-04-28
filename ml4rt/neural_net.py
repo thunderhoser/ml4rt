@@ -3,10 +3,10 @@
 import os
 import sys
 import copy
-import pickle
+import dill
 import numpy
 import keras
-import tensorflow.keras as tf_keras
+from tensorflow.keras.saving import load_model
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -26,8 +26,8 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(1e5)
-MAX_NUM_TRAINING_EXAMPLES = int(2e5)
+MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
+MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -408,7 +408,7 @@ def _write_metafile(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    pickle.dump(metadata_dict, dill_file_handle)
+    dill.dump(metadata_dict, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -1303,6 +1303,11 @@ def train_model_with_generator(
         directory_name=output_dir_name
     )
 
+    backup_dir_name = '{0:s}/backup_and_restore'.format(output_dir_name)
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=backup_dir_name
+    )
+
     error_checking.assert_is_integer(num_epochs)
     error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_integer(num_training_batches_per_epoch)
@@ -1334,26 +1339,23 @@ def train_model_with_generator(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    model_file_name = output_dir_name + '/model.h5'
-    checkpoint_object = keras.callbacks.ModelCheckpoint(
-        filepath=model_file_name, monitor='val_loss', verbose=1,
-        save_best_only=do_early_stopping, save_weights_only=False, mode='min',
-        period=1
-    )
-
-    # model_file_name = (
-    #     output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
-    # )
-    # checkpoint_object = keras.callbacks.ModelCheckpoint(
-    #     filepath=model_file_name, monitor='val_loss', verbose=1,
-    #     save_best_only=False, save_weights_only=False, mode='min', period=1
-    # )
+    model_file_name = '{0:s}/model.keras'.format(output_dir_name)
 
     history_object = keras.callbacks.CSVLogger(
         filename='{0:s}/history.csv'.format(output_dir_name),
         separator=',', append=False
     )
-    list_of_callback_objects = [history_object, checkpoint_object]
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min',
+        save_freq='epoch'
+    )
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=True
+    )
+    list_of_callback_objects = [
+        history_object, checkpoint_object, backup_object
+    ]
 
     if do_early_stopping:
         early_stopping_object = keras.callbacks.EarlyStopping(
@@ -1443,6 +1445,11 @@ def train_model_sans_generator(
         directory_name=output_dir_name
     )
 
+    backup_dir_name = '{0:s}/backup_and_restore'.format(output_dir_name)
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=backup_dir_name
+    )
+
     error_checking.assert_is_integer(num_epochs)
     error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_boolean(do_early_stopping)
@@ -1465,26 +1472,23 @@ def train_model_sans_generator(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    model_file_name = output_dir_name + '/model.h5'
-    checkpoint_object = keras.callbacks.ModelCheckpoint(
-        filepath=model_file_name, monitor='val_loss', verbose=1,
-        save_best_only=do_early_stopping, save_weights_only=False, mode='min',
-        period=1
-    )
-
-    # model_file_name = (
-    #     output_dir_name + '/model_epoch={epoch:03d}_val-loss={val_loss:.6f}.h5'
-    # )
-    # checkpoint_object = keras.callbacks.ModelCheckpoint(
-    #     filepath=model_file_name, monitor='val_loss', verbose=1,
-    #     save_best_only=False, save_weights_only=False, mode='min', period=1
-    # )
+    model_file_name = '{0:s}/model.keras'.format(output_dir_name)
 
     history_object = keras.callbacks.CSVLogger(
         filename='{0:s}/history.csv'.format(output_dir_name),
         separator=',', append=False
     )
-    list_of_callback_objects = [history_object, checkpoint_object]
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min',
+        save_freq='epoch'
+    )
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=True
+    )
+    list_of_callback_objects = [
+        history_object, checkpoint_object, backup_object
+    ]
 
     if do_early_stopping:
         early_stopping_object = keras.callbacks.EarlyStopping(
@@ -1667,29 +1671,34 @@ def read_model(hdf5_file_name):
         model_object.load_weights(hdf5_file_name)
         return model_object
 
-    try:
-        return tf_keras.models.load_model(
-            hdf5_file_name, custom_objects=METRIC_FUNCTION_DICT
-        )
-    except ValueError:
-        pass
-
     custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
     loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
 
     if isinstance(loss_function_or_dict, dict):
         for this_key in loss_function_or_dict:
-            custom_object_dict[this_key + '_loss'] = eval(
+            loss_function_or_dict[this_key] = eval(
                 loss_function_or_dict[this_key]
             )
-
-        custom_object_dict['loss'] = eval(loss_function_or_dict['conv_output'])
+            custom_object_dict[this_key + '_loss'] = (
+                loss_function_or_dict[this_key]
+            )
     else:
-        custom_object_dict['loss'] = eval(loss_function_or_dict)
+        loss_function_or_dict = eval(loss_function_or_dict)
+        custom_object_dict['loss'] = loss_function_or_dict
 
-    return tf_keras.models.load_model(
-        hdf5_file_name, custom_objects=custom_object_dict
+    model_object = load_model(
+        hdf5_file_name, custom_objects=custom_object_dict, compile=False
     )
+
+    metric_function_list = [
+        eval(m) for m in list(metadata_dict[METRIC_FUNCTION_DICT].values)
+    ]
+    model_object.compile(
+        loss=loss_function_or_dict,
+        optimizer=keras.optimizers.Nadam(),
+        metrics=metric_function_list
+    )
+    return model_object
 
 
 def find_metafile(model_dir_name, raise_error_if_missing=True):
@@ -1736,7 +1745,7 @@ def read_metafile(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    metadata_dict = pickle.load(dill_file_handle)
+    metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
@@ -1811,7 +1820,7 @@ def read_metafile(dill_file_name):
         )
 
         new_file_handle = open(new_file_name, 'rb')
-        new_metadata_dict = pickle.load(new_file_handle)
+        new_metadata_dict = dill.load(new_file_handle)
         new_file_handle.close()
 
         metadata_dict[BNN_ARCHITECTURE_KEY] = (
@@ -1910,21 +1919,21 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
-        # Add wavelength dimension if necessary.
-        if len(this_output[0].shape) == 3:
-            this_output[0] = numpy.expand_dims(this_output[0], axis=-3)
-
         # Add ensemble dimension if necessary.
-        if len(this_output[0].shape) == 4:
+        if len(this_output[0].shape) == 3:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
 
         # Add wavelength dimension if necessary.
-        if len(this_output) > 1 and len(this_output[1].shape) == 2:
-            this_output[1] = numpy.expand_dims(this_output[1], axis=-3)
+        if len(this_output[0].shape) == 4:
+            this_output[0] = numpy.expand_dims(this_output[0], axis=-3)
 
         # Add ensemble dimension if necessary.
-        if len(this_output) > 1 and len(this_output[1].shape) == 3:
+        if len(this_output) > 1 and len(this_output[1].shape) == 2:
             this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
+
+        # Add wavelength dimension if necessary.
+        if len(this_output) > 1 and len(this_output[1].shape) == 3:
+            this_output[1] = numpy.expand_dims(this_output[1], axis=-3)
 
         if vector_prediction_matrix is None:
             vector_prediction_matrix = numpy.full(

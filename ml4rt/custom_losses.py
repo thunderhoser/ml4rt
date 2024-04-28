@@ -71,18 +71,26 @@ def scaled_mse_for_net_fluxes(scaling_factor, down_flux_index, up_flux_index):
         :return: loss: Scaled MSE for net fluxes.
         """
 
-        predicted_net_flux_tensor = (
-            prediction_tensor[..., down_flux_index] -
-            prediction_tensor[..., up_flux_index]
-        )
-        target_net_flux_tensor = (
-            target_tensor[..., down_flux_index] -
-            target_tensor[..., up_flux_index]
-        )
+        # predicted_net_flux_tensor = (
+        #     prediction_tensor[..., down_flux_index] -
+        #     prediction_tensor[..., up_flux_index]
+        # )
+        # target_net_flux_tensor = (
+        #     target_tensor[..., down_flux_index] -
+        #     target_tensor[..., up_flux_index]
+        # )
+        # net_flux_term = K.mean(
+        #     (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
+        # )
 
-        net_flux_term = K.mean(
-            (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
-        )
+        d = down_flux_index
+        u = up_flux_index
+        net_flux_term = K.mean(K.pow(
+            x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
+              (target_tensor[..., d] - target_tensor[..., u]),
+            a=2
+        ))
+
         individual_flux_term = K.mean((prediction_tensor - target_tensor) ** 2)
 
         return scaling_factor * (net_flux_term + 2 * individual_flux_term)
@@ -112,14 +120,22 @@ def scaled_mse_for_net_flux(scaling_factor):
         :return: loss: Scaled MSE for net flux.
         """
 
-        predicted_net_flux_tensor = (
-            prediction_tensor[..., 0] - prediction_tensor[..., 1]
-        )
-        target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
+        # predicted_net_flux_tensor = (
+        #     prediction_tensor[..., 0] - prediction_tensor[..., 1]
+        # )
+        # target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
+        # net_flux_term = K.mean(
+        #     (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
+        # )
 
-        net_flux_term = K.mean(
-            (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
-        )
+        d = 0
+        u = 1
+        net_flux_term = K.mean(K.pow(
+            x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
+              (target_tensor[..., d] - target_tensor[..., u]),
+            a=2
+        ))
+
         individual_flux_term = K.mean((prediction_tensor - target_tensor) ** 2)
 
         return scaling_factor * (net_flux_term + 2 * individual_flux_term)
@@ -188,20 +204,36 @@ def dual_weighted_mse(
             target_tensor = target_tensor[:, :use_lowest_n_heights, ...]
             prediction_tensor = prediction_tensor[:, :use_lowest_n_heights, ...]
 
-        heating_rate_weight_tensor = K.pow(
-            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
-            heating_rate_weight_exponent
+        # heating_rate_weight_tensor = K.pow(
+        #     x=K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+        #     a=heating_rate_weight_exponent
+        # )
+        #
+        # error_tensor = (
+        #     heating_rate_weight_tensor *
+        #     (prediction_tensor - target_tensor) ** 2
+        # )
+        #
+        # if height_weighting_type_string is not None:
+        #     error_tensor = error_tensor * height_weight_matrix
+
+        if height_weighting_type_string is None:
+            return K.mean(
+                K.pow(
+                    x=K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+                    a=heating_rate_weight_exponent
+                )
+                * (prediction_tensor - target_tensor) ** 2
+            )
+
+        return K.mean(
+            K.pow(
+                x=K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+                a=heating_rate_weight_exponent
+            )
+            * height_weight_matrix
+            * (prediction_tensor - target_tensor) ** 2
         )
-
-        error_tensor = (
-            heating_rate_weight_tensor *
-            (prediction_tensor - target_tensor) ** 2
-        )
-
-        if height_weighting_type_string is not None:
-            error_tensor = error_tensor * height_weight_matrix
-
-        return K.mean(error_tensor)
 
     return loss
 
@@ -422,8 +454,13 @@ def dual_weighted_mse_simple():
         :return: loss: Dual-weighted MSE.
         """
 
-        weight_tensor = K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
-        error_tensor = weight_tensor * (prediction_tensor - target_tensor) ** 2
-        return K.mean(error_tensor)
+        # weight_tensor = K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+        # error_tensor = weight_tensor * (prediction_tensor - target_tensor) ** 2
+        # return K.mean(error_tensor)
+
+        return K.mean(
+            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+            * (prediction_tensor - target_tensor) ** 2
+        )
 
     return loss
