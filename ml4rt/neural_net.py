@@ -2,11 +2,9 @@
 
 import os
 import sys
-import copy
 import dill
 import numpy
 import keras
-from tensorflow.keras.saving import load_model
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -26,8 +24,9 @@ SENTINEL_VALUE = -9999.
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
-MAX_NUM_VALIDATION_EXAMPLES = int(5e6)
-MAX_NUM_TRAINING_EXAMPLES = int(1e7)
+# TODO(thunderhoser): This should become an input arg.
+MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
+MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -961,11 +960,13 @@ def data_generator(option_dict, for_inference):
             predictor_matrix = predictor_matrix.astype('float16')
 
         if joined_output_layer:
-            target_array = vector_target_matrix.astype('float16')[..., 0]
+            target_array = vector_target_matrix[..., 0].astype('float16')
+
             if scalar_target_matrix is not None:
+                scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
                 target_array = numpy.concatenate(
-                    (target_array, scalar_target_matrix.astype('float16')),
-                    axis=-1
+                    [target_array, scalar_target_matrix.astype('float16')],
+                    axis=-2
                 )
         else:
             target_array = [vector_target_matrix.astype('float16')]
@@ -1070,23 +1071,14 @@ def create_data(option_dict):
     vector_target_matrix = prelim_target_list[0]
 
     if joined_output_layer:
-
-        # TODO(thunderhoser): Whatever solution I come up with here, it needs to go in two places in this file.
         target_array = vector_target_matrix[..., 0].astype('float16')
 
         if len(prelim_target_list) > 1:
-            scalar_target_matrix = prelim_target_list[1]
-            scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
-
-            print('FOO1: {0:s}'.format(str(target_array.shape)))
-            print('FOO2: {0:s}'.format(str(scalar_target_matrix.shape)))
-
+            scalar_target_matrix = numpy.swapaxes(prelim_target_list[1], 1, 2)
             target_array = numpy.concatenate(
-                (target_array, scalar_target_matrix.astype('float16')),
+                [target_array, scalar_target_matrix.astype('float16')],
                 axis=-2
             )
-
-            print('FOO3: {0:s}'.format(str(target_array.shape)))
     else:
         target_array = [vector_target_matrix.astype('float16')]
 
@@ -1654,31 +1646,26 @@ def read_model(hdf5_file_name):
         return model_object
 
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
-    joined_output_layer = metadata_dict[TRAINING_OPTIONS_KEY][JOINED_OUTPUT_LAYER_KEY]
+    joined_output_layer = (
+        metadata_dict[TRAINING_OPTIONS_KEY][JOINED_OUTPUT_LAYER_KEY]
+    )
 
     if u_net_plusplus_architecture_dict is not None:
         import u_net_pp_architecture
-        import u_net_ppp_architecture
 
-        # TODO(thunderhoser): This is a terrible, disgusting HACK.
         if joined_output_layer:
-            model_object = u_net_ppp_architecture.create_model_1output_layer(
-                option_dict=u_net_plusplus_architecture_dict,
-                loss_function=eval(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]),
-                num_output_wavelengths=1
+            for this_key in [u_net_pp_architecture.JOINED_LOSS_FUNCTION_KEY]:
+                u_net_plusplus_architecture_dict[this_key] = eval(
+                    u_net_plusplus_architecture_dict[this_key]
+                )
+
+            model_object = u_net_pp_architecture.create_model_1output_layer(
+                u_net_plusplus_architecture_dict
             )
         else:
-            if (
-                    u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
-                    not in u_net_plusplus_architecture_dict
-            ):
-                u_net_plusplus_architecture_dict[
-                    u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
-                ] = u_net_plusplus_architecture_dict['num_output_channels']
-
             for this_key in [
-                u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
-                u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
+                    u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                    u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
             ]:
                 u_net_plusplus_architecture_dict[this_key] = eval(
                     u_net_plusplus_architecture_dict[this_key]
@@ -1691,33 +1678,34 @@ def read_model(hdf5_file_name):
         model_object.load_weights(hdf5_file_name)
         return model_object
 
-    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
-    loss_function_or_dict = metadata_dict[LOSS_FUNCTION_OR_DICT_KEY]
+    u_net_3plus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
+    assert u_net_3plus_architecture_dict is not None
 
-    if isinstance(loss_function_or_dict, dict):
-        for this_key in loss_function_or_dict:
-            loss_function_or_dict[this_key] = eval(
-                loss_function_or_dict[this_key]
+    import u_net_ppp_architecture
+
+    if joined_output_layer:
+        for this_key in [u_net_ppp_architecture.JOINED_LOSS_FUNCTION_KEY]:
+            u_net_3plus_architecture_dict[this_key] = eval(
+                u_net_3plus_architecture_dict[this_key]
             )
-            custom_object_dict[this_key + '_loss'] = (
-                loss_function_or_dict[this_key]
-            )
+
+        model_object = u_net_ppp_architecture.create_model_1output_layer(
+            u_net_3plus_architecture_dict
+        )
     else:
-        loss_function_or_dict = eval(loss_function_or_dict)
-        custom_object_dict['loss'] = loss_function_or_dict
+        for this_key in [
+                u_net_ppp_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                u_net_ppp_architecture.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            u_net_3plus_architecture_dict[this_key] = eval(
+                u_net_3plus_architecture_dict[this_key]
+            )
 
-    model_object = load_model(
-        hdf5_file_name, custom_objects=custom_object_dict, compile=False
-    )
+        model_object = u_net_ppp_architecture.create_model(
+            u_net_3plus_architecture_dict
+        )
 
-    metric_function_list = [
-        eval(m) for m in list(metadata_dict[METRIC_FUNCTION_DICT].values)
-    ]
-    model_object.compile(
-        loss=loss_function_or_dict,
-        optimizer=keras.optimizers.Nadam(),
-        metrics=metric_function_list
-    )
+    model_object.load_weights(hdf5_file_name)
     return model_object
 
 

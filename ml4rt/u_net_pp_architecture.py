@@ -17,7 +17,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import error_checking
 import architecture_utils
 import neural_net
-import u_net_architecture
+import u_net_architecture as u_net_arch
 import inline_normalization
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
@@ -28,42 +28,44 @@ VALID_CONV_LAYER_TYPE_STRINGS = [
     REPARAMETERIZATION_TYPE_STRING
 ]
 
-INPUT_DIMENSIONS_KEY = 'input_dimensions'
-NUM_LEVELS_KEY = 'num_levels'
-CONV_LAYER_COUNTS_KEY = 'num_conv_layers_by_level'
-CHANNEL_COUNTS_KEY = 'num_channels_by_level'
-ENCODER_DROPOUT_RATES_KEY = 'encoder_dropout_rate_by_level'
-ENCODER_MC_DROPOUT_FLAGS_KEY = 'encoder_mc_dropout_flag_by_level'
-UPCONV_DROPOUT_RATES_KEY = 'upconv_dropout_rate_by_level'
-UPCONV_MC_DROPOUT_FLAGS_KEY = 'upconv_mc_dropout_flag_by_level'
-SKIP_DROPOUT_RATES_KEY = 'skip_dropout_rate_by_level'
-SKIP_MC_DROPOUT_FLAGS_KEY = 'skip_mc_dropout_flag_by_level'
-INCLUDE_PENULTIMATE_KEY = 'include_penultimate_conv'
-PENULTIMATE_DROPOUT_RATE_KEY = 'penultimate_conv_dropout_rate'
-PENULTIMATE_MC_DROPOUT_FLAG_KEY = 'penultimate_conv_mc_dropout_flag'
-DENSE_LAYER_NEURON_NUMS_KEY = 'dense_layer_neuron_nums'
-DENSE_LAYER_DROPOUT_RATES_KEY = 'dense_layer_dropout_rates'
-DENSE_LAYER_MC_DROPOUT_FLAGS_KEY = 'dense_layer_mc_dropout_flags'
-INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
-INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
-CONV_OUTPUT_ACTIV_FUNC_KEY = 'conv_output_activ_func_name'
-CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'conv_output_activ_func_alpha'
-DENSE_OUTPUT_ACTIV_FUNC_KEY = 'dense_output_activ_func_name'
-DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'dense_output_activ_func_alpha'
-L1_WEIGHT_KEY = 'l1_weight'
-L2_WEIGHT_KEY = 'l2_weight'
-USE_BATCH_NORM_KEY = 'use_batch_normalization'
+INPUT_DIMENSIONS_KEY = u_net_arch.INPUT_DIMENSIONS_KEY
+NUM_LEVELS_KEY = u_net_arch.NUM_LEVELS_KEY
+CONV_LAYER_COUNTS_KEY = u_net_arch.CONV_LAYER_COUNTS_KEY
+CHANNEL_COUNTS_KEY = u_net_arch.CHANNEL_COUNTS_KEY
+ENCODER_DROPOUT_RATES_KEY = u_net_arch.ENCODER_DROPOUT_RATES_KEY
+ENCODER_MC_DROPOUT_FLAGS_KEY = u_net_arch.ENCODER_MC_DROPOUT_FLAGS_KEY
+UPCONV_DROPOUT_RATES_KEY = u_net_arch.UPCONV_DROPOUT_RATES_KEY
+UPCONV_MC_DROPOUT_FLAGS_KEY = u_net_arch.UPCONV_MC_DROPOUT_FLAGS_KEY
+SKIP_DROPOUT_RATES_KEY = u_net_arch.SKIP_DROPOUT_RATES_KEY
+SKIP_MC_DROPOUT_FLAGS_KEY = u_net_arch.SKIP_MC_DROPOUT_FLAGS_KEY
+INCLUDE_PENULTIMATE_KEY = u_net_arch.INCLUDE_PENULTIMATE_KEY
+PENULTIMATE_DROPOUT_RATE_KEY = u_net_arch.PENULTIMATE_DROPOUT_RATE_KEY
+PENULTIMATE_MC_DROPOUT_FLAG_KEY = u_net_arch.PENULTIMATE_MC_DROPOUT_FLAG_KEY
+DENSE_LAYER_NEURON_NUMS_KEY = u_net_arch.DENSE_LAYER_NEURON_NUMS_KEY
+DENSE_LAYER_DROPOUT_RATES_KEY = u_net_arch.DENSE_LAYER_DROPOUT_RATES_KEY
+DENSE_LAYER_MC_DROPOUT_FLAGS_KEY = u_net_arch.DENSE_LAYER_MC_DROPOUT_FLAGS_KEY
+INNER_ACTIV_FUNCTION_KEY = u_net_arch.INNER_ACTIV_FUNCTION_KEY
+INNER_ACTIV_FUNCTION_ALPHA_KEY = u_net_arch.INNER_ACTIV_FUNCTION_ALPHA_KEY
+CONV_OUTPUT_ACTIV_FUNC_KEY = u_net_arch.CONV_OUTPUT_ACTIV_FUNC_KEY
+CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY = u_net_arch.CONV_OUTPUT_ACTIV_FUNC_ALPHA_KEY
+DENSE_OUTPUT_ACTIV_FUNC_KEY = u_net_arch.DENSE_OUTPUT_ACTIV_FUNC_KEY
+DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY = u_net_arch.DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY
+L1_WEIGHT_KEY = u_net_arch.L1_WEIGHT_KEY
+L2_WEIGHT_KEY = u_net_arch.L2_WEIGHT_KEY
+USE_BATCH_NORM_KEY = u_net_arch.USE_BATCH_NORM_KEY
 
-NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
-VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
-SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
-USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
-ENSEMBLE_SIZE_KEY = 'ensemble_size'
-DO_INLINE_NORMALIZATION_KEY = 'do_inline_normalization'
-PW_LINEAR_UNIF_MODEL_KEY = 'pw_linear_unif_model_file_name'
-SCALAR_PREDICTORS_KEY = 'scalar_predictor_names'
-VECTOR_PREDICTORS_KEY = 'vector_predictor_names'
-HEIGHTS_KEY = 'heights_m_agl'
+NUM_OUTPUT_WAVELENGTHS_KEY = u_net_arch.NUM_OUTPUT_WAVELENGTHS_KEY
+VECTOR_LOSS_FUNCTION_KEY = u_net_arch.VECTOR_LOSS_FUNCTION_KEY
+SCALAR_LOSS_FUNCTION_KEY = u_net_arch.SCALAR_LOSS_FUNCTION_KEY
+JOINED_LOSS_FUNCTION_KEY = u_net_arch.JOINED_LOSS_FUNCTION_KEY
+USE_DEEP_SUPERVISION_KEY = u_net_arch.USE_DEEP_SUPERVISION_KEY
+ENSEMBLE_SIZE_KEY = u_net_arch.ENSEMBLE_SIZE_KEY
+
+DO_INLINE_NORMALIZATION_KEY = u_net_arch.DO_INLINE_NORMALIZATION_KEY
+PW_LINEAR_UNIF_MODEL_KEY = u_net_arch.PW_LINEAR_UNIF_MODEL_KEY
+SCALAR_PREDICTORS_KEY = u_net_arch.SCALAR_PREDICTORS_KEY
+VECTOR_PREDICTORS_KEY = u_net_arch.VECTOR_PREDICTORS_KEY
+HEIGHTS_KEY = u_net_arch.HEIGHTS_KEY
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
@@ -126,251 +128,6 @@ def _check_layer_type(layer_type_string):
         raise ValueError(error_string)
 
 
-def _check_args(option_dict):
-    """Error-checks input arguments.
-
-    L = number of levels in encoder = number of levels in decoder
-    D = number of dense layers
-
-    :param option_dict: Dictionary with the following keys.
-    option_dict['input_dimensions']: numpy array with input dimensions
-        (num_heights, num_channels).
-    option_dict['num_levels']: L in the above discussion.
-    option_dict['num_conv_layers_by_level']: length-(L + 1) numpy array with
-        number of conv layers at each level.
-    option_dict['num_channels_by_level']: length-(L + 1) numpy array with number
-        of channels at each level.
-    option_dict['encoder_dropout_rate_by_level']: length-(L + 1) numpy array
-        with dropout rate for conv layers in encoder at each level.
-    option_dict['encoder_mc_dropout_flag_by_level']: length-(L + 1) numpy array
-        of Boolean flags, indicating which layers will use Monte Carlo dropout.
-    option_dict['upconv_dropout_rate_by_level']: length-L numpy array
-        with dropout rate for upconv layers at each level.
-    option_dict['upconv_mc_dropout_flag_by_level']: length-L numpy array of
-        Boolean flags, indicating which layers will use Monte Carlo dropout.
-    option_dict['skip_dropout_rate_by_level']: length-L numpy array with dropout
-        rate for conv layer after skip connection at each level.
-    option_dict['skip_mc_dropout_flag_by_level']: length-L numpy array of
-        Boolean flags, indicating which layers will use Monte Carlo dropout.
-    option_dict['include_penultimate_conv']: Boolean flag.  If True, will put in
-        extra conv layer (with 3 x 3 filter) before final pixelwise conv.
-    option_dict['penultimate_conv_dropout_rate']: Dropout rate for penultimate
-        conv layer.
-    option_dict['penultimate_conv_mc_dropout_flag']: Boolean flag, indicating
-        whether or not penultimate conv layer will use MC dropout.
-    option_dict['dense_layer_neuron_nums']: length-D numpy array with number of
-        neurons in each dense layer.
-    option_dict['dense_layer_dropout_rates']: length-D numpy array with dropout
-        rate for each dense layer.
-    option_dict['dense_layer_mc_dropout_flags']: length-D numpy array of Boolean
-        flags, indicating which layers will use Monte Carlo dropout.
-    option_dict['inner_activ_function_name']: Name of activation function for
-        all inner (non-output) layers.  Must be accepted by
-        `architecture_utils.check_activation_function`.
-    option_dict['inner_activ_function_alpha']: Alpha (slope parameter) for
-        activation function for all inner layers.  Applies only to ReLU and eLU.
-    option_dict['conv_output_activ_func_name']: Same as
-        `inner_activ_function_name` but for conv output layer.  Use `None` for
-        no activation function.
-    option_dict['conv_output_activ_func_alpha']: Same as
-        `inner_activ_function_alpha` but for conv output layer.
-    option_dict['dense_output_activ_func_name']: Same as
-        `inner_activ_function_name` but for dense output layer.  Use `None` for
-        no activation function.
-    option_dict['dense_output_activ_func_alpha']: Same as
-        `inner_activ_function_alpha` but for dense output layer.
-    option_dict['l1_weight']: Weight for L_1 regularization.
-    option_dict['l2_weight']: Weight for L_2 regularization.
-    option_dict['use_batch_normalization']: Boolean flag.  If True, will use
-        batch normalization after each inner (non-output) conv layer.
-    option_dict['num_output_wavelengths']: Number of output wavelengths.
-    option_dict['vector_loss_function']: Loss function for vector targets.
-    option_dict['scalar_loss_function']: Loss function for scalar targets.
-    option_dict['use_deep_supervision']: Boolean flag.
-    option_dict['ensemble_size']: Number of ensemble members in output (both
-        vector and scalar predictions).
-    option_dict['do_inline_normalization']: Boolean flag.  If True, will
-        normalize predictors inside the NN architecture.
-    option_dict['pw_linear_unif_model_file_name']:
-        [used only if do_inline_normalization == True]
-        Path to file with piecewise-linear models that approximate the full
-        uniformization step.  This will be read by
-        `normalization.read_piecewise_linear_models_for_unif`
-    option_dict['scalar_predictor_names']:
-        [used only if do_inline_normalization == True]
-        1-D list with names of scalar predictors, in the order that they appear
-        in the input tensor.
-    option_dict['vector_predictor_names']:
-        [used only if do_inline_normalization == True]
-        1-D list with names of vector predictors, in the order that they appear
-        in the input tensor.
-    option_dict['heights_m_agl']:
-        [used only if do_inline_normalization == True]
-        1-D numpy array of heights (metres above ground level), in the order
-        that they appear in the input tensor.
-
-    :return: option_dict: Same as input, except defaults may have been added.
-    """
-
-    orig_option_dict = option_dict.copy()
-    option_dict = DEFAULT_ARCHITECTURE_OPTION_DICT.copy()
-    option_dict.update(orig_option_dict)
-
-    input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
-    error_checking.assert_is_numpy_array(
-        input_dimensions, exact_dimensions=numpy.array([2], dtype=int)
-    )
-    error_checking.assert_is_integer_numpy_array(input_dimensions)
-    error_checking.assert_is_greater_numpy_array(input_dimensions, 0)
-
-    num_levels = option_dict[NUM_LEVELS_KEY]
-    error_checking.assert_is_integer(num_levels)
-    error_checking.assert_is_geq(num_levels, 2)
-
-    expected_dim = numpy.array([num_levels + 1], dtype=int)
-
-    num_conv_layers_by_level = option_dict[CONV_LAYER_COUNTS_KEY]
-    error_checking.assert_is_numpy_array(
-        num_conv_layers_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_integer_numpy_array(num_conv_layers_by_level)
-    error_checking.assert_is_greater_numpy_array(num_conv_layers_by_level, 0)
-
-    num_channels_by_level = option_dict[CHANNEL_COUNTS_KEY]
-    error_checking.assert_is_numpy_array(
-        num_channels_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_integer_numpy_array(num_channels_by_level)
-    error_checking.assert_is_greater_numpy_array(num_channels_by_level, 0)
-
-    encoder_dropout_rate_by_level = option_dict[ENCODER_DROPOUT_RATES_KEY]
-    error_checking.assert_is_numpy_array(
-        encoder_dropout_rate_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_leq_numpy_array(
-        encoder_dropout_rate_by_level, 1., allow_nan=True
-    )
-
-    encoder_mc_dropout_flag_by_level = option_dict[ENCODER_MC_DROPOUT_FLAGS_KEY]
-    error_checking.assert_is_numpy_array(
-        encoder_mc_dropout_flag_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_boolean_numpy_array(
-        encoder_mc_dropout_flag_by_level
-    )
-
-    expected_dim = numpy.array([num_levels], dtype=int)
-
-    upconv_dropout_rate_by_level = option_dict[UPCONV_DROPOUT_RATES_KEY]
-    error_checking.assert_is_numpy_array(
-        upconv_dropout_rate_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_leq_numpy_array(
-        upconv_dropout_rate_by_level, 1., allow_nan=True
-    )
-
-    upconv_mc_dropout_flag_by_level = option_dict[UPCONV_MC_DROPOUT_FLAGS_KEY]
-    error_checking.assert_is_numpy_array(
-        upconv_mc_dropout_flag_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_boolean_numpy_array(
-        upconv_mc_dropout_flag_by_level
-    )
-
-    skip_dropout_rate_by_level = option_dict[SKIP_DROPOUT_RATES_KEY]
-    error_checking.assert_is_numpy_array(
-        skip_dropout_rate_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_leq_numpy_array(
-        skip_dropout_rate_by_level, 1., allow_nan=True
-    )
-
-    skip_mc_dropout_flag_by_level = option_dict[SKIP_MC_DROPOUT_FLAGS_KEY]
-    error_checking.assert_is_numpy_array(
-        skip_mc_dropout_flag_by_level, exact_dimensions=expected_dim
-    )
-    error_checking.assert_is_boolean_numpy_array(
-        skip_mc_dropout_flag_by_level
-    )
-
-    error_checking.assert_is_boolean(option_dict[INCLUDE_PENULTIMATE_KEY])
-    error_checking.assert_is_leq(
-        option_dict[PENULTIMATE_DROPOUT_RATE_KEY], 1., allow_nan=True
-    )
-    error_checking.assert_is_boolean(
-        option_dict[PENULTIMATE_MC_DROPOUT_FLAG_KEY]
-    )
-
-    dense_layer_neuron_nums = option_dict[DENSE_LAYER_NEURON_NUMS_KEY]
-    dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
-    dense_layer_mc_dropout_flags = option_dict[DENSE_LAYER_MC_DROPOUT_FLAGS_KEY]
-    has_dense_layers = not (
-        dense_layer_neuron_nums is None
-        and dense_layer_dropout_rates is None
-        and dense_layer_mc_dropout_flags is None
-    )
-
-    if has_dense_layers:
-        error_checking.assert_is_integer_numpy_array(dense_layer_neuron_nums)
-        error_checking.assert_is_numpy_array(
-            dense_layer_neuron_nums, num_dimensions=1
-        )
-        error_checking.assert_is_geq_numpy_array(dense_layer_neuron_nums, 1)
-
-        num_dense_layers = len(dense_layer_neuron_nums)
-        expected_dim = numpy.array([num_dense_layers], dtype=int)
-
-        error_checking.assert_is_numpy_array(
-            dense_layer_dropout_rates, exact_dimensions=expected_dim
-        )
-        error_checking.assert_is_leq_numpy_array(
-            dense_layer_dropout_rates, 1., allow_nan=True
-        )
-
-        error_checking.assert_is_numpy_array(
-            dense_layer_mc_dropout_flags, exact_dimensions=expected_dim
-        )
-        error_checking.assert_is_boolean_numpy_array(
-            dense_layer_mc_dropout_flags
-        )
-
-    error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
-    error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
-    error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
-
-    error_checking.assert_is_integer(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY])
-    error_checking.assert_is_greater(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY], 0)
-    error_checking.assert_is_boolean(option_dict[USE_DEEP_SUPERVISION_KEY])
-    error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
-    error_checking.assert_is_greater(option_dict[ENSEMBLE_SIZE_KEY], 0)
-    error_checking.assert_is_boolean(option_dict[DO_INLINE_NORMALIZATION_KEY])
-
-    if not option_dict[DO_INLINE_NORMALIZATION_KEY]:
-        option_dict[PW_LINEAR_UNIF_MODEL_KEY] = None
-        option_dict[SCALAR_PREDICTORS_KEY] = None
-        option_dict[VECTOR_PREDICTORS_KEY] = None
-        option_dict[HEIGHTS_KEY] = None
-
-        return option_dict
-
-    error_checking.assert_is_string(option_dict[PW_LINEAR_UNIF_MODEL_KEY])
-    error_checking.assert_is_string_list(option_dict[SCALAR_PREDICTORS_KEY])
-    error_checking.assert_is_string_list(option_dict[VECTOR_PREDICTORS_KEY])
-    error_checking.assert_is_numpy_array(
-        option_dict[HEIGHTS_KEY], num_dimensions=1
-    )
-    error_checking.assert_is_greater_numpy_array(option_dict[HEIGHTS_KEY], 0)
-
-    num_predictors = len(
-        option_dict[SCALAR_PREDICTORS_KEY] + option_dict[VECTOR_PREDICTORS_KEY]
-    )
-    error_checking.assert_equals(num_predictors, input_dimensions[1])
-    num_heights = len(option_dict[HEIGHTS_KEY])
-    error_checking.assert_equals(num_heights, input_dimensions[0])
-
-    return option_dict
-
-
 def create_model(option_dict):
     """Creates U-net++.
 
@@ -383,12 +140,12 @@ def create_model(option_dict):
     M = number of rows in grid
     N = number of columns in grid
 
-    :param option_dict: See doc for `_check_args`.
+    :param option_dict: See doc for `u_net_architecture.check_args`.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
 
-    option_dict = _check_args(option_dict)
+    option_dict = u_net_arch.check_args(option_dict)
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -425,6 +182,7 @@ def create_model(option_dict):
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
     use_deep_supervision = option_dict[USE_DEEP_SUPERVISION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
+
     do_inline_normalization = option_dict[DO_INLINE_NORMALIZATION_KEY]
     pw_linear_unif_model_file_name = option_dict[PW_LINEAR_UNIF_MODEL_KEY]
     scalar_predictor_names = option_dict[SCALAR_PREDICTORS_KEY]
@@ -564,9 +322,9 @@ def create_model(option_dict):
                     layer_name=this_name
                 )(this_layer_object, training=this_mc_flag)
 
-            num_upconv_heights = this_layer_object.get_shape()[1]
+            num_upconv_heights = this_layer_object.shape[1]
             num_desired_heights = (
-                last_conv_layer_matrix[i_new, 0].get_shape()[1]
+                last_conv_layer_matrix[i_new, 0].shape[1]
             )
 
             if num_desired_heights == num_upconv_heights + 1:
@@ -699,12 +457,14 @@ def create_model(option_dict):
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    this_function = u_net_architecture.zero_top_heating_rate_function(
+    this_function = u_net_arch.zero_top_heating_rate_function(
         height_index=input_dimensions[0] - 1
     )
 
     conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+        this_function,
+        output_shape=conv_output_layer_object.shape[1:],
+        name='conv_output'
     )(conv_output_layer_object)
 
     output_layer_objects = [conv_output_layer_object]
@@ -742,13 +502,15 @@ def create_model(option_dict):
                 (input_dimensions[0], num_output_wavelengths, 1)
             )(deep_supervision_layer_objects[i])
 
-            this_function = u_net_architecture.zero_top_heating_rate_function(
+            this_function = u_net_arch.zero_top_heating_rate_function(
                 height_index=input_dimensions[0] - 1
             )
             this_name = 'deepsup{0:d}_output'.format(i)
 
             deep_supervision_layer_objects[i] = keras.layers.Lambda(
-                this_function, name=this_name
+                this_function,
+                output_shape=deep_supervision_layer_objects[i].shape[1:],
+                name=this_name
             )(deep_supervision_layer_objects[i])
 
             output_layer_objects.append(deep_supervision_layer_objects[i])
@@ -853,7 +615,8 @@ def create_model(option_dict):
         inputs=input_layer_object, outputs=output_layer_objects
     )
     model_object.compile(
-        loss=loss_dict, optimizer=keras.optimizers.Adam(),
+        loss=loss_dict,
+        optimizer=keras.optimizers.Nadam(),
         metrics=metric_function_list
     )
 
@@ -861,17 +624,17 @@ def create_model(option_dict):
     return model_object
 
 
-def create_model_1output_layer(
-        option_dict, loss_function, num_output_wavelengths):
+def create_model_1output_layer(option_dict):
     """Same as `create_model`, except that output layers are joined into one.
 
-    :param option_dict: See doc for `_check_args`.
-    :param loss_function: Loss function.
-    :param num_output_wavelengths: Number of output wavelengths.
+    :param option_dict: See doc for `u_net_architecture.check_args`.
     :return: model_object: Instance of `keras.models.Model`.
     """
 
-    option_dict = _check_args(option_dict)
+    option_dict[u_net_arch.USE_DEEP_SUPERVISION_KEY] = False
+    option_dict[u_net_arch.ENSEMBLE_SIZE_KEY] = 1
+    option_dict[u_net_arch.DO_INLINE_NORMALIZATION_KEY] = False
+    option_dict = u_net_arch.check_args(option_dict)
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -902,6 +665,9 @@ def create_model_1output_layer(
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+
+    num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
+    loss_function = option_dict[JOINED_LOSS_FUNCTION_KEY]
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
@@ -1016,9 +782,9 @@ def create_model_1output_layer(
                     layer_name=this_name
                 )(this_layer_object, training=this_mc_flag)
 
-            num_upconv_heights = this_layer_object.get_shape()[1]
+            num_upconv_heights = this_layer_object.shape[1]
             num_desired_heights = (
-                last_conv_layer_matrix[i_new, 0].get_shape()[1]
+                last_conv_layer_matrix[i_new, 0].shape[1]
             )
 
             if num_desired_heights == num_upconv_heights + 1:
@@ -1140,12 +906,14 @@ def create_model_1output_layer(
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    this_function = u_net_architecture.zero_top_heating_rate_function(
+    this_function = u_net_arch.zero_top_heating_rate_function(
         height_index=input_dimensions[0] - 1
     )
 
     conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+        this_function,
+        output_shape=conv_output_layer_object.shape[1:],
+        name='conv_output'
     )(conv_output_layer_object)
 
     if has_dense_layers:
@@ -1228,10 +996,10 @@ def create_model_1output_layer(
             )
 
     if has_dense_layers:
-        conv_output_layer_object = keras.layers.Permute(dims=(1, 2))(
-            conv_output_layer_object
+        dense_output_layer_object = keras.layers.Permute((2, 1))(
+            dense_output_layer_object
         )
-        output_layer_object = keras.layers.Concatenate(axis=-1)(
+        output_layer_object = keras.layers.Concatenate(axis=1)(
             [conv_output_layer_object, dense_output_layer_object]
         )
         model_object = keras.models.Model(
@@ -1243,7 +1011,8 @@ def create_model_1output_layer(
         )
 
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        loss=loss_function,
+        optimizer=keras.optimizers.Nadam(),
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
 
