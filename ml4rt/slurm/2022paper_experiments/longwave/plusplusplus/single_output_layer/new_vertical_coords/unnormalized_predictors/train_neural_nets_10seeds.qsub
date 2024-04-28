@@ -50,7 +50,7 @@ num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}
 SEED_INDICES=("00" "01" "02" "03" "04" "05" "06" "07" "08" "09")
 seed_index=${SEED_INDICES[$SLURM_ARRAY_TASK_ID]}
 
-template_file_name="${TEMPLATE_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}/model.h5"
+template_file_name="${TEMPLATE_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}/model.keras"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}/seed${seed_index}"
 echo $output_dir_name
 

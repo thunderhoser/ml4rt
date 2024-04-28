@@ -46,7 +46,7 @@ model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
 num_conv_layers_per_block=${CONV_LAYER_PER_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
 num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
-template_file_name="${TEMPLATE_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}/model.h5"
+template_file_name="${TEMPLATE_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}/model.keras"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}"
 echo $output_dir_name
 
