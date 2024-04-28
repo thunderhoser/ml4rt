@@ -680,7 +680,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
 
     conv_output_layer_object = keras.layers.Lambda(
         this_function,
-        output_shape=conv_output_layer_object.shape,
+        output_shape=conv_output_layer_object.shape[1:],
         name='conv_output'
     )(conv_output_layer_object)
 
@@ -757,7 +757,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
 
             deep_supervision_layer_objects[i] = keras.layers.Lambda(
                 this_function,
-                output_shape=deep_supervision_layer_objects[i].shape,
+                output_shape=deep_supervision_layer_objects[i].shape[1:],
                 name=this_name
             )(deep_supervision_layer_objects[i])
 
@@ -1266,7 +1266,7 @@ def create_model_1output_layer(
 
     conv_output_layer_object = keras.layers.Lambda(
         this_function,
-        output_shape=conv_output_layer_object.shape,
+        output_shape=conv_output_layer_object.shape[1:],
         name='conv_output'
     )(conv_output_layer_object)
 
@@ -1350,10 +1350,10 @@ def create_model_1output_layer(
             )
 
     if has_dense_layers:
-        conv_output_layer_object = keras.layers.Permute(dims=(1, 2))(
-            conv_output_layer_object
+        dense_output_layer_object = keras.layers.Permute(dims=(1, 2))(
+            dense_output_layer_object
         )
-        output_layer_object = keras.layers.Concatenate(axis=-1)(
+        output_layer_object = keras.layers.Concatenate(axis=-2)(
             [conv_output_layer_object, dense_output_layer_object]
         )
         model_object = keras.models.Model(
