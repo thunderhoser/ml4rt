@@ -395,6 +395,10 @@ def joined_output_loss(num_heights, flux_scaling_factor):
         :return: loss: Scalar.
         """
 
+        # TODO(thunderhoser): Currently assuming only 1 wavelength.  This is a HACK.
+        target_tensor = target_tensor[..., 0]
+        prediction_tensor = prediction_tensor[..., 0]
+
         # E x W x H
         target_hr_tensor = target_tensor[..., :num_heights]
         predicted_hr_tensor = prediction_tensor[..., :num_heights]

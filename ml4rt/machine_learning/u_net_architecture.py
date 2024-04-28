@@ -33,6 +33,18 @@ L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
 
+NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
+VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
+SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
+JOINED_LOSS_FUNCTION_KEY = 'joined_loss_function'
+USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
+ENSEMBLE_SIZE_KEY = 'ensemble_size'
+DO_INLINE_NORMALIZATION_KEY = 'do_inline_normalization'
+PW_LINEAR_UNIF_MODEL_KEY = 'pw_linear_unif_model_file_name'
+SCALAR_PREDICTORS_KEY = 'scalar_predictor_names'
+VECTOR_PREDICTORS_KEY = 'vector_predictor_names'
+HEIGHTS_KEY = 'heights_m_agl'
+
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
     CONV_LAYER_COUNTS_KEY: numpy.full(5, 2, dtype=int),
@@ -61,7 +73,7 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
 }
 
 
-def _check_args(option_dict):
+def check_args(option_dict):
     """Error-checks input arguments.
 
     L = number of levels in encoder = number of levels in decoder
@@ -118,6 +130,31 @@ def _check_args(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) conv layer.
+    option_dict['num_output_wavelengths']: Number of output wavelengths.
+    option_dict['vector_loss_function']: Loss function for vector targets.
+    option_dict['scalar_loss_function']: Loss function for scalar targets.
+    option_dict['use_deep_supervision']: Boolean flag.
+    option_dict['ensemble_size']: Number of ensemble members in output (both
+        vector and scalar predictions).
+    option_dict['do_inline_normalization']: Boolean flag.  If True, will
+        normalize predictors inside the NN architecture.
+    option_dict['pw_linear_unif_model_file_name']:
+        [used only if do_inline_normalization == True]
+        Path to file with piecewise-linear models that approximate the full
+        uniformization step.  This will be read by
+        `normalization.read_piecewise_linear_models_for_unif`
+    option_dict['scalar_predictor_names']:
+        [used only if do_inline_normalization == True]
+        1-D list with names of scalar predictors, in the order that they appear
+        in the input tensor.
+    option_dict['vector_predictor_names']:
+        [used only if do_inline_normalization == True]
+        1-D list with names of vector predictors, in the order that they appear
+        in the input tensor.
+    option_dict['heights_m_agl']:
+        [used only if do_inline_normalization == True]
+        1-D numpy array of heights (metres above ground level), in the order
+        that they appear in the input tensor.
 
     :return: option_dict: Same as input, except defaults may have been added.
     """
@@ -248,6 +285,36 @@ def _check_args(option_dict):
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
 
+    error_checking.assert_is_integer(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY])
+    error_checking.assert_is_greater(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY], 0)
+    error_checking.assert_is_boolean(option_dict[USE_DEEP_SUPERVISION_KEY])
+    error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
+    error_checking.assert_is_greater(option_dict[ENSEMBLE_SIZE_KEY], 0)
+    error_checking.assert_is_boolean(option_dict[DO_INLINE_NORMALIZATION_KEY])
+
+    if not option_dict[DO_INLINE_NORMALIZATION_KEY]:
+        option_dict[PW_LINEAR_UNIF_MODEL_KEY] = None
+        option_dict[SCALAR_PREDICTORS_KEY] = None
+        option_dict[VECTOR_PREDICTORS_KEY] = None
+        option_dict[HEIGHTS_KEY] = None
+
+        return option_dict
+
+    error_checking.assert_is_string(option_dict[PW_LINEAR_UNIF_MODEL_KEY])
+    error_checking.assert_is_string_list(option_dict[SCALAR_PREDICTORS_KEY])
+    error_checking.assert_is_string_list(option_dict[VECTOR_PREDICTORS_KEY])
+    error_checking.assert_is_numpy_array(
+        option_dict[HEIGHTS_KEY], num_dimensions=1
+    )
+    error_checking.assert_is_greater_numpy_array(option_dict[HEIGHTS_KEY], 0)
+
+    num_predictors = len(
+        option_dict[SCALAR_PREDICTORS_KEY] + option_dict[VECTOR_PREDICTORS_KEY]
+    )
+    error_checking.assert_equals(num_predictors, input_dimensions[1])
+    num_heights = len(option_dict[HEIGHTS_KEY])
+    error_checking.assert_equals(num_heights, input_dimensions[0])
+
     return option_dict
 
 
@@ -269,7 +336,7 @@ def zero_top_heating_rate_function(height_index):
             zeroed out.
         """
 
-        num_heights = orig_prediction_tensor.get_shape().as_list()[1]
+        num_heights = orig_prediction_tensor.shape[1]
 
         zero_tensor = K.greater_equal(
             orig_prediction_tensor[:, height_index, ...],
@@ -293,8 +360,7 @@ def zero_top_heating_rate_function(height_index):
     return zeroing_function
 
 
-def create_model(option_dict, vector_loss_function, num_output_wavelengths,
-                 scalar_loss_function=None, ensemble_size=1):
+def create_model(option_dict):
     """Creates U-net.
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -303,21 +369,15 @@ def create_model(option_dict, vector_loss_function, num_output_wavelengths,
     Architecture taken from:
     https://github.com/zhixuhao/unet/blob/master/model.py
 
-    :param option_dict: See doc for `_check_architecture_args`.
-    :param vector_loss_function: Loss function for vector outputs.
-    :param num_output_wavelengths: Number of output wavelengths.
-    :param scalar_loss_function: Loss function for scalar outputs.  If there are
-        no dense layers, leave this alone.
-    :param ensemble_size: Ensemble size.  The U-net will output this many
-        predictions for each target variable.
+    :param option_dict: See doc for `check_args`.
     :return: model_object: Instance of `keras.models.Model`, with the
         aforementioned architecture.
     """
 
-    option_dict = _check_args(option_dict)
-
-    error_checking.assert_is_integer(ensemble_size)
-    ensemble_size = max([ensemble_size, 1])
+    option_dict[USE_DEEP_SUPERVISION_KEY] = False
+    option_dict[ENSEMBLE_SIZE_KEY] = 1
+    option_dict[DO_INLINE_NORMALIZATION_KEY] = False
+    option_dict = check_args(option_dict)
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
     num_levels = option_dict[NUM_LEVELS_KEY]
@@ -348,6 +408,11 @@ def create_model(option_dict, vector_loss_function, num_output_wavelengths,
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+
+    num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
+    vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
+    scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
+    ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
 
     if ensemble_size > 1:
         include_penultimate_conv = False
@@ -462,8 +527,8 @@ def create_model(option_dict, vector_loss_function, num_output_wavelengths,
                 layer_name=this_name
             )(upconv_layer_by_level[i], training=this_mc_flag)
 
-        num_upconv_heights = upconv_layer_by_level[i].get_shape()[1]
-        num_desired_heights = conv_layer_by_level[i].get_shape()[1]
+        num_upconv_heights = upconv_layer_by_level[i].shape[1]
+        num_desired_heights = conv_layer_by_level[i].shape[1]
 
         if num_desired_heights == num_upconv_heights + 1:
             this_name = 'block{0:d}_upconv_padding'.format(i)
