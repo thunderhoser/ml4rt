@@ -347,21 +347,19 @@ def zero_top_heating_rate_function(height_index):
 
         num_heights = orig_prediction_tensor.shape[1]
 
-        import tensorflow.math
-
-        zero_tensor = tensorflow.math.greater_equal(
+        zero_tensor = tf_K.greater_equal(
             orig_prediction_tensor[:, height_index, ...],
             1e12
         )
         zero_tensor = tf_K.cast(zero_tensor, dtype=tf_K.floatx())
 
-        heating_rate_tensor = K.concatenate((
+        heating_rate_tensor = tf_K.concatenate((
             orig_prediction_tensor[:, :height_index, ...],
-            K.expand_dims(zero_tensor, axis=1)
+            tf_K.expand_dims(zero_tensor, axis=1)
         ), axis=1)
 
         if height_index != num_heights - 1:
-            heating_rate_tensor = K.concatenate((
+            heating_rate_tensor = tf_K.concatenate((
                 heating_rate_tensor,
                 orig_prediction_tensor[:, (height_index + 1):, ...]
             ), axis=1)
