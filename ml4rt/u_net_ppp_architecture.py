@@ -1358,6 +1358,7 @@ def create_model_1output_layer(
             )
 
     if has_dense_layers:
+        print(conv_output_layer_object.shape)
         conv_output_layer_object = keras.layers.Permute(dims=(1, 2))(
             conv_output_layer_object
         )
