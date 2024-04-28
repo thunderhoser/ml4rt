@@ -422,8 +422,8 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                     size=2 ** (j - i), name=layer_name_prefix
                 )(decoder_conv_layer_objects[j])
 
-            num_upsampled_heights = this_layer_object.get_shape()[1]
-            num_desired_heights = encoder_conv_layer_objects[i].get_shape()[1]
+            num_upsampled_heights = this_layer_object.shape[1]
+            num_desired_heights = encoder_conv_layer_objects[i].shape[1]
 
             if num_desired_heights != num_upsampled_heights:
                 this_name = '{0:s}_padding'.format(layer_name_prefix)
@@ -709,7 +709,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                 )(decoder_conv_layer_objects[i])
 
             num_upsampled_heights = (
-                deep_supervision_layer_objects[i].get_shape()[1]
+                deep_supervision_layer_objects[i].shape[1]
             )
             num_desired_heights = input_dimensions[0]
 
@@ -1015,8 +1015,8 @@ def create_model_1output_layer(
                     size=2 ** (j - i), name=layer_name_prefix
                 )(decoder_conv_layer_objects[j])
 
-            num_upsampled_heights = this_layer_object.get_shape()[1]
-            num_desired_heights = encoder_conv_layer_objects[i].get_shape()[1]
+            num_upsampled_heights = this_layer_object.shape[1]
+            num_desired_heights = encoder_conv_layer_objects[i].shape[1]
 
             if num_desired_heights != num_upsampled_heights:
                 this_name = '{0:s}_padding'.format(layer_name_prefix)
