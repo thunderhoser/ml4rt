@@ -1359,7 +1359,7 @@ def create_model_1output_layer(
 
     if has_dense_layers:
         print(dense_output_layer_object.shape)
-        dense_output_layer_object = keras.layers.Permute(dims=(1, 2))(
+        dense_output_layer_object = keras.layers.Permute(dims=(0, 1))(
             dense_output_layer_object
         )
         print(dense_output_layer_object.shape)
