@@ -289,10 +289,10 @@ def _run(prediction_file_name, num_bootstrap_reps, num_heating_rate_bins,
             for h in range(len(heights_m_agl)):
                 print((
                     'Variable = "{0:s}" at {1:.2f} microns and {2:d} m AGL ... '
-                    'stdev of target and predicted values = {2:f}, {3:f} ... '
-                    'MSE and skill score = {4:f}, {5:f} ... '
-                    'MAE and skill score = {6:f}, {7:f} ... bias = {8:f} ... '
-                    'correlation = {9:f} ... KGE = {10:f}'
+                    'stdev of target and predicted values = {3:f}, {4:f} ... '
+                    'MSE and skill score = {5:f}, {6:f} ... '
+                    'MAE and skill score = {7:f}, {8:f} ... bias = {9:f} ... '
+                    'correlation = {10:f} ... KGE = {11:f}'
                 ).format(
                     vector_target_names[t],
                     wavelengths_microns[w],

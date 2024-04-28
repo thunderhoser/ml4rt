@@ -808,8 +808,10 @@ def _get_scores_one_replicate(
                     alternative='two-sided', mode='auto'
                 )
 
-            flat_target_values = vector_target_matrix[..., w, t]
-            flat_predicted_values = vector_prediction_matrix[..., w, t]
+            flat_target_values = numpy.ravel(vector_target_matrix[..., w, t])
+            flat_predicted_values = numpy.ravel(
+                vector_prediction_matrix[..., w, t]
+            )
             this_climo_value = numpy.mean(
                 mted[example_utils.VECTOR_TARGET_VALS_KEY][0, :, w, t]
             )
@@ -864,8 +866,10 @@ def _get_scores_one_replicate(
             if r > 0:
                 continue
 
-            full_flat_target_values = full_vector_target_matrix[..., w, t]
-            full_flat_predicted_values = (
+            full_flat_target_values = numpy.ravel(
+                full_vector_target_matrix[..., w, t]
+            )
+            full_flat_predicted_values = numpy.ravel(
                 full_vector_prediction_matrix[..., w, t]
             )
 
@@ -898,10 +902,10 @@ def _get_scores_one_replicate(
     for t in range(num_aux_targets):
         for w in range(num_wavelengths):
             if aux_target_field_names[t] == SHORTWAVE_NET_FLUX_NAME:
-                d_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                d_idx = mted[example_utils.SCALAR_TARGET_NAMES_KEY].index(
                     example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
                 )
-                u_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                u_idx = mted[example_utils.SCALAR_TARGET_NAMES_KEY].index(
                     example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
                 )
                 this_climo_value = (
@@ -909,10 +913,10 @@ def _get_scores_one_replicate(
                     mted[example_utils.SCALAR_TARGET_VALS_KEY][0, w, u_idx]
                 )
             elif aux_target_field_names[t] == LONGWAVE_NET_FLUX_NAME:
-                d_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                d_idx = mted[example_utils.SCALAR_TARGET_NAMES_KEY].index(
                     example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
                 )
-                u_idx = mted[example_utils.SCALAR_TARGET_VALS_KEY].index(
+                u_idx = mted[example_utils.SCALAR_TARGET_NAMES_KEY].index(
                     example_utils.LONGWAVE_TOA_UP_FLUX_NAME
                 )
                 this_climo_value = (

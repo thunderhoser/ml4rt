@@ -153,7 +153,7 @@ def _run(input_dir_name, for_shortwave, wavelengths_metres, output_dir_name):
             wavelength_metres=this_wavelength_metres
         )
         resized_panel_file_names = _get_input_files_1wavelength(
-            input_dir_name=input_dir_name,
+            input_dir_name=output_dir_name,
             for_shortwave=for_shortwave,
             wavelength_metres=this_wavelength_metres
         )

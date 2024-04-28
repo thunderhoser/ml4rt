@@ -132,17 +132,25 @@ def _run(output_dir_name):
         example_utils.VECTOR_PREDICTOR_NAMES_KEY: predictor_names
     }
 
-    handle_dict = profile_plotting.plot_predictors(
-        example_dict=example_dict, example_index=0,
-        predictor_names=predictor_names,
-        predictor_colours=[WATER_CONTENT_COLOUR, TEMPERATURE_COLOUR],
-        predictor_line_widths=numpy.full(shape=2, fill_value=4.),
-        predictor_line_styles=['solid'] * 2,
-        use_log_scale=True, include_units=True, handle_dict=None
-    )
+    # handle_dict = profile_plotting.plot_predictors(
+    #     example_dict=example_dict, example_index=0,
+    #     predictor_names=predictor_names,
+    #     predictor_colours=[WATER_CONTENT_COLOUR, TEMPERATURE_COLOUR],
+    #     predictor_line_widths=numpy.full(shape=2, fill_value=4.),
+    #     predictor_line_styles=['solid'] * 2,
+    #     use_log_scale=True, include_units=True, handle_dict=None
+    # )
+    #
+    # figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    # axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
-    figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-    axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
+    figure_object, axes_object = profile_plotting.plot_one_variable(
+        values=KG_TO_GRAMS * water_contents_kg_m03,
+        heights_m_agl=HEIGHTS_M_AGL,
+        line_width=4, line_style='solid', use_log_scale=True,
+        line_colour=WATER_CONTENT_COLOUR
+    )
+    axes_objects = [axes_object]
 
     axes_objects[0].set_title('Original profiles')
     gg_plotting_utils.label_axes(
