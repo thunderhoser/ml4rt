@@ -1651,22 +1651,6 @@ def read_model(hdf5_file_name):
         import u_net_pp_architecture
         import u_net_ppp_architecture
 
-        if (
-                u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
-                not in u_net_plusplus_architecture_dict
-        ):
-            u_net_plusplus_architecture_dict[
-                u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
-            ] = u_net_plusplus_architecture_dict['num_output_channels']
-
-        for this_key in [
-            u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
-            u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
-        ]:
-            u_net_plusplus_architecture_dict[this_key] = eval(
-                u_net_plusplus_architecture_dict[this_key]
-            )
-
         # TODO(thunderhoser): This is a terrible, disgusting HACK.
         if joined_output_layer:
             model_object = u_net_ppp_architecture.create_model_1output_layer(
@@ -1675,6 +1659,22 @@ def read_model(hdf5_file_name):
                 num_output_wavelengths=1
             )
         else:
+            if (
+                    u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
+                    not in u_net_plusplus_architecture_dict
+            ):
+                u_net_plusplus_architecture_dict[
+                    u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY
+                ] = u_net_plusplus_architecture_dict['num_output_channels']
+
+            for this_key in [
+                u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
+            ]:
+                u_net_plusplus_architecture_dict[this_key] = eval(
+                    u_net_plusplus_architecture_dict[this_key]
+                )
+
             model_object = u_net_pp_architecture.create_model(
                 u_net_plusplus_architecture_dict
             )
