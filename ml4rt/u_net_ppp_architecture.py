@@ -1365,6 +1365,7 @@ def create_model_1output_layer(
         )
         print('FOO2')
         print(dense_output_layer_object.shape)
+        print(keras.layers.Permute((1, 2))(dense_output_layer_object).shape)
         output_layer_object = keras.layers.Concatenate(axis=-2)(
             [conv_output_layer_object, dense_output_layer_object]
         )
