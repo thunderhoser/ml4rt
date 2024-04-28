@@ -12,7 +12,7 @@ S = ensemble size
 import os
 import sys
 import numpy
-import keras.backend as K
+from tensorflow.keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))

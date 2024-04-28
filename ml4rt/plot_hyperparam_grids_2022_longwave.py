@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.colors
 from matplotlib import pyplot
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
