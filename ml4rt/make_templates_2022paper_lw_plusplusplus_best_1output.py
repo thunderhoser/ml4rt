@@ -63,7 +63,8 @@ DEFAULT_OPTION_DICT = {
 
 DUMMY_GENERATOR_OPTION_DICT = {
     neural_net.VECTOR_TARGET_NORM_TYPE_KEY: None,
-    neural_net.SCALAR_TARGET_NORM_TYPE_KEY: None
+    neural_net.SCALAR_TARGET_NORM_TYPE_KEY: None,
+    neural_net.JOINED_OUTPUT_LAYER_KEY: True
 }
 
 
@@ -183,7 +184,7 @@ def _run():
                     validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                     loss_function_or_dict=LOSS_FUNCTION_STRING,
                     do_early_stopping=True, plateau_lr_multiplier=0.6,
-                    u_net_plusplus_architecture_dict=None,
+                    u_net_plusplus_architecture_dict=this_option_dict,
                     bnn_architecture_dict=None
                 )
 
