@@ -414,8 +414,8 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                     size=2 ** (j - i), name=layer_name_prefix
                 )(decoder_conv_layer_objects[j])
 
-            num_upsampled_heights = this_layer_object.get_shape()[1]
-            num_desired_heights = encoder_conv_layer_objects[i].get_shape()[1]
+            num_upsampled_heights = this_layer_object.shape[1]
+            num_desired_heights = encoder_conv_layer_objects[i].shape[1]
 
             if num_desired_heights != num_upsampled_heights:
                 this_name = '{0:s}_padding'.format(layer_name_prefix)
@@ -679,7 +679,9 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
     )
 
     conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+        this_function,
+        output_shape=conv_output_layer_object.shape,
+        name='conv_output'
     )(conv_output_layer_object)
 
     output_layer_objects = [conv_output_layer_object]
@@ -701,7 +703,7 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
                 )(decoder_conv_layer_objects[i])
 
             num_upsampled_heights = (
-                deep_supervision_layer_objects[i].get_shape()[1]
+                deep_supervision_layer_objects[i].shape[1]
             )
             num_desired_heights = input_dimensions[0]
 
@@ -754,7 +756,9 @@ def create_model(option_dict, vector_loss_function, use_deep_supervision,
             this_name = 'deepsup{0:d}_output'.format(i)
 
             deep_supervision_layer_objects[i] = keras.layers.Lambda(
-                this_function, name=this_name
+                this_function,
+                output_shape=deep_supervision_layer_objects[i].shape,
+                name=this_name
             )(deep_supervision_layer_objects[i])
 
             output_layer_objects.append(deep_supervision_layer_objects[i])
@@ -1007,8 +1011,8 @@ def create_model_1output_layer(
                     size=2 ** (j - i), name=layer_name_prefix
                 )(decoder_conv_layer_objects[j])
 
-            num_upsampled_heights = this_layer_object.get_shape()[1]
-            num_desired_heights = encoder_conv_layer_objects[i].get_shape()[1]
+            num_upsampled_heights = this_layer_object.shape[1]
+            num_desired_heights = encoder_conv_layer_objects[i].shape[1]
 
             if num_desired_heights != num_upsampled_heights:
                 this_name = '{0:s}_padding'.format(layer_name_prefix)
@@ -1261,7 +1265,9 @@ def create_model_1output_layer(
     )
 
     conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+        this_function,
+        output_shape=conv_output_layer_object.shape,
+        name='conv_output'
     )(conv_output_layer_object)
 
     if has_dense_layers:
