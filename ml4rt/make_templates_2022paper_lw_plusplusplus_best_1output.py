@@ -142,7 +142,7 @@ def _run():
                     u_net_ppp_architecture.create_model_1output_layer(
                         option_dict=this_option_dict,
                         loss_function=LOSS_FUNCTION,
-                        num_output_channels=1
+                        num_output_wavelengths=1
                     )
                 )
 
@@ -180,9 +180,9 @@ def _run():
                     training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                     num_validation_batches_per_epoch=100,
                     validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                    net_type_string=neural_net.U_NET_TYPE_STRING,
                     loss_function_or_dict=LOSS_FUNCTION_STRING,
                     do_early_stopping=True, plateau_lr_multiplier=0.6,
+                    u_net_plusplus_architecture_dict=None,
                     bnn_architecture_dict=None
                 )
 
