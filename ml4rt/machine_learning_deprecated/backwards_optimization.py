@@ -2,7 +2,7 @@
 
 import numpy
 import netCDF4
-from keras import backend as K
+from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import normalization

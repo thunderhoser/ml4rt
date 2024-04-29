@@ -10,7 +10,7 @@ S = ensemble size
 """
 
 import numpy
-import keras.backend as K
+from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 
 

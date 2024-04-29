@@ -9,7 +9,7 @@ T = number of target variables
 S = ensemble size
 """
 
-import keras.backend as K
+from tensorflow.keras import backend as K
 
 
 def mean_bias(target_tensor, prediction_tensor):

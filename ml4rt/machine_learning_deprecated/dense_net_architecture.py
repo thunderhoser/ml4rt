@@ -2,7 +2,7 @@
 
 import numpy
 import keras
-from keras import backend as K
+from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net

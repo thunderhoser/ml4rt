@@ -3,7 +3,7 @@
 import numpy
 import keras
 import keras.layers
-from keras import backend as K
+from tensorflow.keras import backend as K
 import tensorflow
 import tensorflow.math
 from gewittergefahr.gg_utils import error_checking
