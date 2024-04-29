@@ -1417,7 +1417,7 @@ def train_model_with_generator(
         validation_steps_arg = None
 
     model_object.fit(
-        generator=training_generator,
+        x=training_generator,
         steps_per_epoch=num_training_batches_per_epoch,
         epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
         validation_data=validation_data_arg,
