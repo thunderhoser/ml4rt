@@ -963,18 +963,18 @@ def data_generator(option_dict, for_inference):
             predictor_matrix = predictor_matrix.astype('float16')
 
         if joined_output_layer:
-            target_array = vector_target_matrix[..., 0].astype('float16')
+            target_array = vector_target_matrix[..., 0].astype('float32')
 
             if scalar_target_matrix is not None:
                 scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
                 target_array = numpy.concatenate(
-                    [target_array, scalar_target_matrix.astype('float16')],
+                    [target_array, scalar_target_matrix.astype('float32')],
                     axis=-2
                 )
         else:
-            target_array = [vector_target_matrix.astype('float16')]
+            target_array = [vector_target_matrix.astype('float32')]
             if scalar_target_matrix is not None:
-                target_array.append(scalar_target_matrix.astype('float16'))
+                target_array.append(scalar_target_matrix.astype('float32'))
 
         for _ in range(num_deep_supervision_layers):
             target_array.append(target_array[0])
@@ -1074,20 +1074,20 @@ def create_data(option_dict):
     vector_target_matrix = prelim_target_list[0]
 
     if joined_output_layer:
-        target_array = vector_target_matrix[..., 0].astype('float16')
+        target_array = vector_target_matrix[..., 0].astype('float32')
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = numpy.swapaxes(prelim_target_list[1], 1, 2)
             target_array = numpy.concatenate(
-                [target_array, scalar_target_matrix.astype('float16')],
+                [target_array, scalar_target_matrix.astype('float32')],
                 axis=-2
             )
     else:
-        target_array = [vector_target_matrix.astype('float16')]
+        target_array = [vector_target_matrix.astype('float32')]
 
         if len(prelim_target_list) > 1:
             scalar_target_matrix = prelim_target_list[1]
-            target_array.append(scalar_target_matrix.astype('float16'))
+            target_array.append(scalar_target_matrix.astype('float32'))
 
     for _ in range(num_deep_supervision_layers):
         target_array.append(target_array[0])
@@ -1247,9 +1247,9 @@ def create_data_specific_examples(option_dict, example_id_strings):
     else:
         predictor_matrix = predictor_matrix.astype('float16')
 
-    target_array = [vector_target_matrix.astype('float16')]
+    target_array = [vector_target_matrix.astype('float32')]
     if scalar_target_matrix is not None:
-        target_array.append(scalar_target_matrix.astype('float16'))
+        target_array.append(scalar_target_matrix.astype('float32'))
 
     return predictor_matrix, target_array
 
