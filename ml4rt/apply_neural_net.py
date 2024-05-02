@@ -180,6 +180,8 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
 
+        print(prediction_array[0].shape)
+
         vector_prediction_matrix = numpy.expand_dims(
             prediction_array[0][..., :-num_scalar_targets], axis=-1
         )
@@ -362,10 +364,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             ]
 
     vector_target_matrix = target_array[0]
-    print(vector_target_matrix.shape)
     if len(target_array) > 1:
         scalar_target_matrix = target_array[1]
-        print(scalar_target_matrix.shape)
     else:
         scalar_target_matrix = None
 
