@@ -1061,6 +1061,7 @@ def create_data(option_dict):
         )
 
         example_dicts.append(this_example_dict)
+        break  # TODO: hack.
 
     example_dict = example_utils.concat_examples(example_dicts)
     predictor_matrix = predictors_dict_to_numpy(example_dict)[0]

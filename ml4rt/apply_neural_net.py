@@ -362,8 +362,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             ]
 
     vector_target_matrix = target_array[0]
+    print(vector_target_matrix.shape)
     if len(target_array) > 1:
         scalar_target_matrix = target_array[1]
+        print(scalar_target_matrix.shape)
     else:
         scalar_target_matrix = None
 
