@@ -227,6 +227,22 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _wavelength_to_string(wavelength_metres):
+    """Converts wavelength to string.
+    
+    :param wavelength_metres: Wavelength (scalar float).
+    :return: wavelength_string_microns: Wavelength (string in microns).
+    """
+    
+    if (
+            wavelength_metres > 0.99 *
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+    ):
+        return 'BB'
+    
+    return '{0:.2f}'.format(METRES_TO_MICRONS * wavelength_metres)
+
+
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
@@ -550,9 +566,9 @@ def _plot_attributes_diagram(
             TARGET_NAME_TO_UNITS[target_name]
         ))
 
-        title_string = 'Attributes diagram for {0:s} at {1:.2f}'.format(
+        title_string = 'Attributes diagram for {0:s} at {1:s}'.format(
             TARGET_NAME_TO_VERBOSE[target_name],
-            METRES_TO_MICRONS * wavelength_metres
+            _wavelength_to_string(wavelength_metres)
         )
         title_string += r' $\mu$m'
 
@@ -616,10 +632,10 @@ def _plot_attributes_diagram(
                 facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
             )
 
-        figure_file_name = '{0:s}/{1:s}_{2:.2f}microns'.format(
+        figure_file_name = '{0:s}/{1:s}_{2:s}microns'.format(
             output_dir_name,
             target_name.replace('_', '-'),
-            METRES_TO_MICRONS * wavelength_metres
+            _wavelength_to_string(wavelength_metres)
         )
 
         if height_m_agl is not None:
@@ -745,10 +761,10 @@ def _plot_score_profile(
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
-    title_string = '{0:s} for {1:s} at {2:.2f}'.format(
+    title_string = '{0:s} for {1:s} at {2:s}'.format(
         SCORE_NAME_TO_VERBOSE[score_name],
         TARGET_NAME_TO_VERBOSE[target_name],
-        METRES_TO_MICRONS * wavelength_metres
+        _wavelength_to_string(wavelength_metres)
     )
     title_string += r' $\mu$m'
 
@@ -776,10 +792,10 @@ def _plot_score_profile(
     axes_object.set_xlabel(x_label_string)
     axes_object.set_title(title_string)
 
-    figure_file_name = '{0:s}/{1:s}_{2:.2f}microns_{3:s}_profile.jpg'.format(
+    figure_file_name = '{0:s}/{1:s}_{2:s}microns_{3:s}_profile.jpg'.format(
         output_dir_name,
         target_name.replace('_', '-'),
-        METRES_TO_MICRONS * wavelength_metres,
+        _wavelength_to_string(wavelength_metres),
         score_name.replace('_', '-')
     )
 
@@ -858,11 +874,11 @@ def _plot_error_distributions(
             )
 
             title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+                'Error distribution for {0:s} ({1:s}) at {2:s}'
             ).format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
                 TARGET_NAME_TO_UNITS[vector_target_names[t]],
-                METRES_TO_MICRONS * wavelength_metres
+                _wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -871,11 +887,11 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{3:s}.jpg'
+                '{0:s}/{1:s}_{2:s}microns_error-dist_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
-                METRES_TO_MICRONS * wavelength_metres,
+                _wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -936,11 +952,11 @@ def _plot_error_distributions(
             axes_object.set_ylabel(r'Actual heating rate (K day$^{-1}$)')
 
             title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+                'Error distribution for {0:s} ({1:s}) at {2:s}'
             ).format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
                 TARGET_NAME_TO_UNITS[vector_target_names[t]],
-                METRES_TO_MICRONS * wavelength_metres,
+                _wavelength_to_string(wavelength_metres),
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -949,12 +965,12 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_'
+                '{0:s}/{1:s}_{2:s}microns_'
                 'error-dist-by-actual-value_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
-                METRES_TO_MICRONS * wavelength_metres,
+                _wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -984,11 +1000,11 @@ def _plot_error_distributions(
             )
 
             title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+                'Error distribution for {0:s} ({1:s}) at {2:s}'
             ).format(
                 TARGET_NAME_TO_VERBOSE[scalar_target_names[t]],
                 TARGET_NAME_TO_UNITS[scalar_target_names[t]],
-                METRES_TO_MICRONS * wavelength_metres
+                _wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -997,11 +1013,11 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{3:s}.jpg'
+                '{0:s}/{1:s}_{2:s}microns_error-dist_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 scalar_target_names[t].replace('_', '-'),
-                METRES_TO_MICRONS * wavelength_metres,
+                _wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1066,11 +1082,11 @@ def _plot_error_distributions(
             )
 
             title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:.2f}'
+                'Error distribution for {0:s} ({1:s}) at {2:s}'
             ).format(
                 TARGET_NAME_TO_VERBOSE[aux_target_names[t]],
                 TARGET_NAME_TO_UNITS[aux_target_names[t]],
-                METRES_TO_MICRONS * wavelength_metres
+                _wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -1079,11 +1095,11 @@ def _plot_error_distributions(
             axes_object.set_title(title_string)
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_error-dist_{3:s}.jpg'
+                '{0:s}/{1:s}_{2:s}microns_error-dist_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 aux_target_names[t].replace('_', '-'),
-                METRES_TO_MICRONS * wavelength_metres,
+                _wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1157,9 +1173,9 @@ def _plot_reliability_by_height(
                 axes_object=axes_object
             )
 
-            title_string = 'Reliability curves for {0:s} at {1:.2f}'.format(
+            title_string = 'Reliability curves for {0:s} at {1:s}'.format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
-                METRES_TO_MICRONS * wavelength_metres
+                _wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -1177,11 +1193,11 @@ def _plot_reliability_by_height(
             )
 
             figure_file_name = (
-                '{0:s}/{1:s}_{2:.2f}microns_reliability_{3:s}.jpg'
+                '{0:s}/{1:s}_{2:s}microns_reliability_{3:s}.jpg'
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
-                METRES_TO_MICRONS * wavelength_metres,
+                _wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1335,6 +1351,26 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
+
+    # TODO(thunderhoser): This is a HACK for models trained with unnormalized
+    # predictors.
+    if normalization_file_name is None:
+        if (
+                example_utils.LONGWAVE_HEATING_RATE_NAME in
+                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+        ):
+            normalization_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/examples_with_correct_vertical_coords/longwave/'
+                'training/learning_examples_for_norm_20180901-20191221.nc'
+            )
+        else:
+            normalization_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/examples_with_correct_vertical_coords/shortwave/'
+                'training/learning_examples_for_norm_20180901-20191221.nc'
+            )
+
     print((
         'Reading training examples (for climatology) from: "{0:s}"...'
     ).format(

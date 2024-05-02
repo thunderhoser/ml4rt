@@ -173,12 +173,17 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
 
-        vector_prediction_matrix = numpy.expand_dims(
-            prediction_array[0][..., :-num_scalar_targets], axis=-1
+        vector_prediction_matrix = (
+            prediction_array[0][:, :-num_scalar_targets, ...]
         )
         scalar_prediction_matrix = (
-            prediction_array[0][..., -num_scalar_targets:]
+            prediction_array[0][:, -num_scalar_targets:, ...]
         )
+        scalar_prediction_matrix = scalar_prediction_matrix[..., 0, :]
+        scalar_prediction_matrix = numpy.swapaxes(
+            scalar_prediction_matrix, 1, 2
+        )
+
         prediction_array = [
             vector_prediction_matrix, scalar_prediction_matrix
         ]
@@ -369,12 +374,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
+
+    if normalization_file_name is None:
+        training_example_dict = None
+    else:
+        print((
+            'Reading training examples (for normalization) from: "{0:s}"...'
+        ).format(
+            normalization_file_name
+        ))
+        training_example_dict = example_io.read_file(normalization_file_name)
 
     num_examples = len(example_id_strings)
     num_heights = len(target_example_dict[example_utils.HEIGHTS_KEY])
