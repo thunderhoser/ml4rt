@@ -577,6 +577,8 @@ def targets_numpy_to_dict(target_matrices):
     else:
         scalar_target_matrix = target_matrices[1]
 
+    print(scalar_target_matrix.shape)
+
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
     error_checking.assert_is_numpy_array(
         scalar_target_matrix, num_dimensions=3

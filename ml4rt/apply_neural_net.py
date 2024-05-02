@@ -180,13 +180,11 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
             generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
         )
 
-        print(prediction_array[0].shape)
-
-        vector_prediction_matrix = numpy.expand_dims(
-            prediction_array[0][..., :-num_scalar_targets], axis=-1
+        vector_prediction_matrix = (
+            prediction_array[0][:, :-num_scalar_targets, ...]
         )
         scalar_prediction_matrix = (
-            prediction_array[0][..., -num_scalar_targets:]
+            prediction_array[0][:, :, -num_scalar_targets:, ...]
         )
         prediction_array = [
             vector_prediction_matrix, scalar_prediction_matrix
