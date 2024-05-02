@@ -475,22 +475,21 @@ def plot_latlng_grid(
         field_matrix=field_matrix, field_name=field_name
     )
 
-    (
-        field_matrix_at_edges,
-        grid_cell_edge_latitudes_deg,
-        grid_cell_edge_longitudes_deg
-    ) = grids.latlng_field_grid_points_to_edges(
-        field_matrix=field_matrix, min_latitude_deg=min_grid_point_latitude_deg,
+    grid_latitudes_deg_n, grid_longitudes_deg_e = grids.get_latlng_grid_points(
+        min_latitude_deg=min_grid_point_latitude_deg,
         min_longitude_deg=min_grid_point_longitude_deg,
         lat_spacing_deg=latitude_spacing_deg,
-        lng_spacing_deg=longitude_spacing_deg)
+        lng_spacing_deg=longitude_spacing_deg,
+        num_rows=field_matrix.shape[0],
+        num_columns=field_matrix.shape[1]
+    )
 
-    grid_cell_edge_longitudes_deg[grid_cell_edge_longitudes_deg > 180.] -= 360.
-    if numpy.isclose(grid_cell_edge_longitudes_deg[0], 180., atol=1e-6):
-        grid_cell_edge_longitudes_deg[0] = -180.
+    grid_longitudes_deg_e[grid_longitudes_deg_e > 180.] -= 360.
+    if numpy.isclose(grid_longitudes_deg_e[0], 180., atol=1e-6):
+        grid_longitudes_deg_e[0] = -180.
 
-    field_matrix_at_edges = numpy.ma.masked_where(
-        numpy.isnan(field_matrix_at_edges), field_matrix_at_edges
+    data_matrix_to_plot = numpy.ma.masked_where(
+        numpy.isnan(field_matrix), field_matrix
     )
 
     use_default_colour_scheme = (
@@ -519,16 +518,9 @@ def plot_latlng_grid(
                 field_matrix=colour_norm_object.vmax, field_name=field_name
             )
 
-    if hasattr(colour_norm_object, 'boundaries'):
-        min_colour_value = colour_norm_object.boundaries[0]
-        max_colour_value = colour_norm_object.boundaries[-1]
-    else:
-        min_colour_value = colour_norm_object.vmin
-        max_colour_value = colour_norm_object.vmax
-
-    axes_object.pcolormesh(
-        grid_cell_edge_longitudes_deg, grid_cell_edge_latitudes_deg,
-        field_matrix_at_edges, cmap=colour_map_object, norm=colour_norm_object,
-        vmin=min_colour_value, vmax=max_colour_value, shading='flat',
+    axes_object.pcolor(
+        grid_longitudes_deg_e, grid_latitudes_deg_n,
+        data_matrix_to_plot,
+        cmap=colour_map_object, norm=colour_norm_object,
         edgecolors='None', zorder=-1e11
     )
