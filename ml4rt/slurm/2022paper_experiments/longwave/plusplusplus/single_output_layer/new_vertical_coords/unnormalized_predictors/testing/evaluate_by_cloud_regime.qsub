@@ -43,7 +43,7 @@ testing_dir_name="${model_dir_name}/testing"
 
 REGIME_STRINGS_DASHED=("no-cloud" "single-layer-cloud" "multi-layer-cloud" "fog")
 REGIME_STRINGS_UNDERSCORED=("no_cloud" "single_layer_cloud" "multi_layer_cloud" "fog")
-i=1
+i=0
 
 while [ $i -lt ${#REGIME_STRINGS_DASHED[@]} ]; do
     regime_string_dashed=${REGIME_STRINGS_DASHED[$i]}
