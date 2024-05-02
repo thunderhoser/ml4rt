@@ -376,12 +376,16 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
+
+    if normalization_file_name is None:
+        training_example_dict = None
+    else:
+        print((
+            'Reading training examples (for normalization) from: "{0:s}"...'
+        ).format(
+            normalization_file_name
+        ))
+        training_example_dict = example_io.read_file(normalization_file_name)
 
     num_examples = len(example_id_strings)
     num_heights = len(target_example_dict[example_utils.HEIGHTS_KEY])
