@@ -563,7 +563,7 @@ def targets_numpy_to_dict(target_matrices):
     """
 
     vector_target_matrix = target_matrices[0]
-    print(vector_target_matrix.shape)
+    print('vector_target_matrix.shape = {0:s}'.format(str(vector_target_matrix.shape)))
     error_checking.assert_is_numpy_array_without_nan(vector_target_matrix)
     error_checking.assert_is_numpy_array(vector_target_matrix, num_dimensions=4)
 
@@ -577,7 +577,7 @@ def targets_numpy_to_dict(target_matrices):
     else:
         scalar_target_matrix = target_matrices[1]
 
-    print(scalar_target_matrix.shape)
+    print('scalar_target_matrix.shape = {0:s}'.format(str(scalar_target_matrix.shape)))
 
     error_checking.assert_is_numpy_array_without_nan(scalar_target_matrix)
     error_checking.assert_is_numpy_array(

@@ -184,8 +184,13 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
             prediction_array[0][:, :-num_scalar_targets, ...]
         )
         scalar_prediction_matrix = (
-            prediction_array[0][:, :, -num_scalar_targets:, ...]
+            prediction_array[0][:, -num_scalar_targets:, ...]
         )
+        scalar_prediction_matrix = scalar_prediction_matrix[..., 0, :]
+        scalar_prediction_matrix = numpy.swapaxes(
+            scalar_prediction_matrix, 1, 2
+        )
+
         prediction_array = [
             vector_prediction_matrix, scalar_prediction_matrix
         ]
