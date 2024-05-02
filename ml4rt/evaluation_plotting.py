@@ -321,7 +321,6 @@ def plot_inset_histogram(
         fake_bin_centers[real_indices], bin_frequencies[real_indices], 1.,
         color=bar_colour, linewidth=0
     )
-    inset_axes_object.set_ylim(bottom=0.)
 
     this_spacing = int(numpy.floor(
         (1. / 6) * len(real_indices)
@@ -332,7 +331,7 @@ def plot_inset_histogram(
         real_indices[::this_spacing], real_indices[[-1]]
     ))
     tick_indices = numpy.unique(tick_indices)
-    if numpy.diff(tick_indices[-2:])[0] < 2:
+    if len(tick_indices) >= 2 and numpy.diff(tick_indices[-2:])[0] < 2:
         tick_indices = tick_indices[:-1]
 
     x_tick_values = fake_bin_centers[tick_indices]
@@ -343,7 +342,18 @@ def plot_inset_histogram(
         x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
 
     inset_axes_object.set_xticks(x_tick_values)
-    inset_axes_object.set_xticklabels(x_tick_labels)
+    inset_axes_object.set_xticklabels(
+        x_tick_labels, fontsize=HISTOGRAM_FONT_SIZE, rotation=90.
+    )
+
+    inset_axes_object.set_ylim(bottom=0.)
+    y_tick_values = numpy.linspace(0, 0.05, num=6)
+    y_tick_labels = ['{0:.2f}'.format(v) for v in y_tick_values]
+
+    inset_axes_object.set_yticks(y_tick_values)
+    inset_axes_object.set_yticklabels(
+        y_tick_labels, fontsize=HISTOGRAM_FONT_SIZE
+    )
 
     inset_axes_object.tick_params(axis='x', labelsize=HISTOGRAM_FONT_SIZE)
     inset_axes_object.tick_params(axis='y', labelsize=HISTOGRAM_FONT_SIZE)
