@@ -1342,6 +1342,26 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     normalization_file_name = (
         generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
     )
+
+    # TODO(thunderhoser): This is a HACK for models trained with unnormalized
+    # predictors.
+    if normalization_file_name is None:
+        if (
+                example_utils.LONGWAVE_HEATING_RATE_NAME in
+                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
+        ):
+            normalization_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/examples_with_correct_vertical_coords/longwave/'
+                'training/learning_examples_for_norm_20180901-20191221.nc'
+            )
+        else:
+            normalization_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/examples_with_correct_vertical_coords/shortwave/'
+                'training/learning_examples_for_norm_20180901-20191221.nc'
+            )
+
     print((
         'Reading training examples (for climatology) from: "{0:s}"...'
     ).format(
