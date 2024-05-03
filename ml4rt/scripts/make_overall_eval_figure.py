@@ -6,8 +6,7 @@ import numpy
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.utils import example_utils
-
-METRES_TO_MICRONS = 1e6
+from ml4rt.scripts import plot_evaluation
 
 CONVERT_EXE_NAME = '/usr/bin/convert'
 TITLE_FONT_SIZE = 250
@@ -100,8 +99,6 @@ def _get_input_files_1wavelength(input_dir_name, for_shortwave,
     :return: input_file_names: 1-D list of paths to input files.
     """
 
-    wavelength_microns = METRES_TO_MICRONS * wavelength_metres
-
     pathless_wavelengthless_file_names = [
         'shortwave-surface-down-flux-w-m02_attributes_new-model.jpg',
         'shortwave-toa-up-flux-w-m02_attributes_new-model.jpg',
@@ -120,7 +117,7 @@ def _get_input_files_1wavelength(input_dir_name, for_shortwave,
 
     pathless_file_names = [
         '_'.join(
-            [f.split('_')[0], '{0:.2f}microns'.format(wavelength_microns)] +
+            [f.split('_')[0], plot_evaluation.wavelength_to_string(wavelength_metres)] +
             f.split('_')[1:]
         )
         for f in pathless_wavelengthless_file_names
@@ -188,10 +185,10 @@ def _run(input_dir_name, for_shortwave, wavelengths_metres, output_dir_name):
             )
 
         concat_figure_file_name = (
-            '{0:s}/overall_evaluation_{1:.2f}microns.jpg'
+            '{0:s}/overall_evaluation_{1:s}microns.jpg'
         ).format(
             output_dir_name,
-            METRES_TO_MICRONS * wavelengths_metres
+            plot_evaluation.wavelength_to_string(this_wavelength_metres)
         )
         print('Concatenating panels to: "{0:s}"...'.format(
             concat_figure_file_name

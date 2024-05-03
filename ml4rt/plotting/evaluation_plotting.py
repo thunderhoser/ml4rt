@@ -339,7 +339,7 @@ def plot_inset_histogram(
     )
 
     inset_axes_object.set_ylim(bottom=0.)
-    y_tick_values = numpy.linspace(0, 0.05, num=6)
+    y_tick_values = numpy.linspace(0, inset_axes_object.get_ylim()[-1], num=6)
     y_tick_labels = ['{0:.2f}'.format(v) for v in y_tick_values]
 
     inset_axes_object.set_yticks(y_tick_values)
