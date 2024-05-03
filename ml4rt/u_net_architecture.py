@@ -3,7 +3,7 @@
 import os
 import sys
 import numpy
-import tensorflow.keras as keras
+import keras
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))

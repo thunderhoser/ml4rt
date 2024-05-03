@@ -30,15 +30,12 @@ BAND_WEIGHTS = numpy.array([
     1, 4, 500, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5
 ], dtype=float)
 
-# VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse_constrained_bb(
-#     band_weights=BAND_WEIGHTS
-# )
-# SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux_constrained_bb(
-#     scaling_factor=1., band_weights=BAND_WEIGHTS
-# )
-
-VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse_simple()
-SCALAR_LOSS_FUNCTION = 'mse'
+VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse_constrained_bb(
+    band_weights=BAND_WEIGHTS
+)
+SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux_constrained_bb(
+    scaling_factor=1., band_weights=BAND_WEIGHTS
+)
 VECTOR_LOSS_FUNCTION_STRING = (
     'custom_losses.dual_weighted_mse_constrained_bb('
     'band_weights='
@@ -206,7 +203,7 @@ def _run():
                 this_model_object.save(
                     filepath=this_model_file_name,
                     overwrite=True,
-                    include_optimizer=True
+                    include_optimizer=False
                 )
 
                 this_metafile_name = neural_net.find_metafile(
@@ -234,8 +231,8 @@ def _run():
                     loss_function_or_dict=LOSS_DICT,
                     do_early_stopping=True,
                     plateau_lr_multiplier=0.6,
-                    u_net_3plus_architecture_dict=this_option_dict,
-                    u_net_plusplus_architecture_dict=None,
+                    u_net_3plus_architecture_dict=None,
+                    u_net_plusplus_architecture_dict=this_option_dict,
                     bnn_architecture_dict=None
                 )
 
