@@ -18,7 +18,6 @@ import error_checking
 import architecture_utils
 import neural_net
 import u_net_architecture as u_net_arch
-import inline_normalization
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
 FLIPOUT_TYPE_STRING = 'flipout'
