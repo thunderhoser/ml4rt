@@ -18,6 +18,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import architecture_utils
 import neural_net
 import u_net_architecture as u_net_arch
+import inline_normalization
 
 INPUT_DIMENSIONS_KEY = u_net_arch.INPUT_DIMENSIONS_KEY
 NUM_LEVELS_KEY = u_net_arch.NUM_LEVELS_KEY
