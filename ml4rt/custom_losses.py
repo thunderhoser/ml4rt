@@ -106,10 +106,10 @@ def scaled_mse_for_net_flux_constrained_bb(scaling_factor, band_weights=None):
         error_checking.assert_is_greater_numpy_array(band_weights, 0.)
 
         # Add broadband.
-        # band_weights = numpy.concatenate([
-        #     band_weights,
-        #     numpy.array([numpy.sum(band_weights)])
-        # ])
+        band_weights = numpy.concatenate([
+            band_weights,
+            numpy.array([numpy.sum(band_weights)])
+        ])
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss.
@@ -562,10 +562,10 @@ def dual_weighted_mse_constrained_bb(band_weights=None):
         error_checking.assert_is_greater_numpy_array(band_weights, 0.)
 
         # Add broadband.
-        # band_weights = numpy.concatenate([
-        #     band_weights,
-        #     numpy.array([numpy.sum(band_weights)])
-        # ])
+        band_weights = numpy.concatenate([
+            band_weights,
+            numpy.array([numpy.sum(band_weights)])
+        ])
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss.
