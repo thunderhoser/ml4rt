@@ -463,7 +463,7 @@ def read_file(
     if found_wavelengths:
         target_wavelengths_metres = numpy.array(
             dataset_object.variables[example_utils.TARGET_WAVELENGTHS_KEY][:],
-            dtype=numpy.float
+            dtype=float
         )
     else:
         target_wavelengths_metres = numpy.array(

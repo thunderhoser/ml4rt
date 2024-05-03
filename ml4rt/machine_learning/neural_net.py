@@ -974,9 +974,23 @@ def data_generator(option_dict, for_inference):
             target_array.append(target_array[0])
 
         if for_inference:
-            yield predictor_matrix, target_array, example_id_strings
+            if len(target_array) > 1:
+                target_dict = {
+                    'conv_output': target_array[0],
+                    'dense_output': target_array[1]
+                }
+                yield predictor_matrix, target_dict, example_id_strings
+            else:
+                yield predictor_matrix, target_array[0], example_id_strings
         else:
-            yield predictor_matrix, target_array
+            if len(target_array) > 1:
+                target_dict = {
+                    'conv_output': target_array[0],
+                    'dense_output': target_array[1]
+                }
+                yield predictor_matrix, target_dict
+            else:
+                yield predictor_matrix, target_array[0]
 
 
 def create_data(option_dict):

@@ -2,7 +2,6 @@
 
 import numpy
 import keras
-from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
@@ -405,6 +404,9 @@ def create_model(option_dict):
 
     if ensemble_size > 1:
         include_penultimate_conv = False
+        metric_function_list = []
+    else:
+        metric_function_list = neural_net.METRIC_FUNCTION_LIST
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
@@ -737,20 +739,19 @@ def create_model(option_dict):
             inputs=input_layer_object, outputs=conv_output_layer_object
         )
 
-    if ensemble_size > 1:
-        metric_function_list = []
-    else:
-        metric_function_list = neural_net.METRIC_FUNCTION_LIST
-
     if has_dense_layers:
         loss_dict = {
             'conv_output': vector_loss_function,
             'dense_output': scalar_loss_function
         }
+        metric_dict = {
+            'conv_output': metric_function_list,
+            'dense_output': metric_function_list
+        }
 
         model_object.compile(
             loss=loss_dict, optimizer=keras.optimizers.Adam(),
-            metrics=metric_function_list
+            metrics=metric_dict
         )
     else:
         model_object.compile(

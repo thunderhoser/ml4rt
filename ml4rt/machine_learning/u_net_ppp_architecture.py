@@ -133,6 +133,9 @@ def create_model(option_dict):
     if ensemble_size > 1:
         include_penultimate_conv = False
         use_deep_supervision = False
+        metric_function_list = []
+    else:
+        metric_function_list = neural_net.METRIC_FUNCTION_LIST
 
     has_dense_layers = dense_layer_neuron_nums is not None
 
@@ -500,6 +503,7 @@ def create_model(option_dict):
 
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {'conv_output': vector_loss_function}
+    metric_dict = {'conv_output': metric_function_list}
 
     deep_supervision_layer_objects = [None] * (num_levels + 1)
 
@@ -574,6 +578,7 @@ def create_model(option_dict):
 
             output_layer_objects.append(deep_supervision_layer_objects[i])
             loss_dict[this_name] = vector_loss_function
+            metric_dict[this_name] = metric_function_list
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
@@ -661,14 +666,10 @@ def create_model(option_dict):
                 )
             )
 
-    if ensemble_size > 1:
-        metric_function_list = []
-    else:
-        metric_function_list = neural_net.METRIC_FUNCTION_LIST
-
     if has_dense_layers:
         output_layer_objects.insert(1, dense_output_layer_object)
         loss_dict['dense_output'] = scalar_loss_function
+        metric_dict['dense_output'] = metric_function_list
 
     model_object = keras.models.Model(
         inputs=input_layer_object, outputs=output_layer_objects
@@ -676,7 +677,7 @@ def create_model(option_dict):
     model_object.compile(
         loss=loss_dict,
         optimizer=keras.optimizers.Nadam(),
-        metrics=metric_function_list
+        metrics=metric_dict
     )
 
     model_object.summary()
