@@ -4,6 +4,7 @@ import os
 import sys
 import numpy
 import keras
+from tensorflow.keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -259,9 +260,9 @@ def check_args(option_dict):
     dense_layer_dropout_rates = option_dict[DENSE_LAYER_DROPOUT_RATES_KEY]
     dense_layer_mc_dropout_flags = option_dict[DENSE_LAYER_MC_DROPOUT_FLAGS_KEY]
     has_dense_layers = not (
-            dense_layer_neuron_nums is None
-            and dense_layer_dropout_rates is None
-            and dense_layer_mc_dropout_flags is None
+        dense_layer_neuron_nums is None
+        and dense_layer_dropout_rates is None
+        and dense_layer_mc_dropout_flags is None
     )
 
     if has_dense_layers:
@@ -325,35 +326,46 @@ def check_args(option_dict):
     return option_dict
 
 
-def zero_top_heating_rate(input_layer_object, ensemble_size, output_layer_name):
-    """Zeroes out heating rate at top of atmosphere.
+def zero_top_heating_rate_function(height_index):
+    """Returns function that zeroes predicted heating rate at top of profile.
 
-    :param input_layer_object: Input layer, containing predicted heating rates.
-    :param ensemble_size: Number of ensemble members.
-    :param output_layer_name: Name of output layer.
-    :return: output_layer_object: Same as input but with zeros at TOA.
+    :param height_index: Will zero out heating rate at this height.
+    :return: zeroing_function: Function handle (see below).
     """
 
-    if ensemble_size > 1:
-        cropping_arg = ((0, 1), (0, 0), (0, 0))
-        output_layer_object = keras.layers.Cropping3D(
-            cropping=cropping_arg
-        )(input_layer_object)
+    error_checking.assert_is_integer(height_index)
+    error_checking.assert_is_geq(height_index, 0)
 
-        output_layer_object = keras.layers.ZeroPadding3D(
-            padding=cropping_arg, name=output_layer_name
-        )(output_layer_object)
-    else:
-        cropping_arg = ((0, 1), (0, 0))
-        output_layer_object = keras.layers.Cropping2D(
-            cropping=cropping_arg
-        )(input_layer_object)
+    def zeroing_function(orig_prediction_tensor):
+        """Zeroes out predicted heating rate at top of profile.
 
-        output_layer_object = keras.layers.ZeroPadding2D(
-            padding=cropping_arg, name=output_layer_name
-        )(output_layer_object)
+        :param orig_prediction_tensor: Keras tensor with model predictions.
+        :return: new_prediction_tensor: Same as input but with top heating rate
+            zeroed out.
+        """
 
-    return output_layer_object
+        num_heights = orig_prediction_tensor.shape[1]
+
+        zero_tensor = K.greater_equal(
+            orig_prediction_tensor[:, height_index, ...],
+            1e12
+        )
+        zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
+
+        heating_rate_tensor = K.concatenate((
+            orig_prediction_tensor[:, :height_index, ...],
+            K.expand_dims(zero_tensor, axis=1)
+        ), axis=1)
+
+        if height_index != num_heights - 1:
+            heating_rate_tensor = K.concatenate((
+                heating_rate_tensor,
+                orig_prediction_tensor[:, (height_index + 1):, ...]
+            ), axis=1)
+
+        return heating_rate_tensor
+
+    return zeroing_function
 
 
 def create_model(option_dict):
@@ -633,12 +645,13 @@ def create_model(option_dict):
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    # Zero out heating rate at top of atmosphere.
-    conv_output_layer_object = zero_top_heating_rate(
-        input_layer_object=conv_output_layer_object,
-        ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
+    this_function = zero_top_heating_rate_function(
+        height_index=input_dimensions[0] - 1
     )
+
+    conv_output_layer_object = keras.layers.Lambda(
+        this_function, name='conv_output'
+    )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
@@ -666,8 +679,8 @@ def create_model(option_dict):
                 this_name = 'dense{0:d}_reshape'.format(j)
 
             num_dense_output_vars = (
-                    float(dense_layer_neuron_nums[j]) /
-                    (ensemble_size * num_output_wavelengths)
+                float(dense_layer_neuron_nums[j]) /
+                (ensemble_size * num_output_wavelengths)
             )
             assert numpy.isclose(
                 num_dense_output_vars, numpy.round(num_dense_output_vars),
