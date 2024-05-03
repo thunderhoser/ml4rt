@@ -454,14 +454,15 @@ def create_model(option_dict):
             activation_function_string=conv_output_activ_func_name,
             alpha_for_relu=conv_output_activ_func_alpha,
             alpha_for_elu=conv_output_activ_func_alpha,
-            layer_name='last_conv_activation'
+            # layer_name='last_conv_activation'
+            layer_name='conv_output'
         )(conv_output_layer_object)
 
-    conv_output_layer_object = u_net_arch.zero_top_heating_rate(
-        input_layer_object=conv_output_layer_object,
-        ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
-    )
+    # conv_output_layer_object = u_net_arch.zero_top_heating_rate(
+    #     input_layer_object=conv_output_layer_object,
+    #     ensemble_size=ensemble_size,
+    #     output_layer_name='conv_output'
+    # )
 
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {'conv_output': vector_loss_function}
