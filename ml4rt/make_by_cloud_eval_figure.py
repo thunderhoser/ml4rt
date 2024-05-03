@@ -109,9 +109,12 @@ def _get_input_files_1wavelength(input_dir_name, for_shortwave,
             for f in pathless_wavelengthless_file_names
         ]
 
+    wavelength_string = '{0:s}microns'.format(
+        plot_evaluation.wavelength_to_string(wavelength_metres)
+    )
     pathless_file_names = [
         '_'.join(
-            [f.split('_')[0], plot_evaluation.wavelength_to_string(wavelength_metres)] +
+            [f.split('_')[0], wavelength_string] +
             f.split('_')[1:]
         )
         for f in pathless_wavelengthless_file_names
