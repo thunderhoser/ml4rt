@@ -90,8 +90,8 @@ DEFAULT_OPTION_DICT = {
         4, False, dtype=bool
     ),
     u_net_pp_arch.NUM_OUTPUT_WAVELENGTHS_KEY: len(BAND_WEIGHTS),
-    u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
-    u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
+    u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY: 'mse',
+    u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY: 'mse',
     u_net_pp_arch.USE_DEEP_SUPERVISION_KEY: False,
     u_net_pp_arch.ENSEMBLE_SIZE_KEY: 1,
     u_net_pp_arch.DO_INLINE_NORMALIZATION_KEY: False
@@ -181,6 +181,7 @@ def _run():
                 this_option_dict[u_net_pp_arch.DENSE_LAYER_NEURON_NUMS_KEY] = (
                     these_neuron_counts
                 )
+                print(this_option_dict)
                 this_model_object = u_net_pp_arch.create_model(this_option_dict)
 
                 this_model_file_name = (
@@ -203,7 +204,7 @@ def _run():
                 this_model_object.save(
                     filepath=this_model_file_name,
                     overwrite=True,
-                    include_optimizer=False
+                    include_optimizer=True
                 )
 
                 this_metafile_name = neural_net.find_metafile(
