@@ -173,6 +173,11 @@ def _run():
                     )[1]
                 )
 
+                these_neuron_counts[-1] = 2 * len(BAND_WEIGHTS)
+                these_neuron_counts[-2] = max([
+                    these_neuron_counts[-2], these_neuron_counts[-1]
+                ])
+
                 this_option_dict[u_net_pp_arch.DENSE_LAYER_NEURON_NUMS_KEY] = (
                     these_neuron_counts
                 )
