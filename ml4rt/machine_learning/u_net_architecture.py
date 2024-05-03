@@ -318,46 +318,35 @@ def check_args(option_dict):
     return option_dict
 
 
-def zero_top_heating_rate_function(height_index):
-    """Returns function that zeroes predicted heating rate at top of profile.
+def zero_top_heating_rate(input_layer_object, ensemble_size, output_layer_name):
+    """Zeroes out heating rate at top of atmosphere.
 
-    :param height_index: Will zero out heating rate at this height.
-    :return: zeroing_function: Function handle (see below).
+    :param input_layer_object: Input layer, containing predicted heating rates.
+    :param ensemble_size: Number of ensemble members.
+    :param output_layer_name: Name of output layer.
+    :return: output_layer_object: Same as input but with zeros at TOA.
     """
 
-    error_checking.assert_is_integer(height_index)
-    error_checking.assert_is_geq(height_index, 0)
+    if ensemble_size > 1:
+        cropping_arg = ((0, 1), (0, 0), (0, 0))
+        output_layer_object = keras.layers.Cropping3D(
+            cropping=cropping_arg
+        )(input_layer_object)
 
-    def zeroing_function(orig_prediction_tensor):
-        """Zeroes out predicted heating rate at top of profile.
+        output_layer_object = keras.layers.ZeroPadding3D(
+            padding=cropping_arg, name=output_layer_name
+        )(output_layer_object)
+    else:
+        cropping_arg = ((0, 1), (0, 0))
+        output_layer_object = keras.layers.Cropping2D(
+            cropping=cropping_arg
+        )(input_layer_object)
 
-        :param orig_prediction_tensor: Keras tensor with model predictions.
-        :return: new_prediction_tensor: Same as input but with top heating rate
-            zeroed out.
-        """
+        output_layer_object = keras.layers.ZeroPadding2D(
+            padding=cropping_arg, name=output_layer_name
+        )(output_layer_object)
 
-        num_heights = orig_prediction_tensor.shape[1]
-
-        zero_tensor = K.greater_equal(
-            orig_prediction_tensor[:, height_index, ...],
-            1e12
-        )
-        zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
-
-        heating_rate_tensor = K.concatenate((
-            orig_prediction_tensor[:, :height_index, ...],
-            K.expand_dims(zero_tensor, axis=1)
-        ), axis=1)
-
-        if height_index != num_heights - 1:
-            heating_rate_tensor = K.concatenate((
-                heating_rate_tensor,
-                orig_prediction_tensor[:, (height_index + 1):, ...]
-            ), axis=1)
-
-        return heating_rate_tensor
-
-    return zeroing_function
+    return output_layer_object
 
 
 def create_model(option_dict):
@@ -637,13 +626,12 @@ def create_model(option_dict):
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    this_function = zero_top_heating_rate_function(
-        height_index=input_dimensions[0] - 1
+    # Zero out heating rate at top of atmosphere.
+    conv_output_layer_object = zero_top_heating_rate(
+        input_layer_object=conv_output_layer_object,
+        ensemble_size=ensemble_size,
+        output_layer_name='conv_output'
     )
-
-    conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
-    )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
