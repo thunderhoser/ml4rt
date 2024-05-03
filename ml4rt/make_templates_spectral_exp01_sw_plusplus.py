@@ -4,9 +4,6 @@ import os
 import sys
 import copy
 import numpy
-import tensorflow
-
-tensorflow.compat.v1.enable_eager_execution()
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -33,12 +30,15 @@ BAND_WEIGHTS = numpy.array([
     1, 4, 500, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5
 ], dtype=float)
 
-VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse_constrained_bb(
-    band_weights=BAND_WEIGHTS
-)
-SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux_constrained_bb(
-    scaling_factor=1., band_weights=BAND_WEIGHTS
-)
+# VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse_constrained_bb(
+#     band_weights=BAND_WEIGHTS
+# )
+# SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux_constrained_bb(
+#     scaling_factor=1., band_weights=BAND_WEIGHTS
+# )
+
+VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse_simple()
+SCALAR_LOSS_FUNCTION = 'mse'
 VECTOR_LOSS_FUNCTION_STRING = (
     'custom_losses.dual_weighted_mse_constrained_bb('
     'band_weights='
