@@ -457,15 +457,11 @@ def create_model(option_dict):
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    this_function = u_net_arch.zero_top_heating_rate_function(
-        height_index=input_dimensions[0] - 1
+    conv_output_layer_object = u_net_arch.zero_top_heating_rate(
+        input_layer_object=conv_output_layer_object,
+        ensemble_size=ensemble_size,
+        output_layer_name='conv_output'
     )
-
-    conv_output_layer_object = keras.layers.Lambda(
-        this_function,
-        output_shape=conv_output_layer_object.shape[1:],
-        name='conv_output'
-    )(conv_output_layer_object)
 
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {'conv_output': vector_loss_function}
@@ -502,16 +498,13 @@ def create_model(option_dict):
                 (input_dimensions[0], num_output_wavelengths, 1)
             )(deep_supervision_layer_objects[i])
 
-            this_function = u_net_arch.zero_top_heating_rate_function(
-                height_index=input_dimensions[0] - 1
+            deep_supervision_layer_objects[i] = (
+                u_net_arch.zero_top_heating_rate(
+                    input_layer_object=deep_supervision_layer_objects[i],
+                    ensemble_size=1,
+                    output_layer_name='deepsup{0:d}_output'.format(i)
+                )
             )
-            this_name = 'deepsup{0:d}_output'.format(i)
-
-            deep_supervision_layer_objects[i] = keras.layers.Lambda(
-                this_function,
-                output_shape=deep_supervision_layer_objects[i].shape[1:],
-                name=this_name
-            )(deep_supervision_layer_objects[i])
 
             output_layer_objects.append(deep_supervision_layer_objects[i])
             loss_dict[this_name] = vector_loss_function
@@ -540,8 +533,8 @@ def create_model(option_dict):
                 this_name = None
 
             num_dense_output_vars = (
-                float(dense_layer_neuron_nums[j]) /
-                (ensemble_size * num_output_wavelengths)
+                    float(dense_layer_neuron_nums[j]) /
+                    (ensemble_size * num_output_wavelengths)
             )
             assert numpy.isclose(
                 num_dense_output_vars, numpy.round(num_dense_output_vars),
@@ -906,15 +899,11 @@ def create_model_1output_layer(option_dict):
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    this_function = u_net_arch.zero_top_heating_rate_function(
-        height_index=input_dimensions[0] - 1
+    conv_output_layer_object = u_net_arch.zero_top_heating_rate(
+        input_layer_object=conv_output_layer_object,
+        ensemble_size=1,
+        output_layer_name='conv_output'
     )
-
-    conv_output_layer_object = keras.layers.Lambda(
-        this_function,
-        output_shape=conv_output_layer_object.shape[1:],
-        name='conv_output'
-    )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
@@ -940,7 +929,7 @@ def create_model_1output_layer(option_dict):
                 this_name = None
 
             num_dense_output_vars = (
-                float(dense_layer_neuron_nums[j]) / num_output_wavelengths
+                    float(dense_layer_neuron_nums[j]) / num_output_wavelengths
             )
             assert numpy.isclose(
                 num_dense_output_vars, numpy.round(num_dense_output_vars),
