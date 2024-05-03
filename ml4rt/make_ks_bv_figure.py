@@ -19,7 +19,7 @@ PATHLESS_INPUT_FILE_NAMES = [
     'shortwave-heating-rate-k-day01_ks-p-value_profile.jpg'
 ]
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 

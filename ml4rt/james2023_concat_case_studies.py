@@ -19,7 +19,7 @@ import error_checking
 import imagemagick_utils
 import example_utils
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 100
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
