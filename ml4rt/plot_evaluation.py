@@ -234,22 +234,6 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _wavelength_to_string(wavelength_metres):
-    """Converts wavelength to string.
-    
-    :param wavelength_metres: Wavelength (scalar float).
-    :return: wavelength_string_microns: Wavelength (string in microns).
-    """
-    
-    if (
-            wavelength_metres > 0.99 *
-            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
-    ):
-        return 'BB'
-    
-    return '{0:.2f}'.format(METRES_TO_MICRONS * wavelength_metres)
-
-
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
@@ -575,7 +559,7 @@ def _plot_attributes_diagram(
 
         title_string = 'Attributes diagram for {0:s} at {1:s}'.format(
             TARGET_NAME_TO_VERBOSE[target_name],
-            _wavelength_to_string(wavelength_metres)
+            wavelength_to_string(wavelength_metres)
         )
         title_string += r' $\mu$m'
 
@@ -642,7 +626,7 @@ def _plot_attributes_diagram(
         figure_file_name = '{0:s}/{1:s}_{2:s}microns'.format(
             output_dir_name,
             target_name.replace('_', '-'),
-            _wavelength_to_string(wavelength_metres)
+            wavelength_to_string(wavelength_metres)
         )
 
         if height_m_agl is not None:
@@ -771,7 +755,7 @@ def _plot_score_profile(
     title_string = '{0:s} for {1:s} at {2:s}'.format(
         SCORE_NAME_TO_VERBOSE[score_name],
         TARGET_NAME_TO_VERBOSE[target_name],
-        _wavelength_to_string(wavelength_metres)
+        wavelength_to_string(wavelength_metres)
     )
     title_string += r' $\mu$m'
 
@@ -802,7 +786,7 @@ def _plot_score_profile(
     figure_file_name = '{0:s}/{1:s}_{2:s}microns_{3:s}_profile.jpg'.format(
         output_dir_name,
         target_name.replace('_', '-'),
-        _wavelength_to_string(wavelength_metres),
+        wavelength_to_string(wavelength_metres),
         score_name.replace('_', '-')
     )
 
@@ -885,7 +869,7 @@ def _plot_error_distributions(
             ).format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
                 TARGET_NAME_TO_UNITS[vector_target_names[t]],
-                _wavelength_to_string(wavelength_metres)
+                wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -898,7 +882,7 @@ def _plot_error_distributions(
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
-                _wavelength_to_string(wavelength_metres),
+                wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -963,7 +947,7 @@ def _plot_error_distributions(
             ).format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
                 TARGET_NAME_TO_UNITS[vector_target_names[t]],
-                _wavelength_to_string(wavelength_metres),
+                wavelength_to_string(wavelength_metres),
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -977,7 +961,7 @@ def _plot_error_distributions(
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
-                _wavelength_to_string(wavelength_metres),
+                wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1011,7 +995,7 @@ def _plot_error_distributions(
             ).format(
                 TARGET_NAME_TO_VERBOSE[scalar_target_names[t]],
                 TARGET_NAME_TO_UNITS[scalar_target_names[t]],
-                _wavelength_to_string(wavelength_metres)
+                wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -1024,7 +1008,7 @@ def _plot_error_distributions(
             ).format(
                 output_dir_name,
                 scalar_target_names[t].replace('_', '-'),
-                _wavelength_to_string(wavelength_metres),
+                wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1093,7 +1077,7 @@ def _plot_error_distributions(
             ).format(
                 TARGET_NAME_TO_VERBOSE[aux_target_names[t]],
                 TARGET_NAME_TO_UNITS[aux_target_names[t]],
-                _wavelength_to_string(wavelength_metres)
+                wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -1106,7 +1090,7 @@ def _plot_error_distributions(
             ).format(
                 output_dir_name,
                 aux_target_names[t].replace('_', '-'),
-                _wavelength_to_string(wavelength_metres),
+                wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1182,7 +1166,7 @@ def _plot_reliability_by_height(
 
             title_string = 'Reliability curves for {0:s} at {1:s}'.format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
-                _wavelength_to_string(wavelength_metres)
+                wavelength_to_string(wavelength_metres)
             )
             title_string += r' $\mu$m'
             if num_evaluation_sets > 1:
@@ -1204,7 +1188,7 @@ def _plot_reliability_by_height(
             ).format(
                 output_dir_name,
                 vector_target_names[t].replace('_', '-'),
-                _wavelength_to_string(wavelength_metres),
+                wavelength_to_string(wavelength_metres),
                 set_descriptions_abbrev[i]
             )
 
@@ -1214,6 +1198,22 @@ def _plot_reliability_by_height(
                 pad_inches=0, bbox_inches='tight'
             )
             pyplot.close(figure_object)
+
+
+def wavelength_to_string(wavelength_metres):
+    """Converts wavelength to string.
+
+    :param wavelength_metres: Wavelength (scalar float).
+    :return: wavelength_string_microns: Wavelength (string in microns).
+    """
+
+    if (
+            wavelength_metres > 0.99 *
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+    ):
+        return 'BB'
+
+    return '{0:.2f}'.format(METRES_TO_MICRONS * wavelength_metres)
 
 
 def _run(evaluation_file_names, line_styles, line_colour_strings,
