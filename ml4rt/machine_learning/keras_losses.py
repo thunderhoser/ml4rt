@@ -14,141 +14,166 @@ from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 
 
-def scaled_mse(scaling_factor):
-    """Scaled MSE (mean squared error).
+def scaled_mse_for_net_flux(scaling_factor, band_weights=None):
+    """Scaled MSE (mean squared error) for flux variables, including net flux.
 
-    Assumes deterministic model -- i.e., prediction_tensor should not have an
-    extra axis for ensemble member.
+    This method assumes a deterministic model and expects two channels: surface
+    downwelling flux (SDF) and top-of-atmosphere upwelling flux (TUF).  This
+    method penalizes errors in three quantities: SDF, TUF, and net flux (SDF
+    minus TUF).
 
     :param scaling_factor: Scaling factor.
+    :param band_weights: length-W numpy array of weights, one for each
+        wavelength band.  For the default behaviour (every band weighted the
+        same), leave this argument alone.
     :return: loss: Loss function (defined below).
     """
 
-    def loss(target_tensor, prediction_tensor):
-        """Computes loss (scaled MSE).
-
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Scaled MSE.
-        """
-
-        return scaling_factor * K.mean((prediction_tensor - target_tensor) ** 2)
-
-    return loss
-
-
-def scaled_mse_for_net_fluxes(scaling_factor, down_flux_index, up_flux_index):
-    """Scaled MSE for net fluxes, both shortwave and longwave.
-
-    Assumes deterministic model -- i.e., prediction_tensor should not have an
-    extra axis for ensemble member.
-
-    :param scaling_factor: Scaling factor.
-    :param down_flux_index: Array index for surface downwelling flux.
-    :param up_flux_index: Array index for top-of-atmosphere upwelling flux.
-    :return: loss: Loss function (defined below).
-    """
-
-    error_checking.assert_is_greater(scaling_factor, 0.)
-    error_checking.assert_is_integer(down_flux_index)
-    error_checking.assert_is_geq(down_flux_index, 0)
-    error_checking.assert_is_integer(up_flux_index)
-    error_checking.assert_is_geq(up_flux_index, 0)
+    if band_weights is not None:
+        error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
+        error_checking.assert_is_greater_numpy_array(band_weights, 0.)
 
     def loss(target_tensor, prediction_tensor):
-        """Computes loss (scaled MSE for net fluxex).
+        """Computes loss.
 
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Scaled MSE for net fluxes.
+        :param target_tensor: E-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-W-by-T tensor of predicted values.
+        :return: loss: Scaled MSE for flux variables.
         """
-
-        # predicted_net_flux_tensor = (
-        #     prediction_tensor[..., down_flux_index] -
-        #     prediction_tensor[..., up_flux_index]
-        # )
-        # target_net_flux_tensor = (
-        #     target_tensor[..., down_flux_index] -
-        #     target_tensor[..., up_flux_index]
-        # )
-        # net_flux_term = K.mean(
-        #     (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
-        # )
-
-        d = down_flux_index
-        u = up_flux_index
-        net_flux_term = K.mean(K.pow(
-            x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
-              (target_tensor[..., d] - target_tensor[..., u]),
-            a=2
-        ))
-
-        individual_flux_term = K.mean((prediction_tensor - target_tensor) ** 2)
-
-        return scaling_factor * (net_flux_term + 2 * individual_flux_term)
-
-    return loss
-
-
-def scaled_mse_for_net_flux(scaling_factor):
-    """Scaled MSE (mean squared error) for net flux.
-
-    Assumes deterministic model -- i.e., prediction_tensor should not have an
-    extra axis for ensemble member.
-
-    This method expects two channels: surface downwelling flux and
-    top-of-atmosphere (TOA) upwelling flux.  This method penalizes only errors
-    in the net flux, which is surface downwelling minus TOA upwelling.
-
-    :param scaling_factor: Scaling factor.
-    :return: loss: Loss function (defined below).
-    """
-
-    def loss(target_tensor, prediction_tensor):
-        """Computes loss (scaled MSE for net flux).
-
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Scaled MSE for net flux.
-        """
-
-        # predicted_net_flux_tensor = (
-        #     prediction_tensor[..., 0] - prediction_tensor[..., 1]
-        # )
-        # target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
-        # net_flux_term = K.mean(
-        #     (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
-        # )
 
         d = 0
         u = 1
-        net_flux_term = K.mean(K.pow(
-            x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
-              (target_tensor[..., d] - target_tensor[..., u]),
-            a=2
-        ))
 
-        individual_flux_term = K.mean((prediction_tensor - target_tensor) ** 2)
+        if band_weights is None:
+            net_flux_term = K.mean(K.pow(
+                x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
+                (target_tensor[..., d] - target_tensor[..., u]),
+                a=2
+            ))
+
+            individual_flux_term = K.mean(
+                (prediction_tensor - target_tensor) ** 2
+            )
+        else:
+            band_weight_tensor = K.cast(
+                K.constant(band_weights), prediction_tensor.dtype
+            )
+            band_weight_tensor = K.expand_dims(band_weight_tensor, axis=0)
+            band_weight_tensor = K.expand_dims(band_weight_tensor, axis=-1)
+
+            net_flux_term = K.mean(
+                band_weight_tensor[..., 0] *
+                K.pow(
+                    x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
+                    (target_tensor[..., d] - target_tensor[..., u]),
+                    a=2
+                )
+            )
+
+            individual_flux_term = K.mean(
+                band_weight_tensor * (prediction_tensor - target_tensor) ** 2
+            )
 
         return scaling_factor * (net_flux_term + 2 * individual_flux_term)
 
     return loss
 
 
-def dual_weighted_mse(
+def scaled_mse_for_net_flux_constrained_bb(scaling_factor, band_weights=None):
+    """Scaled MSE (mean squared error) for flux variables, including net flux.
+
+    This method is the same as `scaled_mse_for_net_flux`, except that it
+    constrains and penalizes broadband heating rates (broadband = sum over all
+    wavelength bands) as well.  Assumes a deterministic model.
+
+    :param scaling_factor: Scaling factor.
+    :param band_weights: length-W numpy array of weights, one for each
+        wavelength band.  For the default behaviour (every band weighted the
+        same), leave this argument alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    if band_weights is not None:
+        error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
+        error_checking.assert_is_greater_numpy_array(band_weights, 0.)
+
+        # Add broadband.
+        band_weights = numpy.concatenate([
+            band_weights,
+            numpy.array([numpy.sum(band_weights)])
+        ])
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss.
+
+        :param target_tensor: E-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-W-by-T tensor of predicted values.
+        :return: loss: Scaled MSE for flux variables, including broadband.
+        """
+
+        # Add broadband.
+        target_tensor = K.concatenate([
+            target_tensor,
+            K.sum(target_tensor, axis=-2, keepdims=True)
+        ], axis=-2)
+
+        prediction_tensor = K.concatenate([
+            prediction_tensor,
+            K.sum(prediction_tensor, axis=-2, keepdims=True)
+        ], axis=-2)
+
+        d = 0
+        u = 1
+
+        if band_weights is None:
+            net_flux_term = K.mean(K.pow(
+                x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
+                (target_tensor[..., d] - target_tensor[..., u]),
+                a=2
+            ))
+
+            individual_flux_term = K.mean(
+                (prediction_tensor - target_tensor) ** 2
+            )
+        else:
+            band_weight_tensor = K.cast(
+                K.constant(band_weights), prediction_tensor.dtype
+            )
+            band_weight_tensor = K.expand_dims(band_weight_tensor, axis=0)
+            band_weight_tensor = K.expand_dims(band_weight_tensor, axis=-1)
+
+            net_flux_term = K.mean(
+                band_weight_tensor[..., 0] *
+                K.pow(
+                    x=(prediction_tensor[..., d] - prediction_tensor[..., u]) -
+                    (target_tensor[..., d] - target_tensor[..., u]),
+                    a=2
+                )
+            )
+
+            individual_flux_term = K.mean(
+                band_weight_tensor * (prediction_tensor - target_tensor) ** 2
+            )
+
+        return scaling_factor * (net_flux_term + 2 * individual_flux_term)
+
+    return loss
+
+
+def dual_weighted_mse_fancy(
         use_lowest_n_heights=None, heating_rate_weight_exponent=1.,
         height_weighting_type_string=None):
-    """Dual-weighted MSE (mean squared error).
+    """Dual-weighted MSE (mean squared error) for heating rates.
 
-    Assumes deterministic model -- i.e., prediction_tensor should not have an
-    extra axis for ensemble member.
-
-    Weight = max(magnitude of target value, magnitude of predicted value).
+    This method assumes a deterministic model.  The "dual weight" for each data
+    point is max(abs(target_heating_rate), abs(predicted_heating_rate)) ** E,
+    where E is the input arg `heating_rate_weight_exponent`.
 
     :param use_lowest_n_heights: Will use this number of heights in the loss
         function, starting at the bottom.  If you want to penalize predictions
         at all heights, make this None.
-    :param heating_rate_weight_exponent: Exponent on heating-rate weight.
+    :param heating_rate_weight_exponent: See above discussion about the dual
+        weight.
     :param height_weighting_type_string: Type of weighting for height level
         (integer from 1...H, where H = number of heights).  Options are
         "linear", where the weight at the bottom [top] grid level is H [1];
@@ -185,11 +210,11 @@ def dual_weighted_mse(
             height_weight_matrix = numpy.log10(height_weight_matrix + 9.)
 
     def loss(target_tensor, prediction_tensor):
-        """Computes loss (dual-weighted MSE).
+        """Computes loss.
 
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Dual-weighted MSE.
+        :param target_tensor: E-by-H-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-H-by-W-by-T tensor of predicted values.
+        :return: loss: Dual-weighted MSE for heating rate.
         """
 
         if use_lowest_n_heights is not None:
@@ -233,20 +258,19 @@ def dual_weighted_mse(
 def dual_weighted_crps():
     """Dual-weighted CRPS (continuous ranked probability score) for htng rates.
 
-    Assumes ensemble model -- i.e., prediction_tensor should have an extra axis
-    for ensemble member.
-
-    Weight = max(magnitude of target value, magnitude of predicted value).
+    This method assumes an ensemble model.  The "dual weight" for each data
+    point is max(abs(target_heating_rate), abs(predicted_heating_rate)).
 
     :return: loss: Loss function (defined below).
     """
 
     def loss(target_tensor, prediction_tensor):
-        """Computes loss (dual-weighted CRPS).
+        """Computes loss.
 
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Dual-weighted CRPS.
+        :param target_tensor: E-by-H-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-H-by-W-by-T-by-S tensor of predicted
+            values.
+        :return: loss: Dual-weighted CRPS for heating rate.
         """
 
         # E x H x W x T x S
@@ -301,33 +325,34 @@ def dual_weighted_crps():
 
 
 def unscaled_crps_for_net_flux():
-    """Unscaled CRPS (continuous ranked probability score) for net flux.
+    """Unscaled CRPS for flux variables, including net flux.
 
-    Assumes ensemble model -- i.e., prediction_tensor should have an extra axis
-    for ensemble member.
+    CRPS = continuous ranked probability score
 
-    This method expects two channels: surface downwelling flux and
-    top-of-atmosphere (TOA) upwelling flux.  This method penalizes only errors
-    in the net flux, which is surface downwelling minus TOA upwelling.
+    This method assumes an ensemble model and expects two channels: surface
+    downwelling flux (SDF) and top-of-atmosphere upwelling flux (TUF).  This
+    method penalizes errors in three quantities: SDF, TUF, and net flux (SDF
+    minus TUF).
 
     :return: loss: Loss function (defined below).
     """
 
     def loss(target_tensor, prediction_tensor):
-        """Computes loss (unscaled CRPS for net flux).
+        """Computes loss.
 
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Unscaled CRPS for net flux.
+        :param target_tensor: E-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-W-by-T-by-S tensor of predicted values.
+        :return: loss: Unscaled CRPS for flux variables.
         """
 
         # E x W
         target_net_flux_tensor = target_tensor[..., 0] - target_tensor[..., 1]
 
         # E x W x T
-        full_target_tensor = K.concatenate((
-            target_tensor, K.expand_dims(target_net_flux_tensor, axis=-1)
-        ), axis=-1)
+        full_target_tensor = K.concatenate(
+            [target_tensor, K.expand_dims(target_net_flux_tensor, axis=-1)],
+            axis=-1
+        )
 
         # E x W x S
         predicted_net_flux_tensor = (
@@ -335,10 +360,10 @@ def unscaled_crps_for_net_flux():
         )
 
         # E x W x T x S
-        full_prediction_tensor = K.concatenate((
+        full_prediction_tensor = K.concatenate([
             prediction_tensor,
             K.expand_dims(predicted_net_flux_tensor, axis=-2)
-        ), axis=-2)
+        ], axis=-2)
 
         # E x W x T
         mean_prediction_error_tensor = K.mean(
@@ -374,13 +399,12 @@ def unscaled_crps_for_net_flux():
 
 
 def joined_output_loss(num_heights, flux_scaling_factor):
-    """Loss function for joined output.
+    """Loss function for joined output layer.
 
-    Assumes deterministic model -- i.e., prediction_tensor should not have an
-    extra axis for ensemble member.
-
-    This loss function is dual-weighted MSE for heating rates plus scaled MSE
-    for fluxes.
+    A 'joined output layer' contains both heating rates and fluxes.  This method
+    assumes a deterministic model.  The loss function computed by this method
+    is (dual-weighted MSE for heating rates) +
+    flux_scaling_factor * (MSE for flux variables).
 
     :param num_heights: Number of heights in grid.
     :param flux_scaling_factor: Scaling factor for flux errors.
@@ -388,40 +412,44 @@ def joined_output_loss(num_heights, flux_scaling_factor):
     """
 
     def loss(target_tensor, prediction_tensor):
-        """Computes loss for joined output.
+        """Computes loss.
 
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Scalar.
+        :param target_tensor: E-by-(H + 2)-by-W tensor of actual values.
+        :param prediction_tensor: E-by-(H + 2)-by-W tensor of predicted values.
+        :return: loss: See above.
         """
 
-        # TODO(thunderhoser): Currently assuming only 1 wavelength.  This is a HACK.
+        # TODO(thunderhoser): Currently assuming only 1 wavelength.
+        # This is a HACK.
+
+        # E x (H + 2)
         target_tensor = target_tensor[..., 0]
         prediction_tensor = prediction_tensor[..., 0]
 
-        # E x W x H
+        # E x H
         target_hr_tensor = target_tensor[..., :num_heights]
         predicted_hr_tensor = prediction_tensor[..., :num_heights]
 
-        # Scalar
+        # Dual-weighted MSE (scalar)
         first_term = K.mean(
             K.maximum(K.abs(target_hr_tensor), K.abs(predicted_hr_tensor))
             * (predicted_hr_tensor - target_hr_tensor) ** 2
         )
 
-        # E x W
+        # length-E
         predicted_net_flux_tensor = (
             prediction_tensor[..., -2] - prediction_tensor[..., -1]
         )
         target_net_flux_tensor = target_tensor[..., -2] - target_tensor[..., -1]
 
-        # Scalars
         net_flux_term = K.mean(
             (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
         )
         individual_flux_term = K.mean(
             (prediction_tensor[..., -2:] - target_tensor[..., -2:]) ** 2
         )
+
+        # MSE for flux variables (scalar)
         second_term = (
             flux_scaling_factor * (net_flux_term + 2 * individual_flux_term)
         )
@@ -432,31 +460,147 @@ def joined_output_loss(num_heights, flux_scaling_factor):
 
 
 def dual_weighted_mse_simple():
-    """Dual-weighted MSE (mean squared error).
+    """Dual-weighted MSE (mean squared error) for heating rates.
 
-    Assumes deterministic model -- i.e., prediction_tensor should not have an
-    extra axis for ensemble member.
-
-    Weight = max(magnitude of target value, magnitude of predicted value).
+    This method assumes a deterministic model.  The "dual weight" for each data
+    point is max(abs(target_heating_rate), abs(predicted_heating_rate)).
 
     :return: loss: Loss function (defined below).
     """
 
     def loss(target_tensor, prediction_tensor):
-        """Computes loss (dual-weighted MSE).
+        """Computes loss.
 
-        :param target_tensor: Tensor of target (actual) values.
-        :param prediction_tensor: Tensor of predicted values.
-        :return: loss: Dual-weighted MSE.
+        :param target_tensor: E-by-H-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-H-by-W-by-T tensor of predicted values.
+        :return: loss: Dual-weighted MSE for heating rate.
         """
-
-        # weight_tensor = K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
-        # error_tensor = weight_tensor * (prediction_tensor - target_tensor) ** 2
-        # return K.mean(error_tensor)
 
         return K.mean(
             K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
             * (prediction_tensor - target_tensor) ** 2
+        )
+
+    return loss
+
+
+def dual_weighted_mse(band_weights=None):
+    """Dual-weighted MSE (mean squared error) for heating rates.
+
+    This method assumes a deterministic model.  The "dual weight" for each data
+    point is max(abs(target_heating_rate), abs(predicted_heating_rate)).
+
+    :param band_weights: length-W numpy array of weights, one for each
+        wavelength band.  For the default behaviour (every band weighted the
+        same), leave this argument alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    if band_weights is not None:
+        error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
+        error_checking.assert_is_greater_numpy_array(band_weights, 0.)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss.
+
+        :param target_tensor: E-by-H-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-H-by-W-by-T tensor of predicted values.
+        :return: loss: Dual-weighted MSE for heating rate.
+        """
+
+        if band_weights is None:
+            return K.mean(
+                K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+                * (prediction_tensor - target_tensor) ** 2
+            )
+
+        # E x H x W x T
+        dual_weight_tensor = K.maximum(
+            K.abs(target_tensor),
+            K.abs(prediction_tensor)
+        )
+
+        # E x H x W x T
+        band_weight_tensor = K.cast(
+            K.constant(band_weights), prediction_tensor.dtype
+        )
+        band_weight_tensor = K.expand_dims(band_weight_tensor, axis=0)
+        band_weight_tensor = K.expand_dims(band_weight_tensor, axis=0)
+        band_weight_tensor = K.expand_dims(band_weight_tensor, axis=-1)
+
+        return K.mean(
+            dual_weight_tensor * band_weight_tensor *
+            (prediction_tensor - target_tensor) ** 2
+        )
+
+    return loss
+
+
+def dual_weighted_mse_constrained_bb(band_weights=None):
+    """Dual-weighted MSE (mean squared error) for heating rates.
+
+    This method is the same as `dual_weighted_mse`, except that it constrains
+    and penalizes broadband heating rates (broadband = sum over all wavelength
+    bands) as well.  Assumes a deterministic model.
+
+    :param band_weights: length-W numpy array of weights, one for each
+        wavelength band.  For the default behaviour (every band weighted the
+        same), leave this argument alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    if band_weights is not None:
+        error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
+        error_checking.assert_is_greater_numpy_array(band_weights, 0.)
+
+        # Add broadband.
+        band_weights = numpy.concatenate([
+            band_weights,
+            numpy.array([numpy.sum(band_weights)])
+        ])
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss.
+
+        :param target_tensor: E-by-H-by-W-by-T tensor of actual values.
+        :param prediction_tensor: E-by-H-by-W-by-T tensor of predicted values.
+        :return: loss: Dual-weighted MSE for heating rates, including broadband.
+        """
+
+        # Add broadband.
+        target_tensor = K.concatenate([
+            target_tensor,
+            K.sum(target_tensor, axis=-2, keepdims=True)
+        ], axis=-2)
+
+        prediction_tensor = K.concatenate([
+            prediction_tensor,
+            K.sum(prediction_tensor, axis=-2, keepdims=True)
+        ], axis=-2)
+
+        if band_weights is None:
+            return K.mean(
+                K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+                * (prediction_tensor - target_tensor) ** 2
+            )
+
+        # E x H x W x T
+        dual_weight_tensor = K.maximum(
+            K.abs(target_tensor),
+            K.abs(prediction_tensor)
+        )
+
+        # E x H x W x T
+        band_weight_tensor = K.cast(
+            K.constant(band_weights), prediction_tensor.dtype
+        )
+        band_weight_tensor = K.expand_dims(band_weight_tensor, axis=0)
+        band_weight_tensor = K.expand_dims(band_weight_tensor, axis=0)
+        band_weight_tensor = K.expand_dims(band_weight_tensor, axis=-1)
+
+        return K.mean(
+            dual_weight_tensor * band_weight_tensor *
+            (prediction_tensor - target_tensor) ** 2
         )
 
     return loss
