@@ -4,6 +4,9 @@ import os
 import sys
 import copy
 import numpy
+import tensorflow
+
+tensorflow.compat.v1.enable_eager_execution()
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
