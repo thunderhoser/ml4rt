@@ -9,7 +9,7 @@ PATHLESS_INPUT_FILE_NAMES = [
     'all_sites.jpg', 'tropical_sites.jpg', 'assorted2_sites.jpg'
 ]
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 100
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 

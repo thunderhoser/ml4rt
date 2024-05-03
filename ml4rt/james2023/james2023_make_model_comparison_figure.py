@@ -33,7 +33,7 @@ pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
 pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
 pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 

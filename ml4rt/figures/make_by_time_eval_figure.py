@@ -7,7 +7,7 @@ import numpy
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 

@@ -12,7 +12,7 @@ from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.utils import example_utils
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 100
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 

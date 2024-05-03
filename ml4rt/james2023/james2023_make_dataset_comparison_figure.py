@@ -28,7 +28,7 @@ DUMMY_LAST_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
 
 VIOLIN_LINE_COLOUR = numpy.full(3, 0.)
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 100
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
