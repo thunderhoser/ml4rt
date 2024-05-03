@@ -7,6 +7,7 @@ import os
 import sys
 import numpy
 import tensorflow.keras as keras
+from tensorflow.python.keras.models import Model
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -603,7 +604,7 @@ def create_model(option_dict):
         output_layer_objects.insert(1, dense_output_layer_object)
         loss_dict['dense_output'] = scalar_loss_function
 
-    model_object = keras.models.Model(
+    model_object = Model(
         inputs=input_layer_object, outputs=output_layer_objects
     )
     model_object.compile(
