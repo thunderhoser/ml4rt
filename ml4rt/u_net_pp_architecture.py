@@ -605,7 +605,7 @@ def create_model(option_dict):
         output_layer_objects.insert(1, dense_output_layer_object)
         loss_dict['dense_output'] = scalar_loss_function
 
-    model_object = Model(
+    model_object = keras.models.Model(
         inputs=input_layer_object, outputs=output_layer_objects
     )
     model_object.compile(
