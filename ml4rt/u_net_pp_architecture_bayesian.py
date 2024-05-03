@@ -791,13 +791,11 @@ def create_bayesian_model(option_dict):
             layer_name='last_conv_activation'
         )(conv_output_layer_object)
 
-    this_function = u_net_architecture.zero_top_heating_rate_function(
-        height_index=input_dimensions[0] - 1
+    conv_output_layer_object = u_net_architecture.zero_top_heating_rate(
+        input_layer_object=conv_output_layer_object,
+        ensemble_size=ensemble_size,
+        output_layer_name='conv_output'
     )
-
-    conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
-    )(conv_output_layer_object)
 
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {'conv_output': vector_loss_function}
