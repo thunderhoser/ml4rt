@@ -167,11 +167,6 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
     :return: are_metadata_same: Boolean flag.
     """
 
-    print(first_metadata_dict)
-    print('\n\n')
-    print(second_metadata_dict)
-    print('\n\n')
-
     first_metadata_dict = _check_normalization_metadata(first_metadata_dict)
     second_metadata_dict = _check_normalization_metadata(second_metadata_dict)
 
