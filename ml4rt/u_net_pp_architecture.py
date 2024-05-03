@@ -10,7 +10,7 @@ import tensorflow
 import tensorflow.keras as keras
 from tensorflow.python.keras.models import Model
 
-tensorflow.compat.v1.disable_eager_execution()
+tensorflow.compat.v1.enable_eager_execution()
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
