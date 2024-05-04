@@ -61,6 +61,7 @@ DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'dense_output_activ_func_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+USE_RESIDUAL_BLOCKS_KEY = 'use_residual_blocks'
 
 NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
@@ -179,6 +180,8 @@ def _check_args(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) conv layer.
+    option_dict['use_residual_blocks']: Boolean flag.  If True, will use
+        residual blocks (basic conv blocks) throughout the architecture.
     option_dict['ensemble_size']: Number of ensemble members.
 
     :return: option_dict: Same as input, except defaults may have been added.
@@ -340,6 +343,7 @@ def _check_args(option_dict):
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_boolean(option_dict[USE_RESIDUAL_BLOCKS_KEY])
 
     error_checking.assert_is_integer(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY])
     error_checking.assert_is_greater(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY], 0)
@@ -491,6 +495,11 @@ def create_bayesian_model(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+
+    use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
+
+    # TODO(thunderhoser): Need to implement residual blocks for this method.
+    assert use_residual_blocks == False
 
     kl_divergence_scaling_factor = option_dict[KL_SCALING_FACTOR_KEY]
     upconv_layer_type_string_by_level = option_dict[UPCONV_BNN_LAYER_TYPES_KEY]

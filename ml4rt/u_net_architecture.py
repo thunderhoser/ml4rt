@@ -39,6 +39,7 @@ DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'dense_output_activ_func_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+USE_RESIDUAL_BLOCKS_KEY = 'use_residual_blocks'
 
 NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
@@ -137,6 +138,8 @@ def check_args(option_dict):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) conv layer.
+    option_dict['use_residual_blocks']: Boolean flag.  If True, will use
+        residual blocks (basic conv blocks) throughout the architecture.
     option_dict['num_output_wavelengths']: Number of output wavelengths.
     option_dict['vector_loss_function']: Loss function for vector targets.
     option_dict['scalar_loss_function']: Loss function for scalar targets.
@@ -291,6 +294,7 @@ def check_args(option_dict):
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_boolean(option_dict[USE_RESIDUAL_BLOCKS_KEY])
 
     error_checking.assert_is_integer(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY])
     error_checking.assert_is_greater(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY], 0)
@@ -356,6 +360,129 @@ def zero_top_heating_rate(input_layer_object, ensemble_size, output_layer_name):
     return output_layer_object
 
 
+def get_conv_block(
+        input_layer_object, do_residual, num_conv_layers, filter_size_px,
+        num_filters, regularizer_object,
+        activation_function_name, activation_function_alpha,
+        dropout_rates, monte_carlo_dropout_flags, use_batch_norm,
+        basic_layer_name):
+    """Creates convolutional block.
+
+    L = number of conv layers
+
+    :param input_layer_object: Input layer to block.
+    :param do_residual: Boolean flag.  If True (False), this will be a residual
+        (basic convolutional) block.
+    :param num_conv_layers: Number of conv layers in block.
+    :param filter_size_px: Filter size (the same for every conv layer).
+    :param num_filters: Number of filters -- same for every conv layer.
+    :param regularizer_object: Regularizer for conv layers (instance of
+        `keras.regularizers.l1_l2` or similar).
+    :param activation_function_name: Name of activation function -- same for
+        every conv layer.  Must be accepted by
+        `architecture_utils.check_activation_function`.
+    :param activation_function_alpha: Alpha (slope parameter) for activation
+        function -- same for every conv layer.  Applies only to ReLU and eLU.
+    :param dropout_rates: Dropout rates for conv layers.  This can be a scalar
+        (applied to every conv layer) or length-L numpy array.
+    :param monte_carlo_dropout_flags: Boolean flag, indicating whether dropout
+        is standard or Monte Carlo.  This can be a single value (applied to
+        every conv layer) or length-L numpy array.
+    :param use_batch_norm: Boolean flag.  If True, will use batch normalization.
+    :param basic_layer_name: Basic layer name.  Each layer name will be made
+        unique by adding a suffix.
+    :return: output_layer_object: Output layer from block.
+    """
+
+    # Process input args.
+    if do_residual:
+        num_conv_layers = max([num_conv_layers, 2])
+
+    try:
+        _ = len(dropout_rates)
+    except:
+        dropout_rates = numpy.full(num_conv_layers, dropout_rates)
+        monte_carlo_dropout_flags = numpy.full(
+            num_conv_layers, monte_carlo_dropout_flags, dtype=bool
+        )
+
+    if len(dropout_rates) < num_conv_layers:
+        dropout_rates = numpy.concatenate([
+            dropout_rates, dropout_rates[[-1]]
+        ])
+        monte_carlo_dropout_flags = numpy.concatenate([
+            monte_carlo_dropout_flags, monte_carlo_dropout_flags[[-1]]
+        ])
+
+    assert len(dropout_rates) == num_conv_layers
+    assert len(monte_carlo_dropout_flags) == num_conv_layers
+
+    # Do actual stuff.
+    current_layer_object = None
+
+    for i in range(num_conv_layers):
+        if i == 0:
+            this_input_layer_object = input_layer_object
+        else:
+            this_input_layer_object = current_layer_object
+
+        this_name = '{0:s}_conv{1:d}'.format(basic_layer_name, i)
+        current_layer_object = architecture_utils.get_1d_conv_layer(
+            num_kernel_rows=filter_size_px,
+            num_rows_per_stride=1,
+            num_filters=num_filters,
+            padding_type_string=architecture_utils.YES_PADDING_STRING,
+            weight_regularizer=regularizer_object,
+            layer_name=this_name
+        )(this_input_layer_object)
+
+        if i == num_conv_layers - 1 and do_residual:
+            if input_layer_object.shape[-1] == num_filters:
+                new_layer_object = input_layer_object
+            else:
+                this_name = '{0:s}_preresidual_conv'.format(basic_layer_name)
+                new_layer_object = architecture_utils.get_1d_conv_layer(
+                    num_kernel_rows=filter_size_px,
+                    num_rows_per_stride=1,
+                    num_filters=num_filters,
+                    padding_type_string=architecture_utils.YES_PADDING_STRING,
+                    weight_regularizer=regularizer_object,
+                    layer_name=this_name
+                )(input_layer_object)
+
+            this_name = '{0:s}_residual'.format(basic_layer_name)
+            current_layer_object = keras.layers.Add(name=this_name)([
+                current_layer_object, new_layer_object
+            ])
+
+        if activation_function_name is not None:
+            this_name = '{0:s}_activ{1:d}'.format(basic_layer_name, i)
+            current_layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=activation_function_name,
+                alpha_for_relu=activation_function_alpha,
+                alpha_for_elu=activation_function_alpha,
+                layer_name=this_name
+            )(current_layer_object)
+
+        if dropout_rates[i] > 0:
+            this_name = '{0:s}_dropout{1:d}'.format(basic_layer_name, i)
+
+            current_layer_object = architecture_utils.get_dropout_layer(
+                dropout_fraction=dropout_rates[i], layer_name=this_name
+            )(
+                current_layer_object,
+                training=bool(monte_carlo_dropout_flags[i])
+            )
+
+        if use_batch_norm:
+            this_name = '{0:s}_bn{1:d}'.format(basic_layer_name, i)
+            current_layer_object = architecture_utils.get_batch_norm_layer(
+                layer_name=this_name
+            )(current_layer_object)
+
+    return current_layer_object
+
+
 def create_model(option_dict):
     """Creates U-net.
 
@@ -404,6 +531,10 @@ def create_model(option_dict):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
+
+    # TODO(thunderhoser): Need to implement residual blocks for this method.
+    assert use_residual_blocks == False
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
