@@ -247,11 +247,11 @@ def create_model(option_dict):
             dropout_rates=encoder_dropout_rate_by_level[i],
             monte_carlo_dropout_flags=encoder_mc_dropout_flag_by_level[i],
             use_batch_norm=use_batch_normalization,
-            basic_layer_name='encoder{0:d},0'.format(i)
+            basic_layer_name='encoder{0:d}-0'.format(i)
         )
 
         if i != num_levels:
-            this_name = 'encoder{0:d},0_pooling'.format(i)
+            this_name = 'encoder{0:d}-0_pooling'.format(i)
 
             pooling_layer_by_level[i] = architecture_utils.get_1d_pooling_layer(
                 num_rows_in_window=2,
@@ -267,7 +267,7 @@ def create_model(option_dict):
             i_new -= 1
             j += 1
 
-            this_name = 'decoder{0:d},{1:d}_upsampling'.format(i_new, j)
+            this_name = 'decoder{0:d}-{1:d}_upsampling'.format(i_new, j)
             this_layer_object = keras.layers.UpSampling1D(
                 size=2, name=this_name
             )(last_conv_layer_matrix[i_new + 1, j - 1])
@@ -278,7 +278,7 @@ def create_model(option_dict):
             )
 
             if num_desired_heights == num_upconv_heights + 1:
-                this_name = 'decoder{0:d},{1:d}_padding'.format(i_new, j)
+                this_name = 'decoder{0:d}-{1:d}_padding'.format(i_new, j)
                 this_layer_object = keras.layers.ZeroPadding1D(
                     padding=(0, 1), name=this_name
                 )(this_layer_object)
@@ -296,10 +296,10 @@ def create_model(option_dict):
                 monte_carlo_dropout_flags=
                 upconv_mc_dropout_flag_by_level[i_new],
                 use_batch_norm=use_batch_normalization,
-                basic_layer_name='decoder{0:d},{1:d}'.format(i_new, j)
+                basic_layer_name='decoder{0:d}-{1:d}'.format(i_new, j)
             )
 
-            this_name = 'decoder{0:d},{1:d}_skip'.format(i_new, j)
+            this_name = 'decoder{0:d}-{1:d}_skip'.format(i_new, j)
             last_conv_layer_matrix[i_new, j] = keras.layers.Concatenate(
                 axis=-1, name=this_name
             )(last_conv_layer_matrix[i_new, :(j + 1)].tolist())
@@ -322,7 +322,7 @@ def create_model(option_dict):
                 ),
                 monte_carlo_dropout_flags=skip_mc_dropout_flag_by_level[i_new],
                 use_batch_norm=use_batch_normalization,
-                basic_layer_name='decoder{0:d},{1:d}_skip'.format(i_new, j)
+                basic_layer_name='decoder{0:d}-{1:d}_skip'.format(i_new, j)
             )
 
     if include_penultimate_conv:
