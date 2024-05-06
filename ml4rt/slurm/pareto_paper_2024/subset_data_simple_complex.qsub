@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#SBATCH --job-name="subset_data_simple_complex"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+#SBATCH --array=0-2
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=subset_data_simple_complex_%A_%a.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_DATA_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave"
+
+INPUT_DIR_NAMES=("${TOP_DATA_DIR_NAME}/training" "${TOP_DATA_DIR_NAME}/validation" "${TOP_DATA_DIR_NAME}/testing")
+OUTPUT_SIMPLE_FILE_NAMES=("${TOP_DATA_DIR_NAME}/training/for_pareto_paper_2024/simple/learning_examples.nc" "${TOP_DATA_DIR_NAME}/validation/for_pareto_paper_2024/simple/learning_examples.nc" "${TOP_DATA_DIR_NAME}/testing/for_pareto_paper_2024/simple/learning_examples.nc")
+OUTPUT_COMPLEX_FILE_NAMES=("${TOP_DATA_DIR_NAME}/training/for_pareto_paper_2024/complex/learning_examples.nc" "${TOP_DATA_DIR_NAME}/validation/for_pareto_paper_2024/complex/learning_examples.nc" "${TOP_DATA_DIR_NAME}/testing/for_pareto_paper_2024/complex/learning_examples.nc")
+
+python3 -u "${CODE_DIR_NAME}/pareto2024_subset_data_simple_complex.py" \
+--input_example_dir_name="${INPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--cloud_water_path_threshold_kg_m02=0.025 \
+--specific_humidity_threshold_kg_kg01=0.005 \
+--zenith_angle_threshold_deg=60 \
+--output_simple_example_file_name="${OUTPUT_SIMPLE_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--output_complex_example_file_name="${OUTPUT_COMPLEX_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
