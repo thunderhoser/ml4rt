@@ -3,7 +3,7 @@
 #SBATCH --job-name="subset_data_simple_complex"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="batch"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
