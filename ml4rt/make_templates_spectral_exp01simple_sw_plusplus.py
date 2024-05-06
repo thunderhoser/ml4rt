@@ -78,6 +78,7 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_arch.L1_WEIGHT_KEY: 0.,
     u_net_pp_arch.L2_WEIGHT_KEY: 1e-7,
     u_net_pp_arch.USE_BATCH_NORM_KEY: True,
+    u_net_pp_arch.USE_RESIDUAL_BLOCKS_KEY: False,
     # u_net_pp_arch.DENSE_LAYER_NEURON_NUMS_KEY: DENSE_LAYER_NEURON_COUNTS,
     u_net_pp_arch.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.),
     u_net_pp_arch.DENSE_LAYER_MC_DROPOUT_FLAGS_KEY: numpy.full(
