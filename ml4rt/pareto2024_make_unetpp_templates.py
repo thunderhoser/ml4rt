@@ -74,7 +74,8 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.ENSEMBLE_SIZE_KEY: 1,
     u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
     u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
-    u_net_pp_architecture.DO_INLINE_NORMALIZATION_KEY: False
+    u_net_pp_architecture.DO_INLINE_NORMALIZATION_KEY: False,
+    u_net_pp_architecture.USE_DEEP_SUPERVISION_KEY: False
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {

@@ -173,7 +173,7 @@ def create_model(option_dict):
     )
 
     layer_object = keras.layers.Reshape(
-        shape=(num_heights * num_input_channels,)
+        target_shape=(num_heights * num_input_channels,)
     )(input_layer_object)
 
     num_hidden_layers = len(hidden_layer_neuron_nums)
