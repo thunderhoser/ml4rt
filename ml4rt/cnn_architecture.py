@@ -342,6 +342,10 @@ def create_model(option_dict):
             'conv_output': vector_loss_function,
             'dense_output': scalar_loss_function
         }
+        metric_dict = {
+            'conv_output': neural_net.METRIC_FUNCTION_LIST,
+            'dense_output': neural_net.METRIC_FUNCTION_LIST
+        }
 
         model_object = keras.models.Model(
             inputs=input_layer_object,
@@ -351,7 +355,7 @@ def create_model(option_dict):
         model_object.compile(
             loss=loss_dict,
             optimizer=keras.optimizers.Nadam(),
-            metrics=neural_net.METRIC_FUNCTION_LIST
+            metrics=metric_dict
         )
     else:
         model_object = keras.models.Model(
