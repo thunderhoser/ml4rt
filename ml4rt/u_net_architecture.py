@@ -47,6 +47,7 @@ SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
 JOINED_LOSS_FUNCTION_KEY = 'joined_loss_function'
 USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
 ENSEMBLE_SIZE_KEY = 'ensemble_size'
+
 DO_INLINE_NORMALIZATION_KEY = 'do_inline_normalization'
 PW_LINEAR_UNIF_MODEL_KEY = 'pw_linear_unif_model_file_name'
 SCALAR_PREDICTORS_KEY = 'scalar_predictor_names'
@@ -889,12 +890,12 @@ def create_model(option_dict):
         }
 
         model_object.compile(
-            loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            loss=loss_dict, optimizer=keras.optimizers.Nadam(),
             metrics=metric_dict
         )
     else:
         model_object.compile(
-            loss=vector_loss_function, optimizer=keras.optimizers.Adam(),
+            loss=vector_loss_function, optimizer=keras.optimizers.Nadam(),
             metrics=metric_function_list
         )
 

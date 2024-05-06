@@ -1,4 +1,4 @@
-"""Makes U-net templates for Tom Beucler."""
+"""Makes U-net templates for 2024 Pareto-front paper with Tom Beucler."""
 
 import os
 import sys
@@ -10,7 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import u_net_architecture_tom as u_net_architecture
+import u_net_architecture
 import architecture_utils
 import custom_losses
 import file_system_utils
@@ -20,7 +20,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/tom_experiment/u_net/templates'
+    '{0:s}/ml4rt_models/pareto2024_experiment/u_net/templates'
 ).format(HOME_DIR_NAME)
 
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
@@ -84,7 +84,7 @@ DUMMY_GENERATOR_OPTION_DICT = {
 
 
 def _run():
-    """Makes U-net templates for Tom Beucler.
+    """Makes U-net templates for 2024 Pareto-front paper with Tom Beucler.
 
     This is effectively the main method.
     """
@@ -168,17 +168,6 @@ def _run():
                 include_optimizer=True
             )
 
-            trained_model_file_name = (
-                '{0:s}/num-levels={1:d}_num-first-layer-channels={2:02d}/'
-                'model.h5'
-            ).format(
-                OUTPUT_DIR_NAME.replace('/templates', ''),
-                MODEL_DEPTHS[i],
-                FIRST_LAYER_CHANNEL_COUNTS[j]
-            )
-
-            model_object.load_weights(trained_model_file_name)
-
             metafile_name = neural_net.find_metafile(
                 model_dir_name=os.path.split(model_file_name)[0],
                 raise_error_if_missing=False
@@ -204,10 +193,12 @@ def _run():
                 loss_function_or_dict=LOSS_DICT,
                 do_early_stopping=True,
                 plateau_lr_multiplier=0.6,
+                dense_architecture_dict=None,
+                cnn_architecture_dict=None,
                 bnn_architecture_dict=None,
-                u_net_3plus_architecture_dict=None,
+                u_net_architecture_dict=option_dict,
                 u_net_plusplus_architecture_dict=None,
-                u_net_architecture_dict=option_dict
+                u_net_3plus_architecture_dict=None
             )
 
 

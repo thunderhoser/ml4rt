@@ -1,4 +1,4 @@
-"""Makes dense-net templates for Tom Beucler."""
+"""Makes dense-net templates for 2024 Pareto-front paper with Tom Beucler."""
 
 import os
 import sys
@@ -20,14 +20,17 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/tom_experiment/dense_net/templates'
+    '{0:s}/ml4rt_models/pareto2024_experiment/dense_net/templates'
 ).format(HOME_DIR_NAME)
 
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
 SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux(0.64)
+VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_mse()'
+SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.scaled_mse_for_net_flux(0.64)'
+
 LOSS_DICT = {
-    'conv_output': 'custom_losses.dual_weighted_mse()',
-    'dense_output': 'custom_losses.scaled_mse_for_net_flux(0.64)'
+    'conv_output': VECTOR_LOSS_FUNCTION_STRING,
+    'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
 MODEL_DEPTHS = numpy.array([1, 2, 3, 4, 5, 6], dtype=int)
@@ -36,8 +39,8 @@ HIDDEN_LAYER_NEURON_COUNTS = numpy.array(
 )
 
 DEFAULT_OPTION_DICT = {
-    dense_net_architecture.NUM_INPUTS_KEY: 127 * 22 + 4,
     dense_net_architecture.NUM_HEIGHTS_KEY: 127,
+    dense_net_architecture.NUM_INPUT_CHANNELS_KEY: 26,
     dense_net_architecture.NUM_FLUX_COMPONENTS_KEY: 2,
     # dense_net_architecture.HIDDEN_LAYER_NEURON_NUMS_KEY: None,
     # dense_net_architecture.HIDDEN_LAYER_DROPOUT_RATES_KEY: None,
@@ -52,7 +55,9 @@ DEFAULT_OPTION_DICT = {
     dense_net_architecture.FLUX_ACTIV_FUNC_ALPHA_KEY: 0.,
     dense_net_architecture.L1_WEIGHT_KEY: 0.,
     dense_net_architecture.L2_WEIGHT_KEY: 1e-7,
-    dense_net_architecture.USE_BATCH_NORM_KEY: True
+    dense_net_architecture.USE_BATCH_NORM_KEY: True,
+    dense_net_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
+    dense_net_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -62,7 +67,7 @@ DUMMY_GENERATOR_OPTION_DICT = {
 
 
 def _run():
-    """Makes dense-net templates for Tom Beucler.
+    """Makes dense-net templates for 2024 Pareto-front paper with Tom Beucler.
 
     This is effectively the main method.
     """
@@ -84,15 +89,11 @@ def _run():
                 dense_net_architecture.HIDDEN_LAYER_DROPOUT_RATES_KEY
             ] = numpy.full(MODEL_DEPTHS[i], 0.)
 
-            model_object = dense_net_architecture.create_model(
-                option_dict=option_dict,
-                heating_rate_loss_function=VECTOR_LOSS_FUNCTION,
-                flux_loss_function=SCALAR_LOSS_FUNCTION
-            )
+            model_object = dense_net_architecture.create_model(option_dict)
 
             model_file_name = (
                 '{0:s}/num-levels={1:d}_num-neurons-per-layer={2:04d}/'
-                'model.h5'
+                'model.keras'
             ).format(
                 OUTPUT_DIR_NAME, MODEL_DEPTHS[i], HIDDEN_LAYER_NEURON_COUNTS[j]
             )
@@ -114,18 +115,32 @@ def _run():
                 raise_error_if_missing=False
             )
 
+            option_dict[dense_net_architecture.VECTOR_LOSS_FUNCTION_KEY] = (
+                VECTOR_LOSS_FUNCTION_STRING
+            )
+            option_dict[dense_net_architecture.SCALAR_LOSS_FUNCTION_KEY] = (
+                SCALAR_LOSS_FUNCTION_STRING
+            )
+
             print('Writing metadata to: "{0:s}"...'.format(
                 metafile_name
             ))
             neural_net._write_metafile(
-                dill_file_name=metafile_name, num_epochs=100,
+                dill_file_name=metafile_name,
+                num_epochs=100,
                 num_training_batches_per_epoch=100,
                 training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                 num_validation_batches_per_epoch=100,
                 validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                net_type_string=neural_net.DENSE_NET_TYPE_STRING,
                 loss_function_or_dict=LOSS_DICT,
-                do_early_stopping=True, plateau_lr_multiplier=0.6
+                do_early_stopping=True,
+                plateau_lr_multiplier=0.6,
+                dense_architecture_dict=option_dict,
+                cnn_architecture_dict=None,
+                bnn_architecture_dict=None,
+                u_net_architecture_dict=None,
+                u_net_plusplus_architecture_dict=None,
+                u_net_3plus_architecture_dict=None
             )
 
 

@@ -1,4 +1,4 @@
-"""Makes CNN templates for Tom Beucler."""
+"""Makes CNN templates for 2024 Pareto-front paper with Tom Beucler."""
 
 import os
 import sys
@@ -20,14 +20,17 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/tom_experiment/cnn/templates'
+    '{0:s}/ml4rt_models/pareto2024_experiment/cnn/templates'
 ).format(HOME_DIR_NAME)
 
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
 SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux(0.64)
+VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_mse()'
+SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.scaled_mse_for_net_flux(0.64)'
+
 LOSS_DICT = {
-    'conv_output': 'custom_losses.dual_weighted_mse()',
-    'dense_output': 'custom_losses.scaled_mse_for_net_flux(0.64)'
+    'conv_output': VECTOR_LOSS_FUNCTION_STRING,
+    'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
 MODEL_DEPTHS = numpy.array([1, 2, 3, 4, 5, 6], dtype=int)
@@ -48,8 +51,11 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.L1_WEIGHT_KEY: 0.,
     cnn_architecture.L2_WEIGHT_KEY: 1e-7,
     cnn_architecture.USE_BATCH_NORM_KEY: True,
+    cnn_architecture.USE_RESIDUAL_BLOCKS_KEY: False,
     # cnn_architecture.DENSE_LAYER_NEURON_NUMS_KEY: DENSE_LAYER_NEURON_COUNTS,
-    cnn_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.)
+    cnn_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.),
+    cnn_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
+    cnn_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -59,7 +65,7 @@ DUMMY_GENERATOR_OPTION_DICT = {
 
 
 def _run():
-    """Makes CNN templates for Tom Beucler.
+    """Makes CNN templates for 2024 Pareto-front paper with Tom Beucler.
 
     This is effectively the main method.
     """
@@ -105,15 +111,11 @@ def _run():
                 )[1]
             )
 
-            model_object = cnn_architecture.create_model(
-                option_dict=option_dict,
-                vector_loss_function=VECTOR_LOSS_FUNCTION,
-                scalar_loss_function=SCALAR_LOSS_FUNCTION
-            )
+            model_object = cnn_architecture.create_model(option_dict)
 
             model_file_name = (
                 '{0:s}/num-levels={1:d}_num-first-layer-channels={2:02d}/'
-                'model.h5'
+                'model.keras'
             ).format(
                 OUTPUT_DIR_NAME, MODEL_DEPTHS[i], FIRST_LAYER_CHANNEL_COUNTS[j]
             )
@@ -135,18 +137,32 @@ def _run():
                 raise_error_if_missing=False
             )
 
+            option_dict[cnn_architecture.VECTOR_LOSS_FUNCTION_KEY] = (
+                VECTOR_LOSS_FUNCTION_STRING
+            )
+            option_dict[cnn_architecture.SCALAR_LOSS_FUNCTION_KEY] = (
+                SCALAR_LOSS_FUNCTION_STRING
+            )
+
             print('Writing metadata to: "{0:s}"...'.format(
                 metafile_name
             ))
             neural_net._write_metafile(
-                dill_file_name=metafile_name, num_epochs=100,
+                dill_file_name=metafile_name,
+                num_epochs=100,
                 num_training_batches_per_epoch=100,
                 training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                 num_validation_batches_per_epoch=100,
                 validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                net_type_string=neural_net.CNN_TYPE_STRING,
                 loss_function_or_dict=LOSS_DICT,
-                do_early_stopping=True, plateau_lr_multiplier=0.6
+                do_early_stopping=True,
+                plateau_lr_multiplier=0.6,
+                dense_architecture_dict=None,
+                cnn_architecture_dict=option_dict,
+                bnn_architecture_dict=None,
+                u_net_architecture_dict=None,
+                u_net_plusplus_architecture_dict=None,
+                u_net_3plus_architecture_dict=None
             )
 
 

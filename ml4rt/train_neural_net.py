@@ -163,6 +163,8 @@ def _run(training_dir_name, validation_dir_name,
     ))
     metadata_dict = neural_net.read_metafile(input_metafile_name)
     loss_function_or_dict = metadata_dict[neural_net.LOSS_FUNCTION_OR_DICT_KEY]
+    dense_architecture_dict = metadata_dict[neural_net.DENSE_ARCHITECTURE_KEY]
+    cnn_architecture_dict = metadata_dict[neural_net.CNN_ARCHITECTURE_KEY]
     bnn_architecture_dict = metadata_dict[neural_net.BNN_ARCHITECTURE_KEY]
     u_net_architecture_dict = metadata_dict[neural_net.U_NET_ARCHITECTURE_KEY]
     u_net_plusplus_architecture_dict = metadata_dict[
@@ -185,6 +187,8 @@ def _run(training_dir_name, validation_dir_name,
             validation_option_dict=validation_option_dict,
             loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
             plateau_lr_multiplier=plateau_lr_multiplier,
+            dense_architecture_dict=dense_architecture_dict,
+            cnn_architecture_dict=cnn_architecture_dict,
             bnn_architecture_dict=bnn_architecture_dict,
             u_net_architecture_dict=u_net_architecture_dict,
             u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
@@ -199,6 +203,8 @@ def _run(training_dir_name, validation_dir_name,
             num_training_batches_per_epoch=num_training_batches_per_epoch,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             plateau_lr_multiplier=plateau_lr_multiplier,
+            dense_architecture_dict=dense_architecture_dict,
+            cnn_architecture_dict=cnn_architecture_dict,
             bnn_architecture_dict=bnn_architecture_dict,
             u_net_architecture_dict=u_net_architecture_dict,
             u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
