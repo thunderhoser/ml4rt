@@ -29,7 +29,7 @@ echo `which python3`
 # PATH=/usr/local/cuda/bin:$PATH
 echo $PATH
 
-CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/u_net/templates"
 TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/u_net"
 
