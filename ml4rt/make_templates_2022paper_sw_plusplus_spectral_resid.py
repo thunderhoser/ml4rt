@@ -176,7 +176,7 @@ def _run():
 
                 this_model_file_name = (
                     '{0:s}/depth={1:d}_num-conv-layers-per-block={2:d}_'
-                    'num-first-layer-channels={3:03d}/model.h5'
+                    'num-first-layer-channels={3:03d}/model.keras'
                 ).format(
                     OUTPUT_DIR_NAME, MODEL_DEPTHS[i], CONV_LAYER_COUNTS[j],
                     FIRST_LAYER_CHANNEL_COUNTS[k]
