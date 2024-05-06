@@ -756,7 +756,7 @@ def create_model(option_dict):
     else:
         conv_output_layer_object = keras.layers.Reshape(
             target_shape=
-            (input_dimensions[0], 1)
+            (input_dimensions[0], num_output_wavelengths, 1)
         )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
@@ -771,8 +771,15 @@ def create_model(option_dict):
     conv_output_layer_object = zero_top_heating_rate(
         input_layer_object=conv_output_layer_object,
         ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
+        output_layer_name='conv_output' if ensemble_size > 1 else 'conv_preoutput'
     )
+
+    if ensemble_size == 1:
+        conv_output_layer_object = keras.layers.Reshape(
+            target_shape=
+            (input_dimensions[0], 1),
+            name='conv_output'
+        )(conv_output_layer_object)
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
