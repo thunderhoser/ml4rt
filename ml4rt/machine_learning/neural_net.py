@@ -93,6 +93,8 @@ VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
+DENSE_ARCHITECTURE_KEY = 'dense_architecture_dict'
+CNN_ARCHITECTURE_KEY = 'cnn_architecture_dict'
 BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
 U_NET_ARCHITECTURE_KEY = 'u_net_architecture_dict'
 U_NET_PP_ARCHITECTURE_KEY = 'u_net_plusplus_architecture_dict'
@@ -102,8 +104,9 @@ METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
-    BNN_ARCHITECTURE_KEY, U_NET_ARCHITECTURE_KEY,
-    U_NET_PP_ARCHITECTURE_KEY, U_NET_PPP_ARCHITECTURE_KEY
+    DENSE_ARCHITECTURE_KEY, CNN_ARCHITECTURE_KEY, BNN_ARCHITECTURE_KEY,
+    U_NET_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY,
+    U_NET_PPP_ARCHITECTURE_KEY
 ]
 
 
@@ -371,9 +374,9 @@ def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_or_dict,
-        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
-        u_net_architecture_dict, u_net_plusplus_architecture_dict,
-        u_net_3plus_architecture_dict):
+        do_early_stopping, plateau_lr_multiplier, dense_architecture_dict,
+        cnn_architecture_dict, bnn_architecture_dict, u_net_architecture_dict,
+        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -385,6 +388,8 @@ def _write_metafile(
     :param loss_function_or_dict: Same.
     :param do_early_stopping: Same.
     :param plateau_lr_multiplier: Same.
+    :param dense_architecture_dict: Same.
+    :param cnn_architecture_dict: Same.
     :param bnn_architecture_dict: Same.
     :param u_net_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
@@ -400,6 +405,8 @@ def _write_metafile(
         LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
         EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
+        DENSE_ARCHITECTURE_KEY: dense_architecture_dict,
+        CNN_ARCHITECTURE_KEY: cnn_architecture_dict,
         BNN_ARCHITECTURE_KEY: bnn_architecture_dict,
         U_NET_ARCHITECTURE_KEY: u_net_architecture_dict,
         U_NET_PP_ARCHITECTURE_KEY: u_net_plusplus_architecture_dict,
@@ -1272,8 +1279,8 @@ def train_model_with_generator(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        do_early_stopping, plateau_lr_multiplier,
-        bnn_architecture_dict, u_net_architecture_dict,
+        do_early_stopping, plateau_lr_multiplier, dense_architecture_dict,
+        cnn_architecture_dict, bnn_architecture_dict, u_net_architecture_dict,
         u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
     """Trains any kind of neural net with generator.
 
@@ -1309,17 +1316,13 @@ def train_model_with_generator(
     :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
         rate will be multiplied by this factor upon plateau in validation
         performance.
-    :param bnn_architecture_dict: Dictionary with architecture options for
-        Bayesian neural network (BNN).  If the model being trained is not
-        Bayesian, make this None.
-    :param u_net_architecture_dict: Dictionary with architecture options for
-        U-net.  If the model being trained is not a U-net, make this None.
-    :param u_net_plusplus_architecture_dict: Dictionary with architecture
-        options for U-net++.  If the model being trained is not a U-net++, make
-        this None.
-    :param u_net_3plus_architecture_dict: Dictionary with architecture
-        options for U-net 3+.  If the model being trained is not a U-net 3+,
-        make this None.
+    :param dense_architecture_dict: Dictionary with architecture options for
+        dense NN.  If the model being trained is not dense, make this None.
+    :param cnn_architecture_dict: Same but for CNN.
+    :param bnn_architecture_dict: Same but for Bayesian U-net++.
+    :param u_net_architecture_dict: Same but for U-net.
+    :param u_net_plusplus_architecture_dict: Same but for U-net++.
+    :param u_net_3plus_architecture_dict: Same but for U-net 3+.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1406,6 +1409,8 @@ def train_model_with_generator(
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
+        dense_architecture_dict=dense_architecture_dict,
+        cnn_architecture_dict=cnn_architecture_dict,
         bnn_architecture_dict=bnn_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
@@ -1447,8 +1452,9 @@ def train_model_sans_generator(
         validation_option_dict, loss_function_or_dict,
         do_early_stopping, num_training_batches_per_epoch,
         num_validation_batches_per_epoch, plateau_lr_multiplier,
-        bnn_architecture_dict, u_net_architecture_dict,
-        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
+        dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
+        u_net_architecture_dict, u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1463,6 +1469,8 @@ def train_model_sans_generator(
     :param num_validation_batches_per_epoch: Number of validation batches per
         epoch.  If None, each validation example will be used once per epoch.
     :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
+    :param dense_architecture_dict: Same.
+    :param cnn_architecture_dict: Same.
     :param bnn_architecture_dict: Same.
     :param u_net_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
@@ -1544,6 +1552,8 @@ def train_model_sans_generator(
         loss_function_or_dict=loss_function_or_dict,
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
+        dense_architecture_dict=dense_architecture_dict,
+        cnn_architecture_dict=cnn_architecture_dict,
         bnn_architecture_dict=bnn_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
@@ -1655,6 +1665,42 @@ def read_model(hdf5_file_name):
         raise_error_if_missing=True
     )
     metadata_dict = read_metafile(metafile_name)
+    dense_architecture_dict = metadata_dict[DENSE_ARCHITECTURE_KEY]
+
+    if dense_architecture_dict is not None:
+        from ml4rt.machine_learning import dense_net_architecture
+
+        for this_key in [
+                dense_net_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                dense_net_architecture.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            dense_architecture_dict[this_key] = eval(
+                dense_architecture_dict[this_key]
+            )
+
+        model_object = dense_net_architecture.create_model(
+            dense_architecture_dict
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
+    cnn_architecture_dict = metadata_dict[CNN_ARCHITECTURE_KEY]
+
+    if cnn_architecture_dict is not None:
+        from ml4rt.machine_learning import cnn_architecture
+
+        for this_key in [
+                cnn_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                cnn_architecture.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            cnn_architecture_dict[this_key] = eval(
+                cnn_architecture_dict[this_key]
+            )
+
+        model_object = cnn_architecture.create_model(cnn_architecture_dict)
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
     bnn_architecture_dict = metadata_dict[BNN_ARCHITECTURE_KEY]
 
     if bnn_architecture_dict is not None:
@@ -1680,8 +1726,8 @@ def read_model(hdf5_file_name):
         from ml4rt.machine_learning import u_net_architecture
 
         for this_key in [
-            u_net_architecture.VECTOR_LOSS_FUNCTION_KEY,
-            u_net_architecture.SCALAR_LOSS_FUNCTION_KEY
+                u_net_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                u_net_architecture.SCALAR_LOSS_FUNCTION_KEY
         ]:
             u_net_architecture_dict[this_key] = eval(
                 u_net_architecture_dict[this_key]
@@ -1790,6 +1836,8 @@ def read_metafile(dill_file_name):
     metadata_dict['num_validation_batches_per_epoch']: Same.
     metadata_dict['validation_option_dict']: Same.
     metadata_dict['loss_function_or_dict']: Same.
+    metadata_dict['dense_architecture_dict']: Same.
+    metadata_dict['cnn_architecture_dict']: Same.
     metadata_dict['bnn_architecture_dict']: Same.
     metadata_dict['u_net_architecture_dict']: Same.
     metadata_dict['u_net_plusplus_architecture_dict']: Same.
@@ -1860,6 +1908,10 @@ def read_metafile(dill_file_name):
             metadata_dict['loss_function']
         )
 
+    if DENSE_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[DENSE_ARCHITECTURE_KEY] = None
+    if CNN_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[CNN_ARCHITECTURE_KEY] = None
     if BNN_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[BNN_ARCHITECTURE_KEY] = None
     if U_NET_PP_ARCHITECTURE_KEY not in metadata_dict:

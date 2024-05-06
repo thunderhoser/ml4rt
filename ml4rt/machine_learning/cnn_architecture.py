@@ -2,7 +2,6 @@
 
 import numpy
 import keras
-from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4rt.machine_learning import neural_net
@@ -24,6 +23,10 @@ DENSE_OUTPUT_ACTIV_FUNC_ALPHA_KEY = 'dense_output_activ_func_alpha'
 L1_WEIGHT_KEY = 'l1_weight'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+USE_RESIDUAL_BLOCKS_KEY = 'use_residual_blocks'
+
+VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
+SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     CONV_LAYER_CHANNEL_NUMS_KEY:
@@ -118,55 +121,12 @@ def _check_architecture_args(option_dict):
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_boolean(option_dict[USE_RESIDUAL_BLOCKS_KEY])
 
     return option_dict
 
 
-def _zero_top_heating_rate_function(heating_rate_channel_index):
-    """Returns function that zeroes predicted heating rate at top of profile.
-
-    :param heating_rate_channel_index: Channel index for heating rate.
-    :return: zeroing_function: Function handle (see below).
-    """
-
-    def zeroing_function(orig_prediction_tensor):
-        """Zeroes out predicted heating rate at top of profile.
-
-        :param orig_prediction_tensor: Keras tensor with model predictions.
-        :return: new_prediction_tensor: Same as input but with top heating rate
-            zeroed out.
-        """
-
-        num_channels = orig_prediction_tensor.get_shape().as_list()[-1]
-
-        zero_tensor = K.greater_equal(
-            orig_prediction_tensor[..., heating_rate_channel_index][..., -1:],
-            1e12
-        )
-        zero_tensor = K.cast(zero_tensor, dtype=K.floatx())
-
-        heating_rate_tensor = K.concatenate((
-            orig_prediction_tensor[..., heating_rate_channel_index][..., :-1],
-            zero_tensor
-        ), axis=-1)
-
-        new_prediction_tensor = K.concatenate((
-            orig_prediction_tensor[..., :heating_rate_channel_index],
-            K.expand_dims(heating_rate_tensor, axis=-1)
-        ), axis=-1)
-
-        if heating_rate_channel_index == num_channels - 1:
-            return new_prediction_tensor
-
-        return K.concatenate((
-            new_prediction_tensor,
-            orig_prediction_tensor[..., (heating_rate_channel_index + 1):]
-        ), axis=-1)
-
-    return zeroing_function
-
-
-def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
+def create_model(option_dict):
     """Creates CNN (convolutional neural net).
 
     This method sets up the architecture, loss function, and optimizer -- and
@@ -216,10 +176,11 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
     option_dict['l2_weight']: Weight for L_2 regularization.
     option_dict['use_batch_normalization']: Boolean flag.  If True, will use
         batch normalization after each inner (non-output) layer.
+    option_dict['use_residual_blocks']: Boolean flag.  If True, will use
+        residual blocks (basic conv blocks) throughout the architecture.
+    option_dict['vector_loss_function']: Loss function for vector targets.
+    option_dict['scalar_loss_function']: Loss function for scalar targets.
 
-    :param vector_loss_function: Loss function for vector outputs.
-    :param scalar_loss_function: Loss function for scalar outputs.  If there are
-        no dense layers, leave this alone.
     :return: model_object: Untrained instance of `keras.models.Model`.
     """
 
@@ -243,8 +204,12 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
     l1_weight = option_dict[L1_WEIGHT_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
 
-    any_dense_layers = dense_layer_neuron_nums is not None
+    vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
+    scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
+
+    has_dense_layers = dense_layer_neuron_nums is not None
 
     input_layer_object = keras.layers.Input(
         shape=(num_heights, num_input_channels)
@@ -269,76 +234,58 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
             else:
                 dense_input_layer_object = conv_output_layer_object
 
-        conv_output_layer_object = architecture_utils.get_1d_conv_layer(
-            num_kernel_rows=conv_layer_filter_sizes[i], num_rows_per_stride=1,
-            num_filters=conv_layer_channel_nums[i],
-            padding_type_string=architecture_utils.YES_PADDING_STRING,
-            weight_regularizer=regularizer_object
-        )(this_input_layer_object)
-
         if i == num_conv_layers - 1:
-            if conv_output_activ_func_name is not None:
-                conv_output_layer_object = (
-                    architecture_utils.get_activation_layer(
-                        activation_function_string=conv_output_activ_func_name,
-                        alpha_for_relu=conv_output_activ_func_alpha,
-                        alpha_for_elu=conv_output_activ_func_alpha
-                    )(conv_output_layer_object)
-                )
+            conv_output_layer_object = u_net_architecture.get_conv_block(
+                input_layer_object=this_input_layer_object,
+                do_residual=use_residual_blocks,
+                num_conv_layers=1,
+                filter_size_px=conv_layer_filter_sizes[i],
+                num_filters=conv_layer_channel_nums[i],
+                regularizer_object=regularizer_object,
+                activation_function_name=conv_output_activ_func_name,
+                activation_function_alpha=conv_output_activ_func_alpha,
+                dropout_rates=conv_layer_dropout_rates[i],
+                monte_carlo_dropout_flags=False,
+                use_batch_norm=False,
+                basic_layer_name='conv{0:d}'.format(i)
+            )
         else:
-            conv_output_layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=inner_activ_function_name,
-                alpha_for_relu=inner_activ_function_alpha,
-                alpha_for_elu=inner_activ_function_alpha
-            )(conv_output_layer_object)
-
-        if conv_layer_dropout_rates[i] > 0:
-            conv_output_layer_object = architecture_utils.get_dropout_layer(
-                dropout_fraction=conv_layer_dropout_rates[i]
-            )(conv_output_layer_object)
-
-        if use_batch_normalization and i != num_conv_layers - 1:
-            conv_output_layer_object = (
-                architecture_utils.get_batch_norm_layer()(
-                    conv_output_layer_object
-                )
+            conv_output_layer_object = u_net_architecture.get_conv_block(
+                input_layer_object=this_input_layer_object,
+                do_residual=use_residual_blocks,
+                num_conv_layers=1,
+                filter_size_px=conv_layer_filter_sizes[i],
+                num_filters=conv_layer_channel_nums[i],
+                regularizer_object=regularizer_object,
+                activation_function_name=inner_activ_function_name,
+                activation_function_alpha=inner_activ_function_alpha,
+                dropout_rates=conv_layer_dropout_rates[i],
+                monte_carlo_dropout_flags=False,
+                use_batch_norm=use_batch_normalization,
+                basic_layer_name='conv{0:d}'.format(i)
             )
 
-    if any_dense_layers:
+    if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
         dense_output_layer_object = architecture_utils.get_flattening_layer()(
             dense_input_layer_object
         )
 
         for i in range(num_dense_layers):
-            if (
-                    i == num_dense_layers - 1 and
-                    dense_layer_dropout_rates[i] <= 0 and
-                    dense_output_activ_func_name is None
-            ):
-                this_name = 'dense_output'
-            else:
-                this_name = None
-
             dense_output_layer_object = architecture_utils.get_dense_layer(
                 num_output_units=dense_layer_neuron_nums[i],
-                layer_name=this_name
+                layer_name=None
             )(dense_output_layer_object)
 
             if i == num_dense_layers - 1:
                 if dense_output_activ_func_name is not None:
-                    this_name = (
-                        None if dense_layer_dropout_rates[i] > 0
-                        else 'dense_output'
-                    )
-
                     dense_output_layer_object = (
                         architecture_utils.get_activation_layer(
                             activation_function_string=
                             dense_output_activ_func_name,
                             alpha_for_relu=dense_output_activ_func_alpha,
                             alpha_for_elu=dense_output_activ_func_alpha,
-                            layer_name=this_name
+                            layer_name=None
                         )(dense_output_layer_object)
                     )
             else:
@@ -351,14 +298,10 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
                 )
 
             if dense_layer_dropout_rates[i] > 0:
-                this_name = (
-                    'dense_output' if i == num_dense_layers - 1 else None
-                )
-
                 dense_output_layer_object = (
                     architecture_utils.get_dropout_layer(
                         dropout_fraction=dense_layer_dropout_rates[i],
-                        layer_name=this_name
+                        layer_name=None
                     )(dense_output_layer_object)
                 )
 
@@ -371,15 +314,22 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
     else:
         dense_output_layer_object = None
 
-    this_function = u_net_architecture.zero_top_heating_rate_function(
-        height_index=num_heights - 1
-    )
-
-    conv_output_layer_object = keras.layers.Lambda(
-        this_function, name='conv_output'
+    conv_output_layer_object = keras.layers.Reshape(
+        target_shape=(num_heights, 1, 1)
     )(conv_output_layer_object)
 
-    if any_dense_layers:
+    conv_output_layer_object = u_net_architecture.zero_top_heating_rate(
+        input_layer_object=conv_output_layer_object,
+        ensemble_size=1,
+        output_layer_name='conv_output'
+    )
+
+    dense_output_layer_object = keras.layers.Reshape(
+        target_shape=(1, dense_layer_neuron_nums[i]),
+        name='dense_output'
+    )(dense_output_layer_object)
+
+    if has_dense_layers:
         loss_dict = {
             'conv_output': vector_loss_function,
             'dense_output': scalar_loss_function
@@ -391,7 +341,8 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
         )
 
         model_object.compile(
-            loss=loss_dict, optimizer=keras.optimizers.Adam(),
+            loss=loss_dict,
+            optimizer=keras.optimizers.Nadam(),
             metrics=neural_net.METRIC_FUNCTION_LIST
         )
     else:
@@ -400,7 +351,8 @@ def create_model(option_dict, vector_loss_function, scalar_loss_function=None):
         )
 
         model_object.compile(
-            loss=vector_loss_function, optimizer=keras.optimizers.Adam(),
+            loss=vector_loss_function,
+            optimizer=keras.optimizers.Nadam(),
             metrics=neural_net.METRIC_FUNCTION_LIST
         )
 
