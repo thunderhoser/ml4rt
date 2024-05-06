@@ -10,7 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import u_net_architecture
+import u_net_architecture_tom as u_net_architecture
 import architecture_utils
 import custom_losses
 import file_system_utils
@@ -25,9 +25,12 @@ OUTPUT_DIR_NAME = (
 
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
 SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux(0.64)
+VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_mse()'
+SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.scaled_mse_for_net_flux(0.64)'
+
 LOSS_DICT = {
-    'conv_output': 'custom_losses.dual_weighted_mse()',
-    'dense_output': 'custom_losses.scaled_mse_for_net_flux(0.64)'
+    'conv_output': VECTOR_LOSS_FUNCTION_STRING,
+    'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
 MODEL_DEPTHS = numpy.array([3, 4, 5], dtype=int)
@@ -48,6 +51,7 @@ DEFAULT_OPTION_DICT = {
     # u_net_architecture.SKIP_DROPOUT_RATES_KEY: numpy.full(NUM_LEVELS, 0.),
     u_net_architecture.INCLUDE_PENULTIMATE_KEY: True,
     u_net_architecture.PENULTIMATE_DROPOUT_RATE_KEY: 0.,
+    u_net_architecture.PENULTIMATE_MC_DROPOUT_FLAG_KEY: False,
     u_net_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     u_net_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
@@ -60,8 +64,17 @@ DEFAULT_OPTION_DICT = {
     u_net_architecture.L1_WEIGHT_KEY: 0.,
     u_net_architecture.L2_WEIGHT_KEY: 1e-7,
     u_net_architecture.USE_BATCH_NORM_KEY: True,
+    u_net_architecture.USE_RESIDUAL_BLOCKS_KEY: False,
     # u_net_architecture.DENSE_LAYER_NEURON_NUMS_KEY: DENSE_LAYER_NEURON_COUNTS,
-    u_net_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.)
+    u_net_architecture.DENSE_LAYER_DROPOUT_RATES_KEY: numpy.full(4, 0.),
+    u_net_architecture.DENSE_LAYER_MC_DROPOUT_FLAGS_KEY: numpy.full(
+        4, False, dtype=bool
+    ),
+    u_net_architecture.NUM_OUTPUT_WAVELENGTHS_KEY: 1,
+    u_net_architecture.ENSEMBLE_SIZE_KEY: 1,
+    u_net_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
+    u_net_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
+    u_net_architecture.DO_INLINE_NORMALIZATION_KEY: False
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
@@ -99,11 +112,20 @@ def _run():
             option_dict[u_net_architecture.ENCODER_DROPOUT_RATES_KEY] = (
                 numpy.full(MODEL_DEPTHS[i] + 1, 0.)
             )
+            option_dict[u_net_architecture.ENCODER_MC_DROPOUT_FLAGS_KEY] = (
+                numpy.full(MODEL_DEPTHS[i] + 1, False, dtype=bool)
+            )
             option_dict[u_net_architecture.UPCONV_DROPOUT_RATES_KEY] = (
                 numpy.full(MODEL_DEPTHS[i], 0.)
             )
+            option_dict[u_net_architecture.UPCONV_MC_DROPOUT_FLAGS_KEY] = (
+                numpy.full(MODEL_DEPTHS[i], False, dtype=bool)
+            )
             option_dict[u_net_architecture.SKIP_DROPOUT_RATES_KEY] = (
                 numpy.full(MODEL_DEPTHS[i], 0.)
+            )
+            option_dict[u_net_architecture.SKIP_MC_DROPOUT_FLAGS_KEY] = (
+                numpy.full(MODEL_DEPTHS[i], False, dtype=bool)
             )
 
             if MODEL_DEPTHS[i] == 5:
@@ -125,16 +147,11 @@ def _run():
                 )[1]
             )
 
-            model_object = u_net_architecture.create_model(
-                option_dict=option_dict,
-                vector_loss_function=VECTOR_LOSS_FUNCTION,
-                num_output_channels=1,
-                scalar_loss_function=SCALAR_LOSS_FUNCTION
-            )
+            model_object = u_net_architecture.create_model(option_dict)
 
             model_file_name = (
                 '{0:s}/num-levels={1:d}_num-first-layer-channels={2:02d}/'
-                'model.h5'
+                'model.keras'
             ).format(
                 OUTPUT_DIR_NAME, MODEL_DEPTHS[i], FIRST_LAYER_CHANNEL_COUNTS[j]
             )
@@ -156,18 +173,30 @@ def _run():
                 raise_error_if_missing=False
             )
 
+            option_dict[u_net_architecture.VECTOR_LOSS_FUNCTION_KEY] = (
+                VECTOR_LOSS_FUNCTION_STRING
+            )
+            option_dict[u_net_architecture.SCALAR_LOSS_FUNCTION_KEY] = (
+                SCALAR_LOSS_FUNCTION_STRING
+            )
+
             print('Writing metadata to: "{0:s}"...'.format(
                 metafile_name
             ))
             neural_net._write_metafile(
-                dill_file_name=metafile_name, num_epochs=100,
+                dill_file_name=metafile_name,
+                num_epochs=100,
                 num_training_batches_per_epoch=100,
                 training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                 num_validation_batches_per_epoch=100,
                 validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                net_type_string=neural_net.U_NET_TYPE_STRING,
                 loss_function_or_dict=LOSS_DICT,
-                do_early_stopping=True, plateau_lr_multiplier=0.6
+                do_early_stopping=True,
+                plateau_lr_multiplier=0.6,
+                bnn_architecture_dict=None,
+                u_net_3plus_architecture_dict=None,
+                u_net_plusplus_architecture_dict=None,
+                u_net_architecture_dict=option_dict
             )
 
 

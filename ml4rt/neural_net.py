@@ -25,8 +25,8 @@ LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
 
 # TODO(thunderhoser): This should become an input arg.
-MAX_NUM_VALIDATION_EXAMPLES = int(2.5e5)
-MAX_NUM_TRAINING_EXAMPLES = int(7.5e5)
+MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
+MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
@@ -100,6 +100,7 @@ LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
 BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
+U_NET_ARCHITECTURE_KEY = 'u_net_architecture_dict'
 U_NET_PP_ARCHITECTURE_KEY = 'u_net_plusplus_architecture_dict'
 U_NET_PPP_ARCHITECTURE_KEY = 'u_net_3plus_architecture_dict'
 
@@ -107,7 +108,8 @@ METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
-    BNN_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY, U_NET_PPP_ARCHITECTURE_KEY
+    BNN_ARCHITECTURE_KEY, U_NET_ARCHITECTURE_KEY,
+    U_NET_PP_ARCHITECTURE_KEY, U_NET_PPP_ARCHITECTURE_KEY
 ]
 
 
@@ -376,7 +378,8 @@ def _write_metafile(
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_or_dict,
         do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
-        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
+        u_net_architecture_dict, u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -389,6 +392,7 @@ def _write_metafile(
     :param do_early_stopping: Same.
     :param plateau_lr_multiplier: Same.
     :param bnn_architecture_dict: Same.
+    :param u_net_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
     :param u_net_3plus_architecture_dict: Same.
     """
@@ -403,6 +407,7 @@ def _write_metafile(
         EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
         BNN_ARCHITECTURE_KEY: bnn_architecture_dict,
+        U_NET_ARCHITECTURE_KEY: u_net_architecture_dict,
         U_NET_PP_ARCHITECTURE_KEY: u_net_plusplus_architecture_dict,
         U_NET_PPP_ARCHITECTURE_KEY: u_net_3plus_architecture_dict
     }
@@ -1273,7 +1278,8 @@ def train_model_with_generator(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict,
+        do_early_stopping, plateau_lr_multiplier,
+        bnn_architecture_dict, u_net_architecture_dict,
         u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
     """Trains any kind of neural net with generator.
 
@@ -1312,6 +1318,8 @@ def train_model_with_generator(
     :param bnn_architecture_dict: Dictionary with architecture options for
         Bayesian neural network (BNN).  If the model being trained is not
         Bayesian, make this None.
+    :param u_net_architecture_dict: Dictionary with architecture options for
+        U-net.  If the model being trained is not a U-net, make this None.
     :param u_net_plusplus_architecture_dict: Dictionary with architecture
         options for U-net++.  If the model being trained is not a U-net++, make
         this None.
@@ -1405,6 +1413,7 @@ def train_model_with_generator(
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
         bnn_architecture_dict=bnn_architecture_dict,
+        u_net_architecture_dict=u_net_architecture_dict,
         u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
         u_net_3plus_architecture_dict=u_net_3plus_architecture_dict
     )
@@ -1444,8 +1453,8 @@ def train_model_sans_generator(
         validation_option_dict, loss_function_or_dict,
         do_early_stopping, num_training_batches_per_epoch,
         num_validation_batches_per_epoch, plateau_lr_multiplier,
-        bnn_architecture_dict, u_net_plusplus_architecture_dict,
-        u_net_3plus_architecture_dict):
+        bnn_architecture_dict, u_net_architecture_dict,
+        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
     """Trains any kind of neural net without generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1461,6 +1470,7 @@ def train_model_sans_generator(
         epoch.  If None, each validation example will be used once per epoch.
     :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
     :param bnn_architecture_dict: Same.
+    :param u_net_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
     :param u_net_3plus_architecture_dict: Same.
     """
@@ -1541,6 +1551,7 @@ def train_model_sans_generator(
         do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
         bnn_architecture_dict=bnn_architecture_dict,
+        u_net_architecture_dict=u_net_architecture_dict,
         u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
         u_net_3plus_architecture_dict=u_net_3plus_architecture_dict
     )
@@ -1669,6 +1680,23 @@ def read_model(hdf5_file_name):
         model_object.load_weights(hdf5_file_name)
         return model_object
 
+    u_net_architecture_dict = metadata_dict[U_NET_ARCHITECTURE_KEY]
+
+    if u_net_architecture_dict is not None:
+        import u_net_architecture
+
+        for this_key in [
+            u_net_architecture.VECTOR_LOSS_FUNCTION_KEY,
+            u_net_architecture.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            u_net_architecture_dict[this_key] = eval(
+                u_net_architecture_dict[this_key]
+            )
+
+        model_object = u_net_architecture.create_model(u_net_architecture_dict)
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
     joined_output_layer = (
         metadata_dict[TRAINING_OPTIONS_KEY][JOINED_OUTPUT_LAYER_KEY]
@@ -1769,6 +1797,7 @@ def read_metafile(dill_file_name):
     metadata_dict['validation_option_dict']: Same.
     metadata_dict['loss_function_or_dict']: Same.
     metadata_dict['bnn_architecture_dict']: Same.
+    metadata_dict['u_net_architecture_dict']: Same.
     metadata_dict['u_net_plusplus_architecture_dict']: Same.
     metadata_dict['u_net_3plus_architecture_dict']: Same.
 
@@ -1841,6 +1870,8 @@ def read_metafile(dill_file_name):
         metadata_dict[BNN_ARCHITECTURE_KEY] = None
     if U_NET_PP_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[U_NET_PP_ARCHITECTURE_KEY] = None
+    if U_NET_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[U_NET_ARCHITECTURE_KEY] = None
     if U_NET_PPP_ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[U_NET_PPP_ARCHITECTURE_KEY] = None
 
