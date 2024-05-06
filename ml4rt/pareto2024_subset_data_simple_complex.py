@@ -179,7 +179,6 @@ def _run(input_dir_name, cloud_water_path_threshold_kg_m02,
     column_integ_water_contents_kg_m03 = numpy.sum(
         water_content_matrix_kg_m03, axis=1
     )
-    print(column_integ_water_contents_kg_m03.shape)
 
     simple_indices = numpy.where(
         column_integ_water_contents_kg_m03 < TOLERANCE
@@ -193,8 +192,10 @@ def _run(input_dir_name, cloud_water_path_threshold_kg_m02,
         len(column_integ_water_contents_kg_m03)
     ))
 
+    del example_dict
+
     specific_humidity_matrix_kg_kg01 = example_utils.get_field_from_dict(
-        example_dict=example_dict,
+        example_dict=simple_example_dict,
         field_name=example_utils.SPECIFIC_HUMIDITY_NAME
     )
     simple_flags = numpy.all(
@@ -217,7 +218,7 @@ def _run(input_dir_name, cloud_water_path_threshold_kg_m02,
     ))
 
     zenith_angles_deg = RADIANS_TO_DEGREES * example_utils.get_field_from_dict(
-        example_dict=example_dict,
+        example_dict=simple_example_dict,
         field_name=example_utils.ZENITH_ANGLE_NAME
     )
 
