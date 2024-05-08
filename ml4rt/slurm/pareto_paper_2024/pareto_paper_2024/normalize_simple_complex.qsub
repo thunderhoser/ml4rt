@@ -1,0 +1,54 @@
+#!/bin/bash
+
+#SBATCH --job-name="normalize_simple_complex"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+#SBATCH --array=0-2
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=normalize_simple_complex_%A_%a.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_UNNORMALIZED_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave"
+TOP_NORMALIZED_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave/normalized_predictors"
+NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave/training/learning_examples_for_norm_20180901-20191221.nc"
+
+INPUT_SIMPLE_FILE_NAMES=("${TOP_UNNORMALIZED_DIR_NAME}/training/for_pareto_paper_2024/simple/learning_examples_2020.nc" "${TOP_UNNORMALIZED_DIR_NAME}/validation/for_pareto_paper_2024/simple/learning_examples_2020.nc" "${TOP_UNNORMALIZED_DIR_NAME}/testing/for_pareto_paper_2024/simple/learning_examples_2020.nc")
+INPUT_COMPLEX_FILE_NAMES=("${TOP_UNNORMALIZED_DIR_NAME}/training/for_pareto_paper_2024/complex/learning_examples_2020.nc" "${TOP_UNNORMALIZED_DIR_NAME}/validation/for_pareto_paper_2024/complex/learning_examples_2020.nc" "${TOP_UNNORMALIZED_DIR_NAME}/testing/for_pareto_paper_2024/complex/learning_examples_2020.nc")
+OUTPUT_SIMPLE_DIR_NAMES=("${TOP_NORMALIZED_DIR_NAME}/training/for_pareto_paper_2024/simple" "${TOP_NORMALIZED_DIR_NAME}/validation/for_pareto_paper_2024/simple" "${TOP_NORMALIZED_DIR_NAME}/testing/for_pareto_paper_2024/simple")
+OUTPUT_COMPLEX_DIR_NAMES=("${TOP_NORMALIZED_DIR_NAME}/training/for_pareto_paper_2024/complex" "${TOP_NORMALIZED_DIR_NAME}/validation/for_pareto_paper_2024/complex" "${TOP_NORMALIZED_DIR_NAME}/testing/for_pareto_paper_2024/complex")
+
+python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
+--input_example_file_name="${INPUT_SIMPLE_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--uniformize=1 \
+--predictor_norm_type_string="z_score" \
+--vector_target_norm_type_string="" \
+--scalar_target_norm_type_string="" \
+--output_example_dir_name="${OUTPUT_SIMPLE_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
+
+python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
+--input_example_file_name="${INPUT_COMPLEX_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
+--input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--uniformize=1 \
+--predictor_norm_type_string="z_score" \
+--vector_target_norm_type_string="" \
+--scalar_target_norm_type_string="" \
+--output_example_dir_name="${OUTPUT_COMPLEX_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
