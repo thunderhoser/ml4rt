@@ -19,6 +19,8 @@ DUMMY_FIRST_TIME_UNIX_SEC = 0
 DUMMY_LAST_TIME_UNIX_SEC = int(3e9)
 
 INPUT_DIR_ARG_NAME = 'input_example_dir_name'
+REQUIRE_MULTILAYER_ARG_NAME = 'require_multilayer_cloud'
+REQUIRE_ALL_MIXED_PHASE_ARG_NAME = 'require_all_mixed_phase'
 CLOUD_WATER_THRESHOLD_ARG_NAME = 'cloud_water_path_threshold_kg_m02'
 HUMIDITY_THRESHOLD_ARG_NAME = 'specific_humidity_threshold_kg_kg01'
 ZENITH_ANGLE_THRESHOLD_ARG_NAME = 'zenith_angle_threshold_deg'
@@ -30,7 +32,16 @@ INPUT_DIR_HELP_STRING = (
     'will be found by `example_io.find_file` and read by '
     '`example_io.read_file`.'
 )
-
+REQUIRE_MULTILAYER_HELP_STRING = (
+    'Boolean flag.  If 1, only profiles with multiple mixed-phase cloud layers '
+    'will be considered complex.  If 0, profiles with any mixed-phase cloud '
+    'will be considered complex.'
+)
+REQUIRE_ALL_MIXED_PHASE_HELP_STRING = (
+    'Boolean flag.  If 1, for a profile to be considered complex, all cloud '
+    'layers in the profile must be mixed-phase.  If 0, for a profile to be '
+    'considered complex, only one cloud layer needs to be mixed-phase.'
+)
 CLOUD_WATER_THRESHOLD_HELP_STRING = (
     'Minimum path for cloud layer.  Note that only mixed-phase cloud layers '
     'will be counted.  Thus, for an atmospheric layer to be considered a cloud '
@@ -65,6 +76,14 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + REQUIRE_MULTILAYER_ARG_NAME, type=int, required=True,
+    help=REQUIRE_MULTILAYER_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + REQUIRE_ALL_MIXED_PHASE_ARG_NAME, type=int, required=True,
+    help=REQUIRE_ALL_MIXED_PHASE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + CLOUD_WATER_THRESHOLD_ARG_NAME, type=float, required=False,
     default=0.025, help=CLOUD_WATER_THRESHOLD_HELP_STRING
 )
@@ -86,14 +105,17 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_dir_name, cloud_water_path_threshold_kg_m02,
-         specific_humidity_threshold_kg_kg01, zenith_angle_threshold_deg,
+def _run(input_dir_name, require_multilayer_cloud, require_all_mixed_phase,
+         cloud_water_path_threshold_kg_m02, specific_humidity_threshold_kg_kg01,
+         zenith_angle_threshold_deg,
          simple_example_file_name, complex_example_file_name):
     """Subsets data into simple and complex datasets.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of this script.
+    :param require_multilayer_cloud: Same.
+    :param require_all_mixed_phase: Same.
     :param cloud_water_path_threshold_kg_m02: Same.
     :param specific_humidity_threshold_kg_kg01: Same.
     :param zenith_angle_threshold_deg: Same.
@@ -127,26 +149,77 @@ def _run(input_dir_name, cloud_water_path_threshold_kg_m02,
     del example_dicts
 
     # Find complex cases.
-    _, num_clouds_by_example = example_utils.find_cloud_layers(
-        example_dict=example_dict,
-        min_path_kg_m02=cloud_water_path_threshold_kg_m02,
-        cloud_type_string=example_utils.MIXED_PHASE_CLOUD_TYPE_STRING,
-        fog_only=False
-    )
+    if require_multilayer_cloud:
+        if require_all_mixed_phase:
+            _, num_clouds_by_example = example_utils.find_cloud_layers(
+                example_dict=example_dict,
+                min_path_kg_m02=cloud_water_path_threshold_kg_m02,
+                cloud_type_string=example_utils.MIXED_PHASE_CLOUD_TYPE_STRING,
+                fog_only=False
+            )
+            complex_indices = numpy.where(num_clouds_by_example > 1)[0]
 
-    complex_indices = numpy.where(num_clouds_by_example > 1)[0]
+            print((
+                'Number of complex cases (with multiple mixed-phase cloud '
+                'layers of path >= {0:f} g m^-2) = {1:d} of {2:d}'
+            ).format(
+                KG_TO_GRAMS * cloud_water_path_threshold_kg_m02,
+                len(complex_indices),
+                len(num_clouds_by_example)
+            ))
+        else:
+            _, num_any_clouds_by_example = example_utils.find_cloud_layers(
+                example_dict=example_dict,
+                min_path_kg_m02=cloud_water_path_threshold_kg_m02,
+                cloud_type_string=example_utils.ANY_CLOUD_TYPE_STRING,
+                fog_only=False
+            )
+
+            _, num_mixed_phase_clouds_by_example = (
+                example_utils.find_cloud_layers(
+                    example_dict=example_dict,
+                    min_path_kg_m02=cloud_water_path_threshold_kg_m02,
+                    cloud_type_string=example_utils.MIXED_PHASE_CLOUD_TYPE_STRING,
+                    fog_only=False
+                )
+            )
+
+            complex_indices = numpy.where(numpy.logical_and(
+                num_any_clouds_by_example > 1,
+                num_mixed_phase_clouds_by_example > 0
+            ))[0]
+
+            print((
+                'Number of complex cases (with multiple cloud layers of path '
+                '>= {0:f} g m^-2 and at least one mixed-phase layer) = '
+                '{1:d} of {2:d}'
+            ).format(
+                KG_TO_GRAMS * cloud_water_path_threshold_kg_m02,
+                len(complex_indices),
+                len(num_any_clouds_by_example)
+            ))
+    else:
+        _, num_clouds_by_example = example_utils.find_cloud_layers(
+            example_dict=example_dict,
+            min_path_kg_m02=cloud_water_path_threshold_kg_m02,
+            cloud_type_string=example_utils.MIXED_PHASE_CLOUD_TYPE_STRING,
+            fog_only=False
+        )
+        complex_indices = numpy.where(num_clouds_by_example > 0)[0]
+
+        print((
+            'Number of complex cases (with at least one mixed-phase cloud '
+            'layer of path >= {0:f} g m^-2) = {1:d} of {2:d}'
+        ).format(
+            KG_TO_GRAMS * cloud_water_path_threshold_kg_m02,
+            len(complex_indices),
+            len(num_clouds_by_example)
+        ))
+
     complex_example_dict = example_utils.subset_by_index(
         example_dict=example_dict,
         desired_indices=complex_indices
     )
-    print((
-        'Number of complex cases (with multiple mixed-phase cloud layers of '
-        'path >= {0:f} g m^-2) = {1:d} of {2:d}'
-    ).format(
-        KG_TO_GRAMS * cloud_water_path_threshold_kg_m02,
-        len(complex_indices),
-        len(num_clouds_by_example)
-    ))
 
     print('Writing all {0:d} complex cases to file: "{1:s}"...'.format(
         len(complex_indices), complex_example_file_name
@@ -243,6 +316,12 @@ if __name__ == '__main__':
 
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        require_multilayer_cloud=bool(
+            getattr(INPUT_ARG_OBJECT, REQUIRE_MULTILAYER_ARG_NAME)
+        ),
+        require_all_mixed_phase=bool(
+            getattr(INPUT_ARG_OBJECT, REQUIRE_ALL_MIXED_PHASE_ARG_NAME)
+        ),
         cloud_water_path_threshold_kg_m02=getattr(
             INPUT_ARG_OBJECT, CLOUD_WATER_THRESHOLD_ARG_NAME
         ),
