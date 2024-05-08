@@ -35,8 +35,8 @@ OUTPUT_COMPLEX_FILE_NAMES=("${TOP_DATA_DIR_NAME}/training/for_pareto_paper_2024/
 python3 -u "${CODE_DIR_NAME}/pareto2024_subset_data_simple_complex.py" \
 --input_example_dir_name="${INPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}" \
 --cloud_water_path_threshold_kg_m02=0.010 \
---require_multilayer_cloud=0 \
---require_all_mixed_phase=1 \
+--require_multilayer_cloud=1 \
+--require_all_mixed_phase=0 \
 --specific_humidity_threshold_kg_kg01=0.002 \
 --zenith_angle_threshold_deg=60 \
 --output_simple_example_file_name="${OUTPUT_SIMPLE_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}" \
