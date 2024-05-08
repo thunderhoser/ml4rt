@@ -170,9 +170,6 @@ def _apply_model_once(model_object, model_metadata_dict, predictor_matrix,
         use_dropout=use_dropout, verbose=True
     )
 
-    print(prediction_array[0].shape)
-    print(prediction_array[1].shape)
-
     print(SEPARATOR_STRING)
     print('Time to apply neural net = {0:.4f} seconds'.format(
         time.time() - exec_start_time_unix_sec

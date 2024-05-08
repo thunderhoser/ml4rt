@@ -2053,6 +2053,10 @@ def apply_model(
         if len(this_output) > 1 and len(this_output[1].shape) == 3:
             this_output[1] = numpy.expand_dims(this_output[1], axis=-3)
 
+        # TODO(thunderhoser): HACK.
+        if len(this_output) > 1 and this_output[1].shape[-2] == 1 and this_output[1].shape[-1] == 2:
+            this_output[1] = numpy.swapaxes(this_output[1], -1, -2)
+
         if vector_prediction_matrix is None:
             vector_prediction_matrix = numpy.full(
                 (num_examples,) + this_output[0].shape[1:], numpy.nan
