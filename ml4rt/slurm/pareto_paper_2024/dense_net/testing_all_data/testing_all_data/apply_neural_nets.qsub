@@ -42,16 +42,13 @@ MODEL_DEPTHS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3
 HIDDEN_LAYER_NEURON_COUNTS=("0064" "0128" "0256" "0512" "1024" "2048" "0064" "0128" "0256" "0512" "1024" "2048" "0064" "0128" "0256" "0512" "1024" "2048" "0064" "0128" "0256" "0512" "1024" "2048" "0064" "0128" "0256" "0512" "1024" "2048" "0064" "0128" "0256" "0512" "1024" "2048")
 
 model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
-echo $model_depth
 num_hidden_layer_neurons=${HIDDEN_LAYER_NEURON_COUNTS[$SLURM_ARRAY_TASK_ID]}
-echo $num_hidden_layer_neurons
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/num-levels=${model_depth}_num-neurons-per-layer=${num_hidden_layer_neurons}"
-echo $model_dir_name
 prediction_file_name="${model_dir_name}/testing/predictions.nc"
 
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
---input_model_file_name="${model_file_name}" \
+--input_model_file_name="${model_dir_name}/model.keras" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --first_time_string="${FIRST_TESTING_TIME_STRING}" \
 --last_time_string="${LAST_TESTING_TIME_STRING}" \
