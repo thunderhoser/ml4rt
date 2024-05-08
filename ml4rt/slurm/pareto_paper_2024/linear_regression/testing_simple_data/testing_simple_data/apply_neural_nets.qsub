@@ -1,0 +1,48 @@
+#!/bin/bash
+
+#SBATCH --job-name="apply_neural_nets"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_%A.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/linear_regression"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave/normalized_predictors/testing/for_pareto_paper_2024/simple"
+
+FIRST_TESTING_TIME_STRING="2019-12-24-000000"
+LAST_TESTING_TIME_STRING="2020-12-31-235959"
+
+model_dir_name="${TOP_MODEL_DIR_NAME}"
+prediction_file_name="${model_dir_name}/testing_simple_data/predictions.nc"
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_dir_name}/model.keras" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--first_time_string="${FIRST_TESTING_TIME_STRING}" \
+--last_time_string="${LAST_TESTING_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
