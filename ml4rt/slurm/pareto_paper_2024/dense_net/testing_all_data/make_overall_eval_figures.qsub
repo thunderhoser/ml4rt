@@ -15,6 +15,7 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=make_overall_eval_figures_%A_%a.out
 
+module load imagemagick/7.1.1-11
 conda init
 conda activate base
 
