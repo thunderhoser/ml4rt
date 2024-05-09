@@ -1733,6 +1733,14 @@ def read_model(hdf5_file_name):
                 u_net_architecture_dict[this_key]
             )
 
+        for this_key in [u_net_architecture.OPTIMIZER_FUNCTION_KEY]:
+            if this_key not in u_net_architecture_dict:
+                continue
+
+            u_net_architecture_dict[this_key] = eval(
+                u_net_architecture_dict[this_key]
+            )
+
         model_object = u_net_architecture.create_model(u_net_architecture_dict)
         model_object.load_weights(hdf5_file_name)
         return model_object
@@ -1759,6 +1767,14 @@ def read_model(hdf5_file_name):
                     u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
                     u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
             ]:
+                u_net_plusplus_architecture_dict[this_key] = eval(
+                    u_net_plusplus_architecture_dict[this_key]
+                )
+
+            for this_key in [u_net_pp_architecture.OPTIMIZER_FUNCTION_KEY]:
+                if this_key not in u_net_plusplus_architecture_dict:
+                    continue
+
                 u_net_plusplus_architecture_dict[this_key] = eval(
                     u_net_plusplus_architecture_dict[this_key]
                 )
