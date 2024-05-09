@@ -58,6 +58,7 @@ NUM_OUTPUT_WAVELENGTHS_KEY = u_net_arch.NUM_OUTPUT_WAVELENGTHS_KEY
 VECTOR_LOSS_FUNCTION_KEY = u_net_arch.VECTOR_LOSS_FUNCTION_KEY
 SCALAR_LOSS_FUNCTION_KEY = u_net_arch.SCALAR_LOSS_FUNCTION_KEY
 JOINED_LOSS_FUNCTION_KEY = u_net_arch.JOINED_LOSS_FUNCTION_KEY
+OPTIMIZER_FUNCTION_KEY = u_net_arch.OPTIMIZER_FUNCTION_KEY
 USE_DEEP_SUPERVISION_KEY = u_net_arch.USE_DEEP_SUPERVISION_KEY
 ENSEMBLE_SIZE_KEY = u_net_arch.ENSEMBLE_SIZE_KEY
 
@@ -181,6 +182,7 @@ def create_model(option_dict):
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
+    optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     use_deep_supervision = option_dict[USE_DEEP_SUPERVISION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
 
@@ -510,7 +512,7 @@ def create_model(option_dict):
     )
     model_object.compile(
         loss=loss_dict,
-        optimizer=keras.optimizers.Nadam(),
+        optimizer=optimizer_function,
         metrics=metric_dict
     )
 
@@ -563,6 +565,8 @@ def create_model_1output_layer(option_dict):
 
     # TODO(thunderhoser): Need to implement residual blocks for this method.
     assert use_residual_blocks == False
+
+    # TODO(thunderhoser): Need to allow optimizer_function input arg for this method.
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     loss_function = option_dict[JOINED_LOSS_FUNCTION_KEY]

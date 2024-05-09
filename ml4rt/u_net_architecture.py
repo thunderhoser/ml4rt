@@ -45,6 +45,7 @@ NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
 SCALAR_LOSS_FUNCTION_KEY = 'scalar_loss_function'
 JOINED_LOSS_FUNCTION_KEY = 'joined_loss_function'
+OPTIMIZER_FUNCTION_KEY = 'optimizer_function'
 USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
 ENSEMBLE_SIZE_KEY = 'ensemble_size'
 
@@ -308,6 +309,9 @@ def check_args(option_dict):
     error_checking.assert_is_greater(option_dict[ENSEMBLE_SIZE_KEY], 0)
     error_checking.assert_is_boolean(option_dict[DO_INLINE_NORMALIZATION_KEY])
 
+    if OPTIMIZER_FUNCTION_KEY not in option_dict:
+        option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.Nadam()
+
     if not option_dict[DO_INLINE_NORMALIZATION_KEY]:
         option_dict[PW_LINEAR_UNIF_MODEL_KEY] = None
         option_dict[SCALAR_PREDICTORS_KEY] = None
@@ -545,6 +549,8 @@ def create_model(option_dict):
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
+
+    # TODO(thunderhoser): Need to use optimizer_function arg for this method.
 
     if ensemble_size > 1:
         include_penultimate_conv = False
