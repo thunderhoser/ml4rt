@@ -3,7 +3,7 @@
 #SBATCH --job-name="plot_eval_by_cloud_regime_not_height"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpu"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -27,8 +27,8 @@ echo `which python3`
 # PATH=/usr/local/cuda/bin:$PATH
 echo $PATH
 
-CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
-TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_lw_plusplusplus_best_1output/new_vertical_coords/unnormalized_predictors"
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/2022paper_experiment_sw_plusplus_spectral_resid"
 
 MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
 CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
@@ -41,14 +41,14 @@ num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
 model_dir_name="${TOP_MODEL_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}"
 
 testing_dir_name="${model_dir_name}/testing"
-evaluation_file_names=("${testing_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/fog/evaluation.nc")
+evaluation_file_names=("${testing_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${testing_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
 evaluation_dir_name="${testing_dir_name}/by_cloud_regime/evaluation"
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
---input_eval_file_names "${evaluation_file_names[0]}" "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" "${evaluation_file_names[3]}" \
---line_styles "solid" "solid" "solid" "solid" \
---line_colours "27_158_119" "217_95_2" "117_112_179" "0_0_0" \
---set_descriptions "No_cloud" "Single-layer_cloud" "Multi-layer_cloud" "Fog" \
+--input_eval_file_names "${evaluation_file_names[0]}" "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" \
+--line_styles "solid" "solid" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" \
+--set_descriptions "No_cloud" "Single-layer_cloud" "Multi-layer_cloud"  \
 --confidence_level=0.99 \
 --use_log_scale=1 \
 --plot_by_height=0 \

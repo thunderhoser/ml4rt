@@ -2038,24 +2038,12 @@ def apply_model(
             this_output = [this_output]
 
         # Add ensemble dimension if necessary.
-        if len(this_output[0].shape) == 3:
+        if len(this_output[0].shape) == 4:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
 
-        # Add wavelength dimension if necessary.
-        if len(this_output[0].shape) == 4:
-            this_output[0] = numpy.expand_dims(this_output[0], axis=-3)
-
         # Add ensemble dimension if necessary.
-        if len(this_output) > 1 and len(this_output[1].shape) == 2:
-            this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
-
-        # Add wavelength dimension if necessary.
         if len(this_output) > 1 and len(this_output[1].shape) == 3:
-            this_output[1] = numpy.expand_dims(this_output[1], axis=-3)
-
-        # TODO(thunderhoser): HACK.
-        if len(this_output) > 1 and this_output[1].shape[-2] == 1 and this_output[1].shape[-1] == 2:
-            this_output[1] = numpy.swapaxes(this_output[1], -1, -2)
+            this_output[1] = numpy.expand_dims(this_output[1], axis=-1)
 
         if vector_prediction_matrix is None:
             vector_prediction_matrix = numpy.full(
