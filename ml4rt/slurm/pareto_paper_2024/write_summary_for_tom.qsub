@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#SBATCH --job-name="write_summary_for_tom"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=write_summary_for_tom_%A.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+
+python3 -u "${CODE_DIR_NAME}/pareto2024_write_summary_for_tom.py" \
+--input_top_experiment_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment" \
+--output_csv_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/pareto2024_summary_for_tom.csv"
