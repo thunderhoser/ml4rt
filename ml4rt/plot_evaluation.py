@@ -939,6 +939,8 @@ def _plot_error_distributions(
 
                 y_tick_strings[j] = ' '
 
+            bin_centers = bin_edges + numpy.diff(bin_edges) / 2
+            axes_object.set_yticks(bin_centers)
             axes_object.set_yticklabels(y_tick_strings)
             axes_object.set_ylabel(r'Actual heating rate (K day$^{-1}$)')
 
