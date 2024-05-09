@@ -295,6 +295,10 @@ def check_args(option_dict):
     error_checking.assert_is_geq(option_dict[L1_WEIGHT_KEY], 0.)
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+
+    if USE_RESIDUAL_BLOCKS_KEY not in option_dict:
+        option_dict[USE_RESIDUAL_BLOCKS_KEY] = False
+
     error_checking.assert_is_boolean(option_dict[USE_RESIDUAL_BLOCKS_KEY])
 
     error_checking.assert_is_integer(option_dict[NUM_OUTPUT_WAVELENGTHS_KEY])
