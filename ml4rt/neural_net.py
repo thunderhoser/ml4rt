@@ -1739,6 +1739,14 @@ def read_model(hdf5_file_name):
                 u_net_architecture_dict[this_key]
             )
 
+        for this_key in [u_net_architecture.OPTIMIZER_FUNCTION_KEY]:
+            if this_key not in u_net_architecture_dict:
+                continue
+
+            u_net_architecture_dict[this_key] = eval(
+                u_net_architecture_dict[this_key]
+            )
+
         model_object = u_net_architecture.create_model(u_net_architecture_dict)
         model_object.load_weights(hdf5_file_name)
         return model_object
@@ -1765,6 +1773,14 @@ def read_model(hdf5_file_name):
                     u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
                     u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
             ]:
+                u_net_plusplus_architecture_dict[this_key] = eval(
+                    u_net_plusplus_architecture_dict[this_key]
+                )
+
+            for this_key in [u_net_pp_architecture.OPTIMIZER_FUNCTION_KEY]:
+                if this_key not in u_net_plusplus_architecture_dict:
+                    continue
+
                 u_net_plusplus_architecture_dict[this_key] = eval(
                     u_net_plusplus_architecture_dict[this_key]
                 )
@@ -2076,3 +2092,65 @@ def apply_model(
         )
 
     return [vector_prediction_matrix, scalar_prediction_matrix]
+
+
+def get_feature_maps(
+        model_object, predictor_matrix, num_examples_per_batch,
+        feature_layer_name, verbose=False):
+    """Uses trained neural net (of any kind) to create feature maps.
+
+    :param model_object: See doc for `apply_model`.
+    :param predictor_matrix: Same.
+    :param num_examples_per_batch: Same.
+    :param feature_layer_name: Feature maps will be returned for this layer.
+    :param verbose: See doc for `apply_model`.
+    :return: feature_matrix: numpy array of feature maps.
+    """
+
+    num_examples_per_batch = _check_inference_args(
+        predictor_matrix=predictor_matrix,
+        num_examples_per_batch=num_examples_per_batch, verbose=verbose
+    )
+
+    partial_model_object = cnn.model_to_feature_generator(
+        model_object=model_object, feature_layer_name=feature_layer_name
+    )
+
+    feature_matrix = None
+    num_examples = predictor_matrix.shape[0]
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        this_first_index = i
+        this_last_index = min(
+            [i + num_examples_per_batch - 1, num_examples - 1]
+        )
+
+        these_indices = numpy.linspace(
+            this_first_index, this_last_index,
+            num=this_last_index - this_first_index + 1, dtype=int
+        )
+
+        if verbose:
+            print((
+                'Creating feature maps for examples {0:d}-{1:d} of {2:d}...'
+            ).format(
+                this_first_index + 1, this_last_index + 1, num_examples
+            ))
+
+        this_feature_matrix = partial_model_object.predict(
+            predictor_matrix[these_indices, ...], batch_size=len(these_indices)
+        )
+
+        if feature_matrix is None:
+            feature_matrix = this_feature_matrix + 0.
+        else:
+            feature_matrix = numpy.concatenate(
+                (feature_matrix, this_feature_matrix), axis=0
+            )
+
+    if verbose:
+        print('Have created feature maps for all {0:d} examples!'.format(
+            num_examples
+        ))
+
+    return feature_matrix
