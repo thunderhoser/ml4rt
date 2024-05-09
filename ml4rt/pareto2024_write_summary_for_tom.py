@@ -149,7 +149,7 @@ def _run(top_experiment_dir_name, output_file_name):
     for i in range(len(DENSE_NET_MODEL_DEPTHS)):
         for j in range(len(DENSE_NET_NEURON_COUNTS)):
             this_hyperparam_string = (
-                'dense_net/num-levels={2:d}_num-neurons-per-layer={1:04d}'
+                'dense_net/num-levels={0:d}_num-neurons-per-layer={1:04d}'
             ).format(
                 DENSE_NET_MODEL_DEPTHS[i],
                 DENSE_NET_NEURON_COUNTS[j]
