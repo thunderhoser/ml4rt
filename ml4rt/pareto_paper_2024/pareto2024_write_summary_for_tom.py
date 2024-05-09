@@ -72,7 +72,7 @@ def _read_results_one_model(model_dir_name):
     )
     overall_mse_value_k2_day02 = numpy.mean(
         (overall_prediction_dict[prediction_io.VECTOR_TARGETS_KEY] -
-         overall_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]) ** 2
+         overall_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]) ** 2
     )
 
     simple_prediction_file_name = (
@@ -86,7 +86,7 @@ def _read_results_one_model(model_dir_name):
     )
     simple_mse_value_k2_day02 = numpy.mean(
         (simple_prediction_dict[prediction_io.VECTOR_TARGETS_KEY] -
-         simple_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]) ** 2
+         simple_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]) ** 2
     )
 
     complex_prediction_file_name = (
@@ -100,7 +100,7 @@ def _read_results_one_model(model_dir_name):
     )
     complex_mse_value_k2_day02 = numpy.mean(
         (complex_prediction_dict[prediction_io.VECTOR_TARGETS_KEY] -
-         complex_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY]) ** 2
+         complex_prediction_dict[prediction_io.VECTOR_PREDICTIONS_KEY][..., 0]) ** 2
     )
 
     return (
@@ -141,7 +141,7 @@ def _run(top_experiment_dir_name, output_file_name):
     for i in range(len(DENSE_NET_MODEL_DEPTHS)):
         for j in range(len(DENSE_NET_NEURON_COUNTS)):
             this_hyperparam_string = (
-                'dense_net/num-levels={2:d}_num-neurons-per-layer={1:04d}'
+                'dense_net/num-levels={0:d}_num-neurons-per-layer={1:04d}'
             ).format(
                 DENSE_NET_MODEL_DEPTHS[i],
                 DENSE_NET_NEURON_COUNTS[j]
