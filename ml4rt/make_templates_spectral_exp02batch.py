@@ -49,9 +49,9 @@ LOSS_DICT = {
     'dense_output': SCALAR_LOSS_FUNCTION_STRING
 }
 
-MODEL_DEPTHS = numpy.array([3, 4, 5], dtype=int)
-CONV_LAYER_COUNTS = numpy.array([1, 2, 3, 4], dtype=int)
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([4, 8, 16, 32, 64, 128], dtype=int)
+MODEL_DEPTHS = numpy.array([3], dtype=int)
+CONV_LAYER_COUNTS = numpy.array([1], dtype=int)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([128], dtype=int)
 GRAD_ACCUM_STEP_COUNTS = numpy.array([1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50], dtype=int)
 
 DEFAULT_OPTION_DICT = {
