@@ -42,7 +42,7 @@ LAST_VALIDATION_TIME_STRING="2020-12-31-235959"
 GRAD_ACCUM_STEP_COUNTS=("01" "02" "03" "04" "05" "10" "15" "20" "25" "30" "40" "50")
 num_grad_accum_steps=${GRAD_ACCUM_STEP_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
-output_dir_name="${TOP_MODEL_DIR_NAME}/num-grad-accum-steps=${num_grad_accum_steps}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/num-grad-accum-steps=${num_grad_accum_steps}"
 model_file_name="${model_dir_name}/model.keras"
 prediction_file_name="${model_dir_name}/validation/predictions.nc"
 

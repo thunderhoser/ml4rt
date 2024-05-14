@@ -8,7 +8,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=04:00:00
-#SBATCH --array=0-11
+#SBATCH --array=0-71
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -28,12 +28,17 @@ echo `which python3`
 echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment02_batch_size/shortwave_plusplus"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment02_simple/shortwave_plusplus"
 
-GRAD_ACCUM_STEP_COUNTS=("01" "02" "03" "04" "05" "10" "15" "20" "25" "30" "40" "50")
-num_grad_accum_steps=${GRAD_ACCUM_STEP_COUNTS[$SLURM_ARRAY_TASK_ID]}
+MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
+CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
+FIRST_LAYER_CHANNEL_COUNTS=("004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128")
 
-model_dir_name="${TOP_MODEL_DIR_NAME}/num-grad-accum-steps=${num_grad_accum_steps}"
+model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+num_conv_layers_per_block=${CONV_LAYER_PER_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
+num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}"
 validation_dir_name="${model_dir_name}/validation"
 
 REGIME_STRINGS_DASHED=("no-cloud" "single-layer-cloud" "multi-layer-cloud")

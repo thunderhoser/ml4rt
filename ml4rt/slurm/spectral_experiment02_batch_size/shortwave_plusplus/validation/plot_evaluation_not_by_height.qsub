@@ -33,7 +33,7 @@ TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spec
 GRAD_ACCUM_STEP_COUNTS=("01" "02" "03" "04" "05" "10" "15" "20" "25" "30" "40" "50")
 num_grad_accum_steps=${GRAD_ACCUM_STEP_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
-output_dir_name="${TOP_MODEL_DIR_NAME}/num-grad-accum-steps=${num_grad_accum_steps}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/num-grad-accum-steps=${num_grad_accum_steps}"
 prediction_file_name="${model_dir_name}/validation/predictions.nc"
 evaluation_dir_name="${model_dir_name}/validation/evaluation"
 evaluation_file_name="${evaluation_dir_name}.nc"
