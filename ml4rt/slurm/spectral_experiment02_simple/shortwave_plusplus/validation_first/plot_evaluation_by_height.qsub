@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_evaluation_by_height"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+#SBATCH --array=1,5,9,18,22,24,25,27,28,33,34,35,36,47,50,52,56,57,60,62,63,67,68,69
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_evaluation_by_height_%A_%a.out
+
+# module load cuda/12.1.0
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment02_simple/shortwave_plusplus"
+
+MODEL_DEPTHS=("3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5")
+CONV_LAYER_PER_BLOCK_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4")
+FIRST_LAYER_CHANNEL_COUNTS=("004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128" "004" "008" "016" "032" "064" "128")
+
+model_depth=${MODEL_DEPTHS[$SLURM_ARRAY_TASK_ID]}
+num_conv_layers_per_block=${CONV_LAYER_PER_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
+num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/depth=${model_depth}_num-conv-layers-per-block=${num_conv_layers_per_block}_num-first-layer-channels=${num_first_layer_channels}"
+prediction_file_name="${model_dir_name}/validation/predictions.nc"
+evaluation_dir_name="${model_dir_name}/validation/evaluation"
+evaluation_file_name="${evaluation_dir_name}.nc"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${evaluation_file_name}" \
+--line_styles "solid" \
+--line_colours "217_95_2" \
+--set_descriptions "New_model" \
+--use_log_scale=1 \
+--plot_by_height=1 \
+--output_dir_name="${evaluation_dir_name}"
