@@ -774,7 +774,7 @@ def create_model(option_dict):
     conv_output_layer_object = zero_top_heating_rate(
         input_layer_object=conv_output_layer_object,
         ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
+        output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
     )
 
     if has_dense_layers:
@@ -798,7 +798,7 @@ def create_model(option_dict):
                     dense_layer_dropout_rates[j] <= 0 and
                     dense_output_activ_func_name is None
             ):
-                this_name = 'dense_output'
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
                 this_name = 'dense{0:d}_reshape'.format(j)
 
@@ -827,7 +827,7 @@ def create_model(option_dict):
                 if dense_layer_dropout_rates[j] > 0:
                     this_name = 'dense{0:d}_activation'.format(j)
                 else:
-                    this_name = 'dense_output'
+                    this_name = neural_net.FLUX_TARGETS_KEY
 
                 dense_output_layer_object = (
                     architecture_utils.get_activation_layer(
@@ -851,7 +851,7 @@ def create_model(option_dict):
 
         if dense_layer_dropout_rates[j] > 0:
             if j == num_dense_layers - 1:
-                this_name = 'dense_output'
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
                 this_name = 'dense{0:d}_dropout'.format(j)
 
@@ -883,12 +883,12 @@ def create_model(option_dict):
 
     if has_dense_layers:
         loss_dict = {
-            'conv_output': vector_loss_function,
-            'dense_output': scalar_loss_function
+            neural_net.HEATING_RATE_TARGETS_KEY: vector_loss_function,
+            neural_net.FLUX_TARGETS_KEY: scalar_loss_function
         }
         metric_dict = {
-            'conv_output': metric_function_list,
-            'dense_output': metric_function_list
+            neural_net.HEATING_RATE_TARGETS_KEY: metric_function_list,
+            neural_net.FLUX_TARGETS_KEY: metric_function_list
         }
 
         model_object.compile(

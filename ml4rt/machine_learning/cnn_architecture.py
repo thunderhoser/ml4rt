@@ -321,22 +321,23 @@ def create_model(option_dict):
     conv_output_layer_object = u_net_architecture.zero_top_heating_rate(
         input_layer_object=conv_output_layer_object,
         ensemble_size=1,
-        output_layer_name='conv_output'
+        output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
     )
 
     dense_output_layer_object = keras.layers.Reshape(
-        target_shape=(1, dense_layer_neuron_nums[i]),
-        name='dense_output'
+        target_shape=(1, dense_layer_neuron_nums[-1]),
+        name=neural_net.FLUX_TARGETS_KEY
     )(dense_output_layer_object)
 
     if has_dense_layers:
         loss_dict = {
-            'conv_output': vector_loss_function,
-            'dense_output': scalar_loss_function
+            neural_net.HEATING_RATE_TARGETS_KEY: vector_loss_function,
+            neural_net.FLUX_TARGETS_KEY: scalar_loss_function
         }
         metric_dict = {
-            'conv_output': neural_net.METRIC_FUNCTION_LIST,
-            'dense_output': neural_net.METRIC_FUNCTION_LIST
+            neural_net.HEATING_RATE_TARGETS_KEY:
+                neural_net.METRIC_FUNCTION_LIST,
+            neural_net.FLUX_TARGETS_KEY: neural_net.METRIC_FUNCTION_LIST
         }
 
         model_object = keras.models.Model(

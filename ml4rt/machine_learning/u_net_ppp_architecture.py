@@ -353,12 +353,12 @@ def create_model(option_dict):
     conv_output_layer_object = u_net_arch.zero_top_heating_rate(
         input_layer_object=conv_output_layer_object,
         ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
+        output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
     )
 
     output_layer_objects = [conv_output_layer_object]
-    loss_dict = {'conv_output': vector_loss_function}
-    metric_dict = {'conv_output': metric_function_list}
+    loss_dict = {neural_net.HEATING_RATE_TARGETS_KEY: vector_loss_function}
+    metric_dict = {neural_net.HEATING_RATE_TARGETS_KEY: metric_function_list}
 
     deep_supervision_layer_objects = [None] * (num_levels + 1)
 
@@ -446,7 +446,7 @@ def create_model(option_dict):
                     dense_layer_dropout_rates[j] <= 0 and
                     dense_output_activ_func_name is None
             ):
-                this_name = 'dense_output'
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
                 this_name = None
 
@@ -473,7 +473,8 @@ def create_model(option_dict):
 
             if dense_output_activ_func_name is not None:
                 this_name = (
-                    None if dense_layer_dropout_rates[j] > 0 else 'dense_output'
+                    None if dense_layer_dropout_rates[j] > 0
+                    else neural_net.FLUX_TARGETS_KEY
                 )
 
                 dense_output_layer_object = (
@@ -495,7 +496,8 @@ def create_model(option_dict):
 
         if dense_layer_dropout_rates[j] > 0:
             this_name = (
-                'dense_output' if j == num_dense_layers - 1 else None
+                neural_net.FLUX_TARGETS_KEY if j == num_dense_layers - 1
+                else None
             )
             this_mc_flag = bool(dense_layer_mc_dropout_flags[j])
 
@@ -515,8 +517,8 @@ def create_model(option_dict):
 
     if has_dense_layers:
         output_layer_objects.insert(1, dense_output_layer_object)
-        loss_dict['dense_output'] = scalar_loss_function
-        metric_dict['dense_output'] = metric_function_list
+        loss_dict[neural_net.FLUX_TARGETS_KEY] = scalar_loss_function
+        metric_dict[neural_net.FLUX_TARGETS_KEY] = metric_function_list
 
     model_object = keras.models.Model(
         inputs=input_layer_object, outputs=output_layer_objects
@@ -930,7 +932,7 @@ def create_model_1output_layer(option_dict):
     conv_output_layer_object = u_net_arch.zero_top_heating_rate(
         input_layer_object=conv_output_layer_object,
         ensemble_size=1,
-        output_layer_name='conv_output'
+        output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
     )
 
     if has_dense_layers:
@@ -952,7 +954,7 @@ def create_model_1output_layer(option_dict):
                     dense_layer_dropout_rates[j] <= 0 and
                     dense_output_activ_func_name is None
             ):
-                this_name = 'dense_output'
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
                 this_name = None
 
@@ -972,7 +974,8 @@ def create_model_1output_layer(option_dict):
 
             if dense_output_activ_func_name is not None:
                 this_name = (
-                    None if dense_layer_dropout_rates[j] > 0 else 'dense_output'
+                    None if dense_layer_dropout_rates[j] > 0
+                    else neural_net.FLUX_TARGETS_KEY
                 )
 
                 dense_output_layer_object = (
@@ -994,7 +997,8 @@ def create_model_1output_layer(option_dict):
 
         if dense_layer_dropout_rates[j] > 0:
             this_name = (
-                'dense_output' if j == num_dense_layers - 1 else None
+                neural_net.FLUX_TARGETS_KEY if j == num_dense_layers - 1
+                else None
             )
             this_mc_flag = bool(dense_layer_mc_dropout_flags[j])
 

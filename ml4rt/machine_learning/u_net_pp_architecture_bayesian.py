@@ -11,6 +11,7 @@ from tensorflow_probability.python.distributions import \
     kullback_leibler as kl_lib
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
+from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import u_net_architecture
 from ml4rt.machine_learning import keras_metrics as custom_metrics
 
@@ -795,11 +796,11 @@ def create_bayesian_model(option_dict):
     conv_output_layer_object = u_net_architecture.zero_top_heating_rate(
         input_layer_object=conv_output_layer_object,
         ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
+        output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
     )
 
     output_layer_objects = [conv_output_layer_object]
-    loss_dict = {'conv_output': vector_loss_function}
+    loss_dict = {neural_net.HEATING_RATE_TARGETS_KEY: vector_loss_function}
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
@@ -824,7 +825,7 @@ def create_bayesian_model(option_dict):
                     dense_layer_dropout_rates[j] <= 0 and
                     dense_output_activ_func_name is None
             ):
-                this_name = 'dense_output'
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
                 this_name = None
 
@@ -851,7 +852,8 @@ def create_bayesian_model(option_dict):
 
             if dense_output_activ_func_name is not None:
                 this_name = (
-                    None if dense_layer_dropout_rates[j] > 0 else 'dense_output'
+                    None if dense_layer_dropout_rates[j] > 0
+                    else neural_net.FLUX_TARGETS_KEY
                 )
 
                 dense_output_layer_object = (
@@ -873,7 +875,8 @@ def create_bayesian_model(option_dict):
 
         if dense_layer_dropout_rates[j] > 0:
             this_name = (
-                'dense_output' if j == num_dense_layers - 1 else None
+                neural_net.FLUX_TARGETS_KEY if j == num_dense_layers - 1
+                else None
             )
 
             dense_output_layer_object = (
@@ -892,7 +895,7 @@ def create_bayesian_model(option_dict):
 
     if has_dense_layers:
         output_layer_objects.insert(1, dense_output_layer_object)
-        loss_dict['dense_output'] = scalar_loss_function
+        loss_dict[neural_net.FLUX_TARGETS_KEY] = scalar_loss_function
 
     model_object = keras.models.Model(
         inputs=input_layer_object, outputs=output_layer_objects
