@@ -2097,6 +2097,10 @@ def read_metafile(dill_file_name):
         v[MIN_HEATING_RATE_FOR_MASK_KEY] = None
         v[MIN_FLUX_FOR_MASK_KEY] = None
 
+    if JOINED_OUTPUT_LAYER_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[JOINED_OUTPUT_LAYER_KEY] = False
+        v[JOINED_OUTPUT_LAYER_KEY] = False
+
     metadata_dict[TRAINING_OPTIONS_KEY] = t
     metadata_dict[VALIDATION_OPTIONS_KEY] = v
 
