@@ -48,12 +48,7 @@ JOINED_LOSS_FUNCTION_KEY = 'joined_loss_function'
 OPTIMIZER_FUNCTION_KEY = 'optimizer_function'
 USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
 ENSEMBLE_SIZE_KEY = 'ensemble_size'
-
-DO_INLINE_NORMALIZATION_KEY = 'do_inline_normalization'
-PW_LINEAR_UNIF_MODEL_KEY = 'pw_linear_unif_model_file_name'
-SCALAR_PREDICTORS_KEY = 'scalar_predictor_names'
-VECTOR_PREDICTORS_KEY = 'vector_predictor_names'
-HEIGHTS_KEY = 'heights_m_agl'
+INCLUDE_MASK_KEY = 'include_mask'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
@@ -145,28 +140,15 @@ def check_args(option_dict):
     option_dict['num_output_wavelengths']: Number of output wavelengths.
     option_dict['vector_loss_function']: Loss function for vector targets.
     option_dict['scalar_loss_function']: Loss function for scalar targets.
+    option_dict['optimizer_function']: Optimizer.
     option_dict['use_deep_supervision']: Boolean flag.
     option_dict['ensemble_size']: Number of ensemble members in output (both
         vector and scalar predictions).
-    option_dict['do_inline_normalization']: Boolean flag.  If True, will
-        normalize predictors inside the NN architecture.
-    option_dict['pw_linear_unif_model_file_name']:
-        [used only if do_inline_normalization == True]
-        Path to file with piecewise-linear models that approximate the full
-        uniformization step.  This will be read by
-        `normalization.read_piecewise_linear_models_for_unif`
-    option_dict['scalar_predictor_names']:
-        [used only if do_inline_normalization == True]
-        1-D list with names of scalar predictors, in the order that they appear
-        in the input tensor.
-    option_dict['vector_predictor_names']:
-        [used only if do_inline_normalization == True]
-        1-D list with names of vector predictors, in the order that they appear
-        in the input tensor.
-    option_dict['heights_m_agl']:
-        [used only if do_inline_normalization == True]
-        1-D numpy array of heights (metres above ground level), in the order
-        that they appear in the input tensor.
+    option_dict['include_mask']: Boolean flag.  If True, the heating rates for
+        some height/wavelength pairs (those with a climatological max of 0) will
+        be zeroed out.  In other words, the NN will always predict zero for
+        these height/wavelength pairs, rather than trying to learn something
+        fancy.
 
     :return: option_dict: Same as input, except defaults may have been added.
     """
@@ -307,33 +289,10 @@ def check_args(option_dict):
     error_checking.assert_is_boolean(option_dict[USE_DEEP_SUPERVISION_KEY])
     error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
     error_checking.assert_is_greater(option_dict[ENSEMBLE_SIZE_KEY], 0)
-    error_checking.assert_is_boolean(option_dict[DO_INLINE_NORMALIZATION_KEY])
+    error_checking.assert_is_boolean(option_dict[INCLUDE_MASK_KEY])
 
     if OPTIMIZER_FUNCTION_KEY not in option_dict:
         option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.Nadam()
-
-    if not option_dict[DO_INLINE_NORMALIZATION_KEY]:
-        option_dict[PW_LINEAR_UNIF_MODEL_KEY] = None
-        option_dict[SCALAR_PREDICTORS_KEY] = None
-        option_dict[VECTOR_PREDICTORS_KEY] = None
-        option_dict[HEIGHTS_KEY] = None
-
-        return option_dict
-
-    error_checking.assert_is_string(option_dict[PW_LINEAR_UNIF_MODEL_KEY])
-    error_checking.assert_is_string_list(option_dict[SCALAR_PREDICTORS_KEY])
-    error_checking.assert_is_string_list(option_dict[VECTOR_PREDICTORS_KEY])
-    error_checking.assert_is_numpy_array(
-        option_dict[HEIGHTS_KEY], num_dimensions=1
-    )
-    error_checking.assert_is_greater_numpy_array(option_dict[HEIGHTS_KEY], 0)
-
-    num_predictors = len(
-        option_dict[SCALAR_PREDICTORS_KEY] + option_dict[VECTOR_PREDICTORS_KEY]
-    )
-    error_checking.assert_equals(num_predictors, input_dimensions[1])
-    num_heights = len(option_dict[HEIGHTS_KEY])
-    error_checking.assert_equals(num_heights, input_dimensions[0])
 
     return option_dict
 
@@ -507,8 +466,6 @@ def create_model(option_dict):
     """
 
     option_dict[USE_DEEP_SUPERVISION_KEY] = False
-    option_dict[ENSEMBLE_SIZE_KEY] = 1
-    option_dict[DO_INLINE_NORMALIZATION_KEY] = False
     option_dict = check_args(option_dict)
 
     input_dimensions = option_dict[INPUT_DIMENSIONS_KEY]
@@ -542,84 +499,85 @@ def create_model(option_dict):
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
 
-    # TODO(thunderhoser): Need to implement residual blocks for this method.
-    assert use_residual_blocks == False
-
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
+    optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
-
-    # TODO(thunderhoser): Need to use optimizer_function arg for this method.
+    include_mask = option_dict[INCLUDE_MASK_KEY]
 
     if ensemble_size > 1:
-        include_penultimate_conv = False
         metric_function_list = []
     else:
         metric_function_list = neural_net.METRIC_FUNCTION_LIST
 
     has_dense_layers = dense_layer_neuron_nums is not None
+    if has_dense_layers:
+        num_dense_output_vars = (
+            float(dense_layer_neuron_nums[-1]) /
+            (ensemble_size * num_output_wavelengths)
+        )
+        assert numpy.isclose(
+            num_dense_output_vars, numpy.round(num_dense_output_vars),
+            atol=1e-6
+        )
+        num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+    else:
+        num_dense_output_vars = 0
 
-    input_layer_object = keras.layers.Input(
-        shape=tuple(input_dimensions.tolist())
+    main_input_layer_object = keras.layers.Input(
+        shape=tuple(input_dimensions.tolist()),
+        name=neural_net.MAIN_PREDICTORS_KEY
     )
+    hr_mask_input_layer_object = None
+    flux_mask_input_layer_object = None
+
+    if include_mask:
+        hr_mask_input_layer_object = keras.layers.Input(
+            shape=(input_dimensions[0], num_output_wavelengths),
+            name=neural_net.HEATING_RATE_MASK_KEY
+        )
+
+        if has_dense_layers:
+            flux_mask_input_layer_object = keras.layers.Input(
+                shape=(num_output_wavelengths, dense_layer_neuron_nums[-1]),
+                name=neural_net.FLUX_MASK_KEY
+            )
+
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight
     )
-
     conv_layer_by_level = [None] * (num_levels + 1)
     pooling_layer_by_level = [None] * num_levels
 
     for i in range(num_levels + 1):
-        for k in range(num_conv_layers_by_level[i]):
-            if k == 0:
-                if i == 0:
-                    this_input_layer_object = input_layer_object
-                else:
-                    this_input_layer_object = pooling_layer_by_level[i - 1]
-            else:
-                this_input_layer_object = conv_layer_by_level[i]
+        if i == 0:
+            this_input_layer_object = main_input_layer_object
+        else:
+            this_input_layer_object = pooling_layer_by_level[i - 1]
 
-            this_name = 'block{0:d}_conv{1:d}'.format(i, k)
-            conv_layer_by_level[i] = architecture_utils.get_1d_conv_layer(
-                num_kernel_rows=3, num_rows_per_stride=1,
-                num_filters=num_channels_by_level[i],
-                padding_type_string=architecture_utils.YES_PADDING_STRING,
-                weight_regularizer=regularizer_object, layer_name=this_name
-            )(this_input_layer_object)
-
-            this_name = 'block{0:d}_conv{1:d}_activation'.format(i, k)
-            conv_layer_by_level[i] = architecture_utils.get_activation_layer(
-                activation_function_string=inner_activ_function_name,
-                alpha_for_relu=inner_activ_function_alpha,
-                alpha_for_elu=inner_activ_function_alpha, layer_name=this_name
-            )(conv_layer_by_level[i])
-
-            if encoder_dropout_rate_by_level[i] > 0:
-                this_name = 'block{0:d}_conv{1:d}_dropout'.format(i, k)
-                this_mc_flag = bool(encoder_mc_dropout_flag_by_level[i])
-
-                conv_layer_by_level[i] = architecture_utils.get_dropout_layer(
-                    dropout_fraction=encoder_dropout_rate_by_level[i],
-                    layer_name=this_name
-                )(conv_layer_by_level[i], training=this_mc_flag)
-
-            if use_batch_normalization:
-                this_name = 'block{0:d}_conv{1:d}_bn'.format(i, k)
-
-                conv_layer_by_level[i] = (
-                    architecture_utils.get_batch_norm_layer(
-                        layer_name=this_name
-                    )(conv_layer_by_level[i])
-                )
+        conv_layer_by_level[i] = get_conv_block(
+            input_layer_object=this_input_layer_object,
+            do_residual=use_residual_blocks,
+            num_conv_layers=num_conv_layers_by_level[i],
+            filter_size_px=3,
+            num_filters=num_channels_by_level[i],
+            regularizer_object=regularizer_object,
+            activation_function_name=inner_activ_function_name,
+            activation_function_alpha=inner_activ_function_alpha,
+            dropout_rates=encoder_dropout_rate_by_level[i],
+            monte_carlo_dropout_flags=encoder_mc_dropout_flag_by_level[i],
+            use_batch_norm=use_batch_normalization,
+            basic_layer_name='encoder{0:d}'.format(i)
+        )
 
         if i == num_levels:
             break
 
-        this_name = 'block{0:d}_pooling'.format(i)
-
+        this_name = 'encoder{0:d}_pooling'.format(i)
         pooling_layer_by_level[i] = architecture_utils.get_1d_pooling_layer(
-            num_rows_in_window=2, num_rows_per_stride=2,
+            num_rows_in_window=2,
+            num_rows_per_stride=2,
             pooling_type_string=architecture_utils.MAX_POOLING_STRING,
             layer_name=this_name
         )(conv_layer_by_level[i])
@@ -633,131 +591,93 @@ def create_model(option_dict):
     )[::-1]
 
     for i in level_indices:
-        this_name = 'block{0:d}_upsampling'.format(i)
+        this_name = 'decoder{0:d}_upsampling'.format(i)
 
         if i == num_levels - 1:
-            upconv_layer_by_level[i] = keras.layers.UpSampling1D(
+            this_layer_object = keras.layers.UpSampling1D(
                 size=2, name=this_name
             )(conv_layer_by_level[i + 1])
         else:
-            upconv_layer_by_level[i] = keras.layers.UpSampling1D(
+            this_layer_object = keras.layers.UpSampling1D(
                 size=2, name=this_name
             )(skip_layer_by_level[i + 1])
 
-        this_name = 'block{0:d}_upconv'.format(i)
-        upconv_layer_by_level[i] = architecture_utils.get_1d_conv_layer(
-            num_kernel_rows=2, num_rows_per_stride=1,
-            num_filters=num_channels_by_level[i],
-            padding_type_string=architecture_utils.YES_PADDING_STRING,
-            weight_regularizer=regularizer_object, layer_name=this_name
-        )(upconv_layer_by_level[i])
-
-        this_name = 'block{0:d}_upconv_activation'.format(i)
-        upconv_layer_by_level[i] = architecture_utils.get_activation_layer(
-            activation_function_string=inner_activ_function_name,
-            alpha_for_relu=inner_activ_function_alpha,
-            alpha_for_elu=inner_activ_function_alpha, layer_name=this_name
-        )(upconv_layer_by_level[i])
-
-        if upconv_dropout_rate_by_level[i] > 0:
-            this_name = 'block{0:d}_upconv_dropout'.format(i)
-            this_mc_flag = bool(upconv_mc_dropout_flag_by_level[i])
-
-            upconv_layer_by_level[i] = architecture_utils.get_dropout_layer(
-                dropout_fraction=upconv_dropout_rate_by_level[i],
-                layer_name=this_name
-            )(upconv_layer_by_level[i], training=this_mc_flag)
-
-        num_upconv_heights = upconv_layer_by_level[i].shape[1]
+        num_upconv_heights = this_layer_object.shape[1]
         num_desired_heights = conv_layer_by_level[i].shape[1]
 
         if num_desired_heights == num_upconv_heights + 1:
-            this_name = 'block{0:d}_upconv_padding'.format(i)
-
-            upconv_layer_by_level[i] = keras.layers.ZeroPadding1D(
+            this_name = 'decoder{0:d}_padding'.format(i)
+            this_layer_object = keras.layers.ZeroPadding1D(
                 padding=(0, 1), name=this_name
-            )(upconv_layer_by_level[i])
+            )(this_layer_object)
 
-        this_name = 'block{0:d}_concat'.format(i)
+        upconv_layer_by_level[i] = get_conv_block(
+            input_layer_object=this_layer_object,
+            do_residual=use_residual_blocks,
+            num_conv_layers=1,
+            filter_size_px=3,
+            num_filters=num_channels_by_level[i],
+            regularizer_object=regularizer_object,
+            activation_function_name=inner_activ_function_name,
+            activation_function_alpha=inner_activ_function_alpha,
+            dropout_rates=upconv_dropout_rate_by_level[i],
+            monte_carlo_dropout_flags=upconv_mc_dropout_flag_by_level[i],
+            use_batch_norm=use_batch_normalization,
+            basic_layer_name='decoder{0:d}'.format(i)
+        )
+
+        this_name = 'decoder{0:d}_skip'.format(i)
         merged_layer_by_level[i] = keras.layers.Concatenate(
-            name=this_name, axis=-1
+            axis=-1, name=this_name
         )(
             [conv_layer_by_level[i], upconv_layer_by_level[i]]
         )
 
-        for k in range(num_conv_layers_by_level[i]):
-            if k == 0:
-                this_input_layer_object = merged_layer_by_level[i]
-            else:
-                this_input_layer_object = skip_layer_by_level[i]
-
-            this_name = 'block{0:d}_skipconv{1:d}'.format(i, k)
-            skip_layer_by_level[i] = architecture_utils.get_1d_conv_layer(
-                num_kernel_rows=3, num_rows_per_stride=1,
-                num_filters=num_channels_by_level[i],
-                padding_type_string=architecture_utils.YES_PADDING_STRING,
-                weight_regularizer=regularizer_object, layer_name=this_name
-            )(this_input_layer_object)
-
-            this_name = 'block{0:d}_skipconv{1:d}_activation'.format(i, k)
-            skip_layer_by_level[i] = architecture_utils.get_activation_layer(
-                activation_function_string=inner_activ_function_name,
-                alpha_for_relu=inner_activ_function_alpha,
-                alpha_for_elu=inner_activ_function_alpha, layer_name=this_name
-            )(skip_layer_by_level[i])
-
-            if skip_dropout_rate_by_level[i] > 0:
-                this_name = 'block{0:d}_skipconv{1:d}_dropout'.format(i, k)
-                this_mc_flag = bool(skip_mc_dropout_flag_by_level[i])
-
-                skip_layer_by_level[i] = architecture_utils.get_dropout_layer(
-                    dropout_fraction=skip_dropout_rate_by_level[i],
-                    layer_name=this_name
-                )(skip_layer_by_level[i], training=this_mc_flag)
-
-            if use_batch_normalization:
-                this_name = 'block{0:d}_skipconv{1:d}_bn'.format(i, k)
-
-                skip_layer_by_level[i] = (
-                    architecture_utils.get_batch_norm_layer(
-                        layer_name=this_name
-                    )(skip_layer_by_level[i])
-                )
+        skip_layer_by_level[i] = get_conv_block(
+            input_layer_object=merged_layer_by_level[i],
+            do_residual=use_residual_blocks,
+            num_conv_layers=num_conv_layers_by_level[i],
+            filter_size_px=3,
+            num_filters=num_channels_by_level[i],
+            regularizer_object=regularizer_object,
+            activation_function_name=inner_activ_function_name,
+            activation_function_alpha=inner_activ_function_alpha,
+            dropout_rates=skip_dropout_rate_by_level[i],
+            monte_carlo_dropout_flags=skip_mc_dropout_flag_by_level[i],
+            use_batch_norm=use_batch_normalization,
+            basic_layer_name='decoder{0:d}_skip'.format(i)
+        )
 
     if include_penultimate_conv:
-        skip_layer_by_level[0] = architecture_utils.get_1d_conv_layer(
-            num_kernel_rows=3, num_rows_per_stride=1,
+        skip_layer_by_level[0] = get_conv_block(
+            input_layer_object=skip_layer_by_level[0],
+            do_residual=use_residual_blocks,
+            num_conv_layers=1,
+            filter_size_px=3,
             num_filters=2 * num_output_wavelengths * ensemble_size,
-            padding_type_string=architecture_utils.YES_PADDING_STRING,
-            weight_regularizer=regularizer_object, layer_name='penultimate_conv'
-        )(skip_layer_by_level[0])
+            regularizer_object=regularizer_object,
+            activation_function_name=inner_activ_function_name,
+            activation_function_alpha=inner_activ_function_alpha,
+            dropout_rates=penultimate_conv_dropout_rate,
+            monte_carlo_dropout_flags=penultimate_conv_mc_dropout_flag,
+            use_batch_norm=use_batch_normalization,
+            basic_layer_name='penultimate_conv'
+        )
 
-        skip_layer_by_level[0] = architecture_utils.get_activation_layer(
-            activation_function_string=inner_activ_function_name,
-            alpha_for_relu=inner_activ_function_alpha,
-            alpha_for_elu=inner_activ_function_alpha,
-            layer_name='penultimate_conv_activation'
-        )(skip_layer_by_level[0])
-
-        if penultimate_conv_dropout_rate > 0:
-            this_mc_flag = bool(penultimate_conv_mc_dropout_flag)
-
-            skip_layer_by_level[0] = architecture_utils.get_dropout_layer(
-                dropout_fraction=penultimate_conv_dropout_rate,
-                layer_name='penultimate_conv_dropout'
-            )(skip_layer_by_level[0], training=this_mc_flag)
-
-        if use_batch_normalization:
-            skip_layer_by_level[0] = architecture_utils.get_batch_norm_layer(
-                layer_name='penultimate_conv_bn'
-            )(skip_layer_by_level[0])
-
-    conv_output_layer_object = architecture_utils.get_1d_conv_layer(
-        num_kernel_rows=1, num_rows_per_stride=1,
+    conv_output_layer_object = get_conv_block(
+        input_layer_object=skip_layer_by_level[0],
+        do_residual=use_residual_blocks,
+        num_conv_layers=1,
+        filter_size_px=1,
         num_filters=num_output_wavelengths * ensemble_size,
-        padding_type_string=architecture_utils.YES_PADDING_STRING,
-        weight_regularizer=regularizer_object, layer_name='last_conv'
-    )(skip_layer_by_level[0])
+        regularizer_object=regularizer_object,
+        activation_function_name=conv_output_activ_func_name,
+        activation_function_alpha=conv_output_activ_func_alpha,
+        dropout_rates=-1.,
+        monte_carlo_dropout_flags=False,
+        use_batch_norm=False,
+        basic_layer_name='last_conv'
+    )
 
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
@@ -770,20 +690,31 @@ def create_model(option_dict):
             (input_dimensions[0], num_output_wavelengths, 1)
         )(conv_output_layer_object)
 
-    if conv_output_activ_func_name is not None:
-        conv_output_layer_object = architecture_utils.get_activation_layer(
-            activation_function_string=conv_output_activ_func_name,
-            alpha_for_relu=conv_output_activ_func_alpha,
-            alpha_for_elu=conv_output_activ_func_alpha,
-            layer_name='last_conv_activation'
-        )(conv_output_layer_object)
+    if hr_mask_input_layer_object is None:
+        conv_output_layer_object = zero_top_heating_rate(
+            input_layer_object=conv_output_layer_object,
+            ensemble_size=ensemble_size,
+            output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
+        )
+    else:
+        if ensemble_size > 1:
+            hr_mask_layer_object = keras.layers.Reshape(
+                target_shape=
+                (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+            )(hr_mask_input_layer_object)
+        else:
+            hr_mask_layer_object = keras.layers.Reshape(
+                target_shape=
+                (input_dimensions[0], num_output_wavelengths, 1)
+            )(hr_mask_input_layer_object)
 
-    # Zero out heating rate at top of atmosphere.
-    conv_output_layer_object = zero_top_heating_rate(
-        input_layer_object=conv_output_layer_object,
-        ensemble_size=ensemble_size,
-        output_layer_name='conv_output'
-    )
+        conv_output_layer_object = keras.layers.Multiply(
+            name=neural_net.HEATING_RATE_TARGETS_KEY
+        )([conv_output_layer_object, hr_mask_layer_object])
+
+    output_layer_objects = [conv_output_layer_object]
+    loss_dict = {neural_net.HEATING_RATE_TARGETS_KEY: vector_loss_function}
+    metric_dict = {neural_net.HEATING_RATE_TARGETS_KEY: metric_function_list}
 
     if has_dense_layers:
         num_dense_layers = len(dense_layer_neuron_nums)
@@ -795,30 +726,19 @@ def create_model(option_dict):
         dense_output_layer_object = None
 
     for j in range(num_dense_layers):
-        this_name = 'dense{0:d}'.format(j)
-
         dense_output_layer_object = architecture_utils.get_dense_layer(
-            num_output_units=dense_layer_neuron_nums[j], layer_name=this_name
+            num_output_units=dense_layer_neuron_nums[j]
         )(dense_output_layer_object)
 
         if j == num_dense_layers - 1:
             if (
-                    dense_layer_dropout_rates[j] <= 0 and
-                    dense_output_activ_func_name is None
+                    dense_layer_dropout_rates[j] <= 0
+                    and dense_output_activ_func_name is None
+                    and flux_mask_input_layer_object is None
             ):
-                this_name = 'dense_output'
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
-                this_name = 'dense{0:d}_reshape'.format(j)
-
-            num_dense_output_vars = (
-                float(dense_layer_neuron_nums[j]) /
-                (ensemble_size * num_output_wavelengths)
-            )
-            assert numpy.isclose(
-                num_dense_output_vars, numpy.round(num_dense_output_vars),
-                atol=1e-6
-            )
-            num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+                this_name = None
 
             if ensemble_size > 1:
                 these_dim = (
@@ -832,10 +752,13 @@ def create_model(option_dict):
             )(dense_output_layer_object)
 
             if dense_output_activ_func_name is not None:
-                if dense_layer_dropout_rates[j] > 0:
-                    this_name = 'dense{0:d}_activation'.format(j)
+                if (
+                        dense_layer_dropout_rates[j] <= 0
+                        and flux_mask_input_layer_object is None
+                ):
+                    this_name = neural_net.FLUX_TARGETS_KEY
                 else:
-                    this_name = 'dense_output'
+                    this_name = None
 
                 dense_output_layer_object = (
                     architecture_utils.get_activation_layer(
@@ -846,22 +769,22 @@ def create_model(option_dict):
                     )(dense_output_layer_object)
                 )
         else:
-            this_name = 'dense{0:d}_activation'.format(j)
-
             dense_output_layer_object = (
                 architecture_utils.get_activation_layer(
                     activation_function_string=inner_activ_function_name,
                     alpha_for_relu=inner_activ_function_alpha,
-                    alpha_for_elu=inner_activ_function_alpha,
-                    layer_name=this_name
+                    alpha_for_elu=inner_activ_function_alpha
                 )(dense_output_layer_object)
             )
 
         if dense_layer_dropout_rates[j] > 0:
-            if j == num_dense_layers - 1:
-                this_name = 'dense_output'
+            if (
+                    j == num_dense_layers - 1
+                    and flux_mask_input_layer_object is None
+            ):
+                this_name = neural_net.FLUX_TARGETS_KEY
             else:
-                this_name = 'dense{0:d}_dropout'.format(j)
+                this_name = None
 
             this_mc_flag = bool(dense_layer_mc_dropout_flags[j])
 
@@ -872,42 +795,51 @@ def create_model(option_dict):
                 )(dense_output_layer_object, training=this_mc_flag)
             )
 
+        if (
+                j == num_dense_layers - 1
+                and flux_mask_input_layer_object is not None
+        ):
+            if ensemble_size > 1:
+                these_dim = (
+                    num_output_wavelengths, num_dense_output_vars, ensemble_size
+                )
+                flux_mask_layer_object = keras.layers.Reshape(
+                    target_shape=these_dim
+                )(flux_mask_input_layer_object)
+            else:
+                flux_mask_layer_object = flux_mask_input_layer_object
+
+            dense_output_layer_object = keras.layers.Multiply(
+                name=neural_net.FLUX_TARGETS_KEY
+            )([dense_output_layer_object, flux_mask_layer_object])
+
         if use_batch_normalization and j != num_dense_layers - 1:
-            this_name = 'dense{0:d}_bn'.format(j)
-
-            dense_output_layer_object = architecture_utils.get_batch_norm_layer(
-                layer_name=this_name
-            )(dense_output_layer_object)
-
-    if has_dense_layers:
-        model_object = keras.models.Model(
-            inputs=input_layer_object,
-            outputs=[conv_output_layer_object, dense_output_layer_object]
-        )
-    else:
-        model_object = keras.models.Model(
-            inputs=input_layer_object, outputs=conv_output_layer_object
-        )
+            dense_output_layer_object = (
+                architecture_utils.get_batch_norm_layer()(
+                    dense_output_layer_object
+                )
+            )
 
     if has_dense_layers:
-        loss_dict = {
-            'conv_output': vector_loss_function,
-            'dense_output': scalar_loss_function
-        }
-        metric_dict = {
-            'conv_output': metric_function_list,
-            'dense_output': metric_function_list
-        }
+        output_layer_objects.insert(1, dense_output_layer_object)
+        loss_dict[neural_net.FLUX_TARGETS_KEY] = scalar_loss_function
+        metric_dict[neural_net.FLUX_TARGETS_KEY] = metric_function_list
 
-        model_object.compile(
-            loss=loss_dict, optimizer=keras.optimizers.Nadam(),
-            metrics=metric_dict
-        )
-    else:
-        model_object.compile(
-            loss=vector_loss_function, optimizer=keras.optimizers.Nadam(),
-            metrics=metric_function_list
-        )
+    input_layer_objects = [
+        main_input_layer_object,
+        hr_mask_input_layer_object,
+        flux_mask_input_layer_object
+    ]
+    input_layer_objects = [l for l in input_layer_objects if l is not None]
+
+    model_object = keras.models.Model(
+        inputs=input_layer_objects, outputs=output_layer_objects
+    )
+    model_object.compile(
+        loss=loss_dict,
+        optimizer=optimizer_function,
+        metrics=metric_dict
+    )
 
     model_object.summary()
     return model_object
