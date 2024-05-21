@@ -9,10 +9,12 @@ TRAINING_DIR_ARG_NAME = 'input_training_dir_name'
 VALIDATION_DIR_ARG_NAME = 'input_validation_dir_name'
 INPUT_MODEL_FILE_ARG_NAME = 'input_model_file_name'
 OUTPUT_MODEL_DIR_ARG_NAME = 'output_model_dir_name'
+
 USE_GENERATOR_FOR_TRAIN_ARG_NAME = 'use_generator_for_training'
 USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
 JOINED_OUTPUT_LAYER_ARG_NAME = 'joined_output_layer'
 NUM_DEEP_SUPER_LAYERS_ARG_NAME = 'num_deep_supervision_layers'
+
 PREDICTOR_NAMES_ARG_NAME = 'predictor_names'
 TARGET_NAMES_ARG_NAME = 'target_names'
 HEIGHTS_ARG_NAME = 'heights_m_agl'
@@ -21,6 +23,7 @@ FIRST_TRAIN_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
 FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
 LAST_VALIDN_TIME_ARG_NAME = 'last_validn_time_string'
+
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 UNIFORMIZE_FLAG_ARG_NAME = 'uniformize'
 PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
@@ -32,6 +35,11 @@ VECTOR_TARGET_MAX_VALUE_ARG_NAME = 'vector_target_max_norm_value'
 SCALAR_TARGET_NORM_TYPE_ARG_NAME = 'scalar_target_norm_type_string'
 SCALAR_TARGET_MIN_VALUE_ARG_NAME = 'scalar_target_min_norm_value'
 SCALAR_TARGET_MAX_VALUE_ARG_NAME = 'scalar_target_max_norm_value'
+
+NORMALIZATION_FILE_FOR_MASK_ARG_NAME = 'normalization_file_name_for_mask'
+MIN_HEATING_RATE_FOR_MASK_ARG_NAME = 'min_heating_rate_for_mask_k_day01'
+MIN_FLUX_FOR_MASK_ARG_NAME = 'min_flux_for_mask_w_m02'
+
 BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 NUM_EPOCHS_ARG_NAME = 'num_epochs'
 NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
@@ -44,8 +52,9 @@ TRAINING_DIR_HELP_STRING = (
 )
 VALIDATION_DIR_HELP_STRING = (
     'Same as `{0:s}` but for validation (monitoring) examples.'
-).format(TRAINING_DIR_ARG_NAME)
-
+).format(
+    TRAINING_DIR_ARG_NAME
+)
 INPUT_MODEL_FILE_HELP_STRING = (
     'Path to file with untrained model (defining architecture, optimizer, and '
     'loss function).  Will be read by `neural_net.read_model`.'
@@ -53,19 +62,22 @@ INPUT_MODEL_FILE_HELP_STRING = (
 OUTPUT_MODEL_DIR_HELP_STRING = (
     'Name of output directory.  Model will be saved here.'
 )
+
 USE_GENERATOR_FOR_TRAIN_HELP_STRING = (
     'Boolean flag.  If 1, will use generator for training data.  If 0, will '
     'load all training data into memory at once.'
 )
 USE_GENERATOR_FOR_VALIDN_HELP_STRING = (
     'Same as `{0:s}` but for validation (monitoring) data.'
-).format(USE_GENERATOR_FOR_TRAIN_ARG_NAME)
-
+).format(
+    USE_GENERATOR_FOR_TRAIN_ARG_NAME
+)
 JOINED_OUTPUT_LAYER_HELP_STRING = (
     'Boolean flag.  If 1, model has one output layer for both heating rates and'
     ' fluxes.'
 )
 NUM_DEEP_SUPER_LAYERS_HELP_STRING = 'Number of deep-supervision layers.'
+
 PREDICTOR_NAMES_HELP_STRING = (
     'List of predictor variables.  Each must be accepted by '
     '`example_utils.check_field_name`.'
@@ -82,12 +94,15 @@ TARGET_WAVELENGTHS_HELP_STRING = 'List of wavelengths for target variables.'
 TRAIN_TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The training period will be '
     '`{0:s}`...`{1:s}`.'
-).format(FIRST_TRAIN_TIME_ARG_NAME, LAST_TRAIN_TIME_ARG_NAME)
-
+).format(
+    FIRST_TRAIN_TIME_ARG_NAME, LAST_TRAIN_TIME_ARG_NAME
+)
 VALIDN_TIME_HELP_STRING = (
     'Time (format "yyyy-mm-dd-HHMMSS").  The validation (monitoring) period '
     'will be `{0:s}`...`{1:s}`.'
-).format(FIRST_VALIDN_TIME_ARG_NAME, LAST_VALIDN_TIME_ARG_NAME)
+).format(
+    FIRST_VALIDN_TIME_ARG_NAME, LAST_VALIDN_TIME_ARG_NAME
+)
 
 NORMALIZATION_FILE_HELP_STRING = (
     'Path to normalization file.  Will be read by `example_io.read_file`.  If '
@@ -111,27 +126,52 @@ PREDICTOR_MAX_VALUE_HELP_STRING = (
 )
 VECTOR_TARGET_NORM_TYPE_HELP_STRING = (
     'Same as `{0:s}` but for vector target variables.'
-).format(PREDICTOR_NORM_TYPE_ARG_NAME)
-
+).format(
+    PREDICTOR_NORM_TYPE_ARG_NAME
+)
 VECTOR_TARGET_MIN_VALUE_HELP_STRING = (
     'Same as `{0:s}` but for vector target variables.'
-).format(PREDICTOR_MIN_VALUE_ARG_NAME)
-
+).format(
+    PREDICTOR_MIN_VALUE_ARG_NAME
+)
 VECTOR_TARGET_MAX_VALUE_HELP_STRING = (
     'Same as `{0:s}` but for vector target variables.'
-).format(PREDICTOR_MAX_VALUE_ARG_NAME)
-
+).format(
+    PREDICTOR_MAX_VALUE_ARG_NAME
+)
 SCALAR_TARGET_NORM_TYPE_HELP_STRING = (
     'Same as `{0:s}` but for scalar target variables.'
-).format(PREDICTOR_NORM_TYPE_ARG_NAME)
-
+).format(
+    PREDICTOR_NORM_TYPE_ARG_NAME
+)
 SCALAR_TARGET_MIN_VALUE_HELP_STRING = (
     'Same as `{0:s}` but for scalar target variables.'
-).format(PREDICTOR_MIN_VALUE_ARG_NAME)
-
+).format(
+    PREDICTOR_MIN_VALUE_ARG_NAME
+)
 SCALAR_TARGET_MAX_VALUE_HELP_STRING = (
     'Same as `{0:s}` but for scalar target variables.'
-).format(PREDICTOR_MAX_VALUE_ARG_NAME)
+).format(
+    PREDICTOR_MAX_VALUE_ARG_NAME
+)
+
+NORMALIZATION_FILE_FOR_MASK_HELP_STRING = (
+    'Climo-max heating rates and fluxes will be found in this file, to be read '
+    'by `example_io.read_file`.  If you do not want to apply masking, leave '
+    'this alone.'
+)
+MIN_HEATING_RATE_FOR_MASK_HELP_STRING = (
+    'Minimum heating rate for masking.  Every height/wavelength pair with a '
+    'climo-max heating rate below this threshold will be masked out, i.e., the '
+    'NN will be forced to predict zero for this height/wavelength pair.  If '
+    'you do not want to apply masking, leave this alone.'
+)
+MIN_FLUX_FOR_MASK_HELP_STRING = (
+    'Minimum flux for masking.  Every variable/wavelength pair with a climo-'
+    'max flux below this threshold will be masked out, i.e., the NN will be '
+    'forced to predict zero for this variable/wavelength pair.  If you do not '
+    'want to apply masking, leave this alone.'
+)
 
 BATCH_SIZE_HELP_STRING = (
     'Number of examples in each training and validation (monitoring) batch.'
@@ -265,6 +305,18 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + SCALAR_TARGET_MAX_VALUE_ARG_NAME, type=float, required=False,
         default=1., help=SCALAR_TARGET_MAX_VALUE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + NORMALIZATION_FILE_FOR_MASK_ARG_NAME, type=str, required=False,
+        default='', help=NORMALIZATION_FILE_FOR_MASK_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + MIN_HEATING_RATE_FOR_MASK_ARG_NAME, type=float, required=False,
+        default=-1., help=MIN_HEATING_RATE_FOR_MASK_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + MIN_FLUX_FOR_MASK_ARG_NAME, type=float, required=False,
+        default=-1., help=MIN_FLUX_FOR_MASK_HELP_STRING
     )
     parser_object.add_argument(
         '--' + BATCH_SIZE_ARG_NAME, type=int, required=False, default=1024,

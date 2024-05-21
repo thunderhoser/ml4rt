@@ -532,7 +532,7 @@ def create_model(option_dict):
 
         if has_dense_layers:
             flux_mask_input_layer_object = keras.layers.Input(
-                shape=(num_output_wavelengths, dense_layer_neuron_nums[-1]),
+                shape=(num_output_wavelengths, num_dense_output_vars),
                 name=neural_net.FLUX_MASK_KEY
             )
 
