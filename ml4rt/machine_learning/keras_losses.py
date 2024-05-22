@@ -9,7 +9,6 @@ T = number of target variables
 S = ensemble size
 """
 
-import numpy
 from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 

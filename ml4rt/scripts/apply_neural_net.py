@@ -260,7 +260,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     for this_key in predictor_dict:
         predictor_dict[this_key] = predictor_dict[this_key][unique_indices, ...]
-    for this_key in predictor_dict:
+    for this_key in target_dict:
         target_dict[this_key] = target_dict[this_key][unique_indices, ...]
 
     these_keys = [
