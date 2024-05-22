@@ -20,9 +20,10 @@ import custom_losses
 import custom_metrics
 
 SENTINEL_VALUE = -9999.
-
 LARGE_INTEGER = int(1e12)
 LARGE_FLOAT = 1e12
+
+METRES_TO_MICRONS = 1e6
 
 # TODO(thunderhoser): This should become an input arg.
 MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
@@ -761,6 +762,17 @@ def create_mask(
                 numpy.max(these_values) >= min_heating_rate_k_day01
             ).astype(int)
 
+            if heating_rate_mask_1_for_in[i, j] == 1:
+                continue
+
+            print((
+                'Heating rate at {0:.0f} m AGL and {1:.2f} microns will be '
+                'MASKED OUT (always zero)!'
+            ).format(
+                heights_m_agl[i],
+                METRES_TO_MICRONS * target_wavelengths_metres[j]
+            ))
+
     heating_rate_mask_1_for_in = numpy.expand_dims(
         heating_rate_mask_1_for_in, axis=0
     )
@@ -787,6 +799,16 @@ def create_mask(
             flux_mask_1_for_in[j, k] = (
                 numpy.max(these_values) >= min_flux_w_m02
             ).astype(int)
+
+            if flux_mask_1_for_in[j, k] == 1:
+                continue
+
+            print((
+                '{0:s} at {1:.2f} microns will be MASKED OUT (always zero)!'
+            ).format(
+                scalar_target_names[k],
+                METRES_TO_MICRONS * target_wavelengths_metres[j]
+            ))
 
     flux_mask_1_for_in = numpy.expand_dims(flux_mask_1_for_in, axis=0)
     flux_mask_1_for_in = numpy.repeat(

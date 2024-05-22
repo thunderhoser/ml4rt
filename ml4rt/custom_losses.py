@@ -11,7 +11,6 @@ S = ensemble size
 
 import os
 import sys
-import numpy
 from tensorflow.keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -95,8 +94,10 @@ def scaled_mse_for_net_flux_constrained_bb(scaling_factor, band_weights=None):
     wavelength bands) as well.  Assumes a deterministic model.
 
     :param scaling_factor: Scaling factor.
-    :param band_weights: length-W numpy array of weights, one for each
-        wavelength band.  For the default behaviour (every band weighted the
+    :param band_weights: length-(W + 1) numpy array of weights.  The first W
+        entries are the weights for individual wavelength bands, and the last
+        entry is the weight for the broadband quantity (sum over individual
+        wavelength bands).  For the default behaviour (every band weighted the
         same), leave this argument alone.
     :return: loss: Loss function (defined below).
     """
@@ -104,12 +105,6 @@ def scaled_mse_for_net_flux_constrained_bb(scaling_factor, band_weights=None):
     if band_weights is not None:
         error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
         error_checking.assert_is_greater_numpy_array(band_weights, 0.)
-
-        # Add broadband.
-        band_weights = numpy.concatenate([
-            band_weights,
-            numpy.array([numpy.sum(band_weights)])
-        ])
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss.
@@ -164,101 +159,6 @@ def scaled_mse_for_net_flux_constrained_bb(scaling_factor, band_weights=None):
             )
 
         return scaling_factor * (net_flux_term + 2 * individual_flux_term)
-
-    return loss
-
-
-def dual_weighted_mse_fancy(
-        use_lowest_n_heights=None, heating_rate_weight_exponent=1.,
-        height_weighting_type_string=None):
-    """Dual-weighted MSE (mean squared error) for heating rates.
-
-    This method assumes a deterministic model.  The "dual weight" for each data
-    point is max(abs(target_heating_rate), abs(predicted_heating_rate)) ** E,
-    where E is the input arg `heating_rate_weight_exponent`.
-
-    :param use_lowest_n_heights: Will use this number of heights in the loss
-        function, starting at the bottom.  If you want to penalize predictions
-        at all heights, make this None.
-    :param heating_rate_weight_exponent: See above discussion about the dual
-        weight.
-    :param height_weighting_type_string: Type of weighting for height level
-        (integer from 1...H, where H = number of heights).  Options are
-        "linear", where the weight at the bottom [top] grid level is H [1];
-        "log2", where the weight at the bottom [top] grid level is log2(H + 1)
-        [log2(2)]; and "log10", where the weight at the bottom [top] grid level
-        is log10(H + 9) [log10(10)].
-    :return: loss: Loss function (defined below).
-    """
-
-    if use_lowest_n_heights is not None:
-        error_checking.assert_is_integer(use_lowest_n_heights)
-        error_checking.assert_is_greater(use_lowest_n_heights, 0)
-
-    heating_rate_weight_exponent = float(heating_rate_weight_exponent)
-    error_checking.assert_is_geq(heating_rate_weight_exponent, 1.)
-
-    if height_weighting_type_string == 'None':
-        height_weighting_type_string = None
-
-    if height_weighting_type_string is not None:
-        assert height_weighting_type_string in ['linear', 'log2', 'log10']
-
-        num_heights = use_lowest_n_heights
-        height_weights = numpy.linspace(
-            1, num_heights + 1, num=num_heights, dtype=float
-        )[::-1]
-        height_weight_matrix = numpy.expand_dims(height_weights, axis=0)
-        height_weight_matrix = numpy.expand_dims(height_weights, axis=-1)
-        height_weight_matrix = numpy.expand_dims(height_weights, axis=-1)
-
-        if height_weighting_type_string == 'log2':
-            height_weight_matrix = numpy.log2(height_weight_matrix + 1.)
-        if height_weighting_type_string == 'log10':
-            height_weight_matrix = numpy.log10(height_weight_matrix + 9.)
-
-    def loss(target_tensor, prediction_tensor):
-        """Computes loss.
-
-        :param target_tensor: E-by-H-by-W-by-T tensor of actual values.
-        :param prediction_tensor: E-by-H-by-W-by-T tensor of predicted values.
-        :return: loss: Dual-weighted MSE for heating rate.
-        """
-
-        if use_lowest_n_heights is not None:
-            target_tensor = target_tensor[:, :use_lowest_n_heights, ...]
-            prediction_tensor = prediction_tensor[:, :use_lowest_n_heights, ...]
-
-        # heating_rate_weight_tensor = K.pow(
-        #     x=K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
-        #     a=heating_rate_weight_exponent
-        # )
-        #
-        # error_tensor = (
-        #     heating_rate_weight_tensor *
-        #     (prediction_tensor - target_tensor) ** 2
-        # )
-        #
-        # if height_weighting_type_string is not None:
-        #     error_tensor = error_tensor * height_weight_matrix
-
-        if height_weighting_type_string is None:
-            return K.mean(
-                K.pow(
-                    x=K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
-                    a=heating_rate_weight_exponent
-                )
-                * (prediction_tensor - target_tensor) ** 2
-            )
-
-        return K.mean(
-            K.pow(
-                x=K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
-                a=heating_rate_weight_exponent
-            )
-            * height_weight_matrix
-            * (prediction_tensor - target_tensor) ** 2
-        )
 
     return loss
 
@@ -551,21 +451,13 @@ def dual_weighted_mse_constrained_bb(band_weights=None):
     and penalizes broadband heating rates (broadband = sum over all wavelength
     bands) as well.  Assumes a deterministic model.
 
-    :param band_weights: length-W numpy array of weights, one for each
-        wavelength band.  For the default behaviour (every band weighted the
-        same), leave this argument alone.
+    :param band_weights: See doc for `scaled_mse_for_net_flux_constrained_bb`.
     :return: loss: Loss function (defined below).
     """
 
     if band_weights is not None:
         error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
         error_checking.assert_is_greater_numpy_array(band_weights, 0.)
-
-        # Add broadband.
-        band_weights = numpy.concatenate([
-            band_weights,
-            numpy.array([numpy.sum(band_weights)])
-        ])
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss.
