@@ -25,7 +25,7 @@ echo `which python3`
 echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/training"
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave/training"
 DUSTIN_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/dustin_data/unnorm_pred_matrix_inline_2024-04-08_v2.txt"
 
 python3 -u "${CODE_DIR_NAME}/plot_predictor_comparison_for_dustin.py" \
