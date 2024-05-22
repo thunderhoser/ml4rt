@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_predictor_comparison_for_dustin"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=01:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_predictor_comparison_for_dustin_%A.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/training"
+DUSTIN_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/dustin_data/unnorm_pred_matrix_inline_2024-04-08_v2.txt"
+
+python3 -u "${CODE_DIR_NAME}/plot_predictor_comparison_for_dustin.py" \
+--input_training_example_dir_name="${TRAINING_DIR_NAME}" \
+--num_training_examples=10000 \
+--input_dustin_file_name="${DUSTIN_FILE_NAME}" \
+--predictor_names "o3_mixing_ratio_kg_kg01" \
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/dustin_data/predictor_comparison"
