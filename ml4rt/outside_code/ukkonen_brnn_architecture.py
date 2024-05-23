@@ -1,3 +1,5 @@
+import numpy
+import xarray
 import tensorflow as tf
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.models import Sequential,Model
@@ -35,6 +37,19 @@ class HRLayer(tf.keras.layers.Layer):
         flux_diff = netflux[...,:-1] - netflux[...,1:]
         net_press = hlpress[...,:-1,0]-hlpress[...,1:,0]
         return -self.g_cp * tf.math.divide(flux_diff,net_press)
+
+
+def get_inpout(example_file_name):
+    example_table_xarray = xarray.open_mfdataset(example_file_name)
+
+    inp_spec = {}
+    for key in ["scalar_predictor_matrix","vector_predictor_matrix"]:
+        inp_spec[key] = example_table_xarray[key].load()
+
+    inp_spec["toa_down"] = example_table_xarray["vector_target_matrix"][:,-1:,:1].load()
+    out_spec = example_table_xarray['vector_target_matrix'].load()
+
+    return inp_spec,out_spec
     
     
 def rnn_sw(inp_spec,outp_spec, nneur=64, 
@@ -152,3 +167,24 @@ def rnn_sw(inp_spec,outp_spec, nneur=64,
 
     # return all_inp, outputs
     return model
+
+
+if __name__ == '__main__':
+    inp_spec, outp_spec = get_inpout(
+        '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/'
+        'examples_with_correct_vertical_coords/shortwave/training/'
+        'for_pareto_paper_2024/simple/learning_examples.nc'
+    )
+
+    model_object = rnn_sw(
+        inp_spec=inp_spec,
+        outp_spec=outp_spec,
+        nneur=64,
+        lstm=True,
+        activ_last='sigmoid',
+        activ_surface='linear',
+        activ_dense='relu',
+        add_dense=False,
+        add_scalars_to_levels=True,
+        simpler_inputs=True
+    )
