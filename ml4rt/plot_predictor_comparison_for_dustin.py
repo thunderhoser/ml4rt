@@ -150,23 +150,17 @@ def _read_dustin_file(dustin_file_name):
         skiprows=1
     )
     predictor_matrix = predictor_table_pandas.to_numpy()
-    print('FOO1')
-    print(predictor_matrix[:5, :])
 
     good_row_indices = numpy.where(
         numpy.all(predictor_matrix != 'Layer', axis=1)
     )[0]
     predictor_matrix = predictor_matrix[good_row_indices, :]
-    print('FOO2')
-    print(predictor_matrix[:5, :])
 
     good_row_indices = numpy.where(
         numpy.all(predictor_matrix != '(K)', axis=1)
     )[0]
     predictor_matrix = predictor_matrix[good_row_indices, :]
     predictor_matrix = predictor_matrix.astype(float)[:, 1:]
-    print('FOO3')
-    print(predictor_matrix[:5, :])
 
     o3_index = DUSTIN_FIELD_NAMES.index(example_utils.O3_MIXING_RATIO_NAME)
     predictor_matrix[:, o3_index] *= MICROGRAMS_TO_KG
@@ -204,7 +198,7 @@ def _read_dustin_file(dustin_file_name):
         )
         print((
             'Min/median/mean/max {0:s} values from Dustin file = '
-            '{1:.0f}, {2:.0f}, {3:.0f}, {4:.0f}'
+            '{1:.8f}, {2:.8f}, {3:.8f}, {4:.8f}'
         ).format(
             this_predictor_name,
             numpy.min(these_values),
@@ -212,6 +206,8 @@ def _read_dustin_file(dustin_file_name):
             numpy.mean(these_values),
             numpy.max(these_values)
         ))
+
+    return example_dict
 
 
 def _plot_spaghetti_1dataset_1predictor(
