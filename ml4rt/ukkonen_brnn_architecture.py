@@ -2,15 +2,15 @@ import numpy
 import xarray
 import tensorflow as tf
 from tensorflow.keras.models import load_model, save_model
-from tensorflow.keras.models import Sequential,Model
-from tensorflow.keras.layers import Input,Lambda,Concatenate,Permute,RepeatVector
-from tensorflow.keras.layers import Dense, Dropout, AlphaDropout, Activation, Layer,AveragePooling1D,Conv1D,ZeroPadding1D,ZeroPadding2D, GRU, LSTM
-from tensorflow.keras.layers import UpSampling1D,BatchNormalization,Cropping1D,LocallyConnected1D,Flatten,RepeatVector,Lambda,Reshape, Multiply, TimeDistributed, Add
-from tensorflow.keras.callbacks import EarlyStopping,ReduceLROnPlateau,ModelCheckpoint
-from tensorflow.keras.optimizers import RMSprop,Adam,Nadam,SGD
-from tensorflow.keras import backend as K
-from tensorflow.python.ops.nn import swish as myswish
-from tensorflow import nn
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Dense, Layer, Conv1D, GRU, LSTM
+from tensorflow.keras.layers import Multiply
+# from tensorflow.keras.callbacks import EarlyStopping,ReduceLROnPlateau,ModelCheckpoint
+# from tensorflow.keras.optimizers import RMSprop,Adam,Nadam,SGD
+# from tensorflow.keras import backend as K
+# from tensorflow.python.ops.nn import swish as myswish
+# from tensorflow import nn
 
 class HRLayer(tf.keras.layers.Layer):
 # Computes heating rate
