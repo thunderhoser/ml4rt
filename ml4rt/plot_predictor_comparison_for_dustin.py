@@ -186,7 +186,7 @@ def _read_dustin_file(dustin_file_name):
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             [DUSTIN_FIELD_NAMES[k] for k in vector_indices],
         example_utils.VECTOR_PREDICTOR_VALS_KEY:
-            predictor_matrix[..., 0, vector_indices],
+            predictor_matrix[..., vector_indices],
         example_utils.VALID_TIMES_KEY:
             numpy.linspace(0, num_examples - 1, num=num_examples, dtype=int),
         example_utils.HEIGHTS_KEY: GRID_HEIGHTS_M_AGL
