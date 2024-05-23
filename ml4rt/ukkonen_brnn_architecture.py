@@ -106,7 +106,12 @@ def rnn_sw(inp_spec,outp_spec, nneur=64,
         # Skip water paths (vertically integrated quantities) - probably not needed for RNN
         lay_inp = lay_inp[:,:,0:14]
         # We also don't want to use non physical inputs such as lat lon
-        scalar_inp = scalar_inp[:, numpy.array([0,1,6,7], dtype=int)]
+        scalar_inp = tf.concat([
+            scalar_inp[:, 0:1],
+            scalar_inp[:, 1:2],
+            scalar_inp[:, 6:7],
+            scalar_inp[:, 7:8]
+        ], axis=-1)
         # last two are ssa and asymmetry. odd that these are scalars here? optical properties are layer-wise quantities
         # assumed vertically constant in an "aerosol layer" spanning many vertical layers?
         # in any case we need to add these to layer wise inputs:
