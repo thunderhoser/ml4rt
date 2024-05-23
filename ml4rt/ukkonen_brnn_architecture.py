@@ -1,11 +1,10 @@
-import numpy
 import xarray
 import tensorflow as tf
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.layers import Dense, Layer, Conv1D, GRU, LSTM
-from tensorflow.keras.layers import Multiply
+from tensorflow.keras.layers import Multiply, ZeroPadding1D
 # from tensorflow.keras.callbacks import EarlyStopping,ReduceLROnPlateau,ModelCheckpoint
 # from tensorflow.keras.optimizers import RMSprop,Adam,Nadam,SGD
 # from tensorflow.keras import backend as K
@@ -96,7 +95,7 @@ def rnn_sw(inp_spec,outp_spec, nneur=64,
     # "upward_vapour_path_kg_m02", "relative_humidity_unitless" ;
 
     # extract scalar variables we need
-    cos_sza = tf.math.cos(scalar_inp[:,0])
+    # cos_sza = tf.math.cos(scalar_inp[:,0])
     albedos = scalar_inp[:,1:2] # in ecRad/IFS this would be a vector (provided for several bands)
 
     lay_inp = lay_inp / vec_norm
