@@ -150,17 +150,23 @@ def _read_dustin_file(dustin_file_name):
         skiprows=1
     )
     predictor_matrix = predictor_table_pandas.to_numpy()
+    print('FOO1')
+    print(predictor_matrix[:5, :])
 
     good_row_indices = numpy.where(
         numpy.all(predictor_matrix != 'Layer', axis=1)
     )[0]
     predictor_matrix = predictor_matrix[good_row_indices, :]
+    print('FOO2')
+    print(predictor_matrix[:5, :])
 
     good_row_indices = numpy.where(
         numpy.all(predictor_matrix != '(K)', axis=1)
     )[0]
     predictor_matrix = predictor_matrix[good_row_indices, :]
     predictor_matrix = predictor_matrix.astype(float)[:, 1:]
+    print('FOO3')
+    print(predictor_matrix[:5, :])
 
     o3_index = DUSTIN_FIELD_NAMES.index(example_utils.O3_MIXING_RATIO_NAME)
     predictor_matrix[:, o3_index] *= MICROGRAMS_TO_KG
