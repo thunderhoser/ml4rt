@@ -40,14 +40,14 @@ class HRLayer(tf.keras.layers.Layer):
 
 
 def get_inpout(example_file_name):
-    example_table_xarray = xarray.open_mfdataset(example_file_name)
+    example_table_xarray = xarray.open_dataset(example_file_name)
 
     inp_spec = {}
     for key in ["scalar_predictor_matrix","vector_predictor_matrix"]:
-        inp_spec[key] = example_table_xarray[key].load()
+        inp_spec[key] = example_table_xarray[key]
 
-    inp_spec["toa_down"] = example_table_xarray["vector_target_matrix"][:,-1:,:1].load()
-    out_spec = example_table_xarray['vector_target_matrix'].load()
+    inp_spec["toa_down"] = example_table_xarray["vector_target_matrix"][:,-1:,:1]
+    out_spec = example_table_xarray['vector_target_matrix']
 
     return inp_spec,out_spec
     
