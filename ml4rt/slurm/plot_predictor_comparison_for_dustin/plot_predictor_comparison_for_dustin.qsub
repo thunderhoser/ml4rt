@@ -30,7 +30,7 @@ DUSTIN_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/dusti
 
 python3 -u "${CODE_DIR_NAME}/plot_predictor_comparison_for_dustin.py" \
 --input_training_example_dir_name="${TRAINING_DIR_NAME}" \
---num_training_examples=10000 \
+--num_training_examples=100000 \
 --input_dustin_file_name="${DUSTIN_FILE_NAME}" \
---predictor_names "o3_mixing_ratio_kg_kg01" \
+--predictor_names "zenith_angle_radians" "surface_temperature_kelvins" "surface_emissivity" "pressure_pascals" "temperature_kelvins" "specific_humidity_kg_kg01" "relative_humidity_unitless" "liquid_water_content_kg_m03" "ice_water_content_kg_m03" "liquid_water_path_kg_m02" "ice_water_path_kg_m02" "vapour_path_kg_m02" "upward_liquid_water_path_kg_m02" "upward_ice_water_path_kg_m02" "upward_vapour_path_kg_m02" "liquid_effective_radius_metres" "ice_effective_radius_metres" "o3_mixing_ratio_kg_kg01" "co2_concentration_ppmv" "ch4_concentration_ppmv" "n2o_concentration_ppmv" "height_m_agl" "height_thickness_metres" "pressure_thickness_pascals" \
 --output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/dustin_data/predictor_comparison"
