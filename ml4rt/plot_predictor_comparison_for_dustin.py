@@ -178,7 +178,7 @@ def _read_dustin_file(dustin_file_name):
     ))[0]
     num_examples = predictor_matrix.shape[0]
 
-    return {
+    example_dict = {
         example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             [DUSTIN_FIELD_NAMES[k] for k in scalar_indices],
         example_utils.SCALAR_TARGET_VALS_KEY:
@@ -191,6 +191,21 @@ def _read_dustin_file(dustin_file_name):
             numpy.linspace(0, num_examples - 1, num=num_examples, dtype=int),
         example_utils.HEIGHTS_KEY: GRID_HEIGHTS_M_AGL
     }
+
+    for this_predictor_name in DUSTIN_FIELD_NAMES:
+        these_values = example_utils.get_field_from_dict(
+            example_dict=example_dict, field_name=this_predictor_name
+        )
+        print((
+            'Min/median/mean/max {0:s} values from Dustin file = '
+            '{1:.0f}, {2:.0f}, {3:.0f}, {4:.0f}'
+        ).format(
+            this_predictor_name,
+            numpy.min(these_values),
+            numpy.median(these_values),
+            numpy.mean(these_values),
+            numpy.max(these_values)
+        ))
 
 
 def _plot_spaghetti_1dataset_1predictor(
