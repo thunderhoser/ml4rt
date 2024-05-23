@@ -181,7 +181,7 @@ def _read_dustin_file(dustin_file_name):
     example_dict = {
         example_utils.SCALAR_PREDICTOR_NAMES_KEY:
             [DUSTIN_FIELD_NAMES[k] for k in scalar_indices],
-        example_utils.SCALAR_TARGET_VALS_KEY:
+        example_utils.SCALAR_PREDICTOR_VALS_KEY:
             predictor_matrix[..., 0, scalar_indices],
         example_utils.VECTOR_PREDICTOR_NAMES_KEY:
             [DUSTIN_FIELD_NAMES[k] for k in vector_indices],
