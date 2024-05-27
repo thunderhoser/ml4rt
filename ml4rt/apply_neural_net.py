@@ -198,10 +198,10 @@ def _targets_numpy_to_dict(
         )
 
         bb_vector_target_matrix = numpy.sum(
-            vector_target_matrix, axis=1, keepdims=True
+            vector_target_matrix, axis=2, keepdims=True
         )
         vector_target_matrix = numpy.concatenate(
-            [vector_target_matrix, bb_vector_target_matrix], axis=1
+            [vector_target_matrix, bb_vector_target_matrix], axis=2
         )
 
     example_dict = {
