@@ -122,6 +122,7 @@ def _does_nn_predict_all_wavelengths(model_metadata_dict):
             example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
         )
         all_wavelengths_metres = numpy.delete(all_wavelengths_metres, k)
+        print(all_wavelengths_metres)
 
         return numpy.allclose(
             numpy.sort(all_wavelengths_metres),
