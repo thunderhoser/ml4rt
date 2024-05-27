@@ -825,19 +825,28 @@ def _plot_error_distributions(
     """
 
     generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    scalar_target_names = (
-        generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
-    )
-    vector_target_names = (
-        generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
-    )
-    heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
+    goptd = generator_option_dict
 
-    w = example_utils.match_wavelengths(
-        wavelengths_metres=
-        generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
-        desired_wavelength_metres=wavelength_metres
+    scalar_target_names = goptd[neural_net.SCALAR_TARGET_NAMES_KEY]
+    vector_target_names = goptd[neural_net.VECTOR_TARGET_NAMES_KEY]
+    heights_m_agl = goptd[neural_net.HEIGHTS_KEY]
+
+    all_wavelengths_metres = goptd[neural_net.TARGET_WAVELENGTHS_KEY]
+    num_wavelengths_predicted = (
+        prediction_dicts[0][prediction_io.VECTOR_TARGETS_KEY].shape[-2]
     )
+    nn_predicts_all_wavelengths = (
+        num_wavelengths_predicted == len(all_wavelengths_metres) + 1
+    )
+
+    if nn_predicts_all_wavelengths:
+        w = num_wavelengths_predicted - 1
+    else:
+        w = example_utils.match_wavelengths(
+            wavelengths_metres=
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+            desired_wavelength_metres=wavelength_metres
+        )
 
     num_vector_targets = len(vector_target_names)
     num_scalar_targets = len(scalar_target_names)
