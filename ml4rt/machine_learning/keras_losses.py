@@ -359,14 +359,17 @@ def joined_output_loss(num_heights, flux_scaling_factor):
     return loss
 
 
-def dual_weighted_mse_simple():
+def dual_weighted_mse_simple(min_dual_weight=0.):
     """Dual-weighted MSE (mean squared error) for heating rates.
 
     This method assumes a deterministic model.  The "dual weight" for each data
     point is max(abs(target_heating_rate), abs(predicted_heating_rate)).
 
+    :param min_dual_weight: Minimum dual weight.
     :return: loss: Loss function (defined below).
     """
+
+    error_checking.assert_is_geq(min_dual_weight, 0.)
 
     def loss(target_tensor, prediction_tensor):
         """Computes loss.
@@ -377,24 +380,30 @@ def dual_weighted_mse_simple():
         """
 
         return K.mean(
-            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+            K.maximum(
+                K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+                min_dual_weight
+            )
             * (prediction_tensor - target_tensor) ** 2
         )
 
     return loss
 
 
-def dual_weighted_mse(band_weights=None):
+def dual_weighted_mse(min_dual_weight=0., band_weights=None):
     """Dual-weighted MSE (mean squared error) for heating rates.
 
     This method assumes a deterministic model.  The "dual weight" for each data
     point is max(abs(target_heating_rate), abs(predicted_heating_rate)).
 
+    :param min_dual_weight: Minimum dual weight.
     :param band_weights: length-W numpy array of weights, one for each
         wavelength band.  For the default behaviour (every band weighted the
         same), leave this argument alone.
     :return: loss: Loss function (defined below).
     """
+
+    error_checking.assert_is_geq(min_dual_weight, 0.)
 
     if band_weights is not None:
         error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
@@ -410,14 +419,17 @@ def dual_weighted_mse(band_weights=None):
 
         if band_weights is None:
             return K.mean(
-                K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+                K.maximum(
+                    K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+                    min_dual_weight
+                )
                 * (prediction_tensor - target_tensor) ** 2
             )
 
         # E x H x W x T
         dual_weight_tensor = K.maximum(
-            K.abs(target_tensor),
-            K.abs(prediction_tensor)
+            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+            min_dual_weight
         )
 
         # E x H x W x T
@@ -436,16 +448,19 @@ def dual_weighted_mse(band_weights=None):
     return loss
 
 
-def dual_weighted_mse_constrained_bb(band_weights=None):
+def dual_weighted_mse_constrained_bb(min_dual_weight=0., band_weights=None):
     """Dual-weighted MSE (mean squared error) for heating rates.
 
     This method is the same as `dual_weighted_mse`, except that it constrains
     and penalizes broadband heating rates (broadband = sum over all wavelength
     bands) as well.  Assumes a deterministic model.
 
+    :param min_dual_weight: Minimum dual weight.
     :param band_weights: See doc for `scaled_mse_for_net_flux_constrained_bb`.
     :return: loss: Loss function (defined below).
     """
+
+    error_checking.assert_is_geq(min_dual_weight, 0.)
 
     if band_weights is not None:
         error_checking.assert_is_numpy_array(band_weights, num_dimensions=1)
@@ -472,14 +487,17 @@ def dual_weighted_mse_constrained_bb(band_weights=None):
 
         if band_weights is None:
             return K.mean(
-                K.maximum(K.abs(target_tensor), K.abs(prediction_tensor))
+                K.maximum(
+                    K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+                    min_dual_weight
+                )
                 * (prediction_tensor - target_tensor) ** 2
             )
 
         # E x H x W x T
         dual_weight_tensor = K.maximum(
-            K.abs(target_tensor),
-            K.abs(prediction_tensor)
+            K.maximum(K.abs(target_tensor), K.abs(prediction_tensor)),
+            min_dual_weight
         )
 
         # E x H x W x T
