@@ -116,6 +116,9 @@ def _does_nn_predict_all_wavelengths(model_metadata_dict):
         )
         all_wavelengths_metres = numpy.delete(all_wavelengths_metres, k)
 
+        if len(all_wavelengths_metres) != len(target_wavelengths_metres):
+            return False
+
         return numpy.allclose(
             numpy.sort(all_wavelengths_metres),
             numpy.sort(target_wavelengths_metres),
@@ -130,6 +133,9 @@ def _does_nn_predict_all_wavelengths(model_metadata_dict):
             example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
         )
         all_wavelengths_metres = numpy.delete(all_wavelengths_metres, k)
+
+        if len(all_wavelengths_metres) != len(target_wavelengths_metres):
+            return False
 
         return numpy.allclose(
             numpy.sort(all_wavelengths_metres),
@@ -158,7 +164,7 @@ def _targets_numpy_to_dict(
     nn_predicts_all_wavelengths = _does_nn_predict_all_wavelengths(
         model_metadata_dict
     )
-    generator_option_dict = (
+    generator_option_dict = copy.deepcopy(
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
 
@@ -185,10 +191,10 @@ def _targets_numpy_to_dict(
         )
 
         bb_vector_target_matrix = numpy.sum(
-            vector_target_matrix, axis=1, keepdims=True
+            vector_target_matrix, axis=2, keepdims=True
         )
         vector_target_matrix = numpy.concatenate(
-            [vector_target_matrix, bb_vector_target_matrix], axis=1
+            [vector_target_matrix, bb_vector_target_matrix], axis=2
         )
 
     example_dict = {
