@@ -7,6 +7,8 @@ from ml4rt.io import example_io
 from ml4rt.utils import normalization
 from ml4rt.utils import example_utils
 
+METRES_TO_MICRONS = 1e6
+
 INPUT_FILE_ARG_NAME = 'input_example_file_name'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 NORMALIZE_PREDICTORS_ARG_NAME = 'normalize_predictors'
@@ -107,6 +109,68 @@ def _run(input_example_file_name, normalization_file_name,
         apply_to_scalar_targets=normalize_scalar_targets,
         apply_to_vector_targets=normalize_vector_targets
     )
+
+    for j in range(len(example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY])):
+        these_values = example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j]
+        )
+        print('Mean normalized {0:s} = {1:.4g}'.format(
+            example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+            numpy.mean(these_values)
+        ))
+
+    for j in range(len(example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY])):
+        for h in range(len(example_dict[example_utils.HEIGHTS_KEY])):
+            these_values = example_utils.get_field_from_dict(
+                example_dict=example_dict,
+                field_name=
+                example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY][j],
+                height_m_agl=example_dict[example_utils.HEIGHTS_KEY][h]
+            )
+            print('Mean normalized {0:s} at {1:.0f} m AGL = {2:.4g}'.format(
+                example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+                example_dict[example_utils.HEIGHTS_KEY][h],
+                numpy.mean(these_values)
+            ))
+
+    for j in range(len(example_dict[example_utils.SCALAR_TARGET_NAMES_KEY])):
+        for w in range(len(example_dict[example_utils.TARGET_WAVELENGTHS_KEY])):
+            these_values = example_utils.get_field_from_dict(
+                example_dict=example_dict,
+                field_name=
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j],
+                target_wavelength_metres=
+                example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w]
+            )
+            print('Mean normalized {0:s} at {1:.2f} microns = {2:.4g}'.format(
+                example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+                METRES_TO_MICRONS *
+                example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w],
+                numpy.mean(these_values)
+            ))
+
+    for j in range(len(example_dict[example_utils.VECTOR_TARGET_NAMES_KEY])):
+        for w in range(len(example_dict[example_utils.TARGET_WAVELENGTHS_KEY])):
+            for h in range(len(example_dict[example_utils.HEIGHTS_KEY])):
+                these_values = example_utils.get_field_from_dict(
+                    example_dict=example_dict,
+                    field_name=
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
+                    target_wavelength_metres=
+                    example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w],
+                    height_m_agl=example_dict[example_utils.HEIGHTS_KEY][h]
+                )
+                print((
+                    'Mean normalized {0:s} at {1:.0f} m AGL and {2:.2f} '
+                    'microns = {3:.4g}'
+                ).format(
+                    example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+                    example_dict[example_utils.HEIGHTS_KEY][h],
+                    METRES_TO_MICRONS *
+                    example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w],
+                    numpy.mean(these_values)
+                ))
 
     normalization_metadata_dict = {
         example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
