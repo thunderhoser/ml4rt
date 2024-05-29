@@ -2,7 +2,7 @@
 
 import os
 import sys
-import pickle
+import dill
 import numpy
 from sklearn.isotonic import IsotonicRegression
 
@@ -57,11 +57,6 @@ def train_models(
     )
 
     if have_vectors:
-        orig_vector_prediction_matrix = orig_vector_prediction_matrix.astype(
-            numpy.float16
-        )
-        vector_target_matrix = vector_target_matrix.astype(numpy.float16)
-
         error_checking.assert_is_numpy_array(
             orig_vector_prediction_matrix, num_dimensions=5
         )
@@ -226,10 +221,6 @@ def apply_models(
     )
 
     if have_vectors:
-        orig_vector_prediction_matrix = orig_vector_prediction_matrix.astype(
-            numpy.float16
-        )
-
         error_checking.assert_is_numpy_array(
             orig_vector_prediction_matrix, num_dimensions=5
         )
@@ -292,12 +283,11 @@ def apply_models(
 
     if have_vectors:
         new_vector_prediction_matrix = numpy.full(
-            orig_vector_prediction_matrix.shape, numpy.nan, dtype=numpy.float16
+            orig_vector_prediction_matrix.shape, numpy.nan
         )
     else:
         new_vector_prediction_matrix = numpy.full(
-            (num_examples, 0, num_wavelengths, 0, ensemble_size),
-            numpy.nan, dtype=numpy.float16
+            (num_examples, 0, num_wavelengths, 0, ensemble_size), numpy.nan
         )
 
     if have_scalars:
@@ -396,8 +386,8 @@ def write_file(dill_file_name, scalar_model_object_matrix,
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    pickle.dump(scalar_model_object_matrix, dill_file_handle)
-    pickle.dump(vector_model_object_matrix, dill_file_handle)
+    dill.dump(scalar_model_object_matrix, dill_file_handle)
+    dill.dump(vector_model_object_matrix, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -412,8 +402,8 @@ def read_file(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    scalar_model_object_matrix = pickle.load(dill_file_handle)
-    vector_model_object_matrix = pickle.load(dill_file_handle)
+    scalar_model_object_matrix = dill.load(dill_file_handle)
+    vector_model_object_matrix = dill.load(dill_file_handle)
     dill_file_handle.close()
 
     scalar_model_object_matrix = numpy.array(scalar_model_object_matrix)

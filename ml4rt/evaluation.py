@@ -15,7 +15,6 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import histograms
 import file_system_utils
 import error_checking
-import example_io
 import prediction_io
 import example_utils
 import normalization
@@ -1385,42 +1384,15 @@ def get_scores_all_variables(
             generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
         )
 
-    # TODO(thunderhoser): This is a HACK for models trained with unnormalized
-    # predictors.
-    if normalization_file_name is None:
-        if (
-                example_utils.LONGWAVE_HEATING_RATE_NAME in
-                generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
-        ):
-            normalization_file_name = (
-                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/examples_with_correct_vertical_coords/longwave/'
-                'training/learning_examples_for_norm_20180901-20191221.nc'
-            )
-        else:
-            normalization_file_name = (
-                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/examples_with_correct_vertical_coords/shortwave/'
-                'training/learning_examples_for_norm_20180901-20191221.nc'
-            )
-
-    print((
-        'Reading training examples (for climatology) from: "{0:s}"...'
-    ).format(
+    print('Reading normalization params from: "{0:s}"...'.format(
         normalization_file_name
     ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
-    )
-    training_example_dict = example_utils.subset_by_wavelength(
-        example_dict=training_example_dict,
-        target_wavelengths_metres=wavelengths_metres
-    )
+    norm_param_table_xarray = normalization.read_params(normalization_file_name)
 
     mean_training_example_dict = normalization.create_mean_example(
-        new_example_dict=example_dict,
-        training_example_dict=training_example_dict
+        example_dict=example_dict,
+        normalization_param_table_xarray=norm_param_table_xarray,
+        use_absolute_values=False
     )
 
     scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]

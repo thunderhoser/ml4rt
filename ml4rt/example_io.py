@@ -15,7 +15,6 @@ import time_conversion
 import file_system_utils
 import error_checking
 import example_utils
-import normalization
 
 TOLERANCE = 1e-6
 
@@ -30,40 +29,22 @@ EXAMPLE_ID_CHAR_DIM_KEY = 'example_id_char'
 FIELD_NAME_CHAR_DIM_KEY = 'field_name_char'
 
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
-UNIFORMIZE_FLAG_KEY = 'uniformize'
-PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
-PREDICTOR_MIN_VALUE_KEY = 'predictor_min_norm_value'
-PREDICTOR_MAX_VALUE_KEY = 'predictor_max_norm_value'
-VECTOR_TARGET_NORM_TYPE_KEY = 'vector_target_norm_type_string'
-VECTOR_TARGET_MIN_VALUE_KEY = 'vector_target_min_norm_value'
-VECTOR_TARGET_MAX_VALUE_KEY = 'vector_target_max_norm_value'
-SCALAR_TARGET_NORM_TYPE_KEY = 'scalar_target_norm_type_string'
-SCALAR_TARGET_MIN_VALUE_KEY = 'scalar_target_min_norm_value'
-SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
+NORMALIZE_PREDICTORS_KEY = 'normalize_predictors'
+NORMALIZE_SCALAR_TARGETS_KEY = 'normalize_scalar_targets'
+NORMALIZE_VECTOR_TARGETS_KEY = 'normalize_vector_targets'
 
-NORM_METADATA_STRING_KEYS = [
-    NORMALIZATION_FILE_KEY, PREDICTOR_NORM_TYPE_KEY,
-    VECTOR_TARGET_NORM_TYPE_KEY, SCALAR_TARGET_NORM_TYPE_KEY
-]
-NORM_METADATA_BOOLEAN_KEYS = [UNIFORMIZE_FLAG_KEY]
-NORM_METADATA_FLOAT_KEYS = [
-    PREDICTOR_MIN_VALUE_KEY, PREDICTOR_MAX_VALUE_KEY,
-    VECTOR_TARGET_MIN_VALUE_KEY, VECTOR_TARGET_MAX_VALUE_KEY,
-    SCALAR_TARGET_MIN_VALUE_KEY, SCALAR_TARGET_MAX_VALUE_KEY
+NORM_METADATA_STRING_KEYS = [NORMALIZATION_FILE_KEY]
+NORM_METADATA_BOOLEAN_KEYS = [
+    NORMALIZE_PREDICTORS_KEY,
+    NORMALIZE_SCALAR_TARGETS_KEY,
+    NORMALIZE_VECTOR_TARGETS_KEY
 ]
 
 DEFAULT_NORM_METADATA_DICT = {
     NORMALIZATION_FILE_KEY: None,
-    UNIFORMIZE_FLAG_KEY: False,
-    PREDICTOR_NORM_TYPE_KEY: None,
-    PREDICTOR_MIN_VALUE_KEY: numpy.nan,
-    PREDICTOR_MAX_VALUE_KEY: numpy.nan,
-    VECTOR_TARGET_NORM_TYPE_KEY: None,
-    VECTOR_TARGET_MIN_VALUE_KEY: numpy.nan,
-    VECTOR_TARGET_MAX_VALUE_KEY: numpy.nan,
-    SCALAR_TARGET_NORM_TYPE_KEY: None,
-    SCALAR_TARGET_MIN_VALUE_KEY: numpy.nan,
-    SCALAR_TARGET_MAX_VALUE_KEY: numpy.nan
+    NORMALIZE_PREDICTORS_KEY: False,
+    NORMALIZE_SCALAR_TARGETS_KEY: False,
+    NORMALIZE_VECTOR_TARGETS_KEY: False
 }
 
 
@@ -71,32 +52,16 @@ def _check_normalization_metadata(normalization_metadata_dict):
     """Error-checks metadata for normalization.
 
     :param normalization_metadata_dict: Dictionary with the following keys.
-    normalization_metadata_dict['normalization_file_name']: Path to
-        normalization file, containing unnormalized sample values used to create
-        uniform distributions.
-    normalization_metadata_dict['uniformize']: Boolean flag.  If True, each
-        variable will be converted to uniform distribution and then z-scores; if
-        False, each variable will be converted directly to z-scores.
-    normalization_metadata_dict['predictor_norm_type_string']: Normalization
-        type for predictors (must be accepted by
-        `normalization.check_normalization_type`).  If no normalization, make
-        this None.
-    normalization_metadata_dict['predictor_min_norm_value']: Minimum value if
-        min-max normalization was used.
-    normalization_metadata_dict['predictor_max_norm_value']: Max value if
-        min-max normalization was used.
-    normalization_metadata_dict['vector_target_norm_type_string']: Same as
-        `predictor_norm_type_string` but for vector target variables.
-    normalization_metadata_dict['vector_target_min_norm_value']: Same as
-        `predictor_min_norm_value` but for vector target variables.
-    normalization_metadata_dict['vector_target_max_norm_value']: Same as
-        `predictor_max_norm_value` but for vector target variables.
-    normalization_metadata_dict['scalar_target_norm_type_string']: Same as
-        `predictor_norm_type_string` but for scalar target variables.
-    normalization_metadata_dict['scalar_target_min_norm_value']: Same as
-        `predictor_min_norm_value` but for scalar target variables.
-    normalization_metadata_dict['scalar_target_max_norm_value']: Same as
-        `predictor_max_norm_value` but for scalar target variables.
+    normalization_metadata_dict["normalization_file_name"]: Path to
+        normalization file, readable by `normalization.read_params`.
+    normalization_metadata_dict["normalize_predictors"]: Boolean flag,
+        indicating whether or not predictor variables are normalized.
+    normalization_metadata_dict["normalize_scalar_targets"]: Boolean flag,
+        indicating whether or not scalar target variables (fluxes) are
+        normalized.
+    normalization_metadata_dict["normalize_vector_targets"]: Boolean flag,
+        indicating whether or not vector target variables (heating rates) are
+        normalized.
 
     :return: normalization_metadata_dict: Same as input, but some values may
         have been replaced with defaults.
@@ -109,58 +74,23 @@ def _check_normalization_metadata(normalization_metadata_dict):
     if normalization_metadata_dict[NORMALIZATION_FILE_KEY] is None:
         return DEFAULT_NORM_METADATA_DICT
 
-    error_checking.assert_is_boolean(
-        normalization_metadata_dict[UNIFORMIZE_FLAG_KEY]
-    )
+    nmd = normalization_metadata_dict
+    error_checking.assert_is_boolean(nmd[NORMALIZE_PREDICTORS_KEY])
+    error_checking.assert_is_boolean(nmd[NORMALIZE_SCALAR_TARGETS_KEY])
+    error_checking.assert_is_boolean(nmd[NORMALIZE_VECTOR_TARGETS_KEY])
 
-    predictor_norm_type_string = (
-        normalization_metadata_dict[PREDICTOR_NORM_TYPE_KEY]
+    normalize_any = (
+        nmd[NORMALIZE_PREDICTORS_KEY]
+        or nmd[NORMALIZE_SCALAR_TARGETS_KEY]
+        or nmd[NORMALIZE_VECTOR_TARGETS_KEY]
     )
-    if predictor_norm_type_string is not None:
-        normalization.check_normalization_type(predictor_norm_type_string)
-
-    if predictor_norm_type_string == normalization.MINMAX_NORM_STRING:
-        error_checking.assert_is_greater(
-            normalization_metadata_dict[PREDICTOR_MAX_VALUE_KEY],
-            normalization_metadata_dict[PREDICTOR_MIN_VALUE_KEY]
-        )
-    else:
-        normalization_metadata_dict[PREDICTOR_MIN_VALUE_KEY] = numpy.nan
-        normalization_metadata_dict[PREDICTOR_MAX_VALUE_KEY] = numpy.nan
-
-    vector_target_norm_type_string = (
-        normalization_metadata_dict[VECTOR_TARGET_NORM_TYPE_KEY]
-    )
-    if vector_target_norm_type_string is not None:
-        normalization.check_normalization_type(vector_target_norm_type_string)
-    if vector_target_norm_type_string == normalization.MINMAX_NORM_STRING:
-        error_checking.assert_is_greater(
-            normalization_metadata_dict[VECTOR_TARGET_MAX_VALUE_KEY],
-            normalization_metadata_dict[VECTOR_TARGET_MIN_VALUE_KEY]
-        )
-    else:
-        normalization_metadata_dict[VECTOR_TARGET_MIN_VALUE_KEY] = numpy.nan
-        normalization_metadata_dict[VECTOR_TARGET_MAX_VALUE_KEY] = numpy.nan
-
-    scalar_target_norm_type_string = (
-        normalization_metadata_dict[SCALAR_TARGET_NORM_TYPE_KEY]
-    )
-    if scalar_target_norm_type_string is not None:
-        normalization.check_normalization_type(scalar_target_norm_type_string)
-    if scalar_target_norm_type_string == normalization.MINMAX_NORM_STRING:
-        error_checking.assert_is_greater(
-            normalization_metadata_dict[SCALAR_TARGET_MAX_VALUE_KEY],
-            normalization_metadata_dict[SCALAR_TARGET_MIN_VALUE_KEY]
-        )
-    else:
-        normalization_metadata_dict[SCALAR_TARGET_MIN_VALUE_KEY] = numpy.nan
-        normalization_metadata_dict[SCALAR_TARGET_MAX_VALUE_KEY] = numpy.nan
+    assert normalize_any
 
     return normalization_metadata_dict
 
 
 def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
-    """Determines whether or not two sets of normalization metadata are same.
+    """Determines whether two sets of normalization metadata are the same.
 
     :param first_metadata_dict: See doc for `_check_normalization_metadata`.
     :param second_metadata_dict: Same.
@@ -190,13 +120,6 @@ def are_normalization_metadata_same(first_metadata_dict, second_metadata_dict):
             continue
 
         if first_metadata_dict[this_key] != second_metadata_dict[this_key]:
-            return False
-
-    for this_key in NORM_METADATA_FLOAT_KEYS:
-        if not numpy.isclose(
-                first_metadata_dict[this_key], second_metadata_dict[this_key],
-                atol=TOLERANCE, equal_nan=True
-        ):
             return False
 
     return True
@@ -431,32 +354,44 @@ def read_file(
     )
 
     dataset_object = netCDF4.Dataset(netcdf_file_name)
-    normalization_metadata_dict = dict()
+    nmd = dict()
 
-    if hasattr(dataset_object, NORMALIZATION_FILE_KEY):
+    if hasattr(dataset_object, NORMALIZE_PREDICTORS_KEY):
         for this_key in NORM_METADATA_STRING_KEYS:
-            normalization_metadata_dict[this_key] = str(
-                getattr(dataset_object, this_key)
-            )
-            if normalization_metadata_dict[this_key] == 'None':
-                normalization_metadata_dict[this_key] = None
+            nmd[this_key] = str(getattr(dataset_object, this_key))
+            if nmd[this_key] == 'None':
+                nmd[this_key] = None
 
         for this_key in NORM_METADATA_BOOLEAN_KEYS:
-            try:
-                normalization_metadata_dict[this_key] = bool(
-                    getattr(dataset_object, this_key)
-                )
-            except:
-                normalization_metadata_dict[this_key] = True
+            nmd[this_key] = bool(getattr(dataset_object, this_key))
 
-        for this_key in NORM_METADATA_FLOAT_KEYS:
-            normalization_metadata_dict[this_key] = getattr(
-                dataset_object, this_key
-            )
-    else:
-        normalization_metadata_dict = _check_normalization_metadata(
-            normalization_metadata_dict
+    elif hasattr(dataset_object, NORMALIZATION_FILE_KEY):
+        nmd[NORMALIZATION_FILE_KEY] = str(
+            getattr(dataset_object, NORMALIZATION_FILE_KEY)
         )
+
+        predictor_norm_type_string = str(
+            getattr(dataset_object, 'predictor_norm_type_string')
+        )
+        nmd[NORMALIZE_PREDICTORS_KEY] = predictor_norm_type_string != 'None'
+
+        scalar_target_norm_type_string = str(
+            getattr(dataset_object, 'scalar_target_norm_type_string')
+        )
+        nmd[NORMALIZE_SCALAR_TARGETS_KEY] = (
+            scalar_target_norm_type_string != 'None'
+        )
+
+        vector_target_norm_type_string = str(
+            getattr(dataset_object, 'vector_target_norm_type_string')
+        )
+        nmd[NORMALIZE_VECTOR_TARGETS_KEY] = (
+            vector_target_norm_type_string != 'None'
+        )
+    else:
+        nmd = _check_normalization_metadata(nmd)
+
+    normalization_metadata_dict = nmd
 
     example_id_strings = [
         str(id) for id in netCDF4.chartostring(
@@ -507,7 +442,7 @@ def read_file(
 
     for this_key in main_data_keys:
         example_dict[this_key] = numpy.array(
-            dataset_object.variables[this_key][:], dtype=numpy.float32
+            dataset_object.variables[this_key][:], dtype=float
         )
 
     if not found_wavelengths:
@@ -518,25 +453,6 @@ def read_file(
             example_dict[this_key] = numpy.expand_dims(
                 example_dict[this_key], axis=-2
             )
-
-    if normalization_metadata_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
-        for this_key in [
-                example_utils.SCALAR_PREDICTOR_VALS_KEY,
-                example_utils.VECTOR_PREDICTOR_VALS_KEY
-        ]:
-            example_dict[this_key] = example_dict[this_key].astype(
-                numpy.float16
-            )
-
-    if normalization_metadata_dict[VECTOR_TARGET_NORM_TYPE_KEY] is not None:
-        example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = example_dict[
-            example_utils.VECTOR_TARGET_VALS_KEY
-        ].astype(numpy.float16)
-
-    if normalization_metadata_dict[SCALAR_TARGET_NORM_TYPE_KEY] is not None:
-        example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = example_dict[
-            example_utils.SCALAR_TARGET_VALS_KEY
-        ].astype(numpy.float16)
 
     for this_key in integer_keys:
         example_dict[this_key] = numpy.array(
@@ -636,10 +552,6 @@ def write_file(example_dict, netcdf_file_name):
     for this_key in NORM_METADATA_BOOLEAN_KEYS:
         dataset_object.setncattr(
             this_key, int(normalization_metadata_dict[this_key])
-        )
-    for this_key in NORM_METADATA_FLOAT_KEYS:
-        dataset_object.setncattr(
-            this_key, normalization_metadata_dict[this_key]
         )
 
     num_examples = len(example_dict[example_utils.VALID_TIMES_KEY])
