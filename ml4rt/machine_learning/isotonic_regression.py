@@ -50,11 +50,6 @@ def train_models(
     )
 
     if have_vectors:
-        orig_vector_prediction_matrix = orig_vector_prediction_matrix.astype(
-            numpy.float16
-        )
-        vector_target_matrix = vector_target_matrix.astype(numpy.float16)
-
         error_checking.assert_is_numpy_array(
             orig_vector_prediction_matrix, num_dimensions=5
         )
@@ -219,10 +214,6 @@ def apply_models(
     )
 
     if have_vectors:
-        orig_vector_prediction_matrix = orig_vector_prediction_matrix.astype(
-            numpy.float16
-        )
-
         error_checking.assert_is_numpy_array(
             orig_vector_prediction_matrix, num_dimensions=5
         )
@@ -285,12 +276,11 @@ def apply_models(
 
     if have_vectors:
         new_vector_prediction_matrix = numpy.full(
-            orig_vector_prediction_matrix.shape, numpy.nan, dtype=numpy.float16
+            orig_vector_prediction_matrix.shape, numpy.nan
         )
     else:
         new_vector_prediction_matrix = numpy.full(
-            (num_examples, 0, num_wavelengths, 0, ensemble_size),
-            numpy.nan, dtype=numpy.float16
+            (num_examples, 0, num_wavelengths, 0, ensemble_size), numpy.nan
         )
 
     if have_scalars:

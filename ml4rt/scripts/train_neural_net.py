@@ -22,11 +22,8 @@ def _run(training_dir_name, validation_dir_name,
          target_names, heights_m_agl, target_wavelengths_metres,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
-         normalization_file_name, uniformize, predictor_norm_type_string,
-         predictor_min_norm_value, predictor_max_norm_value,
-         vector_target_norm_type_string, vector_target_min_norm_value,
-         vector_target_max_norm_value, scalar_target_norm_type_string,
-         scalar_target_min_norm_value, scalar_target_max_norm_value,
+         normalization_file_name, normalize_predictors,
+         normalize_scalar_targets, normalize_vector_targets,
          normalization_file_name_for_mask, min_heating_rate_for_mask_k_day01,
          min_flux_for_mask_w_m02,
          num_examples_per_batch, num_epochs, num_training_batches_per_epoch,
@@ -50,16 +47,9 @@ def _run(training_dir_name, validation_dir_name,
     :param first_validn_time_string: Same.
     :param last_validn_time_string: Same.
     :param normalization_file_name: Same.
-    :param uniformize: Same.
-    :param predictor_norm_type_string: Same.
-    :param predictor_min_norm_value: Same.
-    :param predictor_max_norm_value: Same.
-    :param vector_target_norm_type_string: Same.
-    :param vector_target_min_norm_value: Same.
-    :param vector_target_max_norm_value: Same.
-    :param scalar_target_norm_type_string: Same.
-    :param scalar_target_min_norm_value: Same.
-    :param scalar_target_max_norm_value: Same.
+    :param normalize_predictors: Same.
+    :param normalize_scalar_targets: Same.
+    :param normalize_vector_targets: Same.
     :param normalization_file_name_for_mask: Same.
     :param min_heating_rate_for_mask_k_day01: Same.
     :param min_flux_for_mask_w_m02: Same.
@@ -72,12 +62,6 @@ def _run(training_dir_name, validation_dir_name,
 
     if normalization_file_name in NONE_STRINGS:
         normalization_file_name = None
-    if predictor_norm_type_string in NONE_STRINGS:
-        predictor_norm_type_string = None
-    if vector_target_norm_type_string in NONE_STRINGS:
-        vector_target_norm_type_string = None
-    if scalar_target_norm_type_string in NONE_STRINGS:
-        scalar_target_norm_type_string = None
 
     if (
             normalization_file_name_for_mask in NONE_STRINGS
@@ -133,16 +117,9 @@ def _run(training_dir_name, validation_dir_name,
         neural_net.HEIGHTS_KEY: heights_m_agl,
         neural_net.TARGET_WAVELENGTHS_KEY: target_wavelengths_metres,
         neural_net.NORMALIZATION_FILE_KEY: normalization_file_name,
-        neural_net.UNIFORMIZE_FLAG_KEY: uniformize,
-        neural_net.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
-        neural_net.PREDICTOR_MIN_NORM_VALUE_KEY: predictor_min_norm_value,
-        neural_net.PREDICTOR_MAX_NORM_VALUE_KEY: predictor_max_norm_value,
-        neural_net.VECTOR_TARGET_NORM_TYPE_KEY: vector_target_norm_type_string,
-        neural_net.VECTOR_TARGET_MIN_VALUE_KEY: vector_target_min_norm_value,
-        neural_net.VECTOR_TARGET_MAX_VALUE_KEY: vector_target_max_norm_value,
-        neural_net.SCALAR_TARGET_NORM_TYPE_KEY: scalar_target_norm_type_string,
-        neural_net.SCALAR_TARGET_MIN_VALUE_KEY: scalar_target_min_norm_value,
-        neural_net.SCALAR_TARGET_MAX_VALUE_KEY: scalar_target_max_norm_value,
+        neural_net.NORMALIZE_PREDICTORS_KEY: normalize_predictors,
+        neural_net.NORMALIZE_SCALAR_TARGETS_KEY: normalize_scalar_targets,
+        neural_net.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
         neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
         neural_net.JOINED_OUTPUT_LAYER_KEY: joined_output_layer,
@@ -281,36 +258,15 @@ if __name__ == '__main__':
         normalization_file_name=getattr(
             INPUT_ARG_OBJECT, training_args.NORMALIZATION_FILE_ARG_NAME
         ),
-        uniformize=bool(getattr(
-            INPUT_ARG_OBJECT, training_args.UNIFORMIZE_FLAG_ARG_NAME
+        normalize_predictors=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.NORMALIZE_PREDICTORS_ARG_NAME
         )),
-        predictor_norm_type_string=getattr(
-            INPUT_ARG_OBJECT, training_args.PREDICTOR_NORM_TYPE_ARG_NAME
-        ),
-        predictor_min_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.PREDICTOR_MIN_VALUE_ARG_NAME
-        ),
-        predictor_max_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.PREDICTOR_MAX_VALUE_ARG_NAME
-        ),
-        vector_target_norm_type_string=getattr(
-            INPUT_ARG_OBJECT, training_args.VECTOR_TARGET_NORM_TYPE_ARG_NAME
-        ),
-        vector_target_min_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.VECTOR_TARGET_MIN_VALUE_ARG_NAME
-        ),
-        vector_target_max_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.VECTOR_TARGET_MAX_VALUE_ARG_NAME
-        ),
-        scalar_target_norm_type_string=getattr(
-            INPUT_ARG_OBJECT, training_args.SCALAR_TARGET_NORM_TYPE_ARG_NAME
-        ),
-        scalar_target_min_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.SCALAR_TARGET_MIN_VALUE_ARG_NAME
-        ),
-        scalar_target_max_norm_value=getattr(
-            INPUT_ARG_OBJECT, training_args.SCALAR_TARGET_MAX_VALUE_ARG_NAME
-        ),
+        normalize_scalar_targets=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.NORMALIZE_SCALAR_TARGETS_ARG_NAME
+        )),
+        normalize_vector_targets=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.NORMALIZE_VECTOR_TARGETS_ARG_NAME
+        )),
         normalization_file_name_for_mask=getattr(
             INPUT_ARG_OBJECT, training_args.NORMALIZATION_FILE_FOR_MASK_ARG_NAME
         ),

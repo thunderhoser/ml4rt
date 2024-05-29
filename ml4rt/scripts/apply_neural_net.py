@@ -8,7 +8,6 @@ import numpy
 from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import rrtm_io
 from ml4rt.io import prediction_io
-from ml4rt.io import example_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
@@ -459,19 +458,23 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         model_metadata_dict=metadata_dict
     )
 
-    normalization_file_name = (
-        generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
-    )
+    goptd = generator_option_dict
+    normalization_file_name = goptd[neural_net.NORMALIZATION_FILE_KEY]
+    if not (
+            goptd[neural_net.NORMALIZE_SCALAR_TARGETS_KEY] or
+            goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY]
+    ):
+        normalization_file_name = None
 
     if normalization_file_name is None:
-        training_example_dict = None
+        norm_param_table_xarray = None
     else:
-        print((
-            'Reading training examples (for normalization) from: "{0:s}"...'
-        ).format(
+        print('Reading normalization params from: "{0:s}"...'.format(
             normalization_file_name
         ))
-        training_example_dict = example_io.read_file(normalization_file_name)
+        norm_param_table_xarray = normalization.read_params(
+            normalization_file_name
+        )
 
     num_examples = len(example_id_strings)
     num_heights = len(target_example_dict[example_utils.HEIGHTS_KEY])
@@ -497,88 +500,30 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         )
         prediction_example_dict_by_member[k].update(this_dict)
 
-    if (
-            generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY]
-            is not None
-    ):
-        print('Denormalizing predicted and actual vectors...')
+    if norm_param_table_xarray is not None:
+        print('Denormalizing predicted and actual values...')
 
         target_example_dict = normalization.denormalize_data(
-            new_example_dict=target_example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=
-            generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY],
-            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
-            min_normalized_value=
-            generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
-            max_normalized_value=
-            generator_option_dict[neural_net.VECTOR_TARGET_MAX_VALUE_KEY],
-            separate_heights=True,
+            example_dict=target_example_dict,
+            normalization_param_table_xarray=norm_param_table_xarray,
             apply_to_predictors=False,
-            apply_to_vector_targets=True,
-            apply_to_scalar_targets=False
+            apply_to_scalar_targets=
+            goptd[neural_net.NORMALIZE_SCALAR_TARGETS_KEY],
+            apply_to_vector_targets=
+            goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY]
         )
 
         for k in range(ensemble_size):
-            (
-                prediction_example_dict_by_member[k]
-            ) = normalization.denormalize_data(
-                new_example_dict=prediction_example_dict_by_member[k],
-                training_example_dict=training_example_dict,
-                normalization_type_string=
-                generator_option_dict[neural_net.VECTOR_TARGET_NORM_TYPE_KEY],
-                uniformize=
-                generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
-                min_normalized_value=
-                generator_option_dict[neural_net.VECTOR_TARGET_MIN_VALUE_KEY],
-                max_normalized_value=
-                generator_option_dict[neural_net.VECTOR_TARGET_MAX_VALUE_KEY],
-                separate_heights=True,
-                apply_to_predictors=False,
-                apply_to_vector_targets=True,
-                apply_to_scalar_targets=False
-            )
-
-    if (
-            generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY]
-            is not None
-    ):
-        print('Denormalizing predicted and actual scalars...')
-
-        target_example_dict = normalization.denormalize_data(
-            new_example_dict=target_example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=
-            generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY],
-            uniformize=generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
-            min_normalized_value=
-            generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
-            max_normalized_value=
-            generator_option_dict[neural_net.SCALAR_TARGET_MAX_VALUE_KEY],
-            separate_heights=True,
-            apply_to_predictors=False,
-            apply_to_vector_targets=False,
-            apply_to_scalar_targets=True
-        )
-
-        for k in range(ensemble_size):
-            (
-                prediction_example_dict_by_member[k]
-            ) = normalization.denormalize_data(
-                new_example_dict=prediction_example_dict_by_member[k],
-                training_example_dict=training_example_dict,
-                normalization_type_string=
-                generator_option_dict[neural_net.SCALAR_TARGET_NORM_TYPE_KEY],
-                uniformize=
-                generator_option_dict[neural_net.UNIFORMIZE_FLAG_KEY],
-                min_normalized_value=
-                generator_option_dict[neural_net.SCALAR_TARGET_MIN_VALUE_KEY],
-                max_normalized_value=
-                generator_option_dict[neural_net.SCALAR_TARGET_MAX_VALUE_KEY],
-                separate_heights=True,
-                apply_to_predictors=False,
-                apply_to_vector_targets=False,
-                apply_to_scalar_targets=True
+            prediction_example_dict_by_member[k] = (
+                normalization.denormalize_data(
+                    example_dict=prediction_example_dict_by_member[k],
+                    normalization_param_table_xarray=norm_param_table_xarray,
+                    apply_to_predictors=False,
+                    apply_to_scalar_targets=
+                    goptd[neural_net.NORMALIZE_SCALAR_TARGETS_KEY],
+                    apply_to_vector_targets=
+                    goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY]
+                )
             )
 
     scalar_prediction_matrix = numpy.stack([

@@ -40,16 +40,9 @@ TARGET_WAVELENGTHS_KEY = 'target_wavelengths_metres'
 FIRST_TIME_KEY = 'first_time_unix_sec'
 LAST_TIME_KEY = 'last_time_unix_sec'
 NORMALIZATION_FILE_KEY = 'normalization_file_name'
-UNIFORMIZE_FLAG_KEY = 'uniformize'
-PREDICTOR_NORM_TYPE_KEY = 'predictor_norm_type_string'
-PREDICTOR_MIN_NORM_VALUE_KEY = 'predictor_min_norm_value'
-PREDICTOR_MAX_NORM_VALUE_KEY = 'predictor_max_norm_value'
-VECTOR_TARGET_NORM_TYPE_KEY = 'vector_target_norm_type_string'
-VECTOR_TARGET_MIN_VALUE_KEY = 'vector_target_min_norm_value'
-VECTOR_TARGET_MAX_VALUE_KEY = 'vector_target_max_norm_value'
-SCALAR_TARGET_NORM_TYPE_KEY = 'scalar_target_norm_type_string'
-SCALAR_TARGET_MIN_VALUE_KEY = 'scalar_target_min_norm_value'
-SCALAR_TARGET_MAX_VALUE_KEY = 'scalar_target_max_norm_value'
+NORMALIZE_PREDICTORS_KEY = 'normalize_predictors'
+NORMALIZE_SCALAR_TARGETS_KEY = 'normalize_scalar_targets'
+NORMALIZE_VECTOR_TARGETS_KEY = 'normalize_vector_targets'
 JOINED_OUTPUT_LAYER_KEY = 'joined_output_layer'
 NUM_DEEP_SUPER_LAYERS_KEY = 'num_deep_supervision_layers'
 NORMALIZATION_FILE_FOR_MASK_KEY = 'normalization_file_name_for_mask'
@@ -61,15 +54,6 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     VECTOR_PREDICTOR_NAMES_KEY: example_utils.BASIC_VECTOR_PREDICTOR_NAMES,
     SCALAR_TARGET_NAMES_KEY: example_utils.ALL_SCALAR_TARGET_NAMES,
     VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
-    PREDICTOR_NORM_TYPE_KEY: normalization.Z_SCORE_NORM_STRING,
-    PREDICTOR_MIN_NORM_VALUE_KEY: None,
-    PREDICTOR_MAX_NORM_VALUE_KEY: None,
-    VECTOR_TARGET_NORM_TYPE_KEY: normalization.MINMAX_NORM_STRING,
-    VECTOR_TARGET_MIN_VALUE_KEY: 0.,
-    VECTOR_TARGET_MAX_VALUE_KEY: 1.,
-    SCALAR_TARGET_NORM_TYPE_KEY: normalization.MINMAX_NORM_STRING,
-    SCALAR_TARGET_MIN_VALUE_KEY: 0.,
-    SCALAR_TARGET_MAX_VALUE_KEY: 1.,
     JOINED_OUTPUT_LAYER_KEY: False,
     NUM_DEEP_SUPER_LAYERS_KEY: 0
 }
@@ -164,16 +148,12 @@ def _check_generator_args(option_dict):
         option_dict[TARGET_WAVELENGTHS_KEY], 0.
     )
 
-    if option_dict[PREDICTOR_NORM_TYPE_KEY] is not None:
-        error_checking.assert_is_string(option_dict[PREDICTOR_NORM_TYPE_KEY])
-    if option_dict[VECTOR_TARGET_NORM_TYPE_KEY] is not None:
-        error_checking.assert_is_string(
-            option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
-        )
-    if option_dict[SCALAR_TARGET_NORM_TYPE_KEY] is not None:
-        error_checking.assert_is_string(
-            option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
-        )
+    if option_dict[NORMALIZATION_FILE_KEY] is not None:
+        error_checking.assert_is_string(option_dict[NORMALIZATION_FILE_KEY])
+
+    error_checking.assert_is_boolean(option_dict[NORMALIZE_PREDICTORS_KEY])
+    error_checking.assert_is_boolean(option_dict[NORMALIZE_SCALAR_TARGETS_KEY])
+    error_checking.assert_is_boolean(option_dict[NORMALIZE_VECTOR_TARGETS_KEY])
 
     if option_dict[MIN_HEATING_RATE_FOR_MASK_KEY] is not None:
         error_checking.assert_is_greater(
@@ -226,11 +206,8 @@ def _check_inference_args(predictor_matrix_or_list, num_examples_per_batch,
 def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
         heights_m_agl, target_wavelengths_metres, normalization_file_name,
-        uniformize, predictor_norm_type_string, predictor_min_norm_value,
-        predictor_max_norm_value, vector_target_norm_type_string,
-        vector_target_min_norm_value, vector_target_max_norm_value,
-        scalar_target_norm_type_string, scalar_target_min_norm_value,
-        scalar_target_max_norm_value):
+        normalize_predictors, normalize_vector_targets,
+        normalize_scalar_targets):
     """Reads one file for generator.
 
     H = number of heights in grid
@@ -246,16 +223,9 @@ def _read_file_for_generator(
         ground level).
     :param target_wavelengths_metres: 1-D numpy array of wavelengths to keep.
     :param normalization_file_name: See doc for `data_generator`.
-    :param uniformize: Same.
-    :param predictor_norm_type_string: Same.
-    :param predictor_min_norm_value: Same.
-    :param predictor_max_norm_value: Same.
-    :param vector_target_norm_type_string: Same.
-    :param vector_target_min_norm_value: Same.
-    :param vector_target_max_norm_value: Same.
-    :param scalar_target_norm_type_string: Same.
-    :param scalar_target_min_norm_value: Same.
-    :param scalar_target_max_norm_value: Same.
+    :param normalize_predictors: Same.
+    :param normalize_vector_targets: Same.
+    :param normalize_scalar_targets: Same.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
@@ -286,22 +256,9 @@ def _read_file_for_generator(
     if previous_norm_file_name is not None:
         normalization_metadata_dict = {
             example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
-            example_io.UNIFORMIZE_FLAG_KEY: uniformize,
-            example_io.PREDICTOR_NORM_TYPE_KEY: predictor_norm_type_string,
-            example_io.PREDICTOR_MIN_VALUE_KEY: predictor_min_norm_value,
-            example_io.PREDICTOR_MAX_VALUE_KEY: predictor_max_norm_value,
-            example_io.VECTOR_TARGET_NORM_TYPE_KEY:
-                vector_target_norm_type_string,
-            example_io.VECTOR_TARGET_MIN_VALUE_KEY:
-                vector_target_min_norm_value,
-            example_io.VECTOR_TARGET_MAX_VALUE_KEY:
-                vector_target_max_norm_value,
-            example_io.SCALAR_TARGET_NORM_TYPE_KEY:
-                scalar_target_norm_type_string,
-            example_io.SCALAR_TARGET_MIN_VALUE_KEY:
-                scalar_target_min_norm_value,
-            example_io.SCALAR_TARGET_MAX_VALUE_KEY:
-                scalar_target_max_norm_value
+            example_io.NORMALIZE_PREDICTORS_KEY: normalize_predictors,
+            example_io.NORMALIZE_SCALAR_TARGETS_KEY: normalize_scalar_targets,
+            example_io.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets
         }
 
         assert example_io.are_normalization_metadata_same(
@@ -314,96 +271,19 @@ def _read_file_for_generator(
     if normalization_file_name is None:
         return example_dict
 
-    print((
-        'Reading training examples (for normalization) from: "{0:s}"...'
-    ).format(
+    print('Reading normalization params from: "{0:s}"...'.format(
         normalization_file_name
     ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-    training_example_dict = example_utils.subset_by_height(
-        example_dict=training_example_dict, heights_m_agl=heights_m_agl
+    norm_param_table_xarray = normalization.read_params(normalization_file_name)
+
+    print('Normalizing data...')
+    normalization.normalize_data(
+        example_dict=example_dict,
+        normalization_param_table_xarray=norm_param_table_xarray,
+        apply_to_predictors=normalize_predictors,
+        apply_to_scalar_targets=normalize_scalar_targets,
+        apply_to_vector_targets=normalize_vector_targets
     )
-    training_example_dict = example_utils.subset_by_wavelength(
-        example_dict=training_example_dict,
-        target_wavelengths_metres=target_wavelengths_metres
-    )
-
-    if predictor_norm_type_string is not None:
-        print('Applying {0:s} normalization to predictors...'.format(
-            predictor_norm_type_string.upper()
-        ))
-        # example_dict = normalization.normalize_data(
-        #     new_example_dict=example_dict,
-        #     training_example_dict=training_example_dict,
-        #     normalization_type_string=predictor_norm_type_string,
-        #     uniformize=uniformize,
-        #     min_normalized_value=predictor_min_norm_value,
-        #     max_normalized_value=predictor_max_norm_value,
-        #     separate_heights=True, apply_to_predictors=True,
-        #     apply_to_vector_targets=False, apply_to_scalar_targets=False
-        # )
-
-        if example_utils.AEROSOL_EXTINCTION_NAME in field_names:
-            pw_linear_model_file_name = (
-                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/examples_with_correct_vertical_coords/shortwave/'
-                'training/piecewise_linear_models_for_uniformization.nc'
-            )
-        else:
-            pw_linear_model_file_name = (
-                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
-                'gfs_data/examples_with_correct_vertical_coords/longwave/'
-                'training/piecewise_linear_models_for_uniformization.nc'
-            )
-
-        print((
-            'Reading piecewise-linear model for uniformization from: "{0:s}"...'
-        ).format(
-            pw_linear_model_file_name
-        ))
-
-        pw_linear_model_table_xarray = (
-            normalization.read_piecewise_linear_models_for_unif(
-                pw_linear_model_file_name
-            )
-        )
-
-        example_dict = (
-            normalization.normalize_data_with_pw_linear_models_for_unif(
-                new_example_dict=example_dict,
-                pw_linear_model_table_xarray=pw_linear_model_table_xarray
-            )
-        )
-
-    if vector_target_norm_type_string is not None:
-        print('Applying {0:s} normalization to vector targets...'.format(
-            vector_target_norm_type_string.upper()
-        ))
-        example_dict = normalization.normalize_data(
-            new_example_dict=example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=vector_target_norm_type_string,
-            uniformize=uniformize,
-            min_normalized_value=vector_target_min_norm_value,
-            max_normalized_value=vector_target_max_norm_value,
-            separate_heights=True, apply_to_predictors=False,
-            apply_to_vector_targets=True, apply_to_scalar_targets=False
-        )
-
-    if scalar_target_norm_type_string is not None:
-        print('Applying {0:s} normalization to scalar targets...'.format(
-            scalar_target_norm_type_string.upper()
-        ))
-        example_dict = normalization.normalize_data(
-            new_example_dict=example_dict,
-            training_example_dict=training_example_dict,
-            normalization_type_string=scalar_target_norm_type_string,
-            uniformize=uniformize,
-            min_normalized_value=scalar_target_min_norm_value,
-            max_normalized_value=scalar_target_max_norm_value,
-            separate_heights=True, apply_to_predictors=False,
-            apply_to_vector_targets=False, apply_to_scalar_targets=True
-        )
 
     return example_dict
 
@@ -702,8 +582,8 @@ def create_mask(
     All height/wavelength and variable/wavelength pairs will be ignored by the
     NN, i.e., the NN will be forced to predict zero for all these values.
 
-    :param normalization_file_name: Path to normalization file, containing
-        values in training data.  For every height/wavelength and variable/
+    :param normalization_file_name: Path to normalization file, readable by
+        `normalization.read_params`.  For every height/wavelength and variable/
         wavelength pair, the climo-max value will be read from this file.  The
         file will be read by `example_io.read_file`.
     :param min_heating_rate_k_day01: Minimum heating rate.  Height/wavelength
@@ -735,7 +615,8 @@ def create_mask(
     print('Reading climo-max values for masking from: "{0:s}"...'.format(
         normalization_file_name
     ))
-    training_example_dict = example_io.read_file(normalization_file_name)
+    norm_param_table_xarray = normalization.read_params(normalization_file_name)
+    npt = norm_param_table_xarray
 
     num_heights = len(heights_m_agl)
     num_wavelengths = len(target_wavelengths_metres)
@@ -743,28 +624,42 @@ def create_mask(
         (num_heights, num_wavelengths), 0, dtype=int
     )
 
-    for i in range(num_heights):
-        for j in range(num_wavelengths):
-            these_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=vector_target_name,
-                height_m_agl=heights_m_agl[i],
-                target_wavelength_metres=target_wavelengths_metres[j]
+    j_new = numpy.where(
+        npt.coords[normalization.VECTOR_TARGET_DIM].values == vector_target_name
+    )[0][0]
+
+    for h in range(num_heights):
+        h_new = example_utils.match_heights(
+            heights_m_agl=npt.coords[normalization.HEIGHT_DIM].values,
+            desired_height_m_agl=heights_m_agl[h]
+        )
+
+        for w in range(num_wavelengths):
+            w_new = example_utils.match_wavelengths(
+                wavelengths_metres=
+                npt.coords[normalization.WAVELENGTH_DIM].values,
+                desired_wavelength_metres=target_wavelengths_metres[w]
             )
 
-            heating_rate_mask_1_for_in[i, j] = (
-                numpy.max(these_values) >= min_heating_rate_k_day01
+            this_max_value = numpy.max(
+                npt[normalization.VECTOR_TARGET_QUANTILE_KEY].values[
+                    h_new, w_new, j_new, :
+                ]
+            )
+
+            heating_rate_mask_1_for_in[h, w] = (
+                this_max_value >= min_heating_rate_k_day01
             ).astype(int)
 
-            if heating_rate_mask_1_for_in[i, j] == 1:
+            if heating_rate_mask_1_for_in[h, w] == 1:
                 continue
 
             print((
                 'Heating rate at {0:.0f} m AGL and {1:.2f} microns will be '
                 'MASKED OUT (always zero)!'
             ).format(
-                heights_m_agl[i],
-                METRES_TO_MICRONS * target_wavelengths_metres[j]
+                heights_m_agl[h],
+                METRES_TO_MICRONS * target_wavelengths_metres[w]
             ))
 
     heating_rate_mask_1_for_in = numpy.expand_dims(
@@ -782,26 +677,37 @@ def create_mask(
         (num_wavelengths, num_flux_vars), 0, dtype=int
     )
 
-    for j in range(num_wavelengths):
-        for k in range(num_flux_vars):
-            these_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=scalar_target_names[k],
-                target_wavelength_metres=target_wavelengths_metres[j]
+    for w in range(num_wavelengths):
+        w_new = example_utils.match_wavelengths(
+            wavelengths_metres=
+            npt.coords[normalization.WAVELENGTH_DIM].values,
+            desired_wavelength_metres=target_wavelengths_metres[w]
+        )
+
+        for j in range(num_flux_vars):
+            j_new = numpy.where(
+                npt.coords[normalization.SCALAR_TARGET_DIM].values ==
+                scalar_target_names[j]
+            )[0][0]
+
+            this_max_value = numpy.max(
+                npt[normalization.SCALAR_TARGET_QUANTILE_KEY].values[
+                    w_new, j_new, :
+                ]
             )
 
-            flux_mask_1_for_in[j, k] = (
-                numpy.max(these_values) >= min_flux_w_m02
+            flux_mask_1_for_in[w, j] = (
+                    this_max_value >= min_flux_w_m02
             ).astype(int)
 
-            if flux_mask_1_for_in[j, k] == 1:
+            if flux_mask_1_for_in[w, j] == 1:
                 continue
 
             print((
                 '{0:s} at {1:.2f} microns will be MASKED OUT (always zero)!'
             ).format(
-                scalar_target_names[k],
-                METRES_TO_MICRONS * target_wavelengths_metres[j]
+                scalar_target_names[j],
+                METRES_TO_MICRONS * target_wavelengths_metres[w]
             ))
 
     flux_mask_1_for_in = numpy.expand_dims(flux_mask_1_for_in, axis=0)
@@ -839,30 +745,14 @@ def data_generator(option_dict, for_inference):
         before this time).
     option_dict['last_time_unix_sec']: End time (will not generate examples
         after this time).
-    option_dict['normalization_file_name']: File with training examples to use
-        for normalization (will be read by `example_io.read_file`).
-    option_dict['uniformize']: Boolean flag, used only for z-score
-        normalization.  If True, will convert each variable to uniform
-        distribution and then z-scores; if False, will convert directly to
-        z-scores.
-    option_dict['predictor_norm_type_string']: Normalization type for predictors
-        (must be accepted by `normalization.check_normalization_type`).  If you
-        do not want to normalize predictors, make this None.
-    option_dict['predictor_min_norm_value']: Minimum normalized value for
-        predictors (used only if normalization type is min-max).
-    option_dict['predictor_max_norm_value']: Same but max value.
-    option_dict['vector_target_norm_type_string']: Normalization type for vector
-        targets (must be accepted by `normalization.check_normalization_type`).
-        If you do not want to normalize vector targets, make this None.
-    option_dict['vector_target_min_norm_value']: Minimum normalized value for
-        vector targets (used only if normalization type is min-max).
-    option_dict['vector_target_max_norm_value']: Same but max value.
-    option_dict['scalar_target_norm_type_string']: Same as
-        "vector_target_norm_type_string" but for scalar targets.
-    option_dict['scalar_target_min_norm_value']: Same as
-        "vector_target_min_norm_value" but for scalar targets.
-    option_dict['scalar_target_max_norm_value']: Same as
-        "vector_target_max_norm_value" but for scalar targets.
+    option_dict['normalization_file_name']: Path to file with normalization
+        parameters (will be read by `normalization.read_params`).
+    option_dict['normalize_predictors']: Boolean flag.  If True, will normalize
+        predictor variables.
+    option_dict['normalize_scalar_target']: Boolean flag.  If True, will
+        normalize scalar target variables (fluxes).
+    option_dict['normalize_vector_target']: Boolean flag.  If True, will
+        normalize vector target variables (heating rates).
     option_dict['joined_output_layer']: Boolean flag.  If True, heating rates
         and fluxes are all joined into one output layer.
     option_dict['num_deep_supervision_layers']: Number of deep-supervision
@@ -879,8 +769,9 @@ def data_generator(option_dict, for_inference):
         forced to predict zero for this variable/wavelength pair.  If you do not
         want to apply masking, make this None.
     option_dict['normalization_file_name_for_mask']: Climo-max heating rates and
-        fluxes will be found in this file, to be read by `example_io.read_file`.
-        If you do not want to apply masking, make this None.
+        fluxes will be found in this file, to be read by
+        `normalization.read_params`.  If you do not want to apply masking, make
+        this None.
 
     :param for_inference: Boolean flag.  If True, generator is being used for
         inference stage (applying trained model to new data).  If False,
@@ -938,16 +829,9 @@ def data_generator(option_dict, for_inference):
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
-    uniformize = option_dict[UNIFORMIZE_FLAG_KEY]
-    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
-    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
-    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
-    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
-    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
-    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
-    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
-    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
+    normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
+    normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
+    normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
     joined_output_layer = option_dict[JOINED_OUTPUT_LAYER_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
@@ -986,16 +870,9 @@ def data_generator(option_dict, for_inference):
         heights_m_agl=heights_m_agl,
         target_wavelengths_metres=target_wavelengths_metres,
         normalization_file_name=normalization_file_name,
-        uniformize=uniformize,
-        predictor_norm_type_string=predictor_norm_type_string,
-        predictor_min_norm_value=predictor_min_norm_value,
-        predictor_max_norm_value=predictor_max_norm_value,
-        vector_target_norm_type_string=vector_target_norm_type_string,
-        vector_target_min_norm_value=vector_target_min_norm_value,
-        vector_target_max_norm_value=vector_target_max_norm_value,
-        scalar_target_norm_type_string=scalar_target_norm_type_string,
-        scalar_target_min_norm_value=scalar_target_min_norm_value,
-        scalar_target_max_norm_value=scalar_target_max_norm_value
+        normalize_predictors=normalize_predictors,
+        normalize_scalar_targets=normalize_scalar_targets,
+        normalize_vector_targets=normalize_vector_targets
     )
 
     num_examples_in_dict = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
@@ -1046,18 +923,9 @@ def data_generator(option_dict, for_inference):
                     heights_m_agl=heights_m_agl,
                     target_wavelengths_metres=target_wavelengths_metres,
                     normalization_file_name=normalization_file_name,
-                    uniformize=uniformize,
-                    predictor_norm_type_string=predictor_norm_type_string,
-                    predictor_min_norm_value=predictor_min_norm_value,
-                    predictor_max_norm_value=predictor_max_norm_value,
-                    vector_target_norm_type_string=
-                    vector_target_norm_type_string,
-                    vector_target_min_norm_value=vector_target_min_norm_value,
-                    vector_target_max_norm_value=vector_target_max_norm_value,
-                    scalar_target_norm_type_string=
-                    scalar_target_norm_type_string,
-                    scalar_target_min_norm_value=scalar_target_min_norm_value,
-                    scalar_target_max_norm_value=scalar_target_max_norm_value
+                    normalize_predictors=normalize_predictors,
+                    normalize_scalar_targets=normalize_scalar_targets,
+                    normalize_vector_targets=normalize_vector_targets
                 )
 
                 num_examples_in_dict = len(
@@ -1141,12 +1009,8 @@ def data_generator(option_dict, for_inference):
 
             num_examples_in_memory = predictor_matrix.shape[0]
 
-        predictor_matrix = predictor_matrix.astype('float32')
-
         if joined_output_layer:
-            target_matrix_or_dict = vector_target_matrix[..., 0].astype(
-                'float32'
-            )
+            target_matrix_or_dict = vector_target_matrix[..., 0]
 
             if scalar_target_matrix is not None:
                 scalar_target_matrix = numpy.swapaxes(
@@ -1154,19 +1018,19 @@ def data_generator(option_dict, for_inference):
                 )
                 target_matrix_or_dict = numpy.concatenate([
                     target_matrix_or_dict,
-                    scalar_target_matrix.astype('float32')
+                    scalar_target_matrix
                 ], axis=-2)
         else:
             target_matrix_or_dict = {
-                HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
+                HEATING_RATE_TARGETS_KEY: vector_target_matrix
             }
 
             if scalar_target_matrix is None:
-                target_matrix_or_dict = target_matrix_or_dict[HEATING_RATE_TARGETS_KEY]
+                target_matrix_or_dict = target_matrix_or_dict[
+                    HEATING_RATE_TARGETS_KEY
+                ]
             else:
-                target_matrix_or_dict[FLUX_TARGETS_KEY] = (
-                    scalar_target_matrix.astype('float32')
-                )
+                target_matrix_or_dict[FLUX_TARGETS_KEY] = scalar_target_matrix
 
         # TODO(thunderhoser): This does not work anymore; in Keras 3 the
         # generator must return a dictionary, not a list.
@@ -1223,16 +1087,9 @@ def create_data(option_dict):
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
-    uniformize = option_dict[UNIFORMIZE_FLAG_KEY]
-    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
-    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
-    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
-    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
-    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
-    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
-    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
-    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
+    normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
+    normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
+    normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
     joined_output_layer = option_dict[JOINED_OUTPUT_LAYER_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
@@ -1263,47 +1120,38 @@ def create_data(option_dict):
             heights_m_agl=heights_m_agl,
             target_wavelengths_metres=target_wavelengths_metres,
             normalization_file_name=normalization_file_name,
-            uniformize=uniformize,
-            predictor_norm_type_string=predictor_norm_type_string,
-            predictor_min_norm_value=predictor_min_norm_value,
-            predictor_max_norm_value=predictor_max_norm_value,
-            vector_target_norm_type_string=vector_target_norm_type_string,
-            vector_target_min_norm_value=vector_target_min_norm_value,
-            vector_target_max_norm_value=vector_target_max_norm_value,
-            scalar_target_norm_type_string=scalar_target_norm_type_string,
-            scalar_target_min_norm_value=scalar_target_min_norm_value,
-            scalar_target_max_norm_value=scalar_target_max_norm_value
+            normalize_predictors=normalize_predictors,
+            normalize_scalar_targets=normalize_scalar_targets,
+            normalize_vector_targets=normalize_vector_targets
         )
 
         example_dicts.append(this_example_dict)
 
     example_dict = example_utils.concat_examples(example_dicts)
     predictor_matrix = predictors_dict_to_numpy(example_dict)[0]
-    predictor_matrix = predictor_matrix.astype('float32')
 
     vector_target_matrix, scalar_target_matrix = targets_dict_to_numpy(
         example_dict
     )
 
     if joined_output_layer:
-        vector_target_matrix = vector_target_matrix[..., 0].astype('float32')
+        vector_target_matrix = vector_target_matrix[..., 0]
 
         if scalar_target_matrix is not None:
             scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
             vector_target_matrix = numpy.concatenate(
-                [vector_target_matrix, scalar_target_matrix.astype('float32')],
-                axis=-2
+                [vector_target_matrix, scalar_target_matrix], axis=-2
             )
 
         target_dict = {
-            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
+            HEATING_RATE_TARGETS_KEY: vector_target_matrix
         }
     else:
         target_dict = {
-            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
+            HEATING_RATE_TARGETS_KEY: vector_target_matrix
         }
         if scalar_target_matrix is not None:
-            target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
+            target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix
 
     # TODO(thunderhoser): Deep supervision is all fucked now.
     # for _ in range(num_deep_supervision_layers):
@@ -1364,16 +1212,9 @@ def create_data_specific_examples(option_dict, example_id_strings):
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
-    uniformize = option_dict[UNIFORMIZE_FLAG_KEY]
-    predictor_norm_type_string = option_dict[PREDICTOR_NORM_TYPE_KEY]
-    predictor_min_norm_value = option_dict[PREDICTOR_MIN_NORM_VALUE_KEY]
-    predictor_max_norm_value = option_dict[PREDICTOR_MAX_NORM_VALUE_KEY]
-    vector_target_norm_type_string = option_dict[VECTOR_TARGET_NORM_TYPE_KEY]
-    vector_target_min_norm_value = option_dict[VECTOR_TARGET_MIN_VALUE_KEY]
-    vector_target_max_norm_value = option_dict[VECTOR_TARGET_MAX_VALUE_KEY]
-    scalar_target_norm_type_string = option_dict[SCALAR_TARGET_NORM_TYPE_KEY]
-    scalar_target_min_norm_value = option_dict[SCALAR_TARGET_MIN_VALUE_KEY]
-    scalar_target_max_norm_value = option_dict[SCALAR_TARGET_MAX_VALUE_KEY]
+    normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
+    normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
+    normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
         MIN_HEATING_RATE_FOR_MASK_KEY
     ]
@@ -1422,16 +1263,9 @@ def create_data_specific_examples(option_dict, example_id_strings):
             heights_m_agl=heights_m_agl,
             target_wavelengths_metres=target_wavelengths_metres,
             normalization_file_name=normalization_file_name,
-            uniformize=uniformize,
-            predictor_norm_type_string=predictor_norm_type_string,
-            predictor_min_norm_value=predictor_min_norm_value,
-            predictor_max_norm_value=predictor_max_norm_value,
-            vector_target_norm_type_string=vector_target_norm_type_string,
-            vector_target_min_norm_value=vector_target_min_norm_value,
-            vector_target_max_norm_value=vector_target_max_norm_value,
-            scalar_target_norm_type_string=scalar_target_norm_type_string,
-            scalar_target_min_norm_value=scalar_target_min_norm_value,
-            scalar_target_max_norm_value=scalar_target_max_norm_value
+            normalize_predictors=normalize_predictors,
+            normalize_scalar_targets=normalize_scalar_targets,
+            normalize_vector_targets=normalize_vector_targets
         )
 
         if len(this_example_dict[example_utils.EXAMPLE_IDS_KEY]) == 0:
@@ -1492,13 +1326,12 @@ def create_data_specific_examples(option_dict, example_id_strings):
         found_example_flags[missing_example_indices] = True
 
     assert numpy.all(found_example_flags)
-    predictor_matrix = predictor_matrix.astype('float32')
 
     target_dict = {
-        HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
+        HEATING_RATE_TARGETS_KEY: vector_target_matrix
     }
     if scalar_target_matrix is not None:
-        target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
+        target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix
 
     predictor_dict = {MAIN_PREDICTORS_KEY: predictor_matrix}
     if heating_rate_mask_matrix is not None:
@@ -2112,6 +1945,21 @@ def read_metafile(dill_file_name):
         v[NORMALIZATION_FILE_FOR_MASK_KEY] = None
         v[MIN_HEATING_RATE_FOR_MASK_KEY] = None
         v[MIN_FLUX_FOR_MASK_KEY] = None
+
+    if NORMALIZE_PREDICTORS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[NORMALIZE_PREDICTORS_KEY] = (
+            t['predictor_norm_type_string'] is not None
+        )
+        t[NORMALIZE_SCALAR_TARGETS_KEY] = (
+            t['scalar_target_norm_type_string'] is not None
+        )
+        t[NORMALIZE_VECTOR_TARGETS_KEY] = (
+            t['vector_target_norm_type_string'] is not None
+        )
+
+        v[NORMALIZE_PREDICTORS_KEY] = t[NORMALIZE_PREDICTORS_KEY]
+        v[NORMALIZE_SCALAR_TARGETS_KEY] = t[NORMALIZE_SCALAR_TARGETS_KEY]
+        v[NORMALIZE_VECTOR_TARGETS_KEY] = t[NORMALIZE_VECTOR_TARGETS_KEY]
 
     if JOINED_OUTPUT_LAYER_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         t[JOINED_OUTPUT_LAYER_KEY] = False

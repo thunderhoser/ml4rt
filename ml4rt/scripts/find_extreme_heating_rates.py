@@ -6,7 +6,6 @@ import argparse
 import numpy
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import prediction_io
-from ml4rt.io import example_io
 from ml4rt.utils import misc as misc_utils
 from ml4rt.utils import example_utils
 from ml4rt.utils import normalization
@@ -160,27 +159,13 @@ def _run(input_prediction_file_name, for_shortwave,
                 prediction_dict[prediction_io.NORMALIZATION_FILE_KEY]
             )
 
-        print((
-            'Reading training examples (for climatology) from: "{0:s}"...'
-        ).format(
+        print('Reading normalization params from: "{0:s}"...'.format(
             normalization_file_name
         ))
-
-        training_example_dict = example_io.read_file(normalization_file_name)
-        training_example_dict = example_utils.subset_by_field(
-            example_dict=training_example_dict,
-            field_names=[
-                example_utils.SHORTWAVE_HEATING_RATE_NAME if for_shortwave
-                else example_utils.LONGWAVE_HEATING_RATE_NAME
-            ]
+        norm_param_table_xarray = normalization.read_params(
+            normalization_file_name
         )
-
-        # Take absolute values, in case longwave.
-        training_example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = (
-            numpy.absolute(
-                training_example_dict[example_utils.VECTOR_TARGET_VALS_KEY]
-            )
-        )
+        npt = norm_param_table_xarray
 
         if prediction_dict[prediction_io.NORMALIZATION_FILE_KEY] is None:
             heights_m_agl = generator_option_dict[neural_net.HEIGHTS_KEY]
@@ -188,18 +173,8 @@ def _run(input_prediction_file_name, for_shortwave,
                 neural_net.TARGET_WAVELENGTHS_KEY
             ]
         else:
-            heights_m_agl = training_example_dict[example_utils.HEIGHTS_KEY]
-            wavelengths_metres = training_example_dict[
-                example_utils.TARGET_WAVELENGTHS_KEY
-            ]
-
-        training_example_dict = example_utils.subset_by_height(
-            example_dict=training_example_dict, heights_m_agl=heights_m_agl
-        )
-        training_example_dict = example_utils.subset_by_wavelength(
-            example_dict=training_example_dict,
-            target_wavelengths_metres=wavelengths_metres
-        )
+            heights_m_agl = npt.coords[normalization.HEIGHT_DIM].values
+            wavelengths_metres = npt.coords[normalization.WAVELENGTH_DIM].values
 
         dummy_example_dict = {
             example_utils.SCALAR_PREDICTOR_NAMES_KEY: [],
@@ -213,14 +188,15 @@ def _run(input_prediction_file_name, for_shortwave,
             example_utils.TARGET_WAVELENGTHS_KEY: wavelengths_metres
         }
 
-        mean_training_example_dict = normalization.create_mean_example(
-            new_example_dict=dummy_example_dict,
-            training_example_dict=training_example_dict
+        mean_example_dict = normalization.create_mean_example(
+            example_dict=dummy_example_dict,
+            normalization_param_table_xarray=norm_param_table_xarray,
+            use_absolute_values=True
         )
-        climo_matrix_k_day01 = mean_training_example_dict[
-            example_utils.VECTOR_TARGET_VALS_KEY
-        ][..., 0]
 
+        climo_matrix_k_day01 = (
+            mean_example_dict[example_utils.VECTOR_TARGET_VALS_KEY][..., 0]
+        )
         bias_matrix = bias_matrix / climo_matrix_k_day01
         absolute_error_matrix = absolute_error_matrix / climo_matrix_k_day01
 

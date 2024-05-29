@@ -1,7 +1,6 @@
 """Contains list of input arguments for training a neural net."""
 
 from ml4rt.utils import example_utils
-from ml4rt.utils import normalization
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
@@ -25,16 +24,9 @@ FIRST_VALIDN_TIME_ARG_NAME = 'first_validn_time_string'
 LAST_VALIDN_TIME_ARG_NAME = 'last_validn_time_string'
 
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
-UNIFORMIZE_FLAG_ARG_NAME = 'uniformize'
-PREDICTOR_NORM_TYPE_ARG_NAME = 'predictor_norm_type_string'
-PREDICTOR_MIN_VALUE_ARG_NAME = 'predictor_min_norm_value'
-PREDICTOR_MAX_VALUE_ARG_NAME = 'predictor_max_norm_value'
-VECTOR_TARGET_NORM_TYPE_ARG_NAME = 'vector_target_norm_type_string'
-VECTOR_TARGET_MIN_VALUE_ARG_NAME = 'vector_target_min_norm_value'
-VECTOR_TARGET_MAX_VALUE_ARG_NAME = 'vector_target_max_norm_value'
-SCALAR_TARGET_NORM_TYPE_ARG_NAME = 'scalar_target_norm_type_string'
-SCALAR_TARGET_MIN_VALUE_ARG_NAME = 'scalar_target_min_norm_value'
-SCALAR_TARGET_MAX_VALUE_ARG_NAME = 'scalar_target_max_norm_value'
+NORMALIZE_PREDICTORS_ARG_NAME = 'normalize_predictors'
+NORMALIZE_SCALAR_TARGETS_ARG_NAME = 'normalize_scalar_targets'
+NORMALIZE_VECTOR_TARGETS_ARG_NAME = 'normalize_vector_targets'
 
 NORMALIZATION_FILE_FOR_MASK_ARG_NAME = 'normalization_file_name_for_mask'
 MIN_HEATING_RATE_FOR_MASK_ARG_NAME = 'min_heating_rate_for_mask_k_day01'
@@ -105,54 +97,18 @@ VALIDN_TIME_HELP_STRING = (
 )
 
 NORMALIZATION_FILE_HELP_STRING = (
-    'Path to normalization file.  Will be read by `example_io.read_file`.  If '
-    'you do not want to normalize, make this an empty string ("").'
+    'Path to file with normalization params (will be read by '
+    '`normalization.read_params`).  If you do not want to normalize, make this '
+    'an empty string ("").'
 )
-UNIFORMIZE_FLAG_HELP_STRING = (
-    'Boolean flag, used only for z-score normalization.  If 1, each variable '
-    'will be converted to a uniform distribution and then z-scores.  If 0, '
-    'each variable will be converted directly to z-scores.'
+NORMALIZE_PREDICTORS_HELP_STRING = (
+    'Boolean flag.  If 1, will normalize predictor variables.'
 )
-PREDICTOR_NORM_TYPE_HELP_STRING = (
-    'Normalization type for predictors (must be accepted by '
-    '`normalization.check_normalization_type`).  If you do not want to '
-    'normalize, make this an empty string ("").'
+NORMALIZE_SCALAR_TARGETS_HELP_STRING = (
+    'Boolean flag.  If 1, will normalize scalar target variables.'
 )
-PREDICTOR_MIN_VALUE_HELP_STRING = (
-    'Minimum value if you have chosen min-max normalization.'
-)
-PREDICTOR_MAX_VALUE_HELP_STRING = (
-    'Max value if you have chosen min-max normalization.'
-)
-VECTOR_TARGET_NORM_TYPE_HELP_STRING = (
-    'Same as `{0:s}` but for vector target variables.'
-).format(
-    PREDICTOR_NORM_TYPE_ARG_NAME
-)
-VECTOR_TARGET_MIN_VALUE_HELP_STRING = (
-    'Same as `{0:s}` but for vector target variables.'
-).format(
-    PREDICTOR_MIN_VALUE_ARG_NAME
-)
-VECTOR_TARGET_MAX_VALUE_HELP_STRING = (
-    'Same as `{0:s}` but for vector target variables.'
-).format(
-    PREDICTOR_MAX_VALUE_ARG_NAME
-)
-SCALAR_TARGET_NORM_TYPE_HELP_STRING = (
-    'Same as `{0:s}` but for scalar target variables.'
-).format(
-    PREDICTOR_NORM_TYPE_ARG_NAME
-)
-SCALAR_TARGET_MIN_VALUE_HELP_STRING = (
-    'Same as `{0:s}` but for scalar target variables.'
-).format(
-    PREDICTOR_MIN_VALUE_ARG_NAME
-)
-SCALAR_TARGET_MAX_VALUE_HELP_STRING = (
-    'Same as `{0:s}` but for scalar target variables.'
-).format(
-    PREDICTOR_MAX_VALUE_ARG_NAME
+NORMALIZE_VECTOR_TARGETS_HELP_STRING = (
+    'Boolean flag.  If 1, will normalize vector target variables.'
 )
 
 NORMALIZATION_FILE_FOR_MASK_HELP_STRING = (
@@ -266,45 +222,16 @@ def add_input_args(parser_object):
         help=NORMALIZATION_FILE_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + UNIFORMIZE_FLAG_ARG_NAME, type=int, required=True,
-        help=UNIFORMIZE_FLAG_HELP_STRING
+        '--' + NORMALIZE_PREDICTORS_ARG_NAME, type=int, required=True,
+        help=NORMALIZE_PREDICTORS_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + PREDICTOR_NORM_TYPE_ARG_NAME, type=str, required=False,
-        default=normalization.Z_SCORE_NORM_STRING,
-        help=PREDICTOR_NORM_TYPE_HELP_STRING
+        '--' + NORMALIZE_SCALAR_TARGETS_ARG_NAME, type=int, required=True,
+        help=NORMALIZE_SCALAR_TARGETS_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + PREDICTOR_MIN_VALUE_ARG_NAME, type=float, required=False,
-        default=0., help=PREDICTOR_MIN_VALUE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + PREDICTOR_MAX_VALUE_ARG_NAME, type=float, required=False,
-        default=1., help=PREDICTOR_MAX_VALUE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + VECTOR_TARGET_NORM_TYPE_ARG_NAME, type=str, required=True,
-        help=VECTOR_TARGET_NORM_TYPE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + VECTOR_TARGET_MIN_VALUE_ARG_NAME, type=float, required=False,
-        default=0., help=VECTOR_TARGET_MIN_VALUE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + VECTOR_TARGET_MAX_VALUE_ARG_NAME, type=float, required=False,
-        default=1., help=VECTOR_TARGET_MAX_VALUE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + SCALAR_TARGET_NORM_TYPE_ARG_NAME, type=str, required=True,
-        help=SCALAR_TARGET_NORM_TYPE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + SCALAR_TARGET_MIN_VALUE_ARG_NAME, type=float, required=False,
-        default=0., help=SCALAR_TARGET_MIN_VALUE_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + SCALAR_TARGET_MAX_VALUE_ARG_NAME, type=float, required=False,
-        default=1., help=SCALAR_TARGET_MAX_VALUE_HELP_STRING
+        '--' + NORMALIZE_VECTOR_TARGETS_ARG_NAME, type=int, required=True,
+        help=NORMALIZE_VECTOR_TARGETS_HELP_STRING
     )
     parser_object.add_argument(
         '--' + NORMALIZATION_FILE_FOR_MASK_ARG_NAME, type=str, required=False,
