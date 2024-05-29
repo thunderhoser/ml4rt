@@ -442,7 +442,7 @@ def read_file(
 
     for this_key in main_data_keys:
         example_dict[this_key] = numpy.array(
-            dataset_object.variables[this_key][:], dtype=float
+            dataset_object.variables[this_key][:], dtype=numpy.float32
         )
 
     if not found_wavelengths:

@@ -1015,8 +1015,12 @@ def data_generator(option_dict, for_inference):
 
             num_examples_in_memory = predictor_matrix.shape[0]
 
+        predictor_matrix = predictor_matrix.astype('float32')
+
         if joined_output_layer:
-            target_matrix_or_dict = vector_target_matrix[..., 0]
+            target_matrix_or_dict = vector_target_matrix[..., 0].astype(
+                'float32'
+            )
 
             if scalar_target_matrix is not None:
                 scalar_target_matrix = numpy.swapaxes(
@@ -1024,11 +1028,11 @@ def data_generator(option_dict, for_inference):
                 )
                 target_matrix_or_dict = numpy.concatenate([
                     target_matrix_or_dict,
-                    scalar_target_matrix
+                    scalar_target_matrix.astype('float32')
                 ], axis=-2)
         else:
             target_matrix_or_dict = {
-                HEATING_RATE_TARGETS_KEY: vector_target_matrix
+                HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
             }
 
             if scalar_target_matrix is None:
@@ -1036,7 +1040,9 @@ def data_generator(option_dict, for_inference):
                     HEATING_RATE_TARGETS_KEY
                 ]
             else:
-                target_matrix_or_dict[FLUX_TARGETS_KEY] = scalar_target_matrix
+                target_matrix_or_dict[FLUX_TARGETS_KEY] = (
+                    scalar_target_matrix.astype('float32')
+                )
 
         # TODO(thunderhoser): This does not work anymore; in Keras 3 the
         # generator must return a dictionary, not a list.
@@ -1135,29 +1141,31 @@ def create_data(option_dict):
 
     example_dict = example_utils.concat_examples(example_dicts)
     predictor_matrix = predictors_dict_to_numpy(example_dict)[0]
+    predictor_matrix = predictor_matrix.astype('float32')
 
     vector_target_matrix, scalar_target_matrix = targets_dict_to_numpy(
         example_dict
     )
 
     if joined_output_layer:
-        vector_target_matrix = vector_target_matrix[..., 0]
+        vector_target_matrix = vector_target_matrix[..., 0].astype('float32')
 
         if scalar_target_matrix is not None:
             scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
             vector_target_matrix = numpy.concatenate(
-                [vector_target_matrix, scalar_target_matrix], axis=-2
+                [vector_target_matrix, scalar_target_matrix.astype('float32')],
+                axis=-2
             )
 
         target_dict = {
-            HEATING_RATE_TARGETS_KEY: vector_target_matrix
+            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
         }
     else:
         target_dict = {
-            HEATING_RATE_TARGETS_KEY: vector_target_matrix
+            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
         }
         if scalar_target_matrix is not None:
-            target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix
+            target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
 
     # TODO(thunderhoser): Deep supervision is all fucked now.
     # for _ in range(num_deep_supervision_layers):
@@ -1332,12 +1340,13 @@ def create_data_specific_examples(option_dict, example_id_strings):
         found_example_flags[missing_example_indices] = True
 
     assert numpy.all(found_example_flags)
+    predictor_matrix = predictor_matrix.astype('float32')
 
     target_dict = {
-        HEATING_RATE_TARGETS_KEY: vector_target_matrix
+        HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
     }
     if scalar_target_matrix is not None:
-        target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix
+        target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
 
     predictor_dict = {MAIN_PREDICTORS_KEY: predictor_matrix}
     if heating_rate_mask_matrix is not None:
