@@ -255,7 +255,7 @@ def get_normalization_params(example_dict, num_quantiles):
             vector_predictor_mean_abs_matrix[h, j] = numpy.mean(
                 numpy.absolute(data_values)
             )
-            vector_predictor_stdev_matrix[h, j] = numpy.stdev(
+            vector_predictor_stdev_matrix[h, j] = numpy.std(
                 data_values, ddof=1
             )
             vector_predictor_quantile_matrix[h, j, :] = numpy.percentile(
@@ -303,7 +303,7 @@ def get_normalization_params(example_dict, num_quantiles):
                 vector_target_mean_abs_matrix[h, w, j] = numpy.mean(
                     numpy.absolute(data_values)
                 )
-                vector_target_stdev_matrix[h, w, j] = numpy.stdev(
+                vector_target_stdev_matrix[h, w, j] = numpy.std(
                     data_values, ddof=1
                 )
                 vector_target_quantile_matrix[h, w, j, :] = numpy.percentile(
@@ -351,7 +351,7 @@ def get_normalization_params(example_dict, num_quantiles):
         scalar_predictor_mean_abs_values[j] = numpy.mean(
             numpy.absolute(data_values)
         )
-        scalar_predictor_stdevs[j] = numpy.stdev(data_values, ddof=1)
+        scalar_predictor_stdevs[j] = numpy.std(data_values, ddof=1)
         scalar_predictor_quantile_matrix[j, :] = numpy.percentile(
             data_values, 100 * quantile_levels
         )
@@ -392,7 +392,7 @@ def get_normalization_params(example_dict, num_quantiles):
             scalar_target_mean_abs_matrix[w, j] = numpy.mean(
                 numpy.absolute(data_values)
             )
-            scalar_target_stdev_matrix[w, j] = numpy.stdev(data_values, ddof=1)
+            scalar_target_stdev_matrix[w, j] = numpy.std(data_values, ddof=1)
             scalar_target_quantile_matrix[w, j, :] = numpy.percentile(
                 data_values, 100 * quantile_levels
             )
