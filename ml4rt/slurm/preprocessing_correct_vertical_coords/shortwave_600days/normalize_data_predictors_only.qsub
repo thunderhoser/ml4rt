@@ -1,9 +1,9 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #SBATCH --job-name="normalize_data_predictors_only"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpu"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=02:00:00
-#SBATCH --array=1-45
+#SBATCH --array=0-44
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -20,27 +20,32 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=normalize_data_predictors_only_%A_%a.out
 
-module load cuda/10.1
-source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda init
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
-set NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/training/learning_examples_for_norm_20180901-20191221.nc"
+echo `which conda`
+echo `which python`
+echo `which python3`
 
-set TOP_INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved"
-set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/normalized_predictors"
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
 
-set PATHLESS_INPUT_FILE_NAMES=("training/learning_examples_2018_part01.nc" "training/learning_examples_2018_part02.nc" "training/learning_examples_2018_part03.nc" "training/learning_examples_2018_part04.nc" "training/learning_examples_2018_part05.nc" "training/learning_examples_2018_part06.nc" "training/learning_examples_2018_part07.nc" "training/learning_examples_2018_part08.nc" "training/learning_examples_2018_part09.nc" "training/learning_examples_2019_part01.nc" "training/learning_examples_2019_part02.nc" "training/learning_examples_2019_part03.nc" "training/learning_examples_2019_part04.nc" "training/learning_examples_2019_part05.nc" "training/learning_examples_2019_part06.nc" "training/learning_examples_2019_part07.nc" "training/learning_examples_2019_part08.nc" "training/learning_examples_2019_part09.nc" "isotonic_regression/learning_examples_2019.nc" "isotonic_regression/learning_examples_2020_part01.nc" "isotonic_regression/learning_examples_2020_part02.nc" "isotonic_regression/learning_examples_2020_part03.nc" "isotonic_regression/learning_examples_2020_part04.nc" "isotonic_regression/learning_examples_2020_part05.nc" "isotonic_regression/learning_examples_2020_part06.nc" "isotonic_regression/learning_examples_2020_part07.nc" "isotonic_regression/learning_examples_2020_part08.nc" "validation/learning_examples_2020_part01.nc" "validation/learning_examples_2020_part02.nc" "validation/learning_examples_2020_part03.nc" "validation/learning_examples_2020_part04.nc" "validation/learning_examples_2020_part05.nc" "validation/learning_examples_2020_part06.nc" "validation/learning_examples_2020_part07.nc" "validation/learning_examples_2020_part08.nc" "validation/learning_examples_2020_part09.nc" "testing/learning_examples_2020_part01.nc" "testing/learning_examples_2020_part02.nc" "testing/learning_examples_2020_part03.nc" "testing/learning_examples_2020_part04.nc" "testing/learning_examples_2020_part05.nc" "testing/learning_examples_2020_part06.nc" "testing/learning_examples_2020_part07.nc" "testing/learning_examples_2020_part08.nc" "testing/learning_examples_2020_part09.nc")
-set PATHLESS_OUTPUT_DIR_NAMES=("training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "validation" "validation" "validation" "validation" "validation" "validation" "validation" "validation" "validation" "testing" "testing" "testing" "testing" "testing" "testing" "testing" "testing" "testing")
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/training/normalization_params_20180901-20191221.nc"
 
-set input_file_name="${TOP_INPUT_DIR_NAME}/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
-set output_dir_name="${TOP_OUTPUT_DIR_NAME}/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
+TOP_INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/normalized_predictors/simple_normalization"
+
+PATHLESS_INPUT_FILE_NAMES=("training/learning_examples_2018_part01.nc" "training/learning_examples_2018_part02.nc" "training/learning_examples_2018_part03.nc" "training/learning_examples_2018_part04.nc" "training/learning_examples_2018_part05.nc" "training/learning_examples_2018_part06.nc" "training/learning_examples_2018_part07.nc" "training/learning_examples_2018_part08.nc" "training/learning_examples_2018_part09.nc" "training/learning_examples_2019_part01.nc" "training/learning_examples_2019_part02.nc" "training/learning_examples_2019_part03.nc" "training/learning_examples_2019_part04.nc" "training/learning_examples_2019_part05.nc" "training/learning_examples_2019_part06.nc" "training/learning_examples_2019_part07.nc" "training/learning_examples_2019_part08.nc" "training/learning_examples_2019_part09.nc" "isotonic_regression/learning_examples_2019.nc" "isotonic_regression/learning_examples_2020_part01.nc" "isotonic_regression/learning_examples_2020_part02.nc" "isotonic_regression/learning_examples_2020_part03.nc" "isotonic_regression/learning_examples_2020_part04.nc" "isotonic_regression/learning_examples_2020_part05.nc" "isotonic_regression/learning_examples_2020_part06.nc" "isotonic_regression/learning_examples_2020_part07.nc" "isotonic_regression/learning_examples_2020_part08.nc" "validation/learning_examples_2020_part01.nc" "validation/learning_examples_2020_part02.nc" "validation/learning_examples_2020_part03.nc" "validation/learning_examples_2020_part04.nc" "validation/learning_examples_2020_part05.nc" "validation/learning_examples_2020_part06.nc" "validation/learning_examples_2020_part07.nc" "validation/learning_examples_2020_part08.nc" "validation/learning_examples_2020_part09.nc" "testing/learning_examples_2020_part01.nc" "testing/learning_examples_2020_part02.nc" "testing/learning_examples_2020_part03.nc" "testing/learning_examples_2020_part04.nc" "testing/learning_examples_2020_part05.nc" "testing/learning_examples_2020_part06.nc" "testing/learning_examples_2020_part07.nc" "testing/learning_examples_2020_part08.nc" "testing/learning_examples_2020_part09.nc")
+PATHLESS_OUTPUT_DIR_NAMES=("training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "training" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "isotonic_regression" "validation" "validation" "validation" "validation" "validation" "validation" "validation" "validation" "validation" "testing" "testing" "testing" "testing" "testing" "testing" "testing" "testing" "testing")
+
+input_file_name="${TOP_INPUT_DIR_NAME}/${PATHLESS_INPUT_FILE_NAMES[$SLURM_ARRAY_TASK_ID]}"
+output_dir_name="${TOP_OUTPUT_DIR_NAME}/${PATHLESS_OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
 
 python3 -u "${CODE_DIR_NAME}/normalize_examples.py" \
 --input_example_file_name="${input_file_name}" \
 --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
---uniformize=1 \
---predictor_norm_type_string="z_score" \
---vector_target_norm_type_string="" \
---scalar_target_norm_type_string="" \
+--normalize_predictors=1 \
+--normalize_scalar_targets=0 \
+--normalize_vector_targets=0 \
 --output_example_dir_name="${output_dir_name}"
