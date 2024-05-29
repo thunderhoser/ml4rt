@@ -100,17 +100,18 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
     quantile_levels = numpy.linspace(0, 1, num=num_quantiles, dtype=float)
     _, unique_indices = numpy.unique(reference_values_1d, return_index=True)
 
-    print('Length of unique_indices = {0:d}'.format(len(unique_indices)))
-
-    interp_object = interp1d(
-        x=reference_values_1d[unique_indices],
-        y=quantile_levels[unique_indices],
-        kind='linear',
-        bounds_error=False,
-        fill_value='extrapolate',
-        assume_sorted=True
-    )
-    data_values = interp_object(data_values)
+    if len(unique_indices) == 1:
+        data_values[:] = 0.5
+    else:
+        interp_object = interp1d(
+            x=reference_values_1d[unique_indices],
+            y=quantile_levels[unique_indices],
+            kind='linear',
+            bounds_error=False,
+            fill_value='extrapolate',
+            assume_sorted=True
+        )
+        data_values = interp_object(data_values)
 
     # real_reference_values_1d = reference_values_1d[
     #     numpy.invert(numpy.isnan(reference_values_1d))
