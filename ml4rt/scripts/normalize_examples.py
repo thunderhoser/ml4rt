@@ -93,8 +93,11 @@ def _run(input_example_file_name, normalization_file_name,
     normalization_metadata_dict = (
         example_dict[example_utils.NORMALIZATION_METADATA_KEY]
     )
+    nmd = normalization_metadata_dict
+
     assert (
-        normalization_metadata_dict[example_io.NORMALIZATION_FILE_KEY] is None
+        nmd[example_io.NORMALIZATION_FILE_KEY] is None
+        or nmd[example_io.NORMALIZATION_FILE_KEY] == 'None'
     )
 
     print('Reading normalization params from: "{0:s}"...'.format(
@@ -102,7 +105,7 @@ def _run(input_example_file_name, normalization_file_name,
     ))
     norm_param_table_xarray = normalization.read_params(normalization_file_name)
 
-    normalization.normalize_data(
+    example_dict = normalization.normalize_data(
         example_dict=example_dict,
         normalization_param_table_xarray=norm_param_table_xarray,
         apply_to_predictors=normalize_predictors,
@@ -129,7 +132,7 @@ def _run(input_example_file_name, normalization_file_name,
                 height_m_agl=example_dict[example_utils.HEIGHTS_KEY][h]
             )
             print('Mean normalized {0:s} at {1:.0f} m AGL = {2:.4g}'.format(
-                example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+                example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY][j],
                 example_dict[example_utils.HEIGHTS_KEY][h],
                 numpy.mean(these_values)
             ))
@@ -144,7 +147,7 @@ def _run(input_example_file_name, normalization_file_name,
                 example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w]
             )
             print('Mean normalized {0:s} at {1:.2f} microns = {2:.4g}'.format(
-                example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+                example_dict[example_utils.SCALAR_TARGET_NAMES_KEY][j],
                 METRES_TO_MICRONS *
                 example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w],
                 numpy.mean(these_values)
@@ -165,7 +168,7 @@ def _run(input_example_file_name, normalization_file_name,
                     'Mean normalized {0:s} at {1:.0f} m AGL and {2:.2f} '
                     'microns = {3:.4g}'
                 ).format(
-                    example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY][j],
+                    example_dict[example_utils.VECTOR_TARGET_NAMES_KEY][j],
                     example_dict[example_utils.HEIGHTS_KEY][h],
                     METRES_TO_MICRONS *
                     example_dict[example_utils.TARGET_WAVELENGTHS_KEY][w],
