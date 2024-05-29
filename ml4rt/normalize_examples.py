@@ -100,8 +100,11 @@ def _run(input_example_file_name, normalization_file_name,
     normalization_metadata_dict = (
         example_dict[example_utils.NORMALIZATION_METADATA_KEY]
     )
+    nmd = normalization_metadata_dict
+
     assert (
-        normalization_metadata_dict[example_io.NORMALIZATION_FILE_KEY] is None
+        nmd[example_io.NORMALIZATION_FILE_KEY] is None
+        or nmd[example_io.NORMALIZATION_FILE_KEY] == 'None'
     )
 
     print('Reading normalization params from: "{0:s}"...'.format(
