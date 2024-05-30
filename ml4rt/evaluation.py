@@ -15,6 +15,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import histograms
 import file_system_utils
 import error_checking
+import example_io
 import prediction_io
 import example_utils
 import normalization
@@ -1389,11 +1390,17 @@ def get_scores_all_variables(
     ))
     norm_param_table_xarray = normalization.read_params(normalization_file_name)
 
-    mean_training_example_dict = normalization.create_mean_example(
-        example_dict=example_dict,
-        normalization_param_table_xarray=norm_param_table_xarray,
-        use_absolute_values=False
-    )
+    if normalization.VECTOR_TARGET_DIM in norm_param_table_xarray.coords:
+        mean_training_example_dict = normalization.create_mean_example(
+            example_dict=example_dict,
+            normalization_param_table_xarray=norm_param_table_xarray,
+            use_absolute_values=False
+        )
+    else:
+        mean_training_example_dict = normalization.create_mean_example_old(
+            new_example_dict=example_dict,
+            training_example_dict=example_io.read_file(normalization_file_name)
+        )
 
     scalar_target_matrix = prediction_dict[prediction_io.SCALAR_TARGETS_KEY]
     scalar_prediction_matrix = (
