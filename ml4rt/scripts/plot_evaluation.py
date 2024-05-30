@@ -11,6 +11,7 @@ import matplotlib.patches
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from ml4rt.io import example_io
 from ml4rt.io import prediction_io
 from ml4rt.utils import example_utils
 from ml4rt.utils import evaluation
@@ -1367,11 +1368,17 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
     ))
     norm_param_table_xarray = normalization.read_params(normalization_file_name)
 
-    mean_training_example_dict = normalization.create_mean_example(
-        example_dict=example_dict,
-        normalization_param_table_xarray=norm_param_table_xarray,
-        use_absolute_values=False
-    )
+    if normalization.VECTOR_TARGET_DIM in norm_param_table_xarray.coords:
+        mean_training_example_dict = normalization.create_mean_example(
+            example_dict=example_dict,
+            normalization_param_table_xarray=norm_param_table_xarray,
+            use_absolute_values=False
+        )
+    else:
+        mean_training_example_dict = normalization.create_mean_example_old(
+            new_example_dict=example_dict,
+            training_example_dict=example_io.read_file(normalization_file_name)
+        )
 
     print(SEPARATOR_STRING)
 
