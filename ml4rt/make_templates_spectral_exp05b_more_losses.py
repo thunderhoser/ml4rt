@@ -98,8 +98,8 @@ DEFAULT_OPTION_DICT = {
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
-    neural_net.VECTOR_TARGET_NORM_TYPE_KEY: None,
-    neural_net.SCALAR_TARGET_NORM_TYPE_KEY: None
+    neural_net.NORMALIZE_VECTOR_TARGETS_KEY: False,
+    neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False
 }
 
 MIN_DUAL_WEIGHTS = numpy.array([0.10, 0.25, 0.50, 0.75, 1.00])
