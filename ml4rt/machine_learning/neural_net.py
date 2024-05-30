@@ -26,7 +26,7 @@ MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 PLATEAU_PATIENCE_EPOCHS = 10
 DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
-EARLY_STOPPING_PATIENCE_EPOCHS = 200
+DEFAULT_EARLY_STOPPING_PATIENCE_EPOCHS = 200
 LOSS_PATIENCE = 0.
 
 EXAMPLE_DIRECTORY_KEY = 'example_dir_name'
@@ -79,8 +79,8 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
-EARLY_STOPPING_KEY = 'do_early_stopping'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
+EARLY_STOPPING_PATIENCE_KEY = 'early_stopping_patience_epochs'
 DENSE_ARCHITECTURE_KEY = 'dense_architecture_dict'
 CNN_ARCHITECTURE_KEY = 'cnn_architecture_dict'
 BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
@@ -91,7 +91,8 @@ U_NET_PPP_ARCHITECTURE_KEY = 'u_net_3plus_architecture_dict'
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
-    LOSS_FUNCTION_OR_DICT_KEY, EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY,
+    LOSS_FUNCTION_OR_DICT_KEY,
+    PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
     DENSE_ARCHITECTURE_KEY, CNN_ARCHITECTURE_KEY, BNN_ARCHITECTURE_KEY,
     U_NET_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY,
     U_NET_PPP_ARCHITECTURE_KEY
@@ -292,9 +293,10 @@ def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_or_dict,
-        do_early_stopping, plateau_lr_multiplier, dense_architecture_dict,
-        cnn_architecture_dict, bnn_architecture_dict, u_net_architecture_dict,
-        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
+        plateau_lr_multiplier, early_stopping_patience_epochs,
+        dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
+        u_net_architecture_dict, u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -304,8 +306,8 @@ def _write_metafile(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param loss_function_or_dict: Same.
-    :param do_early_stopping: Same.
     :param plateau_lr_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
     :param dense_architecture_dict: Same.
     :param cnn_architecture_dict: Same.
     :param bnn_architecture_dict: Same.
@@ -321,8 +323,8 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
-        EARLY_STOPPING_KEY: do_early_stopping,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
+        EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
         DENSE_ARCHITECTURE_KEY: dense_architecture_dict,
         CNN_ARCHITECTURE_KEY: cnn_architecture_dict,
         BNN_ARCHITECTURE_KEY: bnn_architecture_dict,
@@ -709,7 +711,7 @@ def create_mask(
             )
 
             flux_mask_1_for_in[w, j] = (
-                    this_max_value >= min_flux_w_m02
+                this_max_value >= min_flux_w_m02
             ).astype(int)
 
             if flux_mask_1_for_in[w, j] == 1:
@@ -800,7 +802,7 @@ def _create_mask_old(
             )
 
             heating_rate_mask_1_for_in[i, j] = (
-                    numpy.max(these_values) >= min_heating_rate_k_day01
+                numpy.max(these_values) >= min_heating_rate_k_day01
             ).astype(int)
 
             if heating_rate_mask_1_for_in[i, j] == 1:
@@ -838,7 +840,7 @@ def _create_mask_old(
             )
 
             flux_mask_1_for_in[j, k] = (
-                    numpy.max(these_values) >= min_flux_w_m02
+                numpy.max(these_values) >= min_flux_w_m02
             ).astype(int)
 
             if flux_mask_1_for_in[j, k] == 1:
@@ -1497,9 +1499,10 @@ def train_model_with_generator(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        do_early_stopping, plateau_lr_multiplier, dense_architecture_dict,
-        cnn_architecture_dict, bnn_architecture_dict, u_net_architecture_dict,
-        u_net_plusplus_architecture_dict, u_net_3plus_architecture_dict):
+        plateau_lr_multiplier, early_stopping_patience_epochs,
+        dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
+        u_net_architecture_dict, u_net_plusplus_architecture_dict,
+        u_net_3plus_architecture_dict):
     """Trains any kind of neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1528,12 +1531,12 @@ def train_model_with_generator(
         epoch.  This is used only if `use_generator_for_validn = True`.  If
         `use_generator_for_validn = False`, all validation data will be used at
         each epoch.
-    :param do_early_stopping: Boolean flag.  If True, will stop training early
-        if validation loss has not improved over last several epochs (see
-        constants at top of file for what exactly this means).
     :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
         rate will be multiplied by this factor upon plateau in validation
         performance.
+    :param early_stopping_patience_epochs: Patience for early stopping.  Early
+        stopping will be triggered if validation loss has not improved over this
+        many epochs.
     :param dense_architecture_dict: Dictionary with architecture options for
         dense NN.  If the model being trained is not dense, make this None.
     :param cnn_architecture_dict: Same but for CNN.
@@ -1557,11 +1560,10 @@ def train_model_with_generator(
     error_checking.assert_is_integer(num_training_batches_per_epoch)
     error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
     error_checking.assert_is_boolean(use_generator_for_validn)
-    error_checking.assert_is_boolean(do_early_stopping)
-
-    if do_early_stopping:
-        error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
-        error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
 
     if use_generator_for_validn:
         error_checking.assert_is_integer(num_validation_batches_per_epoch)
@@ -1601,19 +1603,18 @@ def train_model_with_generator(
         history_object, checkpoint_object, backup_object
     ]
 
-    if do_early_stopping:
-        early_stopping_object = keras.callbacks.EarlyStopping(
-            monitor='val_loss', min_delta=LOSS_PATIENCE,
-            patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
-        )
-        list_of_callback_objects.append(early_stopping_object)
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=LOSS_PATIENCE,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    list_of_callback_objects.append(early_stopping_object)
 
-        plateau_object = keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss', factor=plateau_lr_multiplier,
-            patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
-            min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
-        )
-        list_of_callback_objects.append(plateau_object)
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_lr_multiplier,
+        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+    )
+    list_of_callback_objects.append(plateau_object)
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
@@ -1625,8 +1626,8 @@ def train_model_with_generator(
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
         loss_function_or_dict=loss_function_or_dict,
-        do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
         dense_architecture_dict=dense_architecture_dict,
         cnn_architecture_dict=cnn_architecture_dict,
         bnn_architecture_dict=bnn_architecture_dict,
@@ -1668,8 +1669,8 @@ def train_model_with_generator(
 def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
         validation_option_dict, loss_function_or_dict,
-        do_early_stopping, num_training_batches_per_epoch,
-        num_validation_batches_per_epoch, plateau_lr_multiplier,
+        num_training_batches_per_epoch, num_validation_batches_per_epoch,
+        plateau_lr_multiplier, early_stopping_patience_epochs,
         dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
         u_net_architecture_dict, u_net_plusplus_architecture_dict,
         u_net_3plus_architecture_dict):
@@ -1681,12 +1682,12 @@ def train_model_sans_generator(
     :param training_option_dict: Same.
     :param validation_option_dict: Same.
     :param loss_function_or_dict: Same.
-    :param do_early_stopping: Same.
     :param num_training_batches_per_epoch: Number of training batches per epoch.
         If None, each training example will be used once per epoch.
     :param num_validation_batches_per_epoch: Number of validation batches per
         epoch.  If None, each validation example will be used once per epoch.
     :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
+    :param early_stopping_patience_epochs: Same.
     :param dense_architecture_dict: Same.
     :param cnn_architecture_dict: Same.
     :param bnn_architecture_dict: Same.
@@ -1706,11 +1707,10 @@ def train_model_sans_generator(
 
     error_checking.assert_is_integer(num_epochs)
     error_checking.assert_is_geq(num_epochs, 2)
-    error_checking.assert_is_boolean(do_early_stopping)
-
-    if do_early_stopping:
-        error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
-        error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1744,19 +1744,18 @@ def train_model_sans_generator(
         history_object, checkpoint_object, backup_object
     ]
 
-    if do_early_stopping:
-        early_stopping_object = keras.callbacks.EarlyStopping(
-            monitor='val_loss', min_delta=LOSS_PATIENCE,
-            patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
-        )
-        list_of_callback_objects.append(early_stopping_object)
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=LOSS_PATIENCE,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    list_of_callback_objects.append(early_stopping_object)
 
-        plateau_object = keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss', factor=plateau_lr_multiplier,
-            patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
-            min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
-        )
-        list_of_callback_objects.append(plateau_object)
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_lr_multiplier,
+        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+    )
+    list_of_callback_objects.append(plateau_object)
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
@@ -1768,8 +1767,8 @@ def train_model_sans_generator(
         num_validation_batches_per_epoch=None,
         validation_option_dict=validation_option_dict,
         loss_function_or_dict=loss_function_or_dict,
-        do_early_stopping=do_early_stopping,
         plateau_lr_multiplier=plateau_lr_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
         dense_architecture_dict=dense_architecture_dict,
         cnn_architecture_dict=cnn_architecture_dict,
         bnn_architecture_dict=bnn_architecture_dict,
@@ -2083,6 +2082,9 @@ def read_metafile(dill_file_name):
     dill_file_handle = open(dill_file_name, 'rb')
     metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
+
+    if EARLY_STOPPING_PATIENCE_KEY not in metadata_dict:
+        metadata_dict[EARLY_STOPPING_PATIENCE_KEY] = 200
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
     v = metadata_dict[VALIDATION_OPTIONS_KEY]

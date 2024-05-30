@@ -26,8 +26,9 @@ def _run(training_dir_name, validation_dir_name,
          normalize_scalar_targets, normalize_vector_targets,
          normalization_file_name_for_mask, min_heating_rate_for_mask_k_day01,
          min_flux_for_mask_w_m02,
-         num_examples_per_batch, num_epochs, num_training_batches_per_epoch,
-         num_validn_batches_per_epoch, plateau_lr_multiplier):
+         num_examples_per_batch, num_epochs,
+         num_training_batches_per_epoch, num_validn_batches_per_epoch,
+         plateau_lr_multiplier, early_stopping_patience_epochs):
     """Trains neural net
 
     :param training_dir_name: See documentation at top of training_args.py.
@@ -58,6 +59,7 @@ def _run(training_dir_name, validation_dir_name,
     :param num_training_batches_per_epoch: Same.
     :param num_validn_batches_per_epoch: Same.
     :param plateau_lr_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
     """
 
     if normalization_file_name in NONE_STRINGS:
@@ -174,8 +176,9 @@ def _run(training_dir_name, validation_dir_name,
             use_generator_for_validn=use_generator_for_validn,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             validation_option_dict=validation_option_dict,
-            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
+            loss_function_or_dict=loss_function_or_dict,
             plateau_lr_multiplier=plateau_lr_multiplier,
+            early_stopping_patience_epochs=early_stopping_patience_epochs,
             dense_architecture_dict=dense_architecture_dict,
             cnn_architecture_dict=cnn_architecture_dict,
             bnn_architecture_dict=bnn_architecture_dict,
@@ -188,10 +191,11 @@ def _run(training_dir_name, validation_dir_name,
             model_object=model_object, output_dir_name=output_model_dir_name,
             num_epochs=num_epochs, training_option_dict=training_option_dict,
             validation_option_dict=validation_option_dict,
-            loss_function_or_dict=loss_function_or_dict, do_early_stopping=True,
+            loss_function_or_dict=loss_function_or_dict,
             num_training_batches_per_epoch=num_training_batches_per_epoch,
             num_validation_batches_per_epoch=num_validn_batches_per_epoch,
             plateau_lr_multiplier=plateau_lr_multiplier,
+            early_stopping_patience_epochs=early_stopping_patience_epochs,
             dense_architecture_dict=dense_architecture_dict,
             cnn_architecture_dict=cnn_architecture_dict,
             bnn_architecture_dict=bnn_architecture_dict,
@@ -288,5 +292,8 @@ if __name__ == '__main__':
         ),
         plateau_lr_multiplier=getattr(
             INPUT_ARG_OBJECT, training_args.PLATEAU_LR_MULTIPLIER_ARG_NAME
+        ),
+        early_stopping_patience_epochs=getattr(
+            INPUT_ARG_OBJECT, training_args.EARLY_STOPPING_PATIENCE_ARG_NAME
         )
     )
