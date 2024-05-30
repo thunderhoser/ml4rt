@@ -624,6 +624,18 @@ def create_mask(
     norm_param_table_xarray = normalization.read_params(normalization_file_name)
     npt = norm_param_table_xarray
 
+    if normalization.VECTOR_TARGET_DIM not in npt.coords:
+        return _create_mask_old(
+            normalization_file_name=normalization_file_name,
+            min_heating_rate_k_day01=min_heating_rate_k_day01,
+            min_flux_w_m02=min_flux_w_m02,
+            heights_m_agl=heights_m_agl,
+            target_wavelengths_metres=target_wavelengths_metres,
+            vector_target_name=vector_target_name,
+            scalar_target_names=scalar_target_names,
+            num_examples=num_examples
+        )
+
     num_heights = len(heights_m_agl)
     num_wavelengths = len(target_wavelengths_metres)
     heating_rate_mask_1_for_in = numpy.full(
@@ -714,6 +726,135 @@ def create_mask(
             ).format(
                 scalar_target_names[j],
                 METRES_TO_MICRONS * target_wavelengths_metres[w]
+            ))
+
+    flux_mask_1_for_in = numpy.expand_dims(flux_mask_1_for_in, axis=0)
+    flux_mask_1_for_in = numpy.repeat(
+        flux_mask_1_for_in, axis=0, repeats=num_examples
+    )
+
+    return heating_rate_mask_1_for_in, flux_mask_1_for_in
+
+
+def _create_mask_old(
+        normalization_file_name, min_heating_rate_k_day01, min_flux_w_m02,
+        heights_m_agl, target_wavelengths_metres, vector_target_name,
+        scalar_target_names, num_examples):
+    """Creates mask.
+
+    E = number of examples
+    H = number of heights in grid
+    W = number of wavelengths
+    T_s = number of scalar target variables
+
+    All height/wavelength and variable/wavelength pairs will be ignored by the
+    NN, i.e., the NN will be forced to predict zero for all these values.
+
+    :param normalization_file_name: Path to normalization file, containing
+        values in training data.  For every height/wavelength and variable/
+        wavelength pair, the climo-max value will be read from this file.  The
+        file will be read by `example_io.read_file`.
+    :param min_heating_rate_k_day01: Minimum heating rate.  Height/wavelength
+        pairs with a climo-max HR below this threshold will be masked out.
+    :param min_flux_w_m02: Minimum flux.  Variable/wavelength pairs with a
+        climo-max flux below this threshold will be masked out.
+    :param heights_m_agl: length-H numpy array of heights in grid.
+    :param target_wavelengths_metres: length-W numpy array of wavelengths.
+    :param vector_target_name: Name of vector target variable (heating-rate
+        variable).
+    :param scalar_target_names: length-T_s list with names of scalar target
+        variables (fluxes).
+    :param num_examples: Number of examples.
+    :return: heating_rate_mask_1_for_in: E-by-H-by-W numpy array of
+        Boolean flags, where 1 indicates that the given height/wavelength
+        pair is masked in (the NN makes an actual prediction for this H/W pair)
+        and 0 indicates that the given H/W pair is masked out (the NN always
+        returns 0 K day^-1 for this H/W pair).
+    :return: flux_mask_1_for_in: numpy array (E x W x T_s) of
+        Boolean flags, where 1 indicates that the given variable/wavelength
+        pair is masked in (the NN makes an actual prediction for this V/W pair)
+        and 0 indicates that the given V/W pair is masked out (the NN always
+        returns 0 W m^-2 for this V/W pair).
+    """
+
+    # TODO(thunderhoser): I can delete this legacy method once I no longer have
+    # models that are using the old type of mask (based on the old type of
+    # normalization file, which is just 100 000 training examples with no
+    # statistics).
+
+    if normalization_file_name is None:
+        return None, None
+
+    print('Reading climo-max values for masking from: "{0:s}"...'.format(
+        normalization_file_name
+    ))
+    training_example_dict = example_io.read_file(normalization_file_name)
+
+    num_heights = len(heights_m_agl)
+    num_wavelengths = len(target_wavelengths_metres)
+    heating_rate_mask_1_for_in = numpy.full(
+        (num_heights, num_wavelengths), 0, dtype=int
+    )
+
+    for i in range(num_heights):
+        for j in range(num_wavelengths):
+            these_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=vector_target_name,
+                height_m_agl=heights_m_agl[i],
+                target_wavelength_metres=target_wavelengths_metres[j]
+            )
+
+            heating_rate_mask_1_for_in[i, j] = (
+                    numpy.max(these_values) >= min_heating_rate_k_day01
+            ).astype(int)
+
+            if heating_rate_mask_1_for_in[i, j] == 1:
+                continue
+
+            print((
+                'Heating rate at {0:.0f} m AGL and {1:.2f} microns will be '
+                'MASKED OUT (always zero)!'
+            ).format(
+                heights_m_agl[i],
+                METRES_TO_MICRONS * target_wavelengths_metres[j]
+            ))
+
+    heating_rate_mask_1_for_in = numpy.expand_dims(
+        heating_rate_mask_1_for_in, axis=0
+    )
+    heating_rate_mask_1_for_in = numpy.repeat(
+        heating_rate_mask_1_for_in, axis=0, repeats=num_examples
+    )
+
+    num_flux_vars = len(scalar_target_names)
+    if num_flux_vars == 0:
+        return heating_rate_mask_1_for_in, None
+
+    flux_mask_1_for_in = numpy.full(
+        (num_wavelengths, num_flux_vars), 0, dtype=int
+    )
+
+    for j in range(num_wavelengths):
+        for k in range(num_flux_vars):
+            these_values = example_utils.get_field_from_dict(
+                example_dict=training_example_dict,
+                field_name=scalar_target_names[k],
+                target_wavelength_metres=target_wavelengths_metres[j]
+            )
+
+            flux_mask_1_for_in[j, k] = (
+                    numpy.max(these_values) >= min_flux_w_m02
+            ).astype(int)
+
+            if flux_mask_1_for_in[j, k] == 1:
+                continue
+
+            print((
+                '{0:s} at {1:.2f} microns will be MASKED OUT (always zero)!'
+            ).format(
+                scalar_target_names[k],
+                METRES_TO_MICRONS * target_wavelengths_metres[j]
             ))
 
     flux_mask_1_for_in = numpy.expand_dims(flux_mask_1_for_in, axis=0)
