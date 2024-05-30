@@ -21,6 +21,8 @@ import example_utils
 import normalization
 import neural_net
 
+TOLERANCE = 1e-6
+
 SHORTWAVE_NET_FLUX_NAME = 'net_shortwave_flux_w_m02'
 SHORTWAVE_LOWEST_DOWN_FLUX_NAME = 'lowest_shortwave_down_flux_w_m02'
 SHORTWAVE_HIGHEST_UP_FLUX_NAME = 'highest_shortwave_up_flux_w_m02'
@@ -609,6 +611,8 @@ def _get_scores_one_replicate(
                     max_raw_flux_percentile
                 )
 
+            max_bin_edge = max([max_bin_edge, min_bin_edge + TOLERANCE])
+
             (
                 rtx[SCALAR_RELIABILITY_X_KEY].values[w, t, :, r],
                 rtx[SCALAR_RELIABILITY_Y_KEY].values[w, t, :, r],
@@ -750,6 +754,8 @@ def _get_scores_one_replicate(
                         max_heating_rate_percentile
                     )
 
+                max_bin_edge = max([max_bin_edge, min_bin_edge + TOLERANCE])
+
                 (
                     rtx[VECTOR_RELIABILITY_X_KEY].values[h, w, t, :, r],
                     rtx[VECTOR_RELIABILITY_Y_KEY].values[h, w, t, :, r],
@@ -846,6 +852,8 @@ def _get_scores_one_replicate(
                     full_vector_prediction_matrix[..., w, t],
                     max_heating_rate_percentile
                 )
+
+            max_bin_edge = max([max_bin_edge, min_bin_edge + TOLERANCE])
 
             (
                 rtx[VECTOR_FLAT_RELIABILITY_X_KEY].values[w, t, :, r],
@@ -989,6 +997,8 @@ def _get_scores_one_replicate(
                 max_bin_edge = numpy.percentile(
                     full_aux_prediction_matrix[:, w, t], max_net_flux_percentile
                 )
+
+            max_bin_edge = max([max_bin_edge, min_bin_edge + TOLERANCE])
 
             (
                 rtx[AUX_RELIABILITY_X_KEY].values[w, t, :, r],
