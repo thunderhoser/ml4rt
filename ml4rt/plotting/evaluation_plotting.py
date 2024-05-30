@@ -595,18 +595,18 @@ def plot_score_profile(
         color=line_colour, linestyle=line_style, linewidth=line_width
     )[0]
 
-    x_max = numpy.maximum(
-        numpy.max(score_values[finite_indices]), 0.
-    )
-
+    x_max = max([
+        numpy.nan_to_num(x=numpy.nanmax(score_values), nan=0.),
+        0.
+    ])
     if not are_axes_new:
         x_max = numpy.maximum(x_max, orig_x_limits[1])
 
     if score_name in possibly_negative_score_names:
-        x_min = numpy.minimum(
-            numpy.min(score_values[finite_indices]), 0.
-        )
-
+        x_min = min([
+            numpy.nan_to_num(x=numpy.nanmin(score_values), nan=0.),
+            0.
+        ])
         if not are_axes_new:
             x_min = numpy.minimum(x_min, orig_x_limits[0])
 
@@ -715,18 +715,18 @@ def plot_score_profile_by_pressure(
         color=line_colour, linestyle=line_style, linewidth=line_width
     )[0]
 
-    x_max = numpy.maximum(
-        numpy.max(score_values[finite_indices]), 0.
-    )
-
+    x_max = max([
+        numpy.nan_to_num(x=numpy.nanmax(score_values), nan=0.),
+        0.
+    ])
     if not are_axes_new:
         x_max = numpy.maximum(x_max, orig_x_limits[1])
 
     if score_name in possibly_negative_score_names:
-        x_min = numpy.minimum(
-            numpy.min(score_values[finite_indices]), 0.
-        )
-
+        x_min = min([
+            numpy.nan_to_num(x=numpy.nanmin(score_values), nan=0.),
+            0.
+        ])
         if not are_axes_new:
             x_min = numpy.minimum(x_min, orig_x_limits[0])
 
