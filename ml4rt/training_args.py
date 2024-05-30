@@ -45,6 +45,7 @@ NUM_EPOCHS_ARG_NAME = 'num_epochs'
 NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
 NUM_VALIDN_BATCHES_ARG_NAME = 'num_validn_batches_per_epoch'
 PLATEAU_LR_MULTIPLIER_ARG_NAME = 'plateau_lr_multiplier'
+EARLY_STOPPING_PATIENCE_ARG_NAME = 'early_stopping_patience_epochs'
 
 TRAINING_DIR_HELP_STRING = (
     'Name of directory with training examples.  Files therein will be found by '
@@ -148,6 +149,10 @@ NUM_VALIDN_BATCHES_HELP_STRING = (
 PLATEAU_LR_MULTIPLIER_HELP_STRING = (
     'Multiplier for learning rate.  Learning rate will be multiplied by this '
     'factor upon plateau in validation performance.'
+)
+EARLY_STOPPING_PATIENCE_HELP_STRING = (
+    'Patience for early stopping.  Early stopping will be triggered if '
+    'validation loss has not improved over this many epochs.'
 )
 
 
@@ -272,6 +277,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + PLATEAU_LR_MULTIPLIER_ARG_NAME, type=float, required=False,
         default=0.5, help=PLATEAU_LR_MULTIPLIER_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + EARLY_STOPPING_PATIENCE_ARG_NAME, type=int, required=False,
+        default=200, help=EARLY_STOPPING_PATIENCE_HELP_STRING
     )
 
     return parser_object
