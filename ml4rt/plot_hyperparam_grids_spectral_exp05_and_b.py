@@ -324,8 +324,8 @@ def _print_ranking_one_score(score_matrix, score_name):
 
         print((
             '{0:d}th-lowest {1:s} = {2:.4g} ... '
-            'min dual weight = {3:s} ... '
-            'broadband weight = {4:s} ... '
+            'min dual weight = {3:.2f} ... '
+            'broadband weight = {4:.2f} ... '
             'normalization type = {5:s}'
         ).format(
             m + 1, score_name, score_matrix[i, j, k],
@@ -483,8 +483,8 @@ def _print_ranking_all_scores(
         k = k_sort_indices[m]
 
         print((
-            'Min dual weight = {0:s} ... '
-            'broadband weight = {1:s} ... '
+            'Min dual weight = {0:.2f} ... '
+            'broadband weight = {1:.2f} ... '
             'normalization type = {2:s} ... '
             'DWMSE ranks (all, sfc, MLC, MLC sfc) = '
             '{3:.1f}, {4:.1f}, {5:.1f}, {6:.1f} ... '
