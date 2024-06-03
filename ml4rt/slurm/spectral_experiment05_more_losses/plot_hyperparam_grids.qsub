@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_hyperparam_grids"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --time=02:00:00
+#SBATCH --array=0-14
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_hyperparam_grids_%A_%a.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+WAVELENGTHS_METRES=("0.000005847953216" "0.000003418803419" "0.000002758620690" "0.000002312138728" "0.000002040816327" "0.000001769911504" "0.000001444043321" "0.000001269841270" "0.000000956937799" "0.000000693240901" "0.000000517464424" "0.000000387221684" "0.000000298507463" "0.000000227272727" "1000")
+
+python3 -u "${CODE_DIR_NAME}/plot_hyperparam_grids_spectral_exp05_and_b.py" \
+--experiment_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models" \
+--wavelength_metres=${WAVELENGTHS_METRES[$SLURM_ARRAY_TASK_ID]} \
+--isotonic_flag=0 \
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_more_losses/hyperparam_grids"
