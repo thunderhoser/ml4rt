@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_eval_by_cloud_regime_not_height"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=06:00:00
+#SBATCH --array=0-19
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_eval_by_cloud_regime_not_height_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05b_more_losses"
+
+MIN_DUAL_WEIGHTS=("0.10" "0.25" "0.50" "0.75" "1.00" "0.10" "0.25" "0.50" "0.75" "1.00" "0.10" "0.25" "0.50" "0.75" "1.00" "0.10" "0.25" "0.50" "0.75" "1.00")
+BROADBAND_WEIGHTS=("0.01" "0.01" "0.01" "0.01" "0.01" "0.05" "0.05" "0.05" "0.05" "0.05" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20")
+
+min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}"
+validation_dir_name="${model_dir_name}/validation"
+evaluation_file_names=("${validation_dir_name}/by_cloud_regime/no_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/single_layer_cloud/evaluation.nc" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud/evaluation.nc")
+evaluation_dir_name="${validation_dir_name}/by_cloud_regime/evaluation"
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation.py" \
+--input_eval_file_names "${evaluation_file_names[0]}" "${evaluation_file_names[1]}" "${evaluation_file_names[2]}" \
+--line_styles "solid" "solid" "solid" \
+--line_colours "27_158_119" "217_95_2" "117_112_179" \
+--set_descriptions "No_cloud" "Single-layer_cloud" "Multi-layer_cloud"  \
+--confidence_level=0.99 \
+--use_log_scale=1 \
+--plot_by_height=0 \
+--wavelengths_metres 0.000005847953216 0.000003418803419 0.000002758620690 0.000002312138728 0.000002040816327 0.000001769911504 0.000001444043321 0.000001269841270 0.000000956937799 0.000000693240901 0.000000517464424 0.000000387221684 0.000000298507463 0.000000227272727 1000 \
+--output_dir_name="${evaluation_dir_name}"
