@@ -33,4 +33,4 @@ python3 -u "${CODE_DIR_NAME}/plot_hyperparam_grids_spectral_exp05_and_b.py" \
 --experiment_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models" \
 --wavelength_metres=${WAVELENGTHS_METRES[$SLURM_ARRAY_TASK_ID]} \
 --isotonic_flag=0 \
---output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_more_losses/hyperparam_grids"
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_more_losses/hyperparam_grids/wavelength-metres=${WAVELENGTHS_METRES[$SLURM_ARRAY_TASK_ID]}"
