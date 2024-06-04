@@ -96,22 +96,21 @@ def _run(prediction_file_names, output_dir_name):
                         orig_vector_prediction_matrix=
                         orig_vector_prediction_matrix[:, [h], ...][:, :, [w], ...],
                         orig_scalar_prediction_matrix=
-                        orig_scalar_prediction_matrix,
+                        orig_scalar_prediction_matrix[:, [h], ...],
                         vector_target_matrix=
                         vector_target_matrix[:, [h], ...][:, :, [w], ...],
-                        scalar_target_matrix=scalar_target_matrix
+                        scalar_target_matrix=scalar_target_matrix[:, [h], ...]
                     )
                 )
-            else:
-                _, this_matrix = isotonic_regression.train_models(
-                    orig_vector_prediction_matrix=
-                    orig_vector_prediction_matrix[:, [h], ...][:, :, [w], ...],
-                    orig_scalar_prediction_matrix=None,
-                    vector_target_matrix=
-                    vector_target_matrix[:, [h], ...][:, :, [w], ...],
-                    scalar_target_matrix=None
-                )
 
+            _, this_matrix = isotonic_regression.train_models(
+                orig_vector_prediction_matrix=
+                orig_vector_prediction_matrix[:, [h], ...][:, :, [w], ...],
+                orig_scalar_prediction_matrix=None,
+                vector_target_matrix=
+                vector_target_matrix[:, [h], ...][:, :, [w], ...],
+                scalar_target_matrix=None
+            )
             vector_model_object_matrix[h, w, :] = this_matrix[0, 0, :]
 
     print(SEPARATOR_STRING)
