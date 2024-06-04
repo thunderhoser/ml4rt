@@ -33,7 +33,7 @@ echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05b_more_losses"
-EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/normalized_predictors/isotonic_regression"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/normalized_predictors/simple_normalization/isotonic_regression"
 
 FIRST_TRAINING_TIME_STRING="2016-01-01-000000"
 LAST_TRAINING_TIME_STRING="2023-12-31-235959"
