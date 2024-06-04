@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -13,6 +14,7 @@ import prediction_io
 import example_utils
 import isotonic_regression
 import neural_net
+import apply_neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -106,23 +108,41 @@ def _run(input_prediction_file_name, model_file_name,
     )
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
-    metadata_dict = neural_net.read_metafile(metafile_name)
-    vector_target_names = metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
-        neural_net.VECTOR_TARGET_NAMES_KEY
-    ]
+    model_metadata_dict = neural_net.read_metafile(metafile_name)
+    nn_predicts_all_wavelengths = (
+        apply_neural_net._does_nn_predict_all_wavelengths(model_metadata_dict)
+    )
 
-    for this_target_name in [
-            example_utils.SHORTWAVE_HEATING_RATE_NAME,
-            example_utils.LONGWAVE_HEATING_RATE_NAME
-    ]:
-        try:
-            k = vector_target_names.index(this_target_name)
-        except ValueError:
-            continue
+    if nn_predicts_all_wavelengths:
+        generator_option_dict = (
+            model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+        )
 
-        new_vector_prediction_matrix[:, -1, :, k, ...] = 0.
-        prediction_dict[prediction_io.VECTOR_TARGETS_KEY][:, -1, :, k, ...] = 0.
+        bb_index = example_utils.match_wavelengths(
+            wavelengths_metres=
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+            desired_wavelength_metres=
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+        )
 
+        num_wavelengths = len(
+            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY]
+        )
+        bb_wavelength_flags = numpy.full(num_wavelengths, False, dtype=bool)
+        bb_wavelength_flags[bb_index] = True
+        non_bb_indices = numpy.where(bb_wavelength_flags == False)[0]
+
+        new_scalar_prediction_matrix[:, bb_index, ...] = numpy.sum(
+            new_scalar_prediction_matrix[:, non_bb_indices, ...],
+            axis=1
+        )
+
+        new_vector_prediction_matrix[:, :, bb_index, ...] = numpy.sum(
+            new_vector_prediction_matrix[:, :, non_bb_indices, ...],
+            axis=2
+        )
+
+    # TODO(thunderhoser): I might need to apply the zero mask to IR predictions!
     print('Writing new predictions to: "{0:s}"...'.format(
         output_prediction_file_name
     ))
