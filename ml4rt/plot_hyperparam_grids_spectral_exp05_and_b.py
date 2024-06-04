@@ -379,11 +379,18 @@ def _print_ranking_all_scores(
         net-flux bias for multi-layer cloud.
     """
 
+    # these_scores = numpy.ravel(dwmse_matrix_k3_day03)
+    # these_scores[numpy.isnan(these_scores)] = numpy.inf
+    # sort_indices_1d = numpy.argsort(these_scores)
+    # i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
+    #     sort_indices_1d, dwmse_matrix_k3_day03.shape
+    # )
+
     these_scores = numpy.ravel(dwmse_matrix_k3_day03)
     these_scores[numpy.isnan(these_scores)] = numpy.inf
-    sort_indices_1d = numpy.argsort(these_scores)
-    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
-        sort_indices_1d, dwmse_matrix_k3_day03.shape
+    dwmse_rank_matrix = numpy.reshape(
+        rankdata(these_scores, method='average'),
+        dwmse_matrix_k3_day03.shape
     )
 
     these_scores = numpy.ravel(near_sfc_dwmse_matrix_k3_day03)
@@ -477,6 +484,24 @@ def _print_ranking_all_scores(
         net_flux_bias_matrix_mlc_w_m02.shape
     )
 
+    overall_rank_matrix = numpy.mean(
+        numpy.stack([
+            dwmse_rank_matrix, near_sfc_dwmse_rank_matrix,
+            dwmse_mlc_rank_matrix, near_sfc_dwmse_mlc_rank_matrix,
+            bias_rank_matrix, near_sfc_bias_rank_matrix,
+            bias_mlc_rank_matrix, near_sfc_bias_mlc_rank_matrix,
+            flux_rmse_rank_matrix, net_flux_rmse_rank_matrix,
+            flux_rmse_mlc_rank_matrix, net_flux_rmse_mlc_rank_matrix,
+            net_flux_bias_rank_matrix, net_flux_bias_mlc_rank_matrix
+        ], axis=-1),
+        axis=-1
+    )
+
+    sort_indices_1d = numpy.argsort(numpy.ravel(overall_rank_matrix))
+    i_sort_indices, j_sort_indices, k_sort_indices = numpy.unravel_index(
+        sort_indices_1d, overall_rank_matrix.shape
+    )
+
     for m in range(len(i_sort_indices)):
         i = i_sort_indices[m]
         j = j_sort_indices[m]
@@ -498,7 +523,7 @@ def _print_ranking_all_scores(
             MIN_DUAL_WEIGHTS_AXIS1[i],
             BROADBAND_WEIGHTS_AXIS2[j],
             NORMALIZATION_TYPE_STRINGS_AXIS3[k].upper(),
-            m + 1, near_sfc_dwmse_rank_matrix[i, j, k],
+            dwmse_rank_matrix[i, j, k], near_sfc_dwmse_rank_matrix[i, j, k],
             dwmse_mlc_rank_matrix[i, j, k], near_sfc_dwmse_mlc_rank_matrix[i, j, k],
             bias_rank_matrix[i, j, k], near_sfc_bias_rank_matrix[i, j, k],
             bias_mlc_rank_matrix[i, j, k], near_sfc_bias_mlc_rank_matrix[i, j, k],
