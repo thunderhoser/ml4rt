@@ -43,11 +43,6 @@ def train_models(
         variables.  Dimensions are H x W x T_v.
     """
 
-    print(orig_vector_prediction_matrix.shape)
-    print(orig_scalar_prediction_matrix.shape)
-    print(vector_target_matrix.shape)
-    print(scalar_target_matrix.shape)
-
     # Check input args.
     num_examples = None
     num_heights = 0
