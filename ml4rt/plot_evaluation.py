@@ -711,6 +711,9 @@ def _plot_score_profile(
 
         heights_m_agl = etx.coords[evaluation.HEIGHT_DIM].values
 
+        print(heights_m_agl)
+        print(numpy.nanmean(this_score_matrix, axis=1))
+
         this_handle = evaluation_plotting.plot_score_profile(
             heights_m_agl=heights_m_agl,
             score_values=numpy.nanmean(this_score_matrix, axis=1),
