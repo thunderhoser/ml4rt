@@ -114,31 +114,13 @@ def _run(input_prediction_file_name, model_file_name,
     )
 
     if nn_predicts_all_wavelengths:
-        generator_option_dict = (
-            model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-        )
-
-        bb_index = example_utils.match_wavelengths(
-            wavelengths_metres=
-            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
-            desired_wavelength_metres=
-            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
-        )
-
-        num_wavelengths = len(
-            generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY]
-        )
-        bb_wavelength_flags = numpy.full(num_wavelengths, False, dtype=bool)
-        bb_wavelength_flags[bb_index] = True
-        non_bb_indices = numpy.where(bb_wavelength_flags == False)[0]
-
-        new_scalar_prediction_matrix[:, bb_index, ...] = numpy.sum(
-            new_scalar_prediction_matrix[:, non_bb_indices, ...],
+        new_scalar_prediction_matrix[:, -1, ...] = numpy.sum(
+            new_scalar_prediction_matrix[:, :-1, ...],
             axis=1
         )
 
-        new_vector_prediction_matrix[:, :, bb_index, ...] = numpy.sum(
-            new_vector_prediction_matrix[:, :, non_bb_indices, ...],
+        new_vector_prediction_matrix[:, :, -1, ...] = numpy.sum(
+            new_vector_prediction_matrix[:, :, :-1, ...],
             axis=2
         )
 
