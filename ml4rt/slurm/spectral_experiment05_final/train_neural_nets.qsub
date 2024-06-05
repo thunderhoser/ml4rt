@@ -78,6 +78,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --num_epochs=1000 \
 --num_training_batches_per_epoch=1000 \
 --num_validn_batches_per_epoch=1000 \
+--early_stopping_patience_epochs=10000 \
 --plateau_lr_multiplier=0.9 \
 --num_deep_supervision_layers=0 \
 --normalization_file_name_for_mask="${NORMALIZATION_FILE_NAME}" \
