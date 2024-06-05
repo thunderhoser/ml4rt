@@ -119,7 +119,7 @@ def _run():
                 custom_losses.dual_weighted_mse_constrained_bb(
                     min_dual_weight=MIN_DUAL_WEIGHTS[i],
                     band_weights=numpy.array([
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                         BROADBAND_WEIGHTS[j]
                     ])
                 )
@@ -129,7 +129,7 @@ def _run():
                 'custom_losses.dual_weighted_mse_constrained_bb('
                     'min_dual_weight={0:.2f},'
                     'band_weights=numpy.array(['
-                        '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {1:.2f}'
+                        '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {1:.2f}'
                     '])'
                 ')'
             ).format(MIN_DUAL_WEIGHTS[i], BROADBAND_WEIGHTS[j])
@@ -138,7 +138,7 @@ def _run():
                 custom_losses.scaled_mse_for_net_flux_constrained_bb(
                     scaling_factor=1.,
                     band_weights=numpy.array([
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                         BROADBAND_WEIGHTS[j]
                     ])
                 )
@@ -148,7 +148,7 @@ def _run():
                 'custom_losses.scaled_mse_for_net_flux_constrained_bb('
                     'scaling_factor=1.,'
                     'band_weights=numpy.array(['
-                        '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {0:.2f}'
+                        '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {0:.2f}'
                     '])'
                 ')'
             ).format(BROADBAND_WEIGHTS[j])
