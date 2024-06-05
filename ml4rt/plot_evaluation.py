@@ -711,6 +711,12 @@ def _plot_score_profile(
 
         heights_m_agl = etx.coords[evaluation.HEIGHT_DIM].values
 
+        negative_inf_flag_matrix = numpy.logical_and(
+            numpy.isinf(this_score_matrix),
+            this_score_matrix < 0
+        )
+        this_score_matrix[negative_inf_flag_matrix] = -100.
+
         print(heights_m_agl)
         print(numpy.nanmean(this_score_matrix, axis=1))
 
