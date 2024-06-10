@@ -54,7 +54,6 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
     sca_norm = np.array([1.4835263, 0.8722802, 89.910324, 359.8828, 2.730448, 8.228799, 1., 0.96304035], dtype=np.float32)
     vec_norm = np.array([1.04399836e+05, 3.18863373e+02, 2.22374070e-02, 1.33532193e-03, 1.47309888e-03, 1.73750886e-05, 1.15184314e+03, 6.53699684e+00, 1.38715994e+00, 9.72749013e-03, 1.70985604e-05, 6.53300012e-05, 7.95751719e+04, 3.15813086e+03, 1.78493945e+03, 2.73044801e+00, 8.22879887e+00, 7.84459991e+01, 2.73044801e+00, 8.22879887e+00, 7.84459991e+01, 1.23876810e+00], dtype=np.float32)
 
-    cos_sza = K.cos(scalar_inp[:, 0])
     albedos = scalar_inp[:, 1:2]
 
     lay_inp = lay_inp / vec_norm
@@ -62,10 +61,18 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
 
     if simpler_inputs:
         lay_inp = lay_inp[:, :, 0:14]
-        scalar_inp = scalar_inp[:, [0, 1, 6, 7]]
+
+        scalar_inp = keras.layers.Concatenate(axis=-1)([
+            scalar_inp[:, 0:1],
+            scalar_inp[:, 1:2],
+            scalar_inp[:, 6:7],
+            scalar_inp[:, 7:8]
+        ])
 
     if add_scalars_to_levels:
-        lay_inp2 = K.repeat(K.expand_dims(scalar_inp, axis=1), repeats=127)
+        new_dimensions = (1, scalar_inp.shape[1])
+        # lay_inp2 = keras.layers.Reshape(shape=new_dimensions)(scalar_inp)
+        lay_inp2 = keras.layers.RepeatVector(127)(scalar_inp)
         lay_inp = keras.layers.Concatenate(axis=-1)([lay_inp, lay_inp2])
 
     mlp_surface_outp = Dense(nneur, activation=activ_surface, name='dense_surface')(albedos)
@@ -84,7 +91,14 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
     hidden1 = rnnlayer(nneur, return_sequences=True, go_backwards=False)(lay_inp, initial_state=init_state)
 
     hidden2 = rnnlayer(nneur, return_sequences=True, go_backwards=True)(hidden1)
-    hidden2 = K.reverse(hidden2, axes=1)
+
+    reverse_layer_object = Lambda(
+        lambda x: K.reverse(x, axes=1),
+        output_shape=hidden2.shape
+    )
+    hidden2 = reverse_layer_object(hidden2)
+    # hidden2 = K.reverse(hidden2, axes=1)
+
     hidden2 = keras.layers.Concatenate(axis=2)([hidden1, hidden2])
 
     flux_sw = Dense(2, activation=activ_last, name='sw_denorm')(hidden2)
