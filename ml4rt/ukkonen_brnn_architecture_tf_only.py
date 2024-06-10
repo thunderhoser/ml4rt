@@ -1,14 +1,9 @@
 import xarray
 import tensorflow as tf
-from tensorflow.keras.models import load_model, save_model
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Input, Lambda, Concatenate, Permute, RepeatVector
-from tensorflow.keras.layers import Dense, Dropout, AlphaDropout, Activation, Layer, AveragePooling1D, Conv1D, ZeroPadding1D, ZeroPadding2D, GRU, LSTM
-from tensorflow.keras.layers import UpSampling1D, BatchNormalization, Cropping1D, LocallyConnected1D, Flatten, Reshape, Multiply, TimeDistributed, Add
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from tensorflow.keras.optimizers import RMSprop, Adam, Nadam, SGD
-from tensorflow.keras import backend as K
-from tensorflow import nn
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Dense, Layer, AveragePooling1D, Conv1D, ZeroPadding1D, GRU, LSTM
+from tensorflow.keras.layers import Multiply
 
 
 def get_inpout(example_file_name):
