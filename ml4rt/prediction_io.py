@@ -384,7 +384,7 @@ def write_file(
     # Write to NetCDF file.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
     dataset_object = netCDF4.Dataset(
-        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+        netcdf_file_name, 'w', format='NETCDF4_CLASSIC'
     )
 
     dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
@@ -695,7 +695,7 @@ def write_grid_metafile(grid_point_latitudes_deg, grid_point_longitudes_deg,
     # Write to NetCDF file.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
     dataset_object = netCDF4.Dataset(
-        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+        netcdf_file_name, 'w', format='NETCDF4_CLASSIC'
     )
 
     dataset_object.createDimension(
