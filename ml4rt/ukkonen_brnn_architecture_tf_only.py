@@ -57,7 +57,6 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
     vec_norm = tf.constant([1.04399836e+05, 3.18863373e+02, 2.22374070e-02, 1.33532193e-03, 1.47309888e-03, 1.73750886e-05, 1.15184314e+03, 6.53699684e+00, 1.38715994e+00, 9.72749013e-03, 1.70985604e-05, 6.53300012e-05, 7.95751719e+04, 3.15813086e+03, 1.78493945e+03, 2.73044801e+00, 8.22879887e+00, 7.84459991e+01, 2.73044801e+00, 8.22879887e+00, 7.84459991e+01, 1.23876810e+00])
 
     # Extract scalar variables we need
-    cos_sza = tf.math.cos(scalar_inp[:, 0])
     albedos = scalar_inp[:, 1:2]
 
     lay_inp = lay_inp / vec_norm
