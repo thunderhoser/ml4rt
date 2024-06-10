@@ -65,10 +65,10 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
     if simpler_inputs:
         lay_inp = lay_inp[:, :, 0:14]
         scalar_inp = tf.concat([
-            scalar_inp[:, [0]],
-            scalar_inp[:, [1]],
-            scalar_inp[:, [6]],
-            scalar_inp[:, [7]]
+            scalar_inp[:, 0:1],
+            scalar_inp[:, 1:2],
+            scalar_inp[:, 6:7],
+            scalar_inp[:, 7:8]
         ], axis=-1)
 
     if add_scalars_to_levels:
