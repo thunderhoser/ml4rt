@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.layers import Dense, Layer, AveragePooling1D, Conv1D, ZeroPadding1D, GRU, LSTM
-from tensorflow.keras.layers import Multiply
+from tensorflow.keras.layers import Multiply, Concatenate
 
 
 def get_inpout(example_file_name):
@@ -64,12 +64,13 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
 
     if simpler_inputs:
         lay_inp = lay_inp[:, :, 0:14]
-        scalar_inp = tf.concat([
+
+        scalar_inp = Concatenate(axis=-1)([
             scalar_inp[:, 0:1],
             scalar_inp[:, 1:2],
             scalar_inp[:, 6:7],
             scalar_inp[:, 7:8]
-        ], axis=-1)
+        ])
 
     if add_scalars_to_levels:
         lay_inp2 = tf.repeat(tf.expand_dims(scalar_inp, axis=1), repeats=127, axis=1)
