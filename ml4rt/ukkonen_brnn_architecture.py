@@ -106,6 +106,7 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
     hr_sw = HRLayer(name='hr_sw')([flux_sw, hl_p])
 
     new_dimensions = hr_sw.shape + (1,)
+    print(new_dimensions)
     hr_sw = keras.layers.Reshape(target_shape=new_dimensions)(hr_sw)
     # hr_sw = K.expand_dims(hr_sw, axis=-1)
 
