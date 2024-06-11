@@ -89,32 +89,28 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
         lay_inp = Dense(nneur, activation=activ_surface, name='dense_lay')(lay_inp)
 
     hidden1 = rnnlayer(nneur, return_sequences=True, go_backwards=False)(lay_inp, initial_state=init_state)
-    print(hidden1.shape)
-
     hidden2 = rnnlayer(nneur, return_sequences=True, go_backwards=True)(hidden1)
-    print(hidden2.shape)
 
     reverse_layer_object = Lambda(
         lambda x: K.reverse(x, axes=1),
         output_shape=hidden2.shape[1:]
     )
     hidden2 = reverse_layer_object(hidden2)
-    print(hidden2.shape)
     # hidden2 = K.reverse(hidden2, axes=1)
 
     hidden2 = keras.layers.Concatenate(axis=2)([hidden1, hidden2])
 
     flux_sw = Dense(2, activation=activ_last, name='sw_denorm')(hidden2)
-    print(flux_sw.shape)
-    print(incflux)
     flux_sw = Multiply(name='sw')([flux_sw, incflux])
 
     hr_sw = HRLayer(name='hr_sw')([flux_sw, hl_p])
-    hr_sw = K.expand_dims(hr_sw, axis=-1)
+
+    new_dimensions = hr_sw.shape + (1,)
+    hr_sw = keras.layers.Reshape(shape=new_dimensions)(hr_sw)
+    # hr_sw = K.expand_dims(hr_sw, axis=-1)
+
     hr_sw = ZeroPadding1D(padding=(0, 1))(hr_sw)
-
     outputs = keras.layers.Concatenate(axis=-1)([flux_sw, hr_sw])
-
     model = Model(inputs=all_inp, outputs=outputs)
 
     return model
