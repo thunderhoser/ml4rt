@@ -71,7 +71,7 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
 
     if add_scalars_to_levels:
         new_dimensions = (1, scalar_inp.shape[1])
-        # lay_inp2 = keras.layers.Reshape(shape=new_dimensions)(scalar_inp)
+        # lay_inp2 = keras.layers.Reshape(target_shape=new_dimensions)(scalar_inp)
         lay_inp2 = keras.layers.RepeatVector(127)(scalar_inp)
         lay_inp = keras.layers.Concatenate(axis=-1)([lay_inp, lay_inp2])
 
@@ -106,7 +106,7 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
     hr_sw = HRLayer(name='hr_sw')([flux_sw, hl_p])
 
     new_dimensions = hr_sw.shape + (1,)
-    hr_sw = keras.layers.Reshape(shape=new_dimensions)(hr_sw)
+    hr_sw = keras.layers.Reshape(target_shape=new_dimensions)(hr_sw)
     # hr_sw = K.expand_dims(hr_sw, axis=-1)
 
     hr_sw = ZeroPadding1D(padding=(0, 1))(hr_sw)
