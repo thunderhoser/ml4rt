@@ -106,6 +106,7 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
 
     flux_sw = Dense(2, activation=activ_last, name='sw_denorm')(hidden2)
     print(flux_sw.shape)
+    print(incflux)
     flux_sw = Multiply(name='sw')([flux_sw, incflux])
 
     hr_sw = HRLayer(name='hr_sw')([flux_sw, hl_p])
