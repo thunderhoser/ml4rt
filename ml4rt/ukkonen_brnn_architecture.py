@@ -96,7 +96,7 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
 
     reverse_layer_object = Lambda(
         lambda x: K.reverse(x, axes=1),
-        output_shape=hidden2.shape
+        output_shape=hidden2.shape[1:]
     )
     hidden2 = reverse_layer_object(hidden2)
     print(hidden2.shape)
