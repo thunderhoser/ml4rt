@@ -89,8 +89,10 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
         lay_inp = Dense(nneur, activation=activ_surface, name='dense_lay')(lay_inp)
 
     hidden1 = rnnlayer(nneur, return_sequences=True, go_backwards=False)(lay_inp, initial_state=init_state)
+    print(hidden1.shape)
 
     hidden2 = rnnlayer(nneur, return_sequences=True, go_backwards=True)(hidden1)
+    print(hidden2.shape)
 
     reverse_layer_object = Lambda(
         lambda x: K.reverse(x, axes=1),
