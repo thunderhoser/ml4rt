@@ -99,6 +99,7 @@ def rnn_sw(inp_spec, outp_spec, nneur=64, lstm=True, activ_last='sigmoid', activ
         output_shape=hidden2.shape
     )
     hidden2 = reverse_layer_object(hidden2)
+    print(hidden2.shape)
     # hidden2 = K.reverse(hidden2, axes=1)
 
     hidden2 = keras.layers.Concatenate(axis=2)([hidden1, hidden2])
