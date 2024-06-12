@@ -93,13 +93,11 @@ def _run(prediction_file_names, output_dir_name):
             if h == w == 0:
                 scalar_model_object_matrix, this_matrix = (
                     isotonic_regression.train_models(
-                        orig_vector_prediction_matrix=
-                        orig_vector_prediction_matrix[:, [h], ...][:, :, [w], ...],
+                        orig_vector_prediction_matrix=None,
                         orig_scalar_prediction_matrix=
-                        orig_scalar_prediction_matrix[:, [h], ...],
-                        vector_target_matrix=
-                        vector_target_matrix[:, [h], ...][:, :, [w], ...],
-                        scalar_target_matrix=scalar_target_matrix[:, [h], ...]
+                        orig_scalar_prediction_matrix,
+                        vector_target_matrix=None,
+                        scalar_target_matrix=scalar_target_matrix
                     )
                 )
 
