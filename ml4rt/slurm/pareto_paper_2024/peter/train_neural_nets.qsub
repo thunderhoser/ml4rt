@@ -51,4 +51,5 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_for_peter.py" \
 --num_epochs=1000 \
 --num_training_batches_per_epoch=1000 \
 --num_validn_batches_per_epoch=1000 \
---plateau_lr_multiplier=0.6
+--plateau_lr_multiplier=0.6 \
+--early_stopping_patience_epochs=200
