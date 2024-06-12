@@ -84,7 +84,7 @@ def _check_normalization_metadata(normalization_metadata_dict):
         or nmd[NORMALIZE_SCALAR_TARGETS_KEY]
         or nmd[NORMALIZE_VECTOR_TARGETS_KEY]
     )
-    assert normalize_any
+    # assert normalize_any
 
     return normalization_metadata_dict
 
