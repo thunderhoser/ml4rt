@@ -1780,7 +1780,7 @@ def train_model_with_generator_for_peter(
     else:
         num_validation_batches_per_epoch = None
 
-    training_option_dict = _check_generator_args(training_option_dict)
+    # training_option_dict = _check_generator_args(training_option_dict)
 
     validation_keys_to_keep = [
         EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
@@ -1792,7 +1792,7 @@ def train_model_with_generator_for_peter(
 
         validation_option_dict[this_key] = training_option_dict[this_key]
 
-    validation_option_dict = _check_generator_args(validation_option_dict)
+    # validation_option_dict = _check_generator_args(validation_option_dict)
 
     model_file_name = '{0:s}/model.keras'.format(output_dir_name)
 
