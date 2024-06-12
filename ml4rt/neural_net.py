@@ -308,6 +308,9 @@ def _read_file_for_generator(
         example_utils.NORMALIZATION_METADATA_KEY
     ][example_io.NORMALIZATION_FILE_KEY]
 
+    if previous_norm_file_name == 'None':
+        previous_norm_file_name = None
+
     if previous_norm_file_name is not None:
         normalization_metadata_dict = {
             example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
