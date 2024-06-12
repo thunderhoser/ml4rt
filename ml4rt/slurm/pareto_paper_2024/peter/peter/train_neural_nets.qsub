@@ -1,0 +1,54 @@
+#!/bin/bash
+
+#SBATCH --job-name="train_neural_nets"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8   # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_%A.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/peter/templates"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/peter"
+
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave/training"
+VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave/validation"
+
+output_dir_name="${TOP_OUTPUT_DIR_NAME}"
+echo $output_dir_name
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_for_peter.py" \
+--input_training_dir_name="${TRAINING_DIR_NAME}" \
+--input_validation_dir_name="${VALIDATION_DIR_NAME}" \
+--output_model_dir_name="${output_dir_name}" \
+--use_generator_for_validn=1 \
+--first_training_time_string="2018-09-01-000000" \
+--last_training_time_string="2019-12-21-235959" \
+--first_validn_time_string="2019-12-24-000000" \
+--last_validn_time_string="2020-12-31-235959" \
+--num_examples_per_batch=724 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=1000 \
+--num_validn_batches_per_epoch=1000 \
+--plateau_lr_multiplier=0.6
