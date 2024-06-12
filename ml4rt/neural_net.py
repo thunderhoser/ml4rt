@@ -316,6 +316,9 @@ def _read_file_for_generator(
             example_io.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets
         }
 
+        print(normalization_metadata_dict)
+        print(example_dict[example_utils.NORMALIZATION_METADATA_KEY])
+
         assert example_io.are_normalization_metadata_same(
             normalization_metadata_dict,
             example_dict[example_utils.NORMALIZATION_METADATA_KEY]
