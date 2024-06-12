@@ -1845,15 +1845,10 @@ def train_model_with_generator_for_peter(
         u_net_3plus_architecture_dict=None
     )
 
-    training_generator = data_generator(
-        option_dict=training_option_dict, for_inference=False
-    )
+    training_generator = data_generator_for_peter(training_option_dict)
 
     if use_generator_for_validn:
-        validation_generator = data_generator(
-            option_dict=validation_option_dict, for_inference=False
-        )
-
+        validation_generator = data_generator_for_peter(validation_option_dict)
         validation_data_arg = validation_generator
         validation_steps_arg = num_validation_batches_per_epoch
     else:
