@@ -115,6 +115,54 @@ HEATING_RATE_TARGETS_KEY = 'conv_output'
 FLUX_TARGETS_KEY = 'dense_output'
 TARGET_KEYS_IN_ORDER = [HEATING_RATE_TARGETS_KEY, FLUX_TARGETS_KEY]
 
+VECTOR_PREDICTOR_NAMES_FOR_PETER = [
+    'pressure_pascals', 'temperature_kelvins', 'specific_humidity_kg_kg01',
+    'liquid_water_content_kg_m03', 'ice_water_content_kg_m03',
+    'o3_mixing_ratio_kg_kg01', 'co2_concentration_ppmv',
+    'ch4_concentration_ppmv', 'n2o_concentration_ppmv',
+    'aerosol_extinction_metres01',
+    'liquid_effective_radius_metres', 'ice_effective_radius_metres',
+    'height_thickness_metres', 'pressure_thickness_pascals', 'height_m_agl',
+    'liquid_water_path_kg_m02', 'ice_water_path_kg_m02', 'vapour_path_kg_m02',
+    'upward_liquid_water_path_kg_m02', 'upward_ice_water_path_kg_m02',
+    'upward_vapour_path_kg_m02', 'relative_humidity_unitless'
+]
+
+SCALAR_PREDICTOR_NAMES_FOR_PETER = [
+    example_utils.ZENITH_ANGLE_NAME, example_utils.ALBEDO_NAME,
+    example_utils.LATITUDE_NAME, example_utils.LONGITUDE_NAME,
+    example_utils.COLUMN_LIQUID_WATER_PATH_NAME,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME,
+    example_utils.AEROSOL_ALBEDO_NAME,
+    example_utils.AEROSOL_ASYMMETRY_PARAM_NAME
+]
+
+VECTOR_TARGET_NAMES_FOR_PETER = [
+    example_utils.SHORTWAVE_DOWN_FLUX_NAME,
+    example_utils.SHORTWAVE_UP_FLUX_NAME,
+    example_utils.SHORTWAVE_HEATING_RATE_NAME
+]
+
+SCALAR_TARGET_NAMES_FOR_PETER = []
+
+TARGET_WAVELENGTHS_FOR_PETER_METRES = numpy.array([
+    example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+])
+
+HEIGHTS_FOR_PETER_M_AGL = numpy.array([
+    21, 44, 68, 93, 120, 149, 179, 212, 246, 282, 321, 361, 405, 450, 499, 550,
+    604, 661, 722, 785, 853, 924, 999, 1078, 1161, 1249, 1342, 1439, 1542, 1649,
+    1762, 1881, 2005, 2136, 2272, 2415, 2564, 2720, 2882, 3051, 3228, 3411,
+    3601, 3798, 4002, 4214, 4433, 4659, 4892, 5132, 5379, 5633, 5894, 6162,
+    6436, 6716, 7003, 7296, 7594, 7899, 8208, 8523, 8842, 9166, 9494, 9827,
+    10164, 10505, 10849, 11198, 11550, 11906, 12266, 12630, 12997, 13368, 13744,
+    14123, 14506, 14895, 15287, 15686, 16090, 16501, 16920, 17350, 17791, 18246,
+    18717, 19205, 19715, 20249, 20809, 21400, 22022, 22681, 23379, 24119, 24903,
+    25736, 26619, 27558, 28556, 29616, 30743, 31940, 33211, 34566, 36012, 37560,
+    39218, 40990, 42882, 44899, 47042, 49299, 51644, 54067, 56552, 59089, 61677,
+    64314, 67001, 69747, 72521, 75256, 77803
+], dtype=float)
+
 
 def _check_generator_args(option_dict):
     """Error-checks input arguments for generator.
@@ -661,14 +709,14 @@ def create_mask(
                 desired_wavelength_metres=target_wavelengths_metres[w]
             )
 
-            this_max_value = numpy.max(
+            this_max_value = numpy.max(numpy.absolute(
                 npt[normalization.VECTOR_TARGET_QUANTILE_KEY].values[
                     h_new, w_new, j_new, :
                 ]
-            )
+            ))
 
             heating_rate_mask_1_for_in[h, w] = (
-                this_max_value >= min_heating_rate_k_day01
+                this_max_value >= numpy.absolute(min_heating_rate_k_day01)
             ).astype(int)
 
             if heating_rate_mask_1_for_in[h, w] == 1:
@@ -710,14 +758,14 @@ def create_mask(
                 scalar_target_names[j]
             )[0][0]
 
-            this_max_value = numpy.max(
+            this_max_value = numpy.max(numpy.absolute(
                 npt[normalization.SCALAR_TARGET_QUANTILE_KEY].values[
                     w_new, j_new, :
                 ]
-            )
+            ))
 
             flux_mask_1_for_in[w, j] = (
-                this_max_value >= min_flux_w_m02
+                this_max_value >= numpy.absolute(min_flux_w_m02)
             ).astype(int)
 
             if flux_mask_1_for_in[w, j] == 1:
@@ -808,7 +856,8 @@ def _create_mask_old(
             )
 
             heating_rate_mask_1_for_in[i, j] = (
-                numpy.max(these_values) >= min_heating_rate_k_day01
+                numpy.max(numpy.absolute(these_values)) >=
+                numpy.absolute(min_heating_rate_k_day01)
             ).astype(int)
 
             if heating_rate_mask_1_for_in[i, j] == 1:
@@ -846,7 +895,8 @@ def _create_mask_old(
             )
 
             flux_mask_1_for_in[j, k] = (
-                numpy.max(these_values) >= min_flux_w_m02
+                numpy.max(numpy.absolute(these_values)) >=
+                numpy.absolute(min_flux_w_m02)
             ).astype(int)
 
             if flux_mask_1_for_in[j, k] == 1:
@@ -1212,6 +1262,188 @@ def data_generator(option_dict, for_inference):
             yield predictor_matrix_or_dict, target_matrix_or_dict
 
 
+def data_generator_for_peter(option_dict):
+    """Generates training data for any kind of neural net.
+
+    E = number of examples per batch (batch size)
+    H = number of heights
+    W = number of wavelengths
+    P = number of predictor variables (channels)
+    T_v = number of vector target variables (channels)
+    T_s = number of scalar target variables
+    T = number of target variables
+
+    :param option_dict: Dictionary with the following keys.
+    option_dict['example_dir_name']: Name of directory with example files.
+        Files therein will be found by `example_io.find_file` and read by
+        `example_io.read_file`.
+    option_dict['num_examples_per_batch']: Batch size.
+    option_dict['first_time_unix_sec']: Start time (will not generate examples
+        before this time).
+    option_dict['last_time_unix_sec']: End time (will not generate examples
+        after this time).
+
+    :return: predictor_dict: Dictionary with the following keys.
+    predictor_dict['scalar_predictor_matrix']: numpy array (E x P_s) of
+        predictor values.
+    predictor_dict['vector_predictor_matrix']: numpy array (E x H x P_v) of
+        predictor values.
+    predictor_dict['toa_flux_input_matrix']: numpy array (E x 1 x 1) of TOA
+        fluxes (W m^-2).
+
+    :return: target_matrix: numpy array (E x H x T_v) of target values.
+        target_matrix[:, 0] contains shortwave downward fluxes (W m^-2);
+        target_matrix[:, 1] contains shortwave upward fluxes (W m^-2); and
+        target_matrix[:, 2] contains shortwave heating rates (K day^-1).
+    """
+
+    # TODO(thunderhoser): Need to add input arg for_inference.
+    # TODO(thunderhoser): At least I assume that the targets aren't normalized.
+    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
+    num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    first_time_unix_sec = option_dict[FIRST_TIME_KEY]
+    last_time_unix_sec = option_dict[LAST_TIME_KEY]
+
+    all_field_names = (
+        SCALAR_PREDICTOR_NAMES_FOR_PETER +
+        VECTOR_PREDICTOR_NAMES_FOR_PETER +
+        SCALAR_TARGET_NAMES_FOR_PETER +
+        VECTOR_TARGET_NAMES_FOR_PETER
+    )
+
+    example_file_names = example_io.find_many_files(
+        directory_name=example_dir_name,
+        first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec,
+        raise_error_if_any_missing=False
+    )
+
+    example_dict = _read_file_for_generator(
+        example_file_name=example_file_names[0],
+        first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec,
+        field_names=all_field_names,
+        heights_m_agl=HEIGHTS_FOR_PETER_M_AGL,
+        target_wavelengths_metres=TARGET_WAVELENGTHS_FOR_PETER_METRES,
+        normalization_file_name=None,
+        normalize_predictors=False,
+        normalize_scalar_targets=False,
+        normalize_vector_targets=False
+    )
+
+    num_examples_in_dict = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
+    example_dict = example_utils.subset_by_index(
+        example_dict=example_dict,
+        desired_indices=numpy.random.permutation(num_examples_in_dict)
+    )
+
+    file_index = 0
+    first_example_index = 0
+
+    while True:
+        num_examples_in_memory = 0
+        predictor_matrix = None
+        target_matrix = None
+
+        while num_examples_in_memory < num_examples_per_batch:
+            if first_example_index >= num_examples_in_dict:
+                first_example_index = 0
+                file_index += 1
+                if file_index == len(example_file_names):
+                    file_index = 0
+
+                example_dict = _read_file_for_generator(
+                    example_file_name=example_file_names[file_index],
+                    first_time_unix_sec=first_time_unix_sec,
+                    last_time_unix_sec=last_time_unix_sec,
+                    field_names=all_field_names,
+                    heights_m_agl=HEIGHTS_FOR_PETER_M_AGL,
+                    target_wavelengths_metres=
+                    TARGET_WAVELENGTHS_FOR_PETER_METRES,
+                    normalization_file_name=None,
+                    normalize_predictors=False,
+                    normalize_scalar_targets=False,
+                    normalize_vector_targets=False
+                )
+
+                num_examples_in_dict = len(
+                    example_dict[example_utils.EXAMPLE_IDS_KEY]
+                )
+                example_dict = example_utils.subset_by_index(
+                    example_dict=example_dict,
+                    desired_indices=
+                    numpy.random.permutation(num_examples_in_dict)
+                )
+
+            this_num_examples = num_examples_per_batch - num_examples_in_memory
+            last_example_index = min([
+                first_example_index + this_num_examples,
+                num_examples_in_dict
+            ])
+
+            this_example_dict = dict()
+
+            for k in [
+                    example_utils.VECTOR_PREDICTOR_VALS_KEY,
+                    example_utils.SCALAR_PREDICTOR_VALS_KEY,
+                    example_utils.VECTOR_TARGET_VALS_KEY,
+                    example_utils.SCALAR_TARGET_VALS_KEY
+            ]:
+                this_example_dict[k] = (
+                    example_dict[k][first_example_index:last_example_index, ...]
+                )
+
+            print((
+                'Mean vector-predictor value for examples {0:d}-{1:d} '
+                'of {2:d} = {3:.4f}'
+            ).format(
+                first_example_index + 1, last_example_index + 1,
+                num_examples_in_dict,
+                numpy.mean(
+                    this_example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY]
+                )
+            ))
+
+            for k in [
+                    example_utils.HEIGHTS_KEY,
+                    example_utils.VECTOR_PREDICTOR_NAMES_KEY,
+                    example_utils.SCALAR_PREDICTOR_NAMES_KEY
+            ]:
+                this_example_dict[k] = example_dict[k]
+
+            first_example_index = last_example_index + 0
+
+            this_predictor_matrix = predictors_dict_to_numpy(
+                this_example_dict
+            )[0]
+            this_target_matrix = targets_dict_to_numpy(this_example_dict)[0]
+            this_target_matrix = this_target_matrix[:, :, 0, :]
+
+            if predictor_matrix is None:
+                predictor_matrix = this_predictor_matrix + 0.
+                target_matrix = this_target_matrix + 0.
+            else:
+                predictor_matrix = numpy.concatenate(
+                    (predictor_matrix, this_predictor_matrix), axis=0
+                )
+                target_matrix = numpy.concatenate(
+                    (target_matrix, this_target_matrix), axis=0
+                )
+
+            num_examples_in_memory = predictor_matrix.shape[0]
+
+        predictor_matrix = predictor_matrix.astype('float32')
+        predictor_dict = {
+            'scalar_predictor_matrix':
+                predictor_matrix[:, 0, len(VECTOR_PREDICTOR_NAMES_FOR_PETER):],
+            'vector_predictor_matrix':
+                predictor_matrix[..., :len(VECTOR_PREDICTOR_NAMES_FOR_PETER)],
+            'toa_flux_input_matrix': target_matrix[:, -1:, :1]
+        }
+
+        yield predictor_dict, target_matrix
+
+
 def create_data(option_dict):
     """Creates data for any kind of neural net.
 
@@ -1498,6 +1730,149 @@ def create_data_specific_examples(option_dict, example_id_strings):
         predictor_dict[FLUX_MASK_KEY] = flux_mask_matrix
 
     return predictor_dict, target_dict
+
+
+def train_model_with_generator_for_peter(
+        model_object, output_dir_name, num_epochs,
+        num_training_batches_per_epoch, training_option_dict,
+        validation_option_dict,
+        use_generator_for_validn, num_validation_batches_per_epoch,
+        plateau_lr_multiplier, early_stopping_patience_epochs):
+    """Trains any kind of neural net with generator.
+
+    :param model_object: See doc for `train_model_with_generator`.
+    :param output_dir_name: Same.
+    :param num_epochs: Same.
+    :param num_training_batches_per_epoch: Same.
+    :param training_option_dict: Same.
+    :param validation_option_dict: Same.
+    :param use_generator_for_validn: Same.
+    :param num_validation_batches_per_epoch: Same.
+    :param plateau_lr_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
+    """
+
+    # TODO(thunderhoser): Might want to bring back input arg
+    # loss_function_or_dict.
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    backup_dir_name = '{0:s}/backup_and_restore'.format(output_dir_name)
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=backup_dir_name
+    )
+
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 2)
+    error_checking.assert_is_integer(num_training_batches_per_epoch)
+    error_checking.assert_is_geq(num_training_batches_per_epoch, 10)
+    error_checking.assert_is_boolean(use_generator_for_validn)
+    error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
+
+    if use_generator_for_validn:
+        error_checking.assert_is_integer(num_validation_batches_per_epoch)
+        error_checking.assert_is_geq(num_validation_batches_per_epoch, 10)
+    else:
+        num_validation_batches_per_epoch = None
+
+    training_option_dict = _check_generator_args(training_option_dict)
+
+    validation_keys_to_keep = [
+        EXAMPLE_DIRECTORY_KEY, BATCH_SIZE_KEY, FIRST_TIME_KEY, LAST_TIME_KEY
+    ]
+
+    for this_key in list(training_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    validation_option_dict = _check_generator_args(validation_option_dict)
+
+    model_file_name = '{0:s}/model.keras'.format(output_dir_name)
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min',
+        save_freq='epoch'
+    )
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=True
+    )
+    list_of_callback_objects = [
+        history_object, checkpoint_object, backup_object
+    ]
+
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=LOSS_PATIENCE,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    list_of_callback_objects.append(early_stopping_object)
+
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_lr_multiplier,
+        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+    )
+    list_of_callback_objects.append(plateau_object)
+
+    metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    _write_metafile(
+        dill_file_name=metafile_name, num_epochs=num_epochs,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+        validation_option_dict=validation_option_dict,
+        loss_function_or_dict='mse',
+        plateau_lr_multiplier=plateau_lr_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
+        dense_architecture_dict=None,
+        cnn_architecture_dict=None,
+        bnn_architecture_dict=None,
+        u_net_architecture_dict=None,
+        u_net_plusplus_architecture_dict=None,
+        u_net_3plus_architecture_dict=None
+    )
+
+    training_generator = data_generator(
+        option_dict=training_option_dict, for_inference=False
+    )
+
+    if use_generator_for_validn:
+        validation_generator = data_generator(
+            option_dict=validation_option_dict, for_inference=False
+        )
+
+        validation_data_arg = validation_generator
+        validation_steps_arg = num_validation_batches_per_epoch
+    else:
+        validation_predictor_dict, validation_target_dict = create_data(
+            validation_option_dict
+        )[:2]
+
+        validation_data_arg = (
+            validation_predictor_dict, validation_target_dict
+        )
+        validation_steps_arg = None
+
+    model_object.fit(
+        x=training_generator,
+        steps_per_epoch=num_training_batches_per_epoch,
+        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        validation_data=validation_data_arg,
+        validation_steps=validation_steps_arg
+    )
 
 
 def train_model_with_generator(
@@ -1886,6 +2261,21 @@ def read_model(hdf5_file_name):
         raise_error_if_missing=True
     )
     metadata_dict = read_metafile(metafile_name)
+
+    if (
+            isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str)
+            and metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] == 'mse'
+    ):
+        import peter_brnn_architecture
+
+        model_object = peter_brnn_architecture.rnn_sw(
+            nneur=64, lstm=True,
+            activ_last='sigmoid', activ_surface='linear',
+            add_dense=False, add_scalars_to_levels=True, simpler_inputs=True
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
     dense_architecture_dict = metadata_dict[DENSE_ARCHITECTURE_KEY]
 
     if dense_architecture_dict is not None:
