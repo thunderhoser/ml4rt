@@ -3,7 +3,7 @@
 #SBATCH --job-name="plot_hyperparam_grids"
 #SBATCH --partition="novel"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="batch"
+#SBATCH --qos="urgent"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --time=00:30:00
