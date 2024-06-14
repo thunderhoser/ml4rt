@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name="plot_hyperparam_grids"
-#SBATCH --partition="urgent"
+#SBATCH --partition="novel"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
 #SBATCH --ntasks=1
