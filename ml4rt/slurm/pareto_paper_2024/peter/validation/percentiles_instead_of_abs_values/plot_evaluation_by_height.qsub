@@ -8,12 +8,11 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=06:00:00
-#SBATCH --array=0-19
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_evaluation_by_height_%A_%a.out
+#SBATCH --output=plot_evaluation_by_height_%A.out
 
 module load cuda/12.3.1
 conda init
@@ -27,15 +26,9 @@ echo `which python3`
 echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_more_losses"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/peter"
 
-MIN_DUAL_WEIGHTS=("0.10" "0.25" "0.50" "0.75" "1.00" "0.10" "0.25" "0.50" "0.75" "1.00" "0.10" "0.25" "0.50" "0.75" "1.00" "0.10" "0.25" "0.50" "0.75" "1.00")
-BROADBAND_WEIGHTS=("0.01" "0.01" "0.01" "0.01" "0.01" "0.05" "0.05" "0.05" "0.05" "0.05" "0.10" "0.10" "0.10" "0.10" "0.10" "0.20" "0.20" "0.20" "0.20" "0.20")
-
-min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
-broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
-
-model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}"
+model_dir_name="${TOP_MODEL_DIR_NAME}"
 prediction_file_name="${model_dir_name}/validation/predictions.nc"
 evaluation_dir_name="${model_dir_name}/validation/percentiles_instead_of_abs_values/evaluation"
 evaluation_file_name="${evaluation_dir_name}.nc"
