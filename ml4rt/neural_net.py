@@ -2683,14 +2683,12 @@ def apply_model_for_peter(
         this_prediction_matrix = numpy.expand_dims(
             this_prediction_matrix, axis=-1
         )
-        print(this_prediction_matrix.shape)
 
         if prediction_matrix is None:
             prediction_matrix = numpy.full(
-                (num_examples,) + this_prediction_matrix[0].shape[1:],
+                (num_examples,) + this_prediction_matrix.shape[1:],
                 numpy.nan
             )
-            print(prediction_matrix.shape)
 
         prediction_matrix[this_first_index:(this_last_index + 1), ...] = (
             this_prediction_matrix
