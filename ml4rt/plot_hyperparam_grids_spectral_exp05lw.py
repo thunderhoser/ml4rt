@@ -584,11 +584,13 @@ def _run(experiment_dir_name, wavelength_metres, isotonic_flag,
             for k in range(num_normalization_types):
                 this_model_dir_name = (
                     '{0:s}/spectral_experiment05lw_more_losses/'
-                    'min-dual-weight={1:.2f}_broadband-weight={2:.2f}'
+                    'min-dual-weight={1:.2f}_broadband-weight={2:.2f}_'
+                    'normalization-type={3:s}'
                 ).format(
                     experiment_dir_name,
                     MIN_DUAL_WEIGHTS_AXIS1[i],
-                    BROADBAND_WEIGHTS_AXIS2[j]
+                    BROADBAND_WEIGHTS_AXIS2[j],
+                    NORMALIZATION_TYPE_STRINGS_AXIS3[k]
                 )
 
                 (
