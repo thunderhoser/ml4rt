@@ -2561,15 +2561,20 @@ def read_metafile(dill_file_name):
         v[MIN_FLUX_FOR_MASK_KEY] = None
 
     if NORMALIZE_PREDICTORS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        t[NORMALIZE_PREDICTORS_KEY] = (
-            t['predictor_norm_type_string'] is not None
-        )
-        t[NORMALIZE_SCALAR_TARGETS_KEY] = (
-            t['scalar_target_norm_type_string'] is not None
-        )
-        t[NORMALIZE_VECTOR_TARGETS_KEY] = (
-            t['vector_target_norm_type_string'] is not None
-        )
+        try:
+            t[NORMALIZE_PREDICTORS_KEY] = (
+                t['predictor_norm_type_string'] is not None
+            )
+            t[NORMALIZE_SCALAR_TARGETS_KEY] = (
+                t['scalar_target_norm_type_string'] is not None
+            )
+            t[NORMALIZE_VECTOR_TARGETS_KEY] = (
+                t['vector_target_norm_type_string'] is not None
+            )
+        except KeyError:
+            t[NORMALIZE_PREDICTORS_KEY] = None
+            t[NORMALIZE_SCALAR_TARGETS_KEY] = None
+            t[NORMALIZE_VECTOR_TARGETS_KEY] = None
 
         v[NORMALIZE_PREDICTORS_KEY] = t[NORMALIZE_PREDICTORS_KEY]
         v[NORMALIZE_SCALAR_TARGETS_KEY] = t[NORMALIZE_SCALAR_TARGETS_KEY]
