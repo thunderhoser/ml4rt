@@ -2,7 +2,7 @@
 
 #SBATCH --job-name="plot_hyperparam_grids"
 #SBATCH --partition="hera"
-#SBATCH --account="gsd-hpcs"
+#SBATCH --account="stmp"
 #SBATCH --qos="urgent"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
