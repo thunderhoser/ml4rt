@@ -137,6 +137,9 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         remove_fluxes=True
     )
 
+    # Remove fluxes.
+    vector_target_matrix = vector_target_matrix[..., -1:]
+
     num_examples = vector_target_matrix.shape[0]
     num_wavelengths = vector_target_matrix.shape[2]
     ensemble_size = vector_prediction_matrix.shape[-1]
