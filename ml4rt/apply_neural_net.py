@@ -4,7 +4,6 @@ import os
 import sys
 import copy
 import time
-import os.path
 import argparse
 import numpy
 
@@ -24,11 +23,6 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 500
-
-TARGET_VALUE_KEYS = [
-    example_utils.SCALAR_TARGET_VALS_KEY,
-    example_utils.VECTOR_TARGET_VALS_KEY
-]
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'

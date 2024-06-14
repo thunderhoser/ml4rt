@@ -1301,7 +1301,7 @@ def data_generator_for_peter(option_dict):
     """
 
     # TODO(thunderhoser): Need to add input arg for_inference.
-    # TODO(thunderhoser): At least I assume that the targets aren't normalized.
+    # TODO(thunderhoser): I assume that the targets aren't normalized.
     example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
     first_time_unix_sec = option_dict[FIRST_TIME_KEY]
@@ -1445,6 +1445,74 @@ def data_generator_for_peter(option_dict):
         }
 
         yield predictor_dict, target_matrix
+
+
+def create_data_for_peter(option_dict):
+    """Creates data for one of Peter Ukkonen's neural nets.
+
+    This method is the same as `data_generator_for_peter`, except that it
+    returns all the data at once, rather than generating batches on the fly.
+
+    :param option_dict: See doc for `data_generator_for_peter`.
+    :return: predictor_dict: Same.
+    :return: target_matrix: Same.
+    :return: example_id_strings: Same.
+    """
+
+    example_dir_name = option_dict[EXAMPLE_DIRECTORY_KEY]
+    first_time_unix_sec = option_dict[FIRST_TIME_KEY]
+    last_time_unix_sec = option_dict[LAST_TIME_KEY]
+
+    all_field_names = (
+        SCALAR_PREDICTOR_NAMES_FOR_PETER +
+        VECTOR_PREDICTOR_NAMES_FOR_PETER +
+        SCALAR_TARGET_NAMES_FOR_PETER +
+        VECTOR_TARGET_NAMES_FOR_PETER
+    )
+
+    example_file_names = example_io.find_many_files(
+        directory_name=example_dir_name,
+        first_time_unix_sec=first_time_unix_sec,
+        last_time_unix_sec=last_time_unix_sec,
+        raise_error_if_any_missing=False
+    )
+
+    example_dicts = []
+
+    for this_file_name in example_file_names:
+        this_example_dict = _read_file_for_generator(
+            example_file_name=this_file_name,
+            first_time_unix_sec=first_time_unix_sec,
+            last_time_unix_sec=last_time_unix_sec,
+            field_names=all_field_names,
+            heights_m_agl=HEIGHTS_FOR_PETER_M_AGL,
+            target_wavelengths_metres=TARGET_WAVELENGTHS_FOR_PETER_METRES,
+            normalization_file_name=None,
+            normalize_predictors=False,
+            normalize_scalar_targets=False,
+            normalize_vector_targets=False
+        )
+
+        example_dicts.append(this_example_dict)
+
+    example_dict = example_utils.concat_examples(example_dicts)
+    predictor_matrix = predictors_dict_to_numpy(example_dict)[0]
+    predictor_matrix = predictor_matrix.astype('float32')
+    target_matrix = targets_dict_to_numpy(example_dict)[0]
+
+    predictor_dict = {
+        'scalar_predictor_matrix':
+            predictor_matrix[:, 0, len(VECTOR_PREDICTOR_NAMES_FOR_PETER):],
+        'vector_predictor_matrix':
+            predictor_matrix[..., :len(VECTOR_PREDICTOR_NAMES_FOR_PETER)],
+        'toa_flux_input_matrix': target_matrix[:, -1:, :1]
+    }
+
+    return (
+        predictor_dict,
+        target_matrix,
+        example_dict[example_utils.EXAMPLE_IDS_KEY]
+    )
 
 
 def create_data(option_dict):
@@ -1797,7 +1865,7 @@ def train_model_with_generator_for_peter(
 
     # validation_option_dict = _check_generator_args(validation_option_dict)
 
-    model_file_name = '{0:s}/model.keras'.format(output_dir_name)
+    model_file_name = '{0:s}/model.weights.h5'.format(output_dir_name)
 
     history_object = keras.callbacks.CSVLogger(
         filename='{0:s}/history.csv'.format(output_dir_name),
@@ -2537,6 +2605,92 @@ def read_metafile(dill_file_name):
     ).format(str(missing_keys), dill_file_name)
 
     raise ValueError(error_string)
+
+
+def apply_model_for_peter(
+        model_object, predictor_matrix_or_list, num_examples_per_batch,
+        verbose=True, remove_fluxes=True):
+    """Applies trained neural net from Peter Ukkonen to new data.
+
+    E = number of examples
+    H = number of heights
+    W = number of wavelengths
+    T_v = number of vector target variables (channels)
+    S = ensemble size
+
+    :param model_object: Trained neural net (instance of `keras.models.Model` or
+        `keras.models.Sequential`).
+    :param predictor_matrix_or_list: Same as output from
+        `data_generator_for_peter`, except this is a single numpy array or list
+        -- rather than a single numpy array or dict.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :param remove_fluxes: Boolean flag.  If True, will return only heating-rate
+        predictions.
+    :return: prediction_matrix: numpy array (E x H x W x T_v x S) of predicted
+        values.
+    """
+
+    # Check input args.
+    num_examples, num_examples_per_batch = _check_inference_args(
+        predictor_matrix_or_list=predictor_matrix_or_list,
+        num_examples_per_batch=num_examples_per_batch,
+        verbose=verbose
+    )
+    error_checking.assert_is_boolean(remove_fluxes)
+
+    # Do actual stuff.
+    prediction_matrix = None
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        this_first_index = i
+        this_last_index = min(
+            [i + num_examples_per_batch - 1, num_examples - 1]
+        )
+        these_indices = numpy.linspace(
+            this_first_index, this_last_index,
+            num=this_last_index - this_first_index + 1, dtype=int
+        )
+
+        if verbose:
+            print('Applying NN to examples {0:d}-{1:d} of {2:d}...'.format(
+                this_first_index + 1, this_last_index + 1, num_examples
+            ))
+
+        if isinstance(predictor_matrix_or_list, list):
+            this_prediction_matrix = model_object.predict_on_batch(
+                [p[these_indices, ...] for p in predictor_matrix_or_list]
+            )
+        else:
+            this_prediction_matrix = model_object.predict_on_batch(
+                predictor_matrix_or_list[these_indices, ...]
+            )
+
+        if remove_fluxes:
+            this_prediction_matrix = this_prediction_matrix[..., -1:]
+
+        # Add wavelength dimension and then ensemble dimension.
+        this_prediction_matrix = numpy.expand_dims(
+            this_prediction_matrix, axis=-2
+        )
+        this_prediction_matrix = numpy.expand_dims(
+            this_prediction_matrix, axis=-1
+        )
+
+        if prediction_matrix is None:
+            prediction_matrix = numpy.full(
+                (num_examples,) + this_prediction_matrix[0].shape[1:],
+                numpy.nan
+            )
+
+        prediction_matrix[this_first_index:(this_last_index + 1), ...] = (
+            this_prediction_matrix
+        )
+
+    if verbose:
+        print('Have applied NN to all {0:d} examples!'.format(num_examples))
+
+    return prediction_matrix
 
 
 def apply_model(
