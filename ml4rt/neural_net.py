@@ -1498,7 +1498,9 @@ def create_data_for_peter(option_dict):
     example_dict = example_utils.concat_examples(example_dicts)
     predictor_matrix = predictors_dict_to_numpy(example_dict)[0]
     predictor_matrix = predictor_matrix.astype('float32')
+
     target_matrix = targets_dict_to_numpy(example_dict)[0]
+    target_matrix = target_matrix[:, :, 0, :]
 
     predictor_dict = {
         'scalar_predictor_matrix':
