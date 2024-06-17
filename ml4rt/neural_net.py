@@ -1269,7 +1269,7 @@ def data_generator(option_dict, for_inference):
             yield predictor_matrix_or_dict, target_matrix_or_dict
 
 
-def data_generator_for_peter(option_dict):
+def data_generator_for_peter(option_dict, use_ryan_architecture):
     """Generates training data for any kind of neural net.
 
     E = number of examples per batch (batch size)
@@ -1289,6 +1289,8 @@ def data_generator_for_peter(option_dict):
         before this time).
     option_dict['last_time_unix_sec']: End time (will not generate examples
         after this time).
+
+    :param use_ryan_architecture: Boolean flag.
 
     :return: predictor_dict: Dictionary with the following keys.
     predictor_dict['scalar_predictor_matrix']: numpy array (E x P_s) of
@@ -1447,6 +1449,25 @@ def data_generator_for_peter(option_dict):
                 predictor_matrix[..., :len(VECTOR_PREDICTOR_NAMES_FOR_PETER)],
             'toa_flux_input_matrix': target_matrix[:, -1:, :1]
         }
+
+        if use_ryan_architecture:
+            target_matrix = numpy.expand_dims(target_matrix, axis=-3)
+
+            sfc_down_flux_target_matrix = target_matrix[:, 0, :, 0]
+            toa_up_flux_target_matrix = target_matrix[:, -1, :, 1]
+            scalar_target_matrix = numpy.stack(
+                [sfc_down_flux_target_matrix, toa_up_flux_target_matrix],
+                axis=-1
+            )
+            vector_target_matrix = target_matrix[..., -1:]
+
+            target_matrix_or_dict = {
+                HEATING_RATE_TARGETS_KEY:
+                    vector_target_matrix.astype('float32'),
+                FLUX_TARGETS_KEY: scalar_target_matrix.astype('float32')
+            }
+        else:
+            target_matrix_or_dict = target_matrix
 
         yield predictor_dict, target_matrix
 
@@ -1926,10 +1947,16 @@ def train_model_with_generator_for_peter(
         u_net_3plus_architecture_dict=None
     )
 
-    training_generator = data_generator_for_peter(training_option_dict)
+    training_generator = data_generator_for_peter(
+        option_dict=training_option_dict,
+        use_ryan_architecture=use_ryan_architecture
+    )
 
     if use_generator_for_validn:
-        validation_generator = data_generator_for_peter(validation_option_dict)
+        validation_generator = data_generator_for_peter(
+            option_dict=validation_option_dict,
+            use_ryan_architecture=use_ryan_architecture
+        )
         validation_data_arg = validation_generator
         validation_steps_arg = num_validation_batches_per_epoch
     else:
