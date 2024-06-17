@@ -44,10 +44,10 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _compute_scores(prediction_file_name, wavelength_metres):
+def _compute_scores(prediction_dict, wavelength_metres):
     """Computes scores from prediction file.
 
-    :param prediction_file_name: Path to input file.
+    :param prediction_dict: Dictionary returned by `prediction_io.read_file`.
     :param wavelength_metres: Will compute scores for this wavelength.
     :return: rmse_k_day01: RMSE for heating rate (Kelvins per day).
     :return: near_sfc_rmse_k_day01: RMSE for near-surface heating rate.
@@ -58,9 +58,6 @@ def _compute_scores(prediction_file_name, wavelength_metres):
         square meter).
     :return: up_flux_rmse_w_m02: RMSE for TOA upwelling flux.
     """
-
-    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
-    prediction_dict = prediction_io.read_file(prediction_file_name)
 
     w = example_utils.match_wavelengths(
         wavelengths_metres=
@@ -108,9 +105,20 @@ def _compute_scores(prediction_file_name, wavelength_metres):
     if not isinstance(scalar_target_names, list):
         scalar_target_names = scalar_target_names.tolist()
 
-    d = scalar_target_names.index(
-        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    is_model_shortwave = (
+        example_utils.SHORTWAVE_HEATING_RATE_NAME in
+        training_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY]
     )
+
+    if is_model_shortwave:
+        d = scalar_target_names.index(
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+        )
+    else:
+        d = scalar_target_names.index(
+            example_utils.LONGWAVE_SURFACE_DOWN_FLUX_NAME
+        )
+
     target_down_flux_matrix_w_m02 = (
         prediction_dict[prediction_io.SCALAR_TARGETS_KEY][:, w, d]
     )
@@ -122,9 +130,15 @@ def _compute_scores(prediction_file_name, wavelength_metres):
         (predicted_down_flux_matrix_w_m02 - target_down_flux_matrix_w_m02) ** 2
     ))
 
-    u = scalar_target_names.index(
-        example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
-    )
+    if is_model_shortwave:
+        u = scalar_target_names.index(
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+        )
+    else:
+        u = scalar_target_names.index(
+            example_utils.LONGWAVE_TOA_UP_FLUX_NAME
+        )
+
     target_up_flux_matrix_w_m02 = (
         prediction_dict[prediction_io.SCALAR_TARGETS_KEY][:, w, u]
     )
@@ -177,7 +191,7 @@ def _run(prediction_file_name, output_file_name):
                 bias_k_day01, near_sfc_bias_k_day01,
                 down_flux_rmse_w_m02, up_flux_rmse_w_m02
             ) = _compute_scores(
-                prediction_file_name=prediction_file_name,
+                prediction_dict=prediction_dict,
                 wavelength_metres=this_wavelength_metres
             )
 
