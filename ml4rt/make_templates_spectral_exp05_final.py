@@ -216,7 +216,8 @@ def _run():
             bnn_architecture_dict=None,
             cnn_architecture_dict=None,
             dense_architecture_dict=None,
-            u_net_architecture_dict=None
+            u_net_architecture_dict=None,
+            use_ryan_architecture=False
         )
 
 
