@@ -1469,7 +1469,7 @@ def data_generator_for_peter(option_dict, use_ryan_architecture):
         else:
             target_matrix_or_dict = target_matrix
 
-        yield predictor_dict, target_matrix
+        yield predictor_dict, target_matrix_or_dict
 
 
 def create_data_for_peter(option_dict):
