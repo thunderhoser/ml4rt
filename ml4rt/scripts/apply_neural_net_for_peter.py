@@ -14,6 +14,12 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 500
 
+DUMMY_NORMALIZATION_FILE_NAME = (
+    '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/'
+    'examples_with_correct_vertical_coords/shortwave/training/'
+    'learning_examples_for_norm_20180901-20191221.nc'
+)
+
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
@@ -161,14 +167,14 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         vector_target_matrix=vector_target_matrix,
         scalar_prediction_matrix=scalar_prediction_matrix,
         vector_prediction_matrix=vector_prediction_matrix,
-        heights_m_agl=generator_option_dict[neural_net.HEIGHTS_KEY],
+        heights_m_agl=neural_net.HEIGHTS_FOR_PETER_M_AGL,
         target_wavelengths_metres=
-        generator_option_dict[neural_net.TARGET_WAVELENGTHS_KEY],
+        neural_net.TARGET_WAVELENGTHS_FOR_PETER_METRES,
         example_id_strings=example_id_strings,
         model_file_name=dummy_model_file_name,
         isotonic_model_file_name=None,
         uncertainty_calib_model_file_name=None,
-        normalization_file_name=None
+        normalization_file_name=DUMMY_NORMALIZATION_FILE_NAME
     )
 
     new_metafile_name = neural_net.find_metafile(
@@ -178,13 +184,33 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
 
     # TODO(thunderhoser): Will eventually need to generalize this for longwave
     # models.
+    dummy_generator_option_dict = {
+        neural_net.EXAMPLE_DIRECTORY_KEY: 'foo',
+        neural_net.BATCH_SIZE_KEY: 724,
+        neural_net.SCALAR_PREDICTOR_NAMES_KEY: [],
+        neural_net.VECTOR_PREDICTOR_NAMES_KEY: [],
+        neural_net.SCALAR_TARGET_NAMES_KEY: [],
+        neural_net.VECTOR_TARGET_NAMES_KEY:
+            [example_utils.SHORTWAVE_HEATING_RATE_NAME],
+        neural_net.HEIGHTS_KEY: neural_net.HEIGHTS_FOR_PETER_M_AGL,
+        neural_net.TARGET_WAVELENGTHS_KEY:
+            neural_net.TARGET_WAVELENGTHS_FOR_PETER_METRES,
+        neural_net.FIRST_TIME_KEY: 0,
+        neural_net.LAST_TIME_KEY: int(1e9),
+        neural_net.NORMALIZATION_FILE_KEY: None,
+        neural_net.NORMALIZE_PREDICTORS_KEY: False,
+        neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False,
+        neural_net.NORMALIZE_VECTOR_TARGETS_KEY: False,
+        neural_net.JOINED_OUTPUT_LAYER_KEY: False,
+        neural_net.NUM_DEEP_SUPER_LAYERS_KEY: 0,
+        neural_net.NORMALIZATION_FILE_FOR_MASK_KEY: None,
+        neural_net.MIN_HEATING_RATE_FOR_MASK_KEY: None,
+        neural_net.MIN_FLUX_FOR_MASK_KEY: None
+    }
+
     md = metadata_dict
-    md[neural_net.TRAINING_OPTIONS_KEY][neural_net.VECTOR_TARGET_NAMES_KEY] = [
-        example_utils.SHORTWAVE_HEATING_RATE_NAME
-    ]
-    md[neural_net.VALIDATION_OPTIONS_KEY][neural_net.VECTOR_TARGET_NAMES_KEY] = [
-        example_utils.SHORTWAVE_HEATING_RATE_NAME
-    ]
+    md[neural_net.TRAINING_OPTIONS_KEY] = dummy_generator_option_dict
+    md[neural_net.VALIDATION_OPTIONS_KEY] = dummy_generator_option_dict
 
     print('Writing new metafile to: "{0:s}"...'.format(new_metafile_name))
     neural_net._write_metafile(

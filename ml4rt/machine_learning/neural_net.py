@@ -2680,7 +2680,7 @@ def apply_model_for_peter(
 
         if prediction_matrix is None:
             prediction_matrix = numpy.full(
-                (num_examples,) + this_prediction_matrix[0].shape[1:],
+                (num_examples,) + this_prediction_matrix.shape[1:],
                 numpy.nan
             )
 
