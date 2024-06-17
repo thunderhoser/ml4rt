@@ -36,5 +36,5 @@ output_dir_name="${model_dir_name}/validation/percentiles_instead_of_abs_values/
 python3 -u "${CODE_DIR_NAME}/make_overall_eval_figure.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
 --for_shortwave=1 \
---wavelengths_metres 0.000005847953216 0.000003418803419 0.000002758620690 0.000002312138728 0.000002040816327 0.000001769911504 0.000001444043321 0.000001269841270 0.000000956937799 0.000000693240901 0.000000517464424 0.000000387221684 0.000000298507463 0.000000227272727 1000 \
+--wavelengths_metres 1000 \
 --output_dir_name="${output_dir_name}"
