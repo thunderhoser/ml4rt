@@ -147,20 +147,27 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         predictor_matrix_or_list=predictor_matrix_or_list,
         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
         verbose=True,
-        remove_fluxes=True
+        remove_fluxes=False
     )
 
-    # Remove fluxes.
+    # Separate heating rates and fluxes.
+    sfc_down_flux_prediction_matrix = vector_prediction_matrix[:, 0, :, 0, :]
+    toa_up_flux_prediction_matrix = vector_prediction_matrix[:, -1, :, 1, :]
+    scalar_prediction_matrix = numpy.stack(
+        [sfc_down_flux_prediction_matrix, toa_up_flux_prediction_matrix],
+        axis=-2
+    )
+    vector_prediction_matrix = vector_prediction_matrix[..., -1:, :]
+
+    sfc_down_flux_target_matrix = vector_target_matrix[:, 0, :, 0]
+    toa_up_flux_target_matrix = vector_target_matrix[:, -1, :, 1]
+    scalar_target_matrix = numpy.stack(
+        [sfc_down_flux_target_matrix, toa_up_flux_target_matrix],
+        axis=-1
+    )
     vector_target_matrix = vector_target_matrix[..., -1:]
 
-    num_examples = vector_target_matrix.shape[0]
-    num_wavelengths = vector_target_matrix.shape[2]
-    ensemble_size = vector_prediction_matrix.shape[-1]
-    scalar_target_matrix = numpy.full((num_examples, num_wavelengths, 0), 0.)
-    scalar_prediction_matrix = numpy.full(
-        (num_examples, num_wavelengths, 0, ensemble_size), 0.
-    )
-
+    # Write output file.
     dummy_model_file_name = '{0:s}/model.keras'.format(
         os.path.split(output_file_name)[0]
     )
@@ -196,7 +203,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         neural_net.BATCH_SIZE_KEY: 724,
         neural_net.SCALAR_PREDICTOR_NAMES_KEY: [],
         neural_net.VECTOR_PREDICTOR_NAMES_KEY: [],
-        neural_net.SCALAR_TARGET_NAMES_KEY: [],
+        neural_net.SCALAR_TARGET_NAMES_KEY: [
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME,
+            example_utils.SHORTWAVE_TOA_UP_FLUX_NAME
+        ],
         neural_net.VECTOR_TARGET_NAMES_KEY:
             [example_utils.SHORTWAVE_HEATING_RATE_NAME],
         neural_net.HEIGHTS_KEY: neural_net.HEIGHTS_FOR_PETER_M_AGL,
