@@ -103,7 +103,7 @@ DUMMY_GENERATOR_OPTION_DICT = {
     neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False
 }
 
-MIN_DUAL_WEIGHTS = numpy.array([0.75, 0.01])
+MIN_DUAL_WEIGHTS = numpy.array([0.75, 1.00])
 BROADBAND_WEIGHTS = numpy.array([0.01, 0.05])
 NORMALIZATION_TYPE_STRINGS = ['old', 'new']
 

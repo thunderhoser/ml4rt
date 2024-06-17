@@ -33,7 +33,7 @@ CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt
 TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_final/templates"
 TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_final"
 
-MIN_DUAL_WEIGHTS=("0.75" "0.01")
+MIN_DUAL_WEIGHTS=("0.75" "1.00")
 BROADBAND_WEIGHTS=("0.01" "0.05")
 NORMALIZATION_TYPE_STRINGS=("old" "new")
 

@@ -29,7 +29,7 @@ echo $PATH
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05b_more_losses"
 
-MIN_DUAL_WEIGHTS=("0.01")
+MIN_DUAL_WEIGHTS=("1.00")
 BROADBAND_WEIGHTS=("0.05")
 
 min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
