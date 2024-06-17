@@ -93,6 +93,7 @@ BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
 U_NET_ARCHITECTURE_KEY = 'u_net_architecture_dict'
 U_NET_PP_ARCHITECTURE_KEY = 'u_net_plusplus_architecture_dict'
 U_NET_PPP_ARCHITECTURE_KEY = 'u_net_3plus_architecture_dict'
+USE_RYAN_ARCHITECTURE_KEY = 'use_ryan_architecture'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
@@ -101,7 +102,7 @@ METADATA_KEYS = [
     PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
     DENSE_ARCHITECTURE_KEY, CNN_ARCHITECTURE_KEY, BNN_ARCHITECTURE_KEY,
     U_NET_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY,
-    U_NET_PPP_ARCHITECTURE_KEY
+    U_NET_PPP_ARCHITECTURE_KEY, USE_RYAN_ARCHITECTURE_KEY
 ]
 
 MAIN_PREDICTORS_KEY = 'main_predictors'
@@ -353,7 +354,7 @@ def _write_metafile(
         plateau_lr_multiplier, early_stopping_patience_epochs,
         dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
         u_net_architecture_dict, u_net_plusplus_architecture_dict,
-        u_net_3plus_architecture_dict):
+        u_net_3plus_architecture_dict, use_ryan_architecture):
     """Writes metadata to Dill file.
 
     :param dill_file_name: Path to output file.
@@ -371,6 +372,8 @@ def _write_metafile(
     :param u_net_architecture_dict: Same.
     :param u_net_plusplus_architecture_dict: Same.
     :param u_net_3plus_architecture_dict: Same.
+    :param use_ryan_architecture: Boolean flag, indicating whether Ryan's or
+        original version of Peter's BRNN architecture was sued.
     """
 
     metadata_dict = {
@@ -387,7 +390,8 @@ def _write_metafile(
         BNN_ARCHITECTURE_KEY: bnn_architecture_dict,
         U_NET_ARCHITECTURE_KEY: u_net_architecture_dict,
         U_NET_PP_ARCHITECTURE_KEY: u_net_plusplus_architecture_dict,
-        U_NET_PPP_ARCHITECTURE_KEY: u_net_3plus_architecture_dict
+        U_NET_PPP_ARCHITECTURE_KEY: u_net_3plus_architecture_dict,
+        USE_RYAN_ARCHITECTURE_KEY: use_ryan_architecture
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
@@ -1810,7 +1814,8 @@ def train_model_with_generator_for_peter(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        plateau_lr_multiplier, early_stopping_patience_epochs):
+        plateau_lr_multiplier, early_stopping_patience_epochs,
+        use_ryan_architecture):
     """Trains any kind of neural net with generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1823,6 +1828,7 @@ def train_model_with_generator_for_peter(
     :param num_validation_batches_per_epoch: Same.
     :param plateau_lr_multiplier: Same.
     :param early_stopping_patience_epochs: Same.
+    :param use_ryan_architecture: Boolean flag.
     """
 
     # TODO(thunderhoser): Might want to bring back input arg
@@ -1846,6 +1852,7 @@ def train_model_with_generator_for_peter(
     error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
+    error_checking.assert_is_boolean(use_ryan_architecture)
 
     if use_generator_for_validn:
         error_checking.assert_is_integer(num_validation_batches_per_epoch)
@@ -1910,6 +1917,7 @@ def train_model_with_generator_for_peter(
         loss_function_or_dict='mse',
         plateau_lr_multiplier=plateau_lr_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
+        use_ryan_architecture=use_ryan_architecture,
         dense_architecture_dict=None,
         cnn_architecture_dict=None,
         bnn_architecture_dict=None,
@@ -2082,7 +2090,8 @@ def train_model_with_generator(
         bnn_architecture_dict=bnn_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
-        u_net_3plus_architecture_dict=u_net_3plus_architecture_dict
+        u_net_3plus_architecture_dict=u_net_3plus_architecture_dict,
+        use_ryan_architecture=False
     )
 
     training_generator = data_generator(
@@ -2223,7 +2232,8 @@ def train_model_sans_generator(
         bnn_architecture_dict=bnn_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         u_net_plusplus_architecture_dict=u_net_plusplus_architecture_dict,
-        u_net_3plus_architecture_dict=u_net_3plus_architecture_dict
+        u_net_3plus_architecture_dict=u_net_3plus_architecture_dict,
+        use_ryan_architecture=False
     )
 
     training_predictor_dict, training_target_dict = create_data(
@@ -2329,6 +2339,17 @@ def read_model(hdf5_file_name):
         raise_error_if_missing=True
     )
     metadata_dict = read_metafile(metafile_name)
+
+    if metadata_dict[USE_RYAN_ARCHITECTURE_KEY]:
+        import peter_brnn_architecture_ryan
+
+        model_object = peter_brnn_architecture_ryan.rnn_sw(
+            nneur=64, lstm=True,
+            activ_last='sigmoid', activ_surface='linear',
+            add_dense=False, add_scalars_to_levels=True, simpler_inputs=True
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
 
     if (
             isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str)
@@ -2549,6 +2570,8 @@ def read_metafile(dill_file_name):
 
     if EARLY_STOPPING_PATIENCE_KEY not in metadata_dict:
         metadata_dict[EARLY_STOPPING_PATIENCE_KEY] = 200
+    if USE_RYAN_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[USE_RYAN_ARCHITECTURE_KEY] = False
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
     v = metadata_dict[VALIDATION_OPTIONS_KEY]

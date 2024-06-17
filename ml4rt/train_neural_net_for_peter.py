@@ -12,6 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import time_conversion
 import neural_net
 import peter_brnn_architecture
+import peter_brnn_architecture_ryan
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
@@ -19,6 +20,7 @@ TRAINING_DIR_ARG_NAME = 'input_training_dir_name'
 VALIDATION_DIR_ARG_NAME = 'input_validation_dir_name'
 OUTPUT_MODEL_DIR_ARG_NAME = 'output_model_dir_name'
 USE_GENERATOR_FOR_VALIDN_ARG_NAME = 'use_generator_for_validn'
+USE_RYAN_ARCHITECTURE_ARG_NAME = 'use_ryan_architecture'
 
 FIRST_TRAIN_TIME_ARG_NAME = 'first_training_time_string'
 LAST_TRAIN_TIME_ARG_NAME = 'last_training_time_string'
@@ -47,6 +49,9 @@ OUTPUT_MODEL_DIR_HELP_STRING = (
 USE_GENERATOR_FOR_VALIDN_HELP_STRING = (
     'Boolean flag.  If 1, will use generator for validation data.  If 0, will '
     'load all validation data into memory at once.'
+)
+USE_RYAN_ARCHITECTURE_HELP_STRING = (
+    'Boolean flag.  If 1, will use Ryan''s version of Peter''s architecture.'
 )
 
 TRAIN_TIME_HELP_STRING = (
@@ -97,6 +102,10 @@ INPUT_ARG_PARSER.add_argument(
     default=1, help=USE_GENERATOR_FOR_VALIDN_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_RYAN_ARCHITECTURE_ARG_NAME, type=int, required=True,
+    help=USE_RYAN_ARCHITECTURE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + FIRST_TRAIN_TIME_ARG_NAME, type=str, required=True,
     help=TRAIN_TIME_HELP_STRING
 )
@@ -139,7 +148,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(training_dir_name, validation_dir_name, output_model_dir_name,
-         use_generator_for_validn,
+         use_generator_for_validn, use_ryan_architecture,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
          num_examples_per_batch, num_epochs,
@@ -153,6 +162,7 @@ def _run(training_dir_name, validation_dir_name, output_model_dir_name,
     :param validation_dir_name: Same.
     :param output_model_dir_name: Same.
     :param use_generator_for_validn: Same.
+    :param use_ryan_architecture: Same.
     :param first_training_time_string: Same.
     :param last_training_time_string: Same.
     :param first_validn_time_string: Same.
@@ -191,7 +201,10 @@ def _run(training_dir_name, validation_dir_name, output_model_dir_name,
         neural_net.LAST_TIME_KEY: last_validn_time_unix_sec
     }
 
-    model_object = peter_brnn_architecture.rnn_sw()
+    if use_ryan_architecture:
+        model_object = peter_brnn_architecture_ryan.rnn_sw()
+    else:
+        model_object = peter_brnn_architecture.rnn_sw()
 
     neural_net.train_model_with_generator_for_peter(
         model_object=model_object,
@@ -204,6 +217,7 @@ def _run(training_dir_name, validation_dir_name, output_model_dir_name,
         num_validation_batches_per_epoch=num_validn_batches_per_epoch,
         plateau_lr_multiplier=plateau_lr_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
+        use_ryan_architecture=use_ryan_architecture
     )
 
 
@@ -218,6 +232,9 @@ if __name__ == '__main__':
         ),
         use_generator_for_validn=bool(getattr(
             INPUT_ARG_OBJECT, USE_GENERATOR_FOR_VALIDN_ARG_NAME
+        )),
+        use_ryan_architecture=bool(getattr(
+            INPUT_ARG_OBJECT, USE_RYAN_ARCHITECTURE_ARG_NAME
         )),
         first_training_time_string=getattr(
             INPUT_ARG_OBJECT, FIRST_TRAIN_TIME_ARG_NAME
