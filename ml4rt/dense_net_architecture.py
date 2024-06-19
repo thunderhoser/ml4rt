@@ -1,11 +1,19 @@
 """Methods for building dense neural networks."""
 
+import os
+import sys
 import numpy
 import keras
-from gewittergefahr.gg_utils import error_checking
-from gewittergefahr.deep_learning import architecture_utils
-from ml4rt.machine_learning import neural_net
-from ml4rt.machine_learning import u_net_architecture
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import error_checking
+import architecture_utils
+import neural_net
+import u_net_architecture
 
 NUM_HEIGHTS_KEY = 'num_heights'
 NUM_INPUT_CHANNELS_KEY = 'num_input_channels'
