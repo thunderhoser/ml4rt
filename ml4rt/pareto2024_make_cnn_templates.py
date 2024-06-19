@@ -59,8 +59,9 @@ DEFAULT_OPTION_DICT = {
 }
 
 DUMMY_GENERATOR_OPTION_DICT = {
-    neural_net.VECTOR_TARGET_NORM_TYPE_KEY: None,
-    neural_net.SCALAR_TARGET_NORM_TYPE_KEY: None
+    neural_net.NORMALIZE_PREDICTORS_KEY: True,
+    neural_net.NORMALIZE_VECTOR_TARGETS_KEY: False,
+    neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False
 }
 
 
@@ -155,14 +156,15 @@ def _run():
                 num_validation_batches_per_epoch=100,
                 validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
                 loss_function_or_dict=LOSS_DICT,
-                do_early_stopping=True,
+                early_stopping_patience_epochs=200,
                 plateau_lr_multiplier=0.6,
                 dense_architecture_dict=None,
                 cnn_architecture_dict=option_dict,
                 bnn_architecture_dict=None,
                 u_net_architecture_dict=None,
                 u_net_plusplus_architecture_dict=None,
-                u_net_3plus_architecture_dict=None
+                u_net_3plus_architecture_dict=None,
+                use_ryan_architecture=False
             )
 
 
