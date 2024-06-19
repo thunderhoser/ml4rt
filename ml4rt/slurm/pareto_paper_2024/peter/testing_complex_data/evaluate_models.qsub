@@ -1,0 +1,43 @@
+#!/bin/bash
+
+#SBATCH --job-name="evaluate_models"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_models_%A.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/pareto2024_experiment/peter"
+
+model_dir_name="${TOP_MODEL_DIR_NAME}"
+prediction_file_name="${model_dir_name}/testing_complex_data/predictions.nc"
+testing_dir_name="${model_dir_name}/testing_complex_data"
+
+python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+--input_prediction_file_name="${prediction_file_name}" \
+--num_bootstrap_reps=1 \
+--num_heating_rate_bins=41 \
+--heating_rate_limits_k_day01 0 41 \
+--num_raw_flux_bins=50 \
+--raw_flux_limits_w_m02 0 1250 \
+--num_net_flux_bins=41 \
+--net_flux_limits_w_m02 -1050 1000 \
+--output_dir_name="${testing_dir_name}"
