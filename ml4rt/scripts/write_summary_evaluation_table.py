@@ -165,7 +165,7 @@ def _run(prediction_file_name, output_file_name):
     prediction_dict = prediction_io.read_file(prediction_file_name)
     wavelengths_metres = prediction_dict[prediction_io.TARGET_WAVELENGTHS_KEY]
 
-    with open(output_file_name, 'a') as output_file_handle:
+    with open(output_file_name, 'w') as output_file_handle:
         output_file_handle.write('\\begin{table}[t]\r\n')
         output_file_handle.write('\t\\captionsetup{justification = centering}\r\n')
         output_file_handle.write('\t\\caption{RT performance.}\r\n')

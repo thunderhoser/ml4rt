@@ -240,7 +240,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         bnn_architecture_dict=None,
         u_net_architecture_dict=None,
         u_net_plusplus_architecture_dict=None,
-        u_net_3plus_architecture_dict=None
+        u_net_3plus_architecture_dict=None,
+        use_ryan_architecture=True
     )
 
 
