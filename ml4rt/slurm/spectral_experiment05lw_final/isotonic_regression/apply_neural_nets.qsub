@@ -45,7 +45,7 @@ min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 architecture_type_string=${ARCHITECTURE_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}
 
-EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave_spectrally_resolved/normalized_predictors/simple_normalization/validation"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave_spectrally_resolved/normalized_predictors/simple_normalization/isotonic_regression"
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_architecture-type=${architecture_type_string}"
 model_file_name="${model_dir_name}/model.keras"
