@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#SBATCH --job-name="apply_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --array=0-1
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05lw_final"
+
+FIRST_TRAINING_TIME_STRING="2016-01-01-000000"
+LAST_TRAINING_TIME_STRING="2023-12-31-235959"
+
+MIN_DUAL_WEIGHTS=("0.75" "0.75")
+BROADBAND_WEIGHTS=("0.01" "0.01")
+ARCHITECTURE_TYPE_STRINGS=("plusplus" "plusplusplus")
+
+min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+architecture_type_string=${ARCHITECTURE_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave_spectrally_resolved/normalized_predictors/simple_normalization/validation"
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_architecture-type=${architecture_type_string}"
+model_file_name="${model_dir_name}/model.keras"
+prediction_file_name="${model_dir_name}/isotonic_regression/orig_predictions.nc"
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_file_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--first_time_string="${FIRST_TRAINING_TIME_STRING}" \
+--last_time_string="${LAST_TRAINING_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
