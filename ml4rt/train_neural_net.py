@@ -25,7 +25,7 @@ INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 def _run(training_dir_name, validation_dir_name,
          input_model_file_name, output_model_dir_name,
          use_generator_for_training, use_generator_for_validn,
-         joined_output_layer, num_deep_supervision_layers, predictor_names,
+         num_deep_supervision_layers, predictor_names,
          target_names, heights_m_agl, target_wavelengths_metres,
          first_training_time_string, last_training_time_string,
          first_validn_time_string, last_validn_time_string,
@@ -44,7 +44,6 @@ def _run(training_dir_name, validation_dir_name,
     :param output_model_dir_name: Same.
     :param use_generator_for_training: Same.
     :param use_generator_for_validn: Same.
-    :param joined_output_layer: Same.
     :param num_deep_supervision_layers: Same.
     :param predictor_names: Same.
     :param target_names: Same.
@@ -131,7 +130,6 @@ def _run(training_dir_name, validation_dir_name,
         neural_net.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
         neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
-        neural_net.JOINED_OUTPUT_LAYER_KEY: joined_output_layer,
         neural_net.NUM_DEEP_SUPER_LAYERS_KEY: num_deep_supervision_layers,
         neural_net.NORMALIZATION_FILE_FOR_MASK_KEY:
             normalization_file_name_for_mask,
@@ -233,9 +231,6 @@ if __name__ == '__main__':
         )),
         use_generator_for_validn=bool(getattr(
             INPUT_ARG_OBJECT, training_args.USE_GENERATOR_FOR_VALIDN_ARG_NAME
-        )),
-        joined_output_layer=bool(getattr(
-            INPUT_ARG_OBJECT, training_args.JOINED_OUTPUT_LAYER_ARG_NAME
         )),
         num_deep_supervision_layers=getattr(
             INPUT_ARG_OBJECT, training_args.NUM_DEEP_SUPER_LAYERS_ARG_NAME

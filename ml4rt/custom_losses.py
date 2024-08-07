@@ -306,67 +306,6 @@ def unscaled_crps_for_net_flux():
     return loss
 
 
-def joined_output_loss(num_heights, flux_scaling_factor):
-    """Loss function for joined output layer.
-
-    A 'joined output layer' contains both heating rates and fluxes.  This method
-    assumes a deterministic model.  The loss function computed by this method
-    is (dual-weighted MSE for heating rates) +
-    flux_scaling_factor * (MSE for flux variables).
-
-    :param num_heights: Number of heights in grid.
-    :param flux_scaling_factor: Scaling factor for flux errors.
-    :return: loss: Loss function (defined below).
-    """
-
-    def loss(target_tensor, prediction_tensor):
-        """Computes loss.
-
-        :param target_tensor: E-by-(H + 2)-by-W tensor of actual values.
-        :param prediction_tensor: E-by-(H + 2)-by-W tensor of predicted values.
-        :return: loss: See above.
-        """
-
-        # TODO(thunderhoser): Currently assuming only 1 wavelength.
-        # This is a HACK.
-
-        # E x (H + 2)
-        target_tensor = target_tensor[..., 0]
-        prediction_tensor = prediction_tensor[..., 0]
-
-        # E x H
-        target_hr_tensor = target_tensor[..., :num_heights]
-        predicted_hr_tensor = prediction_tensor[..., :num_heights]
-
-        # Dual-weighted MSE (scalar)
-        first_term = K.mean(
-            K.maximum(K.abs(target_hr_tensor), K.abs(predicted_hr_tensor))
-            * (predicted_hr_tensor - target_hr_tensor) ** 2
-        )
-
-        # length-E
-        predicted_net_flux_tensor = (
-            prediction_tensor[..., -2] - prediction_tensor[..., -1]
-        )
-        target_net_flux_tensor = target_tensor[..., -2] - target_tensor[..., -1]
-
-        net_flux_term = K.mean(
-            (predicted_net_flux_tensor - target_net_flux_tensor) ** 2
-        )
-        individual_flux_term = K.mean(
-            (prediction_tensor[..., -2:] - target_tensor[..., -2:]) ** 2
-        )
-
-        # MSE for flux variables (scalar)
-        second_term = (
-            flux_scaling_factor * (net_flux_term + 2 * individual_flux_term)
-        )
-
-        return first_term + second_term
-
-    return loss
-
-
 def dual_weighted_mse_simple(min_dual_weight=0.):
     """Dual-weighted MSE (mean squared error) for heating rates.
 
