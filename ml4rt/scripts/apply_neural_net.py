@@ -207,14 +207,11 @@ def _targets_numpy_to_dict(
     return example_dict
 
 
-def _apply_model_once(model_object, model_metadata_dict,
-                      predictor_matrix_or_list, use_dropout):
+def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
     """Applies model once.
 
     :param model_object: Trained instance of `keras.models.Model` or
         `keras.models.Sequential`.
-    :param model_metadata_dict: Dictionary returned by
-        `neural_net.read_metafile`.
     :param predictor_matrix_or_list: See doc for `neural_net.apply_model`.
     :param use_dropout: Boolean flag.
     :return: vector_prediction_matrix: numpy array of predictions for profile-
@@ -223,13 +220,6 @@ def _apply_model_once(model_object, model_metadata_dict,
         target variables.  If the model does not predict scalar target
         variables, this will be None.
     """
-
-    generator_option_dict = copy.deepcopy(
-        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    )
-    joined_output_layer = copy.deepcopy(
-        generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY]
-    )
 
     exec_start_time_unix_sec = time.time()
     prediction_dict = neural_net.apply_model(
@@ -244,26 +234,6 @@ def _apply_model_once(model_object, model_metadata_dict,
     print('Time to apply neural net = {0:.4f} seconds'.format(
         time.time() - exec_start_time_unix_sec
     ))
-
-    if joined_output_layer:
-        num_scalar_targets = len(
-            generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
-        )
-
-        vector_prediction_matrix = prediction_dict[
-            neural_net.HEATING_RATE_TARGETS_KEY
-        ][:, :-num_scalar_targets, ...]
-
-        scalar_prediction_matrix = prediction_dict[
-            neural_net.HEATING_RATE_TARGETS_KEY
-        ][:, -num_scalar_targets:, ...]
-
-        scalar_prediction_matrix = scalar_prediction_matrix[..., 0, :]
-        scalar_prediction_matrix = numpy.swapaxes(
-            scalar_prediction_matrix, 1, 2
-        )
-
-        return vector_prediction_matrix, scalar_prediction_matrix
 
     return (
         prediction_dict[neural_net.HEATING_RATE_TARGETS_KEY],
@@ -315,7 +285,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
     generator_option_dict[neural_net.FIRST_TIME_KEY] = first_time_unix_sec
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
-    generator_option_dict[neural_net.JOINED_OUTPUT_LAYER_KEY] = False
     generator_option_dict[neural_net.EXAMPLE_DIRECTORY_KEY] = example_dir_name
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
@@ -368,7 +337,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_vector_prediction_matrix, this_scalar_prediction_matrix = (
                 _apply_model_once(
                     model_object=model_object,
-                    model_metadata_dict=metadata_dict,
                     predictor_matrix_or_list=predictor_matrix_or_list,
                     use_dropout=num_dropout_iterations > 1
                 )
@@ -420,7 +388,6 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     else:
         vector_prediction_matrix, scalar_prediction_matrix = _apply_model_once(
             model_object=model_object,
-            model_metadata_dict=metadata_dict,
             predictor_matrix_or_list=predictor_matrix_or_list,
             use_dropout=False
         )

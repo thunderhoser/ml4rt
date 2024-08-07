@@ -43,7 +43,6 @@ NORMALIZATION_FILE_KEY = 'normalization_file_name'
 NORMALIZE_PREDICTORS_KEY = 'normalize_predictors'
 NORMALIZE_SCALAR_TARGETS_KEY = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_KEY = 'normalize_vector_targets'
-JOINED_OUTPUT_LAYER_KEY = 'joined_output_layer'
 NUM_DEEP_SUPER_LAYERS_KEY = 'num_deep_supervision_layers'
 NORMALIZATION_FILE_FOR_MASK_KEY = 'normalization_file_name_for_mask'
 MIN_HEATING_RATE_FOR_MASK_KEY = 'min_heating_rate_for_mask_k_day01'
@@ -54,7 +53,6 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     VECTOR_PREDICTOR_NAMES_KEY: example_utils.BASIC_VECTOR_PREDICTOR_NAMES,
     SCALAR_TARGET_NAMES_KEY: example_utils.ALL_SCALAR_TARGET_NAMES,
     VECTOR_TARGET_NAMES_KEY: example_utils.ALL_VECTOR_TARGET_NAMES,
-    JOINED_OUTPUT_LAYER_KEY: False,
     NUM_DEEP_SUPER_LAYERS_KEY: 0
 }
 
@@ -953,8 +951,6 @@ def data_generator(option_dict, for_inference):
         normalize scalar target variables (fluxes).
     option_dict['normalize_vector_target']: Boolean flag.  If True, will
         normalize vector target variables (heating rates).
-    option_dict['joined_output_layer']: Boolean flag.  If True, heating rates
-        and fluxes are all joined into one output layer.
     option_dict['num_deep_supervision_layers']: Number of deep-supervision
         layers.
     option_dict['min_heating_rate_for_mask_k_day01']: Minimum heating rate for
@@ -1032,7 +1028,6 @@ def data_generator(option_dict, for_inference):
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
-    joined_output_layer = option_dict[JOINED_OUTPUT_LAYER_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
         MIN_HEATING_RATE_FOR_MASK_KEY
@@ -1052,8 +1047,6 @@ def data_generator(option_dict, for_inference):
         scalar_target_names=scalar_target_names,
         num_examples=num_examples_per_batch
     )
-
-    assert not (joined_output_layer and num_deep_supervision_layers > 0)
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1210,33 +1203,18 @@ def data_generator(option_dict, for_inference):
             num_examples_in_memory = predictor_matrix.shape[0]
 
         predictor_matrix = predictor_matrix.astype('float32')
+        target_matrix_or_dict = {
+            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
+        }
 
-        if joined_output_layer:
-            target_matrix_or_dict = vector_target_matrix[..., 0].astype(
-                'float32'
-            )
-
-            if scalar_target_matrix is not None:
-                scalar_target_matrix = numpy.swapaxes(
-                    scalar_target_matrix, 1, 2
-                )
-                target_matrix_or_dict = numpy.concatenate([
-                    target_matrix_or_dict,
-                    scalar_target_matrix.astype('float32')
-                ], axis=-2)
+        if scalar_target_matrix is None:
+            target_matrix_or_dict = target_matrix_or_dict[
+                HEATING_RATE_TARGETS_KEY
+            ]
         else:
-            target_matrix_or_dict = {
-                HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
-            }
-
-            if scalar_target_matrix is None:
-                target_matrix_or_dict = target_matrix_or_dict[
-                    HEATING_RATE_TARGETS_KEY
-                ]
-            else:
-                target_matrix_or_dict[FLUX_TARGETS_KEY] = (
-                    scalar_target_matrix.astype('float32')
-                )
+            target_matrix_or_dict[FLUX_TARGETS_KEY] = (
+                scalar_target_matrix.astype('float32')
+            )
 
         # TODO(thunderhoser): This does not work anymore; in Keras 3 the
         # generator must return a dictionary, not a list.
@@ -1569,7 +1547,6 @@ def create_data(option_dict):
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
-    joined_output_layer = option_dict[JOINED_OUTPUT_LAYER_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
         MIN_HEATING_RATE_FOR_MASK_KEY
@@ -1578,8 +1555,6 @@ def create_data(option_dict):
     normalization_file_name_for_mask = option_dict[
         NORMALIZATION_FILE_FOR_MASK_KEY
     ]
-
-    assert not (joined_output_layer and num_deep_supervision_layers > 0)
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1613,26 +1588,11 @@ def create_data(option_dict):
     vector_target_matrix, scalar_target_matrix = targets_dict_to_numpy(
         example_dict
     )
-
-    if joined_output_layer:
-        vector_target_matrix = vector_target_matrix[..., 0].astype('float32')
-
-        if scalar_target_matrix is not None:
-            scalar_target_matrix = numpy.swapaxes(scalar_target_matrix, 1, 2)
-            vector_target_matrix = numpy.concatenate(
-                [vector_target_matrix, scalar_target_matrix.astype('float32')],
-                axis=-2
-            )
-
-        target_dict = {
-            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
-        }
-    else:
-        target_dict = {
-            HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
-        }
-        if scalar_target_matrix is not None:
-            target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
+    target_dict = {
+        HEATING_RATE_TARGETS_KEY: vector_target_matrix.astype('float32')
+    }
+    if scalar_target_matrix is not None:
+        target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
 
     # TODO(thunderhoser): Deep supervision is all fucked now.
     # for _ in range(num_deep_supervision_layers):
@@ -2467,42 +2427,29 @@ def read_model(hdf5_file_name):
         return model_object
 
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
-    joined_output_layer = (
-        metadata_dict[TRAINING_OPTIONS_KEY][JOINED_OUTPUT_LAYER_KEY]
-    )
 
     if u_net_plusplus_architecture_dict is not None:
         from ml4rt.machine_learning import u_net_pp_architecture
 
-        if joined_output_layer:
-            for this_key in [u_net_pp_architecture.JOINED_LOSS_FUNCTION_KEY]:
-                u_net_plusplus_architecture_dict[this_key] = eval(
-                    u_net_plusplus_architecture_dict[this_key]
-                )
-
-            model_object = u_net_pp_architecture.create_model_1output_layer(
-                u_net_plusplus_architecture_dict
+        for this_key in [
+                u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
+                u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
+        ]:
+            u_net_plusplus_architecture_dict[this_key] = eval(
+                u_net_plusplus_architecture_dict[this_key]
             )
-        else:
-            for this_key in [
-                    u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
-                    u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
-            ]:
-                u_net_plusplus_architecture_dict[this_key] = eval(
-                    u_net_plusplus_architecture_dict[this_key]
-                )
 
-            for this_key in [u_net_pp_architecture.OPTIMIZER_FUNCTION_KEY]:
-                if this_key not in u_net_plusplus_architecture_dict:
-                    continue
+        for this_key in [u_net_pp_architecture.OPTIMIZER_FUNCTION_KEY]:
+            if this_key not in u_net_plusplus_architecture_dict:
+                continue
 
-                u_net_plusplus_architecture_dict[this_key] = eval(
-                    u_net_plusplus_architecture_dict[this_key]
-                )
-
-            model_object = u_net_pp_architecture.create_model(
-                u_net_plusplus_architecture_dict
+            u_net_plusplus_architecture_dict[this_key] = eval(
+                u_net_plusplus_architecture_dict[this_key]
             )
+
+        model_object = u_net_pp_architecture.create_model(
+            u_net_plusplus_architecture_dict
+        )
 
         model_object.load_weights(hdf5_file_name)
         return model_object
@@ -2512,27 +2459,17 @@ def read_model(hdf5_file_name):
 
     from ml4rt.machine_learning import u_net_ppp_architecture
 
-    if joined_output_layer:
-        for this_key in [u_net_ppp_architecture.JOINED_LOSS_FUNCTION_KEY]:
-            u_net_3plus_architecture_dict[this_key] = eval(
-                u_net_3plus_architecture_dict[this_key]
-            )
-
-        model_object = u_net_ppp_architecture.create_model_1output_layer(
-            u_net_3plus_architecture_dict
+    for this_key in [
+            u_net_ppp_architecture.VECTOR_LOSS_FUNCTION_KEY,
+            u_net_ppp_architecture.SCALAR_LOSS_FUNCTION_KEY
+    ]:
+        u_net_3plus_architecture_dict[this_key] = eval(
+            u_net_3plus_architecture_dict[this_key]
         )
-    else:
-        for this_key in [
-                u_net_ppp_architecture.VECTOR_LOSS_FUNCTION_KEY,
-                u_net_ppp_architecture.SCALAR_LOSS_FUNCTION_KEY
-        ]:
-            u_net_3plus_architecture_dict[this_key] = eval(
-                u_net_3plus_architecture_dict[this_key]
-            )
 
-        model_object = u_net_ppp_architecture.create_model(
-            u_net_3plus_architecture_dict
-        )
+    model_object = u_net_ppp_architecture.create_model(
+        u_net_3plus_architecture_dict
+    )
 
     model_object.load_weights(hdf5_file_name)
     return model_object
@@ -2625,10 +2562,6 @@ def read_metafile(dill_file_name):
         v[NORMALIZE_PREDICTORS_KEY] = t[NORMALIZE_PREDICTORS_KEY]
         v[NORMALIZE_SCALAR_TARGETS_KEY] = t[NORMALIZE_SCALAR_TARGETS_KEY]
         v[NORMALIZE_VECTOR_TARGETS_KEY] = t[NORMALIZE_VECTOR_TARGETS_KEY]
-
-    if JOINED_OUTPUT_LAYER_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        t[JOINED_OUTPUT_LAYER_KEY] = False
-        v[JOINED_OUTPUT_LAYER_KEY] = False
 
     metadata_dict[TRAINING_OPTIONS_KEY] = t
     metadata_dict[VALIDATION_OPTIONS_KEY] = v
