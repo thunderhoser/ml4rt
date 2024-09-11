@@ -76,7 +76,7 @@ def _z_denormalize_1var(data_values, reference_mean, reference_stdev):
 
 
 def _quantile_normalize_1var(data_values, reference_values_1d):
-    """Does quantile normalization for one variable.
+    """Does two-step normalization for one variable.
 
     :param data_values: numpy array of data in physical units.
     :param reference_values_1d: 1-D numpy array of reference values -- i.e.,
@@ -84,10 +84,13 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
     :return: data_values: Same as input but in z-scores now.
     """
 
+    # If all reference values are NaN, all normalized data values should have a
+    # z-score of 0.
     if numpy.all(numpy.isnan(reference_values_1d)):
         data_values[numpy.isfinite(data_values)] = 0.
         return data_values
 
+    # Convert data_values from physical units to quantiles (ranging from 0...1).
     num_quantiles = len(reference_values_1d)
     quantile_levels = numpy.linspace(0, 1, num=num_quantiles, dtype=float)
     _, unique_indices = numpy.unique(reference_values_1d, return_index=True)
@@ -105,6 +108,8 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
         )
         data_values = interp_object(data_values)
 
+    # Below is the old code, which uses numpy.searchsorted.  Bad!
+
     # real_reference_values_1d = reference_values_1d[
     #     numpy.invert(numpy.isnan(reference_values_1d))
     # ]
@@ -117,8 +122,15 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
     # num_reference_vals = len(real_reference_values_1d)
     # data_values = search_indices / (num_reference_vals - 1)
 
+    # Replace quantile values of 0.0 with 0.000001 and replace
+    # 1.0 with 0.999999.  Otherwise, when I apply the inverse CDF of the
+    # standard normal distribution -- to convert quantiles to z-scores --
+    # 0.0 will become -inf and 1.0 will become +inf.  Infinities are bad,
+    # because they lead to unstable neural-net-training.
     data_values = numpy.minimum(data_values, MAX_CUMULATIVE_DENSITY)
     data_values = numpy.maximum(data_values, MIN_CUMULATIVE_DENSITY)
+
+    # Use the inverse CDF of the SND to convert quantiles to z-scores.
     return scipy.stats.norm.ppf(data_values, loc=0., scale=1.)
 
 
