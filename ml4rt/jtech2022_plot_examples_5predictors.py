@@ -171,13 +171,23 @@ def _plot_one_example(
     pyplot.close(figure_object)
 
     if plot_targets:
-        handle_dict = profile_plotting.plot_targets(
-            example_dict=example_dict,
-            example_index=example_index,
-            for_shortwave=True,
-            wavelength_metres=target_wavelength_metres,
-            use_log_scale=True, line_width=LINE_WIDTH, line_style='solid'
-        )
+        try:
+            handle_dict = profile_plotting.plot_targets(
+                example_dict=example_dict,
+                example_index=example_index,
+                for_shortwave=True,
+                wavelength_metres=target_wavelength_metres,
+                use_log_scale=True, line_width=LINE_WIDTH, line_style='solid'
+            )
+        except:
+            handle_dict = profile_plotting.plot_targets(
+                example_dict=example_dict,
+                example_index=example_index,
+                for_shortwave=False,
+                wavelength_metres=target_wavelength_metres,
+                use_log_scale=True, line_width=LINE_WIDTH, line_style='solid'
+            )
+
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
 
         this_file_name = '{0:s}/{1:s}_targets.jpg'.format(
