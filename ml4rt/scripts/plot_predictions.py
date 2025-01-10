@@ -176,7 +176,8 @@ def _run(prediction_file_name, num_examples_to_plot, plotting_priority_string,
         pdict[prediction_io.VECTOR_PREDICTIONS_KEY], axis=-1
     )[..., 0]
 
-    sort_indices = numpy.argsort(wavelengths_metres)[:-1]
+    # sort_indices = numpy.argsort(wavelengths_metres)[:-1]
+    sort_indices = numpy.argsort(wavelengths_metres)
     target_hr_matrix_k_day01 = target_hr_matrix_k_day01[..., sort_indices]
     predicted_hr_matrix_k_day01 = predicted_hr_matrix_k_day01[..., sort_indices]
     wavelengths_metres = wavelengths_metres[sort_indices]
@@ -186,11 +187,21 @@ def _run(prediction_file_name, num_examples_to_plot, plotting_priority_string,
         0, num_wavelengths - 1, num=num_wavelengths, dtype=float
     )
 
-    colour_map_object = pyplot.cm.get_cmap('viridis', num_wavelengths)
+    orig_colour_map_object = pyplot.cm.get_cmap('viridis', num_wavelengths - 1)
+    orig_colour_matrix = orig_colour_map_object(
+        numpy.linspace(0, 1, num=num_wavelengths - 1)
+    )
+    colour_matrix = numpy.vstack([
+        orig_colour_matrix,
+        numpy.array([0, 0, 0, 1], dtype=float)
+    ])
+    colour_map_object = matplotlib.colors.ListedColormap(colour_matrix)
+
     colour_norm_object = pyplot.Normalize(vmin=0, vmax=num_wavelengths)
     wavelength_strings_microns = [
         '{0:.2f}'.format(w * 1e6) for w in wavelengths_metres
     ]
+    wavelength_strings_microns[-1] = 'Broadband'
 
     for i in range(num_examples):
         metadata_dict = example_utils.parse_example_ids(
@@ -223,7 +234,7 @@ def _run(prediction_file_name, num_examples_to_plot, plotting_priority_string,
                 line_colour=matplotlib.colors.to_rgba(
                     c=colour_map_object(colour_norm_object(w + 0.5)), alpha=0.5
                 ),
-                line_width=4.5,
+                line_width=4,
                 line_style='solid',
                 figure_object=figure_object
             )
@@ -233,7 +244,7 @@ def _run(prediction_file_name, num_examples_to_plot, plotting_priority_string,
                 heights_m_agl=heights_m_agl,
                 use_log_scale=True,
                 line_colour=colour_map_object(colour_norm_object(w + 0.5)),
-                line_width=4.5,
+                line_width=6,
                 line_style='dashed',
                 figure_object=figure_object
             )
