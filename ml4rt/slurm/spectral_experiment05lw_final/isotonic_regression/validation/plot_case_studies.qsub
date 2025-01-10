@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_case_studies"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+#SBATCH --array=0-2
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_case_studies_%A_%a.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05lw_final"
+
+MIN_DUAL_WEIGHTS=("0.75" "0.75")
+BROADBAND_WEIGHTS=("0.01" "0.01")
+ARCHITECTURE_TYPE_STRINGS=("plusplus" "plusplusplus")
+
+BEST_MODEL_INDEX=1
+
+min_dual_weight=${MIN_DUAL_WEIGHTS[$BEST_MODEL_INDEX]}
+broadband_weight=${BROADBAND_WEIGHTS[$BEST_MODEL_INDEX]}
+architecture_type_string=${ARCHITECTURE_TYPE_STRINGS[$BEST_MODEL_INDEX]}
+model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_architecture-type=${architecture_type_string}"
+
+PLOTTING_PRIORITY_STRINGS=("high_heating_rate" "high_heating_rate" "low_heating_rate")
+CLOUD_TYPE_STRINGS=("multi_layer_cloud" "single_layer_cloud" "no_cloud")
+
+prediction_file_name="${model_dir_name}/isotonic_regression/validation/by_cloud_regime/${CLOUD_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions.nc"
+output_dir_name="${model_dir_name}/isotonic_regression/validation/by_cloud_regime/${CLOUD_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/case_studies"
+
+python3 -u "${CODE_DIR_NAME}/plot_predictions.py" \
+--input_prediction_file_name="${prediction_file_name}" \
+--num_examples_to_plot=50 \
+--plotting_priority_string="${PLOTTING_PRIORITY_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--output_dir_name="${output_dir_name}"
