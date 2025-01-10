@@ -1,0 +1,48 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_predictors_for_case_studies"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=02:00:00
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_predictors_for_case_studies_%A.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_final"
+
+MIN_DUAL_WEIGHTS=("0.75" "1.00")
+BROADBAND_WEIGHTS=("0.01" "0.05")
+NORMALIZATION_TYPE_STRINGS=("old" "new")
+
+BEST_MODEL_INDEX=1
+
+min_dual_weight=${MIN_DUAL_WEIGHTS[$BEST_MODEL_INDEX]}
+broadband_weight=${BROADBAND_WEIGHTS[$BEST_MODEL_INDEX]}
+normalization_type_string=${NORMALIZATION_TYPE_STRINGS[$BEST_MODEL_INDEX]}
+model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_normalization-type=${normalization_type_string}"
+
+output_dir_name="${model_dir_name}/isotonic_regression/validation/case_studies/predictor_plots"
+
+python3 -u "${CODE_DIR_NAME}/jtech2022_plot_examples_5predictors.py" \
+--input_example_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/validation" \
+--input_example_id_file_name="${model_dir_name}/isotonic_regression/validation/case_studies/example_ids.nc" \
+--plot_targets=1 \
+--target_wavelength_metres=1000 \
+--output_dir_name="${output_dir_name}"
