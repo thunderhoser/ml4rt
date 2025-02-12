@@ -61,13 +61,7 @@ METRIC_FUNCTION_LIST = [
     custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
     custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
     custom_metrics.mse_skill_score, custom_metrics.correlation,
-    custom_metrics.min_prediction, custom_metrics.max_prediction,
-    custom_metrics.correlation_numerator_part1,
-    custom_metrics.correlation_numerator_part2,
-    custom_metrics.correlation_numerator,
-    custom_metrics.correlation_denominator_part1,
-    custom_metrics.correlation_denominator_part2,
-    custom_metrics.correlation_denominator
+    custom_metrics.min_prediction, custom_metrics.max_prediction
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -78,13 +72,7 @@ METRIC_FUNCTION_DICT = {
     'mse_skill_score': custom_metrics.mse_skill_score,
     'correlation': custom_metrics.correlation,
     'min_prediction': custom_metrics.min_prediction,
-    'max_prediction': custom_metrics.max_prediction,
-    'correlation_numerator_part1': custom_metrics.correlation_numerator_part1,
-    'correlation_numerator_part2': custom_metrics.correlation_numerator_part2,
-    'correlation_numerator': custom_metrics.correlation_numerator,
-    'correlation_denominator_part1': custom_metrics.correlation_denominator_part1,
-    'correlation_denominator_part2': custom_metrics.correlation_denominator_part2,
-    'correlation_denominator': custom_metrics.correlation_denominator
+    'max_prediction': custom_metrics.max_prediction
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
@@ -2821,6 +2809,8 @@ def apply_model(
 
     if verbose:
         print('Have applied NN to all {0:d} examples!'.format(num_examples))
+
+    vector_prediction_matrix = numpy.maximum(vector_prediction_matrix, 0.)
 
     if scalar_prediction_matrix is None:
         num_examples = vector_prediction_matrix.shape[0]
