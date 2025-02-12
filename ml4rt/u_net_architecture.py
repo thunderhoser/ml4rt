@@ -768,12 +768,9 @@ def create_model(option_dict):
         and conv_output_activ_func_name is not None
     )
     if need_output_activ:
-        conv_output_layer_object = architecture_utils.get_activation_layer(
-            activation_function_string=conv_output_activ_func_name,
-            alpha_for_relu=conv_output_activ_func_alpha,
-            alpha_for_elu=conv_output_activ_func_alpha,
-            layer_name='last_conv_activ'
-        )(conv_output_layer_object)
+        conv_output_layer_object = keras.layers.PReLU(name='last_conv_activ')(
+            conv_output_layer_object
+        )
 
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
