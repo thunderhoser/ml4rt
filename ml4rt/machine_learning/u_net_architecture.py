@@ -755,6 +755,15 @@ def create_model(option_dict):
         basic_layer_name='last_conv'
     )
 
+    need_output_activ = (
+        (use_convnext_v1_blocks or use_convnext_v2_blocks)
+        and conv_output_activ_func_name is not None
+    )
+    if need_output_activ:
+        conv_output_layer_object = keras.layers.PReLU(name='last_conv_activ')(
+            conv_output_layer_object
+        )
+
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
             target_shape=
