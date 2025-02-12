@@ -67,7 +67,13 @@ METRIC_FUNCTION_LIST = [
     custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
     custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
     custom_metrics.mse_skill_score, custom_metrics.correlation,
-    custom_metrics.min_prediction, custom_metrics.max_prediction
+    custom_metrics.min_prediction, custom_metrics.max_prediction,
+    custom_metrics.correlation_numerator_part1,
+    custom_metrics.correlation_numerator_part2,
+    custom_metrics.correlation_numerator,
+    custom_metrics.correlation_denominator_part1,
+    custom_metrics.correlation_denominator_part2,
+    custom_metrics.correlation_denominator
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -78,7 +84,13 @@ METRIC_FUNCTION_DICT = {
     'mse_skill_score': custom_metrics.mse_skill_score,
     'correlation': custom_metrics.correlation,
     'min_prediction': custom_metrics.min_prediction,
-    'max_prediction': custom_metrics.max_prediction
+    'max_prediction': custom_metrics.max_prediction,
+    'correlation_numerator_part1': custom_metrics.correlation_numerator_part1,
+    'correlation_numerator_part2': custom_metrics.correlation_numerator_part2,
+    'correlation_numerator': custom_metrics.correlation_numerator,
+    'correlation_denominator_part1': custom_metrics.correlation_denominator_part1,
+    'correlation_denominator_part2': custom_metrics.correlation_denominator_part2,
+    'correlation_denominator': custom_metrics.correlation_denominator
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
