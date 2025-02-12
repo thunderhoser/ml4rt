@@ -24,8 +24,8 @@ def _run(training_dir_name, validation_dir_name,
          first_validn_time_string, last_validn_time_string,
          normalization_file_name, normalize_predictors,
          normalize_scalar_targets, normalize_vector_targets,
-         normalization_file_name_for_mask, min_heating_rate_for_mask_k_day01,
-         min_flux_for_mask_w_m02,
+         normalization_method_string, normalization_file_name_for_mask,
+         min_heating_rate_for_mask_k_day01, min_flux_for_mask_w_m02,
          num_examples_per_batch, num_epochs,
          num_training_batches_per_epoch, num_validn_batches_per_epoch,
          plateau_lr_multiplier, early_stopping_patience_epochs):
@@ -50,6 +50,7 @@ def _run(training_dir_name, validation_dir_name,
     :param normalize_predictors: Same.
     :param normalize_scalar_targets: Same.
     :param normalize_vector_targets: Same.
+    :param normalization_method_string: Same.
     :param normalization_file_name_for_mask: Same.
     :param min_heating_rate_for_mask_k_day01: Same.
     :param min_flux_for_mask_w_m02: Same.
@@ -63,6 +64,8 @@ def _run(training_dir_name, validation_dir_name,
 
     if normalization_file_name in NONE_STRINGS:
         normalization_file_name = None
+    if normalization_method_string in NONE_STRINGS:
+        normalization_method_string = None
 
     if (
             normalization_file_name_for_mask in NONE_STRINGS
@@ -121,6 +124,7 @@ def _run(training_dir_name, validation_dir_name,
         neural_net.NORMALIZE_PREDICTORS_KEY: normalize_predictors,
         neural_net.NORMALIZE_SCALAR_TARGETS_KEY: normalize_scalar_targets,
         neural_net.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets,
+        neural_net.NORMALIZATION_METHOD_KEY: normalization_method_string,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
         neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
         neural_net.NUM_DEEP_SUPER_LAYERS_KEY: num_deep_supervision_layers,
@@ -268,6 +272,9 @@ if __name__ == '__main__':
         )),
         normalization_file_name_for_mask=getattr(
             INPUT_ARG_OBJECT, training_args.NORMALIZATION_FILE_FOR_MASK_ARG_NAME
+        ),
+        normalization_method_string=getattr(
+            INPUT_ARG_OBJECT, training_args.NORMALIZATION_METHOD_ARG_NAME
         ),
         min_heating_rate_for_mask_k_day01=getattr(
             INPUT_ARG_OBJECT, training_args.MIN_HEATING_RATE_FOR_MASK_ARG_NAME
