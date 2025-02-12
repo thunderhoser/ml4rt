@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="train_neural_nets"
+#SBATCH --job-name="train_neural_nets_test"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpuwf"
@@ -9,14 +9,14 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
-#SBATCH --time=168:00:00
+#SBATCH --time=03:00:00
 #SBATCH --array=0-15
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=train_neural_nets_%A_%a.out
+#SBATCH --output=train_neural_nets_test_%A_%a.out
 
 module load cuda/12.3.1
 conda init
@@ -75,10 +75,10 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --normalize_vector_targets=0 \
 --normalize_scalar_targets=0 \
 --normalization_method_string="${normalization_method_string}" \
---num_examples_per_batch=724 \
+--num_examples_per_batch=200 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=1000 \
---num_validn_batches_per_epoch=1000 \
+--num_training_batches_per_epoch=50 \
+--num_validn_batches_per_epoch=50 \
 --early_stopping_patience_epochs=10000 \
 --plateau_lr_multiplier=0.9 \
 --num_deep_supervision_layers=0 \

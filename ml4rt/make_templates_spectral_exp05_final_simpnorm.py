@@ -105,9 +105,9 @@ DUMMY_GENERATOR_OPTION_DICT = {
 
 MIN_DUAL_WEIGHTS_AXIS1 = numpy.array([0.75, 1.00])
 BROADBAND_WEIGHTS_AXIS1 = numpy.array([0.01, 0.05])
-USE_RESIDUAL_FLAGS_AXIS2 = numpy.array([1, 0, 0], dtype=bool)
-USE_CONVNEXT_V1_FLAGS_AXIS2 = numpy.array([0, 1, 0], dtype=bool)
-USE_CONVNEXT_V2_FLAGS_AXIS2 = numpy.array([0, 0, 1], dtype=bool)
+USE_RESIDUAL_FLAGS_AXIS2 = numpy.array([0, 1, 0, 0], dtype=bool)
+USE_CONVNEXT_V1_FLAGS_AXIS2 = numpy.array([0, 0, 1, 0], dtype=bool)
+USE_CONVNEXT_V2_FLAGS_AXIS2 = numpy.array([0, 0, 0, 1], dtype=bool)
 
 
 def _run():

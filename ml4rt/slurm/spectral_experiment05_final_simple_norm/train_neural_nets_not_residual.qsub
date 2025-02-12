@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=168:00:00
-#SBATCH --array=4-11
+#SBATCH --array=0-3,8-15
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -37,12 +37,12 @@ TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_
 VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/validation"
 NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/training/normalization_params_20180901-20191221.nc"
 
-MIN_DUAL_WEIGHTS=("0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00")
-BROADBAND_WEIGHTS=("0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05")
-NORMALIZATION_METHOD_STRINGS=("minmax" "minmax" "z_score" "z_score" "minmax" "minmax" "z_score" "z_score" "minmax" "minmax" "z_score" "z_score")
-USE_RESIDUAL_FLAGS=("1" "1" "1" "1" "0" "0" "0" "0" "0" "0" "0" "0")
-USE_CONVNEXT_V1_FLAGS=("0" "0" "0" "0" "1" "1" "1" "1" "0" "0" "0" "0")
-USE_CONVNEXT_V2_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1")
+MIN_DUAL_WEIGHTS=("0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00" "0.75" "1.00")
+BROADBAND_WEIGHTS=("0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05" "0.01" "0.05")
+NORMALIZATION_METHOD_STRINGS=("minmax" "minmax" "z_score" "z_score" "minmax" "minmax" "z_score" "z_score" "minmax" "minmax" "z_score" "z_score" "minmax" "minmax" "z_score" "z_score")
+USE_RESIDUAL_FLAGS=("0" "0" "0" "0" "1" "1" "1" "1" "0" "0" "0" "0" "0" "0" "0" "0")
+USE_CONVNEXT_V1_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "0" "0" "0" "0")
+USE_CONVNEXT_V2_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1")
 
 min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}

@@ -66,7 +66,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
 METRIC_FUNCTION_LIST = [
     custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
     custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
-    custom_metrics.mse_skill_score, custom_metrics.correlation
+    custom_metrics.mse_skill_score, custom_metrics.correlation,
+    custom_metrics.min_prediction, custom_metrics.max_prediction
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -75,7 +76,9 @@ METRIC_FUNCTION_DICT = {
     'mae_skill_score': custom_metrics.mae_skill_score,
     'mean_squared_error': custom_metrics.mean_squared_error,
     'mse_skill_score': custom_metrics.mse_skill_score,
-    'correlation': custom_metrics.correlation
+    'correlation': custom_metrics.correlation,
+    'min_prediction': custom_metrics.min_prediction,
+    'max_prediction': custom_metrics.max_prediction
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
@@ -1255,9 +1258,7 @@ def data_generator(option_dict, for_inference):
                 example_id_strings
             )
         else:
-            yield (predictor_matrix, heating_rate_mask_matrix, flux_mask_matrix), (vector_target_matrix.astype('float32'), scalar_target_matrix.astype('float32'))
-
-            # yield predictor_matrix_or_dict, target_matrix_or_dict
+            yield predictor_matrix_or_dict, target_matrix_or_dict
 
 
 def data_generator_for_peter(option_dict, use_ryan_architecture):
