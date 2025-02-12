@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=168:00:00
-#SBATCH --array=0-1
+#SBATCH --array=0-3
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -30,16 +30,16 @@ echo `which python3`
 echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_final/templates"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_final_simple_norm/templates"
 TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment05_final_simple_norm"
 
 TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/training"
 VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/validation"
 NORMALIZATION_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/training/normalization_params_20180901-20191221.nc"
 
-MIN_DUAL_WEIGHTS=("0.75" "1.00")
-BROADBAND_WEIGHTS=("0.01" "0.05")
-NORMALIZATION_METHOD_STRINGS=("minmax" "z_score")
+MIN_DUAL_WEIGHTS=("0.75" "1.00" "0.75" "1.00")
+BROADBAND_WEIGHTS=("0.01" "0.05" "0.01" "0.05")
+NORMALIZATION_METHOD_STRINGS=("minmax" "minmax" "z_score" "z_score")
 
 min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
