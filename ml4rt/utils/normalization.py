@@ -58,7 +58,7 @@ def _z_normalize_1var(data_values, reference_mean, reference_stdev):
     :return: data_values: Same as input but in z-scores now.
     """
 
-    if numpy.isnan(reference_stdev):
+    if reference_stdev < 1e-12:
         data_values[:] = 0.
     else:
         data_values = (data_values - reference_mean) / reference_stdev
@@ -75,7 +75,7 @@ def _z_denormalize_1var(data_values, reference_mean, reference_stdev):
     :return: data_values: Same as input but in physical units now.
     """
 
-    if numpy.isnan(reference_stdev):
+    if reference_stdev < 1e-12:
         data_values[:] = reference_mean
     else:
         data_values = reference_mean + reference_stdev * data_values
