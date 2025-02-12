@@ -1255,7 +1255,9 @@ def data_generator(option_dict, for_inference):
                 example_id_strings
             )
         else:
-            yield predictor_matrix_or_dict, target_matrix_or_dict
+            yield (predictor_matrix, heating_rate_mask_matrix, flux_mask_matrix), (vector_target_matrix.astype('float32'), scalar_target_matrix.astype('float32'))
+
+            # yield predictor_matrix_or_dict, target_matrix_or_dict
 
 
 def data_generator_for_peter(option_dict, use_ryan_architecture):
