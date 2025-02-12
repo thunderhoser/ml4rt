@@ -117,3 +117,31 @@ def correlation(target_tensor, prediction_tensor):
         numerator /
         K.sqrt(sum_squared_target_diffs * sum_squared_prediction_diffs)
     )
+
+
+def min_prediction(target_tensor, prediction_tensor):
+    """Computes minimum prediction.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: min_value: Minimum prediction.
+    """
+
+    return K.min(prediction_tensor)
+
+
+def max_prediction(target_tensor, prediction_tensor):
+    """Computes maximum prediction.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: max_value: Maximum prediction.
+    """
+
+    return K.max(prediction_tensor)

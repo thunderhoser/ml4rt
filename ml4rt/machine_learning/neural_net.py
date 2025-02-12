@@ -60,7 +60,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
 METRIC_FUNCTION_LIST = [
     custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
     custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
-    custom_metrics.mse_skill_score, custom_metrics.correlation
+    custom_metrics.mse_skill_score, custom_metrics.correlation,
+    custom_metrics.min_prediction, custom_metrics.max_prediction
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -69,7 +70,9 @@ METRIC_FUNCTION_DICT = {
     'mae_skill_score': custom_metrics.mae_skill_score,
     'mean_squared_error': custom_metrics.mean_squared_error,
     'mse_skill_score': custom_metrics.mse_skill_score,
-    'correlation': custom_metrics.correlation
+    'correlation': custom_metrics.correlation,
+    'min_prediction': custom_metrics.min_prediction,
+    'max_prediction': custom_metrics.max_prediction
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
