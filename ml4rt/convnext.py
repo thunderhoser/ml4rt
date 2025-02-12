@@ -12,7 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import architecture_utils
 
-EPSILON_FOR_LAYER_NORM = 1e-6
+EPSILON_FOR_LAYER_NORM = 1e-4
 EXPANSION_FACTOR_FOR_CONVNEXT = 4
 INIT_VALUE_FOR_LAYER_SCALE = 1e-6
 
