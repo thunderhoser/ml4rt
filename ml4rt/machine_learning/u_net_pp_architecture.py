@@ -45,6 +45,8 @@ L1_WEIGHT_KEY = u_net_arch.L1_WEIGHT_KEY
 L2_WEIGHT_KEY = u_net_arch.L2_WEIGHT_KEY
 USE_BATCH_NORM_KEY = u_net_arch.USE_BATCH_NORM_KEY
 USE_RESIDUAL_BLOCKS_KEY = u_net_arch.USE_RESIDUAL_BLOCKS_KEY
+USE_CONVNEXT_V1_BLOCKS_KEY = u_net_arch.USE_CONVNEXT_V1_BLOCKS_KEY
+USE_CONVNEXT_V2_BLOCKS_KEY = u_net_arch.USE_CONVNEXT_V2_BLOCKS_KEY
 
 NUM_OUTPUT_WAVELENGTHS_KEY = u_net_arch.NUM_OUTPUT_WAVELENGTHS_KEY
 VECTOR_LOSS_FUNCTION_KEY = u_net_arch.VECTOR_LOSS_FUNCTION_KEY
@@ -160,6 +162,8 @@ def create_model(option_dict):
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
+    use_convnext_v1_blocks = option_dict[USE_CONVNEXT_V1_BLOCKS_KEY]
+    use_convnext_v2_blocks = option_dict[USE_CONVNEXT_V2_BLOCKS_KEY]
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
@@ -229,6 +233,8 @@ def create_model(option_dict):
         last_conv_layer_matrix[i, 0] = u_net_arch.get_conv_block(
             input_layer_object=this_input_layer_object,
             do_residual=use_residual_blocks,
+            do_convnext_v1=use_convnext_v1_blocks,
+            do_convnext_v2=use_convnext_v2_blocks,
             num_conv_layers=num_conv_layers_by_level[i],
             filter_size_px=3,
             num_filters=num_channels_by_level[i],
@@ -277,6 +283,8 @@ def create_model(option_dict):
             last_conv_layer_matrix[i_new, j] = u_net_arch.get_conv_block(
                 input_layer_object=this_layer_object,
                 do_residual=use_residual_blocks,
+                do_convnext_v1=use_convnext_v1_blocks,
+                do_convnext_v2=use_convnext_v2_blocks,
                 num_conv_layers=1,
                 filter_size_px=3,
                 num_filters=num_channels_by_level[i_new],
@@ -301,6 +309,8 @@ def create_model(option_dict):
             last_conv_layer_matrix[i_new, j] = u_net_arch.get_conv_block(
                 input_layer_object=last_conv_layer_matrix[i_new, j],
                 do_residual=use_residual_blocks,
+                do_convnext_v1=use_convnext_v1_blocks,
+                do_convnext_v2=use_convnext_v2_blocks,
                 num_conv_layers=num_conv_layers_by_level[i_new],
                 filter_size_px=3,
                 num_filters=num_channels_by_level[i_new],
@@ -320,6 +330,8 @@ def create_model(option_dict):
         last_conv_layer_matrix[0, -1] = u_net_arch.get_conv_block(
             input_layer_object=last_conv_layer_matrix[0, -1],
             do_residual=use_residual_blocks,
+            do_convnext_v1=use_convnext_v1_blocks,
+            do_convnext_v2=use_convnext_v2_blocks,
             num_conv_layers=1,
             filter_size_px=3,
             num_filters=2 * num_output_wavelengths * ensemble_size,
@@ -335,6 +347,8 @@ def create_model(option_dict):
     conv_output_layer_object = u_net_arch.get_conv_block(
         input_layer_object=last_conv_layer_matrix[0, -1],
         do_residual=use_residual_blocks,
+        do_convnext_v1=use_convnext_v1_blocks,
+        do_convnext_v2=use_convnext_v2_blocks,
         num_conv_layers=1,
         filter_size_px=1,
         num_filters=num_output_wavelengths * ensemble_size,
@@ -346,6 +360,18 @@ def create_model(option_dict):
         use_batch_norm=False,
         basic_layer_name='last_conv'
     )
+
+    need_output_activ = (
+        (use_convnext_v1_blocks or use_convnext_v2_blocks)
+        and conv_output_activ_func_name is not None
+    )
+    if need_output_activ:
+        conv_output_layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=conv_output_activ_func_name,
+            alpha_for_relu=conv_output_activ_func_alpha,
+            alpha_for_elu=conv_output_activ_func_alpha,
+            layer_name='last_conv_activ'
+        )(conv_output_layer_object)
 
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
@@ -391,6 +417,8 @@ def create_model(option_dict):
             deep_supervision_layer_objects[i] = u_net_arch.get_conv_block(
                 input_layer_object=last_conv_layer_matrix[0, i],
                 do_residual=use_residual_blocks,
+                do_convnext_v1=use_convnext_v1_blocks,
+                do_convnext_v2=use_convnext_v2_blocks,
                 num_conv_layers=1,
                 filter_size_px=1,
                 num_filters=num_output_wavelengths,
@@ -403,9 +431,20 @@ def create_model(option_dict):
                 basic_layer_name='deepsup{0:d}'.format(i)
             )
 
+            if need_output_activ:
+                deep_supervision_layer_objects[i] = (
+                    architecture_utils.get_activation_layer(
+                        activation_function_string=conv_output_activ_func_name,
+                        alpha_for_relu=conv_output_activ_func_alpha,
+                        alpha_for_elu=conv_output_activ_func_alpha,
+                        layer_name='deepsup{0:d}_activ'.format(i)
+                    )(deep_supervision_layer_objects[i])
+                )
+
+            # TODO(thunderhoser): If I ever use deep supervision again, will
+            # need to multiply deep-supervision outputs with Boolean mask.
             deep_supervision_layer_objects[i] = keras.layers.Reshape(
-                target_shape=
-                (input_dimensions[0], num_output_wavelengths, 1)
+                target_shape=(input_dimensions[0], num_output_wavelengths, 1)
             )(deep_supervision_layer_objects[i])
 
             this_name = 'deepsup{0:d}_output'.format(i)
