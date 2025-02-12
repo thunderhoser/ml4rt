@@ -21,6 +21,7 @@ NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 NORMALIZE_PREDICTORS_ARG_NAME = 'normalize_predictors'
 NORMALIZE_SCALAR_TARGETS_ARG_NAME = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_ARG_NAME = 'normalize_vector_targets'
+NORM_METHOD_ARG_NAME = 'norm_method_string'
 OUTPUT_DIR_ARG_NAME = 'output_example_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -39,6 +40,11 @@ NORMALIZE_SCALAR_TARGETS_HELP_STRING = (
 )
 NORMALIZE_VECTOR_TARGETS_HELP_STRING = (
     'Boolean flag.  If 1, will normalize vector target variables.'
+)
+NORM_METHOD_HELP_STRING = (
+    'Normalization method.  Must belong to the following list:\n{0:s}'
+).format(
+    str(normalization.VALID_NORM_METHOD_STRINGS)
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Normalized examples will be written here by '
@@ -67,6 +73,10 @@ INPUT_ARG_PARSER.add_argument(
     help=NORMALIZE_VECTOR_TARGETS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + NORM_METHOD_ARG_NAME, type=str, required=True,
+    help=NORM_METHOD_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -74,7 +84,8 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(input_example_file_name, normalization_file_name,
          normalize_predictors, normalize_scalar_targets,
-         normalize_vector_targets, output_example_dir_name):
+         normalize_vector_targets, norm_method_string,
+         output_example_dir_name):
     """Normalizes learning examples.
 
     This is effectively the main method.
@@ -84,6 +95,7 @@ def _run(input_example_file_name, normalization_file_name,
     :param normalize_predictors: Same.
     :param normalize_scalar_targets: Same.
     :param normalize_vector_targets: Same.
+    :param norm_method_string: Same.
     :param output_example_dir_name: Same.
     """
 
@@ -117,7 +129,8 @@ def _run(input_example_file_name, normalization_file_name,
         normalization_param_table_xarray=norm_param_table_xarray,
         apply_to_predictors=normalize_predictors,
         apply_to_scalar_targets=normalize_scalar_targets,
-        apply_to_vector_targets=normalize_vector_targets
+        apply_to_vector_targets=normalize_vector_targets,
+        method_string=norm_method_string
     )
 
     for j in range(len(example_dict[example_utils.SCALAR_PREDICTOR_NAMES_KEY])):
@@ -186,7 +199,8 @@ def _run(input_example_file_name, normalization_file_name,
         example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
         example_io.NORMALIZE_PREDICTORS_KEY: normalize_predictors,
         example_io.NORMALIZE_SCALAR_TARGETS_KEY: normalize_scalar_targets,
-        example_io.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets
+        example_io.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets,
+        example_io.NORMALIZATION_METHOD_KEY: norm_method_string
     }
     example_dict[example_utils.NORMALIZATION_METADATA_KEY] = (
         normalization_metadata_dict
@@ -220,5 +234,6 @@ if __name__ == '__main__':
         normalize_vector_targets=bool(getattr(
             INPUT_ARG_OBJECT, NORMALIZE_VECTOR_TARGETS_ARG_NAME
         )),
+        norm_method_string=getattr(INPUT_ARG_OBJECT, NORM_METHOD_ARG_NAME),
         output_example_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

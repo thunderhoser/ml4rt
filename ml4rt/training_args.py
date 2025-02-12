@@ -9,6 +9,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import example_utils
+import normalization
 
 TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 
@@ -34,6 +35,7 @@ NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 NORMALIZE_PREDICTORS_ARG_NAME = 'normalize_predictors'
 NORMALIZE_SCALAR_TARGETS_ARG_NAME = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_ARG_NAME = 'normalize_vector_targets'
+NORMALIZATION_METHOD_ARG_NAME = 'normalization_method_string'
 
 NORMALIZATION_FILE_FOR_MASK_ARG_NAME = 'normalization_file_name_for_mask'
 MIN_HEATING_RATE_FOR_MASK_ARG_NAME = 'min_heating_rate_for_mask_k_day01'
@@ -113,6 +115,12 @@ NORMALIZE_SCALAR_TARGETS_HELP_STRING = (
 )
 NORMALIZE_VECTOR_TARGETS_HELP_STRING = (
     'Boolean flag.  If 1, will normalize vector target variables.'
+)
+NORMALIZATION_METHOD_HELP_STRING = (
+    'Normalization method (must be in the following list or empty string ""):'
+    '\n{0:s}'
+).format(
+    str(normalization.VALID_NORM_METHOD_STRINGS)
 )
 
 NORMALIZATION_FILE_FOR_MASK_HELP_STRING = (
@@ -236,6 +244,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + NORMALIZE_VECTOR_TARGETS_ARG_NAME, type=int, required=True,
         help=NORMALIZE_VECTOR_TARGETS_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + NORMALIZATION_METHOD_ARG_NAME, type=str, required=True,
+        help=NORMALIZATION_METHOD_HELP_STRING
     )
     parser_object.add_argument(
         '--' + NORMALIZATION_FILE_FOR_MASK_ARG_NAME, type=str, required=False,

@@ -17,6 +17,7 @@ import error_checking
 import example_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+TOLERANCE = 1e-6
 
 METRES_TO_MICRONS = 1e6
 
@@ -47,6 +48,13 @@ SCALAR_TARGET_MEAN_KEY = 'scalar_target_mean'
 SCALAR_TARGET_MEAN_ABS_KEY = 'scalar_target_mean_absolute_value'
 SCALAR_TARGET_STDEV_KEY = 'scalar_target_stdev'
 SCALAR_TARGET_QUANTILE_KEY = 'scalar_target_quantile'
+
+TWO_STEP_METHOD_STRING = 'two_step'
+MINMAX_METHOD_STRING = 'minmax'
+Z_SCORE_METHOD_STRING = 'z_score'
+VALID_NORM_METHOD_STRINGS = [
+    TWO_STEP_METHOD_STRING, MINMAX_METHOD_STRING, Z_SCORE_METHOD_STRING
+]
 
 
 def _z_normalize_1var(data_values, reference_mean, reference_stdev):
@@ -83,8 +91,54 @@ def _z_denormalize_1var(data_values, reference_mean, reference_stdev):
     return data_values
 
 
+def _minmax_normalize_1var(data_values, reference_min, reference_max):
+    """Does min-max normalization for one variable.
+
+    :param data_values: numpy array of data in physical units.
+    :param reference_min: Minimum value from reference dataset.
+    :param reference_max: Maximum value from reference dataset.
+    :return: data_values: Same as input but in normalized units.
+    """
+
+    if reference_max - reference_min < 1e-12:
+        data_values[:] = 0.
+    else:
+        # Transform to range [0, 1].
+        data_values = (
+            (data_values - reference_min) / (reference_max - reference_min)
+        )
+
+        # Transform to range [-3, +3].
+        data_values = -3. + 6 * data_values
+
+    return data_values
+
+
+def _minmax_denormalize_1var(data_values, reference_min, reference_max):
+    """Does min-max *de*normalization for one variable.
+
+    :param data_values: numpy array of data in normalized units.
+    :param reference_min: Minimum value from reference dataset.
+    :param reference_max: Maximum value from reference dataset.
+    :return: data_values: Same as input but in physical units.
+    """
+
+    if reference_max - reference_min < 1e-12:
+        data_values[:] = (reference_min + reference_max) / 2
+    else:
+        # Transform to range [0, 1].
+        data_values = (data_values + 3.) / 6
+
+        # Transform back to physical values.
+        data_values = (
+            reference_min + data_values * (reference_max - reference_min)
+        )
+
+    return data_values
+
+
 def _quantile_normalize_1var(data_values, reference_values_1d):
-    """Does quantile normalization for one variable.
+    """Does two-step normalization for one variable.
 
     :param data_values: numpy array of data in physical units.
     :param reference_values_1d: 1-D numpy array of reference values -- i.e.,
@@ -92,10 +146,13 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
     :return: data_values: Same as input but in z-scores now.
     """
 
+    # If all reference values are NaN, all normalized data values should have a
+    # z-score of 0.
     if numpy.all(numpy.isnan(reference_values_1d)):
         data_values[numpy.isfinite(data_values)] = 0.
         return data_values
 
+    # Convert data_values from physical units to quantiles (ranging from 0...1).
     num_quantiles = len(reference_values_1d)
     quantile_levels = numpy.linspace(0, 1, num=num_quantiles, dtype=float)
     _, unique_indices = numpy.unique(reference_values_1d, return_index=True)
@@ -113,6 +170,8 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
         )
         data_values = interp_object(data_values)
 
+    # Below is the old code, which uses numpy.searchsorted.  Bad!
+
     # real_reference_values_1d = reference_values_1d[
     #     numpy.invert(numpy.isnan(reference_values_1d))
     # ]
@@ -125,8 +184,15 @@ def _quantile_normalize_1var(data_values, reference_values_1d):
     # num_reference_vals = len(real_reference_values_1d)
     # data_values = search_indices / (num_reference_vals - 1)
 
+    # Replace quantile values of 0.0 with 0.000001 and replace
+    # 1.0 with 0.999999.  Otherwise, when I apply the inverse CDF of the
+    # standard normal distribution -- to convert quantiles to z-scores --
+    # 0.0 will become -inf and 1.0 will become +inf.  Infinities are bad,
+    # because they lead to unstable neural-net-training.
     data_values = numpy.minimum(data_values, MAX_CUMULATIVE_DENSITY)
     data_values = numpy.maximum(data_values, MIN_CUMULATIVE_DENSITY)
+
+    # Use the inverse CDF of the SND to convert quantiles to z-scores.
     return scipy.stats.norm.ppf(data_values, loc=0., scale=1.)
 
 
@@ -512,7 +578,8 @@ def get_normalization_params(example_dict, num_quantiles):
 
 def normalize_data(
         example_dict, normalization_param_table_xarray, apply_to_predictors,
-        apply_to_vector_targets, apply_to_scalar_targets):
+        apply_to_vector_targets, apply_to_scalar_targets,
+        method_string=TWO_STEP_METHOD_STRING):
     """Normalizes data.
 
     :param example_dict: Dictionary in format returned by
@@ -525,6 +592,8 @@ def normalize_data(
         vector target variables.
     :param apply_to_scalar_targets: Boolean flag.  If True, will normalize
         scalar target variables.
+    :param method_string: Normalization method (must belong to list
+        `VALID_NORM_METHOD_STRINGS`).
     :return: example_dict: Same as input but with normalized values.
     :raises: ValueError: if `apply_to_predictors == apply_to_vector_targets ==
         apply_to_scalar_targets == False`.
@@ -547,6 +616,9 @@ def normalize_data(
             '`apply_to_scalar_targets` must be True.'
         )
 
+    error_checking.assert_is_string(method_string)
+    assert method_string in VALID_NORM_METHOD_STRINGS
+
     # Do actual stuff.
     if apply_to_predictors:
         scalar_predictor_names = (
@@ -560,16 +632,39 @@ def normalize_data(
     )
     npt = normalization_param_table_xarray
 
+    if method_string == MINMAX_METHOD_STRING:
+        assert numpy.isclose(
+            npt.coords[QUANTILE_LEVEL_DIM].values[0], 0., atol=TOLERANCE
+        )
+        assert numpy.isclose(
+            npt.coords[QUANTILE_LEVEL_DIM].values[-1], 1., atol=TOLERANCE
+        )
+
     for j in range(len(scalar_predictor_names)):
         j_new = numpy.where(
             npt.coords[SCALAR_PREDICTOR_DIM].values == scalar_predictor_names[j]
         )[0][0]
 
-        scalar_predictor_matrix[:, j] = _quantile_normalize_1var(
-            data_values=scalar_predictor_matrix[:, j],
-            reference_values_1d=
-            npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, :]
-        )
+        if method_string == TWO_STEP_METHOD_STRING:
+            scalar_predictor_matrix[:, j] = _quantile_normalize_1var(
+                data_values=scalar_predictor_matrix[:, j],
+                reference_values_1d=
+                npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, :]
+            )
+        elif method_string == Z_SCORE_METHOD_STRING:
+            scalar_predictor_matrix[:, j] = _z_normalize_1var(
+                data_values=scalar_predictor_matrix[:, j],
+                reference_mean=npt[SCALAR_PREDICTOR_MEAN_KEY].values[j_new],
+                reference_stdev=npt[SCALAR_PREDICTOR_STDEV_KEY].values[j_new]
+            )
+        else:
+            scalar_predictor_matrix[:, j] = _minmax_normalize_1var(
+                data_values=scalar_predictor_matrix[:, j],
+                reference_min=
+                npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, 0],
+                reference_max=
+                npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, -1]
+            )
 
     example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
         scalar_predictor_matrix
@@ -598,11 +693,28 @@ def normalize_data(
                 desired_height_m_agl=heights_m_agl[h]
             )
 
-            vector_predictor_matrix[:, h, j] = _quantile_normalize_1var(
-                data_values=vector_predictor_matrix[:, h, j],
-                reference_values_1d=
-                npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, :]
-            )
+            if method_string == TWO_STEP_METHOD_STRING:
+                vector_predictor_matrix[:, h, j] = _quantile_normalize_1var(
+                    data_values=vector_predictor_matrix[:, h, j],
+                    reference_values_1d=
+                    npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, :]
+                )
+            elif method_string == Z_SCORE_METHOD_STRING:
+                vector_predictor_matrix[:, h, j] = _z_normalize_1var(
+                    data_values=vector_predictor_matrix[:, h, j],
+                    reference_mean=
+                    npt[VECTOR_PREDICTOR_MEAN_KEY].values[h_new, j_new],
+                    reference_stdev=
+                    npt[VECTOR_PREDICTOR_STDEV_KEY].values[h_new, j_new]
+                )
+            else:
+                vector_predictor_matrix[:, h, j] = _minmax_normalize_1var(
+                    data_values=vector_predictor_matrix[:, h, j],
+                    reference_min=
+                    npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, 0],
+                    reference_max=
+                    npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, -1]
+                )
 
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
         vector_predictor_matrix
@@ -631,11 +743,28 @@ def normalize_data(
                 desired_wavelength_metres=target_wavelengths_metres[w]
             )
 
-            scalar_target_matrix[:, w, j] = _quantile_normalize_1var(
-                data_values=scalar_target_matrix[:, w, j],
-                reference_values_1d=
-                npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, :]
-            )
+            if method_string == TWO_STEP_METHOD_STRING:
+                scalar_target_matrix[:, w, j] = _quantile_normalize_1var(
+                    data_values=scalar_target_matrix[:, w, j],
+                    reference_values_1d=
+                    npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, :]
+                )
+            elif method_string == Z_SCORE_METHOD_STRING:
+                scalar_target_matrix[:, w, j] = _z_normalize_1var(
+                    data_values=scalar_target_matrix[:, w, j],
+                    reference_mean=
+                    npt[SCALAR_TARGET_MEAN_KEY].values[w_new, j_new],
+                    reference_stdev=
+                    npt[SCALAR_TARGET_STDEV_KEY].values[w_new, j_new]
+                )
+            else:
+                scalar_target_matrix[:, w, j] = _minmax_normalize_1var(
+                    data_values=scalar_target_matrix[:, w, j],
+                    reference_min=
+                    npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, 0],
+                    reference_max=
+                    npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, -1]
+                )
 
     example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
 
@@ -665,11 +794,28 @@ def normalize_data(
                     desired_height_m_agl=heights_m_agl[h]
                 )
 
-                vector_target_matrix[:, h, w, j] = _quantile_normalize_1var(
-                    data_values=vector_target_matrix[:, h, w, j],
-                    reference_values_1d=
-                    npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, :]
-                )
+                if method_string == TWO_STEP_METHOD_STRING:
+                    vector_target_matrix[:, h, w, j] = _quantile_normalize_1var(
+                        data_values=vector_target_matrix[:, h, w, j],
+                        reference_values_1d=
+                        npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, :]
+                    )
+                elif method_string == Z_SCORE_METHOD_STRING:
+                    vector_target_matrix[:, h, w, j] = _z_normalize_1var(
+                        data_values=vector_target_matrix[:, h, w, j],
+                        reference_mean=
+                        npt[VECTOR_TARGET_MEAN_KEY].values[h_new, w_new, j_new],
+                        reference_stdev=
+                        npt[VECTOR_TARGET_STDEV_KEY].values[h_new, w_new, j_new]
+                    )
+                else:
+                    vector_target_matrix[:, h, w, j] = _minmax_normalize_1var(
+                        data_values=vector_target_matrix[:, h, w, j],
+                        reference_min=
+                        npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, 0],
+                        reference_max=
+                        npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, -1]
+                    )
 
     example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
     return example_dict
@@ -677,7 +823,8 @@ def normalize_data(
 
 def denormalize_data(
         example_dict, normalization_param_table_xarray, apply_to_predictors,
-        apply_to_vector_targets, apply_to_scalar_targets):
+        apply_to_vector_targets, apply_to_scalar_targets,
+        method_string=TWO_STEP_METHOD_STRING):
     """Denormalizes data.
 
     This method is the inverse of `normalize_data`.
@@ -687,6 +834,7 @@ def denormalize_data(
     :param apply_to_predictors: Same.
     :param apply_to_vector_targets: Same.
     :param apply_to_scalar_targets: Same.
+    :param method_string: Same.
     :return: example_dict: Same.
     :raises: ValueError: if `apply_to_predictors == apply_to_vector_targets ==
         apply_to_scalar_targets == False`.
@@ -709,6 +857,9 @@ def denormalize_data(
             '`apply_to_scalar_targets` must be True.'
         )
 
+    error_checking.assert_is_string(method_string)
+    assert method_string in VALID_NORM_METHOD_STRINGS
+
     # Do actual stuff.
     if apply_to_predictors:
         scalar_predictor_names = (
@@ -727,11 +878,26 @@ def denormalize_data(
             npt.coords[SCALAR_PREDICTOR_DIM].values == scalar_predictor_names[j]
         )[0][0]
 
-        scalar_predictor_matrix[:, j] = _quantile_denormalize_1var(
-            data_values=scalar_predictor_matrix[:, j],
-            reference_values_1d=
-            npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, :]
-        )
+        if method_string == TWO_STEP_METHOD_STRING:
+            scalar_predictor_matrix[:, j] = _quantile_denormalize_1var(
+                data_values=scalar_predictor_matrix[:, j],
+                reference_values_1d=
+                npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, :]
+            )
+        elif method_string == Z_SCORE_METHOD_STRING:
+            scalar_predictor_matrix[:, j] = _z_denormalize_1var(
+                data_values=scalar_predictor_matrix[:, j],
+                reference_mean=npt[SCALAR_PREDICTOR_MEAN_KEY].values[j_new],
+                reference_stdev=npt[SCALAR_PREDICTOR_STDEV_KEY].values[j_new]
+            )
+        else:
+            scalar_predictor_matrix[:, j] = _minmax_denormalize_1var(
+                data_values=scalar_predictor_matrix[:, j],
+                reference_min=
+                npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, 0],
+                reference_max=
+                npt[SCALAR_PREDICTOR_QUANTILE_KEY].values[j_new, -1]
+            )
 
     example_dict[example_utils.SCALAR_PREDICTOR_VALS_KEY] = (
         scalar_predictor_matrix
@@ -760,11 +926,28 @@ def denormalize_data(
                 desired_height_m_agl=heights_m_agl[h]
             )
 
-            vector_predictor_matrix[:, h, j] = _quantile_denormalize_1var(
-                data_values=vector_predictor_matrix[:, h, j],
-                reference_values_1d=
-                npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, :]
-            )
+            if method_string == TWO_STEP_METHOD_STRING:
+                vector_predictor_matrix[:, h, j] = _quantile_denormalize_1var(
+                    data_values=vector_predictor_matrix[:, h, j],
+                    reference_values_1d=
+                    npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, :]
+                )
+            elif method_string == Z_SCORE_METHOD_STRING:
+                vector_predictor_matrix[:, h, j] = _z_denormalize_1var(
+                    data_values=vector_predictor_matrix[:, h, j],
+                    reference_mean=
+                    npt[VECTOR_PREDICTOR_MEAN_KEY].values[h_new, j_new],
+                    reference_stdev=
+                    npt[VECTOR_PREDICTOR_STDEV_KEY].values[h_new, j_new]
+                )
+            else:
+                vector_predictor_matrix[:, h, j] = _minmax_denormalize_1var(
+                    data_values=vector_predictor_matrix[:, h, j],
+                    reference_min=
+                    npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, 0],
+                    reference_max=
+                    npt[VECTOR_PREDICTOR_QUANTILE_KEY].values[h_new, j_new, -1]
+                )
 
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY] = (
         vector_predictor_matrix
@@ -793,11 +976,28 @@ def denormalize_data(
                 desired_wavelength_metres=target_wavelengths_metres[w]
             )
 
-            scalar_target_matrix[:, w, j] = _quantile_denormalize_1var(
-                data_values=scalar_target_matrix[:, w, j],
-                reference_values_1d=
-                npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, :]
-            )
+            if method_string == TWO_STEP_METHOD_STRING:
+                scalar_target_matrix[:, w, j] = _quantile_denormalize_1var(
+                    data_values=scalar_target_matrix[:, w, j],
+                    reference_values_1d=
+                    npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, :]
+                )
+            elif method_string == Z_SCORE_METHOD_STRING:
+                scalar_target_matrix[:, w, j] = _z_denormalize_1var(
+                    data_values=scalar_target_matrix[:, w, j],
+                    reference_mean=
+                    npt[SCALAR_TARGET_MEAN_KEY].values[w_new, j_new],
+                    reference_stdev=
+                    npt[SCALAR_TARGET_STDEV_KEY].values[w_new, j_new]
+                )
+            else:
+                scalar_target_matrix[:, w, j] = _minmax_denormalize_1var(
+                    data_values=scalar_target_matrix[:, w, j],
+                    reference_min=
+                    npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, 0],
+                    reference_max=
+                    npt[SCALAR_TARGET_QUANTILE_KEY].values[w_new, j_new, -1]
+                )
 
     example_dict[example_utils.SCALAR_TARGET_VALS_KEY] = scalar_target_matrix
 
@@ -827,11 +1027,28 @@ def denormalize_data(
                     desired_height_m_agl=heights_m_agl[h]
                 )
 
-                vector_target_matrix[:, h, w, j] = _quantile_denormalize_1var(
-                    data_values=vector_target_matrix[:, h, w, j],
-                    reference_values_1d=
-                    npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, :]
-                )
+                if method_string == TWO_STEP_METHOD_STRING:
+                    vector_target_matrix[:, h, w, j] = _quantile_denormalize_1var(
+                        data_values=vector_target_matrix[:, h, w, j],
+                        reference_values_1d=
+                        npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, :]
+                    )
+                elif method_string == Z_SCORE_METHOD_STRING:
+                    vector_target_matrix[:, h, w, j] = _z_denormalize_1var(
+                        data_values=vector_target_matrix[:, h, w, j],
+                        reference_mean=
+                        npt[VECTOR_TARGET_MEAN_KEY].values[h_new, w_new, j_new],
+                        reference_stdev=
+                        npt[VECTOR_TARGET_STDEV_KEY].values[h_new, w_new, j_new]
+                    )
+                else:
+                    vector_target_matrix[:, h, w, j] = _minmax_denormalize_1var(
+                        data_values=vector_target_matrix[:, h, w, j],
+                        reference_min=
+                        npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, 0],
+                        reference_max=
+                        npt[VECTOR_TARGET_QUANTILE_KEY].values[h_new, w_new, j_new, -1]
+                    )
 
     example_dict[example_utils.VECTOR_TARGET_VALS_KEY] = vector_target_matrix
     return example_dict
