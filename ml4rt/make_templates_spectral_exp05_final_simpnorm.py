@@ -88,7 +88,7 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_arch.L1_WEIGHT_KEY: 0.,
     u_net_pp_arch.L2_WEIGHT_KEY: 1e-7,
     u_net_pp_arch.USE_BATCH_NORM_KEY: True,
-    u_net_pp_arch.USE_RESIDUAL_BLOCKS_KEY: True,
+    # u_net_pp_arch.USE_RESIDUAL_BLOCKS_KEY: True,
     u_net_pp_arch.NUM_OUTPUT_WAVELENGTHS_KEY: NUM_WAVELENGTHS,
     # u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
     # u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
@@ -103,8 +103,11 @@ DUMMY_GENERATOR_OPTION_DICT = {
     neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False
 }
 
-MIN_DUAL_WEIGHTS = numpy.array([0.75, 1.00])
-BROADBAND_WEIGHTS = numpy.array([0.01, 0.05])
+MIN_DUAL_WEIGHTS_AXIS1 = numpy.array([0.75, 1.00])
+BROADBAND_WEIGHTS_AXIS1 = numpy.array([0.01, 0.05])
+USE_RESIDUAL_FLAGS_AXIS2 = numpy.array([1, 0, 0], dtype=bool)
+USE_CONVNEXT_V1_FLAGS_AXIS2 = numpy.array([0, 1, 0], dtype=bool)
+USE_CONVNEXT_V2_FLAGS_AXIS2 = numpy.array([0, 0, 1], dtype=bool)
 
 
 def _run():
@@ -113,109 +116,121 @@ def _run():
     This is effectively the main method.
     """
 
-    for i in range(len(MIN_DUAL_WEIGHTS)):
-        this_option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
+    for i in range(len(MIN_DUAL_WEIGHTS_AXIS1)):
+        for j in range(len(USE_RESIDUAL_FLAGS_AXIS2)):
+            this_option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
 
-        this_vector_loss_function = (
-            custom_losses.dual_weighted_mse_constrained_bb(
-                min_dual_weight=MIN_DUAL_WEIGHTS[i],
-                band_weights=numpy.array([
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    BROADBAND_WEIGHTS[i]
-                ])
+            this_vector_loss_function = (
+                custom_losses.dual_weighted_mse_constrained_bb(
+                    min_dual_weight=MIN_DUAL_WEIGHTS_AXIS1[i],
+                    band_weights=numpy.array([
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                        BROADBAND_WEIGHTS_AXIS1[i]
+                    ])
+                )
             )
-        )
 
-        this_vector_loss_string = (
-            'custom_losses.dual_weighted_mse_constrained_bb('
-                'min_dual_weight={0:.2f},'
-                'band_weights=numpy.array(['
-                    '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {1:.2f}'
-                '])'
-            ')'
-        ).format(MIN_DUAL_WEIGHTS[i], BROADBAND_WEIGHTS[i])
+            this_vector_loss_string = (
+                'custom_losses.dual_weighted_mse_constrained_bb('
+                    'min_dual_weight={0:.2f},'
+                    'band_weights=numpy.array(['
+                        '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {1:.2f}'
+                    '])'
+                ')'
+            ).format(MIN_DUAL_WEIGHTS_AXIS1[i], BROADBAND_WEIGHTS_AXIS1[i])
 
-        this_scalar_loss_function = (
-            custom_losses.scaled_mse_for_net_flux_constrained_bb(
-                scaling_factor=1.,
-                band_weights=numpy.array([
-                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    BROADBAND_WEIGHTS[i]
-                ])
+            this_scalar_loss_function = (
+                custom_losses.scaled_mse_for_net_flux_constrained_bb(
+                    scaling_factor=1.,
+                    band_weights=numpy.array([
+                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                        BROADBAND_WEIGHTS_AXIS1[i]
+                    ])
+                )
             )
-        )
 
-        this_scalar_loss_string = (
-            'custom_losses.scaled_mse_for_net_flux_constrained_bb('
-                'scaling_factor=1.,'
-                'band_weights=numpy.array(['
-                    '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {0:.2f}'
-                '])'
-            ')'
-        ).format(BROADBAND_WEIGHTS[i])
+            this_scalar_loss_string = (
+                'custom_losses.scaled_mse_for_net_flux_constrained_bb('
+                    'scaling_factor=1.,'
+                    'band_weights=numpy.array(['
+                        '1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, {0:.2f}'
+                    '])'
+                ')'
+            ).format(BROADBAND_WEIGHTS_AXIS1[i])
 
-        this_option_dict.update({
-            u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY:
-                this_vector_loss_function,
-            u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY:
-                this_scalar_loss_function
-        })
+            this_option_dict.update({
+                u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY:
+                    this_vector_loss_function,
+                u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY:
+                    this_scalar_loss_function,
+                u_net_pp_arch.USE_RESIDUAL_BLOCKS_KEY:
+                    USE_RESIDUAL_FLAGS_AXIS2[j],
+                u_net_pp_arch.USE_CONVNEXT_V1_BLOCKS_KEY:
+                    USE_CONVNEXT_V1_FLAGS_AXIS2[j],
+                u_net_pp_arch.USE_CONVNEXT_V2_BLOCKS_KEY:
+                    USE_CONVNEXT_V2_FLAGS_AXIS2[j]
+            })
 
-        this_model_object = u_net_pp_arch.create_model(this_option_dict)
+            this_model_object = u_net_pp_arch.create_model(this_option_dict)
 
-        this_model_file_name = (
-            '{0:s}/min-dual-weight={1:.2f}_broadband-weight={2:.2f}/model.keras'
-        ).format(
-            OUTPUT_DIR_NAME,
-            MIN_DUAL_WEIGHTS[i],
-            BROADBAND_WEIGHTS[i]
-        )
+            this_model_file_name = (
+                '{0:s}/min-dual-weight={1:.2f}_broadband-weight={2:.2f}_'
+                'use-residual={3:d}_use-convnext-v1={4:d}_'
+                'use-convnext-v2={5:d}/model.keras'
+            ).format(
+                OUTPUT_DIR_NAME,
+                MIN_DUAL_WEIGHTS_AXIS1[i],
+                BROADBAND_WEIGHTS_AXIS1[i],
+                int(USE_RESIDUAL_FLAGS_AXIS2[j]),
+                int(USE_CONVNEXT_V1_FLAGS_AXIS2[j]),
+                int(USE_CONVNEXT_V2_FLAGS_AXIS2[j])
+            )
 
-        file_system_utils.mkdir_recursive_if_necessary(
-            file_name=this_model_file_name
-        )
+            file_system_utils.mkdir_recursive_if_necessary(
+                file_name=this_model_file_name
+            )
 
-        print('Writing model to: "{0:s}"...'.format(this_model_file_name))
-        this_model_object.save(
-            filepath=this_model_file_name,
-            overwrite=True,
-            include_optimizer=True
-        )
+            print('Writing model to: "{0:s}"...'.format(this_model_file_name))
+            this_model_object.save(
+                filepath=this_model_file_name,
+                overwrite=True,
+                include_optimizer=True
+            )
 
-        this_metafile_name = neural_net.find_metafile(
-            model_dir_name=os.path.split(this_model_file_name)[0],
-            raise_error_if_missing=False
-        )
+            this_metafile_name = neural_net.find_metafile(
+                model_dir_name=os.path.split(this_model_file_name)[0],
+                raise_error_if_missing=False
+            )
 
-        this_option_dict[u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY] = (
-            this_vector_loss_string
-        )
-        this_option_dict[u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY] = (
-            this_scalar_loss_string
-        )
+            this_option_dict[u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY] = (
+                this_vector_loss_string
+            )
+            this_option_dict[u_net_pp_arch.SCALAR_LOSS_FUNCTION_KEY] = (
+                this_scalar_loss_string
+            )
 
-        print('Writing metadata to: "{0:s}"...'.format(this_metafile_name))
-        neural_net._write_metafile(
-            dill_file_name=this_metafile_name,
-            num_epochs=100,
-            num_training_batches_per_epoch=100,
-            training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-            num_validation_batches_per_epoch=100,
-            validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-            loss_function_or_dict={
-                neural_net.HEATING_RATE_TARGETS_KEY: this_vector_loss_string,
-                neural_net.FLUX_TARGETS_KEY: this_scalar_loss_string
-            },
-            plateau_lr_multiplier=0.9,
-            early_stopping_patience_epochs=200,
-            u_net_3plus_architecture_dict=None,
-            u_net_plusplus_architecture_dict=this_option_dict,
-            bnn_architecture_dict=None,
-            cnn_architecture_dict=None,
-            dense_architecture_dict=None,
-            u_net_architecture_dict=None,
-            use_ryan_architecture=False
-        )
+            print('Writing metadata to: "{0:s}"...'.format(this_metafile_name))
+            neural_net._write_metafile(
+                dill_file_name=this_metafile_name,
+                num_epochs=100,
+                num_training_batches_per_epoch=100,
+                training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
+                num_validation_batches_per_epoch=100,
+                validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
+                loss_function_or_dict={
+                    neural_net.HEATING_RATE_TARGETS_KEY: this_vector_loss_string,
+                    neural_net.FLUX_TARGETS_KEY: this_scalar_loss_string
+                },
+                plateau_lr_multiplier=0.9,
+                early_stopping_patience_epochs=200,
+                u_net_3plus_architecture_dict=None,
+                u_net_plusplus_architecture_dict=this_option_dict,
+                bnn_architecture_dict=None,
+                cnn_architecture_dict=None,
+                dense_architecture_dict=None,
+                u_net_architecture_dict=None,
+                use_ryan_architecture=False
+            )
 
 
 if __name__ == '__main__':
