@@ -312,7 +312,7 @@ def check_args(option_dict):
     error_checking.assert_is_boolean(option_dict[INCLUDE_MASK_KEY])
 
     if OPTIMIZER_FUNCTION_KEY not in option_dict:
-        option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.Nadam()
+        option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.AdamW()
 
     return option_dict
 
