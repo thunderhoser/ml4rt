@@ -45,7 +45,7 @@ min_dual_weight=${MIN_DUAL_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 broadband_weight=${BROADBAND_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 normalization_method_string=${NORMALIZATION_METHOD_STRINGS[$SLURM_ARRAY_TASK_ID]}
 
-template_file_name="${TEMPLATE_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_normalization-method=${normalization_method_string}/model.keras"
+template_file_name="${TEMPLATE_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}/model.keras"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_normalization-method=${normalization_method_string}"
 echo $output_dir_name
 

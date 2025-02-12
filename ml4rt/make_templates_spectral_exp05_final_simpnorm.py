@@ -164,13 +164,11 @@ def _run():
         this_model_object = u_net_pp_arch.create_model(this_option_dict)
 
         this_model_file_name = (
-            '{0:s}/min-dual-weight={1:.2f}_broadband-weight={2:.2f}_'
-            'normalization-type={3:s}/model.keras'
+            '{0:s}/min-dual-weight={1:.2f}_broadband-weight={2:.2f}/model.keras'
         ).format(
             OUTPUT_DIR_NAME,
             MIN_DUAL_WEIGHTS[i],
-            BROADBAND_WEIGHTS[i],
-            NORMALIZATION_TYPE_STRINGS[i]
+            BROADBAND_WEIGHTS[i]
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
