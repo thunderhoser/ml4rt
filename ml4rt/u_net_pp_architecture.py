@@ -369,10 +369,11 @@ def create_model(option_dict):
         basic_layer_name='last_conv'
     )
 
-    need_output_activ = (
-        (use_convnext_v1_blocks or use_convnext_v2_blocks)
-        and conv_output_activ_func_name is not None
-    )
+    # need_output_activ = (
+    #     (use_convnext_v1_blocks or use_convnext_v2_blocks)
+    #     and conv_output_activ_func_name is not None
+    # )
+    need_output_activ = False
     if need_output_activ:
         conv_output_layer_object = architecture_utils.get_activation_layer(
             activation_function_string=conv_output_activ_func_name,
