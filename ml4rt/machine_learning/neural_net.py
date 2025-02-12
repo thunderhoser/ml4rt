@@ -43,6 +43,7 @@ NORMALIZATION_FILE_KEY = 'normalization_file_name'
 NORMALIZE_PREDICTORS_KEY = 'normalize_predictors'
 NORMALIZE_SCALAR_TARGETS_KEY = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_KEY = 'normalize_vector_targets'
+NORMALIZATION_METHOD_KEY = 'normalization_method_string'
 NUM_DEEP_SUPER_LAYERS_KEY = 'num_deep_supervision_layers'
 NORMALIZATION_FILE_FOR_MASK_KEY = 'normalization_file_name_for_mask'
 MIN_HEATING_RATE_FOR_MASK_KEY = 'min_heating_rate_for_mask_k_day01'
@@ -198,6 +199,8 @@ def _check_generator_args(option_dict):
 
     if option_dict[NORMALIZATION_FILE_KEY] is not None:
         error_checking.assert_is_string(option_dict[NORMALIZATION_FILE_KEY])
+    if option_dict[NORMALIZATION_METHOD_KEY] is not None:
+        error_checking.assert_is_string(option_dict[NORMALIZATION_METHOD_KEY])
 
     error_checking.assert_is_boolean(option_dict[NORMALIZE_PREDICTORS_KEY])
     error_checking.assert_is_boolean(option_dict[NORMALIZE_SCALAR_TARGETS_KEY])
@@ -255,7 +258,7 @@ def _read_file_for_generator(
         example_file_name, first_time_unix_sec, last_time_unix_sec, field_names,
         heights_m_agl, target_wavelengths_metres, normalization_file_name,
         normalize_predictors, normalize_vector_targets,
-        normalize_scalar_targets):
+        normalize_scalar_targets, normalization_method_string):
     """Reads one file for generator.
 
     H = number of heights in grid
@@ -274,6 +277,7 @@ def _read_file_for_generator(
     :param normalize_predictors: Same.
     :param normalize_vector_targets: Same.
     :param normalize_scalar_targets: Same.
+    :param normalization_method_string: Same.
     :return: example_dict: See doc for `example_io.read_file`.
     """
 
@@ -309,7 +313,8 @@ def _read_file_for_generator(
             example_io.NORMALIZATION_FILE_KEY: normalization_file_name,
             example_io.NORMALIZE_PREDICTORS_KEY: normalize_predictors,
             example_io.NORMALIZE_SCALAR_TARGETS_KEY: normalize_scalar_targets,
-            example_io.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets
+            example_io.NORMALIZE_VECTOR_TARGETS_KEY: normalize_vector_targets,
+            example_io.NORMALIZATION_METHOD_KEY: normalization_method_string
         }
 
         assert example_io.are_normalization_metadata_same(
@@ -333,7 +338,8 @@ def _read_file_for_generator(
         normalization_param_table_xarray=norm_param_table_xarray,
         apply_to_predictors=normalize_predictors,
         apply_to_scalar_targets=normalize_scalar_targets,
-        apply_to_vector_targets=normalize_vector_targets
+        apply_to_vector_targets=normalize_vector_targets,
+        method_string=normalization_method_string
     )
 
     return example_dict
@@ -951,6 +957,8 @@ def data_generator(option_dict, for_inference):
         normalize scalar target variables (fluxes).
     option_dict['normalize_vector_target']: Boolean flag.  If True, will
         normalize vector target variables (heating rates).
+    option_dict['normalization_method_string']: Normalization method (must
+        belong to list `normalization.VALID_NORM_METHOD_STRINGS`).
     option_dict['num_deep_supervision_layers']: Number of deep-supervision
         layers.
     option_dict['min_heating_rate_for_mask_k_day01']: Minimum heating rate for
@@ -1028,6 +1036,7 @@ def data_generator(option_dict, for_inference):
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
+    normalization_method_string = option_dict[NORMALIZATION_METHOD_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
         MIN_HEATING_RATE_FOR_MASK_KEY
@@ -1065,7 +1074,8 @@ def data_generator(option_dict, for_inference):
         normalization_file_name=normalization_file_name,
         normalize_predictors=normalize_predictors,
         normalize_scalar_targets=normalize_scalar_targets,
-        normalize_vector_targets=normalize_vector_targets
+        normalize_vector_targets=normalize_vector_targets,
+        normalization_method_string=normalization_method_string
     )
 
     num_examples_in_dict = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
@@ -1118,7 +1128,8 @@ def data_generator(option_dict, for_inference):
                     normalization_file_name=normalization_file_name,
                     normalize_predictors=normalize_predictors,
                     normalize_scalar_targets=normalize_scalar_targets,
-                    normalize_vector_targets=normalize_vector_targets
+                    normalize_vector_targets=normalize_vector_targets,
+                    normalization_method_string=normalization_method_string
                 )
 
                 num_examples_in_dict = len(
@@ -1309,7 +1320,8 @@ def data_generator_for_peter(option_dict, use_ryan_architecture):
         normalization_file_name=None,
         normalize_predictors=False,
         normalize_scalar_targets=False,
-        normalize_vector_targets=False
+        normalize_vector_targets=False,
+        normalization_method_string=None
     )
 
     num_examples_in_dict = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
@@ -1344,7 +1356,8 @@ def data_generator_for_peter(option_dict, use_ryan_architecture):
                     normalization_file_name=None,
                     normalize_predictors=False,
                     normalize_scalar_targets=False,
-                    normalize_vector_targets=False
+                    normalize_vector_targets=False,
+                    normalization_method_string=None
                 )
 
                 num_examples_in_dict = len(
@@ -1487,7 +1500,8 @@ def create_data_for_peter(option_dict):
             normalization_file_name=None,
             normalize_predictors=False,
             normalize_scalar_targets=False,
-            normalize_vector_targets=False
+            normalize_vector_targets=False,
+            normalization_method_string=None
         )
 
         example_dicts.append(this_example_dict)
@@ -1547,6 +1561,7 @@ def create_data(option_dict):
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
+    normalization_method_string = option_dict[NORMALIZATION_METHOD_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
         MIN_HEATING_RATE_FOR_MASK_KEY
@@ -1576,7 +1591,8 @@ def create_data(option_dict):
             normalization_file_name=normalization_file_name,
             normalize_predictors=normalize_predictors,
             normalize_scalar_targets=normalize_scalar_targets,
-            normalize_vector_targets=normalize_vector_targets
+            normalize_vector_targets=normalize_vector_targets,
+            normalization_method_string=normalization_method_string
         )
 
         example_dicts.append(this_example_dict)
@@ -1656,6 +1672,7 @@ def create_data_specific_examples(option_dict, example_id_strings):
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
+    normalization_method_string = option_dict[NORMALIZATION_METHOD_KEY]
     min_heating_rate_for_mask_k_day01 = option_dict[
         MIN_HEATING_RATE_FOR_MASK_KEY
     ]
@@ -1706,7 +1723,8 @@ def create_data_specific_examples(option_dict, example_id_strings):
             normalization_file_name=normalization_file_name,
             normalize_predictors=normalize_predictors,
             normalize_scalar_targets=normalize_scalar_targets,
-            normalize_vector_targets=normalize_vector_targets
+            normalize_vector_targets=normalize_vector_targets,
+            normalization_method_string=normalization_method_string
         )
 
         if len(this_example_dict[example_utils.EXAMPLE_IDS_KEY]) == 0:
@@ -2543,25 +2561,9 @@ def read_metafile(dill_file_name):
         v[MIN_HEATING_RATE_FOR_MASK_KEY] = None
         v[MIN_FLUX_FOR_MASK_KEY] = None
 
-    if NORMALIZE_PREDICTORS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        try:
-            t[NORMALIZE_PREDICTORS_KEY] = (
-                t['predictor_norm_type_string'] is not None
-            )
-            t[NORMALIZE_SCALAR_TARGETS_KEY] = (
-                t['scalar_target_norm_type_string'] is not None
-            )
-            t[NORMALIZE_VECTOR_TARGETS_KEY] = (
-                t['vector_target_norm_type_string'] is not None
-            )
-        except KeyError:
-            t[NORMALIZE_PREDICTORS_KEY] = None
-            t[NORMALIZE_SCALAR_TARGETS_KEY] = None
-            t[NORMALIZE_VECTOR_TARGETS_KEY] = None
-
-        v[NORMALIZE_PREDICTORS_KEY] = t[NORMALIZE_PREDICTORS_KEY]
-        v[NORMALIZE_SCALAR_TARGETS_KEY] = t[NORMALIZE_SCALAR_TARGETS_KEY]
-        v[NORMALIZE_VECTOR_TARGETS_KEY] = t[NORMALIZE_VECTOR_TARGETS_KEY]
+    if NORMALIZATION_METHOD_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[NORMALIZATION_METHOD_KEY] = normalization.TWO_STEP_METHOD_STRING
+        v[NORMALIZATION_METHOD_KEY] = normalization.TWO_STEP_METHOD_STRING
 
     metadata_dict[TRAINING_OPTIONS_KEY] = t
     metadata_dict[VALIDATION_OPTIONS_KEY] = v

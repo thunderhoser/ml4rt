@@ -8,6 +8,7 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.utils import example_utils
+from ml4rt.utils import normalization
 
 TOLERANCE = 1e-6
 
@@ -25,8 +26,9 @@ NORMALIZATION_FILE_KEY = 'normalization_file_name'
 NORMALIZE_PREDICTORS_KEY = 'normalize_predictors'
 NORMALIZE_SCALAR_TARGETS_KEY = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_KEY = 'normalize_vector_targets'
+NORMALIZATION_METHOD_KEY = 'normalization_method_string'
 
-NORM_METADATA_STRING_KEYS = [NORMALIZATION_FILE_KEY]
+NORM_METADATA_STRING_KEYS = [NORMALIZATION_FILE_KEY, NORMALIZATION_METHOD_KEY]
 NORM_METADATA_BOOLEAN_KEYS = [
     NORMALIZE_PREDICTORS_KEY,
     NORMALIZE_SCALAR_TARGETS_KEY,
@@ -37,7 +39,8 @@ DEFAULT_NORM_METADATA_DICT = {
     NORMALIZATION_FILE_KEY: None,
     NORMALIZE_PREDICTORS_KEY: False,
     NORMALIZE_SCALAR_TARGETS_KEY: False,
-    NORMALIZE_VECTOR_TARGETS_KEY: False
+    NORMALIZE_VECTOR_TARGETS_KEY: False,
+    NORMALIZATION_METHOD_KEY: None
 }
 
 
@@ -78,6 +81,11 @@ def _check_normalization_metadata(normalization_metadata_dict):
         or nmd[NORMALIZE_VECTOR_TARGETS_KEY]
     )
     assert normalize_any
+
+    error_checking.assert_is_string(nmd[NORMALIZATION_METHOD_KEY])
+    assert (
+        nmd[NORMALIZATION_METHOD_KEY] in normalization.VALID_NORM_METHOD_STRINGS
+    )
 
     return normalization_metadata_dict
 
@@ -351,36 +359,19 @@ def read_file(
 
     if hasattr(dataset_object, NORMALIZE_PREDICTORS_KEY):
         for this_key in NORM_METADATA_STRING_KEYS:
+            if (
+                    this_key == NORMALIZATION_METHOD_KEY
+                    and not hasattr(dataset_object, this_key)
+            ):
+                nmd[this_key] = normalization.TWO_STEP_METHOD_STRING
+                continue
+
             nmd[this_key] = str(getattr(dataset_object, this_key))
             if nmd[this_key] == 'None':
                 nmd[this_key] = None
 
         for this_key in NORM_METADATA_BOOLEAN_KEYS:
             nmd[this_key] = bool(getattr(dataset_object, this_key))
-
-    elif hasattr(dataset_object, NORMALIZATION_FILE_KEY):
-        nmd[NORMALIZATION_FILE_KEY] = str(
-            getattr(dataset_object, NORMALIZATION_FILE_KEY)
-        )
-
-        predictor_norm_type_string = str(
-            getattr(dataset_object, 'predictor_norm_type_string')
-        )
-        nmd[NORMALIZE_PREDICTORS_KEY] = predictor_norm_type_string != 'None'
-
-        scalar_target_norm_type_string = str(
-            getattr(dataset_object, 'scalar_target_norm_type_string')
-        )
-        nmd[NORMALIZE_SCALAR_TARGETS_KEY] = (
-            scalar_target_norm_type_string != 'None'
-        )
-
-        vector_target_norm_type_string = str(
-            getattr(dataset_object, 'vector_target_norm_type_string')
-        )
-        nmd[NORMALIZE_VECTOR_TARGETS_KEY] = (
-            vector_target_norm_type_string != 'None'
-        )
     else:
         nmd = _check_normalization_metadata(nmd)
 

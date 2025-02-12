@@ -472,7 +472,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             apply_to_scalar_targets=
             goptd[neural_net.NORMALIZE_SCALAR_TARGETS_KEY],
             apply_to_vector_targets=
-            goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY]
+            goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY],
+            method_string=goptd[neural_net.NORMALIZATION_METHOD_KEY]
         )
 
         for k in range(ensemble_size):
@@ -484,7 +485,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
                     apply_to_scalar_targets=
                     goptd[neural_net.NORMALIZE_SCALAR_TARGETS_KEY],
                     apply_to_vector_targets=
-                    goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY]
+                    goptd[neural_net.NORMALIZE_VECTOR_TARGETS_KEY],
+                    method_string=goptd[neural_net.NORMALIZATION_METHOD_KEY]
                 )
             )
 
