@@ -145,3 +145,105 @@ def max_prediction(target_tensor, prediction_tensor):
     """
 
     return K.max(prediction_tensor)
+
+
+def correlation_numerator_part1(target_tensor, prediction_tensor):
+    """Computes part 1 of numerator in correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: numerator_part1: Part 1 of numerator in correlation.
+    """
+
+    return K.sum(
+        target_tensor - K.mean(target_tensor)
+    )
+
+
+def correlation_numerator_part2(target_tensor, prediction_tensor):
+    """Computes part 2 of numerator in correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: numerator_part2: Part 2 of numerator in correlation.
+    """
+
+    return K.sum(
+        prediction_tensor - K.mean(prediction_tensor)
+    )
+
+
+def correlation_numerator(target_tensor, prediction_tensor):
+    """Computes numerator in correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: numerator: Numerator in correlation.
+    """
+
+    return K.sum(
+        (target_tensor - K.mean(target_tensor)) *
+        (prediction_tensor - K.mean(prediction_tensor))
+    )
+
+
+def correlation_denominator_part1(target_tensor, prediction_tensor):
+    """Computes part 1 of denominator in correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: denominator_part1: Part 1 of denominator in correlation.
+    """
+
+    return K.sum(
+        (target_tensor - K.mean(target_tensor)) ** 2
+    )
+
+
+def correlation_denominator_part2(target_tensor, prediction_tensor):
+    """Computes part 2 of denominator in correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: denominator_part2: Part 2 of denominator in correlation.
+    """
+
+    return K.sum(
+        (prediction_tensor - K.mean(prediction_tensor)) ** 2
+    )
+
+
+def correlation_denominator(target_tensor, prediction_tensor):
+    """Computes denominator in correlation.
+
+    Assumes deterministic model -- i.e., prediction_tensor should not have an
+    extra axis for ensemble member.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: denominator: Denominator in correlation.
+    """
+
+    sum_squared_target_diffs = K.sum(
+        (target_tensor - K.mean(target_tensor)) ** 2
+    )
+    sum_squared_prediction_diffs = K.sum(
+        (prediction_tensor - K.mean(prediction_tensor)) ** 2
+    )
+
+    return K.sqrt(sum_squared_target_diffs * sum_squared_prediction_diffs)

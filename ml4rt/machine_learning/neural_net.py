@@ -61,7 +61,13 @@ METRIC_FUNCTION_LIST = [
     custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
     custom_metrics.mae_skill_score, custom_metrics.mean_squared_error,
     custom_metrics.mse_skill_score, custom_metrics.correlation,
-    custom_metrics.min_prediction, custom_metrics.max_prediction
+    custom_metrics.min_prediction, custom_metrics.max_prediction,
+    custom_metrics.correlation_numerator_part1,
+    custom_metrics.correlation_numerator_part2,
+    custom_metrics.correlation_numerator,
+    custom_metrics.correlation_denominator_part1,
+    custom_metrics.correlation_denominator_part2,
+    custom_metrics.correlation_denominator
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -72,7 +78,13 @@ METRIC_FUNCTION_DICT = {
     'mse_skill_score': custom_metrics.mse_skill_score,
     'correlation': custom_metrics.correlation,
     'min_prediction': custom_metrics.min_prediction,
-    'max_prediction': custom_metrics.max_prediction
+    'max_prediction': custom_metrics.max_prediction,
+    'correlation_numerator_part1': custom_metrics.correlation_numerator_part1,
+    'correlation_numerator_part2': custom_metrics.correlation_numerator_part2,
+    'correlation_numerator': custom_metrics.correlation_numerator,
+    'correlation_denominator_part1': custom_metrics.correlation_denominator_part1,
+    'correlation_denominator_part2': custom_metrics.correlation_denominator_part2,
+    'correlation_denominator': custom_metrics.correlation_denominator
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
@@ -1252,7 +1264,13 @@ def data_generator(option_dict, for_inference):
                 example_id_strings
             )
         else:
-            yield predictor_matrix_or_dict, target_matrix_or_dict
+            yield (
+                (predictor_matrix, heating_rate_mask_matrix, flux_mask_matrix),
+                (vector_target_matrix.astype('float32'),
+                 scalar_target_matrix.astype('float32'))
+            )
+
+            # yield predictor_matrix_or_dict, target_matrix_or_dict
 
 
 def data_generator_for_peter(option_dict, use_ryan_architecture):
