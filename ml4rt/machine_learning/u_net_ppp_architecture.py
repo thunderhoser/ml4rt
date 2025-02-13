@@ -385,6 +385,7 @@ def create_model(option_dict):
         (use_convnext_v1_blocks or use_convnext_v2_blocks)
         and conv_output_activ_func_name is not None
     )
+    need_output_activ = False
     if need_output_activ:
         # conv_output_layer_object = keras.layers.PReLU(name='last_conv_activ')(
         #     conv_output_layer_object
