@@ -39,6 +39,8 @@ USE_BATCH_NORM_KEY = u_net_arch.USE_BATCH_NORM_KEY
 USE_RESIDUAL_BLOCKS_KEY = u_net_arch.USE_RESIDUAL_BLOCKS_KEY
 USE_CONVNEXT_V1_BLOCKS_KEY = u_net_arch.USE_CONVNEXT_V1_BLOCKS_KEY
 USE_CONVNEXT_V2_BLOCKS_KEY = u_net_arch.USE_CONVNEXT_V2_BLOCKS_KEY
+SIMPLIFY_CONVNEXT_KEY = u_net_arch.SIMPLIFY_CONVNEXT_KEY
+SIMPLIFY_OUTPUT_LAYER_KEY = u_net_arch.SIMPLIFY_OUTPUT_LAYER_KEY
 
 NUM_OUTPUT_WAVELENGTHS_KEY = u_net_arch.NUM_OUTPUT_WAVELENGTHS_KEY
 VECTOR_LOSS_FUNCTION_KEY = u_net_arch.VECTOR_LOSS_FUNCTION_KEY
@@ -122,6 +124,8 @@ def create_model(option_dict):
     use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
     use_convnext_v1_blocks = option_dict[USE_CONVNEXT_V1_BLOCKS_KEY]
     use_convnext_v2_blocks = option_dict[USE_CONVNEXT_V2_BLOCKS_KEY]
+    simplify_convnext_blocks = option_dict[SIMPLIFY_CONVNEXT_KEY]
+    simplify_output_layer = option_dict[SIMPLIFY_OUTPUT_LAYER_KEY]
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
@@ -190,6 +194,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=num_conv_layers_by_level[i],
             filter_size_px=3,
             num_filters=num_channels_by_level[i],
@@ -255,6 +260,7 @@ def create_model(option_dict):
                 do_residual=use_residual_blocks,
                 do_convnext_v1=use_convnext_v1_blocks,
                 do_convnext_v2=use_convnext_v2_blocks,
+                simplify_convnext=simplify_convnext_blocks,
                 num_conv_layers=1,
                 filter_size_px=3,
                 num_filters=num_channels_by_level[0],
@@ -274,6 +280,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=1,
             filter_size_px=3,
             num_filters=num_channels_by_level[0],
@@ -304,6 +311,7 @@ def create_model(option_dict):
                 do_residual=use_residual_blocks,
                 do_convnext_v1=use_convnext_v1_blocks,
                 do_convnext_v2=use_convnext_v2_blocks,
+                simplify_convnext=simplify_convnext_blocks,
                 num_conv_layers=1,
                 filter_size_px=3,
                 num_filters=num_channels_by_level[0],
@@ -332,6 +340,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=num_conv_layers_by_level[i],
             filter_size_px=3,
             num_filters=this_num_channels,
@@ -350,6 +359,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=1,
             filter_size_px=3,
             num_filters=2 * num_output_wavelengths * ensemble_size,
@@ -364,11 +374,15 @@ def create_model(option_dict):
     else:
         conv_output_layer_object = decoder_conv_layer_objects[0]
 
+    this_convnext_v1_flag = use_convnext_v1_blocks and not simplify_output_layer
+    this_convnext_v2_flag = use_convnext_v2_blocks and not simplify_output_layer
+
     conv_output_layer_object = u_net_arch.get_conv_block(
         input_layer_object=conv_output_layer_object,
         do_residual=use_residual_blocks,
-        do_convnext_v1=use_convnext_v1_blocks,
-        do_convnext_v2=use_convnext_v2_blocks,
+        do_convnext_v1=this_convnext_v1_flag,
+        do_convnext_v2=this_convnext_v2_flag,
+        simplify_convnext=simplify_convnext_blocks,
         num_conv_layers=1,
         filter_size_px=1,
         num_filters=num_output_wavelengths * ensemble_size,
@@ -382,7 +396,7 @@ def create_model(option_dict):
     )
 
     need_output_activ = (
-        (use_convnext_v1_blocks or use_convnext_v2_blocks)
+        (this_convnext_v1_flag or this_convnext_v2_flag)
         and conv_output_activ_func_name is not None
     )
     need_output_activ = False
@@ -470,8 +484,9 @@ def create_model(option_dict):
             deep_supervision_layer_objects[i] = u_net_arch.get_conv_block(
                 input_layer_object=deep_supervision_layer_objects[i],
                 do_residual=use_residual_blocks,
-                do_convnext_v1=use_convnext_v1_blocks,
-                do_convnext_v2=use_convnext_v2_blocks,
+                do_convnext_v1=this_convnext_v1_flag,
+                do_convnext_v2=this_convnext_v2_flag,
+                simplify_convnext=simplify_convnext_blocks,
                 num_conv_layers=1,
                 filter_size_px=1,
                 num_filters=num_output_wavelengths,
