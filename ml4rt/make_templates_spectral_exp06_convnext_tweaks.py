@@ -24,7 +24,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
 OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/spectral_experiment05_final_simple_norm/templates'
+    '{0:s}/ml4rt_models/spectral_experiment06_convnext_tweaks/templates'
 ).format(HOME_DIR_NAME)
 
 ENSEMBLE_SIZE = 1
