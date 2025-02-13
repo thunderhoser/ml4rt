@@ -43,6 +43,8 @@ USE_BATCH_NORM_KEY = 'use_batch_normalization'
 USE_RESIDUAL_BLOCKS_KEY = 'use_residual_blocks'
 USE_CONVNEXT_V1_BLOCKS_KEY = 'use_convnext_v1_blocks'
 USE_CONVNEXT_V2_BLOCKS_KEY = 'use_convnext_v2_blocks'
+SIMPLIFY_CONVNEXT_KEY = 'simplify_convnext_blocks'
+SIMPLIFY_OUTPUT_LAYER_KEY = 'simplify_output_layer'
 
 NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
@@ -144,6 +146,12 @@ def check_args(option_dict):
         simple ConvNeXt (version 1) blocks throughout the architecture.
     option_dict['use_convnext_v2_blocks']: Boolean flag.  If True, will use
         ConvNeXt-v2 blocks throughout the architecture.
+    option_dict["simplify_convnext_blocks"]: Boolean flag.  If True, will use
+        simple version of either ConvNeXt-v1 or ConvNeXt-v2 -- without layer
+        normalization or global residual normalization, respectively.
+    option_dict["simplify_output_layer"]: Boolean flag.  If True, the output
+        layer will not come from a ConvNeXt block, even if ConvNeXt is generally
+        used throughout the network.
     option_dict['num_output_wavelengths']: Number of output wavelengths.
     option_dict['vector_loss_function']: Loss function for vector targets.
     option_dict['scalar_loss_function']: Loss function for scalar targets.
@@ -292,10 +300,16 @@ def check_args(option_dict):
         option_dict[USE_CONVNEXT_V1_BLOCKS_KEY] = False
     if USE_CONVNEXT_V2_BLOCKS_KEY not in option_dict:
         option_dict[USE_CONVNEXT_V2_BLOCKS_KEY] = False
+    if SIMPLIFY_CONVNEXT_KEY not in option_dict:
+        option_dict[SIMPLIFY_CONVNEXT_KEY] = False
+    if SIMPLIFY_OUTPUT_LAYER_KEY not in option_dict:
+        option_dict[SIMPLIFY_OUTPUT_LAYER_KEY] = False
 
     error_checking.assert_is_boolean(option_dict[USE_RESIDUAL_BLOCKS_KEY])
     error_checking.assert_is_boolean(option_dict[USE_CONVNEXT_V1_BLOCKS_KEY])
     error_checking.assert_is_boolean(option_dict[USE_CONVNEXT_V2_BLOCKS_KEY])
+    error_checking.assert_is_boolean(option_dict[SIMPLIFY_CONVNEXT_KEY])
+    error_checking.assert_is_boolean(option_dict[SIMPLIFY_OUTPUT_LAYER_KEY])
 
     sum_of_flags = (
         int(option_dict[USE_RESIDUAL_BLOCKS_KEY]) +
@@ -350,7 +364,8 @@ def zero_top_heating_rate(input_layer_object, ensemble_size, output_layer_name):
 
 def get_conv_block(
         input_layer_object, do_residual, do_convnext_v1, do_convnext_v2,
-        num_conv_layers, filter_size_px, num_filters, regularizer_object,
+        simplify_convnext, num_conv_layers,
+        filter_size_px, num_filters, regularizer_object,
         activation_function_name, activation_function_alpha,
         dropout_rates, monte_carlo_dropout_flags, use_batch_norm,
         basic_layer_name):
@@ -367,6 +382,9 @@ def get_conv_block(
         ConvNeXt (version 1) block.
     :param do_convnext_v2: Boolean flag.  If True, this will be a ConvNeXt-v2
         block.
+    :param simplify_convnext: Boolean flag.  If True, will use simple version of
+        either ConvNeXt-v1 or ConvNeXt-v2 -- without layer normalization or
+        global residual normalization, respectively.
     :param num_conv_layers: Number of conv layers in block.
     :param filter_size_px: Filter size (the same for every conv layer).
     :param num_filters: Number of filters -- same for every conv layer.
@@ -429,6 +447,7 @@ def get_conv_block(
                 regularizer_object=regularizer_object,
                 do_activation=True,
                 dropout_rate=dropout_rates[i],
+                use_simple_version=simplify_convnext,
                 basic_layer_name=(
                     basic_layer_name if num_conv_layers == 1
                     else '{0:s}_{1:d}'.format(basic_layer_name, i)
@@ -452,6 +471,7 @@ def get_conv_block(
                 regularizer_object=regularizer_object,
                 do_activation=True,
                 dropout_rate=dropout_rates[i],
+                use_simple_version=simplify_convnext,
                 basic_layer_name=(
                     basic_layer_name if num_conv_layers == 1
                     else '{0:s}_{1:d}'.format(basic_layer_name, i)
@@ -572,6 +592,8 @@ def create_model(option_dict):
     use_residual_blocks = option_dict[USE_RESIDUAL_BLOCKS_KEY]
     use_convnext_v1_blocks = option_dict[USE_CONVNEXT_V1_BLOCKS_KEY]
     use_convnext_v2_blocks = option_dict[USE_CONVNEXT_V2_BLOCKS_KEY]
+    simplify_convnext_blocks = option_dict[SIMPLIFY_CONVNEXT_KEY]
+    simplify_output_layer = option_dict[SIMPLIFY_OUTPUT_LAYER_KEY]
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
@@ -635,6 +657,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=num_conv_layers_by_level[i],
             filter_size_px=3,
             num_filters=num_channels_by_level[i],
@@ -692,6 +715,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=1,
             filter_size_px=3,
             num_filters=num_channels_by_level[i],
@@ -716,6 +740,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=num_conv_layers_by_level[i],
             filter_size_px=3,
             num_filters=num_channels_by_level[i],
@@ -734,6 +759,7 @@ def create_model(option_dict):
             do_residual=use_residual_blocks,
             do_convnext_v1=use_convnext_v1_blocks,
             do_convnext_v2=use_convnext_v2_blocks,
+            simplify_convnext=simplify_convnext_blocks,
             num_conv_layers=1,
             filter_size_px=3,
             num_filters=2 * num_output_wavelengths * ensemble_size,
@@ -746,11 +772,15 @@ def create_model(option_dict):
             basic_layer_name='penultimate_conv'
         )
 
+    this_convnext_v1_flag = use_convnext_v1_blocks and not simplify_output_layer
+    this_convnext_v2_flag = use_convnext_v2_blocks and not simplify_output_layer
+
     conv_output_layer_object = get_conv_block(
         input_layer_object=skip_layer_by_level[0],
         do_residual=use_residual_blocks,
-        do_convnext_v1=use_convnext_v1_blocks,
-        do_convnext_v2=use_convnext_v2_blocks,
+        do_convnext_v1=this_convnext_v1_flag,
+        do_convnext_v2=this_convnext_v2_flag,
+        simplify_convnext=simplify_convnext_blocks,
         num_conv_layers=1,
         filter_size_px=1,
         num_filters=num_output_wavelengths * ensemble_size,
@@ -764,7 +794,7 @@ def create_model(option_dict):
     )
 
     need_output_activ = (
-        (use_convnext_v1_blocks or use_convnext_v2_blocks)
+        (this_convnext_v1_flag or this_convnext_v2_flag)
         and conv_output_activ_func_name is not None
     )
     need_output_activ = False

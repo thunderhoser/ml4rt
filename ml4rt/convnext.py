@@ -12,7 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import architecture_utils
 
-EPSILON_FOR_LAYER_NORM = 1e-4
+EPSILON_FOR_LAYER_NORM = 1e-6
 EXPANSION_FACTOR_FOR_CONVNEXT = 4
 INIT_VALUE_FOR_LAYER_SCALE = 1e-6
 
@@ -143,7 +143,8 @@ class StochasticDepth(keras.layers.Layer):
 
 def get_convnext_v1_block(
         input_layer_object, num_conv_layers, filter_size_px, num_filters,
-        regularizer_object, do_activation, dropout_rate, basic_layer_name):
+        regularizer_object, do_activation, dropout_rate, use_simple_version,
+        basic_layer_name):
     """Creates basic ConvNeXt block (version 1).
 
     :param input_layer_object: Input layer to the ConvNeXt block.
@@ -156,6 +157,8 @@ def get_convnext_v1_block(
     :param dropout_rate: Dropout rate for the whole conv block.  If
         dropout_rate <= 0, there will be no dropout.  If dropout_rate > 0, will
         use stochastic dropout or "stochastic depth".
+    :param use_simple_version: Boolean flag.  If True, will use the simple
+        version of ConvNeXt, without layer normalization.
     :param basic_layer_name: Basic layer name.  Each layer name will be made
         unique by adding a suffix.
     :return: output_layer_object: Output layer from the ConvNeXt block.
@@ -185,12 +188,13 @@ def get_convnext_v1_block(
             layer_name=this_name
         )(this_input_layer_object)
 
-        this_name = '{0:s}_lyrnorm{1:d}'.format(basic_layer_name, i)
-        current_layer_object = keras.layers.LayerNormalization(
-            epsilon=EPSILON_FOR_LAYER_NORM, name=this_name
-        )(
-            current_layer_object
-        )
+        if not use_simple_version:
+            this_name = '{0:s}_lyrnorm{1:d}'.format(basic_layer_name, i)
+            current_layer_object = keras.layers.LayerNormalization(
+                epsilon=EPSILON_FOR_LAYER_NORM, name=this_name
+            )(
+                current_layer_object
+            )
 
         this_name = '{0:s}_dense{1:d}a'.format(basic_layer_name, i)
         dense_layer_object = architecture_utils.get_dense_layer(
@@ -250,7 +254,8 @@ def get_convnext_v1_block(
 
 def get_convnext_v2_block(
         input_layer_object, num_conv_layers, filter_size_px, num_filters,
-        regularizer_object, do_activation, dropout_rate, basic_layer_name):
+        regularizer_object, do_activation, dropout_rate, use_simple_version,
+        basic_layer_name):
     """Creates ConvNeXt-v2 block (version 2).
 
     :param input_layer_object: See documentation for `get_convnext_v1_block`.
@@ -260,6 +265,9 @@ def get_convnext_v2_block(
     :param regularizer_object: Same.
     :param do_activation: Same.
     :param dropout_rate: Same.
+    :param use_simple_version: Boolean flag.  If True, will use the simple
+        version of ConvNeXt, without layer normalization or global residual
+        normalization.
     :param basic_layer_name: Same.
     :return: output_layer_object: Same.
     """
@@ -288,12 +296,13 @@ def get_convnext_v2_block(
             layer_name=this_name
         )(this_input_layer_object)
 
-        this_name = '{0:s}_lyrnorm{1:d}'.format(basic_layer_name, i)
-        current_layer_object = keras.layers.LayerNormalization(
-            epsilon=EPSILON_FOR_LAYER_NORM, name=this_name
-        )(
-            current_layer_object
-        )
+        if not use_simple_version:
+            this_name = '{0:s}_lyrnorm{1:d}'.format(basic_layer_name, i)
+            current_layer_object = keras.layers.LayerNormalization(
+                epsilon=EPSILON_FOR_LAYER_NORM, name=this_name
+            )(
+                current_layer_object
+            )
 
         this_name = '{0:s}_dense{1:d}a'.format(basic_layer_name, i)
         current_layer_object = architecture_utils.get_dense_layer(
@@ -308,12 +317,13 @@ def get_convnext_v2_block(
                 'gelu', name=this_name
             )(current_layer_object)
 
-        this_name = '{0:s}_grn{1:d}'.format(basic_layer_name, i)
-        current_layer_object = GRN(
-            init_values=INIT_VALUE_FOR_LAYER_SCALE,
-            projection_dim=EXPANSION_FACTOR_FOR_CONVNEXT * num_filters,
-            name=this_name
-        )(current_layer_object)
+        if not use_simple_version:
+            this_name = '{0:s}_grn{1:d}'.format(basic_layer_name, i)
+            current_layer_object = GRN(
+                init_values=INIT_VALUE_FOR_LAYER_SCALE,
+                projection_dim=EXPANSION_FACTOR_FOR_CONVNEXT * num_filters,
+                name=this_name
+            )(current_layer_object)
 
         this_name = '{0:s}_dense{1:d}b'.format(basic_layer_name, i)
         current_layer_object = architecture_utils.get_dense_layer(
