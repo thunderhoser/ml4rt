@@ -386,9 +386,12 @@ def create_model(option_dict):
         and conv_output_activ_func_name is not None
     )
     if need_output_activ:
-        conv_output_layer_object = keras.layers.PReLU(name='last_conv_activ')(
-            conv_output_layer_object
-        )
+        # conv_output_layer_object = keras.layers.PReLU(name='last_conv_activ')(
+        #     conv_output_layer_object
+        # )
+        conv_output_layer_object = keras.layers.Activation(
+            'softplus', name='last_conv_activ'
+        )(conv_output_layer_object)
 
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
@@ -481,8 +484,12 @@ def create_model(option_dict):
             )
 
             if need_output_activ:
-                deep_supervision_layer_objects[i] = keras.layers.PReLU(
-                    name='last_conv_activ'
+                # deep_supervision_layer_objects[i] = keras.layers.PReLU(
+                #     name='last_conv_activ'
+                # )(deep_supervision_layer_objects[i])
+
+                deep_supervision_layer_objects[i] = keras.layers.Activation(
+                    'softplus', name='last_conv_activ'
                 )(deep_supervision_layer_objects[i])
 
             # TODO(thunderhoser): If I ever use deep supervision again, will
