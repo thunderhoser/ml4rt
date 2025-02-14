@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="apply_neural_nets"
-#SBATCH --partition="fge"
-#SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpuwf"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=02:00:00
-#SBATCH --array=0-15
+#SBATCH --array=4-7
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -52,7 +52,7 @@ use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 use_convnext_v1_flag=${USE_CONVNEXT_V1_FLAGS[$SLURM_ARRAY_TASK_ID]}
 use_convnext_v2_flag=${USE_CONVNEXT_V2_FLAGS[$SLURM_ARRAY_TASK_ID]}
 
-model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_normalization-method=${normalization_method_string}_use-residual=${use_residual_flag}_use-convnext-v1=${use_convnext_v1_flag}_use-convnext-v2=${use_convnext_v2_flag}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_normalization-method=${normalization_method_string}"
 model_file_name="${model_dir_name}/model.keras"
 prediction_file_name="${model_dir_name}/validation/predictions.nc"
 

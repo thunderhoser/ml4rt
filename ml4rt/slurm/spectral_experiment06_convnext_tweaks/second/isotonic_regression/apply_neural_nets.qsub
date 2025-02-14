@@ -53,7 +53,7 @@ output_activ_function=${OUTPUT_ACTIV_FUNCTIONS[$SLURM_ARRAY_TASK_ID]}
 optimizer_function_description=${OPTIMIZER_FUNCTION_DESCRIPTIONS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/use-convnext-v1=${use_convnext_v1_flag}_use-convnext-v2=${use_convnext_v2_flag}_simplify-convnext=${simplify_convnext_flag}_simplify-output=${simplify_output_flag}_output-activation=${output_activ_function}_optimizer=${optimizer_function_description}"
-model_file_name="${model_dir_name}/model.weights.h5"
+model_file_name="${model_dir_name}/model.keras"
 prediction_file_name="${model_dir_name}/isotonic_regression/orig_predictions.nc"
 
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \

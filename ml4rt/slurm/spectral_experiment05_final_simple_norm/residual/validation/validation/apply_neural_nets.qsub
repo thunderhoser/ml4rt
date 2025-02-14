@@ -53,7 +53,7 @@ use_convnext_v1_flag=${USE_CONVNEXT_V1_FLAGS[$SLURM_ARRAY_TASK_ID]}
 use_convnext_v2_flag=${USE_CONVNEXT_V2_FLAGS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/min-dual-weight=${min_dual_weight}_broadband-weight=${broadband_weight}_normalization-method=${normalization_method_string}_use-residual=${use_residual_flag}_use-convnext-v1=${use_convnext_v1_flag}_use-convnext-v2=${use_convnext_v2_flag}"
-model_file_name="${model_dir_name}/model.weights.h5"
+model_file_name="${model_dir_name}/model.keras"
 prediction_file_name="${model_dir_name}/validation/predictions.nc"
 
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
