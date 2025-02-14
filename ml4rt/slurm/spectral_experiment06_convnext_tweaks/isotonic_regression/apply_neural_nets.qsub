@@ -1,0 +1,64 @@
+#!/bin/bash
+
+#SBATCH --job-name="apply_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --array=0-35
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/normalized_predictors/isotonic_regression"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment06_convnext_tweaks"
+
+FIRST_TRAINING_TIME_STRING="2016-01-01-000000"
+LAST_TRAINING_TIME_STRING="2023-12-31-235959"
+
+USE_CONVNEXT_V1_FLAGS=("1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0")
+USE_CONVNEXT_V2_FLAGS=("0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1" "0" "0" "0" "1" "1" "1")
+SIMPLIFY_CONVNEXT_FLAGS=("0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1")
+SIMPLIFY_OUTPUT_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1")
+OUTPUT_ACTIV_FUNCTIONS=("None" "None" "None" "None" "None" "None" "None" "None" "None" "None" "None" "None" "relu" "relu" "relu" "relu" "relu" "relu" "relu" "relu" "relu" "relu" "relu" "relu" "None" "None" "None" "None" "None" "None" "None" "None" "None" "None" "None" "None")
+OPTIMIZER_FUNCTION_DESCRIPTIONS=("basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay" "basic" "clipnorm" "smaller-weight-decay")
+
+use_convnext_v1_flag=${USE_CONVNEXT_V1_FLAGS[$SLURM_ARRAY_TASK_ID]}
+use_convnext_v2_flag=${USE_CONVNEXT_V2_FLAGS[$SLURM_ARRAY_TASK_ID]}
+simplify_convnext_flag=${SIMPLIFY_CONVNEXT_FLAGS[$SLURM_ARRAY_TASK_ID]}
+simplify_output_flag=${SIMPLIFY_OUTPUT_FLAGS[$SLURM_ARRAY_TASK_ID]}
+output_activ_function=${OUTPUT_ACTIV_FUNCTIONS[$SLURM_ARRAY_TASK_ID]}
+optimizer_function_description=${OPTIMIZER_FUNCTION_DESCRIPTIONS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/use-convnext-v1=${use_convnext_v1_flag}_use-convnext-v2=${use_convnext_v2_flag}_simplify-convnext=${simplify_convnext_flag}_simplify-output=${simplify_output_flag}_output-activation=${output_activ_function}_optimizer=${optimizer_function_description}"
+model_file_name="${model_dir_name}/model.weights.h5"
+prediction_file_name="${model_dir_name}/isotonic_regression/orig_predictions.nc"
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_file_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--first_time_string="${FIRST_TRAINING_TIME_STRING}" \
+--last_time_string="${LAST_TRAINING_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
