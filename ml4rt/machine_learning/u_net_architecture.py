@@ -2,8 +2,11 @@
 
 import numpy
 import keras
+import tensorflow
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
+from ml4rt.utils import example_utils
+from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import convnext
 
@@ -37,6 +40,10 @@ USE_CONVNEXT_V1_BLOCKS_KEY = 'use_convnext_v1_blocks'
 USE_CONVNEXT_V2_BLOCKS_KEY = 'use_convnext_v2_blocks'
 SIMPLIFY_CONVNEXT_KEY = 'simplify_convnext_blocks'
 SIMPLIFY_OUTPUT_LAYER_KEY = 'simplify_output_layer'
+
+# TODO(thunderhoser): Still need to error-check these input args.
+MEAN_VALUE_MATRIX_KEY = 'mean_value_matrix'
+STDEV_MATRIX_KEY = 'stdev_matrix'
 
 NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
@@ -73,6 +80,70 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     L2_WEIGHT_KEY: 0.001,
     USE_BATCH_NORM_KEY: True
 }
+
+
+class ZScoreNormalization(keras.layers.Layer):
+    """This layer performs z-score normalization, using pre-computed params."""
+
+    def __init__(self, mean_value_matrix, stdev_matrix, **kwargs):
+        """Constructor.
+
+        H = number of heights
+        P = number of predictor variables
+
+        :param mean_value_matrix: H-by-P numpy array of mean values.
+        :param stdev_matrix: H-by-P numpy array of standard deviations.
+        :param kwargs: Keyword arguments.
+        """
+
+        super(ZScoreNormalization, self).__init__(**kwargs)
+
+        self.mean_value_matrix = tensorflow.Variable(
+            tensorflow.convert_to_tensor(
+                mean_value_matrix, dtype=tensorflow.float32
+            ),
+            trainable=False
+        )
+
+        self.stdev_matrix = tensorflow.Variable(
+            tensorflow.convert_to_tensor(
+                stdev_matrix, dtype=tensorflow.float32
+            ),
+            trainable=False
+        )
+
+    def call(self, inputs):
+        """Main method.  This is where the layer does its thing.
+
+        :param inputs: Input tensor, in physical units.
+        :return: output_tensor: Output tensor, in z-score units.
+        """
+
+        inputs = (
+            (inputs - self.mean_value_matrix[None, :, :]) /
+            self.stdev_matrix[None, :, :]
+        )
+
+        inputs = tensorflow.where(
+            self.stdev_matrix[None, :, :] < 1e-12,
+            0.,
+            inputs
+        )
+
+        return inputs
+
+    def get_config(self):
+        """Returns layer configuration.
+
+        :return: config: Dictionary with configuration stuff.
+        """
+
+        config = super().get_config()
+        config.update({
+            'mean_value_matrix': self.mean_value_matrix.numpy().tolist(),
+            'stdev_matrix': self.stdev_matrix.numpy().tolist()
+        })
+        return config
 
 
 def check_args(option_dict):
@@ -321,6 +392,88 @@ def check_args(option_dict):
         option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.AdamW()
 
     return option_dict
+
+
+def get_normalization_params(vector_predictor_names, scalar_predictor_names,
+                             heights_m_agl, normalization_file_name):
+    """Returns normalization params.
+
+    Normalization params returned by this method will be used as inputs to the
+    custom ZScoreNormalization layer.
+
+    V = number of vector predictors
+    S = number of scalar predictors
+    P = V + S = number of total predictors
+    H = number of heights
+
+    :param vector_predictor_names: length-V list of predictor names.
+    :param scalar_predictor_names: length-S list of predictor names.
+    :param heights_m_agl: length-H numpy array of heights (metres above ground
+        level).
+    :param normalization_file_name: Path to normalization file (will be read by
+        `normalization.read_file`).
+    :return: mean_value_matrix: H-by-P numpy array of mean values.
+    :return: stdev_matrix: H-by-P numpy array of standard deviations.
+    """
+
+    error_checking.assert_is_string_list(vector_predictor_names)
+    assert all([
+        f in example_utils.ALL_VECTOR_PREDICTOR_NAMES
+        for f in vector_predictor_names
+    ])
+
+    error_checking.assert_is_string_list(scalar_predictor_names)
+    assert all([
+        f in example_utils.ALL_SCALAR_PREDICTOR_NAMES
+        for f in scalar_predictor_names
+    ])
+
+    print('Reading normalization params from: "{0:s}"...'.format(
+        normalization_file_name
+    ))
+    norm_param_table_xarray = normalization.read_params(normalization_file_name)
+    npt = norm_param_table_xarray
+
+    predictor_names = vector_predictor_names + scalar_predictor_names
+    num_predictors = len(predictor_names)
+    num_heights = len(heights_m_agl)
+    mean_value_matrix = numpy.full((num_heights, num_predictors), numpy.nan)
+    stdev_matrix = numpy.full((num_heights, num_predictors), numpy.nan)
+
+    for h in range(num_heights):
+        for p in range(num_predictors):
+            if predictor_names[p] in vector_predictor_names:
+                h_new = example_utils.match_heights(
+                    heights_m_agl=npt.coords[normalization.HEIGHT_DIM].values,
+                    desired_height_m_agl=heights_m_agl[h]
+                )
+                p_new = numpy.where(
+                    npt.coords[normalization.VECTOR_PREDICTOR_DIM].values ==
+                    predictor_names[p]
+                )[0][0]
+
+                mean_value_matrix[h, p] = npt[
+                    normalization.VECTOR_PREDICTOR_MEAN_KEY
+                ].values[h_new, p_new]
+
+                stdev_matrix[h, p] = npt[
+                    normalization.VECTOR_PREDICTOR_STDEV_KEY
+                ].values[h_new, p_new]
+            else:
+                p_new = numpy.where(
+                    npt.coords[normalization.SCALAR_PREDICTOR_DIM].values ==
+                    predictor_names[p]
+                )[0][0]
+
+                mean_value_matrix[h, p] = npt[
+                    normalization.SCALAR_PREDICTOR_MEAN_KEY
+                ].values[p_new]
+
+                stdev_matrix[h, p] = npt[
+                    normalization.SCALAR_PREDICTOR_STDEV_KEY
+                ].values[p_new]
+
+    return mean_value_matrix, stdev_matrix
 
 
 def zero_top_heating_rate(input_layer_object, ensemble_size, output_layer_name):
