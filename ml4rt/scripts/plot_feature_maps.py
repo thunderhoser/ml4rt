@@ -176,7 +176,8 @@ def _run(model_file_name, layer_names, example_file_name, num_examples,
         ))
 
         feature_matrix_by_layer[k] = neural_net.get_feature_maps(
-            model_object=model_object, predictor_matrix=predictor_matrix,
+            model_object=model_object,
+            predictor_matrix_or_list=predictor_matrix,
             num_examples_per_batch=predictor_matrix.shape[0],
             feature_layer_name=layer_names[k], verbose=False
         )

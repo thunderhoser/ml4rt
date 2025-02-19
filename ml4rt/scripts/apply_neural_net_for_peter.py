@@ -212,10 +212,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False,
         neural_net.NORMALIZE_VECTOR_TARGETS_KEY: False,
         neural_net.NORMALIZATION_METHOD_KEY: None,
-        neural_net.NUM_DEEP_SUPER_LAYERS_KEY: 0,
-        neural_net.NORMALIZATION_FILE_FOR_MASK_KEY: None,
-        neural_net.MIN_HEATING_RATE_FOR_MASK_KEY: None,
-        neural_net.MIN_FLUX_FOR_MASK_KEY: None
+        neural_net.NUM_DEEP_SUPER_LAYERS_KEY: 0
     }
 
     md = metadata_dict

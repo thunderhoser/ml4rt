@@ -29,10 +29,6 @@ NORMALIZE_SCALAR_TARGETS_ARG_NAME = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_ARG_NAME = 'normalize_vector_targets'
 NORMALIZATION_METHOD_ARG_NAME = 'normalization_method_string'
 
-NORMALIZATION_FILE_FOR_MASK_ARG_NAME = 'normalization_file_name_for_mask'
-MIN_HEATING_RATE_FOR_MASK_ARG_NAME = 'min_heating_rate_for_mask_k_day01'
-MIN_FLUX_FOR_MASK_ARG_NAME = 'min_flux_for_mask_w_m02'
-
 BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 NUM_EPOCHS_ARG_NAME = 'num_epochs'
 NUM_TRAINING_BATCHES_ARG_NAME = 'num_training_batches_per_epoch'
@@ -113,24 +109,6 @@ NORMALIZATION_METHOD_HELP_STRING = (
     '\n{0:s}'
 ).format(
     str(normalization.VALID_NORM_METHOD_STRINGS)
-)
-
-NORMALIZATION_FILE_FOR_MASK_HELP_STRING = (
-    'Climo-max heating rates and fluxes will be found in this file, to be read '
-    'by `example_io.read_file`.  If you do not want to apply masking, leave '
-    'this alone.'
-)
-MIN_HEATING_RATE_FOR_MASK_HELP_STRING = (
-    'Minimum heating rate for masking.  Every height/wavelength pair with a '
-    'climo-max heating rate below this threshold will be masked out, i.e., the '
-    'NN will be forced to predict zero for this height/wavelength pair.  If '
-    'you do not want to apply masking, leave this alone.'
-)
-MIN_FLUX_FOR_MASK_HELP_STRING = (
-    'Minimum flux for masking.  Every variable/wavelength pair with a climo-'
-    'max flux below this threshold will be masked out, i.e., the NN will be '
-    'forced to predict zero for this variable/wavelength pair.  If you do not '
-    'want to apply masking, leave this alone.'
 )
 
 BATCH_SIZE_HELP_STRING = (
@@ -240,18 +218,6 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + NORMALIZATION_METHOD_ARG_NAME, type=str, required=True,
         help=NORMALIZATION_METHOD_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + NORMALIZATION_FILE_FOR_MASK_ARG_NAME, type=str, required=False,
-        default='', help=NORMALIZATION_FILE_FOR_MASK_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + MIN_HEATING_RATE_FOR_MASK_ARG_NAME, type=float, required=False,
-        default=-1., help=MIN_HEATING_RATE_FOR_MASK_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + MIN_FLUX_FOR_MASK_ARG_NAME, type=float, required=False,
-        default=-1., help=MIN_FLUX_FOR_MASK_HELP_STRING
     )
     parser_object.add_argument(
         '--' + BATCH_SIZE_ARG_NAME, type=int, required=False, default=1024,
