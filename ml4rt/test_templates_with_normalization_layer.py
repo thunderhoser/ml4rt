@@ -54,6 +54,17 @@ SCALAR_PREDICTOR_NAMES = [
 ]
 HEIGHTS_M_AGL = neural_net.HEIGHTS_FOR_PETER_M_AGL
 
+VECTOR_TARGET_NAME = 'shortwave_heating_rate_k_day01'
+SCALAR_TARGET_NAMES = [
+    'shortwave_surface_down_flux_w_m02', 'shortwave_toa_up_flux_w_m02'
+]
+WAVELENGTHS_METRES = numpy.array([
+    0.000005847953216, 0.000003418803419, 0.000002758620690, 0.000002312138728,
+    0.000002040816327, 0.000001769911504, 0.000001444043321, 0.000001269841270,
+    0.000000956937799, 0.000000693240901, 0.000000517464424, 0.000000387221684,
+    0.000000298507463, 0.000000227272727
+])
+
 ALL_CHANNEL_COUNTS = (
     NUM_FIRST_LAYER_CHANNELS *
     numpy.logspace(0, MODEL_DEPTH, num=MODEL_DEPTH + 1, base=2.)
@@ -188,6 +199,19 @@ def _run():
                 )
             )
 
+            heating_rate_mask_matrix, flux_mask_matrix = neural_net.create_mask(
+                normalization_file_name=NORMALIZATION_FILE_NAME,
+                min_heating_rate_k_day01=0.001,
+                min_flux_w_m02=0.01,
+                heights_m_agl=HEIGHTS_M_AGL,
+                target_wavelengths_metres=WAVELENGTHS_METRES,
+                vector_target_name=VECTOR_TARGET_NAME,
+                scalar_target_names=SCALAR_TARGET_NAMES,
+                num_examples=1
+            )
+            heating_rate_mask_matrix = heating_rate_mask_matrix[0, ...]
+            flux_mask_matrix = flux_mask_matrix[0, ...]
+
             this_option_dict.update({
                 u_net_pp_arch.VECTOR_LOSS_FUNCTION_KEY:
                     this_vector_loss_function,
@@ -200,7 +224,9 @@ def _run():
                 u_net_pp_arch.USE_CONVNEXT_V2_BLOCKS_KEY:
                     USE_CONVNEXT_V2_FLAGS_AXIS2[j],
                 u_net_pp_arch.MEAN_VALUE_MATRIX_KEY: mean_value_matrix,
-                u_net_pp_arch.STDEV_MATRIX_KEY: stdev_matrix
+                u_net_pp_arch.STDEV_MATRIX_KEY: stdev_matrix,
+                u_net_pp_arch.HEATING_RATE_MASK_KEY: heating_rate_mask_matrix,
+                u_net_pp_arch.FLUX_MASK_KEY: flux_mask_matrix
             })
 
             this_model_object = u_net_pp_arch.create_model(this_option_dict)
