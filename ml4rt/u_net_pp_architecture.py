@@ -95,7 +95,11 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     L1_WEIGHT_KEY: 0.,
     L2_WEIGHT_KEY: 0.001,
     USE_BATCH_NORM_KEY: True,
-    USE_DEEP_SUPERVISION_KEY: False
+    USE_DEEP_SUPERVISION_KEY: False,
+    MEAN_VALUE_MATRIX_KEY: None,
+    STDEV_MATRIX_KEY: None,
+    HEATING_RATE_MASK_KEY: None,
+    FLUX_MASK_KEY: None
 }
 
 KL_SCALING_FACTOR_KEY = 'kl_divergence_scaling_factor'
@@ -179,6 +183,7 @@ def create_model(option_dict):
     use_convnext_v2_blocks = option_dict[USE_CONVNEXT_V2_BLOCKS_KEY]
     simplify_convnext_blocks = option_dict[SIMPLIFY_CONVNEXT_KEY]
     simplify_output_layer = option_dict[SIMPLIFY_OUTPUT_LAYER_KEY]
+
     mean_value_matrix = option_dict[MEAN_VALUE_MATRIX_KEY]
     stdev_matrix = option_dict[STDEV_MATRIX_KEY]
     heating_rate_mask_matrix = option_dict[HEATING_RATE_MASK_KEY]
@@ -202,15 +207,10 @@ def create_model(option_dict):
 
     has_dense_layers = dense_layer_neuron_nums is not None
     if has_dense_layers:
-        num_dense_output_vars = (
+        num_dense_output_vars = int(numpy.round(
             float(dense_layer_neuron_nums[-1]) /
             (ensemble_size * num_output_wavelengths)
-        )
-        assert numpy.isclose(
-            num_dense_output_vars, numpy.round(num_dense_output_vars),
-            atol=1e-6
-        )
-        num_dense_output_vars = int(numpy.round(num_dense_output_vars))
+        ))
     else:
         num_dense_output_vars = 0
 

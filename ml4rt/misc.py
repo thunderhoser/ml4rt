@@ -140,12 +140,14 @@ def get_examples_for_inference(
             example_dir_name
         )
 
-        predictor_dict, target_dict = neural_net.create_data_specific_examples(
-            option_dict=generator_option_dict,
-            example_id_strings=example_id_strings
+        predictor_matrix, target_dict = (
+            neural_net.create_data_specific_examples(
+                option_dict=generator_option_dict,
+                example_id_strings=example_id_strings
+            )
         )
 
-        return predictor_dict, target_dict, example_id_strings
+        return predictor_matrix, target_dict, example_id_strings
 
     error_checking.assert_is_string(example_dir_name)
     error_checking.assert_is_integer(num_examples)
@@ -164,13 +166,13 @@ def get_examples_for_inference(
     generator_option_dict[neural_net.LAST_TIME_KEY] = last_time_unix_sec
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
-    predictor_dict, target_dict, example_id_strings = neural_net.create_data(
+    predictor_matrix, target_dict, example_id_strings = neural_net.create_data(
         generator_option_dict
     )
 
     num_examples_total = len(example_id_strings)
     if num_examples >= num_examples_total:
-        return predictor_dict, target_dict, example_id_strings
+        return predictor_matrix, target_dict, example_id_strings
 
     good_indices = numpy.linspace(
         0, num_examples_total - 1, num=num_examples_total, dtype=int
@@ -179,13 +181,12 @@ def get_examples_for_inference(
         good_indices, size=num_examples, replace=False
     )
 
-    for this_key in predictor_dict:
-        predictor_dict[this_key] = predictor_dict[this_key][good_indices, ...]
+    predictor_matrix = predictor_matrix[good_indices, ...]
     for this_key in target_dict:
         target_dict[this_key] = target_dict[this_key][good_indices, ...]
     example_id_strings = [example_id_strings[i] for i in good_indices]
 
-    return predictor_dict, target_dict, example_id_strings
+    return predictor_matrix, target_dict, example_id_strings
 
 
 def _handle_nonunique_example_ids(example_id_strings, first_dummy_temp_kelvins):

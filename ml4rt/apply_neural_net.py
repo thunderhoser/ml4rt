@@ -296,7 +296,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     generator_option_dict[neural_net.NUM_DEEP_SUPER_LAYERS_KEY] = 0
 
     # Do the things.
-    predictor_dict, target_dict, example_id_strings = neural_net.create_data(
+    predictor_matrix, target_dict, example_id_strings = neural_net.create_data(
         generator_option_dict
     )
     print(SEPARATOR_STRING)
@@ -306,25 +306,8 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
     example_id_strings = example_id_strings.tolist()
 
-    for this_key in predictor_dict:
-        predictor_dict[this_key] = predictor_dict[this_key][unique_indices, ...]
     for this_key in target_dict:
         target_dict[this_key] = target_dict[this_key][unique_indices, ...]
-
-    these_keys = [
-        neural_net.MAIN_PREDICTORS_KEY,
-        neural_net.HEATING_RATE_MASK_KEY,
-        neural_net.FLUX_MASK_KEY
-    ]
-    predictor_matrices = [
-        predictor_dict[k] for k in these_keys if k in predictor_dict
-    ]
-    if len(predictor_matrices) == 1:
-        predictor_matrix_or_list = predictor_matrices[0]
-    else:
-        predictor_matrix_or_list = predictor_matrices
-
-    del predictor_dict
 
     if num_dropout_iterations > 1:
         num_iterations = num_dropout_iterations
@@ -344,7 +327,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
             this_vector_prediction_matrix, this_scalar_prediction_matrix = (
                 _apply_model_once(
                     model_object=model_object,
-                    predictor_matrix_or_list=predictor_matrix_or_list,
+                    predictor_matrix_or_list=predictor_matrix,
                     use_dropout=num_dropout_iterations > 1
                 )
             )
@@ -395,7 +378,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     else:
         vector_prediction_matrix, scalar_prediction_matrix = _apply_model_once(
             model_object=model_object,
-            predictor_matrix_or_list=predictor_matrix_or_list,
+            predictor_matrix_or_list=predictor_matrix,
             use_dropout=False
         )
 

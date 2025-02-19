@@ -31,9 +31,7 @@ def _run(training_dir_name, validation_dir_name,
          first_validn_time_string, last_validn_time_string,
          normalization_file_name, normalize_predictors,
          normalize_scalar_targets, normalize_vector_targets,
-         normalization_method_string, normalization_file_name_for_mask,
-         min_heating_rate_for_mask_k_day01, min_flux_for_mask_w_m02,
-         num_examples_per_batch, num_epochs,
+         normalization_method_string, num_examples_per_batch, num_epochs,
          num_training_batches_per_epoch, num_validn_batches_per_epoch,
          plateau_lr_multiplier, early_stopping_patience_epochs):
     """Trains neural net
@@ -58,9 +56,6 @@ def _run(training_dir_name, validation_dir_name,
     :param normalize_scalar_targets: Same.
     :param normalize_vector_targets: Same.
     :param normalization_method_string: Same.
-    :param normalization_file_name_for_mask: Same.
-    :param min_heating_rate_for_mask_k_day01: Same.
-    :param min_flux_for_mask_w_m02: Same.
     :param num_examples_per_batch: Same.
     :param num_epochs: Same.
     :param num_training_batches_per_epoch: Same.
@@ -73,15 +68,6 @@ def _run(training_dir_name, validation_dir_name,
         normalization_file_name = None
     if normalization_method_string in NONE_STRINGS:
         normalization_method_string = None
-
-    if (
-            normalization_file_name_for_mask in NONE_STRINGS
-            or min_heating_rate_for_mask_k_day01 <= 0
-            or min_flux_for_mask_w_m02 <= 0
-    ):
-        normalization_file_name_for_mask = None
-        min_heating_rate_for_mask_k_day01 = None
-        min_flux_for_mask_w_m02 = None
 
     for n in predictor_names:
         example_utils.check_field_name(n)
@@ -134,12 +120,7 @@ def _run(training_dir_name, validation_dir_name,
         neural_net.NORMALIZATION_METHOD_KEY: normalization_method_string,
         neural_net.FIRST_TIME_KEY: first_training_time_unix_sec,
         neural_net.LAST_TIME_KEY: last_training_time_unix_sec,
-        neural_net.NUM_DEEP_SUPER_LAYERS_KEY: num_deep_supervision_layers,
-        neural_net.NORMALIZATION_FILE_FOR_MASK_KEY:
-            normalization_file_name_for_mask,
-        neural_net.MIN_HEATING_RATE_FOR_MASK_KEY:
-            min_heating_rate_for_mask_k_day01,
-        neural_net.MIN_FLUX_FOR_MASK_KEY: min_flux_for_mask_w_m02
+        neural_net.NUM_DEEP_SUPER_LAYERS_KEY: num_deep_supervision_layers
     }
 
     validation_option_dict = {
@@ -277,17 +258,8 @@ if __name__ == '__main__':
         normalize_vector_targets=bool(getattr(
             INPUT_ARG_OBJECT, training_args.NORMALIZE_VECTOR_TARGETS_ARG_NAME
         )),
-        normalization_file_name_for_mask=getattr(
-            INPUT_ARG_OBJECT, training_args.NORMALIZATION_FILE_FOR_MASK_ARG_NAME
-        ),
         normalization_method_string=getattr(
             INPUT_ARG_OBJECT, training_args.NORMALIZATION_METHOD_ARG_NAME
-        ),
-        min_heating_rate_for_mask_k_day01=getattr(
-            INPUT_ARG_OBJECT, training_args.MIN_HEATING_RATE_FOR_MASK_ARG_NAME
-        ),
-        min_flux_for_mask_w_m02=getattr(
-            INPUT_ARG_OBJECT, training_args.MIN_FLUX_FOR_MASK_ARG_NAME
         ),
         num_examples_per_batch=getattr(
             INPUT_ARG_OBJECT, training_args.BATCH_SIZE_ARG_NAME

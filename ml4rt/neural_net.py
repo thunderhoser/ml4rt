@@ -51,9 +51,6 @@ NORMALIZE_SCALAR_TARGETS_KEY = 'normalize_scalar_targets'
 NORMALIZE_VECTOR_TARGETS_KEY = 'normalize_vector_targets'
 NORMALIZATION_METHOD_KEY = 'normalization_method_string'
 NUM_DEEP_SUPER_LAYERS_KEY = 'num_deep_supervision_layers'
-NORMALIZATION_FILE_FOR_MASK_KEY = 'normalization_file_name_for_mask'
-MIN_HEATING_RATE_FOR_MASK_KEY = 'min_heating_rate_for_mask_k_day01'
-MIN_FLUX_FOR_MASK_KEY = 'min_flux_for_mask_w_m02'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     SCALAR_PREDICTOR_NAMES_KEY: example_utils.ALL_SCALAR_PREDICTOR_NAMES,
@@ -108,11 +105,6 @@ METADATA_KEYS = [
 ]
 
 MAIN_PREDICTORS_KEY = 'main_predictors'
-HEATING_RATE_MASK_KEY = 'heating_rate_mask_1_for_in'
-FLUX_MASK_KEY = 'flux_mask_1_for_in'
-PREDICTOR_KEYS_IN_ORDER = [
-    MAIN_PREDICTORS_KEY, HEATING_RATE_MASK_KEY, FLUX_MASK_KEY
-]
 
 HEATING_RATE_TARGETS_KEY = 'conv_output'
 FLUX_TARGETS_KEY = 'dense_output'
@@ -215,16 +207,6 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_boolean(option_dict[NORMALIZE_SCALAR_TARGETS_KEY])
     error_checking.assert_is_boolean(option_dict[NORMALIZE_VECTOR_TARGETS_KEY])
 
-    if option_dict[MIN_HEATING_RATE_FOR_MASK_KEY] is not None:
-        error_checking.assert_is_greater(
-            option_dict[MIN_HEATING_RATE_FOR_MASK_KEY], 0.
-        )
-
-    if option_dict[MIN_FLUX_FOR_MASK_KEY] is not None:
-        error_checking.assert_is_greater(
-            option_dict[MIN_FLUX_FOR_MASK_KEY], 0.
-        )
-
     return option_dict
 
 
@@ -232,7 +214,7 @@ def _check_inference_args(predictor_matrix_or_list, num_examples_per_batch,
                           verbose):
     """Error-checks input arguments for inference.
 
-    :param predictor_matrix: See doc for `apply_model`.
+    :param predictor_matrix_or_list: See doc for `apply_model`.
     :param num_examples_per_batch: Batch size.
     :param verbose: Boolean flag.  If True, will print progress messages during
         inference.
@@ -688,18 +670,6 @@ def create_mask(
     norm_param_table_xarray = normalization.read_params(normalization_file_name)
     npt = norm_param_table_xarray
 
-    if normalization.VECTOR_TARGET_DIM not in npt.coords:
-        return _create_mask_old(
-            normalization_file_name=normalization_file_name,
-            min_heating_rate_k_day01=min_heating_rate_k_day01,
-            min_flux_w_m02=min_flux_w_m02,
-            heights_m_agl=heights_m_agl,
-            target_wavelengths_metres=target_wavelengths_metres,
-            vector_target_name=vector_target_name,
-            scalar_target_names=scalar_target_names,
-            num_examples=num_examples
-        )
-
     num_heights = len(heights_m_agl)
     num_wavelengths = len(target_wavelengths_metres)
     heating_rate_mask_1_for_in = numpy.full(
@@ -800,137 +770,6 @@ def create_mask(
     return heating_rate_mask_1_for_in, flux_mask_1_for_in
 
 
-def _create_mask_old(
-        normalization_file_name, min_heating_rate_k_day01, min_flux_w_m02,
-        heights_m_agl, target_wavelengths_metres, vector_target_name,
-        scalar_target_names, num_examples):
-    """Creates mask.
-
-    E = number of examples
-    H = number of heights in grid
-    W = number of wavelengths
-    T_s = number of scalar target variables
-
-    All height/wavelength and variable/wavelength pairs will be ignored by the
-    NN, i.e., the NN will be forced to predict zero for all these values.
-
-    :param normalization_file_name: Path to normalization file, containing
-        values in training data.  For every height/wavelength and variable/
-        wavelength pair, the climo-max value will be read from this file.  The
-        file will be read by `example_io.read_file`.
-    :param min_heating_rate_k_day01: Minimum heating rate.  Height/wavelength
-        pairs with a climo-max HR below this threshold will be masked out.
-    :param min_flux_w_m02: Minimum flux.  Variable/wavelength pairs with a
-        climo-max flux below this threshold will be masked out.
-    :param heights_m_agl: length-H numpy array of heights in grid.
-    :param target_wavelengths_metres: length-W numpy array of wavelengths.
-    :param vector_target_name: Name of vector target variable (heating-rate
-        variable).
-    :param scalar_target_names: length-T_s list with names of scalar target
-        variables (fluxes).
-    :param num_examples: Number of examples.
-    :return: heating_rate_mask_1_for_in: E-by-H-by-W numpy array of
-        Boolean flags, where 1 indicates that the given height/wavelength
-        pair is masked in (the NN makes an actual prediction for this H/W pair)
-        and 0 indicates that the given H/W pair is masked out (the NN always
-        returns 0 K day^-1 for this H/W pair).
-    :return: flux_mask_1_for_in: numpy array (E x W x T_s) of
-        Boolean flags, where 1 indicates that the given variable/wavelength
-        pair is masked in (the NN makes an actual prediction for this V/W pair)
-        and 0 indicates that the given V/W pair is masked out (the NN always
-        returns 0 W m^-2 for this V/W pair).
-    """
-
-    # TODO(thunderhoser): I can delete this legacy method once I no longer have
-    # models that are using the old type of mask (based on the old type of
-    # normalization file, which is just 100 000 training examples with no
-    # statistics).
-
-    if normalization_file_name is None:
-        return None, None
-
-    print('Reading climo-max values for masking from: "{0:s}"...'.format(
-        normalization_file_name
-    ))
-    training_example_dict = example_io.read_file(normalization_file_name)
-
-    num_heights = len(heights_m_agl)
-    num_wavelengths = len(target_wavelengths_metres)
-    heating_rate_mask_1_for_in = numpy.full(
-        (num_heights, num_wavelengths), 0, dtype=int
-    )
-
-    for i in range(num_heights):
-        for j in range(num_wavelengths):
-            these_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=vector_target_name,
-                height_m_agl=heights_m_agl[i],
-                target_wavelength_metres=target_wavelengths_metres[j]
-            )
-
-            heating_rate_mask_1_for_in[i, j] = (
-                numpy.max(numpy.absolute(these_values)) >=
-                numpy.absolute(min_heating_rate_k_day01)
-            ).astype(int)
-
-            if heating_rate_mask_1_for_in[i, j] == 1:
-                continue
-
-            print((
-                'Heating rate at {0:.0f} m AGL and {1:.2f} microns will be '
-                'MASKED OUT (always zero)!'
-            ).format(
-                heights_m_agl[i],
-                METRES_TO_MICRONS * target_wavelengths_metres[j]
-            ))
-
-    heating_rate_mask_1_for_in = numpy.expand_dims(
-        heating_rate_mask_1_for_in, axis=0
-    )
-    heating_rate_mask_1_for_in = numpy.repeat(
-        heating_rate_mask_1_for_in, axis=0, repeats=num_examples
-    )
-
-    num_flux_vars = len(scalar_target_names)
-    if num_flux_vars == 0:
-        return heating_rate_mask_1_for_in, None
-
-    flux_mask_1_for_in = numpy.full(
-        (num_wavelengths, num_flux_vars), 0, dtype=int
-    )
-
-    for j in range(num_wavelengths):
-        for k in range(num_flux_vars):
-            these_values = example_utils.get_field_from_dict(
-                example_dict=training_example_dict,
-                field_name=scalar_target_names[k],
-                target_wavelength_metres=target_wavelengths_metres[j]
-            )
-
-            flux_mask_1_for_in[j, k] = (
-                numpy.max(numpy.absolute(these_values)) >=
-                numpy.absolute(min_flux_w_m02)
-            ).astype(int)
-
-            if flux_mask_1_for_in[j, k] == 1:
-                continue
-
-            print((
-                '{0:s} at {1:.2f} microns will be MASKED OUT (always zero)!'
-            ).format(
-                scalar_target_names[k],
-                METRES_TO_MICRONS * target_wavelengths_metres[j]
-            ))
-
-    flux_mask_1_for_in = numpy.expand_dims(flux_mask_1_for_in, axis=0)
-    flux_mask_1_for_in = numpy.repeat(
-        flux_mask_1_for_in, axis=0, repeats=num_examples
-    )
-
-    return heating_rate_mask_1_for_in, flux_mask_1_for_in
-
-
 def data_generator(option_dict, for_inference):
     """Generates training data for any kind of neural net.
 
@@ -970,44 +809,13 @@ def data_generator(option_dict, for_inference):
         belong to list `normalization.VALID_NORM_METHOD_STRINGS`).
     option_dict['num_deep_supervision_layers']: Number of deep-supervision
         layers.
-    option_dict['min_heating_rate_for_mask_k_day01']: Minimum heating rate for
-        masking.  Every height/wavelength pair with a climo-max (based on the
-        normalization file) heating rate below this threshold will be masked
-        out, i.e., the NN will be forced to predict zero for this
-        height/wavelength pair.  If you do not want to apply masking, make this
-        None.
-    option_dict['min_flux_for_mask_w_m02']: Minimum flux for masking.  Every
-        variable/wavelength pair with a climo-max (based on the normalization
-        file) flux below this threshold will be masked out, i.e., the NN will be
-        forced to predict zero for this variable/wavelength pair.  If you do not
-        want to apply masking, make this None.
-    option_dict['normalization_file_name_for_mask']: Climo-max heating rates and
-        fluxes will be found in this file, to be read by
-        `normalization.read_params`.  If you do not want to apply masking, make
-        this None.
 
     :param for_inference: Boolean flag.  If True, generator is being used for
         inference stage (applying trained model to new data).  If False,
         generator is being used for training or monitoring (on-the-fly
         validation).
 
-    :return: predictor_matrix_or_dict: Without masking, this is a single array
-        of predictor values, with dimensions E x H x P.  With masking, this is a
-        dictionary with the following keys.
-
-    predictor_matrix_or_dict['main_predictors']: E-by-H-by-P numpy array of
-        predictor values.
-    predictor_matrix_or_dict['heating_rate_mask_1_for_in']: H-by-W numpy array
-        of Boolean flags, where 1 indicates that the given height/wavelength
-        pair is masked in (the NN makes an actual prediction for this H/W pair)
-        and 0 indicates that the given H/W pair is masked out (the NN always
-        returns 0 K day^-1 for this H/W pair).
-    predictor_matrix_or_dict['flux_mask_1_for_in']: numpy array (W x T_s) of
-        Boolean flags, where 1 indicates that the given variable/wavelength
-        pair is masked in (the NN makes an actual prediction for this V/W pair)
-        and 0 indicates that the given V/W pair is masked out (the NN always
-        returns 0 W m^-2 for this V/W pair).
-
+    :return: predictor_matrix: E-by-H-by-P numpy array of predictor values.
     :return: target_matrix_or_dict: If the NN does not predict fluxes (i.e.,
         predicts only heating rates), this is a single numpy array, with
         dimensions E x H x W x T_v.  If the NN predicts fluxes, this is a
@@ -1047,24 +855,6 @@ def data_generator(option_dict, for_inference):
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
     normalization_method_string = option_dict[NORMALIZATION_METHOD_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
-    min_heating_rate_for_mask_k_day01 = option_dict[
-        MIN_HEATING_RATE_FOR_MASK_KEY
-    ]
-    min_flux_for_mask_w_m02 = option_dict[MIN_FLUX_FOR_MASK_KEY]
-    normalization_file_name_for_mask = option_dict[
-        NORMALIZATION_FILE_FOR_MASK_KEY
-    ]
-
-    heating_rate_mask_matrix, flux_mask_matrix = create_mask(
-        normalization_file_name=normalization_file_name_for_mask,
-        min_heating_rate_k_day01=min_heating_rate_for_mask_k_day01,
-        min_flux_w_m02=min_flux_for_mask_w_m02,
-        heights_m_agl=heights_m_agl,
-        target_wavelengths_metres=target_wavelengths_metres,
-        vector_target_name=vector_target_names[0],
-        scalar_target_names=scalar_target_names,
-        num_examples=num_examples_per_batch
-    )
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1236,35 +1026,18 @@ def data_generator(option_dict, for_inference):
                 scalar_target_matrix.astype('float32')
             )
 
-        # TODO(thunderhoser): This does not work anymore; in Keras 3 the
-        # generator must return a dictionary, not a list.
-
-        # for _ in range(num_deep_supervision_layers):
-        #     target_array.append(target_array[0])
-
-        if heating_rate_mask_matrix is None:
-            predictor_matrix_or_dict = predictor_matrix
-        else:
-            predictor_matrix_or_dict = {
-                MAIN_PREDICTORS_KEY: predictor_matrix,
-                HEATING_RATE_MASK_KEY: heating_rate_mask_matrix,
-                FLUX_MASK_KEY: flux_mask_matrix
-            }
-
         if for_inference:
             yield (
-                predictor_matrix_or_dict,
+                predictor_matrix,
                 target_matrix_or_dict,
                 example_id_strings
             )
         else:
             yield (
-                (predictor_matrix, heating_rate_mask_matrix, flux_mask_matrix),
+                predictor_matrix,
                 (vector_target_matrix.astype('float32'),
                  scalar_target_matrix.astype('float32'))
             )
-
-            # yield predictor_matrix_or_dict, target_matrix_or_dict
 
 
 def data_generator_for_peter(option_dict, use_ryan_architecture):
@@ -1550,7 +1323,7 @@ def create_data(option_dict):
     data at once, rather than generating batches on the fly.
 
     :param option_dict: See doc for `data_generator`.
-    :return: predictor_dict: Same.
+    :return: predictor_matrix: Same.
     :return: target_dict: Same.
     :return: example_id_strings: Same.
     """
@@ -1578,13 +1351,6 @@ def create_data(option_dict):
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
     normalization_method_string = option_dict[NORMALIZATION_METHOD_KEY]
     num_deep_supervision_layers = option_dict[NUM_DEEP_SUPER_LAYERS_KEY]
-    min_heating_rate_for_mask_k_day01 = option_dict[
-        MIN_HEATING_RATE_FOR_MASK_KEY
-    ]
-    min_flux_for_mask_w_m02 = option_dict[MIN_FLUX_FOR_MASK_KEY]
-    normalization_file_name_for_mask = option_dict[
-        NORMALIZATION_FILE_FOR_MASK_KEY
-    ]
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1629,25 +1395,10 @@ def create_data(option_dict):
     # for _ in range(num_deep_supervision_layers):
     #     target_array.append(target_array[0])
 
-    heating_rate_mask_matrix, flux_mask_matrix = create_mask(
-        normalization_file_name=normalization_file_name_for_mask,
-        min_heating_rate_k_day01=min_heating_rate_for_mask_k_day01,
-        min_flux_w_m02=min_flux_for_mask_w_m02,
-        heights_m_agl=heights_m_agl,
-        target_wavelengths_metres=target_wavelengths_metres,
-        vector_target_name=vector_target_names[0],
-        scalar_target_names=scalar_target_names,
-        num_examples=predictor_matrix.shape[0]
-    )
-
-    predictor_dict = {MAIN_PREDICTORS_KEY: predictor_matrix}
-    if heating_rate_mask_matrix is not None:
-        predictor_dict[HEATING_RATE_MASK_KEY] = heating_rate_mask_matrix
-    if flux_mask_matrix is not None:
-        predictor_dict[FLUX_MASK_KEY] = flux_mask_matrix
-
     return (
-        predictor_dict, target_dict, example_dict[example_utils.EXAMPLE_IDS_KEY]
+        predictor_matrix,
+        target_dict,
+        example_dict[example_utils.EXAMPLE_IDS_KEY]
     )
 
 
@@ -1660,7 +1411,7 @@ def create_data_specific_examples(option_dict, example_id_strings):
 
     :param option_dict: See doc for `data_generator`.
     :param example_id_strings: 1-D list of example IDs.
-    :return: predictor_dict: See doc for `data_generator`.
+    :return: predictor_matrix: See doc for `data_generator`.
     :return: target_dict: Same.
     """
 
@@ -1688,25 +1439,6 @@ def create_data_specific_examples(option_dict, example_id_strings):
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
     normalization_method_string = option_dict[NORMALIZATION_METHOD_KEY]
-    min_heating_rate_for_mask_k_day01 = option_dict[
-        MIN_HEATING_RATE_FOR_MASK_KEY
-    ]
-    min_flux_for_mask_w_m02 = option_dict[MIN_FLUX_FOR_MASK_KEY]
-    normalization_file_name_for_mask = option_dict[
-        NORMALIZATION_FILE_FOR_MASK_KEY
-    ]
-
-    num_examples = len(example_id_strings)
-    heating_rate_mask_matrix, flux_mask_matrix = create_mask(
-        normalization_file_name=normalization_file_name_for_mask,
-        min_heating_rate_k_day01=min_heating_rate_for_mask_k_day01,
-        min_flux_w_m02=min_flux_for_mask_w_m02,
-        heights_m_agl=heights_m_agl,
-        target_wavelengths_metres=target_wavelengths_metres,
-        vector_target_name=vector_target_names[0],
-        scalar_target_names=scalar_target_names,
-        num_examples=num_examples
-    )
 
     example_file_names = example_io.find_many_files(
         directory_name=example_dir_name,
@@ -1714,6 +1446,7 @@ def create_data_specific_examples(option_dict, example_id_strings):
         last_time_unix_sec=numpy.max(example_times_unix_sec),
         raise_error_if_any_missing=False
     )
+    num_examples = len(example_id_strings)
     found_example_flags = numpy.full(num_examples, 0, dtype=bool)
 
     predictor_matrix = None
@@ -1808,13 +1541,7 @@ def create_data_specific_examples(option_dict, example_id_strings):
     if scalar_target_matrix is not None:
         target_dict[FLUX_TARGETS_KEY] = scalar_target_matrix.astype('float32')
 
-    predictor_dict = {MAIN_PREDICTORS_KEY: predictor_matrix}
-    if heating_rate_mask_matrix is not None:
-        predictor_dict[HEATING_RATE_MASK_KEY] = heating_rate_mask_matrix
-    if flux_mask_matrix is not None:
-        predictor_dict[FLUX_MASK_KEY] = flux_mask_matrix
-
-    return predictor_dict, target_dict
+    return predictor_matrix, target_dict
 
 
 def train_model_with_generator_for_peter(
@@ -2120,12 +1847,12 @@ def train_model_with_generator(
         validation_data_arg = validation_generator
         validation_steps_arg = num_validation_batches_per_epoch
     else:
-        validation_predictor_dict, validation_target_dict = create_data(
+        validation_predictor_matrix, validation_target_dict = create_data(
             validation_option_dict
         )[:2]
 
         validation_data_arg = (
-            validation_predictor_dict, validation_target_dict
+            validation_predictor_matrix, validation_target_dict
         )
         validation_steps_arg = None
 
@@ -2250,18 +1977,16 @@ def train_model_sans_generator(
         use_ryan_architecture=False
     )
 
-    training_predictor_dict, training_target_dict = create_data(
+    training_predictor_matrix, training_target_dict = create_data(
         training_option_dict
     )[:2]
 
-    validation_predictor_dict, validation_target_dict = create_data(
+    validation_predictor_matrix, validation_target_dict = create_data(
         validation_option_dict
     )[:2]
 
     # TODO(thunderhoser): HACK to deal with out-of-memory errors.
-    num_validation_examples = (
-        validation_predictor_dict[MAIN_PREDICTORS_KEY].shape[0]
-    )
+    num_validation_examples = validation_predictor_matrix.shape[0]
     print('Number of validation examples = {0:d}'.format(
         num_validation_examples
     ))
@@ -2282,18 +2007,15 @@ def train_model_sans_generator(
             random_indices, size=MAX_NUM_VALIDATION_EXAMPLES, replace=False
         )
 
-        for this_key in validation_predictor_dict:
-            validation_predictor_dict[this_key] = (
-                validation_predictor_dict[this_key][random_indices, ...]
-            )
+        validation_predictor_matrix = (
+            validation_predictor_matrix[random_indices, ...]
+        )
         for this_key in validation_target_dict:
             validation_target_dict[this_key] = (
                 validation_target_dict[this_key][random_indices, ...]
             )
 
-    num_training_examples = (
-        training_predictor_dict[MAIN_PREDICTORS_KEY].shape[0]
-    )
+    num_training_examples = training_predictor_matrix.shape[0]
     print('Number of training examples = {0:d}'.format(
         num_training_examples
     ))
@@ -2314,17 +2036,16 @@ def train_model_sans_generator(
             random_indices, size=MAX_NUM_TRAINING_EXAMPLES, replace=False
         )
 
-        for this_key in training_predictor_dict:
-            training_predictor_dict[this_key] = (
-                training_predictor_dict[this_key][random_indices, ...]
-            )
+        training_predictor_matrix = (
+            training_predictor_matrix[random_indices, ...]
+        )
         for this_key in training_target_dict:
             training_target_dict[this_key] = (
                 training_target_dict[this_key][random_indices, ...]
             )
 
     model_object.fit(
-        x=training_predictor_dict,
+        x=training_predictor_matrix,
         y=training_target_dict,
         batch_size=training_option_dict[BATCH_SIZE_KEY],
         epochs=num_epochs,
@@ -2332,7 +2053,7 @@ def train_model_sans_generator(
         shuffle=True,
         verbose=1,
         callbacks=list_of_callback_objects,
-        validation_data=(validation_predictor_dict, validation_target_dict),
+        validation_data=(validation_predictor_matrix, validation_target_dict),
         # validation_batch_size=validation_option_dict[BATCH_SIZE_KEY],
         validation_steps=num_validation_batches_per_epoch
     )
@@ -2566,15 +2287,6 @@ def read_metafile(dill_file_name):
 
     t = metadata_dict[TRAINING_OPTIONS_KEY]
     v = metadata_dict[VALIDATION_OPTIONS_KEY]
-
-    if MIN_FLUX_FOR_MASK_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
-        t[NORMALIZATION_FILE_FOR_MASK_KEY] = None
-        t[MIN_HEATING_RATE_FOR_MASK_KEY] = None
-        t[MIN_FLUX_FOR_MASK_KEY] = None
-
-        v[NORMALIZATION_FILE_FOR_MASK_KEY] = None
-        v[MIN_HEATING_RATE_FOR_MASK_KEY] = None
-        v[MIN_FLUX_FOR_MASK_KEY] = None
 
     if NORMALIZATION_METHOD_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         t[NORMALIZATION_METHOD_KEY] = normalization.TWO_STEP_METHOD_STRING
