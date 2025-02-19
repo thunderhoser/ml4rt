@@ -51,6 +51,8 @@ SIMPLIFY_CONVNEXT_KEY = u_net_arch.SIMPLIFY_CONVNEXT_KEY
 SIMPLIFY_OUTPUT_LAYER_KEY = u_net_arch.SIMPLIFY_OUTPUT_LAYER_KEY
 MEAN_VALUE_MATRIX_KEY = u_net_arch.MEAN_VALUE_MATRIX_KEY
 STDEV_MATRIX_KEY = u_net_arch.STDEV_MATRIX_KEY
+HEATING_RATE_MASK_KEY = u_net_arch.HEATING_RATE_MASK_KEY
+FLUX_MASK_KEY = u_net_arch.FLUX_MASK_KEY
 
 NUM_OUTPUT_WAVELENGTHS_KEY = u_net_arch.NUM_OUTPUT_WAVELENGTHS_KEY
 VECTOR_LOSS_FUNCTION_KEY = u_net_arch.VECTOR_LOSS_FUNCTION_KEY
@@ -59,7 +61,6 @@ JOINED_LOSS_FUNCTION_KEY = u_net_arch.JOINED_LOSS_FUNCTION_KEY
 OPTIMIZER_FUNCTION_KEY = u_net_arch.OPTIMIZER_FUNCTION_KEY
 USE_DEEP_SUPERVISION_KEY = u_net_arch.USE_DEEP_SUPERVISION_KEY
 ENSEMBLE_SIZE_KEY = u_net_arch.ENSEMBLE_SIZE_KEY
-INCLUDE_MASK_KEY = u_net_arch.INCLUDE_MASK_KEY
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
@@ -172,6 +173,8 @@ def create_model(option_dict):
     simplify_output_layer = option_dict[SIMPLIFY_OUTPUT_LAYER_KEY]
     mean_value_matrix = option_dict[MEAN_VALUE_MATRIX_KEY]
     stdev_matrix = option_dict[STDEV_MATRIX_KEY]
+    heating_rate_mask_matrix = option_dict[HEATING_RATE_MASK_KEY]
+    flux_mask_matrix = option_dict[FLUX_MASK_KEY]
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
@@ -179,7 +182,6 @@ def create_model(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     use_deep_supervision = option_dict[USE_DEEP_SUPERVISION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
-    include_mask = option_dict[INCLUDE_MASK_KEY]
 
     # TODO(thunderhoser): Make deep supervision work again.
     assert not use_deep_supervision
@@ -215,21 +217,6 @@ def create_model(option_dict):
         main_layer_object = u_net_arch.ZScoreNormalization(
             mean_value_matrix=mean_value_matrix, stdev_matrix=stdev_matrix
         )(main_input_layer_object)
-
-    hr_mask_input_layer_object = None
-    flux_mask_input_layer_object = None
-
-    if include_mask:
-        hr_mask_input_layer_object = keras.layers.Input(
-            shape=(input_dimensions[0], num_output_wavelengths),
-            name=neural_net.HEATING_RATE_MASK_KEY
-        )
-
-        if has_dense_layers:
-            flux_mask_input_layer_object = keras.layers.Input(
-                shape=(num_output_wavelengths, num_dense_output_vars),
-                name=neural_net.FLUX_MASK_KEY
-            )
 
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight
@@ -409,27 +396,17 @@ def create_model(option_dict):
             (input_dimensions[0], num_output_wavelengths, 1)
         )(conv_output_layer_object)
 
-    if hr_mask_input_layer_object is None:
+    if heating_rate_mask_matrix is None:
         conv_output_layer_object = u_net_arch.zero_top_heating_rate(
             input_layer_object=conv_output_layer_object,
             ensemble_size=ensemble_size,
             output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
         )
     else:
-        if ensemble_size > 1:
-            hr_mask_layer_object = keras.layers.Reshape(
-                target_shape=
-                (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
-            )(hr_mask_input_layer_object)
-        else:
-            hr_mask_layer_object = keras.layers.Reshape(
-                target_shape=
-                (input_dimensions[0], num_output_wavelengths, 1)
-            )(hr_mask_input_layer_object)
-
-        conv_output_layer_object = keras.layers.Multiply(
+        conv_output_layer_object = u_net_arch.HeatingRateMask(
+            mask_matrix=heating_rate_mask_matrix,
             name=neural_net.HEATING_RATE_TARGETS_KEY
-        )([conv_output_layer_object, hr_mask_layer_object])
+        )(conv_output_layer_object)
 
     output_layer_objects = [conv_output_layer_object]
     loss_dict = {neural_net.HEATING_RATE_TARGETS_KEY: vector_loss_function}
@@ -503,7 +480,7 @@ def create_model(option_dict):
             if (
                     dense_layer_dropout_rates[j] <= 0
                     and dense_output_activ_func_name is None
-                    and flux_mask_input_layer_object is None
+                    and flux_mask_matrix is None
             ):
                 this_name = neural_net.FLUX_TARGETS_KEY
             else:
@@ -523,7 +500,7 @@ def create_model(option_dict):
             if dense_output_activ_func_name is not None:
                 if (
                         dense_layer_dropout_rates[j] <= 0
-                        and flux_mask_input_layer_object is None
+                        and flux_mask_matrix is None
                 ):
                     this_name = neural_net.FLUX_TARGETS_KEY
                 else:
@@ -547,10 +524,7 @@ def create_model(option_dict):
             )
 
         if dense_layer_dropout_rates[j] > 0:
-            if (
-                    j == num_dense_layers - 1
-                    and flux_mask_input_layer_object is None
-            ):
+            if j == num_dense_layers - 1 and flux_mask_matrix is None:
                 this_name = neural_net.FLUX_TARGETS_KEY
             else:
                 this_name = None
@@ -564,23 +538,11 @@ def create_model(option_dict):
                 )(dense_output_layer_object, training=this_mc_flag)
             )
 
-        if (
-                j == num_dense_layers - 1
-                and flux_mask_input_layer_object is not None
-        ):
-            if ensemble_size > 1:
-                these_dim = (
-                    num_output_wavelengths, num_dense_output_vars, ensemble_size
-                )
-                flux_mask_layer_object = keras.layers.Reshape(
-                    target_shape=these_dim
-                )(flux_mask_input_layer_object)
-            else:
-                flux_mask_layer_object = flux_mask_input_layer_object
-
-            dense_output_layer_object = keras.layers.Multiply(
+        if j == num_dense_layers - 1 and flux_mask_matrix is not None:
+            dense_output_layer_object = u_net_arch.FluxMask(
+                mask_matrix=flux_mask_matrix,
                 name=neural_net.FLUX_TARGETS_KEY
-            )([dense_output_layer_object, flux_mask_layer_object])
+            )(dense_output_layer_object)
 
         if use_batch_normalization and j != num_dense_layers - 1:
             dense_output_layer_object = (
@@ -594,15 +556,8 @@ def create_model(option_dict):
         loss_dict[neural_net.FLUX_TARGETS_KEY] = scalar_loss_function
         metric_dict[neural_net.FLUX_TARGETS_KEY] = metric_function_list
 
-    input_layer_objects = [
-        main_input_layer_object,
-        hr_mask_input_layer_object,
-        flux_mask_input_layer_object
-    ]
-    input_layer_objects = [l for l in input_layer_objects if l is not None]
-
     model_object = keras.models.Model(
-        inputs=input_layer_objects, outputs=output_layer_objects
+        inputs=main_input_layer_object, outputs=output_layer_objects
     )
     model_object.compile(
         loss=loss_dict,

@@ -41,9 +41,11 @@ USE_CONVNEXT_V2_BLOCKS_KEY = 'use_convnext_v2_blocks'
 SIMPLIFY_CONVNEXT_KEY = 'simplify_convnext_blocks'
 SIMPLIFY_OUTPUT_LAYER_KEY = 'simplify_output_layer'
 
-# TODO(thunderhoser): Still need to error-check these input args.
+# TODO(thunderhoser): Still need to error-check these input args.  If no dense layers, will need to set flux_mask to None.
 MEAN_VALUE_MATRIX_KEY = 'mean_value_matrix'
 STDEV_MATRIX_KEY = 'stdev_matrix'
+HEATING_RATE_MASK_KEY = 'heating_rate_mask_matrix'
+FLUX_MASK_KEY = 'flux_mask_matrix'
 
 NUM_OUTPUT_WAVELENGTHS_KEY = 'num_output_wavelengths'
 VECTOR_LOSS_FUNCTION_KEY = 'vector_loss_function'
@@ -142,6 +144,113 @@ class ZScoreNormalization(keras.layers.Layer):
         config.update({
             'mean_value_matrix': self.mean_value_matrix.numpy().tolist(),
             'stdev_matrix': self.stdev_matrix.numpy().tolist()
+        })
+        return config
+
+
+class HeatingRateMask(keras.layers.Layer):
+    """This layer zeroes out some heating rates via a Boolean mask."""
+
+    def __init__(self, mask_matrix, **kwargs):
+        """Constructor.
+
+        H = number of heights
+        W = number of wavelengths
+
+        :param mask_matrix: H-by-W numpy array of integers (0 or 1).
+        :param kwargs: Keyword arguments.
+        """
+
+        super(HeatingRateMask, self).__init__(**kwargs)
+
+        self.mask_matrix = tensorflow.Variable(
+            tensorflow.convert_to_tensor(
+                mask_matrix, dtype=tensorflow.float32
+            ),
+            trainable=False
+        )
+        self.mask_dimensions = self.mask_matrix.shape
+
+    def call(self, inputs):
+        """Main method.  This is where the layer does its thing.
+
+        :param inputs: Input tensor of heating rates.
+        :return: output_tensor: Output tensor of heating rates, with some zeroed
+            out.
+        """
+
+        mask_matrix_5d = tensorflow.reshape(
+            self.mask_matrix,
+            [1, self.mask_dimensions[0], self.mask_dimensions[1], 1, 1]
+        )
+        mask_matrix_5d = tensorflow.broadcast_to(
+            mask_matrix_5d, tensorflow.shape(inputs)
+        )
+        return inputs * mask_matrix_5d
+
+    def get_config(self):
+        """Returns layer configuration.
+
+        :return: config: Dictionary with configuration stuff.
+        """
+
+        config = super().get_config()
+        config.update({
+            'mask_matrix': self.mask_matrix.numpy().tolist(),
+            'mask_dimensions': self.mask_dimensions.numpy().tolist()
+        })
+        return config
+
+
+class FluxMask(keras.layers.Layer):
+    """This layer zeroes out some fluxes via a Boolean mask."""
+
+    def __init__(self, mask_matrix, **kwargs):
+        """Constructor.
+
+        W = number of wavelengths
+        F = number of flux variables
+
+        :param mask_matrix: W-by-F numpy array of integers (0 or 1).
+        :param kwargs: Keyword arguments.
+        """
+
+        super(FluxMask, self).__init__(**kwargs)
+
+        self.mask_matrix = tensorflow.Variable(
+            tensorflow.convert_to_tensor(
+                mask_matrix, dtype=tensorflow.float32
+            ),
+            trainable=False
+        )
+        self.mask_dimensions = self.mask_matrix.shape
+
+    def call(self, inputs):
+        """Main method.  This is where the layer does its thing.
+
+        :param inputs: Input tensor of fluxes.
+        :return: output_tensor: Output tensor of fluxes, with some zeroed out.
+        """
+
+        mask_matrix_4d = tensorflow.reshape(
+            self.mask_matrix,
+            [1, self.mask_dimensions[0], self.mask_dimensions[1], 1]
+        )
+        mask_matrix_4d = tensorflow.broadcast_to(
+            mask_matrix_4d, tensorflow.shape(inputs)
+        )
+        return inputs * mask_matrix_4d
+
+    def get_config(self):
+        """Returns layer configuration.
+
+        :return: config: Dictionary with configuration stuff.
+        """
+
+        config = super().get_config()
+        config.update({
+            'mask_matrix': self.mask_matrix.numpy().tolist(),
+            'mask_dimensions': self.mask_dimensions.numpy().tolist()
         })
         return config
 
