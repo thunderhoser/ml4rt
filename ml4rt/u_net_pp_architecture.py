@@ -57,6 +57,8 @@ USE_CONVNEXT_V1_BLOCKS_KEY = u_net_arch.USE_CONVNEXT_V1_BLOCKS_KEY
 USE_CONVNEXT_V2_BLOCKS_KEY = u_net_arch.USE_CONVNEXT_V2_BLOCKS_KEY
 SIMPLIFY_CONVNEXT_KEY = u_net_arch.SIMPLIFY_CONVNEXT_KEY
 SIMPLIFY_OUTPUT_LAYER_KEY = u_net_arch.SIMPLIFY_OUTPUT_LAYER_KEY
+MEAN_VALUE_MATRIX_KEY = u_net_arch.MEAN_VALUE_MATRIX_KEY
+STDEV_MATRIX_KEY = u_net_arch.STDEV_MATRIX_KEY
 
 NUM_OUTPUT_WAVELENGTHS_KEY = u_net_arch.NUM_OUTPUT_WAVELENGTHS_KEY
 VECTOR_LOSS_FUNCTION_KEY = u_net_arch.VECTOR_LOSS_FUNCTION_KEY
@@ -176,6 +178,8 @@ def create_model(option_dict):
     use_convnext_v2_blocks = option_dict[USE_CONVNEXT_V2_BLOCKS_KEY]
     simplify_convnext_blocks = option_dict[SIMPLIFY_CONVNEXT_KEY]
     simplify_output_layer = option_dict[SIMPLIFY_OUTPUT_LAYER_KEY]
+    mean_value_matrix = option_dict[MEAN_VALUE_MATRIX_KEY]
+    stdev_matrix = option_dict[STDEV_MATRIX_KEY]
 
     num_output_wavelengths = option_dict[NUM_OUTPUT_WAVELENGTHS_KEY]
     vector_loss_function = option_dict[VECTOR_LOSS_FUNCTION_KEY]
@@ -212,6 +216,14 @@ def create_model(option_dict):
         shape=tuple(input_dimensions.tolist()),
         name=neural_net.MAIN_PREDICTORS_KEY
     )
+
+    if mean_value_matrix is None:
+        main_layer_object = main_input_layer_object
+    else:
+        main_layer_object = u_net_arch.ZScoreNormalization(
+            mean_value_matrix=mean_value_matrix, stdev_matrix=stdev_matrix
+        )(main_input_layer_object)
+
     hr_mask_input_layer_object = None
     flux_mask_input_layer_object = None
 
@@ -238,7 +250,7 @@ def create_model(option_dict):
 
     for i in range(num_levels + 1):
         if i == 0:
-            this_input_layer_object = main_input_layer_object
+            this_input_layer_object = main_layer_object
         else:
             this_input_layer_object = pooling_layer_by_level[i - 1]
 
