@@ -178,14 +178,14 @@ class HeatingRateMask(keras.layers.Layer):
             out.
         """
 
-        mask_matrix_5d = tensorflow.reshape(
+        mask_matrix_expanded = tensorflow.reshape(
             self.mask_matrix,
-            [1, self.mask_dimensions[0], self.mask_dimensions[1], 1, 1]
+            [1, self.mask_dimensions[0], self.mask_dimensions[1], 1]
         )
-        mask_matrix_5d = tensorflow.broadcast_to(
-            mask_matrix_5d, tensorflow.shape(inputs)
+        mask_matrix_expanded = tensorflow.broadcast_to(
+            mask_matrix_expanded, tensorflow.shape(inputs)
         )
-        return inputs * mask_matrix_5d
+        return inputs * mask_matrix_expanded
 
     def get_config(self):
         """Returns layer configuration.
@@ -231,14 +231,14 @@ class FluxMask(keras.layers.Layer):
         :return: output_tensor: Output tensor of fluxes, with some zeroed out.
         """
 
-        mask_matrix_4d = tensorflow.reshape(
+        mask_matrix_expanded = tensorflow.reshape(
             self.mask_matrix,
-            [1, self.mask_dimensions[0], self.mask_dimensions[1], 1]
+            [1, self.mask_dimensions[0], self.mask_dimensions[1]]
         )
-        mask_matrix_4d = tensorflow.broadcast_to(
-            mask_matrix_4d, tensorflow.shape(inputs)
+        mask_matrix_expanded = tensorflow.broadcast_to(
+            mask_matrix_expanded, tensorflow.shape(inputs)
         )
-        return inputs * mask_matrix_4d
+        return inputs * mask_matrix_expanded
 
     def get_config(self):
         """Returns layer configuration.
