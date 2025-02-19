@@ -150,7 +150,7 @@ class ZScoreNormalization(keras.layers.Layer):
         config = super().get_config()
         config.update({
             'mean_value_matrix': self.mean_value_matrix.numpy().tolist(),
-            'stdev_matrix': self.stdev_matrix.numpy().tolist()
+            'stdev_matrix': self.stdev_matrix.as_list()
         })
         return config
 
@@ -204,7 +204,7 @@ class HeatingRateMask(keras.layers.Layer):
         config = super().get_config()
         config.update({
             'mask_matrix': self.mask_matrix.numpy().tolist(),
-            'mask_dimensions': self.mask_dimensions.numpy().tolist()
+            'mask_dimensions': self.mask_dimensions.as_list()
         })
         return config
 
