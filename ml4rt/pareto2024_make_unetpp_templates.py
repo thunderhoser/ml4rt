@@ -10,28 +10,17 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import u_net_pp_architecture
-import architecture_utils
-import custom_losses
 import file_system_utils
-import neural_net
+import architecture_utils
+import u_net_pp_architecture
+import custom_losses
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-HOME_DIR_NAME = '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist'
-OUTPUT_DIR_NAME = (
-    '{0:s}/ml4rt_models/pareto2024_experiment/u_net_plusplus/templates'
-).format(HOME_DIR_NAME)
-
 VECTOR_LOSS_FUNCTION = custom_losses.dual_weighted_mse()
-SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux(0.64)
-VECTOR_LOSS_FUNCTION_STRING = 'custom_losses.dual_weighted_mse()'
-SCALAR_LOSS_FUNCTION_STRING = 'custom_losses.scaled_mse_for_net_flux(0.64)'
-
-LOSS_DICT = {
-    'conv_output': VECTOR_LOSS_FUNCTION_STRING,
-    'dense_output': SCALAR_LOSS_FUNCTION_STRING
-}
+SCALAR_LOSS_FUNCTION = custom_losses.scaled_mse_for_net_flux(
+    scaling_factor=0.64
+)
 
 MODEL_DEPTHS = numpy.array([3, 4, 5], dtype=int)
 FIRST_LAYER_CHANNEL_COUNTS = numpy.array([2, 4, 8, 16, 32, 64], dtype=int)
@@ -74,14 +63,7 @@ DEFAULT_OPTION_DICT = {
     u_net_pp_architecture.ENSEMBLE_SIZE_KEY: 1,
     u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
     u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
-    u_net_pp_architecture.USE_DEEP_SUPERVISION_KEY: False,
-    u_net_pp_architecture.INCLUDE_MASK_KEY: False
-}
-
-DUMMY_GENERATOR_OPTION_DICT = {
-    neural_net.NORMALIZE_PREDICTORS_KEY: True,
-    neural_net.NORMALIZE_VECTOR_TARGETS_KEY: False,
-    neural_net.NORMALIZE_SCALAR_TARGETS_KEY: False
+    u_net_pp_architecture.USE_DEEP_SUPERVISION_KEY: False
 }
 
 
@@ -152,56 +134,18 @@ def _run():
             model_object = u_net_pp_architecture.create_model(option_dict)
 
             model_file_name = (
-                '{0:s}/num-levels={1:d}_num-first-layer-channels={2:02d}/'
-                'model.keras'
+                'num-levels={0:d}_num-first-layer-channels={1:02d}/model.keras'
             ).format(
-                OUTPUT_DIR_NAME, MODEL_DEPTHS[i], FIRST_LAYER_CHANNEL_COUNTS[j]
+                MODEL_DEPTHS[i],
+                FIRST_LAYER_CHANNEL_COUNTS[j]
             )
 
             file_system_utils.mkdir_recursive_if_necessary(
                 file_name=model_file_name
             )
-
-            print('Writing model to: "{0:s}"...'.format(
-                model_file_name
-            ))
+            print('Writing model to: "{0:s}"...'.format(model_file_name))
             model_object.save(
-                filepath=model_file_name, overwrite=True,
-                include_optimizer=True
-            )
-
-            metafile_name = neural_net.find_metafile(
-                model_dir_name=os.path.split(model_file_name)[0],
-                raise_error_if_missing=False
-            )
-
-            option_dict[u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY] = (
-                VECTOR_LOSS_FUNCTION_STRING
-            )
-            option_dict[u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY] = (
-                SCALAR_LOSS_FUNCTION_STRING
-            )
-
-            print('Writing metadata to: "{0:s}"...'.format(
-                metafile_name
-            ))
-            neural_net._write_metafile(
-                dill_file_name=metafile_name,
-                num_epochs=100,
-                num_training_batches_per_epoch=100,
-                training_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                num_validation_batches_per_epoch=100,
-                validation_option_dict=DUMMY_GENERATOR_OPTION_DICT,
-                loss_function_or_dict=LOSS_DICT,
-                early_stopping_patience_epochs=200,
-                plateau_lr_multiplier=0.6,
-                dense_architecture_dict=None,
-                cnn_architecture_dict=None,
-                bnn_architecture_dict=None,
-                u_net_architecture_dict=None,
-                u_net_plusplus_architecture_dict=option_dict,
-                u_net_3plus_architecture_dict=None,
-                use_ryan_architecture=False
+                filepath=model_file_name, overwrite=True, include_optimizer=True
             )
 
 

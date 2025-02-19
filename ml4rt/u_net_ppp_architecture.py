@@ -57,7 +57,6 @@ JOINED_LOSS_FUNCTION_KEY = u_net_arch.JOINED_LOSS_FUNCTION_KEY
 OPTIMIZER_FUNCTION_KEY = u_net_arch.OPTIMIZER_FUNCTION_KEY
 USE_DEEP_SUPERVISION_KEY = u_net_arch.USE_DEEP_SUPERVISION_KEY
 ENSEMBLE_SIZE_KEY = u_net_arch.ENSEMBLE_SIZE_KEY
-INCLUDE_MASK_KEY = u_net_arch.INCLUDE_MASK_KEY
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
@@ -141,7 +140,6 @@ def create_model(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     use_deep_supervision = option_dict[USE_DEEP_SUPERVISION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
-    include_mask = option_dict[INCLUDE_MASK_KEY]
 
     # TODO(thunderhoser): Make deep supervision work again.
     assert not use_deep_supervision
@@ -173,6 +171,7 @@ def create_model(option_dict):
     hr_mask_input_layer_object = None
     flux_mask_input_layer_object = None
 
+    include_mask = False
     if include_mask:
         hr_mask_input_layer_object = keras.layers.Input(
             shape=(input_dimensions[0], num_output_wavelengths),
