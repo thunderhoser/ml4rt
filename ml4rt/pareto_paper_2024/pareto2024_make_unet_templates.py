@@ -54,8 +54,7 @@ DEFAULT_OPTION_DICT = {
     u_net_architecture.NUM_OUTPUT_WAVELENGTHS_KEY: 1,
     u_net_architecture.ENSEMBLE_SIZE_KEY: 1,
     u_net_architecture.VECTOR_LOSS_FUNCTION_KEY: VECTOR_LOSS_FUNCTION,
-    u_net_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION,
-    u_net_architecture.INCLUDE_MASK_KEY: False
+    u_net_architecture.SCALAR_LOSS_FUNCTION_KEY: SCALAR_LOSS_FUNCTION
 }
 
 

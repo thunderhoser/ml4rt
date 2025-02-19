@@ -54,7 +54,6 @@ JOINED_LOSS_FUNCTION_KEY = 'joined_loss_function'
 OPTIMIZER_FUNCTION_KEY = 'optimizer_function'
 USE_DEEP_SUPERVISION_KEY = 'use_deep_supervision'
 ENSEMBLE_SIZE_KEY = 'ensemble_size'
-INCLUDE_MASK_KEY = 'include_mask'
 
 DEFAULT_ARCHITECTURE_OPTION_DICT = {
     NUM_LEVELS_KEY: 4,
@@ -331,11 +330,6 @@ def check_args(option_dict):
     option_dict['use_deep_supervision']: Boolean flag.
     option_dict['ensemble_size']: Number of ensemble members in output (both
         vector and scalar predictions).
-    option_dict['include_mask']: Boolean flag.  If True, the heating rates for
-        some height/wavelength pairs (those with a climatological max of 0) will
-        be zeroed out.  In other words, the NN will always predict zero for
-        these height/wavelength pairs, rather than trying to learn something
-        fancy.
 
     :return: option_dict: Same as input, except defaults may have been added.
     """
@@ -495,7 +489,6 @@ def check_args(option_dict):
     error_checking.assert_is_boolean(option_dict[USE_DEEP_SUPERVISION_KEY])
     error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
     error_checking.assert_is_greater(option_dict[ENSEMBLE_SIZE_KEY], 0)
-    error_checking.assert_is_boolean(option_dict[INCLUDE_MASK_KEY])
 
     if OPTIMIZER_FUNCTION_KEY not in option_dict:
         option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.AdamW()
@@ -854,7 +847,6 @@ def create_model(option_dict):
     scalar_loss_function = option_dict[SCALAR_LOSS_FUNCTION_KEY]
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
-    include_mask = option_dict[INCLUDE_MASK_KEY]
 
     if ensemble_size > 1:
         metric_function_list = []
@@ -882,6 +874,7 @@ def create_model(option_dict):
     hr_mask_input_layer_object = None
     flux_mask_input_layer_object = None
 
+    include_mask = False
     if include_mask:
         hr_mask_input_layer_object = keras.layers.Input(
             shape=(input_dimensions[0], num_output_wavelengths),
