@@ -72,6 +72,7 @@ while true; do
     --num_training_batches_per_epoch=1000 \
     --num_validn_batches_per_epoch=1000 \
     --early_stopping_patience_epochs=10000 \
-    --plateau_lr_multiplier=0.9 \
+    --plateau_lr_multiplier=0.95 \
+    --plateau_patience_epochs=15 \
     --num_deep_supervision_layers=0
 done
