@@ -4,6 +4,7 @@ import os.path
 import dill
 import numpy
 import keras
+import pandas
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import cnn
@@ -23,10 +24,7 @@ METRES_TO_MICRONS = 1e6
 MAX_NUM_VALIDATION_EXAMPLES = int(5e5)
 MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 
-PLATEAU_PATIENCE_EPOCHS = 10
-DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
 PLATEAU_COOLDOWN_EPOCHS = 0
-DEFAULT_EARLY_STOPPING_PATIENCE_EPOCHS = 200
 LOSS_PATIENCE = 0.
 
 EXAMPLE_DIRECTORY_KEY = 'example_dir_name'
@@ -79,6 +77,7 @@ NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 LOSS_FUNCTION_OR_DICT_KEY = 'loss_function_or_dict'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
+PLATEAU_PATIENCE_KEY = 'plateau_patience_epochs'
 EARLY_STOPPING_PATIENCE_KEY = 'early_stopping_patience_epochs'
 DENSE_ARCHITECTURE_KEY = 'dense_architecture_dict'
 CNN_ARCHITECTURE_KEY = 'cnn_architecture_dict'
@@ -91,8 +90,8 @@ USE_RYAN_ARCHITECTURE_KEY = 'use_ryan_architecture'
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
-    LOSS_FUNCTION_OR_DICT_KEY,
-    PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
+    LOSS_FUNCTION_OR_DICT_KEY, PLATEAU_LR_MUTIPLIER_KEY, PLATEAU_PATIENCE_KEY,
+    EARLY_STOPPING_PATIENCE_KEY,
     DENSE_ARCHITECTURE_KEY, CNN_ARCHITECTURE_KEY, BNN_ARCHITECTURE_KEY,
     U_NET_ARCHITECTURE_KEY, U_NET_PP_ARCHITECTURE_KEY,
     U_NET_PPP_ARCHITECTURE_KEY, USE_RYAN_ARCHITECTURE_KEY
@@ -334,7 +333,8 @@ def _write_metafile(
         dill_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_or_dict,
-        plateau_lr_multiplier, early_stopping_patience_epochs,
+        plateau_lr_multiplier, plateau_patience_epochs,
+        early_stopping_patience_epochs,
         dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
         u_net_architecture_dict, u_net_plusplus_architecture_dict,
         u_net_3plus_architecture_dict, use_ryan_architecture):
@@ -348,6 +348,7 @@ def _write_metafile(
     :param validation_option_dict: Same.
     :param loss_function_or_dict: Same.
     :param plateau_lr_multiplier: Same.
+    :param plateau_patience_epochs: Same.
     :param early_stopping_patience_epochs: Same.
     :param dense_architecture_dict: Same.
     :param cnn_architecture_dict: Same.
@@ -367,6 +368,7 @@ def _write_metafile(
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         LOSS_FUNCTION_OR_DICT_KEY: loss_function_or_dict,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
+        PLATEAU_PATIENCE_KEY: plateau_patience_epochs,
         EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
         DENSE_ARCHITECTURE_KEY: dense_architecture_dict,
         CNN_ARCHITECTURE_KEY: cnn_architecture_dict,
@@ -1543,8 +1545,8 @@ def train_model_with_generator_for_peter(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        plateau_lr_multiplier, early_stopping_patience_epochs,
-        use_ryan_architecture):
+        plateau_lr_multiplier, plateau_patience_epochs,
+        early_stopping_patience_epochs, use_ryan_architecture):
     """Trains any kind of neural net with generator.
 
     :param model_object: See doc for `train_model_with_generator`.
@@ -1556,6 +1558,7 @@ def train_model_with_generator_for_peter(
     :param use_generator_for_validn: Same.
     :param num_validation_batches_per_epoch: Same.
     :param plateau_lr_multiplier: Same.
+    :param plateau_patience_epochs: Same.
     :param early_stopping_patience_epochs: Same.
     :param use_ryan_architecture: Boolean flag.
     """
@@ -1579,6 +1582,8 @@ def train_model_with_generator_for_peter(
     error_checking.assert_is_boolean(use_generator_for_validn)
     error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
     error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_greater(plateau_patience_epochs, 0)
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
     error_checking.assert_is_boolean(use_ryan_architecture)
@@ -1629,7 +1634,7 @@ def train_model_with_generator_for_peter(
 
     plateau_object = keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss', factor=plateau_lr_multiplier,
-        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+        patience=plateau_patience_epochs, verbose=1, mode='min',
         min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
     )
     list_of_callback_objects.append(plateau_object)
@@ -1645,6 +1650,7 @@ def train_model_with_generator_for_peter(
         validation_option_dict=validation_option_dict,
         loss_function_or_dict='mse',
         plateau_lr_multiplier=plateau_lr_multiplier,
+        plateau_patience_epochs=plateau_patience_epochs,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         use_ryan_architecture=use_ryan_architecture,
         dense_architecture_dict=None,
@@ -1691,7 +1697,8 @@ def train_model_with_generator(
         num_training_batches_per_epoch, training_option_dict,
         validation_option_dict, loss_function_or_dict,
         use_generator_for_validn, num_validation_batches_per_epoch,
-        plateau_lr_multiplier, early_stopping_patience_epochs,
+        plateau_lr_multiplier, plateau_patience_epochs,
+        early_stopping_patience_epochs,
         dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
         u_net_architecture_dict, u_net_plusplus_architecture_dict,
         u_net_3plus_architecture_dict):
@@ -1726,6 +1733,8 @@ def train_model_with_generator(
     :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
         rate will be multiplied by this factor upon plateau in validation
         performance.
+    :param plateau_patience_epochs: Patience for determining when the validation
+        loss has reached a "plateau".
     :param early_stopping_patience_epochs: Patience for early stopping.  Early
         stopping will be triggered if validation loss has not improved over this
         many epochs.
@@ -1754,6 +1763,8 @@ def train_model_with_generator(
     error_checking.assert_is_boolean(use_generator_for_validn)
     error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
     error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_greater(plateau_patience_epochs, 0)
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
 
@@ -1777,36 +1788,45 @@ def train_model_with_generator(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    model_file_name = '{0:s}/model.keras'.format(output_dir_name)
+    model_file_name = '{0:s}/model.weights.h5'.format(output_dir_name)
+    history_file_name = '{0:s}/history.csv'.format(output_dir_name)
+
+    try:
+        history_table_pandas = pandas.read_csv(history_file_name)
+        initial_epoch = history_table_pandas['epoch'].max() + 1
+        best_validation_loss = history_table_pandas['val_loss'].min()
+    except:
+        initial_epoch = 0
+        best_validation_loss = numpy.inf
 
     history_object = keras.callbacks.CSVLogger(
-        filename='{0:s}/history.csv'.format(output_dir_name),
-        separator=',', append=False
+        filename=history_file_name, separator=',', append=True
     )
     checkpoint_object = keras.callbacks.ModelCheckpoint(
         filepath=model_file_name, monitor='val_loss', verbose=1,
-        save_best_only=True, save_weights_only=False, mode='min',
+        save_best_only=True, save_weights_only=True, mode='min',
         save_freq='epoch'
     )
-    backup_object = keras.callbacks.BackupAndRestore(
-        backup_dir_name, save_freq='epoch', delete_checkpoint=True
-    )
-    list_of_callback_objects = [
-        history_object, checkpoint_object, backup_object
-    ]
+    checkpoint_object.best = best_validation_loss
 
     early_stopping_object = keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=LOSS_PATIENCE,
+        monitor='val_loss', min_delta=0.,
         patience=early_stopping_patience_epochs, verbose=1, mode='min'
     )
-    list_of_callback_objects.append(early_stopping_object)
-
     plateau_object = keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss', factor=plateau_lr_multiplier,
-        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
-        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+        patience=plateau_patience_epochs, verbose=1, mode='min',
+        min_delta=0., cooldown=0
     )
-    list_of_callback_objects.append(plateau_object)
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=False
+    )
+
+    list_of_callback_objects = [
+        history_object, checkpoint_object,
+        early_stopping_object, plateau_object,
+        backup_object
+    ]
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
@@ -1819,6 +1839,7 @@ def train_model_with_generator(
         validation_option_dict=validation_option_dict,
         loss_function_or_dict=loss_function_or_dict,
         plateau_lr_multiplier=plateau_lr_multiplier,
+        plateau_patience_epochs=plateau_patience_epochs,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         dense_architecture_dict=dense_architecture_dict,
         cnn_architecture_dict=cnn_architecture_dict,
@@ -1853,7 +1874,10 @@ def train_model_with_generator(
     model_object.fit(
         x=training_generator,
         steps_per_epoch=num_training_batches_per_epoch,
-        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        epochs=num_epochs,
+        initial_epoch=initial_epoch,
+        verbose=1,
+        callbacks=list_of_callback_objects,
         validation_data=validation_data_arg,
         validation_steps=validation_steps_arg
     )
@@ -1863,7 +1887,8 @@ def train_model_sans_generator(
         model_object, output_dir_name, num_epochs, training_option_dict,
         validation_option_dict, loss_function_or_dict,
         num_training_batches_per_epoch, num_validation_batches_per_epoch,
-        plateau_lr_multiplier, early_stopping_patience_epochs,
+        plateau_lr_multiplier, plateau_patience_epochs,
+        early_stopping_patience_epochs,
         dense_architecture_dict, cnn_architecture_dict, bnn_architecture_dict,
         u_net_architecture_dict, u_net_plusplus_architecture_dict,
         u_net_3plus_architecture_dict):
@@ -1880,6 +1905,7 @@ def train_model_sans_generator(
     :param num_validation_batches_per_epoch: Number of validation batches per
         epoch.  If None, each validation example will be used once per epoch.
     :param plateau_lr_multiplier: See doc for `train_model_with_generator`.
+    :param plateau_patience_epochs: Same.
     :param early_stopping_patience_epochs: Same.
     :param dense_architecture_dict: Same.
     :param cnn_architecture_dict: Same.
@@ -1902,6 +1928,8 @@ def train_model_sans_generator(
     error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
     error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_greater(plateau_patience_epochs, 0)
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_greater(early_stopping_patience_epochs, 0)
 
@@ -1919,36 +1947,45 @@ def train_model_sans_generator(
 
     validation_option_dict = _check_generator_args(validation_option_dict)
 
-    model_file_name = '{0:s}/model.keras'.format(output_dir_name)
+    model_file_name = '{0:s}/model.weights.h5'.format(output_dir_name)
+    history_file_name = '{0:s}/history.csv'.format(output_dir_name)
+
+    try:
+        history_table_pandas = pandas.read_csv(history_file_name)
+        initial_epoch = history_table_pandas['epoch'].max() + 1
+        best_validation_loss = history_table_pandas['val_loss'].min()
+    except:
+        initial_epoch = 0
+        best_validation_loss = numpy.inf
 
     history_object = keras.callbacks.CSVLogger(
-        filename='{0:s}/history.csv'.format(output_dir_name),
-        separator=',', append=False
+        filename=history_file_name, separator=',', append=True
     )
     checkpoint_object = keras.callbacks.ModelCheckpoint(
         filepath=model_file_name, monitor='val_loss', verbose=1,
-        save_best_only=True, save_weights_only=False, mode='min',
+        save_best_only=True, save_weights_only=True, mode='min',
         save_freq='epoch'
     )
-    backup_object = keras.callbacks.BackupAndRestore(
-        backup_dir_name, save_freq='epoch', delete_checkpoint=True
-    )
-    list_of_callback_objects = [
-        history_object, checkpoint_object, backup_object
-    ]
+    checkpoint_object.best = best_validation_loss
 
     early_stopping_object = keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=LOSS_PATIENCE,
+        monitor='val_loss', min_delta=0.,
         patience=early_stopping_patience_epochs, verbose=1, mode='min'
     )
-    list_of_callback_objects.append(early_stopping_object)
-
     plateau_object = keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss', factor=plateau_lr_multiplier,
-        patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
-        min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+        patience=plateau_patience_epochs, verbose=1, mode='min',
+        min_delta=0., cooldown=0
     )
-    list_of_callback_objects.append(plateau_object)
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=False
+    )
+
+    list_of_callback_objects = [
+        history_object, checkpoint_object,
+        early_stopping_object, plateau_object,
+        backup_object
+    ]
 
     metafile_name = find_metafile(output_dir_name, raise_error_if_missing=False)
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
@@ -1961,6 +1998,7 @@ def train_model_sans_generator(
         validation_option_dict=validation_option_dict,
         loss_function_or_dict=loss_function_or_dict,
         plateau_lr_multiplier=plateau_lr_multiplier,
+        plateau_patience_epochs=plateau_patience_epochs,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         dense_architecture_dict=dense_architecture_dict,
         cnn_architecture_dict=cnn_architecture_dict,
@@ -2043,6 +2081,7 @@ def train_model_sans_generator(
         y=training_target_dict,
         batch_size=training_option_dict[BATCH_SIZE_KEY],
         epochs=num_epochs,
+        initial_epoch=initial_epoch,
         steps_per_epoch=num_training_batches_per_epoch,
         shuffle=True,
         verbose=1,
@@ -2274,6 +2313,8 @@ def read_metafile(dill_file_name):
     metadata_dict = dill.load(dill_file_handle)
     dill_file_handle.close()
 
+    if PLATEAU_PATIENCE_KEY not in metadata_dict:
+        metadata_dict[PLATEAU_PATIENCE_KEY] = 10
     if EARLY_STOPPING_PATIENCE_KEY not in metadata_dict:
         metadata_dict[EARLY_STOPPING_PATIENCE_KEY] = 200
     if USE_RYAN_ARCHITECTURE_KEY not in metadata_dict:
