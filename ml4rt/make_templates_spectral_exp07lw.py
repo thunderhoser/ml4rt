@@ -268,6 +268,7 @@ def _run():
                 neural_net.FLUX_TARGETS_KEY: this_scalar_loss_string
             },
             plateau_lr_multiplier=0.9,
+            plateau_patience_epochs=10,
             early_stopping_patience_epochs=200,
             u_net_3plus_architecture_dict=this_option_dict,
             u_net_plusplus_architecture_dict=None,
