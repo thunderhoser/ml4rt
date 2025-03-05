@@ -306,6 +306,10 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     )
     example_id_strings = example_id_strings.tolist()
 
+    print(len(example_id_strings))
+    print(len(unique_indices))
+    print('\n\n\n')
+
     for this_key in target_dict:
         target_dict[this_key] = target_dict[this_key][unique_indices, ...]
 
