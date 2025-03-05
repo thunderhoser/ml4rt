@@ -33,7 +33,7 @@ RANDOM_SEEDS=("0" "1" "2" "3" "4" "0" "1" "2" "3" "4")
 
 use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
-model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 
 output_dir_name="${model_dir_name}/isotonic_regression/validation/case_studies/predictor_plots"
 

@@ -45,7 +45,7 @@ random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
 EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave_spectrally_resolved/validation"
 
-model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 model_file_name="${model_dir_name}/model.weights.h5"
 prediction_file_name="${model_dir_name}/validation/predictions.nc"
 

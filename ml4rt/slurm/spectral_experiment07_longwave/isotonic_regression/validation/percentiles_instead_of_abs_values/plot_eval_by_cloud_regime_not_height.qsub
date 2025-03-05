@@ -34,7 +34,7 @@ RANDOM_SEEDS=("0" "1" "2" "3" "4" "0" "1" "2" "3" "4")
 
 use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
-model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 validation_dir_name="${model_dir_name}/isotonic_regression/validation"
 evaluation_file_names=("${validation_dir_name}/by_cloud_regime/no_cloud/percentiles_instead_of_abs_values/evaluation.nc" "${validation_dir_name}/by_cloud_regime/single_layer_cloud/percentiles_instead_of_abs_values/evaluation.nc" "${validation_dir_name}/by_cloud_regime/multi_layer_cloud/percentiles_instead_of_abs_values/evaluation.nc" "${validation_dir_name}/by_cloud_regime/fog/percentiles_instead_of_abs_values/evaluation.nc")
 evaluation_dir_name="${validation_dir_name}/by_cloud_regime/percentiles_instead_of_abs_values/evaluation"

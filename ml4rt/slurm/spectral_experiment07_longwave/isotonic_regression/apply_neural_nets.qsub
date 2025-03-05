@@ -42,7 +42,7 @@ RANDOM_SEEDS=("0" "1" "2" "3" "4" "0" "1" "2" "3" "4")
 
 use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
-model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}"
+model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 
 EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/longwave_spectrally_resolved/isotonic_regression"
 
