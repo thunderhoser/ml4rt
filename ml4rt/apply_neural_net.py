@@ -18,6 +18,7 @@ import prediction_io
 import example_utils
 import normalization
 import neural_net
+import isotonic_regression
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -25,6 +26,7 @@ TIME_FORMAT = '%Y-%m-%d-%H%M%S'
 NUM_EXAMPLES_PER_BATCH = 500
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
+ISO_REG_FILE_ARG_NAME = 'input_iso_reg_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
 LAST_TIME_ARG_NAME = 'last_time_string'
@@ -35,6 +37,12 @@ OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 MODEL_FILE_HELP_STRING = (
     'Path to trained model.  Will be read by `neural_net.read_model`.'
+)
+ISO_REG_FILE_HELP_STRING = (
+    'Path to trained isotonic-regression model, which will be read by '
+    '`isotonic_regression.read_file` and built into the neural net as a custom '
+    'layer at the end.  If you do not want isotonic regression, leave this '
+    'argument alone.'
 )
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with data examples.  Files therein will be found by '
@@ -66,6 +74,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + MODEL_FILE_ARG_NAME, type=str, required=True,
     help=MODEL_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + ISO_REG_FILE_ARG_NAME, type=str, required=False, default='',
+    help=ISO_REG_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=True,
@@ -248,7 +260,8 @@ def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
     )
 
 
-def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
+def _run(model_file_name, iso_reg_model_file_name, example_dir_name,
+         first_time_string, last_time_string,
          num_dropout_iterations, num_bnn_iterations, max_ensemble_size,
          output_file_name):
     """Applies trained neural net in inference mode.
@@ -256,6 +269,7 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
     This is effectively the main method.
 
     :param model_file_name: See documentation at top of file.
+    :param iso_reg_model_file_name: Same.
     :param example_dir_name: Same.
     :param first_time_string: Same.
     :param last_time_string: Same.
@@ -282,6 +296,21 @@ def _run(model_file_name, example_dir_name, first_time_string, last_time_string,
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
+
+    if iso_reg_model_file_name != '':
+        print('Reading isotonic-regression model from: "{0:s}"...'.format(
+            iso_reg_model_file_name
+        ))
+        scalar_model_object_matrix, vector_model_object_matrix = (
+            isotonic_regression.read_file(iso_reg_model_file_name)
+        )
+
+        model_object = isotonic_regression.add_ir_to_neural_net(
+            nn_model_object=model_object,
+            nn_metafile_name=metafile_name,
+            scalar_model_object_matrix=scalar_model_object_matrix,
+            vector_model_object_matrix=vector_model_object_matrix
+        )
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
     metadata_dict = neural_net.read_metafile(metafile_name)
@@ -518,6 +547,9 @@ if __name__ == '__main__':
 
     _run(
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
+        iso_reg_model_file_name=getattr(
+            INPUT_ARG_OBJECT, ISO_REG_FILE_ARG_NAME
+        ),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         first_time_string=getattr(INPUT_ARG_OBJECT, FIRST_TIME_ARG_NAME),
         last_time_string=getattr(INPUT_ARG_OBJECT, LAST_TIME_ARG_NAME),
