@@ -120,7 +120,7 @@ class IsotonicRegressionLayer(keras.layers.Layer):
         ], axis=-1)
 
         num_atomic_target_vars = self.num_atomic_target_vars
-        max_num_thresholds = tensorflow.shape(self.x_threshold_tensor)[1]
+        max_num_thresholds = self.max_num_thresholds
         y_interp_list = []
 
         for j in range(num_atomic_target_vars):
@@ -205,6 +205,183 @@ class IsotonicRegressionLayer(keras.layers.Layer):
         return cls(
             numpy.array(config['x_threshold_tensor']),
             numpy.array(config['y_threshold_tensor'])
+        )
+
+
+class IsotonicRegressionLayerNoPadding(keras.layers.Layer):
+    """For every target variable, applies trained isotonic-regression model.
+
+    E = number of examples (batch size)
+    H = number of heights
+    W = number of wavelengths
+    F = number of flux variables
+    T = number of atomic target variables = W*H + W*F
+    """
+
+    def __init__(self, x_threshold_array_list, y_threshold_array_list,
+                 **kwargs):
+        """Initializer.
+
+        For each isotonic-regression model, the "x-thresholds" are the original
+        (uncorrected) values, and the "y-thresholds" are the new
+        (bias-corrected) values.
+
+        :param x_threshold_array_list: List containing x-thresholds for
+            isotonic-regression models.  This list has length T, and
+            x_threshold_array_list[j] is a 1-D numpy array of x-thresholds in
+            the isotonic-regression model for the [j]th atomic target variable.
+        :param y_threshold_array_list: Same as above but for y-thresholds.
+        :param kwargs: Keyword arguments.
+        """
+
+        super(IsotonicRegressionLayerNoPadding, self).__init__(**kwargs)
+
+        num_atomic_target_vars = len(x_threshold_array_list)
+        max_num_thresholds = max([
+            len(this_array) for this_array in x_threshold_array_list
+        ])
+
+        # Pad all threshold arrays to the same length.
+        num_thresholds_by_atomic_target = numpy.full(
+            num_atomic_target_vars, 0, dtype=numpy.int32
+        )
+        for j in range(num_atomic_target_vars):
+            num_thresholds_by_atomic_target[j] = len(x_threshold_array_list[j])
+
+        # Store lookup tables as non-trainable variables.
+        self.num_atomic_target_vars = num_atomic_target_vars
+        self.max_num_thresholds = max_num_thresholds
+        self.num_thresholds_by_atomic_target = tensorflow.Variable(
+            num_thresholds_by_atomic_target,
+            trainable=False, dtype=tensorflow.int32
+        )
+
+        self.x_thresholds_by_atomic_target = [
+            tensorflow.Variable(
+                these_x, trainable=False, dtype=tensorflow.float32
+            ) for these_x in x_threshold_array_list
+        ]
+        self.y_thresholds_by_atomic_target = [
+            tensorflow.Variable(
+                these_y, trainable=False, dtype=tensorflow.float32
+            ) for these_y in y_threshold_array_list
+        ]
+
+    def call(self, uncorrected_output_tensors):
+        """Implements layer.
+
+        :param uncorrected_output_tensors: length-2 list, where
+            uncorrected_output_tensors[0] has dimensions E x H x W x 1 and
+            contains predicted heating rates, while
+            uncorrected_output_tensors[1] has dimensions E x W x F and
+            contains predicted fluxes.
+        :return: corrected_heating_rate_tensor_k_day01: Bias-corrected version
+            of uncorrected_output_tensors[0].
+        :return: corrected_flux_tensor_w_m02: Bias-corrected version
+            of uncorrected_output_tensors[1].
+        """
+
+        heating_rate_tensor_k_day01, flux_tensor_w_m02 = (
+            uncorrected_output_tensors
+        )
+
+        # Flatten uncorrected outputs to shape E x T.
+        num_examples = tensorflow.shape(heating_rate_tensor_k_day01)[0]
+        uncorrected_output_tensor_flat = tensorflow.concat([
+            tensorflow.reshape(heating_rate_tensor_k_day01, (num_examples, -1)),
+            tensorflow.reshape(flux_tensor_w_m02, (num_examples, -1))
+        ], axis=-1)
+
+        num_atomic_target_vars = self.num_atomic_target_vars
+        max_num_thresholds = self.max_num_thresholds
+        y_interp_list = []
+
+        for j in range(num_atomic_target_vars):
+            x_thresholds = self.x_thresholds_by_atomic_target[j]
+            y_thresholds = self.y_thresholds_by_atomic_target[j]
+            x_values = uncorrected_output_tensor_flat[:, j]
+
+            indices = tensorflow.searchsorted(
+                x_thresholds, x_values, side='left'
+            )
+            indices = tensorflow.clip_by_value(
+                indices, 1, max_num_thresholds - 1
+            )
+
+            x0_tensor = tensorflow.gather(x_thresholds, indices - 1)
+            x1_tensor = tensorflow.gather(x_thresholds, indices)
+            y0_tensor = tensorflow.gather(y_thresholds, indices - 1)
+            y1_tensor = tensorflow.gather(y_thresholds, indices)
+
+            slope_tensor = (
+                (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+            )
+            these_y_interp = y0_tensor + slope_tensor * (x_values - x0_tensor)
+
+            these_y_interp = tensorflow.maximum(these_y_interp, y_thresholds[0])
+            these_y_interp = tensorflow.minimum(
+                these_y_interp, y_thresholds[-1]
+            )
+
+            y_interp_list.append(
+                tensorflow.expand_dims(these_y_interp, axis=-1)
+            )
+
+        # Concatenate the results across the 1806 target variables
+        y_interp_tensor = tensorflow.concat(y_interp_list, axis=-1)
+
+        # Reshape bias-corrected predictions.
+        num_heights = tensorflow.shape(heating_rate_tensor_k_day01)[1]
+        num_wavelengths = tensorflow.shape(heating_rate_tensor_k_day01)[2]
+        num_flux_vars = tensorflow.shape(flux_tensor_w_m02)[-1]
+        num_atomic_heating_rates = num_heights * num_wavelengths
+
+        corrected_heating_rate_tensor_k_day01 = tensorflow.reshape(
+            y_interp_tensor[:, :num_atomic_heating_rates],
+            (num_examples, num_heights, num_wavelengths, 1)
+        )
+        corrected_flux_tensor_w_m02 = tensorflow.reshape(
+            y_interp_tensor[:, num_atomic_heating_rates:],
+            (num_examples, num_wavelengths, num_flux_vars)
+        )
+
+        return (
+            corrected_heating_rate_tensor_k_day01, corrected_flux_tensor_w_m02
+        )
+
+    def get_config(self):
+        """Returns layer configuration."""
+
+        config = super().get_config()
+        config.update({
+            'x_thresholds_by_atomic_target': [
+                xs.numpy().tolist() for xs in self.x_thresholds_by_atomic_target
+            ],
+            'y_thresholds_by_atomic_target': [
+                ys.numpy().tolist() for ys in self.y_thresholds_by_atomic_target
+            ],
+            'num_thresholds_by_atomic_target':
+                self.num_thresholds_by_atomic_target.numpy().tolist(),
+            'num_atomic_target_vars': self.num_atomic_target_vars,
+            'max_num_thresholds': self.max_num_thresholds
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Instantiates layer from configuration.
+
+        I don't know if I actually need this method.
+        """
+
+        # TODO(thunderhoser): Shouldn't `num_thresholds_by_atomic_target` be
+        # involved?  ChatGPT says yes, and it gave me a new version of both
+        # `get_config` and `from_config`, but I'm hesitant to fuck with things
+        # right now.
+
+        return cls(
+            [numpy.array(xs) for xs in config['x_thresholds_by_atomic_target']],
+            [numpy.array(ys) for ys in config['y_thresholds_by_atomic_target']]
         )
 
 
@@ -688,7 +865,7 @@ def add_ir_to_neural_net(
         x_threshold_array_list[j] = x_threshold_array_list[j][unique_indices]
         y_threshold_array_list[j] = y_threshold_array_list[j][unique_indices]
 
-    ir_layer_object = IsotonicRegressionLayer(
+    ir_layer_object = IsotonicRegressionLayerNoPadding(
         x_threshold_array_list=x_threshold_array_list,
         y_threshold_array_list=y_threshold_array_list
     )(nn_model_object.output)
