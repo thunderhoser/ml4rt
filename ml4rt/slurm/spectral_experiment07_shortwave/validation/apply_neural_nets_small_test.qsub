@@ -1,0 +1,56 @@
+#!/bin/bash
+
+#SBATCH --job-name="apply_neural_nets_small_test"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --array=0-9
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_small_test_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/examples_with_correct_vertical_coords/shortwave_spectrally_resolved/validation"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/spectral_experiment07_shortwave"
+
+FIRST_VALIDATION_TIME_STRING="2020-01-01-000000"
+LAST_VALIDATION_TIME_STRING="2020-01-06-000000"
+
+USE_RESIDUAL_FLAGS=("0" "0" "0" "0" "0" "1" "1" "1" "1" "1")
+RANDOM_SEEDS=("0" "1" "2" "3" "4" "0" "1" "2" "3" "4")
+
+use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
+random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
+model_file_name="${model_dir_name}/model.weights.h5"
+prediction_file_name="${model_dir_name}/validation_small_test/predictions.nc"
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_file_name}" \
+--input_example_dir_name="${EXAMPLE_DIR_NAME}" \
+--first_time_string="${FIRST_VALIDATION_TIME_STRING}" \
+--last_time_string="${LAST_VALIDATION_TIME_STRING}" \
+--output_file_name="${prediction_file_name}"
