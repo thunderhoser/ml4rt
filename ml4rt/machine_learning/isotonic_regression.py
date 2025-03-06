@@ -74,6 +74,8 @@ class IsotonicRegressionLayer(keras.layers.Layer):
             y_threshold_matrix[j, this_length:] = y_threshold_array_list[j][-1]
 
         # Store lookup tables as non-trainable variables.
+        self.num_atomic_target_vars = num_atomic_target_vars
+        self.max_num_thresholds = max_num_thresholds
         self.x_threshold_tensor = tensorflow.Variable(
             x_threshold_matrix, trainable=False, dtype=tensorflow.float32
         )
@@ -110,7 +112,7 @@ class IsotonicRegressionLayer(keras.layers.Layer):
             tensorflow.reshape(flux_tensor_w_m02, (num_examples, -1))
         ], axis=-1)
 
-        num_atomic_target_vars = tensorflow.shape(self.x_threshold_tensor)[0]
+        num_atomic_target_vars = self.num_atomic_target_vars
         max_num_thresholds = tensorflow.shape(self.x_threshold_tensor)[1]
         y_interp_list = []
 
@@ -176,6 +178,8 @@ class IsotonicRegressionLayer(keras.layers.Layer):
             'y_threshold_tensor': self.y_threshold_tensor.numpy().tolist(),
             'num_thresholds_by_atomic_target':
                 self.num_thresholds_by_atomic_target.numpy().tolist(),
+            'num_atomic_target_vars': self.num_atomic_target_vars,
+            'max_num_thresholds': self.max_num_thresholds
         })
         return config
 
