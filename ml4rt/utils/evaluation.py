@@ -1388,6 +1388,27 @@ def get_scores_all_variables(
             generator_option_dict[neural_net.NORMALIZATION_FILE_KEY]
         )
 
+    # TODO(thunderhoser): HACK for models that take unnormalized inputs.
+    if normalization_file_name is None:
+        vector_target_names = generator_option_dict[
+            neural_net.VECTOR_TARGET_NAMES_KEY
+        ]
+
+        if example_utils.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
+            normalization_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/examples_with_correct_vertical_coords/'
+                'shortwave_spectrally_resolved/training/'
+                'normalization_params_20180901-20191221.nc'
+            )
+        else:
+            normalization_file_name = (
+                '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/'
+                'gfs_data/examples_with_correct_vertical_coords/'
+                'longwave_spectrally_resolved/training/'
+                'normalization_params_20180901-20191221.nc'
+            )
+
     print('Reading normalization params from: "{0:s}"...'.format(
         normalization_file_name
     ))
