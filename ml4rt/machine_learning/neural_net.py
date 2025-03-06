@@ -2532,6 +2532,8 @@ def apply_model(
                     predictor_matrix_or_list[these_indices, ...]
                 )
 
+        if isinstance(this_output, tuple):
+            this_output = list(this_output)
         if not isinstance(this_output, list):
             this_output = [this_output]
 
