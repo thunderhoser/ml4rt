@@ -2539,11 +2539,10 @@ def apply_model(
                 )
 
         print(type(this_output))
-
-        if not isinstance(this_output, list):
-            this_output = [this_output]
         if isinstance(this_output, tuple):
             this_output = list(this_output)
+        if not isinstance(this_output, list):
+            this_output = [this_output]
 
         # Add ensemble dimension if necessary.
         if len(this_output[0].shape) == 4:
