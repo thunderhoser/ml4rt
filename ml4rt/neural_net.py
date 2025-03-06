@@ -2569,7 +2569,7 @@ def apply_model(
     if verbose:
         print('Have applied NN to all {0:d} examples!'.format(num_examples))
 
-    vector_prediction_matrix = numpy.maximum(vector_prediction_matrix, 0.)
+    # vector_prediction_matrix = numpy.maximum(vector_prediction_matrix, 0.)
 
     if scalar_prediction_matrix is None:
         num_examples = vector_prediction_matrix.shape[0]

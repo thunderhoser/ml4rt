@@ -242,6 +242,7 @@ def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
         time.time() - exec_start_time_unix_sec
     ))
 
+    print(numpy.min(prediction_dict[neural_net.HEATING_RATE_TARGETS_KEY]))
     print(prediction_dict[neural_net.HEATING_RATE_TARGETS_KEY][0, :10, -1, 0, 0])
 
     return (
