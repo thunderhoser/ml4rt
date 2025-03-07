@@ -512,12 +512,23 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
             y_threshold_tensor_expanded, index_tensor,
             axis=2, batch_dims=2
         )
+        y_min_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded, tensorflow.minimum(index_tensor, 0),
+            axis=2, batch_dims=2
+        )
+        y_max_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded,
+            tensorflow.maximum(index_tensor, max_num_thresholds - 1),
+            axis=2, batch_dims=2
+        )
 
         # Do the linear interpolation.
         slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
         y_interp_tensor = y0_tensor + slope_tensor * (
             uncorrected_output_tensor_flat[..., None] - x0_tensor
         )
+        y_interp_tensor = tensorflow.maximum(y_interp_tensor, y_min_tensor)
+        y_interp_tensor = tensorflow.minimum(y_interp_tensor, y_max_tensor)
 
         # Reshape bias-corrected predictions.
         num_heights = tensorflow.shape(heating_rate_tensor_k_day01)[1]
