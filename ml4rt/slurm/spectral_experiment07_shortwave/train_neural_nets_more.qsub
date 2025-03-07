@@ -42,7 +42,7 @@ RANDOM_SEEDS=("0" "1" "2" "3" "4" "0" "1" "2" "3" "4")
 use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
-template_file_name="${TEMPLATE_DIR_NAME}/use-residual=${use_residual_flag}/model.weights.h5"
+template_file_name="${TEMPLATE_DIR_NAME}/use-residual=${use_residual_flag}/model.keras"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 echo $output_dir_name
 
