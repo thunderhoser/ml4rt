@@ -68,7 +68,7 @@ while true; do
     --normalize_vector_targets=0 \
     --normalize_scalar_targets=0 \
     --num_examples_per_batch=724 \
-    --num_epochs=1000 \
+    --num_epochs=3000 \
     --num_training_batches_per_epoch=1000 \
     --num_validn_batches_per_epoch=1000 \
     --early_stopping_patience_epochs=10000 \
