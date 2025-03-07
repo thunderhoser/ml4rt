@@ -73,7 +73,7 @@ def _run(input_nn_file_name, iso_reg_file_name, output_nn_dir_name):
     )
 
     print('Reading suite of isotonic-regression models from: "{0:s}"...'.format(
-        isotonic_regression
+        iso_reg_file_name
     ))
     scalar_ir_model_matrix, vector_ir_model_matrix = (
         isotonic_regression.read_file(iso_reg_file_name)
