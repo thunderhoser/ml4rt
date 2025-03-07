@@ -182,58 +182,6 @@ def _write_predictors_and_predictions(
     )
 
 
-def _does_nn_predict_all_wavelengths(model_metadata_dict):
-    """Determines whether NN predicts all wavelengths in short/longwv spectrum.
-
-    :param model_metadata_dict: Dictionary returned by
-        `neural_net.read_metafile`.
-    :return: nn_predicts_all_wavelengths: Boolean flag.
-    """
-
-    generator_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    goptd = generator_option_dict
-    vector_target_names = goptd[neural_net.VECTOR_TARGET_NAMES_KEY]
-    target_wavelengths_metres = goptd[neural_net.TARGET_WAVELENGTHS_KEY]
-
-    if example_utils.SHORTWAVE_HEATING_RATE_NAME in vector_target_names:
-        all_wavelengths_metres = rrtm_io.SHORTWAVE_WAVELENGTHS_METRES + 0.
-        k = example_utils.match_wavelengths(
-            wavelengths_metres=all_wavelengths_metres,
-            desired_wavelength_metres=
-            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
-        )
-        all_wavelengths_metres = numpy.delete(all_wavelengths_metres, k)
-
-        if len(all_wavelengths_metres) != len(target_wavelengths_metres):
-            return False
-
-        return numpy.allclose(
-            numpy.sort(all_wavelengths_metres),
-            numpy.sort(target_wavelengths_metres),
-            atol=5e-7
-        )
-
-    if example_utils.LONGWAVE_HEATING_RATE_NAME in vector_target_names:
-        all_wavelengths_metres = rrtm_io.LONGWAVE_WAVELENGTHS_METRES + 0.
-        k = example_utils.match_wavelengths(
-            wavelengths_metres=all_wavelengths_metres,
-            desired_wavelength_metres=
-            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
-        )
-        all_wavelengths_metres = numpy.delete(all_wavelengths_metres, k)
-
-        if len(all_wavelengths_metres) != len(target_wavelengths_metres):
-            return False
-
-        return numpy.allclose(
-            numpy.sort(all_wavelengths_metres),
-            numpy.sort(target_wavelengths_metres),
-            atol=5e-7
-        )
-
-    return False
-
-
 def _targets_numpy_to_dict(
         scalar_target_matrix, vector_target_matrix, model_metadata_dict):
     """Converts either actual or predicted target values to dictionary.
@@ -249,9 +197,6 @@ def _targets_numpy_to_dict(
     # TODO(thunderhoser): These "to_dict" methods should probably say
     # "to_example_dict".
 
-    nn_predicts_all_wavelengths = _does_nn_predict_all_wavelengths(
-        model_metadata_dict
-    )
     generator_option_dict = copy.deepcopy(
         model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     )
@@ -261,28 +206,6 @@ def _targets_numpy_to_dict(
         num_wavelengths = vector_target_matrix.shape[2]
         scalar_target_matrix = numpy.full(
             (num_examples, num_wavelengths, 0), 0.
-        )
-
-    if nn_predicts_all_wavelengths:
-        goptd = generator_option_dict
-        goptd[neural_net.TARGET_WAVELENGTHS_KEY] = numpy.concatenate([
-            goptd[neural_net.TARGET_WAVELENGTHS_KEY],
-            numpy.array([example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES])
-        ])
-        generator_option_dict = goptd
-
-        bb_scalar_target_matrix = numpy.sum(
-            scalar_target_matrix, axis=1, keepdims=True
-        )
-        scalar_target_matrix = numpy.concatenate(
-            [scalar_target_matrix, bb_scalar_target_matrix], axis=1
-        )
-
-        bb_vector_target_matrix = numpy.sum(
-            vector_target_matrix, axis=2, keepdims=True
-        )
-        vector_target_matrix = numpy.concatenate(
-            [vector_target_matrix, bb_vector_target_matrix], axis=2
         )
 
     example_dict = {
