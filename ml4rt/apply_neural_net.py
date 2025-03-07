@@ -27,6 +27,7 @@ NUM_EXAMPLES_PER_BATCH = 500
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 ISO_REG_FILE_ARG_NAME = 'input_iso_reg_file_name'
+ISO_REG_LAYER_TYPE_ARG_NAME = 'iso_reg_layer_type_string'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
 FIRST_TIME_ARG_NAME = 'first_time_string'
 LAST_TIME_ARG_NAME = 'last_time_string'
@@ -43,6 +44,12 @@ ISO_REG_FILE_HELP_STRING = (
     '`isotonic_regression.read_file` and built into the neural net as a custom '
     'layer at the end.  If you do not want isotonic regression, leave this '
     'argument alone.'
+)
+ISO_REG_LAYER_TYPE_HELP_STRING = (
+    '[used only if {0:s} is non-empty] Layer type ("default", "no_padding", '
+    'or "memory_heavy").'
+).format(
+    ISO_REG_FILE_ARG_NAME
 )
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with data examples.  Files therein will be found by '
@@ -78,6 +85,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + ISO_REG_FILE_ARG_NAME, type=str, required=False, default='',
     help=ISO_REG_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + ISO_REG_LAYER_TYPE_ARG_NAME, type=str, required=False,
+    default='default', help=ISO_REG_LAYER_TYPE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + EXAMPLE_DIR_ARG_NAME, type=str, required=True,
@@ -260,8 +271,8 @@ def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
     )
 
 
-def _run(model_file_name, iso_reg_model_file_name, example_dir_name,
-         first_time_string, last_time_string,
+def _run(model_file_name, iso_reg_model_file_name, iso_reg_layer_type_string,
+         example_dir_name, first_time_string, last_time_string,
          num_dropout_iterations, num_bnn_iterations, max_ensemble_size,
          output_file_name):
     """Applies trained neural net in inference mode.
@@ -270,6 +281,7 @@ def _run(model_file_name, iso_reg_model_file_name, example_dir_name,
 
     :param model_file_name: See documentation at top of file.
     :param iso_reg_model_file_name: Same.
+    :param iso_reg_layer_type_string: Same.
     :param example_dir_name: Same.
     :param first_time_string: Same.
     :param last_time_string: Same.
@@ -309,7 +321,8 @@ def _run(model_file_name, iso_reg_model_file_name, example_dir_name,
             nn_model_object=model_object,
             nn_metafile_name=metafile_name,
             scalar_model_object_matrix=scalar_model_object_matrix,
-            vector_model_object_matrix=vector_model_object_matrix
+            vector_model_object_matrix=vector_model_object_matrix,
+            layer_type_string=iso_reg_layer_type_string
         )
 
     print('Reading metadata from: "{0:s}"...'.format(metafile_name))
@@ -549,6 +562,9 @@ if __name__ == '__main__':
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         iso_reg_model_file_name=getattr(
             INPUT_ARG_OBJECT, ISO_REG_FILE_ARG_NAME
+        ),
+        iso_reg_layer_type_string=getattr(
+            INPUT_ARG_OBJECT, ISO_REG_LAYER_TYPE_ARG_NAME
         ),
         example_dir_name=getattr(INPUT_ARG_OBJECT, EXAMPLE_DIR_ARG_NAME),
         first_time_string=getattr(INPUT_ARG_OBJECT, FIRST_TIME_ARG_NAME),

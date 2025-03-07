@@ -385,6 +385,193 @@ class IsotonicRegressionLayerNoPadding(keras.layers.Layer):
         )
 
 
+class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
+    """For every target variable, applies trained isotonic-regression model.
+
+    E = number of examples (batch size)
+    H = number of heights
+    W = number of wavelengths
+    F = number of flux variables
+    T = number of atomic target variables = W*H + W*F
+    """
+
+    def __init__(self, x_threshold_array_list, y_threshold_array_list,
+                 **kwargs):
+        """Initializer.
+
+        For each isotonic-regression model, the "x-thresholds" are the original
+        (uncorrected) values, and the "y-thresholds" are the new
+        (bias-corrected) values.
+
+        :param x_threshold_array_list: List containing x-thresholds for
+            isotonic-regression models.  This list has length T, and
+            x_threshold_array_list[j] is a 1-D numpy array of x-thresholds in
+            the isotonic-regression model for the [j]th atomic target variable.
+        :param y_threshold_array_list: Same as above but for y-thresholds.
+        :param kwargs: Keyword arguments.
+        """
+
+        super(IsotonicRegressionLayerMemoryHeavy, self).__init__(**kwargs)
+
+        num_atomic_target_vars = len(x_threshold_array_list)
+        max_num_thresholds = max([
+            len(this_array) for this_array in x_threshold_array_list
+        ])
+
+        # Pad all threshold arrays to the same length.
+        x_threshold_matrix = numpy.full(
+            (num_atomic_target_vars, max_num_thresholds),
+            numpy.nan, dtype=numpy.float32
+        )
+        y_threshold_matrix = numpy.full(
+            (num_atomic_target_vars, max_num_thresholds),
+            numpy.nan, dtype=numpy.float32
+        )
+        num_thresholds_by_atomic_target = numpy.full(
+            num_atomic_target_vars, 0, dtype=numpy.int32
+        )
+
+        for j in range(num_atomic_target_vars):
+            this_length = len(x_threshold_array_list[j])
+            num_thresholds_by_atomic_target[j] = this_length
+
+            x_threshold_matrix[j, :this_length] = x_threshold_array_list[j]
+            y_threshold_matrix[j, :this_length] = y_threshold_array_list[j]
+
+            if this_length == max_num_thresholds:
+                continue
+
+            x_threshold_matrix[j, this_length:] = x_threshold_array_list[j][-1]
+            y_threshold_matrix[j, this_length:] = y_threshold_array_list[j][-1]
+
+        # Store lookup tables as non-trainable variables.
+        self.num_atomic_target_vars = num_atomic_target_vars
+        self.max_num_thresholds = max_num_thresholds
+        self.x_threshold_tensor = tensorflow.Variable(
+            x_threshold_matrix, trainable=False, dtype=tensorflow.float32
+        )
+        self.y_threshold_tensor = tensorflow.Variable(
+            y_threshold_matrix, trainable=False, dtype=tensorflow.float32
+        )
+        self.num_thresholds_by_atomic_target = tensorflow.Variable(
+            num_thresholds_by_atomic_target,
+            trainable=False, dtype=tensorflow.int32
+        )
+
+    def call(self, uncorrected_output_tensors):
+        """Implements layer.
+
+        :param uncorrected_output_tensors: length-2 list, where
+            uncorrected_output_tensors[0] has dimensions E x H x W x 1 and
+            contains predicted heating rates, while
+            uncorrected_output_tensors[1] has dimensions E x W x F and
+            contains predicted fluxes.
+        :return: corrected_heating_rate_tensor_k_day01: Bias-corrected version
+            of uncorrected_output_tensors[0].
+        :return: corrected_flux_tensor_w_m02: Bias-corrected version
+            of uncorrected_output_tensors[1].
+        """
+
+        heating_rate_tensor_k_day01, flux_tensor_w_m02 = (
+            uncorrected_output_tensors
+        )
+
+        # Flatten uncorrected outputs to shape E x T.
+        num_examples = tensorflow.shape(heating_rate_tensor_k_day01)[0]
+        uncorrected_output_tensor_flat = tensorflow.concat([
+            tensorflow.reshape(heating_rate_tensor_k_day01, (num_examples, -1)),
+            tensorflow.reshape(flux_tensor_w_m02, (num_examples, -1))
+        ], axis=-1)
+
+        # Expand threshold matrices to match batch size.
+        x_threshold_tensor_expanded = tensorflow.tile(
+            self.x_threshold_tensor[None, :, :], [num_examples, 1, 1]
+        )
+        y_threshold_tensor_expanded = tensorflow.tile(
+            self.y_threshold_tensor[None, :, :], [num_examples, 1, 1]
+        )
+
+        # Find relevant thresholds.
+        index_tensor = tensorflow.searchsorted(
+            x_threshold_tensor_expanded,
+            uncorrected_output_tensor_flat[..., None], side='left'
+        )
+
+        max_num_thresholds = self.max_num_thresholds
+        index_tensor = tensorflow.clip_by_value(
+            index_tensor, 1, max_num_thresholds - 1
+        )
+
+        # Gather relevant x (uncorrected) and y (bias-corrected) values.
+        x0_tensor = tensorflow.gather(
+            x_threshold_tensor_expanded, index_tensor - 1,
+            axis=2, batch_dims=2
+        )
+        x1_tensor = tensorflow.gather(
+            x_threshold_tensor_expanded, index_tensor,
+            axis=2, batch_dims=2
+        )
+        y0_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded, index_tensor - 1,
+            axis=2, batch_dims=2
+        )
+        y1_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded, index_tensor,
+            axis=2, batch_dims=2
+        )
+
+        # Do the linear interpolation.
+        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+        y_interp_tensor = y0_tensor + slope_tensor * (
+            uncorrected_output_tensor_flat[..., None] - x0_tensor
+        )
+
+        # Reshape bias-corrected predictions.
+        num_heights = tensorflow.shape(heating_rate_tensor_k_day01)[1]
+        num_wavelengths = tensorflow.shape(heating_rate_tensor_k_day01)[2]
+        num_flux_vars = tensorflow.shape(flux_tensor_w_m02)[-1]
+        num_atomic_heating_rates = num_heights * num_wavelengths
+
+        corrected_heating_rate_tensor_k_day01 = tensorflow.reshape(
+            y_interp_tensor[:, :num_atomic_heating_rates],
+            (num_examples, num_heights, num_wavelengths, 1)
+        )
+        corrected_flux_tensor_w_m02 = tensorflow.reshape(
+            y_interp_tensor[:, num_atomic_heating_rates:],
+            (num_examples, num_wavelengths, num_flux_vars)
+        )
+
+        return (
+            corrected_heating_rate_tensor_k_day01, corrected_flux_tensor_w_m02
+        )
+
+    def get_config(self):
+        """Returns layer configuration."""
+
+        config = super().get_config()
+        config.update({
+            'x_threshold_tensor': self.x_threshold_tensor.numpy().tolist(),
+            'y_threshold_tensor': self.y_threshold_tensor.numpy().tolist(),
+            'num_thresholds_by_atomic_target':
+                self.num_thresholds_by_atomic_target.numpy().tolist(),
+            'num_atomic_target_vars': self.num_atomic_target_vars,
+            'max_num_thresholds': self.max_num_thresholds
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Instantiates layer from configuration.
+
+        I don't know if I actually need this method.
+        """
+
+        return cls(
+            numpy.array(config['x_threshold_tensor']),
+            numpy.array(config['y_threshold_tensor'])
+        )
+
+
 def train_models(
         orig_vector_prediction_matrix, orig_scalar_prediction_matrix,
         vector_target_matrix, scalar_target_matrix):
@@ -803,7 +990,7 @@ def read_file(dill_file_name):
 
 def add_ir_to_neural_net(
         nn_model_object, nn_metafile_name, scalar_model_object_matrix,
-        vector_model_object_matrix):
+        vector_model_object_matrix, layer_type_string='default'):
     """Adds suite of trained isotonic-regression models to trained neural net.
 
     :param nn_model_object: Trained instance of `keras.models.Model` or
@@ -812,6 +999,8 @@ def add_ir_to_neural_net(
         (will be read by `neural_net.read_metafile`).
     :param scalar_model_object_matrix: See doc for `train_models`.
     :param vector_model_object_matrix: Same.
+    :param layer_type_string: Type of isotonic-regression layer ("default",
+        "no_padding", or "memory_heavy").
     :return: nn_model_object: Same as input, except with isotonic regression
         built in.
     """
@@ -865,10 +1054,21 @@ def add_ir_to_neural_net(
         x_threshold_array_list[j] = x_threshold_array_list[j][unique_indices]
         y_threshold_array_list[j] = y_threshold_array_list[j][unique_indices]
 
-    ir_layer_object = IsotonicRegressionLayerNoPadding(
-        x_threshold_array_list=x_threshold_array_list,
-        y_threshold_array_list=y_threshold_array_list
-    )(nn_model_object.output)
+    if layer_type_string == 'default':
+        ir_layer_object = IsotonicRegressionLayer(
+            x_threshold_array_list=x_threshold_array_list,
+            y_threshold_array_list=y_threshold_array_list
+        )(nn_model_object.output)
+    elif layer_type_string == 'no_padding':
+        ir_layer_object = IsotonicRegressionLayerNoPadding(
+            x_threshold_array_list=x_threshold_array_list,
+            y_threshold_array_list=y_threshold_array_list
+        )(nn_model_object.output)
+    elif layer_type_string == 'memory_heavy':
+        ir_layer_object = IsotonicRegressionLayerMemoryHeavy(
+            x_threshold_array_list=x_threshold_array_list,
+            y_threshold_array_list=y_threshold_array_list
+        )(nn_model_object.output)
 
     nn_model_object = keras.models.Model(
         inputs=nn_model_object.input, outputs=ir_layer_object
