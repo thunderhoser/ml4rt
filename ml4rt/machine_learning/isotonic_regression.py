@@ -1042,7 +1042,7 @@ def add_ir_to_neural_net(
         numpy.ravel(scalar_model_object_matrix)
     ])
     num_models = len(model_objects)
-    
+
     x_threshold_array_list = numpy.array(
         [mdl.X_thresholds_ for mdl in model_objects], dtype=object
     )
