@@ -20,6 +20,8 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import neural_net
 import isotonic_regression
 
+NONE_STRINGS = ['', 'none', 'None']
+
 INPUT_NN_FILE_ARG_NAME = 'input_nn_file_name'
 ISO_REG_FILE_ARG_NAME = 'input_iso_reg_file_name'
 FLATTEN_OUTPUT_ARG_NAME = 'flatten_output'
@@ -31,7 +33,8 @@ INPUT_NN_FILE_HELP_STRING = (
 )
 ISO_REG_FILE_HELP_STRING = (
     'Path to trained suite of isotonic-regression models.  Will be read by '
-    '`isotonic_regression.read_file`.'
+    '`isotonic_regression.read_file`.  If this argument is empty, isotonic '
+    'regression will NOT be baked in.'
 )
 FLATTEN_OUTPUT_HELP_STRING = (
     'Boolean flag.  If 1, will flatten output layer to be two-dimensional '
@@ -73,6 +76,9 @@ def _run(input_nn_file_name, iso_reg_file_name, flatten_output,
     :param output_nn_dir_name: Same.
     """
 
+    if iso_reg_file_name in NONE_STRINGS:
+        iso_reg_file_name = None
+
     print('Reading basic neural net from: "{0:s}"...'.format(
         input_nn_file_name
     ))
@@ -83,19 +89,22 @@ def _run(input_nn_file_name, iso_reg_file_name, flatten_output,
         raise_error_if_missing=True
     )
 
-    print('Reading suite of isotonic-regression models from: "{0:s}"...'.format(
-        iso_reg_file_name
-    ))
-    scalar_ir_model_matrix, vector_ir_model_matrix = (
-        isotonic_regression.read_file(iso_reg_file_name)
-    )
+    if iso_reg_file_name is not None:
+        print((
+            'Reading suite of isotonic-regression models from: "{0:s}"...'
+        ).format(
+            iso_reg_file_name
+        ))
+        scalar_ir_model_matrix, vector_ir_model_matrix = (
+            isotonic_regression.read_file(iso_reg_file_name)
+        )
 
-    nn_model_object = isotonic_regression.add_ir_to_neural_net(
-        nn_model_object=nn_model_object,
-        nn_metafile_name=nn_metafile_name,
-        scalar_model_object_matrix=scalar_ir_model_matrix,
-        vector_model_object_matrix=vector_ir_model_matrix
-    )
+        nn_model_object = isotonic_regression.add_ir_to_neural_net(
+            nn_model_object=nn_model_object,
+            nn_metafile_name=nn_metafile_name,
+            scalar_model_object_matrix=scalar_ir_model_matrix,
+            vector_model_object_matrix=vector_ir_model_matrix
+        )
 
     hr_output_layer_object = nn_model_object.output[0][..., 0]
     flux_output_layer_object = nn_model_object.output[1]
