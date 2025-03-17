@@ -2529,6 +2529,8 @@ def apply_model(
             else:
                 this_output = this_output.numpy()
         else:
+            intermediate_layer_model = keras.models.Model(inputs=model_object.input, outputs=model_object.get_layer('z_score_normalization').output)
+
             if isinstance(predictor_matrix_or_list, list):
                 this_output = model_object.predict_on_batch(
                     [p[these_indices, ...] for p in predictor_matrix_or_list]
@@ -2537,6 +2539,9 @@ def apply_model(
                 this_output = model_object.predict_on_batch(
                     predictor_matrix_or_list[these_indices, ...]
                 )
+
+            print(numpy.min(this_output))
+            print(numpy.max(this_output))
 
         if isinstance(this_output, tuple):
             this_output = list(this_output)
