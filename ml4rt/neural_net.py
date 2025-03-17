@@ -2540,8 +2540,9 @@ def apply_model(
                     predictor_matrix_or_list[these_indices, ...]
                 )
 
-            print(this_output.shape)
-            print(numpy.percentile(this_output, [0, 0.01, 0.1, 1, 99, 99.9, 99.99, 100]))
+            bad_indices_tuple = numpy.where(numpy.absolute(this_output) > 5)
+            print(numpy.unique(bad_indices_tuple[1]))
+            print(numpy.unique(bad_indices_tuple[2]))
 
         if isinstance(this_output, tuple):
             this_output = list(this_output)
