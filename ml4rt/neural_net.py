@@ -2541,8 +2541,7 @@ def apply_model(
                 )
 
             print(this_output)
-            print(numpy.min(this_output))
-            print(numpy.max(this_output))
+            print(numpy.percentile(this_output, [0, 0.01, 0.1, 1, 99, 99.9, 99.99, 100]))
 
         if isinstance(this_output, tuple):
             this_output = list(this_output)
