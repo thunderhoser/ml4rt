@@ -2541,8 +2541,11 @@ def apply_model(
                 )
 
             bad_indices_tuple = numpy.where(numpy.absolute(this_output) > 5)
-            print(numpy.unique(bad_indices_tuple[1]))
-            print(numpy.unique(bad_indices_tuple[2]))
+
+            for k in range(len(bad_indices_tuple[0])):
+                print('{0:d}, {1:d}'.format(
+                    bad_indices_tuple[1][k], bad_indices_tuple[2][k]
+                ))
 
         if isinstance(this_output, tuple):
             this_output = list(this_output)
