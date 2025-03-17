@@ -141,6 +141,9 @@ class ZScoreNormalization(keras.layers.Layer):
             inputs
         )
 
+        inputs = tensorflow.minimum(inputs, 5.)
+        inputs = tensorflow.maximum(inputs, -5.)
+
         return inputs
 
     def get_config(self):
