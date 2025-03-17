@@ -2540,6 +2540,7 @@ def apply_model(
                     predictor_matrix_or_list[these_indices, ...]
                 )
 
+            print(this_output)
             print(numpy.min(this_output))
             print(numpy.max(this_output))
 
