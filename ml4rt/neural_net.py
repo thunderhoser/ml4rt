@@ -2532,11 +2532,11 @@ def apply_model(
             intermediate_layer_model = keras.models.Model(inputs=model_object.input, outputs=model_object.get_layer('z_score_normalization').output)
 
             if isinstance(predictor_matrix_or_list, list):
-                this_output = model_object.predict_on_batch(
+                this_output = intermediate_layer_model.predict_on_batch(
                     [p[these_indices, ...] for p in predictor_matrix_or_list]
                 )
             else:
-                this_output = model_object.predict_on_batch(
+                this_output = intermediate_layer_model.predict_on_batch(
                     predictor_matrix_or_list[these_indices, ...]
                 )
 
