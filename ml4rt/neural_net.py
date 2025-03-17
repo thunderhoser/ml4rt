@@ -2540,7 +2540,7 @@ def apply_model(
                     predictor_matrix_or_list[these_indices, ...]
                 )
 
-            print(this_output)
+            print(this_output.shape)
             print(numpy.percentile(this_output, [0, 0.01, 0.1, 1, 99, 99.9, 99.99, 100]))
 
         if isinstance(this_output, tuple):
