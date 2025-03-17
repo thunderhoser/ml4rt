@@ -2543,6 +2543,9 @@ def apply_model(
             bad_indices_tuple = numpy.where(numpy.absolute(this_output) > 5)
 
             for k in range(len(bad_indices_tuple[0])):
+                if bad_indices_tuple[0][k] != 0:
+                    continue
+
                 print('{0:d}, {1:d}'.format(
                     bad_indices_tuple[1][k], bad_indices_tuple[2][k]
                 ))
