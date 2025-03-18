@@ -24,6 +24,7 @@ NONE_STRINGS = ['', 'none', 'None']
 
 INPUT_NN_FILE_ARG_NAME = 'input_nn_file_name'
 ISO_REG_FILE_ARG_NAME = 'input_iso_reg_file_name'
+ISO_REG_LAYER_TYPE_ARG_NAME = 'iso_reg_layer_type_string'
 FLATTEN_OUTPUT_ARG_NAME = 'flatten_output'
 OUTPUT_NN_DIR_ARG_NAME = 'output_nn_dir_name'
 
@@ -35,6 +36,12 @@ ISO_REG_FILE_HELP_STRING = (
     'Path to trained suite of isotonic-regression models.  Will be read by '
     '`isotonic_regression.read_file`.  If this argument is empty, isotonic '
     'regression will NOT be baked in.'
+)
+ISO_REG_LAYER_TYPE_HELP_STRING = (
+    '[used only if {0:s} is non-empty] Layer type, which must be in the '
+    'following list:\n{1:s}'
+).format(
+    ISO_REG_FILE_ARG_NAME, str(isotonic_regression.VALID_LAYER_TYPE_STRINGS)
 )
 FLATTEN_OUTPUT_HELP_STRING = (
     'Boolean flag.  If 1, will flatten output layer to be two-dimensional '
@@ -55,6 +62,10 @@ INPUT_ARG_PARSER.add_argument(
     help=ISO_REG_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + ISO_REG_LAYER_TYPE_ARG_NAME, type=str, required=False,
+    default='default', help=ISO_REG_LAYER_TYPE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + FLATTEN_OUTPUT_ARG_NAME, type=int, required=False, default=0,
     help=FLATTEN_OUTPUT_HELP_STRING
 )
@@ -64,14 +75,15 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_nn_file_name, iso_reg_file_name, flatten_output,
-         output_nn_dir_name):
+def _run(input_nn_file_name, iso_reg_file_name, iso_reg_layer_type_string,
+         flatten_output, output_nn_dir_name):
     """Converts neural net and isotonic regression to a single Tensorflow model.
 
     This is effectively the main method.
 
     :param input_nn_file_name: See documentation at top of this script.
     :param iso_reg_file_name: Same.
+    :param iso_reg_layer_type_string: Same.
     :param flatten_output: Same.
     :param output_nn_dir_name: Same.
     """
@@ -103,7 +115,8 @@ def _run(input_nn_file_name, iso_reg_file_name, flatten_output,
             nn_model_object=nn_model_object,
             nn_metafile_name=nn_metafile_name,
             scalar_model_object_matrix=scalar_ir_model_matrix,
-            vector_model_object_matrix=vector_ir_model_matrix
+            vector_model_object_matrix=vector_ir_model_matrix,
+            layer_type_string=iso_reg_layer_type_string
         )
 
     hr_output_layer_object = nn_model_object.output[0][..., 0]
@@ -135,6 +148,9 @@ if __name__ == '__main__':
     _run(
         input_nn_file_name=getattr(INPUT_ARG_OBJECT, INPUT_NN_FILE_ARG_NAME),
         iso_reg_file_name=getattr(INPUT_ARG_OBJECT, ISO_REG_FILE_ARG_NAME),
+        iso_reg_layer_type_string=getattr(
+            INPUT_ARG_OBJECT, ISO_REG_LAYER_TYPE_ARG_NAME
+        ),
         flatten_output=bool(getattr(INPUT_ARG_OBJECT, FLATTEN_OUTPUT_ARG_NAME)),
         output_nn_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_NN_DIR_ARG_NAME)
     )

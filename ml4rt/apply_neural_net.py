@@ -46,10 +46,10 @@ ISO_REG_FILE_HELP_STRING = (
     'argument alone.'
 )
 ISO_REG_LAYER_TYPE_HELP_STRING = (
-    '[used only if {0:s} is non-empty] Layer type ("default", "no_padding", '
-    '"memory_heavy", or "no_searchsorted").'
+    '[used only if {0:s} is non-empty] Layer type, which must be in the '
+    'following list:\n{1:s}'
 ).format(
-    ISO_REG_FILE_ARG_NAME
+    ISO_REG_FILE_ARG_NAME, str(isotonic_regression.VALID_LAYER_TYPE_STRINGS)
 )
 EXAMPLE_DIR_HELP_STRING = (
     'Name of directory with data examples.  Files therein will be found by '
