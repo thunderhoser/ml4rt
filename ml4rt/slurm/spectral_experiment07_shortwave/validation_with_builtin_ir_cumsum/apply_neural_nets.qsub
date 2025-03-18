@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="apply_neural_nets"
-#SBATCH --partition="bigmem"
-#SBATCH --account="gsd-hpcs"
-#SBATCH --qos="batch"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=02:00:00
-#SBATCH --array=4
+#SBATCH --array=0-9
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -46,12 +46,12 @@ random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 model_file_name="${model_dir_name}/model.weights.h5"
-prediction_file_name="${model_dir_name}/isotonic_regression_builtin/validation/predictions.nc"
+prediction_file_name="${model_dir_name}/isotonic_regression_builtin_cumsum/validation/predictions.nc"
 
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_file_name}" \
 --input_iso_reg_file_name="${model_dir_name}/isotonic_regression/isotonic_regression.dill" \
---iso_reg_layer_type_string="memory_heavy" \
+--iso_reg_layer_type_string="cumsum" \
 --input_example_dir_name="${EXAMPLE_DIR_NAME}" \
 --first_time_string="${FIRST_VALIDATION_TIME_STRING}" \
 --last_time_string="${LAST_VALIDATION_TIME_STRING}" \

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name="convert_model_to_onnx_flat"
-#SBATCH --partition="bigmem"
-#SBATCH --account="gsd-hpcs"
-#SBATCH --qos="batch"
+#SBATCH --job-name="convert_model_to_onnx_flat_no_ir"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=convert_model_to_onnx_flat_%A_%a.out
+#SBATCH --output=convert_model_to_onnx_flat_no_ir_%A_%a.out
 
 module load cuda/12.3.1
 conda init
@@ -41,7 +41,7 @@ use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
-tensorflow_model_dir_name="${model_dir_name}/tensorflow_model_flattened_output"
-onnx_model_file_name="${model_dir_name}/tensorflow_model_flattened_output/model.onnx"
+tensorflow_model_dir_name="${model_dir_name}/tensorflow_model_flattened_output_no_ir"
+onnx_model_file_name="${model_dir_name}/tensorflow_model_flattened_output_no_ir/model.onnx"
 
 python3 -m tf2onnx.convert --saved-model "${tensorflow_model_dir_name}" --output "${onnx_model_file_name}"
