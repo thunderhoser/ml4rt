@@ -57,7 +57,7 @@ ISO_REG_FILE_HELP_STRING = (
 )
 ISO_REG_LAYER_TYPE_HELP_STRING = (
     '[used only if {0:s} is non-empty] Layer type ("default", "no_padding", '
-    'or "memory_heavy").'
+    '"memory_heavy", or "no_searchsorted").'
 ).format(
     ISO_REG_FILE_ARG_NAME
 )

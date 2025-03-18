@@ -583,7 +583,7 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
 
-class IsotonicRegressionLayerMemoryHeavyNew(keras.layers.Layer):
+class IsotonicRegressionLayerNoSS(keras.layers.Layer):
     """For every target variable, applies trained isotonic-regression model.
 
     E = number of examples (batch size)
@@ -609,7 +609,7 @@ class IsotonicRegressionLayerMemoryHeavyNew(keras.layers.Layer):
         :param kwargs: Keyword arguments.
         """
 
-        super(IsotonicRegressionLayerMemoryHeavy, self).__init__(**kwargs)
+        super(IsotonicRegressionLayerNoSS, self).__init__(**kwargs)
 
         num_atomic_target_vars = len(x_threshold_array_list)
         max_num_thresholds = max([
@@ -1298,6 +1298,11 @@ def add_ir_to_neural_net(
         )(nn_model_object.output)
     elif layer_type_string == 'memory_heavy':
         ir_layer_object = IsotonicRegressionLayerMemoryHeavy(
+            x_threshold_array_list=x_threshold_array_list,
+            y_threshold_array_list=y_threshold_array_list
+        )(nn_model_object.output)
+    elif layer_type_string == 'no_searchsorted':
+        ir_layer_object = IsotonicRegressionLayerNoSS(
             x_threshold_array_list=x_threshold_array_list,
             y_threshold_array_list=y_threshold_array_list
         )(nn_model_object.output)
