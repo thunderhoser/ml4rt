@@ -2543,23 +2543,6 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
-        intermediate_layer_model = keras.models.Model(inputs=model_object.input, outputs=model_object.get_layer('z_score_normalization').output)
-
-        if isinstance(predictor_matrix_or_list, list):
-            new_output = intermediate_layer_model.predict_on_batch(
-                [p[these_indices, ...] for p in predictor_matrix_or_list]
-            )
-        else:
-            new_output = intermediate_layer_model.predict_on_batch(
-                predictor_matrix_or_list[these_indices, ...]
-            )
-
-        print(numpy.min(new_output))
-        print(numpy.max(new_output))
-
-        print(numpy.mean(numpy.isnan(this_output[0])))
-        print(numpy.mean(numpy.isnan(this_output[1])))
-
         # Add ensemble dimension if necessary.
         if len(this_output[0].shape) == 4:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)

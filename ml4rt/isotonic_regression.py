@@ -5,6 +5,7 @@ import sys
 import dill
 import numpy
 import keras
+from keras import backend as K
 import tensorflow
 from sklearn.isotonic import IsotonicRegression
 
@@ -140,9 +141,10 @@ class IsotonicRegressionLayer(keras.layers.Layer):
             y0_tensor = tensorflow.gather(y_thresholds, indices - 1)
             y1_tensor = tensorflow.gather(y_thresholds, indices)
 
-            slope_tensor = (
-                (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+            denominator_tensor = tensorflow.maximum(
+                x1_tensor - x0_tensor, K.epsilon()
             )
+            slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
             these_y_interp = y0_tensor + slope_tensor * (x_values - x0_tensor)
 
             these_y_interp = tensorflow.maximum(these_y_interp, y_thresholds[0])
@@ -313,9 +315,10 @@ class IsotonicRegressionLayerNoPadding(keras.layers.Layer):
             y0_tensor = tensorflow.gather(y_thresholds, indices - 1)
             y1_tensor = tensorflow.gather(y_thresholds, indices)
 
-            slope_tensor = (
-                (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+            denominator_tensor = tensorflow.maximum(
+                x1_tensor - x0_tensor, K.epsilon()
             )
+            slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
             these_y_interp = y0_tensor + slope_tensor * (x_values - x0_tensor)
 
             these_y_interp = tensorflow.maximum(these_y_interp, y_thresholds[0])
@@ -530,9 +533,12 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
         # Do the linear interpolation.
-        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+        denominator_tensor = tensorflow.maximum(
+            x1_tensor - x0_tensor, K.epsilon()
+        )
+        slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
         y_interp_tensor = y0_tensor + slope_tensor * (
-                uncorrected_output_tensor_flat[..., None] - x0_tensor
+            uncorrected_output_tensor_flat[..., None] - x0_tensor
         )
         y_interp_tensor = tensorflow.maximum(y_interp_tensor, y_min_tensor)
         y_interp_tensor = tensorflow.minimum(y_interp_tensor, y_max_tensor)
@@ -690,11 +696,6 @@ class IsotonicRegressionLayerNoSS(keras.layers.Layer):
         )
 
         # Find relevant thresholds.
-        # index_tensor = tensorflow.searchsorted(
-        #     x_threshold_tensor_expanded,
-        #     uncorrected_output_tensor_flat[..., None], side='left'
-        # )
-
         mask_tensor = tensorflow.cast(
             uncorrected_output_tensor_flat[..., None] >=
             tensorflow.reverse(x_threshold_tensor_expanded, axis=[-1]),
@@ -745,13 +746,10 @@ class IsotonicRegressionLayerNoSS(keras.layers.Layer):
         )
 
         # Do the linear interpolation.
-        denominator_tensor = tensorflow.maximum(x1_tensor - x0_tensor, 1e-7)
+        denominator_tensor = tensorflow.maximum(
+            x1_tensor - x0_tensor, K.epsilon()
+        )
         slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
-
-        print(y0_tensor)
-        print(slope_tensor)
-        print(uncorrected_output_tensor_flat[..., None])
-        print(x0_tensor)
 
         y_interp_tensor = y0_tensor + slope_tensor * (
             uncorrected_output_tensor_flat[..., None] - x0_tensor
