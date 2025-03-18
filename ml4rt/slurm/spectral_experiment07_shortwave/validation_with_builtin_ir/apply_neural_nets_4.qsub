@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="apply_neural_nets"
-#SBATCH --partition="bigmem"
-#SBATCH --account="gsd-hpcs"
-#SBATCH --qos="batch"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
