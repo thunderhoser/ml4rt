@@ -547,7 +547,7 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
         # Do the linear interpolation.
-        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-6)
 
         print(y0_tensor)
         print(slope_tensor)
