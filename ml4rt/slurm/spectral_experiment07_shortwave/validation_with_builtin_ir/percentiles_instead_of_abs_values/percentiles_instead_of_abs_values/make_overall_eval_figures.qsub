@@ -40,8 +40,8 @@ use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
-evaluation_dir_name="${model_dir_name}/isotonic_regression_builtin/validation/percentiles_instead_of_abs_values/evaluation"
-output_dir_name="${model_dir_name}/isotonic_regression_builtin/validation/percentiles_instead_of_abs_values/nice_figures"
+evaluation_dir_name="${model_dir_name}/isotonic_regression_builtin/validation_part1/percentiles_instead_of_abs_values/evaluation"
+output_dir_name="${model_dir_name}/isotonic_regression_builtin/validation_part1/percentiles_instead_of_abs_values/nice_figures"
 
 python3 -u "${CODE_DIR_NAME}/make_overall_eval_figure.py" \
 --input_evaluation_dir_name="${evaluation_dir_name}" \
