@@ -43,6 +43,8 @@ SIMPLIFY_CONVNEXT_KEY = u_net_arch.SIMPLIFY_CONVNEXT_KEY
 SIMPLIFY_OUTPUT_LAYER_KEY = u_net_arch.SIMPLIFY_OUTPUT_LAYER_KEY
 MEAN_VALUE_MATRIX_KEY = u_net_arch.MEAN_VALUE_MATRIX_KEY
 STDEV_MATRIX_KEY = u_net_arch.STDEV_MATRIX_KEY
+MIN_VALUE_MATRIX_KEY = u_net_arch.MIN_VALUE_MATRIX_KEY
+MAX_VALUE_MATRIX_KEY = u_net_arch.MAX_VALUE_MATRIX_KEY
 HEATING_RATE_MASK_KEY = u_net_arch.HEATING_RATE_MASK_KEY
 FLUX_MASK_KEY = u_net_arch.FLUX_MASK_KEY
 
@@ -81,6 +83,8 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     USE_BATCH_NORM_KEY: True,
     MEAN_VALUE_MATRIX_KEY: None,
     STDEV_MATRIX_KEY: None,
+    MIN_VALUE_MATRIX_KEY: None,
+    MAX_VALUE_MATRIX_KEY: None,
     HEATING_RATE_MASK_KEY: None,
     FLUX_MASK_KEY: None
 }
@@ -136,6 +140,8 @@ def create_model(option_dict):
 
     mean_value_matrix = option_dict[MEAN_VALUE_MATRIX_KEY]
     stdev_matrix = option_dict[STDEV_MATRIX_KEY]
+    min_value_matrix = option_dict[MIN_VALUE_MATRIX_KEY]
+    max_value_matrix = option_dict[MAX_VALUE_MATRIX_KEY]
     heating_rate_mask_matrix = option_dict[HEATING_RATE_MASK_KEY]
     flux_mask_matrix = option_dict[FLUX_MASK_KEY]
 
@@ -169,12 +175,17 @@ def create_model(option_dict):
         name=neural_net.MAIN_PREDICTORS_KEY
     )
 
-    if mean_value_matrix is None:
+    if min_value_matrix is None:
         main_layer_object = main_input_layer_object
     else:
+        main_layer_object = u_net_arch.MinMaxBounder(
+            min_value_matrix=min_value_matrix, max_value_matrix=max_value_matrix
+        )(main_input_layer_object)
+
+    if mean_value_matrix is not None:
         main_layer_object = u_net_arch.ZScoreNormalization(
             mean_value_matrix=mean_value_matrix, stdev_matrix=stdev_matrix
-        )(main_input_layer_object)
+        )(main_layer_object)
 
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight

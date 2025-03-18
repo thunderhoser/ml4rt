@@ -27,6 +27,18 @@ MAX_NUM_TRAINING_EXAMPLES = int(1e6)
 PLATEAU_COOLDOWN_EPOCHS = 0
 LOSS_PATIENCE = 0.
 
+DEFAULT_SHORTWAVE_NORM_FILE_NAME = (
+    '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/'
+    'examples_with_correct_vertical_coords/shortwave_spectrally_resolved/'
+    'training/normalization_params_20180901-20191221.nc'
+)
+
+DEFAULT_LONGWAVE_NORM_FILE_NAME = (
+    '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/'
+    'examples_with_correct_vertical_coords/longwave_spectrally_resolved/'
+    'training/normalization_params_20180901-20191221.nc'
+)
+
 EXAMPLE_DIRECTORY_KEY = 'example_dir_name'
 BATCH_SIZE_KEY = 'num_examples_per_batch'
 SCALAR_PREDICTOR_NAMES_KEY = 'scalar_predictor_names'
@@ -2193,22 +2205,44 @@ def read_model(hdf5_file_name):
     if u_net_architecture_dict is not None:
         from ml4rt.machine_learning import u_net_architecture
 
+        u_arch_dict = u_net_architecture_dict
+
         for this_key in [
                 u_net_architecture.VECTOR_LOSS_FUNCTION_KEY,
                 u_net_architecture.SCALAR_LOSS_FUNCTION_KEY
         ]:
-            u_net_architecture_dict[this_key] = eval(
-                u_net_architecture_dict[this_key]
-            )
+            u_arch_dict[this_key] = eval(u_arch_dict[this_key])
 
         for this_key in [u_net_architecture.OPTIMIZER_FUNCTION_KEY]:
-            if this_key not in u_net_architecture_dict:
+            if this_key not in u_arch_dict:
                 continue
 
-            u_net_architecture_dict[this_key] = eval(
-                u_net_architecture_dict[this_key]
+            u_arch_dict[this_key] = eval(u_arch_dict[this_key])
+
+        if u_arch_dict[u_net_architecture.MEAN_VALUE_MATRIX_KEY] is not None:
+            if u_arch_dict[u_net_architecture.NUM_OUTPUT_WAVELENGTHS_KEY] == 14:
+                this_file_name = DEFAULT_SHORTWAVE_NORM_FILE_NAME
+            else:
+                this_file_name = DEFAULT_LONGWAVE_NORM_FILE_NAME
+
+            tod = metadata_dict[TRAINING_OPTIONS_KEY]
+            min_value_matrix, max_value_matrix = (
+                u_net_architecture.get_minmax_params(
+                    vector_predictor_names=tod[VECTOR_PREDICTOR_NAMES_KEY],
+                    scalar_predictor_names=tod[SCALAR_PREDICTOR_NAMES_KEY],
+                    heights_m_agl=tod[HEIGHTS_KEY],
+                    normalization_file_name=this_file_name
+                )
             )
 
+            u_arch_dict[u_net_architecture.MIN_VALUE_MATRIX_KEY] = (
+                min_value_matrix
+            )
+            u_arch_dict[u_net_architecture.MAX_VALUE_MATRIX_KEY] = (
+                max_value_matrix
+            )
+
+        u_net_architecture_dict = u_arch_dict
         model_object = u_net_architecture.create_model(u_net_architecture_dict)
         model_object.load_weights(hdf5_file_name)
         return model_object
@@ -2216,48 +2250,97 @@ def read_model(hdf5_file_name):
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
 
     if u_net_plusplus_architecture_dict is not None:
+        from ml4rt.machine_learning import u_net_architecture
         from ml4rt.machine_learning import u_net_pp_architecture
+
+        upp_arch_dict = u_net_plusplus_architecture_dict
 
         for this_key in [
                 u_net_pp_architecture.VECTOR_LOSS_FUNCTION_KEY,
                 u_net_pp_architecture.SCALAR_LOSS_FUNCTION_KEY
         ]:
-            u_net_plusplus_architecture_dict[this_key] = eval(
-                u_net_plusplus_architecture_dict[this_key]
-            )
+            upp_arch_dict[this_key] = eval(upp_arch_dict[this_key])
 
         for this_key in [u_net_pp_architecture.OPTIMIZER_FUNCTION_KEY]:
-            if this_key not in u_net_plusplus_architecture_dict:
+            if this_key not in upp_arch_dict:
                 continue
 
-            u_net_plusplus_architecture_dict[this_key] = eval(
-                u_net_plusplus_architecture_dict[this_key]
+            upp_arch_dict[this_key] = eval(upp_arch_dict[this_key])
+
+        if upp_arch_dict[u_net_pp_architecture.MEAN_VALUE_MATRIX_KEY] is not None:
+            if upp_arch_dict[u_net_pp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY] == 14:
+                this_file_name = DEFAULT_SHORTWAVE_NORM_FILE_NAME
+            else:
+                this_file_name = DEFAULT_LONGWAVE_NORM_FILE_NAME
+
+            tod = metadata_dict[TRAINING_OPTIONS_KEY]
+            min_value_matrix, max_value_matrix = (
+                u_net_architecture.get_minmax_params(
+                    vector_predictor_names=tod[VECTOR_PREDICTOR_NAMES_KEY],
+                    scalar_predictor_names=tod[SCALAR_PREDICTOR_NAMES_KEY],
+                    heights_m_agl=tod[HEIGHTS_KEY],
+                    normalization_file_name=this_file_name
+                )
             )
 
+            upp_arch_dict[u_net_pp_architecture.MIN_VALUE_MATRIX_KEY] = (
+                min_value_matrix
+            )
+            upp_arch_dict[u_net_pp_architecture.MAX_VALUE_MATRIX_KEY] = (
+                max_value_matrix
+            )
+
+        u_net_plusplus_architecture_dict = upp_arch_dict
         model_object = u_net_pp_architecture.create_model(
             u_net_plusplus_architecture_dict
         )
-
         model_object.load_weights(hdf5_file_name)
         return model_object
 
     u_net_3plus_architecture_dict = metadata_dict[U_NET_PPP_ARCHITECTURE_KEY]
     assert u_net_3plus_architecture_dict is not None
 
+    from ml4rt.machine_learning import u_net_architecture
     from ml4rt.machine_learning import u_net_ppp_architecture
+
+    uppp_arch_dict = u_net_3plus_architecture_dict
 
     for this_key in [
             u_net_ppp_architecture.VECTOR_LOSS_FUNCTION_KEY,
             u_net_ppp_architecture.SCALAR_LOSS_FUNCTION_KEY
     ]:
-        u_net_3plus_architecture_dict[this_key] = eval(
-            u_net_3plus_architecture_dict[this_key]
+        uppp_arch_dict[this_key] = eval(uppp_arch_dict[this_key])
+
+    for this_key in [u_net_ppp_architecture.OPTIMIZER_FUNCTION_KEY]:
+        if this_key not in uppp_arch_dict:
+            continue
+
+        uppp_arch_dict[this_key] = eval(uppp_arch_dict[this_key])
+
+    if uppp_arch_dict[u_net_ppp_architecture.MEAN_VALUE_MATRIX_KEY] is not None:
+        if uppp_arch_dict[u_net_ppp_architecture.NUM_OUTPUT_WAVELENGTHS_KEY] == 14:
+            this_file_name = DEFAULT_SHORTWAVE_NORM_FILE_NAME
+        else:
+            this_file_name = DEFAULT_LONGWAVE_NORM_FILE_NAME
+
+        tod = metadata_dict[TRAINING_OPTIONS_KEY]
+        min_value_matrix, max_value_matrix = (
+            u_net_architecture.get_minmax_params(
+                vector_predictor_names=tod[VECTOR_PREDICTOR_NAMES_KEY],
+                scalar_predictor_names=tod[SCALAR_PREDICTOR_NAMES_KEY],
+                heights_m_agl=tod[HEIGHTS_KEY],
+                normalization_file_name=this_file_name
+            )
         )
 
-    model_object = u_net_ppp_architecture.create_model(
-        u_net_3plus_architecture_dict
-    )
+        uppp_arch_dict[u_net_ppp_architecture.MIN_VALUE_MATRIX_KEY] = (
+            min_value_matrix
+        )
+        uppp_arch_dict[u_net_ppp_architecture.MAX_VALUE_MATRIX_KEY] = (
+            max_value_matrix
+        )
 
+    model_object = u_net_ppp_architecture.create_model(uppp_arch_dict)
     model_object.load_weights(hdf5_file_name)
     return model_object
 

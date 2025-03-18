@@ -10,6 +10,8 @@ from ml4rt.utils import normalization
 from ml4rt.machine_learning import neural_net
 from ml4rt.machine_learning import convnext
 
+TOLERANCE = 1e-6
+
 INPUT_DIMENSIONS_KEY = 'input_dimensions'
 NUM_LEVELS_KEY = 'num_levels'
 CONV_LAYER_COUNTS_KEY = 'num_conv_layers_by_level'
@@ -42,6 +44,8 @@ SIMPLIFY_CONVNEXT_KEY = 'simplify_convnext_blocks'
 SIMPLIFY_OUTPUT_LAYER_KEY = 'simplify_output_layer'
 MEAN_VALUE_MATRIX_KEY = 'mean_value_matrix'
 STDEV_MATRIX_KEY = 'stdev_matrix'
+MIN_VALUE_MATRIX_KEY = 'min_value_matrix'
+MAX_VALUE_MATRIX_KEY = 'max_value_matrix'
 HEATING_RATE_MASK_KEY = 'heating_rate_mask_matrix'
 FLUX_MASK_KEY = 'flux_mask_matrix'
 
@@ -80,6 +84,8 @@ DEFAULT_ARCHITECTURE_OPTION_DICT = {
     USE_BATCH_NORM_KEY: True,
     MEAN_VALUE_MATRIX_KEY: None,
     STDEV_MATRIX_KEY: None,
+    MIN_VALUE_MATRIX_KEY: None,
+    MAX_VALUE_MATRIX_KEY: None,
     HEATING_RATE_MASK_KEY: None,
     FLUX_MASK_KEY: None
 }
@@ -145,6 +151,68 @@ class ZScoreNormalization(keras.layers.Layer):
         config.update({
             'mean_value_matrix': self.mean_value_matrix.numpy().tolist(),
             'stdev_matrix': self.stdev_matrix.numpy().tolist()
+        })
+        return config
+
+
+class MinMaxBounder(keras.layers.Layer):
+    """This layer bounds each predictor variable to a pre-computed min/max."""
+
+    def __init__(self, min_value_matrix, max_value_matrix, **kwargs):
+        """Constructor.
+
+        H = number of heights
+        P = number of predictor variables
+
+        :param min_value_matrix: H-by-P numpy array of minimum values.
+        :param max_value_matrix: H-by-P numpy array of maximum values.
+        :param kwargs: Keyword arguments.
+        """
+
+        super(MinMaxBounder, self).__init__(**kwargs)
+
+        self.min_value_matrix = tensorflow.Variable(
+            tensorflow.convert_to_tensor(
+                min_value_matrix, dtype=tensorflow.float32
+            ),
+            trainable=False
+        )
+
+        self.max_value_matrix = tensorflow.Variable(
+            tensorflow.convert_to_tensor(
+                max_value_matrix, dtype=tensorflow.float32
+            ),
+            trainable=False
+        )
+
+    def call(self, inputs):
+        """Main method.  This is where the layer does its thing.
+
+        :param inputs: Input tensor.
+        :return: output_tensor: Output tensor, after bounding.
+        """
+
+        inputs = tensorflow.maximum(
+            inputs,
+            self.min_value_matrix[None, :, :]
+        )
+        inputs = tensorflow.minimum(
+            inputs,
+            self.max_value_matrix[None, :, :]
+        )
+
+        return inputs
+
+    def get_config(self):
+        """Returns layer configuration.
+
+        :return: config: Dictionary with configuration stuff.
+        """
+
+        config = super().get_config()
+        config.update({
+            'min_value_matrix': self.min_value_matrix.numpy().tolist(),
+            'max_value_matrix': self.max_value_matrix.numpy().tolist()
         })
         return config
 
@@ -337,6 +405,10 @@ def check_args(option_dict):
         inside the neural net with a custom layer, make this None.
     option_dict["stdev_matrix"]: Same as "mean_value_matrix" but with standard
         deviations.
+    option_dict["min_value_matrix"]: H-by-P numpy array of min values to use
+        for min-max bounding.  If you are not doing min-max bounding inside the
+        neural net with a custom layer, make this None.
+    option_dict["max_value_matrix"]: Same as "min_value_matrix" but with maxima.
     option_dict["heating_rate_mask_matrix"]: H-by-W numpy array of Boolean flags
         (0 or 1), to be used for zeroing out heating rates that are always zero.
         If you do not want masking, make this None.
@@ -546,6 +618,35 @@ def check_args(option_dict):
             exact_dimensions=input_dimensions
         )
 
+    if (
+            option_dict[MIN_VALUE_MATRIX_KEY] is None
+            or option_dict[MAX_VALUE_MATRIX_KEY] is None
+    ):
+        option_dict[MIN_VALUE_MATRIX_KEY] = None
+        option_dict[MAX_VALUE_MATRIX_KEY] = None
+    else:
+        error_checking.assert_is_numpy_array_without_nan(
+            option_dict[MIN_VALUE_MATRIX_KEY]
+        )
+        error_checking.assert_is_numpy_array(
+            option_dict[MIN_VALUE_MATRIX_KEY],
+            exact_dimensions=input_dimensions
+        )
+
+        error_checking.assert_is_numpy_array_without_nan(
+            option_dict[MAX_VALUE_MATRIX_KEY]
+        )
+        error_checking.assert_is_numpy_array(
+            option_dict[MAX_VALUE_MATRIX_KEY],
+            exact_dimensions=input_dimensions
+        )
+
+        error_checking.assert_is_geq_numpy_array(
+            option_dict[MAX_VALUE_MATRIX_KEY] -
+            option_dict[MIN_VALUE_MATRIX_KEY],
+            0.
+        )
+
     if option_dict[HEATING_RATE_MASK_KEY] is not None:
         error_checking.assert_is_integer_numpy_array(
             option_dict[HEATING_RATE_MASK_KEY]
@@ -584,6 +685,95 @@ def check_args(option_dict):
         option_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.AdamW()
 
     return option_dict
+
+
+def get_minmax_params(vector_predictor_names, scalar_predictor_names,
+                      heights_m_agl, normalization_file_name):
+    """Returns min/max params.
+
+    Min/max params returned by this method will be used as inputs to the custom
+    MinMaxBounder layer.
+
+    V = number of vector predictors
+    S = number of scalar predictors
+    P = V + S = number of total predictors
+    H = number of heights
+
+    :param vector_predictor_names: length-V list of predictor names.
+    :param scalar_predictor_names: length-S list of predictor names.
+    :param heights_m_agl: length-H numpy array of heights (metres above ground
+        level).
+    :param normalization_file_name: Path to normalization file (will be read by
+        `normalization.read_file`).
+    :return: min_value_matrix: H-by-P numpy array of minimum values.
+    :return: max_value_matrix: H-by-P numpy array of maximum values.
+    """
+
+    error_checking.assert_is_string_list(vector_predictor_names)
+    assert all([
+        f in example_utils.ALL_VECTOR_PREDICTOR_NAMES
+        for f in vector_predictor_names
+    ])
+
+    error_checking.assert_is_string_list(scalar_predictor_names)
+    assert all([
+        f in example_utils.ALL_SCALAR_PREDICTOR_NAMES
+        for f in scalar_predictor_names
+    ])
+
+    print('Reading normalization params from: "{0:s}"...'.format(
+        normalization_file_name
+    ))
+    norm_param_table_xarray = normalization.read_params(normalization_file_name)
+    npt = norm_param_table_xarray
+
+    predictor_names = vector_predictor_names + scalar_predictor_names
+    num_predictors = len(predictor_names)
+    num_heights = len(heights_m_agl)
+    min_value_matrix = numpy.full((num_heights, num_predictors), numpy.nan)
+    max_value_matrix = numpy.full((num_heights, num_predictors), numpy.nan)
+
+    q_min = numpy.where(
+        npt.coords[normalization.QUANTILE_LEVEL_DIM].values < TOLERANCE
+    )[0][0]
+    q_max = numpy.where(
+        npt.coords[normalization.QUANTILE_LEVEL_DIM].values > 1. - TOLERANCE
+    )[0][0]
+
+    for h in range(num_heights):
+        for p in range(num_predictors):
+            if predictor_names[p] in vector_predictor_names:
+                h_new = example_utils.match_heights(
+                    heights_m_agl=npt.coords[normalization.HEIGHT_DIM].values,
+                    desired_height_m_agl=heights_m_agl[h]
+                )
+                p_new = numpy.where(
+                    npt.coords[normalization.VECTOR_PREDICTOR_DIM].values ==
+                    predictor_names[p]
+                )[0][0]
+
+                min_value_matrix[h, p] = npt[
+                    normalization.VECTOR_PREDICTOR_QUANTILE_KEY
+                ].values[h_new, p_new, q_min]
+
+                max_value_matrix[h, p] = npt[
+                    normalization.VECTOR_PREDICTOR_QUANTILE_KEY
+                ].values[h_new, p_new, q_max]
+            else:
+                p_new = numpy.where(
+                    npt.coords[normalization.SCALAR_PREDICTOR_DIM].values ==
+                    predictor_names[p]
+                )[0][0]
+
+                min_value_matrix[h, p] = npt[
+                    normalization.SCALAR_PREDICTOR_QUANTILE_KEY
+                ].values[p_new, q_min]
+
+                max_value_matrix[h, p] = npt[
+                    normalization.SCALAR_PREDICTOR_QUANTILE_KEY
+                ].values[p_new, q_max]
+
+    return min_value_matrix, max_value_matrix
 
 
 def get_normalization_params(vector_predictor_names, scalar_predictor_names,
@@ -934,6 +1124,8 @@ def create_model(option_dict):
 
     mean_value_matrix = option_dict[MEAN_VALUE_MATRIX_KEY]
     stdev_matrix = option_dict[STDEV_MATRIX_KEY]
+    min_value_matrix = option_dict[MIN_VALUE_MATRIX_KEY]
+    max_value_matrix = option_dict[MAX_VALUE_MATRIX_KEY]
     heating_rate_mask_matrix = option_dict[HEATING_RATE_MASK_KEY]
     flux_mask_matrix = option_dict[FLUX_MASK_KEY]
 
@@ -962,12 +1154,17 @@ def create_model(option_dict):
         name=neural_net.MAIN_PREDICTORS_KEY
     )
 
-    if mean_value_matrix is None:
+    if min_value_matrix is None:
         main_layer_object = main_input_layer_object
     else:
+        main_layer_object = MinMaxBounder(
+            min_value_matrix=min_value_matrix, max_value_matrix=max_value_matrix
+        )(main_input_layer_object)
+
+    if mean_value_matrix is not None:
         main_layer_object = ZScoreNormalization(
             mean_value_matrix=mean_value_matrix, stdev_matrix=stdev_matrix
-        )(main_input_layer_object)
+        )(main_layer_object)
 
     regularizer_object = architecture_utils.get_weight_regularizer(
         l1_weight=l1_weight, l2_weight=l2_weight
