@@ -506,13 +506,13 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         index_tensor = self.max_num_thresholds - 1 - index_tensor
         index_tensor = index_tensor + 1
 
-        index_tensor = tensorflow.expand_dims(index_tensor, axis=-1)
         index_tensor = tensorflow.cast(index_tensor, dtype=tensorflow.int32)
         index_tensor = tensorflow.where(
             tensorflow.reduce_all(mask_tensor == 0, axis=-1),
             0,
             index_tensor
         )
+        index_tensor = tensorflow.expand_dims(index_tensor, axis=-1)
 
         max_num_thresholds = self.max_num_thresholds
         index_tensor = tensorflow.clip_by_value(
