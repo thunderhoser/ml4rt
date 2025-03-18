@@ -2543,6 +2543,9 @@ def apply_model(
         if not isinstance(this_output, list):
             this_output = [this_output]
 
+        print(numpy.mean(numpy.isnan(this_output[0])))
+        print(numpy.mean(numpy.isnan(this_output[1])))
+
         # Add ensemble dimension if necessary.
         if len(this_output[0].shape) == 4:
             this_output[0] = numpy.expand_dims(this_output[0], axis=-1)
