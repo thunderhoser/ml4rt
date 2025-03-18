@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="plot_evaluation_not_by_height_part1"
-#SBATCH --partition="fge"
-#SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpuwf"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
