@@ -4,6 +4,7 @@ import os.path
 import dill
 import numpy
 import keras
+from keras import backend as K
 import tensorflow
 from sklearn.isotonic import IsotonicRegression
 from gewittergefahr.gg_utils import number_rounding
@@ -133,9 +134,10 @@ class IsotonicRegressionLayer(keras.layers.Layer):
             y0_tensor = tensorflow.gather(y_thresholds, indices - 1)
             y1_tensor = tensorflow.gather(y_thresholds, indices)
 
-            slope_tensor = (
-                (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+            denominator_tensor = tensorflow.maximum(
+                x1_tensor - x0_tensor, K.epsilon()
             )
+            slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
             these_y_interp = y0_tensor + slope_tensor * (x_values - x0_tensor)
 
             these_y_interp = tensorflow.maximum(these_y_interp, y_thresholds[0])
@@ -306,9 +308,10 @@ class IsotonicRegressionLayerNoPadding(keras.layers.Layer):
             y0_tensor = tensorflow.gather(y_thresholds, indices - 1)
             y1_tensor = tensorflow.gather(y_thresholds, indices)
 
-            slope_tensor = (
-                (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+            denominator_tensor = tensorflow.maximum(
+                x1_tensor - x0_tensor, K.epsilon()
             )
+            slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
             these_y_interp = y0_tensor + slope_tensor * (x_values - x0_tensor)
 
             these_y_interp = tensorflow.maximum(these_y_interp, y_thresholds[0])
@@ -485,25 +488,9 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
         # Find relevant thresholds.
-        # index_tensor = tensorflow.searchsorted(
-        #     x_threshold_tensor_expanded,
-        #     uncorrected_output_tensor_flat[..., None], side='left'
-        # )
-
-        mask_tensor = tensorflow.cast(
-            uncorrected_output_tensor_flat[..., None] >=
-            tensorflow.reverse(x_threshold_tensor_expanded, axis=[-1]),
-            dtype=tensorflow.int32
-        )
-        index_tensor = tensorflow.argmax(mask_tensor, axis=-1)
-        index_tensor = self.max_num_thresholds - 1 - index_tensor
-        index_tensor = index_tensor + 1
-
-        index_tensor = tensorflow.cast(index_tensor, dtype=tensorflow.int32)
-        index_tensor = tensorflow.where(
-            tensorflow.reduce_all(mask_tensor == 0, axis=-1),
-            0,
-            index_tensor
+        index_tensor = tensorflow.searchsorted(
+            x_threshold_tensor_expanded,
+            uncorrected_output_tensor_flat[..., None], side='left'
         )
 
         max_num_thresholds = self.max_num_thresholds
@@ -539,7 +526,224 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
         # Do the linear interpolation.
-        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+        denominator_tensor = tensorflow.maximum(
+            x1_tensor - x0_tensor, K.epsilon()
+        )
+        slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
+        y_interp_tensor = y0_tensor + slope_tensor * (
+            uncorrected_output_tensor_flat[..., None] - x0_tensor
+        )
+        y_interp_tensor = tensorflow.maximum(y_interp_tensor, y_min_tensor)
+        y_interp_tensor = tensorflow.minimum(y_interp_tensor, y_max_tensor)
+
+        # Reshape bias-corrected predictions.
+        num_heights = tensorflow.shape(heating_rate_tensor_k_day01)[1]
+        num_wavelengths = tensorflow.shape(heating_rate_tensor_k_day01)[2]
+        num_flux_vars = tensorflow.shape(flux_tensor_w_m02)[-1]
+        num_atomic_heating_rates = num_heights * num_wavelengths
+
+        corrected_heating_rate_tensor_k_day01 = tensorflow.reshape(
+            y_interp_tensor[:, :num_atomic_heating_rates],
+            (num_examples, num_heights, num_wavelengths, 1)
+        )
+        corrected_flux_tensor_w_m02 = tensorflow.reshape(
+            y_interp_tensor[:, num_atomic_heating_rates:],
+            (num_examples, num_wavelengths, num_flux_vars)
+        )
+
+        return (
+            corrected_heating_rate_tensor_k_day01, corrected_flux_tensor_w_m02
+        )
+
+    def get_config(self):
+        """Returns layer configuration."""
+
+        config = super().get_config()
+        config.update({
+            'x_threshold_tensor': self.x_threshold_tensor.numpy().tolist(),
+            'y_threshold_tensor': self.y_threshold_tensor.numpy().tolist(),
+            'num_thresholds_by_atomic_target':
+                self.num_thresholds_by_atomic_target.numpy().tolist(),
+            'num_atomic_target_vars': self.num_atomic_target_vars,
+            'max_num_thresholds': self.max_num_thresholds
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Instantiates layer from configuration.
+
+        I don't know if I actually need this method.
+        """
+
+        return cls(
+            numpy.array(config['x_threshold_tensor']),
+            numpy.array(config['y_threshold_tensor'])
+        )
+
+
+class IsotonicRegressionLayerNoSS(keras.layers.Layer):
+    """For every target variable, applies trained isotonic-regression model.
+
+    E = number of examples (batch size)
+    H = number of heights
+    W = number of wavelengths
+    F = number of flux variables
+    T = number of atomic target variables = W*H + W*F
+    """
+
+    def __init__(self, x_threshold_array_list, y_threshold_array_list,
+                 **kwargs):
+        """Initializer.
+
+        For each isotonic-regression model, the "x-thresholds" are the original
+        (uncorrected) values, and the "y-thresholds" are the new
+        (bias-corrected) values.
+
+        :param x_threshold_array_list: List containing x-thresholds for
+            isotonic-regression models.  This list has length T, and
+            x_threshold_array_list[j] is a 1-D numpy array of x-thresholds in
+            the isotonic-regression model for the [j]th atomic target variable.
+        :param y_threshold_array_list: Same as above but for y-thresholds.
+        :param kwargs: Keyword arguments.
+        """
+
+        super(IsotonicRegressionLayerNoSS, self).__init__(**kwargs)
+
+        num_atomic_target_vars = len(x_threshold_array_list)
+        max_num_thresholds = max([
+            len(this_array) for this_array in x_threshold_array_list
+        ])
+
+        # Pad all threshold arrays to the same length.
+        x_threshold_matrix = numpy.full(
+            (num_atomic_target_vars, max_num_thresholds),
+            numpy.nan, dtype=numpy.float32
+        )
+        y_threshold_matrix = numpy.full(
+            (num_atomic_target_vars, max_num_thresholds),
+            numpy.nan, dtype=numpy.float32
+        )
+        num_thresholds_by_atomic_target = numpy.full(
+            num_atomic_target_vars, 0, dtype=numpy.int32
+        )
+
+        for j in range(num_atomic_target_vars):
+            this_length = len(x_threshold_array_list[j])
+            num_thresholds_by_atomic_target[j] = this_length
+
+            x_threshold_matrix[j, :this_length] = x_threshold_array_list[j]
+            y_threshold_matrix[j, :this_length] = y_threshold_array_list[j]
+
+            if this_length == max_num_thresholds:
+                continue
+
+            x_threshold_matrix[j, this_length:] = x_threshold_array_list[j][-1]
+            y_threshold_matrix[j, this_length:] = y_threshold_array_list[j][-1]
+
+        # Store lookup tables as non-trainable variables.
+        self.num_atomic_target_vars = num_atomic_target_vars
+        self.max_num_thresholds = max_num_thresholds
+        self.x_threshold_tensor = tensorflow.Variable(
+            x_threshold_matrix, trainable=False, dtype=tensorflow.float32
+        )
+        self.y_threshold_tensor = tensorflow.Variable(
+            y_threshold_matrix, trainable=False, dtype=tensorflow.float32
+        )
+        self.num_thresholds_by_atomic_target = tensorflow.Variable(
+            num_thresholds_by_atomic_target,
+            trainable=False, dtype=tensorflow.int32
+        )
+
+    def call(self, uncorrected_output_tensors):
+        """Implements layer.
+
+        :param uncorrected_output_tensors: length-2 list, where
+            uncorrected_output_tensors[0] has dimensions E x H x W x 1 and
+            contains predicted heating rates, while
+            uncorrected_output_tensors[1] has dimensions E x W x F and
+            contains predicted fluxes.
+        :return: corrected_heating_rate_tensor_k_day01: Bias-corrected version
+            of uncorrected_output_tensors[0].
+        :return: corrected_flux_tensor_w_m02: Bias-corrected version
+            of uncorrected_output_tensors[1].
+        """
+
+        heating_rate_tensor_k_day01, flux_tensor_w_m02 = (
+            uncorrected_output_tensors
+        )
+
+        # Flatten uncorrected outputs to shape E x T.
+        num_examples = tensorflow.shape(heating_rate_tensor_k_day01)[0]
+        uncorrected_output_tensor_flat = tensorflow.concat([
+            tensorflow.reshape(heating_rate_tensor_k_day01, (num_examples, -1)),
+            tensorflow.reshape(flux_tensor_w_m02, (num_examples, -1))
+        ], axis=-1)
+
+        # Expand threshold matrices to match batch size.
+        x_threshold_tensor_expanded = tensorflow.tile(
+            self.x_threshold_tensor[None, :, :], [num_examples, 1, 1]
+        )
+        y_threshold_tensor_expanded = tensorflow.tile(
+            self.y_threshold_tensor[None, :, :], [num_examples, 1, 1]
+        )
+
+        # Find relevant thresholds.
+        mask_tensor = tensorflow.cast(
+            uncorrected_output_tensor_flat[..., None] >=
+            tensorflow.reverse(x_threshold_tensor_expanded, axis=[-1]),
+            dtype=tensorflow.int32
+        )
+        index_tensor = tensorflow.argmax(mask_tensor, axis=-1)
+        index_tensor = self.max_num_thresholds - 1 - index_tensor
+        index_tensor = index_tensor + 1
+
+        index_tensor = tensorflow.cast(index_tensor, dtype=tensorflow.int32)
+        index_tensor = tensorflow.where(
+            tensorflow.reduce_all(mask_tensor == 0, axis=-1),
+            0,
+            index_tensor
+        )
+        index_tensor = tensorflow.expand_dims(index_tensor, axis=-1)
+
+        max_num_thresholds = self.max_num_thresholds
+        index_tensor = tensorflow.clip_by_value(
+            index_tensor, 1, max_num_thresholds - 1
+        )
+
+        # Gather relevant x (uncorrected) and y (bias-corrected) values.
+        x0_tensor = tensorflow.gather(
+            x_threshold_tensor_expanded, index_tensor - 1,
+            axis=2, batch_dims=2
+        )
+        x1_tensor = tensorflow.gather(
+            x_threshold_tensor_expanded, index_tensor,
+            axis=2, batch_dims=2
+        )
+        y0_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded, index_tensor - 1,
+            axis=2, batch_dims=2
+        )
+        y1_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded, index_tensor,
+            axis=2, batch_dims=2
+        )
+        y_min_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded, tensorflow.minimum(index_tensor, 0),
+            axis=2, batch_dims=2
+        )
+        y_max_tensor = tensorflow.gather(
+            y_threshold_tensor_expanded,
+            tensorflow.maximum(index_tensor, max_num_thresholds - 1),
+            axis=2, batch_dims=2
+        )
+
+        # Do the linear interpolation.
+        denominator_tensor = tensorflow.maximum(
+            x1_tensor - x0_tensor, K.epsilon()
+        )
+        slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
+
         y_interp_tensor = y0_tensor + slope_tensor * (
             uncorrected_output_tensor_flat[..., None] - x0_tensor
         )
@@ -1086,6 +1290,11 @@ def add_ir_to_neural_net(
         )(nn_model_object.output)
     elif layer_type_string == 'memory_heavy':
         ir_layer_object = IsotonicRegressionLayerMemoryHeavy(
+            x_threshold_array_list=x_threshold_array_list,
+            y_threshold_array_list=y_threshold_array_list
+        )(nn_model_object.output)
+    elif layer_type_string == 'no_searchsorted':
+        ir_layer_object = IsotonicRegressionLayerNoSS(
             x_threshold_array_list=x_threshold_array_list,
             y_threshold_array_list=y_threshold_array_list
         )(nn_model_object.output)
