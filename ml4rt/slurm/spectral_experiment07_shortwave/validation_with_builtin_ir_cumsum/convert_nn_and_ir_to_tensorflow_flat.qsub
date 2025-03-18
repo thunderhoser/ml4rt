@@ -42,11 +42,12 @@ random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
 input_nn_file_name="${model_dir_name}/model.weights.h5"
-output_nn_dir_name="${model_dir_name}/tensorflow_model_flattened_output"
+output_nn_dir_name="${model_dir_name}/isotonic_regression_builtin_cumsum/tensorflow_model_flattened_output"
 iso_reg_file_name="${model_dir_name}/isotonic_regression/isotonic_regression.dill"
 
 python3 -u "${CODE_DIR_NAME}/convert_nn_and_ir_to_tensorflow.py" \
 --input_nn_file_name="${input_nn_file_name}" \
 --input_iso_reg_file_name="${iso_reg_file_name}" \
+--iso_reg_layer_type_string="cumsum" \
 --flatten_output=1 \
 --output_nn_dir_name="${output_nn_dir_name}"

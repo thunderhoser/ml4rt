@@ -41,7 +41,7 @@ use_residual_flag=${USE_RESIDUAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
 random_seed=${RANDOM_SEEDS[$SLURM_ARRAY_TASK_ID]}
 
 model_dir_name="${TOP_MODEL_DIR_NAME}/use-residual=${use_residual_flag}_random-seed=${random_seed}"
-tensorflow_model_dir_name="${model_dir_name}/tensorflow_model_flattened_output"
-onnx_model_file_name="${model_dir_name}/tensorflow_model_flattened_output/model.onnx"
+tensorflow_model_dir_name="${model_dir_name}/isotonic_regression_builtin_cumsum/tensorflow_model_flattened_output"
+onnx_model_file_name="${model_dir_name}/isotonic_regression_builtin_cumsum/tensorflow_model_flattened_output/model.onnx"
 
 python3 -m tf2onnx.convert --saved-model "${tensorflow_model_dir_name}" --output "${onnx_model_file_name}"
