@@ -695,6 +695,9 @@ class IsotonicRegressionLayerNoSS(keras.layers.Layer):
         #     uncorrected_output_tensor_flat[..., None], side='left'
         # )
 
+        print(uncorrected_output_tensor_flat[..., None])
+        print(x_threshold_tensor_expanded)
+
         mask_tensor = tensorflow.cast(
             uncorrected_output_tensor_flat[..., None] >=
             tensorflow.reverse(x_threshold_tensor_expanded, axis=[-1]),
