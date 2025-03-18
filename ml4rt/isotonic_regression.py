@@ -506,6 +506,7 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         index_tensor = self.max_num_thresholds - 1 - index_tensor
         index_tensor = index_tensor + 1
 
+        index_tensor = tensorflow.expand_dims(index_tensor, axis=-1)
         index_tensor = tensorflow.cast(index_tensor, dtype=tensorflow.int32)
         index_tensor = tensorflow.where(
             tensorflow.reduce_all(mask_tensor == 0, axis=-1),
@@ -548,10 +549,10 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         # Do the linear interpolation.
         slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
 
-        print(tensorflow.shape(y0_tensor))
-        print(tensorflow.shape(slope_tensor))
-        print(tensorflow.shape(uncorrected_output_tensor_flat[..., None]))
-        print(tensorflow.shape(x0_tensor))
+        print(y0_tensor)
+        print(slope_tensor)
+        print(uncorrected_output_tensor_flat[..., None])
+        print(x0_tensor)
 
         y_interp_tensor = y0_tensor + slope_tensor * (
             uncorrected_output_tensor_flat[..., None] - x0_tensor
