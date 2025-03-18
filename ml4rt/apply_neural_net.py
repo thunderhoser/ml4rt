@@ -260,6 +260,9 @@ def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
         verbose=True
     )
 
+    print(numpy.mean(numpy.isnan(prediction_dict[neural_net.HEATING_RATE_TARGETS_KEY])))
+    print(numpy.mean(numpy.isnan(prediction_dict[neural_net.FLUX_TARGETS_KEY])))
+
     print(SEPARATOR_STRING)
     print('Time to apply neural net = {0:.4f} seconds'.format(
         time.time() - exec_start_time_unix_sec
