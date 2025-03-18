@@ -485,9 +485,23 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
         # Find relevant thresholds.
-        index_tensor = tensorflow.searchsorted(
-            x_threshold_tensor_expanded,
-            uncorrected_output_tensor_flat[..., None], side='left'
+        # index_tensor = tensorflow.searchsorted(
+        #     x_threshold_tensor_expanded,
+        #     uncorrected_output_tensor_flat[..., None], side='left'
+        # )
+
+        mask_tensor = tensorflow.cast(
+            uncorrected_output_tensor_flat[..., None] >=
+            tensorflow.reverse(x_threshold_tensor_expanded, axis=[-1]),
+            dtype=tensorflow.int32
+        )
+        index_tensor = tensorflow.argmax(mask_tensor, axis=-1)
+        index_tensor = self.max_num_thresholds - 1 - index_tensor
+        index_tensor = index_tensor + 1
+        index_tensor = tensorflow.where(
+            tensorflow.reduce_all(mask_tensor == 0, axis=-1),
+            0,
+            index_tensor
         )
 
         max_num_thresholds = self.max_num_thresholds
