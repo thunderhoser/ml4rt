@@ -505,6 +505,11 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         index_tensor = tensorflow.argmax(mask_tensor, axis=-1)
         index_tensor = self.max_num_thresholds - 1 - index_tensor
         index_tensor = index_tensor + 1
+
+        print(index_tensor.dtype)
+        print(mask_tensor.dtype)
+        print(tensorflow.reduce_all(mask_tensor == 0, axis=-1).dtype)
+
         index_tensor = tensorflow.where(
             tensorflow.reduce_all(mask_tensor == 0, axis=-1),
             0,
