@@ -448,14 +448,14 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         self.num_atomic_target_vars = num_atomic_target_vars
         self.max_num_thresholds = max_num_thresholds
         self.x_threshold_tensor = tensorflow.Variable(
-            x_threshold_matrix, trainable=False, dtype=tensorflow.float32
+            x_threshold_matrix, trainable=False, dtype=tensorflow.float64
         )
         self.y_threshold_tensor = tensorflow.Variable(
-            y_threshold_matrix, trainable=False, dtype=tensorflow.float32
+            y_threshold_matrix, trainable=False, dtype=tensorflow.float64
         )
         self.num_thresholds_by_atomic_target = tensorflow.Variable(
             num_thresholds_by_atomic_target,
-            trainable=False, dtype=tensorflow.int32
+            trainable=False, dtype=tensorflow.int64
         )
 
     def call(self, uncorrected_output_tensors):
@@ -547,7 +547,7 @@ class IsotonicRegressionLayerMemoryHeavy(keras.layers.Layer):
         )
 
         # Do the linear interpolation.
-        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-6)
+        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
 
         print(y0_tensor)
         print(slope_tensor)
