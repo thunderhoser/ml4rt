@@ -646,14 +646,14 @@ class IsotonicRegressionLayerNoSS(keras.layers.Layer):
         self.num_atomic_target_vars = num_atomic_target_vars
         self.max_num_thresholds = max_num_thresholds
         self.x_threshold_tensor = tensorflow.Variable(
-            x_threshold_matrix, trainable=False, dtype=tensorflow.float64
+            x_threshold_matrix, trainable=False, dtype=tensorflow.float32
         )
         self.y_threshold_tensor = tensorflow.Variable(
-            y_threshold_matrix, trainable=False, dtype=tensorflow.float64
+            y_threshold_matrix, trainable=False, dtype=tensorflow.float32
         )
         self.num_thresholds_by_atomic_target = tensorflow.Variable(
             num_thresholds_by_atomic_target,
-            trainable=False, dtype=tensorflow.int64
+            trainable=False, dtype=tensorflow.int32
         )
 
     def call(self, uncorrected_output_tensors):
@@ -695,19 +695,16 @@ class IsotonicRegressionLayerNoSS(keras.layers.Layer):
         #     uncorrected_output_tensor_flat[..., None], side='left'
         # )
 
-        print(uncorrected_output_tensor_flat[..., None])
-        print(x_threshold_tensor_expanded)
-
         mask_tensor = tensorflow.cast(
             uncorrected_output_tensor_flat[..., None] >=
             tensorflow.reverse(x_threshold_tensor_expanded, axis=[-1]),
-            dtype=tensorflow.int64
+            dtype=tensorflow.int32
         )
         index_tensor = tensorflow.argmax(mask_tensor, axis=-1)
         index_tensor = self.max_num_thresholds - 1 - index_tensor
         index_tensor = index_tensor + 1
 
-        index_tensor = tensorflow.cast(index_tensor, dtype=tensorflow.int64)
+        index_tensor = tensorflow.cast(index_tensor, dtype=tensorflow.int32)
         index_tensor = tensorflow.where(
             tensorflow.reduce_all(mask_tensor == 0, axis=-1),
             0,
@@ -748,7 +745,8 @@ class IsotonicRegressionLayerNoSS(keras.layers.Layer):
         )
 
         # Do the linear interpolation.
-        slope_tensor = (y1_tensor - y0_tensor) / (x1_tensor - x0_tensor + 1e-10)
+        denominator_tensor = tensorflow.maximum(x1_tensor - x0_tensor, 1e-7)
+        slope_tensor = (y1_tensor - y0_tensor) / denominator_tensor
 
         print(y0_tensor)
         print(slope_tensor)
