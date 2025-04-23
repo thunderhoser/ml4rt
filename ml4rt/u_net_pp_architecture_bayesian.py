@@ -3,6 +3,8 @@
 Based on: https://github.com/longuyen97/UnetPlusPlus/blob/master/unetpp.py
 """
 
+import os
+import sys
 import numpy
 import keras
 import keras.layers
@@ -11,11 +13,17 @@ from tensorflow_probability.python.distributions import \
     kullback_leibler as kl_lib
 # import tensorflow_probability.substrates.tensorflow as tf_prob
 # from tensorflow_probability.substrates.tensorflow.distributions import kullback_leibler as kl_lib
-from gewittergefahr.gg_utils import error_checking
-from gewittergefahr.deep_learning import architecture_utils
-from ml4rt.machine_learning import neural_net
-from ml4rt.machine_learning import u_net_architecture
-from ml4rt.machine_learning import keras_metrics as custom_metrics
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import error_checking
+import architecture_utils
+import neural_net
+import u_net_architecture
+import custom_metrics
 
 METRIC_FUNCTION_LIST = [
     custom_metrics.mean_bias, custom_metrics.mean_absolute_error,
