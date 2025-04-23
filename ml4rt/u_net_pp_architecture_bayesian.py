@@ -6,7 +6,7 @@ Based on: https://github.com/longuyen97/UnetPlusPlus/blob/master/unetpp.py
 import numpy
 import keras
 import keras.layers
-import tensorflow_probability.python.distributions as tf_prob
+import tensorflow_probability.substrates.tensorflow as tf_prob
 from tensorflow_probability.substrates.tensorflow.distributions import kullback_leibler as kl_lib
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
