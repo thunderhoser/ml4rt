@@ -624,7 +624,6 @@ def read_file(netcdf_file_name):
 
     # Add wavelength dimension if necessary.
     if len(prediction_dict[SCALAR_PREDICTIONS_KEY].shape) == 3:
-        print(prediction_dict[SCALAR_PREDICTIONS_KEY].shape)
         prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.expand_dims(
             prediction_dict[SCALAR_PREDICTIONS_KEY], axis=1
         )
