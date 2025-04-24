@@ -34,7 +34,7 @@ SINGLE_ERROR_METRIC_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 FIRST_ERROR_METRIC_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 SECOND_ERROR_METRIC_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 
-DEFAULT_FONT_SIZE = 40
+DEFAULT_FONT_SIZE = 30
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
@@ -162,12 +162,11 @@ def _plot_bar_graphs_hr_or_flux(
     :param output_file_name: Path to output file (figure will be saved here).
     """
 
-    metric_matrix = numpy.stack(
-        [mae_values, ssrel_values, ssrat_values, pitd_values, cef_values],
-        axis=1
-    )
-
     if for_heating_rate:
+        metric_matrix = numpy.stack(
+            [mae_values, ssrel_values, ssrat_values, 10 * pitd_values, cef_values],
+            axis=1
+        )
         metric_names = [
             r'MAE (K day$^{-1}$)',
             r'SSREL (K day$^{-1}$)',
@@ -176,6 +175,10 @@ def _plot_bar_graphs_hr_or_flux(
             'CEF'
         ]
     else:
+        metric_matrix = numpy.stack(
+            [0.1 * mae_values, 0.1 * ssrel_values, ssrat_values, 10 * pitd_values, cef_values],
+            axis=1
+        )
         metric_names = [
             r'0.1 $\times$ MAE (W m$^{-2}$)',
             r'0.1 $\times$ SSREL (W m$^{-2}$)',
@@ -183,6 +186,8 @@ def _plot_bar_graphs_hr_or_flux(
             r'10 $\times$ PITD',
             'CEF'
         ]
+
+    print(cef_values)
 
     num_models = len(model_description_strings)
     num_metrics = len(metric_names)
@@ -197,6 +202,7 @@ def _plot_bar_graphs_hr_or_flux(
     )
 
     for i in range(num_models):
+        print(metric_matrix[i, :])
         axes_object.bar(
             x_tick_values + i * bar_width,
             metric_matrix[i, :],
@@ -215,7 +221,13 @@ def _plot_bar_graphs_hr_or_flux(
 
     axes_object.legend()
     pyplot.tight_layout()
-    pyplot.grid(axis='y', linestyle='--', linewidth=0.5)
+
+    x_limits = axes_object.get_xlim()
+    pyplot.plot(
+        x_limits, numpy.full(2, 1.),
+        linestyle='--', linewidth=2., color=numpy.full(3, 0.)
+    )
+    axes_object.set_xlim(x_limits)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
