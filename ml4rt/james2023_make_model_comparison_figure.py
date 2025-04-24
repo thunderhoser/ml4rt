@@ -208,7 +208,9 @@ def _plot_bar_graphs_hr_or_flux(
 
     # Labeling
     axes_object.set_xticks(x_tick_values + 0.5 * (num_models - 1) * bar_width)
-    axes_object.set_xticklabels(metric_names, rotation=45, ha='right')
+    axes_object.set_xticklabels(
+        metric_names, fontsize=20, rotation=45, ha='right'
+    )
     axes_object.set_ylabel('Error value')
     if for_heating_rate:
         axes_object.set_title('(a) Model comparison for heating rates')
