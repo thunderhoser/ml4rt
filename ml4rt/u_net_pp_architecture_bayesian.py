@@ -786,25 +786,25 @@ def create_bayesian_model(option_dict):
         kl_divergence_scaling_factor=kl_divergence_scaling_factor
     )
 
+    # # if ensemble_size > 1:
+    # #     conv_output_layer_object = keras.layers.Reshape(
+    # #         target_shape=
+    # #         (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+    # #     )(conv_output_layer_object)
+    # # else:
+    # #     conv_output_layer_object = keras.layers.Reshape(
+    # #         target_shape=
+    # #         (input_dimensions[0], num_output_wavelengths, 1)
+    # #     )(conv_output_layer_object)
+    #
     # if ensemble_size > 1:
     #     conv_output_layer_object = keras.layers.Reshape(
-    #         target_shape=
-    #         (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+    #         target_shape=(input_dimensions[0], 1, ensemble_size)
     #     )(conv_output_layer_object)
     # else:
     #     conv_output_layer_object = keras.layers.Reshape(
-    #         target_shape=
-    #         (input_dimensions[0], num_output_wavelengths, 1)
+    #         target_shape=(input_dimensions[0], 1)
     #     )(conv_output_layer_object)
-
-    if ensemble_size > 1:
-        conv_output_layer_object = keras.layers.Reshape(
-            target_shape=(input_dimensions[0], 1, ensemble_size)
-        )(conv_output_layer_object)
-    else:
-        conv_output_layer_object = keras.layers.Reshape(
-            target_shape=(input_dimensions[0], 1)
-        )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
         conv_output_layer_object = architecture_utils.get_activation_layer(
@@ -820,12 +820,12 @@ def create_bayesian_model(option_dict):
     #     output_layer_name=neural_net.HEATING_RATE_TARGETS_KEY
     # )
 
-    cropping_arg = ((0, 1), (0, 0))
-    conv_output_layer_object = keras.layers.Cropping2D(
+    cropping_arg = (0, 1)
+    conv_output_layer_object = keras.layers.Cropping1D(
         cropping=cropping_arg
     )(conv_output_layer_object)
 
-    conv_output_layer_object = keras.layers.ZeroPadding2D(
+    conv_output_layer_object = keras.layers.ZeroPadding1D(
         padding=cropping_arg, name=neural_net.HEATING_RATE_TARGETS_KEY
     )(conv_output_layer_object)
 
