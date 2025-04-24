@@ -1,7 +1,7 @@
 """Input/output methods for model predictions."""
 
+import os
 import copy
-import os.path
 import numpy
 import netCDF4
 from gewittergefahr.gg_utils import time_conversion
@@ -618,10 +618,10 @@ def read_file(netcdf_file_name):
     # Add wavelength dimension if necessary.
     if len(prediction_dict[SCALAR_PREDICTIONS_KEY].shape) == 3:
         prediction_dict[SCALAR_PREDICTIONS_KEY] = numpy.expand_dims(
-            prediction_dict[SCALAR_PREDICTIONS_KEY], axis=-2
+            prediction_dict[SCALAR_PREDICTIONS_KEY], axis=1
         )
         prediction_dict[SCALAR_TARGETS_KEY] = numpy.expand_dims(
-            prediction_dict[SCALAR_TARGETS_KEY], axis=-2
+            prediction_dict[SCALAR_TARGETS_KEY], axis=1
         )
 
     dataset_object.close()

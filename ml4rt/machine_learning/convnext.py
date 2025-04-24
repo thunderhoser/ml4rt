@@ -9,7 +9,7 @@ EXPANSION_FACTOR_FOR_CONVNEXT = 4
 INIT_VALUE_FOR_LAYER_SCALE = 1e-6
 
 
-@keras.saving.register_keras_serializable()
+# @keras.saving.register_keras_serializable()
 class LayerScale(keras.layers.Layer):
     """Layer-scale module.
 
@@ -44,7 +44,7 @@ class LayerScale(keras.layers.Layer):
         return config
 
 
-@keras.saving.register_keras_serializable()
+# @keras.saving.register_keras_serializable()
 class GRN(keras.layers.Layer):
     """Global response normalization.
 
@@ -105,7 +105,7 @@ class GRN(keras.layers.Layer):
         return config
 
 
-@keras.saving.register_keras_serializable()
+# @keras.saving.register_keras_serializable()
 class StochasticDepth(keras.layers.Layer):
     def __init__(self, survival_prob=0.9, **kwargs):
         super().__init__(**kwargs)
