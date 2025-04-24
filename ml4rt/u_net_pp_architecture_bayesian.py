@@ -786,15 +786,24 @@ def create_bayesian_model(option_dict):
         kl_divergence_scaling_factor=kl_divergence_scaling_factor
     )
 
+    # if ensemble_size > 1:
+    #     conv_output_layer_object = keras.layers.Reshape(
+    #         target_shape=
+    #         (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+    #     )(conv_output_layer_object)
+    # else:
+    #     conv_output_layer_object = keras.layers.Reshape(
+    #         target_shape=
+    #         (input_dimensions[0], num_output_wavelengths, 1)
+    #     )(conv_output_layer_object)
+
     if ensemble_size > 1:
         conv_output_layer_object = keras.layers.Reshape(
-            target_shape=
-            (input_dimensions[0], num_output_wavelengths, 1, ensemble_size)
+            target_shape=(input_dimensions[0], 1, ensemble_size)
         )(conv_output_layer_object)
     else:
         conv_output_layer_object = keras.layers.Reshape(
-            target_shape=
-            (input_dimensions[0], num_output_wavelengths, 1)
+            target_shape=(input_dimensions[0], 1)
         )(conv_output_layer_object)
 
     if conv_output_activ_func_name is not None:
@@ -851,12 +860,17 @@ def create_bayesian_model(option_dict):
             )
             num_dense_output_vars = int(numpy.round(num_dense_output_vars))
 
+            # if ensemble_size > 1:
+            #     these_dim = (
+            #         num_output_wavelengths, num_dense_output_vars, ensemble_size
+            #     )
+            # else:
+            #     these_dim = (num_output_wavelengths, num_dense_output_vars)
+
             if ensemble_size > 1:
-                these_dim = (
-                    num_output_wavelengths, num_dense_output_vars, ensemble_size
-                )
+                these_dim = (num_dense_output_vars, ensemble_size)
             else:
-                these_dim = (num_output_wavelengths, num_dense_output_vars)
+                these_dim = (num_dense_output_vars,)
 
             dense_output_layer_object = keras.layers.Reshape(
                 target_shape=these_dim, name=this_name
