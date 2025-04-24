@@ -265,7 +265,8 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_mean_prediction_matrix = numpy.mean(
             this_prediction_matrix, axis=-1
         )
-        this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
+        # this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
+        this_pit_matrix = numpy.random.uniform(low=0., high=1., size=this_target_matrix.shape)
 
         for j in range(this_target_matrix.shape[0]):
             if numpy.mod(j, 100) == 0:
@@ -276,7 +277,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
                 ))
 
             for k in range(this_target_matrix.shape[1]):
-                this_pit_matrix[j, k] = numpy.random.uniform(low=0., high=1., size=2)[0]
+                pass
                 # this_pit_matrix[j, k] = 0.01 * percentileofscore(
                 #     a=this_prediction_matrix[j, k, :],
                 #     score=this_target_matrix[j, k], kind='mean'
@@ -300,6 +301,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_target_matrix = this_prediction_dict[
             prediction_io.SCALAR_TARGETS_KEY
         ]
+        print(this_target_matrix.shape)
         assert this_target_matrix.shape[1] == 1
         assert this_target_matrix.shape[2] == 2
 
