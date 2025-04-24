@@ -14,13 +14,12 @@ from ml4rt.io import prediction_io
 from ml4rt.utils import evaluation
 from ml4rt.utils import pit_utils
 from ml4rt.utils import spread_skill_utils as ss_utils
-from ml4rt.utils import discard_test_utils as dt_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 NUM_SLICES_FOR_MULTIPROCESSING = 24
 
-FIGURE_WIDTH_INCHES = 15
-FIGURE_HEIGHT_INCHES = 15
+FIGURE_WIDTH_INCHES = 20
+FIGURE_HEIGHT_INCHES = 12
 FIGURE_RESOLUTION_DPI = 300
 
 REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
@@ -41,9 +40,7 @@ CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
-NUM_PANEL_ROWS = 3
-NUM_PANEL_COLUMNS = 3
-PANEL_SIZE_PX = int(5e6)
+PANEL_SIZE_PX = int(1e7)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
 MODEL_EVAL_DIRS_ARG_NAME = 'input_model_evaluation_dir_names'
@@ -104,7 +101,7 @@ def __get_slices_for_multiprocessing(num_examples):
     return start_indices, end_indices
 
 
-def _compute_pit_values_for_hr_or_flux(target_matrix, prediction_matrix):
+def _compute_pit_values_hr_or_flux(target_matrix, prediction_matrix):
     """Computes PIT values for either heating rate or flux.
 
     PIT = probability integral transform
@@ -139,83 +136,79 @@ def _compute_pit_values_for_hr_or_flux(target_matrix, prediction_matrix):
     ))
 
 
-def _plot_one_bar_graph(
-        first_error_values, second_error_values, first_error_metric_name,
-        second_error_metric_name, y_label_string, title_string,
-        model_description_strings, plotting_ssrat, output_file_name):
-    """Plots one bar graph, comparing either 1 or 2 error metrics across models.
+def _plot_bar_graphs_hr_or_flux(
+        mae_values, ssrel_values, ssrat_values, pitd_values, cef_values,
+        for_heating_rate, model_description_strings, output_file_name):
+    """Plots all bar graphs on the same axes, for either heating rate or flux.
 
     M = number of models
 
-    :param first_error_values: length-M numpy array with values of first error
-        metric.
-    :param second_error_values: length-M numpy array with values of second error
-        metric.  If plotting only one error metric, make this None.
-    :param first_error_metric_name: Name of first error metric (string).
-    :param second_error_metric_name: Name of second error metric (string).  If
-        plotting only one error metric, make this None.
-    :param y_label_string: Title for y-axis.
-    :param title_string: Figure title.
-    :param model_description_strings: length-M numpy array of model descriptions
-        (to be used as x-tick labels).
-    :param plotting_ssrat: Boolean flag.  If True (False), the metric being
-        plotted is spread-skill ratio (something else).
-    :param output_file_name: Path to output file.  Figure will be saved here.
+    :param mae_values: length-M numpy array of mean absolute errors.
+    :param ssrel_values: length-M numpy array of spread-skill reliabilities.
+    :param ssrat_values: length-M numpy array of spread-skill ratios.
+    :param pitd_values: length-M numpy array of PIT deviations.
+    :param cef_values: length-M numpy array of catastrophic-error frequencies.
+    :param for_heating_rate: Boolean flag.  If True (False), errors are for
+        heating rate (flux).
+    :param model_description_strings: length-M list of model descriptions,
+        which will be shown in the legend.
+    :param output_file_name: Path to output file (figure will be saved here).
     """
 
-    num_models = len(model_description_strings)
-    num_scores = 1 + int(second_error_values is not None)
+    metric_matrix = numpy.stack(
+        [mae_values, ssrel_values, ssrat_values, pitd_values, cef_values],
+        axis=1
+    )
 
-    bar_width = 1. / (num_scores + 1)
-    bar_offset_by_metric = numpy.linspace(
-        0, bar_width * (num_scores - 1), num=num_scores, dtype=float
+    if for_heating_rate:
+        metric_names = [
+            r'MAE (K day$^{-1}$)',
+            r'SSREL (K day$^{-1}$)',
+            'SSRAT',
+            r'10 $\times$ PITD',
+            'CEF'
+        ]
+    else:
+        metric_names = [
+            r'0.1 $\times$ MAE (W m$^{-2}$)',
+            r'0.1 $\times$ SSREL (W m$^{-2}$)',
+            'SSRAT',
+            r'10 $\times$ PITD',
+            'CEF'
+        ]
+
+    num_models = len(model_description_strings)
+    num_metrics = len(metric_names)
+
+    x_tick_values = numpy.linspace(
+        0, num_metrics - 1, num=num_metrics, dtype=float
     )
-    first_x_coords = numpy.linspace(
-        0, num_models - 1, num=num_models, dtype=float
-    )
+    bar_width = 0.8 / num_models
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
 
-    this_colour = (
-        SINGLE_ERROR_METRIC_COLOUR if num_scores == 1
-        else FIRST_ERROR_METRIC_COLOUR
-    )
-    axes_object.bar(
-        x=first_x_coords + bar_offset_by_metric[0], height=first_error_values,
-        width=bar_width, align='center', color=this_colour, linewidth=0,
-        label=first_error_metric_name
-    )
-
-    if num_scores == 2:
+    for i in range(num_models):
         axes_object.bar(
-            x=first_x_coords + bar_offset_by_metric[1],
-            height=second_error_values, width=bar_width, align='center',
-            color=SECOND_ERROR_METRIC_COLOUR, linewidth=0,
-            label=second_error_metric_name
+            x_tick_values + i * bar_width,
+            metric_matrix[i, :],
+            bar_width,
+            label=model_description_strings[i]
         )
 
-    if plotting_ssrat:
-        reference_line_y_coords = numpy.array([1, 1], dtype=float)
-        reference_line_x_coords = axes_object.get_xlim()
-        axes_object.plot(
-            reference_line_x_coords, reference_line_y_coords,
-            color=REFERENCE_LINE_COLOUR, linewidth=4, linestyle='dashed'
-        )
+    # Labeling
+    axes_object.set_xticks(x_tick_values + 0.5 * (num_models - 1) * bar_width)
+    axes_object.set_xticklabels(metric_names, rotation=45, ha='right')
+    axes_object.set_ylabel('Error value')
+    if for_heating_rate:
+        axes_object.set_title('(a) Model comparison for heating rates')
     else:
-        reference_line_x_coords = numpy.array([])
+        axes_object.set_title('(b) Model comparison for fluxes')
 
-    axes_object.set_ylabel(y_label_string)
-    axes_object.set_xticks(first_x_coords + numpy.mean(bar_offset_by_metric))
-    axes_object.set_xticklabels(model_description_strings, rotation=90.)
-    axes_object.set_title(title_string)
-
-    if num_scores == 2:
-        axes_object.legend(loc='upper left', ncol=num_scores)
-
-    if plotting_ssrat:
-        axes_object.set_xlim(reference_line_x_coords)
+    axes_object.legend()
+    pyplot.tight_layout()
+    pyplot.grid(axis='y', linestyle='--', linewidth=0.5)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -280,16 +273,12 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
     heating_rate_mae_values_k_day01 = numpy.full(num_models, numpy.nan)
     flux_mae_values_w_m02 = numpy.full(num_models, numpy.nan)
-    heating_rate_rel_values_k2_day02 = numpy.full(num_models, numpy.nan)
-    flux_rel_values_w2_m04 = numpy.full(num_models, numpy.nan)
     heating_rate_ssrel_values_k_day01 = numpy.full(num_models, numpy.nan)
     flux_ssrel_values_w_m02 = numpy.full(num_models, numpy.nan)
     heating_rate_ssrat_values = numpy.full(num_models, numpy.nan)
     flux_ssrat_values = numpy.full(num_models, numpy.nan)
     heating_rate_pitd_values = numpy.full(num_models, numpy.nan)
     flux_pitd_values = numpy.full(num_models, numpy.nan)
-    heating_rate_mf_values = numpy.full(num_models, numpy.nan)
-    flux_mf_values = numpy.full(num_models, numpy.nan)
     heating_rate_cat_error_freqs = numpy.full(num_models, numpy.nan)
     flux_cat_error_freqs = numpy.full(num_models, numpy.nan)
 
@@ -341,7 +330,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
         with Pool() as pool_object:
             subarrays = pool_object.starmap(
-                _compute_pit_values_for_hr_or_flux, argument_list
+                _compute_pit_values_hr_or_flux, argument_list
             )
 
             for k in range(len(start_indices)):
@@ -365,7 +354,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_target_matrix = this_prediction_dict[
             prediction_io.SCALAR_TARGETS_KEY
         ]
-        print(this_target_matrix.shape)
         assert this_target_matrix.shape[1] == 1
         assert this_target_matrix.shape[2] == 2
 
@@ -378,7 +366,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_prediction_matrix = this_prediction_dict[
             prediction_io.SCALAR_PREDICTIONS_KEY
         ]
-        print(this_prediction_matrix.shape)
         this_prediction_matrix = this_prediction_matrix[:, 0, ...]
         this_prediction_matrix = numpy.concatenate((
             this_prediction_matrix,
@@ -404,7 +391,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
         with Pool() as pool_object:
             subarrays = pool_object.starmap(
-                _compute_pit_values_for_hr_or_flux, argument_list
+                _compute_pit_values_hr_or_flux, argument_list
             )
 
             for k in range(len(start_indices)):
@@ -450,22 +437,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
             numpy.nanmean(this_mae_matrix, axis=1)
         )
 
-        this_reliability_matrix = numpy.concatenate((
-            this_eval_table_xarray[evaluation.SCALAR_RELIABILITY_KEY].values[0, ...],
-            this_eval_table_xarray[evaluation.AUX_RELIABILITY_KEY].values[0, ...]
-        ), axis=0)
-
-        flux_rel_values_w2_m04[i] = numpy.mean(
-            numpy.nanmean(this_reliability_matrix, axis=1)
-        )
-
-        this_reliability_matrix = this_eval_table_xarray[
-            evaluation.VECTOR_FLAT_RELIABILITY_KEY
-        ].values[0, ...]
-        heating_rate_rel_values_k2_day02[i] = numpy.nanmean(
-            this_reliability_matrix
-        )
-
         this_file_name = '{0:s}/spread_vs_skill.nc'.format(
             model_evaluation_dir_names[i]
         )
@@ -507,135 +478,32 @@ def _run(model_evaluation_dir_names, model_description_strings,
             this_pit_table_xarray[pit_utils.VECTOR_FLAT_PITD_KEY].values[0, 0]
         )
 
-        this_file_name = '{0:s}/discard_test_for_heating_rates.nc'.format(
-            model_evaluation_dir_names[i]
-        )
-        print('Reading data from: "{0:s}"...'.format(this_file_name))
-        this_dt_table_xarray = dt_utils.read_results(this_file_name)
-
-        these_mf = numpy.concatenate((
-            this_dt_table_xarray[dt_utils.SCALAR_MONO_FRACTION_KEY].values[..., 0],
-            this_dt_table_xarray[dt_utils.AUX_MONO_FRACTION_KEY].values[..., 0]
-        ))
-        flux_mf_values[i] = numpy.mean(these_mf)
-
-        heating_rate_mf_values[i] = this_dt_table_xarray[
-            dt_utils.VECTOR_FLAT_MONO_FRACTION_KEY
-        ].values[0, 0]
-
-    # TODO(thunderhoser): Make sure none of the code in the above for-loop is
-    # fucked up.
-
     panel_file_names = [
-        '{0:s}/heating_rate_mae_ssrel.jpg'.format(output_dir_name)
+        '{0:s}/heating_rate_comparison.jpg'.format(output_dir_name)
     ]
-    _plot_one_bar_graph(
-        first_error_values=heating_rate_mae_values_k_day01,
-        second_error_values=heating_rate_ssrel_values_k_day01,
-        first_error_metric_name='MAE',
-        second_error_metric_name='SSREL',
-        y_label_string=r'Error metric (MAE or SSREL; K day$^{-1}$)',
-        title_string='MAE and SSREL for heating rates',
+    _plot_bar_graphs_hr_or_flux(
+        mae_values=heating_rate_mae_values_k_day01,
+        ssrel_values=heating_rate_ssrel_values_k_day01,
+        ssrat_values=heating_rate_ssrat_values,
+        pitd_values=heating_rate_pitd_values,
+        cef_values=heating_rate_cat_error_freqs,
+        for_heating_rate=True,
         model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
+        output_file_name=panel_file_names[-1]
     )
 
     panel_file_names.append(
-        '{0:s}/flux_mae_ssrel.jpg'.format(output_dir_name)
+        '{0:s}/flux_comparison.jpg'.format(output_dir_name)
     )
-    _plot_one_bar_graph(
-        first_error_values=flux_mae_values_w_m02,
-        second_error_values=flux_ssrel_values_w_m02,
-        first_error_metric_name='MAE',
-        second_error_metric_name='SSREL',
-        y_label_string=r'Error metric (MAE or SSREL; W m$^{-2}$)',
-        title_string='MAE and SSREL for flux components',
+    _plot_bar_graphs_hr_or_flux(
+        mae_values=flux_mae_values_w_m02,
+        ssrel_values=flux_ssrel_values_w_m02,
+        ssrat_values=flux_ssrat_values,
+        pitd_values=flux_pitd_values,
+        cef_values=flux_cat_error_freqs,
+        for_heating_rate=False,
         model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
-    )
-
-    panel_file_names.append(
-        '{0:s}/heating_rate_reliability.jpg'.format(output_dir_name)
-    )
-    _plot_one_bar_graph(
-        first_error_values=heating_rate_rel_values_k2_day02,
-        second_error_values=None,
-        first_error_metric_name='REL',
-        second_error_metric_name=None,
-        y_label_string=r'Reliability (K$^{2}$ day$^{-2}$)',
-        title_string='Reliability (REL) for heating rates',
-        model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
-    )
-
-    panel_file_names.append(
-        '{0:s}/flux_reliability.jpg'.format(output_dir_name)
-    )
-    _plot_one_bar_graph(
-        first_error_values=flux_rel_values_w2_m04,
-        second_error_values=None,
-        first_error_metric_name='REL',
-        second_error_metric_name=None,
-        y_label_string=r'Reliability (W$^{2}$ m$^{-4}$)',
-        title_string='Reliability (REL) for flux components',
-        model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
-    )
-
-    panel_file_names.append(
-        '{0:s}/ssrat.jpg'.format(output_dir_name)
-    )
-    _plot_one_bar_graph(
-        first_error_values=heating_rate_ssrat_values,
-        second_error_values=flux_ssrat_values,
-        first_error_metric_name='Heating-rate SSRAT',
-        second_error_metric_name='Flux SSRAT',
-        y_label_string='Spread-skill ratio',
-        title_string='SSRAT for heating rates and flux components',
-        model_description_strings=model_description_strings,
-        plotting_ssrat=True, output_file_name=panel_file_names[-1]
-    )
-
-    panel_file_names.append(
-        '{0:s}/pitd.jpg'.format(output_dir_name)
-    )
-    _plot_one_bar_graph(
-        first_error_values=heating_rate_pitd_values,
-        second_error_values=flux_pitd_values,
-        first_error_metric_name='Heating-rate PITD',
-        second_error_metric_name='Flux PITD',
-        y_label_string='Probability-integral-transform deviation',
-        title_string='PITD for heating rates and flux components',
-        model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
-    )
-
-    panel_file_names.append(
-        '{0:s}/mono_fraction.jpg'.format(output_dir_name)
-    )
-    _plot_one_bar_graph(
-        first_error_values=heating_rate_mf_values,
-        second_error_values=flux_mf_values,
-        first_error_metric_name='Heating-rate MF',
-        second_error_metric_name='Flux MF',
-        y_label_string='Monotonicity fraction',
-        title_string='MF for heating rates and flux components',
-        model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
-    )
-
-    panel_file_names.append(
-        '{0:s}/catastrophic_error_frequency.jpg'.format(output_dir_name)
-    )
-    _plot_one_bar_graph(
-        first_error_values=heating_rate_cat_error_freqs,
-        second_error_values=flux_cat_error_freqs,
-        first_error_metric_name='Heating-rate CEF',
-        second_error_metric_name='Flux CEF',
-        y_label_string='Catastrophic-error frequency',
-        title_string='CEF for heating rates and flux components',
-        model_description_strings=model_description_strings,
-        plotting_ssrat=False, output_file_name=panel_file_names[-1]
+        output_file_name=panel_file_names[-1]
     )
 
     letter_label = None
@@ -680,7 +548,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
     imagemagick_utils.concatenate_images(
         input_file_names=panel_file_names,
         output_file_name=concat_figure_file_name,
-        num_panel_rows=NUM_PANEL_ROWS, num_panel_columns=NUM_PANEL_COLUMNS
+        num_panel_rows=2, num_panel_columns=1
     )
     imagemagick_utils.resize_image(
         input_file_name=concat_figure_file_name,
