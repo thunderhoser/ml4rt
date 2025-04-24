@@ -43,10 +43,6 @@ pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
 pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
 pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
-CONVERT_EXE_NAME = 'convert'
-TITLE_FONT_SIZE = 250
-TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
-
 PANEL_SIZE_PX = int(1e7)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
@@ -236,33 +232,16 @@ def _plot_bar_graphs_hr_or_flux(
     )
     pyplot.close(figure_object)
 
-
-def _overlay_text(
-        image_file_name, x_offset_from_left_px, y_offset_from_top_px,
-        text_string):
-    """Creates two figures showing overall evaluation of uncertainty quant (UQ).
-
-    :param image_file_name: Path to image file.
-    :param x_offset_from_left_px: Left-relative x-coordinate (pixels).
-    :param y_offset_from_top_px: Top-relative y-coordinate (pixels).
-    :param text_string: String to overlay.
-    :raises: ValueError: if ImageMagick command (which is ultimately a Unix
-        command) fails.
-    """
-
-    command_string = (
-        '"{0:s}" "{1:s}" -pointsize {2:d} -font "{3:s}" '
-        '-fill "rgb(0, 0, 0)" -annotate {4:+d}{5:+d} "{6:s}" "{1:s}"'
-    ).format(
-        CONVERT_EXE_NAME, image_file_name, TITLE_FONT_SIZE, TITLE_FONT_NAME,
-        x_offset_from_left_px, y_offset_from_top_px, text_string
+    imagemagick_utils.trim_whitespace(
+        input_file_name=output_file_name,
+        output_file_name=output_file_name,
+        border_width_pixels=10
     )
-
-    exit_code = os.system(command_string)
-    if exit_code == 0:
-        return
-
-    raise ValueError(imagemagick_utils.ERROR_STRING)
+    imagemagick_utils.resize_image(
+        input_file_name=output_file_name,
+        output_file_name=output_file_name,
+        output_size_pixels=PANEL_SIZE_PX
+    )
 
 
 def _run(model_evaluation_dir_names, model_description_strings,
@@ -524,40 +503,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
         model_description_strings=model_description_strings,
         output_file_name=panel_file_names[-1]
     )
-
-    letter_label = None
-
-    for i in range(len(panel_file_names)):
-        print('Adding letter label to panel: "{0:s}"...'.format(
-            panel_file_names[i]
-        ))
-
-        imagemagick_utils.trim_whitespace(
-            input_file_name=panel_file_names[i],
-            output_file_name=panel_file_names[i],
-            border_width_pixels=TITLE_FONT_SIZE
-        )
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        _overlay_text(
-            image_file_name=panel_file_names[i],
-            x_offset_from_left_px=0, y_offset_from_top_px=TITLE_FONT_SIZE,
-            text_string='({0:s})'.format(letter_label)
-        )
-        imagemagick_utils.trim_whitespace(
-            input_file_name=panel_file_names[i],
-            output_file_name=panel_file_names[i],
-            border_width_pixels=10
-        )
-        imagemagick_utils.resize_image(
-            input_file_name=panel_file_names[i],
-            output_file_name=panel_file_names[i],
-            output_size_pixels=PANEL_SIZE_PX
-        )
 
     concat_figure_file_name = '{0:s}/overall_model_comparison.jpg'.format(
         output_dir_name
