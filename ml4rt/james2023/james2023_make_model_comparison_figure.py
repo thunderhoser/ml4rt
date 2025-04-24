@@ -3,6 +3,7 @@
 import os
 import glob
 import argparse
+from multiprocessing import Pool
 import numpy
 from matplotlib import pyplot
 from scipy.stats import percentileofscore
@@ -14,6 +15,9 @@ from ml4rt.utils import evaluation
 from ml4rt.utils import pit_utils
 from ml4rt.utils import spread_skill_utils as ss_utils
 from ml4rt.utils import discard_test_utils as dt_utils
+
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+NUM_SLICES_FOR_MULTIPROCESSING = 24
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -70,6 +74,69 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
+
+
+def __get_slices_for_multiprocessing(num_examples):
+    """Returns slices for multiprocessing.
+
+    Each slice consists of many examples.
+
+    K = number of slices
+
+    :param num_examples: Total number of examples.
+    :return: start_indices: length-K numpy array with index of each start
+        example.
+    :return: end_indices: length-K numpy array with index of each end example.
+    """
+
+    slice_indices_normalized = numpy.linspace(
+        0, 1, num=NUM_SLICES_FOR_MULTIPROCESSING + 1, dtype=float
+    )
+
+    start_indices = numpy.round(
+        num_examples * slice_indices_normalized[:-1]
+    ).astype(int)
+
+    end_indices = numpy.round(
+        num_examples * slice_indices_normalized[1:]
+    ).astype(int)
+
+    return start_indices, end_indices
+
+
+def _compute_pit_values_for_hr_or_flux(target_matrix, prediction_matrix):
+    """Computes PIT values for either heating rate or flux.
+
+    PIT = probability integral transform
+
+    E = number of examples
+    H = number of heights (for heating rate) or number of variables (for flux)
+    S = ensemble size
+
+    :param target_matrix: E-by-H numpy array of actual values.
+    :param prediction_matrix: E-by-H-by-S numpy array of predicted values.
+    :return: pit_matrix: E-by-H numpy array of PIT values.
+    """
+
+    pit_matrix = numpy.full(target_matrix.shape, numpy.nan)
+
+    for j in range(target_matrix.shape[0]):
+        if numpy.mod(j, 100) == 0:
+            print((
+                'Have computed PIT values for {0:d} of {1:d} examples...'
+            ).format(
+                j, target_matrix.shape[0]
+            ))
+
+        for k in range(target_matrix.shape[1]):
+            pit_matrix[j, k] = 0.01 * percentileofscore(
+                a=prediction_matrix[j, k, :],
+                score=target_matrix[j, k], kind='mean'
+            )
+
+    print('Have computed PIT values for all {0:d} examples!'.format(
+        target_matrix.shape[0]
+    ))
 
 
 def _plot_one_bar_graph(
@@ -258,27 +325,31 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_mean_prediction_matrix = numpy.mean(
             this_prediction_matrix, axis=-1
         )
-        # this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
-        this_pit_matrix = numpy.random.uniform(low=0., high=1., size=this_target_matrix.shape)
 
-        for j in range(this_target_matrix.shape[0]):
-            if numpy.mod(j, 100) == 0:
-                print((
-                    'Have computed PIT values for {0:d} of {1:d} examples...'
-                ).format(
-                    j, this_target_matrix.shape[0]
-                ))
+        print(SEPARATOR_STRING)
 
-            for k in range(this_target_matrix.shape[1]):
-                pass
-                # this_pit_matrix[j, k] = 0.01 * percentileofscore(
-                #     a=this_prediction_matrix[j, k, :],
-                #     score=this_target_matrix[j, k], kind='mean'
-                # )
+        start_indices, end_indices = __get_slices_for_multiprocessing(
+            num_examples=this_target_matrix.shape[0]
+        )
+        argument_list = []
+        for s, e in zip(start_indices, end_indices):
+            argument_list.append((
+                this_target_matrix[s:e, ...],
+                this_prediction_matrix[s:e, ...]
+            ))
 
-        print('Have computed PIT values for all {0:d} examples!'.format(
-            this_target_matrix.shape[0]
-        ))
+        this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
+        with Pool() as pool_object:
+            subarrays = pool_object.starmap(
+                _compute_pit_values_for_hr_or_flux, argument_list
+            )
+
+            for k in range(len(start_indices)):
+                s = start_indices[k]
+                e = end_indices[k]
+                this_pit_matrix[s:e, ...] = subarrays[k]
+
+        print(SEPARATOR_STRING)
 
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
@@ -317,25 +388,31 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_mean_prediction_matrix = numpy.mean(
             this_prediction_matrix, axis=-1
         )
+
+        print(SEPARATOR_STRING)
+
+        start_indices, end_indices = __get_slices_for_multiprocessing(
+            num_examples=this_target_matrix.shape[0]
+        )
+        argument_list = []
+        for s, e in zip(start_indices, end_indices):
+            argument_list.append((
+                this_target_matrix[s:e, ...],
+                this_prediction_matrix[s:e, ...]
+            ))
+
         this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
+        with Pool() as pool_object:
+            subarrays = pool_object.starmap(
+                _compute_pit_values_for_hr_or_flux, argument_list
+            )
 
-        for j in range(this_target_matrix.shape[0]):
-            if numpy.mod(j, 100) == 0:
-                print((
-                    'Have computed PIT values for {0:d} of {1:d} examples...'
-                ).format(
-                    j, this_target_matrix.shape[0]
-                ))
+            for k in range(len(start_indices)):
+                s = start_indices[k]
+                e = end_indices[k]
+                this_pit_matrix[s:e, ...] = subarrays[k]
 
-            for k in range(this_target_matrix.shape[1]):
-                this_pit_matrix[j, k] = 0.01 * percentileofscore(
-                    a=this_prediction_matrix[j, k, :],
-                    score=this_target_matrix[j, k], kind='mean'
-                )
-
-        print('Have computed PIT values for all {0:d} examples!'.format(
-            this_target_matrix.shape[0]
-        ))
+        print(SEPARATOR_STRING)
 
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
