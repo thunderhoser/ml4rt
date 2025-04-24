@@ -137,6 +137,7 @@ def _compute_pit_values_hr_or_flux(target_matrix, prediction_matrix):
     print('Have computed PIT values for all {0:d} examples!'.format(
         target_matrix.shape[0]
     ))
+    return pit_matrix
 
 
 def _plot_bar_graphs_hr_or_flux(
