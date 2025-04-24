@@ -268,11 +268,22 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
 
         for j in range(this_target_matrix.shape[0]):
+            if numpy.mod(j, 100) == 0:
+                print((
+                    'Have computed PIT values for {0:d} of {1:d} examples...'
+                ).format(
+                    j, this_target_matrix.shape[0]
+                ))
+
             for k in range(this_target_matrix.shape[1]):
                 this_pit_matrix[j, k] = 0.01 * percentileofscore(
                     a=this_prediction_matrix[j, k, :],
                     score=this_target_matrix[j, k], kind='mean'
                 )
+
+        print('Have computed PIT values for all {0:d} examples!'.format(
+            this_target_matrix.shape[0]
+        ))
 
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
@@ -312,11 +323,22 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_pit_matrix = numpy.full(this_target_matrix.shape, numpy.nan)
 
         for j in range(this_target_matrix.shape[0]):
+            if numpy.mod(j, 100) == 0:
+                print((
+                    'Have computed PIT values for {0:d} of {1:d} examples...'
+                ).format(
+                    j, this_target_matrix.shape[0]
+                ))
+
             for k in range(this_target_matrix.shape[1]):
                 this_pit_matrix[j, k] = 0.01 * percentileofscore(
                     a=this_prediction_matrix[j, k, :],
                     score=this_target_matrix[j, k], kind='mean'
                 )
+
+        print('Have computed PIT values for all {0:d} examples!'.format(
+            this_target_matrix.shape[0]
+        ))
 
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
