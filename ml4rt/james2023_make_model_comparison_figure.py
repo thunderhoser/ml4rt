@@ -276,10 +276,11 @@ def _run(model_evaluation_dir_names, model_description_strings,
                 ))
 
             for k in range(this_target_matrix.shape[1]):
-                this_pit_matrix[j, k] = 0.01 * percentileofscore(
-                    a=this_prediction_matrix[j, k, :],
-                    score=this_target_matrix[j, k], kind='mean'
-                )
+                this_pit_matrix[j, k] = numpy.random.uniform(low=0., high=1., size=2)[0]
+                # this_pit_matrix[j, k] = 0.01 * percentileofscore(
+                #     a=this_prediction_matrix[j, k, :],
+                #     score=this_target_matrix[j, k], kind='mean'
+                # )
 
         print('Have computed PIT values for all {0:d} examples!'.format(
             this_target_matrix.shape[0]
@@ -311,6 +312,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
         this_prediction_matrix = this_prediction_dict[
             prediction_io.SCALAR_PREDICTIONS_KEY
         ]
+        print(this_prediction_matrix.shape)
         this_prediction_matrix = this_prediction_matrix[:, 0, ...]
         this_prediction_matrix = numpy.concatenate((
             this_prediction_matrix,
