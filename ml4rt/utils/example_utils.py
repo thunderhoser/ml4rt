@@ -3,7 +3,7 @@
 import copy
 import warnings
 import numpy
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import prob_matched_means as pmm
@@ -399,9 +399,9 @@ def _get_aerosol_extinction_profiles_one_region(
             scale=0., size=num_examples
         )
     else:
-        baseline_optical_depths = simps(
+        baseline_optical_depths = simpson(
             y=baseline_extinction_matrix_metres01, x=grid_heights_m_agl,
-            axis=-1, even='avg'
+            axis=-1
         )
 
         this_sample_size = max([

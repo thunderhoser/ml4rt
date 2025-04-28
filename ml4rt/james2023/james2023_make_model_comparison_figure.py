@@ -1,6 +1,5 @@
 """Creates 7-panel figure comparing evaluation metrics across models."""
 
-import os
 import glob
 import argparse
 from multiprocessing import Pool
@@ -18,16 +17,14 @@ from ml4rt.utils import spread_skill_utils as ss_utils
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 NUM_SLICES_FOR_MULTIPROCESSING = 24
 
+LARGE_ERROR_CUTOFF_K_DAY01 = 1.
+LARGE_ERROR_CUTOFF_W_M02 = 10.
+
 FIGURE_WIDTH_INCHES = 20
 FIGURE_HEIGHT_INCHES = 12
 FIGURE_RESOLUTION_DPI = 300
 
-REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
-SINGLE_ERROR_METRIC_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
-FIRST_ERROR_METRIC_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
-SECOND_ERROR_METRIC_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
-
-DEFAULT_FONT_SIZE = 40
+DEFAULT_FONT_SIZE = 30
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
@@ -35,10 +32,6 @@ pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
 pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
 pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
 pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
-
-CONVERT_EXE_NAME = 'convert'
-TITLE_FONT_SIZE = 250
-TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
 PANEL_SIZE_PX = int(1e7)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
@@ -134,6 +127,7 @@ def _compute_pit_values_hr_or_flux(target_matrix, prediction_matrix):
     print('Have computed PIT values for all {0:d} examples!'.format(
         target_matrix.shape[0]
     ))
+    return pit_matrix
 
 
 def _plot_bar_graphs_hr_or_flux(
@@ -155,12 +149,11 @@ def _plot_bar_graphs_hr_or_flux(
     :param output_file_name: Path to output file (figure will be saved here).
     """
 
-    metric_matrix = numpy.stack(
-        [mae_values, ssrel_values, ssrat_values, pitd_values, cef_values],
-        axis=1
-    )
-
     if for_heating_rate:
+        metric_matrix = numpy.stack(
+            [mae_values, ssrel_values, ssrat_values, 10 * pitd_values, cef_values],
+            axis=1
+        )
         metric_names = [
             r'MAE (K day$^{-1}$)',
             r'SSREL (K day$^{-1}$)',
@@ -169,6 +162,10 @@ def _plot_bar_graphs_hr_or_flux(
             'CEF'
         ]
     else:
+        metric_matrix = numpy.stack(
+            [0.1 * mae_values, 0.1 * ssrel_values, ssrat_values, 10 * pitd_values, cef_values],
+            axis=1
+        )
         metric_names = [
             r'0.1 $\times$ MAE (W m$^{-2}$)',
             r'0.1 $\times$ SSREL (W m$^{-2}$)',
@@ -199,7 +196,9 @@ def _plot_bar_graphs_hr_or_flux(
 
     # Labeling
     axes_object.set_xticks(x_tick_values + 0.5 * (num_models - 1) * bar_width)
-    axes_object.set_xticklabels(metric_names, rotation=45, ha='right')
+    axes_object.set_xticklabels(
+        metric_names, fontsize=20, rotation=45, ha='right'
+    )
     axes_object.set_ylabel('Error value')
     if for_heating_rate:
         axes_object.set_title('(a) Model comparison for heating rates')
@@ -208,7 +207,13 @@ def _plot_bar_graphs_hr_or_flux(
 
     axes_object.legend()
     pyplot.tight_layout()
-    pyplot.grid(axis='y', linestyle='--', linewidth=0.5)
+
+    x_limits = axes_object.get_xlim()
+    pyplot.plot(
+        x_limits, numpy.full(2, 1.),
+        linestyle='--', linewidth=2., color=numpy.full(3, 0.)
+    )
+    axes_object.set_xlim(x_limits)
 
     print('Saving figure to: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
@@ -217,33 +222,16 @@ def _plot_bar_graphs_hr_or_flux(
     )
     pyplot.close(figure_object)
 
-
-def _overlay_text(
-        image_file_name, x_offset_from_left_px, y_offset_from_top_px,
-        text_string):
-    """Creates two figures showing overall evaluation of uncertainty quant (UQ).
-
-    :param image_file_name: Path to image file.
-    :param x_offset_from_left_px: Left-relative x-coordinate (pixels).
-    :param y_offset_from_top_px: Top-relative y-coordinate (pixels).
-    :param text_string: String to overlay.
-    :raises: ValueError: if ImageMagick command (which is ultimately a Unix
-        command) fails.
-    """
-
-    command_string = (
-        '"{0:s}" "{1:s}" -pointsize {2:d} -font "{3:s}" '
-        '-fill "rgb(0, 0, 0)" -annotate {4:+d}{5:+d} "{6:s}" "{1:s}"'
-    ).format(
-        CONVERT_EXE_NAME, image_file_name, TITLE_FONT_SIZE, TITLE_FONT_NAME,
-        x_offset_from_left_px, y_offset_from_top_px, text_string
+    imagemagick_utils.trim_whitespace(
+        input_file_name=output_file_name,
+        output_file_name=output_file_name,
+        border_width_pixels=10
     )
-
-    exit_code = os.system(command_string)
-    if exit_code == 0:
-        return
-
-    raise ValueError(imagemagick_utils.ERROR_STRING)
+    imagemagick_utils.resize_image(
+        input_file_name=output_file_name,
+        output_file_name=output_file_name,
+        output_size_pixels=PANEL_SIZE_PX
+    )
 
 
 def _run(model_evaluation_dir_names, model_description_strings,
@@ -342,7 +330,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
-            >= 1
+            >= LARGE_ERROR_CUTOFF_K_DAY01
         )
         this_extreme_pit_flag_matrix = numpy.logical_or(
             this_pit_matrix < 0.025, this_pit_matrix > 0.975
@@ -403,7 +391,7 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
-            >= 1
+            >= LARGE_ERROR_CUTOFF_W_M02
         )
         this_extreme_pit_flag_matrix = numpy.logical_or(
             this_pit_matrix < 0.025, this_pit_matrix > 0.975
@@ -411,6 +399,14 @@ def _run(model_evaluation_dir_names, model_description_strings,
         flux_cat_error_freqs[i] = numpy.mean(numpy.logical_and(
             this_large_error_flag_matrix, this_extreme_pit_flag_matrix
         ))
+
+        print('Abs-error percentiles for flux = {0:s}'.format(str(
+            numpy.percentile(
+                numpy.absolute(this_target_matrix - this_mean_prediction_matrix),
+                [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100]
+            )
+        )))
+        print('Catastrophic-error frequency = {0:.6f}'.format(flux_cat_error_freqs[i]))
 
         this_file_name = '{0:s}/evaluation.nc'.format(
             model_evaluation_dir_names[i]
@@ -505,40 +501,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
         model_description_strings=model_description_strings,
         output_file_name=panel_file_names[-1]
     )
-
-    letter_label = None
-
-    for i in range(len(panel_file_names)):
-        print('Adding letter label to panel: "{0:s}"...'.format(
-            panel_file_names[i]
-        ))
-
-        imagemagick_utils.trim_whitespace(
-            input_file_name=panel_file_names[i],
-            output_file_name=panel_file_names[i],
-            border_width_pixels=TITLE_FONT_SIZE
-        )
-
-        if letter_label is None:
-            letter_label = 'a'
-        else:
-            letter_label = chr(ord(letter_label) + 1)
-
-        _overlay_text(
-            image_file_name=panel_file_names[i],
-            x_offset_from_left_px=0, y_offset_from_top_px=TITLE_FONT_SIZE,
-            text_string='({0:s})'.format(letter_label)
-        )
-        imagemagick_utils.trim_whitespace(
-            input_file_name=panel_file_names[i],
-            output_file_name=panel_file_names[i],
-            border_width_pixels=10
-        )
-        imagemagick_utils.resize_image(
-            input_file_name=panel_file_names[i],
-            output_file_name=panel_file_names[i],
-            output_size_pixels=PANEL_SIZE_PX
-        )
 
     concat_figure_file_name = '{0:s}/overall_model_comparison.jpg'.format(
         output_dir_name

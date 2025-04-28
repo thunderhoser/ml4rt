@@ -3,7 +3,7 @@
 import os.path
 import argparse
 import numpy
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from gewittergefahr.gg_utils import time_conversion
 from ml4rt.io import rrtm_io
 from ml4rt.io import example_io
@@ -224,10 +224,9 @@ def _run(top_rrtm_dir_name, first_date_string, last_date_string,
                 i, num_examples
             ))
 
-        actual_aerosol_optical_depths[i] = simps(
+        actual_aerosol_optical_depths[i] = simpson(
             y=aerosol_extinction_matrix_metres01[i, :],
-            x=height_matrix_m_agl[i, :],
-            even='avg'
+            x=height_matrix_m_agl[i, :]
         )
 
     for i in range(len(edge_aerosol_optical_depths) - 1):

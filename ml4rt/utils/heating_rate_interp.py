@@ -1,7 +1,7 @@
 """Methods for 1-D interpolation of heating rate over height."""
 
 import numpy
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.interpolate import interp1d
 from scipy.ndimage import maximum_filter1d
 from gewittergefahr.gg_utils import error_checking
@@ -134,22 +134,22 @@ def _conserve_heating(
             axis=-1
         )
     else:
-        orig_heating_rate_matrix_w_m02 = simps(
+        orig_heating_rate_matrix_w_m02 = simpson(
             y=(
                 orig_heating_rate_matrix_k_s01 *
                 orig_air_dens_matrix_kg_m03 * SPECIFIC_HEAT_J_KG01_K01
             ),
             x=orig_heights_metres,
-            axis=-1, even='avg'
+            axis=-1
         )
 
-        new_heating_rate_matrix_w_m02 = simps(
+        new_heating_rate_matrix_w_m02 = simpson(
             y=(
                 new_heating_rate_matrix_k_s01 *
                 new_air_dens_matrix_kg_m03 * SPECIFIC_HEAT_J_KG01_K01
             ),
             x=new_heights_metres,
-            axis=-1, even='avg'
+            axis=-1
         )
 
     ratio_matrix = (

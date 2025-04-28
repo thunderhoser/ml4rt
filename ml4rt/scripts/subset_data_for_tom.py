@@ -2,7 +2,7 @@
 
 import argparse
 import numpy
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
@@ -136,10 +136,9 @@ def _get_aerosol_optical_depths(example_dict):
         #         i, num_examples
         #     ))
 
-        aerosol_optical_depths_unitless[i] = simps(
+        aerosol_optical_depths_unitless[i] = simpson(
             y=aerosol_extinction_matrix_metres01[i, :],
-            x=height_matrix_m_agl[i, :],
-            even='avg'
+            x=height_matrix_m_agl[i, :]
         )
 
     # print('Have computed AOD for all {0:d} profiles!'.format(num_examples))

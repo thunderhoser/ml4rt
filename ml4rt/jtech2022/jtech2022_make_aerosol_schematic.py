@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from scipy.stats import gaussian_kde
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
@@ -97,9 +97,9 @@ def _run(output_dir_name):
         -grid_height_matrix_metres / scale_height_matrix_metres
     )
 
-    baseline_optical_depths = simps(
+    baseline_optical_depths = simpson(
         y=baseline_extinction_matrix_metres01, x=GRID_HEIGHTS_M_AGL,
-        axis=-1, even='avg'
+        axis=-1
     )
 
     figure_object, axes_object = profile_plotting.plot_one_variable(

@@ -4,7 +4,7 @@ import os
 import copy
 import numpy
 import xarray
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4rt.io import example_io
@@ -175,14 +175,14 @@ def _get_crps_and_dwcrps_one_var(target_values, prediction_matrix,
             numpy.absolute(this_target_matrix)
         )
 
-        integrated_cdf_matrix = simps(
+        integrated_cdf_matrix = simpson(
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
         crps_numerator += numpy.sum(integrated_cdf_matrix)
         crps_denominator += integrated_cdf_matrix.size
 
-        integrated_cdf_matrix = simps(
+        integrated_cdf_matrix = simpson(
             y=weight_matrix * (cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
@@ -253,7 +253,7 @@ def _get_climo_crps_one_var(
             (this_integrand_prediction_matrix >= this_target_matrix).astype(int)
         )
 
-        integrated_cdf_matrix = simps(
+        integrated_cdf_matrix = simpson(
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
