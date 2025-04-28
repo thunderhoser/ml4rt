@@ -282,9 +282,11 @@ def _run(model_evaluation_dir_names, model_description_strings,
         these_prediction_file_names = glob.glob(
             '{0:s}/predictions_part*.nc'.format(model_evaluation_dir_names[i])
         )
-        these_prediction_file_names += glob.glob(
-            '{0:s}/predictions.nc'.format(model_evaluation_dir_names[i])
-        )
+
+        if len(these_prediction_file_names) == 0:
+            these_prediction_file_names = glob.glob(
+                '{0:s}/predictions.nc'.format(model_evaluation_dir_names[i])
+            )
 
         these_prediction_dicts = []
         for this_file_name in these_prediction_file_names:
