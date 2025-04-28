@@ -28,7 +28,7 @@ echo $PATH
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 
 python3 -u "${CODE_DIR_NAME}/james2023_plot_data_overview.py" \
---input_example_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/normalized_not_flux/validation/learning_examples_2020_part05.nc" \
+--input_example_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/validation/learning_examples_2020_part05.nc" \
 --num_examples=200 \
 --model_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_crps_experiment00/model.h5" \
 --output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/james2023/data_overview"
