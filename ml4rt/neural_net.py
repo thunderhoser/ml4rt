@@ -216,6 +216,13 @@ def _check_generator_args(option_dict):
     if option_dict[NORMALIZATION_METHOD_KEY] is not None:
         error_checking.assert_is_string(option_dict[NORMALIZATION_METHOD_KEY])
 
+    if NORMALIZE_PREDICTORS_KEY not in option_dict:
+        option_dict[NORMALIZE_PREDICTORS_KEY] = False
+    if NORMALIZE_SCALAR_TARGETS_KEY not in option_dict:
+        option_dict[NORMALIZE_SCALAR_TARGETS_KEY] = False
+    if NORMALIZE_VECTOR_TARGETS_KEY not in option_dict:
+        option_dict[NORMALIZE_VECTOR_TARGETS_KEY] = False
+
     error_checking.assert_is_boolean(option_dict[NORMALIZE_PREDICTORS_KEY])
     error_checking.assert_is_boolean(option_dict[NORMALIZE_SCALAR_TARGETS_KEY])
     error_checking.assert_is_boolean(option_dict[NORMALIZE_VECTOR_TARGETS_KEY])
