@@ -2429,6 +2429,13 @@ def read_metafile(dill_file_name):
     if NORMALIZATION_METHOD_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
         t[NORMALIZATION_METHOD_KEY] = normalization.TWO_STEP_METHOD_STRING
         v[NORMALIZATION_METHOD_KEY] = normalization.TWO_STEP_METHOD_STRING
+    if TARGET_WAVELENGTHS_KEY not in metadata_dict[TRAINING_OPTIONS_KEY]:
+        t[TARGET_WAVELENGTHS_KEY] = numpy.array(
+            [example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES]
+        )
+        v[TARGET_WAVELENGTHS_KEY] = numpy.array(
+            [example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES]
+        )
 
     metadata_dict[TRAINING_OPTIONS_KEY] = t
     metadata_dict[VALIDATION_OPTIONS_KEY] = v
