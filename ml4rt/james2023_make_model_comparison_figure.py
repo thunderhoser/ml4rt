@@ -413,6 +413,11 @@ def _run(model_evaluation_dir_names, model_description_strings,
             this_large_error_flag_matrix, this_extreme_pit_flag_matrix
         ))
 
+        print('Abs-error percentiles for flux = {0:s}'.format(str(
+            numpy.percentile(numpy.absolute(this_target_matrix - this_mean_prediction_matrix), [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100])
+        )))
+        print('Catastrophic-error frequency = {0:.6f}'.format(flux_cat_error_freqs[i]))
+
         this_file_name = '{0:s}/evaluation.nc'.format(
             model_evaluation_dir_names[i]
         )
