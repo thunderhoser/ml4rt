@@ -328,6 +328,8 @@ def _read_file_for_generator(
             example_io.NORMALIZATION_METHOD_KEY: normalization_method_string
         }
 
+        print(example_dict[example_utils.NORMALIZATION_METADATA_KEY])
+
         assert example_io.are_normalization_metadata_same(
             normalization_metadata_dict,
             example_dict[example_utils.NORMALIZATION_METADATA_KEY]
