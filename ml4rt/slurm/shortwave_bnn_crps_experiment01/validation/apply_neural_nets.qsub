@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #SBATCH --job-name="apply_neural_nets"
 #SBATCH --partition="fge"
