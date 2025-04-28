@@ -1373,6 +1373,8 @@ def create_data(option_dict):
     # TODO(thunderhoser): HACK.
     if normalization_file_name == '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc':
         normalization_file_name = None
+    if normalization_file_name == '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_all_perturbed_for_uq/learning_examples_for_norm_20180901-20191221.nc':
+        normalization_file_name = None
 
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
