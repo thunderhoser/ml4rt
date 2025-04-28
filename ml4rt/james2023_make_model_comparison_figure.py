@@ -25,6 +25,9 @@ import spread_skill_utils as ss_utils
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 NUM_SLICES_FOR_MULTIPROCESSING = 24
 
+LARGE_ERROR_CUTOFF_K_DAY01 = 1.
+LARGE_ERROR_CUTOFF_W_M02 = 25.
+
 FIGURE_WIDTH_INCHES = 20
 FIGURE_HEIGHT_INCHES = 12
 FIGURE_RESOLUTION_DPI = 300
@@ -184,8 +187,6 @@ def _plot_bar_graphs_hr_or_flux(
             'CEF'
         ]
 
-    print(cef_values)
-
     num_models = len(model_description_strings)
     num_metrics = len(metric_names)
 
@@ -199,7 +200,6 @@ def _plot_bar_graphs_hr_or_flux(
     )
 
     for i in range(num_models):
-        print(metric_matrix[i, :])
         axes_object.bar(
             x_tick_values + i * bar_width,
             metric_matrix[i, :],
@@ -341,13 +341,9 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         print(SEPARATOR_STRING)
 
-        print(numpy.percentile(
-            numpy.absolute(this_target_matrix - this_mean_prediction_matrix),
-            [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100]
-        ))
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
-            >= 1
+            >= LARGE_ERROR_CUTOFF_K_DAY01
         )
         this_extreme_pit_flag_matrix = numpy.logical_or(
             this_pit_matrix < 0.025, this_pit_matrix > 0.975
@@ -406,13 +402,9 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         print(SEPARATOR_STRING)
 
-        print(numpy.percentile(
-            numpy.absolute(this_target_matrix - this_mean_prediction_matrix),
-            [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100]
-        ))
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
-            >= 1
+            >= LARGE_ERROR_CUTOFF_W_M02
         )
         this_extreme_pit_flag_matrix = numpy.logical_or(
             this_pit_matrix < 0.025, this_pit_matrix > 0.975
