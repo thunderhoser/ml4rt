@@ -258,6 +258,9 @@ def _run(model_evaluation_dir_names, model_description_strings,
     :param output_dir_name: Same.
     """
 
+    print('model_evaluation_dir_names')
+    print(model_evaluation_dir_names[-1])
+
     num_models = len(model_evaluation_dir_names)
     expected_dim = numpy.array([num_models], dtype=int)
 
