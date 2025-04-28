@@ -26,7 +26,7 @@ MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 METRES_TO_MICRONS = 1e6
 
 CONVERT_EXE_NAME = 'convert'
-TITLE_FONT_SIZE = 250
+TITLE_FONT_SIZE = 150
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
 ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
@@ -244,12 +244,12 @@ def _plot_one_example(example_dict, example_index, use_log_scale,
         imagemagick_utils.trim_whitespace(
             input_file_name=this_file_name,
             output_file_name=this_file_name,
-            border_width_pixels=0
+            border_width_pixels=TITLE_FONT_SIZE + 75
         )
         _overlay_text(
             image_file_name=this_file_name,
-            x_offset_from_left_px=0,
-            y_offset_from_top_px=0,
+            x_offset_from_left_px=TITLE_FONT_SIZE + 50,
+            y_offset_from_top_px=TITLE_FONT_SIZE + 200,
             text_string='({0:s})'.format(panel_letter)
         )
         imagemagick_utils.trim_whitespace(
