@@ -32,11 +32,6 @@ FIGURE_WIDTH_INCHES = 20
 FIGURE_HEIGHT_INCHES = 12
 FIGURE_RESOLUTION_DPI = 300
 
-REFERENCE_LINE_COLOUR = numpy.full(3, 152. / 255)
-SINGLE_ERROR_METRIC_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
-FIRST_ERROR_METRIC_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
-SECOND_ERROR_METRIC_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
-
 DEFAULT_FONT_SIZE = 30
 pyplot.rc('font', size=DEFAULT_FONT_SIZE)
 pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
@@ -258,9 +253,6 @@ def _run(model_evaluation_dir_names, model_description_strings,
     :param output_dir_name: Same.
     """
 
-    print('model_evaluation_dir_names')
-    print(model_evaluation_dir_names[-1])
-
     num_models = len(model_evaluation_dir_names)
     expected_dim = numpy.array([num_models], dtype=int)
 
@@ -417,7 +409,10 @@ def _run(model_evaluation_dir_names, model_description_strings,
         ))
 
         print('Abs-error percentiles for flux = {0:s}'.format(str(
-            numpy.percentile(numpy.absolute(this_target_matrix - this_mean_prediction_matrix), [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100])
+            numpy.percentile(
+                numpy.absolute(this_target_matrix - this_mean_prediction_matrix),
+                [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100]
+            )
         )))
         print('Catastrophic-error frequency = {0:.6f}'.format(flux_cat_error_freqs[i]))
 

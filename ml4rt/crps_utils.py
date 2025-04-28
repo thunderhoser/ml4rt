@@ -1,17 +1,24 @@
 """Helper methods for computing continuous ranked probability score (CRPS)."""
 
 import os
+import sys
 import copy
 import numpy
 import xarray
-from scipy.integrate import simps
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from ml4rt.io import example_io
-from ml4rt.io import prediction_io
-from ml4rt.utils import example_utils
-from ml4rt.utils import uq_evaluation
-from ml4rt.machine_learning import neural_net
+from scipy.integrate import simpson
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import error_checking
+import example_io
+import prediction_io
+import example_utils
+import uq_evaluation
+import neural_net
 
 TOLERANCE = 1e-6
 NUM_EXAMPLES_PER_BATCH = 1000
@@ -175,14 +182,14 @@ def _get_crps_and_dwcrps_one_var(target_values, prediction_matrix,
             numpy.absolute(this_target_matrix)
         )
 
-        integrated_cdf_matrix = simps(
+        integrated_cdf_matrix = simpson(
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
         crps_numerator += numpy.sum(integrated_cdf_matrix)
         crps_denominator += integrated_cdf_matrix.size
 
-        integrated_cdf_matrix = simps(
+        integrated_cdf_matrix = simpson(
             y=weight_matrix * (cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )
@@ -253,7 +260,7 @@ def _get_climo_crps_one_var(
             (this_integrand_prediction_matrix >= this_target_matrix).astype(int)
         )
 
-        integrated_cdf_matrix = simps(
+        integrated_cdf_matrix = simpson(
             y=(cdf_matrix - heaviside_matrix) ** 2,
             x=prediction_by_integ_level, axis=-1
         )

@@ -4,7 +4,7 @@ import os
 import sys
 import argparse
 import numpy
-from scipy.integrate import simps
+from scipy.integrate import simpson
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -144,10 +144,9 @@ def _get_aerosol_optical_depths(example_dict):
         #         i, num_examples
         #     ))
 
-        aerosol_optical_depths_unitless[i] = simps(
+        aerosol_optical_depths_unitless[i] = simpson(
             y=aerosol_extinction_matrix_metres01[i, :],
-            x=height_matrix_m_agl[i, :],
-            even='avg'
+            x=height_matrix_m_agl[i, :]
         )
 
     # print('Have computed AOD for all {0:d} profiles!'.format(num_examples))

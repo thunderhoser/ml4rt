@@ -283,7 +283,6 @@ def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
             scalar_prediction_matrix, axis=1
         )
 
-
     return vector_prediction_matrix, scalar_prediction_matrix
 
 

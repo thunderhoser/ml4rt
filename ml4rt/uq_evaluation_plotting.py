@@ -12,6 +12,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import error_checking
 import example_utils
 import uq_evaluation
 import pit_utils
@@ -137,12 +138,17 @@ def _plot_means_as_inset(
     inset_axes_object.set_ylim(y_min, y_max)
     inset_axes_object.set_xlim(left=0.)
 
-    for this_tick_object in inset_axes_object.xaxis.get_major_ticks():
-        this_tick_object.label.set_fontsize(INSET_FONT_SIZE)
-        this_tick_object.label.set_rotation('vertical')
+    inset_axes_object.tick_params(axis='x', labelsize=INSET_FONT_SIZE)
+    inset_axes_object.tick_params(axis='y', labelsize=INSET_FONT_SIZE)
+    for this_label in inset_axes_object.get_xticklabels():
+        this_label.set_rotation(90)
 
-    for this_tick_object in inset_axes_object.yaxis.get_major_ticks():
-        this_tick_object.label.set_fontsize(INSET_FONT_SIZE)
+    # for this_tick_object in inset_axes_object.xaxis.get_major_ticks():
+    #     this_tick_object.label.set_fontsize(INSET_FONT_SIZE)
+    #     this_tick_object.label.set_rotation('vertical')
+    #
+    # for this_tick_object in inset_axes_object.yaxis.get_major_ticks():
+    #     this_tick_object.label.set_fontsize(INSET_FONT_SIZE)
 
     if for_spread_skill_plot:
         anchor_arg = (0.5, -0.25)
@@ -190,7 +196,7 @@ def _plot_histogram(axes_object, bin_edges, bin_frequencies):
 def plot_spread_vs_skill(
         result_table_xarray, target_var_name, target_wavelength_metres,
         target_height_m_agl=None, line_colour=DEFAULT_LINE_COLOUR,
-        line_style='solid', line_width=DEFAULT_LINE_WIDTH):
+        line_style='solid', line_width=DEFAULT_LINE_WIDTH, plot_inset=True):
     """Creates spread-skill plot for one target variable.
 
     :param result_table_xarray: xarray table in format returned by
@@ -205,11 +211,15 @@ def plot_spread_vs_skill(
     :param line_colour: Line colour (in any format accepted by matplotlib).
     :param line_style: Line style (in any format accepted by matplotlib).
     :param line_width: Line width (in any format accepted by matplotlib).
+    :param plot_inset: Boolean flag.  If True, will plot inset graph showing
+        model bias.
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
         `matplotlib.axes._subplots.AxesSubplot`).
     """
+
+    error_checking.assert_is_boolean(plot_inset)
 
     # Find values for the chosen target variable.
     rtx = result_table_xarray
@@ -372,28 +382,29 @@ def plot_spread_vs_skill(
     axes_object.set_xlim(min([bin_edges[0], 0]), max_value_to_plot)
     axes_object.set_ylim(0, max_value_to_plot)
 
-    inset_axes_object = _plot_means_as_inset(
-        figure_object=figure_object, bin_centers=mean_prediction_stdevs,
-        bin_mean_predictions=mean_mean_predictions,
-        bin_mean_target_values=mean_target_values,
-        plotting_corner_string='bottom_right',
-        for_spread_skill_plot=True
-    )
-    inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    if plot_inset:
+        inset_axes_object = _plot_means_as_inset(
+            figure_object=figure_object, bin_centers=mean_prediction_stdevs,
+            bin_mean_predictions=mean_mean_predictions,
+            bin_mean_target_values=mean_target_values,
+            plotting_corner_string='bottom_right',
+            for_spread_skill_plot=True
+        )
+        inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
 
-    inset_axes_object.set_xticks(axes_object.get_xticks())
-    inset_axes_object.set_xlim(axes_object.get_xlim())
-    inset_axes_object.set_xlabel(
-        'Spread ({0:s})'.format(unit_string),
-        fontsize=INSET_FONT_SIZE
-    )
-    inset_axes_object.set_ylabel(
-        'Avg target or pred ({0:s})'.format(unit_string),
-        fontsize=INSET_FONT_SIZE
-    )
-    inset_axes_object.set_title(
-        'Avgs by model spread', fontsize=INSET_FONT_SIZE
-    )
+        inset_axes_object.set_xticks(axes_object.get_xticks())
+        inset_axes_object.set_xlim(axes_object.get_xlim())
+        inset_axes_object.set_xlabel(
+            'Spread ({0:s})'.format(unit_string),
+            fontsize=INSET_FONT_SIZE
+        )
+        inset_axes_object.set_ylabel(
+            'Avg target or pred ({0:s})'.format(unit_string),
+            fontsize=INSET_FONT_SIZE
+        )
+        inset_axes_object.set_title(
+            'Avgs by model spread', fontsize=INSET_FONT_SIZE
+        )
 
     title_string = 'Spread vs. skill for {0:s} at {1:.2f}'.format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],

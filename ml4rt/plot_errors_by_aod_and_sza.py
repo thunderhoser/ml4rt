@@ -7,7 +7,7 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-from scipy.integrate import simps
+from scipy.integrate import simpson
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -279,10 +279,9 @@ def _get_aerosol_optical_depths(prediction_dict, example_dir_name):
                     i, num_examples
                 ))
 
-            aerosol_optical_depths[i] = simps(
+            aerosol_optical_depths[i] = simpson(
                 y=aerosol_extinction_matrix_metres01[i, :],
-                x=height_matrix_m_agl[i, :],
-                even='avg'
+                x=height_matrix_m_agl[i, :]
             )
 
         print((
@@ -291,9 +290,9 @@ def _get_aerosol_optical_depths(prediction_dict, example_dir_name):
             num_examples
         ))
     else:
-        aerosol_optical_depths = simps(
+        aerosol_optical_depths = simpson(
             y=aerosol_extinction_matrix_metres01, x=height_matrix_m_agl,
-            axis=-1, even='avg'
+            axis=-1
         )
 
     return aerosol_optical_depths

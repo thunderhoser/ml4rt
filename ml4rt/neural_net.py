@@ -972,10 +972,10 @@ def data_generator(option_dict, for_inference):
             this_example_dict = dict()
 
             for k in [
-                    example_utils.VECTOR_PREDICTOR_VALS_KEY,
-                    example_utils.SCALAR_PREDICTOR_VALS_KEY,
-                    example_utils.VECTOR_TARGET_VALS_KEY,
-                    example_utils.SCALAR_TARGET_VALS_KEY
+                example_utils.VECTOR_PREDICTOR_VALS_KEY,
+                example_utils.SCALAR_PREDICTOR_VALS_KEY,
+                example_utils.VECTOR_TARGET_VALS_KEY,
+                example_utils.SCALAR_TARGET_VALS_KEY
             ]:
                 this_example_dict[k] = (
                     example_dict[k][first_example_index:last_example_index, ...]
@@ -1371,9 +1371,19 @@ def create_data(option_dict):
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
 
     # TODO(thunderhoser): HACK.
-    if normalization_file_name == '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc':
+    if normalization_file_name == (
+            '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/'
+            'shortwave_examples_600days/orig_heights/training/'
+            'learning_examples_for_norm_20180901-20191221.nc'
+    ):
         normalization_file_name = None
-    if normalization_file_name == '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_all_perturbed_for_uq/learning_examples_for_norm_20180901-20191221.nc':
+
+    if normalization_file_name == (
+            '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/'
+            'shortwave_examples_600days/orig_heights/'
+            'training_all_perturbed_for_uq/'
+            'learning_examples_for_norm_20180901-20191221.nc'
+    ):
         normalization_file_name = None
 
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
