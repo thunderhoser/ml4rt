@@ -341,6 +341,10 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         print(SEPARATOR_STRING)
 
+        print(numpy.percentile(
+            numpy.absolute(this_target_matrix - this_mean_prediction_matrix),
+            [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100]
+        ))
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
             >= 1
@@ -402,6 +406,10 @@ def _run(model_evaluation_dir_names, model_description_strings,
 
         print(SEPARATOR_STRING)
 
+        print(numpy.percentile(
+            numpy.absolute(this_target_matrix - this_mean_prediction_matrix),
+            [50, 75, 90, 95, 97.5, 99, 99.5, 99.9, 99.99, 100]
+        ))
         this_large_error_flag_matrix = (
             numpy.absolute(this_target_matrix - this_mean_prediction_matrix)
             >= 1
