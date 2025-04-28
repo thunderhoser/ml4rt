@@ -2147,7 +2147,7 @@ def read_model(hdf5_file_name):
     metadata_dict = read_metafile(metafile_name)
 
     if metadata_dict[USE_RYAN_ARCHITECTURE_KEY]:
-        import peter_brnn_architecture_ryan
+        from ml4rt.machine_learning import peter_brnn_architecture_ryan
 
         model_object = peter_brnn_architecture_ryan.rnn_sw(
             nneur=64, lstm=True,
@@ -2161,7 +2161,7 @@ def read_model(hdf5_file_name):
             isinstance(metadata_dict[LOSS_FUNCTION_OR_DICT_KEY], str)
             and metadata_dict[LOSS_FUNCTION_OR_DICT_KEY] == 'mse'
     ):
-        import peter_brnn_architecture
+        from ml4rt.machine_learning import peter_brnn_architecture
 
         model_object = peter_brnn_architecture.rnn_sw(
             nneur=64, lstm=True,
@@ -2174,7 +2174,7 @@ def read_model(hdf5_file_name):
     dense_architecture_dict = metadata_dict[DENSE_ARCHITECTURE_KEY]
 
     if dense_architecture_dict is not None:
-        import dense_net_architecture
+        from ml4rt.machine_learning import dense_net_architecture
 
         for this_key in [
                 dense_net_architecture.VECTOR_LOSS_FUNCTION_KEY,
@@ -2193,7 +2193,7 @@ def read_model(hdf5_file_name):
     cnn_architecture_dict = metadata_dict[CNN_ARCHITECTURE_KEY]
 
     if cnn_architecture_dict is not None:
-        import cnn_architecture
+        from ml4rt.machine_learning import cnn_architecture
 
         for this_key in [
                 cnn_architecture.VECTOR_LOSS_FUNCTION_KEY,
@@ -2210,7 +2210,7 @@ def read_model(hdf5_file_name):
     bnn_architecture_dict = metadata_dict[BNN_ARCHITECTURE_KEY]
 
     if bnn_architecture_dict is not None:
-        import u_net_pp_architecture_bayesian
+        from ml4rt.machine_learning import u_net_pp_architecture_bayesian
 
         for this_key in [
                 u_net_pp_architecture_bayesian.VECTOR_LOSS_FUNCTION_KEY,
@@ -2229,7 +2229,7 @@ def read_model(hdf5_file_name):
     u_net_architecture_dict = metadata_dict[U_NET_ARCHITECTURE_KEY]
 
     if u_net_architecture_dict is not None:
-        import u_net_architecture
+        from ml4rt.machine_learning import u_net_architecture
 
         u_arch_dict = u_net_architecture_dict
 
@@ -2276,8 +2276,8 @@ def read_model(hdf5_file_name):
     u_net_plusplus_architecture_dict = metadata_dict[U_NET_PP_ARCHITECTURE_KEY]
 
     if u_net_plusplus_architecture_dict is not None:
-        import u_net_architecture
-        import u_net_pp_architecture
+        from ml4rt.machine_learning import u_net_architecture
+        from ml4rt.machine_learning import u_net_pp_architecture
 
         upp_arch_dict = u_net_plusplus_architecture_dict
 
@@ -2326,8 +2326,8 @@ def read_model(hdf5_file_name):
     u_net_3plus_architecture_dict = metadata_dict[U_NET_PPP_ARCHITECTURE_KEY]
     assert u_net_3plus_architecture_dict is not None
 
-    import u_net_architecture
-    import u_net_ppp_architecture
+    from ml4rt.machine_learning import u_net_architecture
+    from ml4rt.machine_learning import u_net_ppp_architecture
 
     uppp_arch_dict = u_net_3plus_architecture_dict
 
