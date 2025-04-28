@@ -12,10 +12,14 @@ dist/
 .idea/
 *.iml
 
+# Pylint settings.
+.pylintrc
+
 # Slurm scripts.
 slurm/
 
 # Code that I don't intend to commit.
+*fuckery*.py
 ml4rt/*.py
 ml4rt/dead_scratch_code/
 
