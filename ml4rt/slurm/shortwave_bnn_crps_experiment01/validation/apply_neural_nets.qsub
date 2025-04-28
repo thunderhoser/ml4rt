@@ -3,7 +3,7 @@
 #SBATCH --job-name="apply_neural_nets"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="batch"
+#SBATCH --qos="gpuwf"
 #SBATCH --nodes=1
 #SBATCH --ntasks=8           # 8 tasks per node
 #SBATCH --cpus-per-task=2
