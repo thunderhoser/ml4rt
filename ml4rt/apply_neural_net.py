@@ -403,6 +403,9 @@ def _run(model_file_name, iso_reg_model_file_name, iso_reg_layer_type_string,
                     ensemble_indices, size=ensemble_size_per_iter, replace=False
                 )
 
+                print(this_vector_prediction_matrix.shape)
+                print(this_scalar_prediction_matrix.shape)
+
                 this_vector_prediction_matrix = (
                     this_vector_prediction_matrix[..., ensemble_indices]
                 )
