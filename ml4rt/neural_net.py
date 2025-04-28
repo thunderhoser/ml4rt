@@ -316,8 +316,6 @@ def _read_file_for_generator(
         example_utils.NORMALIZATION_METADATA_KEY
     ][example_io.NORMALIZATION_FILE_KEY]
 
-    print(example_dict[example_utils.NORMALIZATION_METADATA_KEY])
-
     if previous_norm_file_name == 'None':
         previous_norm_file_name = None
 
@@ -1371,6 +1369,11 @@ def create_data(option_dict):
     )
 
     normalization_file_name = option_dict[NORMALIZATION_FILE_KEY]
+
+    # TODO(thunderhoser): HACK.
+    if normalization_file_name == '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training/learning_examples_for_norm_20180901-20191221.nc':
+        normalization_file_name = None
+
     normalize_predictors = option_dict[NORMALIZE_PREDICTORS_KEY]
     normalize_scalar_targets = option_dict[NORMALIZE_SCALAR_TARGETS_KEY]
     normalize_vector_targets = option_dict[NORMALIZE_VECTOR_TARGETS_KEY]
