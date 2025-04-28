@@ -39,5 +39,5 @@ BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparamet
 BEST_MODEL_INDEX=30
 model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
 
-set this_directory_name=`pwd`
+this_directory_name=`pwd`
 singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; bash apply_neural_net.sh ${model_dir_name} ${SLURM_ARRAY_TASK_ID}"
