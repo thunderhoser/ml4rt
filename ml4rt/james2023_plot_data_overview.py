@@ -25,7 +25,10 @@ MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
 
 METRES_TO_MICRONS = 1e6
 
-BLACK_COLOUR = numpy.full(3, 0.)
+CONVERT_EXE_NAME = 'convert'
+TITLE_FONT_SIZE = 250
+TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
+
 ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
@@ -39,11 +42,10 @@ TARGET_NAMES = [
 FIRST_PREDICTOR_NAMES = [
     example_utils.SPECIFIC_HUMIDITY_NAME,
     example_utils.WATER_VAPOUR_PATH_NAME,
-    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME,
-    example_utils.RELATIVE_HUMIDITY_NAME
+    example_utils.UPWARD_WATER_VAPOUR_PATH_NAME
 ]
 FIRST_PREDICTOR_COLOURS = [
-    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR, BLACK_COLOUR
+    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
 ]
 
 SECOND_PREDICTOR_NAMES = [
@@ -65,13 +67,9 @@ THIRD_PREDICTOR_COLOURS = [
 ]
 
 FOURTH_PREDICTOR_NAMES = [
-    example_utils.TEMPERATURE_NAME,
-    example_utils.PRESSURE_NAME,
-    example_utils.O3_MIXING_RATIO_NAME
+    example_utils.TEMPERATURE_NAME, example_utils.O3_MIXING_RATIO_NAME
 ]
-FOURTH_PREDICTOR_COLOURS = [
-    ORANGE_COLOUR, PURPLE_COLOUR, GREEN_COLOUR
-]
+FOURTH_PREDICTOR_COLOURS = [ORANGE_COLOUR, PURPLE_COLOUR]
 
 LINE_WIDTH = 3
 FIGURE_RESOLUTION_DPI = 300
@@ -130,6 +128,34 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
+
+
+def _overlay_text(
+        image_file_name, x_offset_from_left_px, y_offset_from_top_px,
+        text_string):
+    """Creates two figures showing overall evaluation of uncertainty quant (UQ).
+
+    :param image_file_name: Path to image file.
+    :param x_offset_from_left_px: Left-relative x-coordinate (pixels).
+    :param y_offset_from_top_px: Top-relative y-coordinate (pixels).
+    :param text_string: String to overlay.
+    :raises: ValueError: if ImageMagick command (which is ultimately a Unix
+        command) fails.
+    """
+
+    command_string = (
+        '"{0:s}" "{1:s}" -pointsize {2:d} -font "{3:s}" '
+        '-fill "rgb(0, 0, 0)" -annotate {4:+d}{5:+d} "{6:s}" "{1:s}"'
+    ).format(
+        CONVERT_EXE_NAME, image_file_name, TITLE_FONT_SIZE, TITLE_FONT_NAME,
+        x_offset_from_left_px, y_offset_from_top_px, text_string
+    )
+
+    exit_code = os.system(command_string)
+    if exit_code == 0:
+        return
+
+    raise ValueError(imagemagick_utils.ERROR_STRING)
 
 
 def _plot_one_example(example_dict, example_index, use_log_scale,
@@ -206,6 +232,30 @@ def _plot_one_example(example_dict, example_index, use_log_scale,
         bbox_inches='tight'
     )
     pyplot.close(figure_object)
+
+    panel_letter = None
+
+    for this_file_name in panel_file_names:
+        if panel_letter is None:
+            panel_letter = 'a'
+        else:
+            panel_letter = chr(ord(panel_letter) + 1)
+
+        imagemagick_utils.trim_whitespace(
+            input_file_name=this_file_name,
+            output_file_name=this_file_name,
+            border_width_pixels=0
+        )
+        _overlay_text(
+            image_file_name=this_file_name,
+            x_offset_from_left_px=0,
+            y_offset_from_top_px=0,
+            text_string='({0:s})'.format(panel_letter)
+        )
+        imagemagick_utils.trim_whitespace(
+            input_file_name=this_file_name,
+            output_file_name=this_file_name
+        )
 
     num_panels = len(panel_file_names)
     num_panel_rows = int(numpy.floor(
