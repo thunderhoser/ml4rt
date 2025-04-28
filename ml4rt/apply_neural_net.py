@@ -265,10 +265,26 @@ def _apply_model_once(model_object, predictor_matrix_or_list, use_dropout):
         time.time() - exec_start_time_unix_sec
     ))
 
-    return (
-        prediction_dict[neural_net.HEATING_RATE_TARGETS_KEY],
-        prediction_dict[neural_net.FLUX_TARGETS_KEY]
-    )
+    vector_prediction_matrix = prediction_dict[
+        neural_net.HEATING_RATE_TARGETS_KEY
+    ]
+    scalar_prediction_matrix = prediction_dict[neural_net.FLUX_TARGETS_KEY]
+
+    if len(vector_prediction_matrix.shape) == 3:
+        vector_prediction_matrix = numpy.expand_dims(
+            vector_prediction_matrix, axis=-2
+        )
+        vector_prediction_matrix = numpy.expand_dims(
+            vector_prediction_matrix, axis=-2
+        )
+
+        scalar_prediction_matrix = scalar_prediction_matrix[..., 0]
+        scalar_prediction_matrix = numpy.expand_dims(
+            scalar_prediction_matrix, axis=1
+        )
+
+
+    return vector_prediction_matrix, scalar_prediction_matrix
 
 
 def _run(model_file_name, iso_reg_model_file_name, iso_reg_layer_type_string,
