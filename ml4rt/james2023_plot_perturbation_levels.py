@@ -265,15 +265,19 @@ def _run(example_file_names, file_description_strings, num_examples,
         these_id_strings = example_dict_by_file[i][
             example_utils.EXAMPLE_IDS_KEY
         ]
+        print(these_id_strings[0])
+
         these_id_strings = [
             '_'.join(s.split('_')[:-1]) for s in these_id_strings
         ]
+        print(these_id_strings[0])
+
         these_id_strings = [
             '{0:s}_temp-10m-kelvins=300.000000'.format(s)
             for s in these_id_strings
         ]
 
-        print(these_id_strings[:10])
+        print(these_id_strings[0])
         print('\n\n\n')
 
         if i == 0:
