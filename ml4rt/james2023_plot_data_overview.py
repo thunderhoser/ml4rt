@@ -33,6 +33,9 @@ ORANGE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 PURPLE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 GREEN_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 
+GRID_LINE_COLOUR = numpy.full(3, 152. / 255)
+GRID_LINE_WIDTH = 1.
+
 TARGET_NAMES = [
     example_utils.SHORTWAVE_DOWN_FLUX_NAME,
     example_utils.SHORTWAVE_UP_FLUX_NAME,
@@ -181,6 +184,10 @@ def _plot_one_example(example_dict, example_index, use_log_scale,
         FIRST_PREDICTOR_COLOURS, SECOND_PREDICTOR_COLOURS,
         THIRD_PREDICTOR_COLOURS, FOURTH_PREDICTOR_COLOURS
     ]
+    panel_titles = [
+        'Water-vapour predictors', 'Liquid-water predictors',
+        'Ice-water predictors', 'Misc. predictors'
+    ]
 
     num_predictor_sets = len(predictor_names_by_set)
     panel_file_names = []
@@ -193,9 +200,21 @@ def _plot_one_example(example_dict, example_index, use_log_scale,
             predictor_line_widths=
             numpy.full(len(predictor_names_by_set[k]), LINE_WIDTH),
             predictor_line_styles=['solid'] * len(predictor_names_by_set[k]),
-            use_log_scale=use_log_scale
+            use_log_scale=use_log_scale,
+            all_axes_on_bottom=True
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+        axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+
+        axes_object.set_title(panel_titles[k])
+        axes_object.grid(
+            which='major', axis='y',
+            color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+        )
+
+        if k not in [0, 3]:
+            axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+            axes_object.set_ylabel('')
 
         this_file_name = '{0:s}/{1:s}_predictor-set-{2:d}.jpg'.format(
             output_dir_name, example_id_string.replace('_', '-'), k
@@ -216,9 +235,19 @@ def _plot_one_example(example_dict, example_index, use_log_scale,
         wavelength_metres=example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES,
         use_log_scale=use_log_scale,
         line_width=LINE_WIDTH,
-        line_style='solid'
+        line_style='solid',
+        all_axes_on_bottom=True
     )
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
+    axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+
+    axes_object.set_title('Target variables')
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
 
     this_file_name = '{0:s}/{1:s}_targets.jpg'.format(
         output_dir_name,

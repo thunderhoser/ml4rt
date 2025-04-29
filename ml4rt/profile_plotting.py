@@ -51,9 +51,9 @@ PREDICTOR_NAME_TO_VERBOSE = {
         r'Upward liquid-water path (g m$^{-2}$)',
     example_utils.LIQUID_EFF_RADIUS_NAME: r'Liquid effective radius ($\mu$m)',
     example_utils.ICE_WATER_CONTENT_NAME: r'Ice-water content (g m$^{-3}$)',
-    example_utils.ICE_WATER_PATH_NAME: r'Downward ice-water path (mg m$^{-2}$)',
+    example_utils.ICE_WATER_PATH_NAME: r'Downward ice-water path (g m$^{-2}$)',
     example_utils.UPWARD_ICE_WATER_PATH_NAME:
-        r'Upward ice-water path (mg m$^{-2}$)',
+        r'Upward ice-water path (g m$^{-2}$)',
     example_utils.ICE_EFF_RADIUS_NAME: r'Ice effective radius ($\mu$m)',
     example_utils.TEMPERATURE_NAME: r'Temperature ($^{\circ}$C)',
     example_utils.PRESSURE_NAME: 'Pressure (mb)',
@@ -72,7 +72,7 @@ PREDICTOR_NAME_TO_VERBOSE = {
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME:
         r'Column liquid-water path (g m$^{-2}$)',
     example_utils.COLUMN_ICE_WATER_PATH_NAME:
-        r'Column ice-water path (mg m$^{-2}$)',
+        r'Column ice-water path (g m$^{-2}$)',
     example_utils.AEROSOL_EXTINCTION_NAME: r'Aerosol extinction (km$^{-1}$)',
     example_utils.AEROSOL_ALBEDO_NAME: 'Aerosol single-scattering albedo',
     example_utils.AEROSOL_ASYMMETRY_PARAM_NAME: 'Aerosol asymmetry param'
@@ -89,8 +89,8 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_utils.UPWARD_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
     example_utils.LIQUID_EFF_RADIUS_NAME: METRES_TO_MICRONS,
     example_utils.ICE_WATER_CONTENT_NAME: KG_TO_GRAMS,
-    example_utils.ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
-    example_utils.UPWARD_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_utils.ICE_WATER_PATH_NAME: KG_TO_GRAMS,
+    example_utils.UPWARD_ICE_WATER_PATH_NAME: KG_TO_GRAMS,
     example_utils.ICE_EFF_RADIUS_NAME: METRES_TO_MICRONS,
     example_utils.PRESSURE_NAME: PASCALS_TO_MB,
     example_utils.HEIGHT_THICKNESS_NAME: 1.,
@@ -105,7 +105,7 @@ PREDICTOR_NAME_TO_CONV_FACTOR = {
     example_utils.LATITUDE_NAME: 1.,
     example_utils.LONGITUDE_NAME: 1.,
     example_utils.COLUMN_LIQUID_WATER_PATH_NAME: KG_TO_GRAMS,
-    example_utils.COLUMN_ICE_WATER_PATH_NAME: KG_TO_MILLIGRAMS,
+    example_utils.COLUMN_ICE_WATER_PATH_NAME: KG_TO_GRAMS,
     example_utils.AEROSOL_EXTINCTION_NAME: 1000.,
     example_utils.AEROSOL_ALBEDO_NAME: 1.,
     example_utils.AEROSOL_ASYMMETRY_PARAM_NAME: 1.
@@ -399,7 +399,7 @@ def plot_predictors(
 def plot_targets(
         example_dict, example_index, wavelength_metres, use_log_scale,
         for_shortwave=True, line_width=DEFAULT_LINE_WIDTH,
-        line_style='solid', handle_dict=None):
+        line_style='solid', handle_dict=None, all_axes_on_bottom=False):
     """Plots targets (upwelling flux, downwelling flux, heating rate).
 
     :param example_dict: See doc for `plot_predictors`.
@@ -411,6 +411,8 @@ def plot_targets(
     :param line_width: See doc for `plot_predictors`.
     :param line_style: Same.
     :param handle_dict: Same.
+    :param all_axes_on_bottom: Boolean flag.  If True, the x-labels for all
+        predictor variables will be on the bottom -- no labels on the top.
     :return: handle_dict: Dictionary with the following keys.
     handle_dict['figure_object']: Figure handle (instance of
         `matplotlib.figure.Figure`).
@@ -428,6 +430,7 @@ def plot_targets(
     error_checking.assert_is_geq(example_index, 0)
     error_checking.assert_is_boolean(use_log_scale)
     error_checking.assert_is_boolean(for_shortwave)
+    error_checking.assert_is_boolean(all_axes_on_bottom)
 
     if handle_dict is None:
         figure_object, heating_rate_axes_object = pyplot.subplots(
@@ -442,9 +445,22 @@ def plot_targets(
         down_flux_axes_object = heating_rate_axes_object.twiny()
         up_flux_axes_object = heating_rate_axes_object.twiny()
 
-        up_flux_axes_object.spines['top'].set_position(('axes', 1.15))
+        down_flux_axes_object.xaxis.set_ticks_position('bottom')
+        down_flux_axes_object.xaxis.set_label_position('bottom')
+        down_flux_axes_object.spines['bottom'].set_position(('axes', -0.15))
+        _make_spines_invisible(down_flux_axes_object)
+        down_flux_axes_object.spines['bottom'].set_visible(True)
+
+        if all_axes_on_bottom:
+            up_flux_axes_object.xaxis.set_ticks_position('bottom')
+            up_flux_axes_object.xaxis.set_label_position('bottom')
+            up_flux_axes_object.spines['bottom'].set_position(('axes', -0.3))
+            up_flux_axes_object.spines['bottom'].set_visible(True)
+        else:
+            up_flux_axes_object.spines['top'].set_position(('axes', 1.))
+            up_flux_axes_object.spines['top'].set_visible(True)
+
         _make_spines_invisible(up_flux_axes_object)
-        up_flux_axes_object.spines['top'].set_visible(True)
     else:
         figure_object = handle_dict[FIGURE_HANDLE_KEY]
         heating_rate_axes_object = handle_dict[HEATING_RATE_HANDLE_KEY]
