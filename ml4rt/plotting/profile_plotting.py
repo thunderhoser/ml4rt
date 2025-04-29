@@ -196,7 +196,7 @@ def create_height_labels(tick_values_km_agl, use_log_scale):
 def plot_predictors(
         example_dict, example_index, predictor_names, predictor_colours,
         predictor_line_widths, predictor_line_styles, use_log_scale,
-        include_units=True, handle_dict=None):
+        include_units=True, handle_dict=None, all_axes_on_bottom=False):
     """Plots several predictors on the same set of axes.
 
     P = number of predictors to plot (must all be profiles)
@@ -218,6 +218,8 @@ def plot_predictors(
         units.
     :param handle_dict: See output doc.  If None, will create new figure on the
         fly.
+    :param all_axes_on_bottom: Boolean flag.  If True, the x-labels for all
+        predictor variables will be on the bottom -- no labels on the top.
     :return: handle_dict: Dictionary with the following keys.
     handle_dict['figure_object']: Figure handle (instance of
         `matplotlib.figure.Figure`).
@@ -230,10 +232,11 @@ def plot_predictors(
     error_checking.assert_is_geq(example_index, 0)
     error_checking.assert_is_boolean(use_log_scale)
     error_checking.assert_is_boolean(include_units)
+    error_checking.assert_is_boolean(all_axes_on_bottom)
 
     error_checking.assert_is_string_list(predictor_names)
     num_predictors = len(predictor_names)
-    error_checking.assert_is_leq(num_predictors, 4)
+    error_checking.assert_is_leq(num_predictors, 5)
 
     for k in range(num_predictors):
         pass
@@ -261,23 +264,47 @@ def plot_predictors(
 
         for k in range(1, num_predictors):
             axes_objects.append(axes_objects[0].twiny())
+            _make_spines_invisible(axes_objects[k])
 
             if k == 1:
-                axes_objects[k].spines['top'].set_position(('axes', 1.))
-                _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['top'].set_visible(True)
+                if all_axes_on_bottom:
+                    axes_objects[k].xaxis.set_ticks_position('bottom')
+                    axes_objects[k].xaxis.set_label_position('bottom')
+                    axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
+                    axes_objects[k].spines['bottom'].set_visible(True)
+                else:
+                    axes_objects[k].spines['top'].set_position(('axes', 1.))
+                    axes_objects[k].spines['top'].set_visible(True)
 
             if k == 2:
+                if all_axes_on_bottom:
+                    axes_objects[k].spines['bottom'].set_position(('axes', -0.3))
+                else:
+                    axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
+
                 axes_objects[k].xaxis.set_ticks_position('bottom')
                 axes_objects[k].xaxis.set_label_position('bottom')
-                axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
-                _make_spines_invisible(axes_objects[k])
                 axes_objects[k].spines['bottom'].set_visible(True)
 
             if k == 3:
-                axes_objects[k].spines['top'].set_position(('axes', 1.15))
-                _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['top'].set_visible(True)
+                if all_axes_on_bottom:
+                    axes_objects[k].xaxis.set_ticks_position('bottom')
+                    axes_objects[k].xaxis.set_label_position('bottom')
+                    axes_objects[k].spines['bottom'].set_position(('axes', -0.45))
+                    axes_objects[k].spines['bottom'].set_visible(True)
+                else:
+                    axes_objects[k].spines['top'].set_position(('axes', 1.15))
+                    axes_objects[k].spines['top'].set_visible(True)
+
+            if k == 4:
+                if all_axes_on_bottom:
+                    axes_objects[k].spines['bottom'].set_position(('axes', -0.6))
+                else:
+                    axes_objects[k].spines['bottom'].set_position(('axes', -0.3))
+
+                axes_objects[k].xaxis.set_ticks_position('bottom')
+                axes_objects[k].xaxis.set_label_position('bottom')
+                axes_objects[k].spines['bottom'].set_visible(True)
     else:
         figure_object = handle_dict[FIGURE_HANDLE_KEY]
         axes_objects = handle_dict[AXES_OBJECTS_KEY]
