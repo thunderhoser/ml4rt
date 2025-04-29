@@ -241,7 +241,7 @@ def plot_predictors(
 
     error_checking.assert_is_string_list(predictor_names)
     num_predictors = len(predictor_names)
-    error_checking.assert_is_leq(num_predictors, 4)
+    error_checking.assert_is_leq(num_predictors, 5)
 
     for k in range(num_predictors):
         pass
