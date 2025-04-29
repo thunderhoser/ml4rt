@@ -151,7 +151,8 @@ def _plot_one_example(example_dict_by_file, file_description_strings,
             predictor_colours=PREDICTOR_COLOURS,
             predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
             predictor_line_styles=['solid'] * len(PREDICTOR_NAMES),
-            use_log_scale=True
+            use_log_scale=True,
+            all_axes_on_bottom=True
         )
         figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
         axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
