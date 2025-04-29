@@ -241,7 +241,9 @@ def _make_scatterplot_1model(output_dir_name, for_good_model, panel_letter):
     axes_object.set_ylim(MIN_HEATING_RATE_K_DAY01, MAX_HEATING_RATE_K_DAY01)
 
     axes_object.set_xlabel(r'Prediction (K day$^{-1}$)')
-    axes_object.set_ylabel(r'Observation (K day$^{-1}$)')
+    if for_good_model:
+        axes_object.set_ylabel(r'Observation (K day$^{-1}$)')
+
     axes_object.set_title('Scatterplot for Model {0:s}'.format(
         'A' if for_good_model else 'B'
     ))
@@ -395,6 +397,9 @@ def _plot_spread_vs_skill_1model(output_dir_name, for_good_model, panel_letter):
         plot_inset=False
     )
 
+    if not for_good_model:
+        axes_object.set_ylabel('')
+
     title_string = 'Spread vs. skill for Model {0:s}\nSSREL = {1:.3f}'.format(
         'A' if for_good_model else 'B',
         result_dict[ss_utils.SPREAD_SKILL_RELIABILITY_KEY][0, 0]
@@ -531,6 +536,9 @@ def _plot_pit_histogram_1model(output_dir_name, for_good_model, panel_letter):
         target_height_m_agl=None,
         target_wavelength_metres=example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
     )
+
+    if not for_good_model:
+        axes_object.set_ylabel('')
 
     title_string = 'PIT histogram for Model {0:s}\nPITD = {1:.4f}'.format(
         'A' if for_good_model else 'B',

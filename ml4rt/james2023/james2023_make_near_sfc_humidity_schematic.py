@@ -10,7 +10,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import moisture_conversions as moisture_conv
 from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
+from gewittergefahr.plotting import plotting_utils_sans_basemap as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.utils import example_utils
 from ml4rt.plotting import profile_plotting
@@ -48,6 +48,9 @@ SURFACE_RELATIVE_HUMIDITY = 1.
 MOIST_LAYER_DEPTH_METRES = 3000.
 ORIG_MOIST_LAYER_DEPTH_PX = 5
 
+GRID_LINE_COLOUR = numpy.full(3, 152. / 255)
+GRID_LINE_WIDTH = 1.
+
 PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
@@ -55,14 +58,14 @@ FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
-PERTURBATION_COLOUR = numpy.full(3, 152. / 255)
+PERTURBATION_COLOUR = numpy.full(3, 0.)
 THREE_PREDICTOR_COLOURS = [
     numpy.array([117, 112, 179], dtype=float) / 255,
     numpy.array([27, 158, 119], dtype=float) / 255,
     numpy.array([217, 95, 2], dtype=float) / 255
 ]
 
-FONT_SIZE = 25
+FONT_SIZE = 35
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -81,6 +84,18 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
+
+
+def _set_font_sizes(axes_object):
+    """Sets font sizes to desired.
+
+    :param axes_object: Axes handle.
+    """
+
+    axes_object.title.set_size(FONT_SIZE)
+    axes_object.tick_params(axis='both', labelsize=FONT_SIZE)
+    axes_object.xaxis.label.set_size(FONT_SIZE)
+    axes_object.yaxis.label.set_size(FONT_SIZE)
 
 
 def _run(output_dir_name):
@@ -178,7 +193,8 @@ def _run(output_dir_name):
         predictor_colours=THREE_PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(shape=3, fill_value=4.),
         predictor_line_styles=['solid'] * 3,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -187,6 +203,11 @@ def _run(output_dir_name):
     axes_objects[0].set_xlim([0, 47])
     axes_objects[1].set_xlim([-70, 40])
     axes_objects[2].set_xlim([-70, 40])
+
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
 
     axes_objects[0].set_title('Original thermodynamic profiles')
     gg_plotting_utils.label_axes(
@@ -261,15 +282,21 @@ def _run(output_dir_name):
     figure_object, axes_object = profile_plotting.plot_one_variable(
         values=KG_TO_GRAMS * mixing_ratio_increases_kg_kg01,
         heights_m_agl=HEIGHTS_M_AGL,
-        line_width=4, line_style='dashed', use_log_scale=True,
+        line_width=4, line_style='solid', use_log_scale=True,
         line_colour=PERTURBATION_COLOUR
     )
 
-    axes_object.set_xlim([0, 47])
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
 
+    axes_object.set_xlim([0, 47])
     axes_object.set_xlabel(r'Perturbation (g kg$^{-1}$)')
-    axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_title('Mixing-ratio perturbations')
+    _set_font_sizes(axes_object)
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(b)')
 
     panel_file_names.append(
@@ -314,7 +341,8 @@ def _run(output_dir_name):
         predictor_colours=THREE_PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(shape=3, fill_value=4.),
         predictor_line_styles=['solid'] * 3,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -323,6 +351,13 @@ def _run(output_dir_name):
     axes_objects[0].set_xlim([0, 47])
     axes_objects[1].set_xlim([-70, 40])
     axes_objects[2].set_xlim([-70, 40])
+
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_objects[0].set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_objects[0].set_ylabel('')
 
     axes_objects[0].set_title('New thermodynamic profiles')
     gg_plotting_utils.label_axes(
@@ -362,7 +397,8 @@ def _run(output_dir_name):
         predictor_colours=THREE_PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(shape=3, fill_value=4.),
         predictor_line_styles=['solid'] * 3,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -371,6 +407,11 @@ def _run(output_dir_name):
     axes_objects[0].set_xlim([0, 47])
     axes_objects[1].set_xlim([-70, 40])
     axes_objects[2].set_xlim([-70, 40])
+
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
 
     title_string = 'New thermodynamic profiles\n' + r'(temperature $\leq$ dewpoint)'
     axes_objects[0].set_title(title_string)
@@ -413,7 +454,8 @@ def _run(output_dir_name):
         predictor_colours=THREE_PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(shape=3, fill_value=4.),
         predictor_line_styles=['solid'] * 3,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -422,6 +464,13 @@ def _run(output_dir_name):
     axes_objects[0].set_xlim([0, 47])
     axes_objects[1].set_xlim([-70, 40])
     axes_objects[2].set_xlim([-70, 40])
+
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_objects[0].set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_objects[0].set_ylabel('')
 
     title_string = (
         'New thermodynamic profiles\n' + r'(mixing ratio $\leq$ 40 g kg$^{-1}$)'

@@ -12,7 +12,7 @@ import matplotlib.colors
 import matplotlib.patches
 from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
+from gewittergefahr.plotting import plotting_utils_sans_basemap as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.plotting import profile_plotting
 from ml4rt.scripts import perturb_gfs_for_rrtm as perturb_gfs
@@ -48,6 +48,9 @@ ORIG_LAYER_CENTER_M_AGL = 25000.
 MAX_MIXING_RATIO_KG_KG01 = 1e-5
 MIXING_RATIO_NOISE_STDEV_KG_KG01 = 1e-6
 
+GRID_LINE_COLOUR = numpy.full(3, 152. / 255)
+GRID_LINE_WIDTH = 1.
+
 PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
@@ -58,7 +61,7 @@ FIGURE_RESOLUTION_DPI = 300
 OZONE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 TEMPERATURE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
-FONT_SIZE = 25
+FONT_SIZE = 35
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -77,6 +80,18 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
+
+
+def _set_font_sizes(axes_object):
+    """Sets font sizes to desired.
+
+    :param axes_object: Axes handle.
+    """
+
+    axes_object.title.set_size(FONT_SIZE)
+    axes_object.tick_params(axis='both', labelsize=FONT_SIZE)
+    axes_object.xaxis.label.set_size(FONT_SIZE)
+    axes_object.yaxis.label.set_size(FONT_SIZE)
 
 
 def _run(output_dir_name):
@@ -154,6 +169,12 @@ def _run(output_dir_name):
     axes_object.set_title('Temperature profile + extent of\nozone layer')
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(a)')
 
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    _set_font_sizes(axes_object)
+
     panel_file_names = ['{0:s}/ozone_layer_part1.jpg'.format(output_dir_name)]
     print('Saving figure to: "{0:s}"...'.format(panel_file_names[-1]))
     figure_object.savefig(
@@ -217,6 +238,14 @@ def _run(output_dir_name):
     )
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(b)')
 
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
+    _set_font_sizes(axes_object)
+
     panel_file_names.append(
         '{0:s}/ozone_layer_part2.jpg'.format(output_dir_name)
     )
@@ -277,6 +306,14 @@ def _run(output_dir_name):
     axes_object.set_title('New ozone profile')
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(c)')
 
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
+    _set_font_sizes(axes_object)
+
     panel_file_names.append(
         '{0:s}/ozone_layer_part3.jpg'.format(output_dir_name)
     )
@@ -322,6 +359,12 @@ def _run(output_dir_name):
     axes_object.set_title('New ozone profile\n(including Gaussian noise)')
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(d)')
 
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    _set_font_sizes(axes_object)
+
     panel_file_names.append(
         '{0:s}/ozone_layer_part4.jpg'.format(output_dir_name)
     )
@@ -354,7 +397,15 @@ def _run(output_dir_name):
 
     title_string += r' mg kg$^{-1}$)'
     axes_object.set_title(title_string)
-    gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(d)')
+    gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(e)')
+
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
+    _set_font_sizes(axes_object)
 
     panel_file_names.append(
         '{0:s}/ozone_layer_part5.jpg'.format(output_dir_name)

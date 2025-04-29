@@ -11,7 +11,7 @@ from matplotlib import pyplot
 import matplotlib.colors
 import matplotlib.patches
 from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
+from gewittergefahr.plotting import plotting_utils_sans_basemap as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.utils import example_utils
 from ml4rt.plotting import profile_plotting
@@ -54,6 +54,9 @@ MAX_CLOUD_THICKNESS_METRES = 5000.
 MAX_NEW_WATER_CONTENT_KG_M03 = 0.005
 WATER_CONTENT_NOISE_KG_M03 = 0.001
 
+GRID_LINE_COLOUR = numpy.full(3, 152. / 255)
+GRID_LINE_WIDTH = 1.
+
 PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
@@ -64,7 +67,7 @@ FIGURE_RESOLUTION_DPI = 300
 WATER_CONTENT_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 TEMPERATURE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 
-FONT_SIZE = 25
+FONT_SIZE = 35
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -83,6 +86,18 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
+
+
+def _set_font_sizes(axes_object):
+    """Sets font sizes to desired.
+
+    :param axes_object: Axes handle.
+    """
+
+    axes_object.title.set_size(FONT_SIZE)
+    axes_object.tick_params(axis='both', labelsize=FONT_SIZE)
+    axes_object.xaxis.label.set_size(FONT_SIZE)
+    axes_object.yaxis.label.set_size(FONT_SIZE)
 
 
 def _run(output_dir_name):
@@ -135,7 +150,8 @@ def _run(output_dir_name):
         predictor_colours=[WATER_CONTENT_COLOUR, TEMPERATURE_COLOUR],
         predictor_line_widths=numpy.full(shape=2, fill_value=4.),
         predictor_line_styles=['solid'] * 2,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -144,6 +160,11 @@ def _run(output_dir_name):
     axes_objects[0].set_title('Original profiles')
     gg_plotting_utils.label_axes(
         axes_object=axes_objects[0], label_string='(a)', font_size=30
+    )
+
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
     )
 
     panel_file_names = [
@@ -229,7 +250,8 @@ def _run(output_dir_name):
         predictor_colours=[WATER_CONTENT_COLOUR, TEMPERATURE_COLOUR],
         predictor_line_widths=numpy.full(shape=2, fill_value=4.),
         predictor_line_styles=['solid'] * 2,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -269,6 +291,13 @@ def _run(output_dir_name):
         axes_object=axes_objects[0], label_string='(b)', font_size=30
     )
 
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_objects[0].set_yticklabels([''] * len(axes_objects[0].get_yticks()))
+    axes_objects[0].set_ylabel('')
+
     panel_file_names.append(
         '{0:s}/ice_cloud_part2.jpg'.format(output_dir_name)
     )
@@ -286,7 +315,8 @@ def _run(output_dir_name):
         predictor_colours=[WATER_CONTENT_COLOUR, TEMPERATURE_COLOUR],
         predictor_line_widths=numpy.full(shape=2, fill_value=4.),
         predictor_line_styles=['solid'] * 2,
-        use_log_scale=True, include_units=True, handle_dict=None
+        use_log_scale=True, include_units=True, handle_dict=None,
+        all_axes_on_bottom=True
     )
 
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
@@ -326,6 +356,13 @@ def _run(output_dir_name):
     gg_plotting_utils.label_axes(
         axes_object=axes_objects[0], label_string='(c)', font_size=30
     )
+
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_objects[0].set_yticklabels([''] * len(axes_objects[0].get_yticks()))
+    axes_objects[0].set_ylabel('')
 
     panel_file_names.append(
         '{0:s}/ice_cloud_part3.jpg'.format(output_dir_name)
@@ -379,6 +416,12 @@ def _run(output_dir_name):
     axes_object.set_title('IWC profile with new cloud')
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(d)')
 
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    _set_font_sizes(axes_object)
+
     panel_file_names.append(
         '{0:s}/ice_cloud_part4.jpg'.format(output_dir_name)
     )
@@ -427,6 +470,14 @@ def _run(output_dir_name):
     )
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(e)')
 
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
+    _set_font_sizes(axes_object)
+
     panel_file_names.append(
         '{0:s}/ice_cloud_part5.jpg'.format(output_dir_name)
     )
@@ -460,6 +511,14 @@ def _run(output_dir_name):
     title_string += r' g m$^{-3}$)'
     axes_object.set_title(title_string)
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(f)')
+
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.set_ylabel('')
+    _set_font_sizes(axes_object)
 
     panel_file_names.append(
         '{0:s}/ice_cloud_part6.jpg'.format(output_dir_name)

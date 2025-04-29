@@ -10,7 +10,7 @@ matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import temperature_conversions as temperature_conv
 from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
+from gewittergefahr.plotting import plotting_utils_sans_basemap as gg_plotting_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4rt.plotting import profile_plotting
 from ml4rt.scripts import perturb_gfs_for_rrtm as perturb_gfs
@@ -22,6 +22,12 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 HEIGHT_DIM = 'height'
 TEMPERATURE_KEY = 'temp'
 TROPICAL_STANDARD_ATMO_INDEX = 0
+
+X_LIMITS_DEG_C = [-55., 61.]
+X_TICK_VALUES_DEG_C = numpy.array([-45, -30, -15, 0, 15, 30, 45, 60], dtype=float)
+
+GRID_LINE_COLOUR = numpy.full(3, 152. / 255)
+GRID_LINE_WIDTH = 1.
 
 KM_TO_METRES = 1000.
 
@@ -51,10 +57,10 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 ORIG_TEMPERATURE_COLOUR = numpy.array([55, 126, 184], dtype=float) / 255
-TEMPERATURE_INCREASE_COLOUR = numpy.full(3, 152. / 255)
+TEMPERATURE_INCREASE_COLOUR = numpy.full(3, 0.)
 NEW_TEMPERATURE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 
-FONT_SIZE = 25
+FONT_SIZE = 35
 pyplot.rc('font', size=FONT_SIZE)
 pyplot.rc('axes', titlesize=FONT_SIZE)
 pyplot.rc('axes', labelsize=FONT_SIZE)
@@ -73,6 +79,18 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
+
+
+def _set_font_sizes(axes_object):
+    """Sets font sizes to desired.
+
+    :param axes_object: Axes handle.
+    """
+
+    axes_object.title.set_size(FONT_SIZE)
+    axes_object.tick_params(axis='both', labelsize=FONT_SIZE)
+    axes_object.xaxis.label.set_size(FONT_SIZE)
+    axes_object.yaxis.label.set_size(FONT_SIZE)
 
 
 def _run(output_dir_name):
@@ -110,12 +128,21 @@ def _run(output_dir_name):
         line_width=4, use_log_scale=True, line_colour=ORIG_TEMPERATURE_COLOUR
     )
 
-    axes_object.set_xlim(-55, 65)
-    axes_object.set_xticks([-50, -25, 0, 25, 50])
+    axes_object.set_xlim(X_LIMITS_DEG_C)
+    axes_object.set_xticks(X_TICK_VALUES_DEG_C)
+    axes_object.grid(
+        which='both', axis='x',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
 
     axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_title('Original temperature profile')
+    _set_font_sizes(axes_object)
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(a)')
 
     panel_file_names = [
@@ -157,16 +184,26 @@ def _run(output_dir_name):
 
     figure_object, axes_object = profile_plotting.plot_one_variable(
         values=temp_increases_kelvins, heights_m_agl=HEIGHTS_M_AGL,
-        line_width=4, line_style='dashed', use_log_scale=True,
+        line_width=4, line_style='solid', use_log_scale=True,
         line_colour=TEMPERATURE_INCREASE_COLOUR
     )
 
-    axes_object.set_xlim(-55, 65)
-    axes_object.set_xticks([-50, -25, 0, 25, 50])
+    axes_object.set_xlim(X_LIMITS_DEG_C)
+    axes_object.set_xticks(X_TICK_VALUES_DEG_C)
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.grid(
+        which='both', axis='x',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
 
     axes_object.set_xlabel(r'Perturbation ($^{\circ}$C)')
-    axes_object.set_ylabel('Height (km AGL)')
+    axes_object.set_ylabel('')
     axes_object.set_title('Temperature perturbations')
+    _set_font_sizes(axes_object)
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(b)')
 
     panel_file_names.append(
@@ -188,12 +225,21 @@ def _run(output_dir_name):
         line_width=4, use_log_scale=True, line_colour=NEW_TEMPERATURE_COLOUR
     )
 
-    axes_object.set_xlim(-55, 65)
-    axes_object.set_xticks([-50, -25, 0, 25, 50])
+    # axes_object.set_xlim(X_LIMITS_DEG_C)
+    axes_object.set_xticks(X_TICK_VALUES_DEG_C)
+    axes_object.grid(
+        which='both', axis='x',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
 
     axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
     axes_object.set_ylabel('Height (km AGL)')
     axes_object.set_title('New temperature profile')
+    _set_font_sizes(axes_object)
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(c)')
 
     panel_file_names.append(
@@ -217,14 +263,24 @@ def _run(output_dir_name):
         line_width=4, use_log_scale=True, line_colour=NEW_TEMPERATURE_COLOUR
     )
 
-    axes_object.set_xlim(-55, 65)
-    axes_object.set_xticks([-50, -25, 0, 25, 50])
+    axes_object.set_xlim(X_LIMITS_DEG_C)
+    axes_object.set_xticks(X_TICK_VALUES_DEG_C)
+    axes_object.set_yticklabels([''] * len(axes_object.get_yticks()))
+    axes_object.grid(
+        which='both', axis='x',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_object.grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
 
     axes_object.set_xlabel(r'Temperature ($^{\circ}$C)')
-    axes_object.set_ylabel('Height (km AGL)')
+    axes_object.set_ylabel('')
     axes_object.set_title(
         'New temperature profile\n' + r'(all values $\leq$ 60 $^{\circ}$C)'
     )
+    _set_font_sizes(axes_object)
     gg_plotting_utils.label_axes(axes_object=axes_object, label_string='(d)')
 
     panel_file_names.append(
