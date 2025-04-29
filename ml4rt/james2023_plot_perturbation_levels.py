@@ -262,28 +262,23 @@ def _run(example_file_names, file_description_strings, num_examples,
     example_id_strings = set()
 
     for i in range(num_files):
-        these_id_strings = example_dict_by_file[i][
-            example_utils.EXAMPLE_IDS_KEY
+        example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY] = [
+            '_'.join(s.split('_')[:-1])
+            for s in example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY]
         ]
-        print(these_id_strings[0])
-
-        these_id_strings = [
-            '_'.join(s.split('_')[:-1]) for s in these_id_strings
-        ]
-        print(these_id_strings[0])
-
-        these_id_strings = [
+        example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY] = [
             '{0:s}_temp-10m-kelvins=300.000000'.format(s)
-            for s in these_id_strings
+            for s in example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY]
         ]
-
-        print(these_id_strings[0])
-        print('\n\n\n')
 
         if i == 0:
-            example_id_strings = set(these_id_strings)
+            example_id_strings = set(
+                example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY]
+            )
         else:
-            example_id_strings = example_id_strings.intersection(these_id_strings)
+            example_id_strings = example_id_strings.intersection(
+                example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY]
+            )
 
     example_id_strings = list(example_id_strings)
     num_examples_total = len(example_id_strings)
