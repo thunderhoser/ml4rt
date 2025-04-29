@@ -262,6 +262,8 @@ def _run(example_file_names, file_description_strings, num_examples,
     example_id_strings = set()
 
     for i in range(num_files):
+        print(len(example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY]))
+
         if i == 0:
             example_id_strings = set(
                 example_dict_by_file[i][example_utils.EXAMPLE_IDS_KEY]
