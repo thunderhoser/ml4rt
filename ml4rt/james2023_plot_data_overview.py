@@ -239,7 +239,7 @@ def _plot_one_example(example_dict, example_index, use_log_scale,
         all_axes_on_bottom=True
     )
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
-    axes_object = handle_dict[profile_plotting.AXES_OBJECTS_KEY][0]
+    axes_object = handle_dict[profile_plotting.HEATING_RATE_HANDLE_KEY]
 
     axes_object.set_title('Target variables')
     axes_object.grid(
