@@ -382,7 +382,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
     handle_dict = profile_plotting.plot_predictors(
         example_dict=new_example_dict,
-        example_index=example_index,
+        example_index=0,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
@@ -464,7 +464,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
     handle_dict = profile_plotting.plot_predictors(
         example_dict=new_example_dict,
-        example_index=example_index,
+        example_index=0,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
@@ -546,7 +546,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
     handle_dict = profile_plotting.plot_predictors(
         example_dict=new_example_dict,
-        example_index=example_index,
+        example_index=0,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
