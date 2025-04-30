@@ -190,8 +190,11 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     pressure_matrix_pascals = numpy.expand_dims(
         pressure_matrix_pascals[[0], :], axis=1
     )
-    mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=example_utils.MIXING_RATIO_NAME
+    mixing_ratio_matrix_kg_kg01 = moisture_conv.specific_humidity_to_mixing_ratio(
+        example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.SPECIFIC_HUMIDITY_NAME
+        )
     )
     mixing_ratio_matrix_kg_kg01 = numpy.expand_dims(
         mixing_ratio_matrix_kg_kg01[[0], :], axis=1
