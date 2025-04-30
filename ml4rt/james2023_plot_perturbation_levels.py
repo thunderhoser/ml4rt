@@ -199,13 +199,10 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     mixing_ratio_matrix_kg_kg01 = numpy.expand_dims(
         mixing_ratio_matrix_kg_kg01[[0], :], axis=1
     )
-    surface_temps_kelvins = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.SURFACE_TEMPERATURE_NAME
-    )
-    surface_temp_matrix_kelvins = numpy.expand_dims(
-        surface_temps_kelvins[[0]], axis=1
-    )
+    surface_temp_kelvins = example_utils.parse_example_ids(
+        [example_id_string]
+    )[example_utils.TEMPERATURES_10M_KEY][0]
+    surface_temp_matrix_kelvins = numpy.full((1, 1), surface_temp_kelvins)
     ozone_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
         example_dict=example_dict, field_name=example_utils.O3_MIXING_RATIO_NAME
     )
