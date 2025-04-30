@@ -80,6 +80,67 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
+    """Puts perturbed values in example dictionary.
+
+    :param gfs_table_xarray: xarray table containing only one example.
+    :param example_dict: Dictionary in format returned by
+        `example_io.read_file`, containing only one example.
+    :return: example_dict: Same as input but with perturbed values.
+    """
+
+    gfs_tbl = gfs_table_xarray
+
+    k = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(
+        example_utils.TEMPERATURE_NAME
+    )
+    example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
+        gfs_tbl[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS][0, 0, :]
+    )
+
+    k = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(
+        example_utils.SPECIFIC_HUMIDITY_NAME
+    )
+    example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
+        moisture_conv.mixing_ratio_to_specific_humidity(
+            gfs_tbl[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01][0, 0, :]
+        )
+    )
+
+    k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
+        example_utils.SPECIFIC_HUMIDITY_NAME
+    )
+    example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
+        gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01][0, 0, :]
+    )
+
+    k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
+        example_utils.LIQUID_WATER_CONTENT_NAME
+    )
+    new_lwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
+        layerwise_path_matrix_kg_m02=
+        gfs_tbl[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02][[0], 0, :],
+        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
+    )
+    example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
+        new_lwc_matrix_kg_m03[0, :]
+    )
+
+    k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
+        example_utils.ICE_WATER_CONTENT_NAME
+    )
+    new_iwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
+        layerwise_path_matrix_kg_m02=
+        gfs_tbl[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02][[0], 0, :],
+        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
+    )
+    example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
+        new_iwc_matrix_kg_m03[0, :]
+    )
+
+    return example_dict
+
+
 def _overlay_text(
         image_file_name, x_offset_from_left_px, y_offset_from_top_px,
         text_string):
@@ -183,19 +244,19 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     pressure_matrix_pascals = numpy.expand_dims(
         pressure_matrix_pascals[[0], :], axis=1
     )
-    mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
-        example_dict=example_dict, field_name=example_utils.MIXING_RATIO_NAME
+    mixing_ratio_matrix_kg_kg01 = moisture_conv.specific_humidity_to_mixing_ratio(
+        example_utils.get_field_from_dict(
+            example_dict=example_dict,
+            field_name=example_utils.SPECIFIC_HUMIDITY_NAME
+        )
     )
     mixing_ratio_matrix_kg_kg01 = numpy.expand_dims(
         mixing_ratio_matrix_kg_kg01[[0], :], axis=1
     )
-    surface_temps_kelvins = example_utils.get_field_from_dict(
-        example_dict=example_dict,
-        field_name=example_utils.SURFACE_TEMPERATURE_NAME
-    )
-    surface_temp_matrix_kelvins = numpy.expand_dims(
-        surface_temps_kelvins[[0]], axis=1
-    )
+    surface_temp_kelvins = example_utils.parse_example_ids(
+        [example_id_string]
+    )[example_utils.TEMPERATURES_10M_KEY][0]
+    surface_temp_matrix_kelvins = numpy.full((1, 1), surface_temp_kelvins)
     ozone_mixing_ratio_matrix_kg_kg01 = example_utils.get_field_from_dict(
         example_dict=example_dict, field_name=example_utils.O3_MIXING_RATIO_NAME
     )
@@ -301,40 +362,15 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
         liquid_flag=False
     )
 
-    gfs_tbl = gfs_table_xarray
     new_example_dict = example_utils.subset_by_index(
         example_dict=example_dict, desired_indices=numpy.array([example_index])
     )
-    new_example_dict[example_utils.TEMPERATURE_NAME][0, :] = (
-        gfs_tbl[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS][0, 0, :]
+    new_example_dict = _put_perturbed_values_in_example_dict(
+        gfs_table_xarray=gfs_table_xarray,
+        example_dict=new_example_dict
     )
-    new_example_dict[example_utils.SPECIFIC_HUMIDITY_NAME][0, :] = (
-        moisture_conv.mixing_ratio_to_specific_humidity(
-            gfs_tbl[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01][0, 0, :]
-        )
-    )
-    new_example_dict[example_utils.O3_MIXING_RATIO_NAME][0, :] = (
-        gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01][0, 0, :]
-    )
-    new_lwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
-        layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
-    )
-    new_example_dict[example_utils.LIQUID_WATER_CONTENT_NAME][0, :] = (
-        new_lwc_matrix_kg_m03[0, :]
-    )
-    new_iwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
-        layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
-    )
-    new_example_dict[example_utils.ICE_WATER_CONTENT_NAME][0, :] = (
-        new_iwc_matrix_kg_m03[0, :]
-    )
-
     handle_dict = profile_plotting.plot_predictors(
-        example_dict=example_dict,
+        example_dict=new_example_dict,
         example_index=example_index,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
@@ -406,40 +442,15 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
         liquid_flag=False
     )
 
-    gfs_tbl = gfs_table_xarray
     new_example_dict = example_utils.subset_by_index(
         example_dict=example_dict, desired_indices=numpy.array([example_index])
     )
-    new_example_dict[example_utils.TEMPERATURE_NAME][0, :] = (
-        gfs_tbl[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS][0, 0, :]
+    new_example_dict = _put_perturbed_values_in_example_dict(
+        gfs_table_xarray=gfs_table_xarray,
+        example_dict=new_example_dict
     )
-    new_example_dict[example_utils.SPECIFIC_HUMIDITY_NAME][0, :] = (
-        moisture_conv.mixing_ratio_to_specific_humidity(
-            gfs_tbl[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01][0, 0, :]
-        )
-    )
-    new_example_dict[example_utils.O3_MIXING_RATIO_NAME][0, :] = (
-        gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01][0, 0, :]
-    )
-    new_lwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
-        layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
-    )
-    new_example_dict[example_utils.LIQUID_WATER_CONTENT_NAME][0, :] = (
-        new_lwc_matrix_kg_m03[0, :]
-    )
-    new_iwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
-        layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
-    )
-    new_example_dict[example_utils.ICE_WATER_CONTENT_NAME][0, :] = (
-        new_iwc_matrix_kg_m03[0, :]
-    )
-
     handle_dict = profile_plotting.plot_predictors(
-        example_dict=example_dict,
+        example_dict=new_example_dict,
         example_index=example_index,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
@@ -511,40 +522,15 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
         liquid_flag=False
     )
 
-    gfs_tbl = gfs_table_xarray
     new_example_dict = example_utils.subset_by_index(
         example_dict=example_dict, desired_indices=numpy.array([example_index])
     )
-    new_example_dict[example_utils.TEMPERATURE_NAME][0, :] = (
-        gfs_tbl[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS][0, 0, :]
+    new_example_dict = _put_perturbed_values_in_example_dict(
+        gfs_table_xarray=gfs_table_xarray,
+        example_dict=new_example_dict
     )
-    new_example_dict[example_utils.SPECIFIC_HUMIDITY_NAME][0, :] = (
-        moisture_conv.mixing_ratio_to_specific_humidity(
-            gfs_tbl[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01][0, 0, :]
-        )
-    )
-    new_example_dict[example_utils.O3_MIXING_RATIO_NAME][0, :] = (
-        gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01][0, 0, :]
-    )
-    new_lwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
-        layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
-    )
-    new_example_dict[example_utils.LIQUID_WATER_CONTENT_NAME][0, :] = (
-        new_lwc_matrix_kg_m03[0, :]
-    )
-    new_iwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
-        layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
-    )
-    new_example_dict[example_utils.ICE_WATER_CONTENT_NAME][0, :] = (
-        new_iwc_matrix_kg_m03[0, :]
-    )
-
     handle_dict = profile_plotting.plot_predictors(
-        example_dict=example_dict,
+        example_dict=new_example_dict,
         example_index=example_index,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
@@ -635,9 +621,6 @@ def _run(example_file_name, num_examples, output_dir_name):
 
     print('Reading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
-    example_dict = example_utils.subset_by_field(
-        example_dict=example_dict, field_names=PREDICTOR_NAMES
-    )
     num_examples_total = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
 
     if num_examples < num_examples_total:
