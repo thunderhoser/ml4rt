@@ -642,9 +642,6 @@ def _run(example_file_name, num_examples, output_dir_name):
 
     print('Reading data from: "{0:s}"...'.format(example_file_name))
     example_dict = example_io.read_file(example_file_name)
-    example_dict = example_utils.subset_by_field(
-        example_dict=example_dict, field_names=PREDICTOR_NAMES
-    )
     num_examples_total = len(example_dict[example_utils.EXAMPLE_IDS_KEY])
 
     if num_examples < num_examples_total:
