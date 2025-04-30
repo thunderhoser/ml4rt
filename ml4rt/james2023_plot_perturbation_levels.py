@@ -1,5 +1,5 @@
 """For each data example, plots data at different levels of perturbation."""
-
+import copy
 import os
 import sys
 import argparse
@@ -373,7 +373,8 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
 
     new_example_dict = example_utils.subset_by_index(
-        example_dict=example_dict, desired_indices=numpy.array([example_index])
+        example_dict=copy.deepcopy(example_dict),
+        desired_indices=numpy.array([example_index], dtype=int)
     )
     new_example_dict = _put_perturbed_values_in_example_dict(
         gfs_table_xarray=gfs_table_xarray,
@@ -454,7 +455,8 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
 
     new_example_dict = example_utils.subset_by_index(
-        example_dict=example_dict, desired_indices=numpy.array([example_index])
+        example_dict=copy.deepcopy(example_dict),
+        desired_indices=numpy.array([example_index], dtype=int)
     )
     new_example_dict = _put_perturbed_values_in_example_dict(
         gfs_table_xarray=gfs_table_xarray,
@@ -535,7 +537,8 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
 
     new_example_dict = example_utils.subset_by_index(
-        example_dict=example_dict, desired_indices=numpy.array([example_index])
+        example_dict=copy.deepcopy(example_dict),
+        desired_indices=numpy.array([example_index], dtype=int)
     )
     new_example_dict = _put_perturbed_values_in_example_dict(
         gfs_table_xarray=gfs_table_xarray,
