@@ -28,7 +28,6 @@ echo $PATH
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
 
 python3 -u "${CODE_DIR_NAME}/james2023_plot_perturbation_levels.py" \
---input_example_file_names "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_all_perturbed_for_uq_small_unperturbed/learning_examples_2018_part01.nc" "/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/training_all_perturbed_for_uq_small/learning_examples_2018_part01.nc" \
---file_description_strings "Clean" "Lightly_perturbed" \
+--input_example_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_project/gfs_data/shortwave_examples_600days/orig_heights/validation/learning_examples_2020_part05.nc" \
 --num_examples=200 \
 --output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/james2023/perturbation_levels"
