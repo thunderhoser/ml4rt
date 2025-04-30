@@ -102,7 +102,7 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
         example_utils.TEMPERATURE_NAME
     )
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
-        gfs_tbl[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS][0, 0, :]
+        gfs_tbl[prepare_gfs_for_rrtm.TEMPERATURE_KEY_KELVINS].values[0, 0, :]
     )
 
     k = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(
@@ -110,7 +110,7 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
     )
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
         moisture_conv.mixing_ratio_to_specific_humidity(
-            gfs_tbl[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01][0, 0, :]
+            gfs_tbl[prepare_gfs_for_rrtm.VAPOUR_MIXR_KEY_KG_KG01].values[0, 0, :]
         )
     )
 
@@ -118,7 +118,7 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
         example_utils.SPECIFIC_HUMIDITY_NAME
     )
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
-        gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01][0, 0, :]
+        gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01].values[0, 0, :]
     )
 
     k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
@@ -126,8 +126,9 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
     )
     new_lwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
         layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
+        gfs_tbl[prepare_gfs_for_rrtm.LIQUID_WATER_PATH_KEY_KG_M02].values[[0], 0, :],
+        heights_m_agl=
+        gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[0, 0, :]
     )
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
         new_lwc_matrix_kg_m03[0, :]
@@ -138,8 +139,9 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
     )
     new_iwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
         layerwise_path_matrix_kg_m02=
-        gfs_tbl[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02][[0], 0, :],
-        heights_m_agl=gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL][0, 0, :]
+        gfs_tbl[prepare_gfs_for_rrtm.ICE_WATER_PATH_KEY_KG_M02].values[[0], 0, :],
+        heights_m_agl=
+        gfs_tbl[prepare_gfs_for_rrtm.HEIGHT_KEY_M_AGL].values[0, 0, :]
     )
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
         new_iwc_matrix_kg_m03[0, :]
