@@ -114,14 +114,14 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
         )
     )
 
-    k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
-        example_utils.SPECIFIC_HUMIDITY_NAME
+    k = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(
+        example_utils.O3_MIXING_RATIO_NAME
     )
     example_dict[example_utils.VECTOR_PREDICTOR_VALS_KEY][0, :, k] = (
         gfs_tbl[prepare_gfs_for_rrtm.OZONE_MIXR_KEY_KG_KG01].values[0, 0, :]
     )
 
-    k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
+    k = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(
         example_utils.LIQUID_WATER_CONTENT_NAME
     )
     new_lwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
@@ -134,7 +134,7 @@ def _put_perturbed_values_in_example_dict(gfs_table_xarray, example_dict):
         new_lwc_matrix_kg_m03[0, :]
     )
 
-    k = example_dict[example_utils.O3_MIXING_RATIO_NAME].index(
+    k = example_dict[example_utils.VECTOR_PREDICTOR_NAMES_KEY].index(
         example_utils.ICE_WATER_CONTENT_NAME
     )
     new_iwc_matrix_kg_m03 = rrtm_io._layerwise_water_path_to_content(
