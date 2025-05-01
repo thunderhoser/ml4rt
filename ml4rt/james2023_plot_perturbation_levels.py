@@ -671,6 +671,9 @@ def _run(example_file_name, num_examples, output_dir_name):
             desired_indices=desired_indices
         )
 
+    for this_id in example_dict[example_utils.EXAMPLE_IDS_KEY]:
+        print(this_id)
+
     for i in range(num_examples):
         _plot_one_example(
             example_dict=example_dict,
