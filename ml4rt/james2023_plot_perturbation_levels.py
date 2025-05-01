@@ -1,5 +1,5 @@
 """For each data example, plots data at different levels of perturbation."""
-import copy
+
 import os
 import sys
 import argparse
@@ -26,6 +26,9 @@ import perturb_gfs_for_rrtm
 import prepare_gfs_for_rrtm_no_interp as prepare_gfs_for_rrtm
 
 MINOR_SEPARATOR_STRING = '\n\n' + '-' * 50 + '\n\n'
+
+GRID_LINE_COLOUR = numpy.full(3, 152. / 255)
+GRID_LINE_WIDTH = 1.
 
 CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 150
@@ -204,6 +207,10 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
     axes_objects[0].set_title('Clean')
 
     this_file_name = '{0:s}/{1:s}_clean.jpg'.format(
@@ -373,8 +380,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
 
     new_example_dict = example_utils.subset_by_index(
-        example_dict=copy.deepcopy(example_dict),
-        desired_indices=numpy.array([example_index], dtype=int)
+        example_dict=example_dict, desired_indices=numpy.array([example_index])
     )
     new_example_dict = _put_perturbed_values_in_example_dict(
         gfs_table_xarray=gfs_table_xarray,
@@ -382,7 +388,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
     handle_dict = profile_plotting.plot_predictors(
         example_dict=new_example_dict,
-        example_index=0,
+        example_index=example_index,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
@@ -393,6 +399,12 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_objects[0].set_yticklabels([''] * len(axes_objects[0].get_yticks()))
+    axes_objects[0].set_ylabel('')
     axes_objects[0].set_title('Lightly perturbed')
 
     this_file_name = '{0:s}/{1:s}_lightly_perturbed.jpg'.format(
@@ -455,8 +467,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
 
     new_example_dict = example_utils.subset_by_index(
-        example_dict=copy.deepcopy(example_dict),
-        desired_indices=numpy.array([example_index], dtype=int)
+        example_dict=example_dict, desired_indices=numpy.array([example_index])
     )
     new_example_dict = _put_perturbed_values_in_example_dict(
         gfs_table_xarray=gfs_table_xarray,
@@ -464,7 +475,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
     handle_dict = profile_plotting.plot_predictors(
         example_dict=new_example_dict,
-        example_index=0,
+        example_index=example_index,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
@@ -475,6 +486,10 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
     axes_objects[0].set_title('Moderately perturbed')
 
     this_file_name = '{0:s}/{1:s}_moderately_perturbed.jpg'.format(
@@ -537,8 +552,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
 
     new_example_dict = example_utils.subset_by_index(
-        example_dict=copy.deepcopy(example_dict),
-        desired_indices=numpy.array([example_index], dtype=int)
+        example_dict=example_dict, desired_indices=numpy.array([example_index])
     )
     new_example_dict = _put_perturbed_values_in_example_dict(
         gfs_table_xarray=gfs_table_xarray,
@@ -546,7 +560,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     )
     handle_dict = profile_plotting.plot_predictors(
         example_dict=new_example_dict,
-        example_index=0,
+        example_index=example_index,
         predictor_names=PREDICTOR_NAMES,
         predictor_colours=PREDICTOR_COLOURS,
         predictor_line_widths=numpy.full(len(PREDICTOR_NAMES), LINE_WIDTH),
@@ -557,6 +571,12 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
     figure_object = handle_dict[profile_plotting.FIGURE_HANDLE_KEY]
     axes_objects = handle_dict[profile_plotting.AXES_OBJECTS_KEY]
 
+    axes_objects[0].grid(
+        which='major', axis='y',
+        color=GRID_LINE_COLOUR, linewidth=GRID_LINE_WIDTH, linestyle='dashed'
+    )
+    axes_objects[0].set_yticklabels([''] * len(axes_objects[0].get_yticks()))
+    axes_objects[0].set_ylabel('')
     axes_objects[0].set_title('Heavily perturbed')
 
     this_file_name = '{0:s}/{1:s}_heavily_perturbed.jpg'.format(
