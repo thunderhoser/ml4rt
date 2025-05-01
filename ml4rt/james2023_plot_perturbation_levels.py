@@ -607,7 +607,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
         _overlay_text(
             image_file_name=this_file_name,
             x_offset_from_left_px=TITLE_FONT_SIZE + 50,
-            y_offset_from_top_px=TITLE_FONT_SIZE + 200,
+            y_offset_from_top_px=TITLE_FONT_SIZE + 100,
             text_string='({0:s})'.format(panel_letter)
         )
         imagemagick_utils.trim_whitespace(
