@@ -661,7 +661,7 @@ def _run(example_file_name, num_examples, output_dir_name):
 
     if num_examples < num_examples_total:
         desired_indices = numpy.linspace(
-            0, num_examples - 1, num=num_examples, dtype=int
+            0, num_examples_total - 1, num=num_examples_total, dtype=int
         )
         desired_indices = numpy.random.choice(
             desired_indices, size=num_examples, replace=False
@@ -670,9 +670,6 @@ def _run(example_file_name, num_examples, output_dir_name):
             example_dict=example_dict,
             desired_indices=desired_indices
         )
-
-    for this_id in example_dict[example_utils.EXAMPLE_IDS_KEY]:
-        print(this_id)
 
     for i in range(num_examples):
         _plot_one_example(
