@@ -28,11 +28,16 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_ARG_NAME = 'input_file_name'
+PLOT_INSET_ARG_NAME = 'plot_inset'
 WAVELENGTHS_ARG_NAME = 'wavelengths_metres'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_HELP_STRING = (
     'Path to input file.  Will be read by `ss_utils.read_results`.'
+)
+PLOT_INSET_HELP_STRING = (
+    'Boolean flag.  If 1, each spread-skill plot will include an inset showing '
+    'bias as a function of model spread.  If 0, this inset will be excluded.'
 )
 WAVELENGTHS_HELP_STRING = (
     'List of wavelengths.  Will create one set of plots for each.'
@@ -47,6 +52,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_INSET_ARG_NAME, type=int, required=False, default=1,
+    help=PLOT_INSET_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
     default=[example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES],
     help=WAVELENGTHS_HELP_STRING
@@ -57,12 +66,13 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, wavelengths_metres, output_dir_name):
+def _run(input_file_name, plot_inset, wavelengths_metres, output_dir_name):
     """Plots spread-skill relationship for each target variable.
 
     This is effectively the main method.
 
     :param input_file_name: See documentation at top of file.
+    :param plot_inset: Same.
     :param wavelengths_metres: Same.
     :param output_dir_name: Same.
     """
@@ -80,7 +90,8 @@ def _run(input_file_name, wavelengths_metres, output_dir_name):
             figure_object, _ = uq_eval_plotting.plot_spread_vs_skill(
                 result_table_xarray=result_table_xarray,
                 target_var_name=this_var_name,
-                target_wavelength_metres=this_wavelength_metres
+                target_wavelength_metres=this_wavelength_metres,
+                plot_inset=plot_inset
             )
 
             this_figure_file_name = (
@@ -105,7 +116,8 @@ def _run(input_file_name, wavelengths_metres, output_dir_name):
             figure_object, _ = uq_eval_plotting.plot_spread_vs_skill(
                 result_table_xarray=result_table_xarray,
                 target_var_name=this_var_name,
-                target_wavelength_metres=this_wavelength_metres
+                target_wavelength_metres=this_wavelength_metres,
+                plot_inset=plot_inset
             )
 
             this_figure_file_name = (
@@ -130,7 +142,8 @@ def _run(input_file_name, wavelengths_metres, output_dir_name):
             figure_object, _ = uq_eval_plotting.plot_spread_vs_skill(
                 result_table_xarray=result_table_xarray,
                 target_var_name=this_var_name,
-                target_wavelength_metres=this_wavelength_metres
+                target_wavelength_metres=this_wavelength_metres,
+                plot_inset=plot_inset
             )
 
             this_figure_file_name = (
@@ -155,7 +168,8 @@ def _run(input_file_name, wavelengths_metres, output_dir_name):
                     result_table_xarray=result_table_xarray,
                     target_var_name=this_var_name,
                     target_wavelength_metres=this_wavelength_metres,
-                    target_height_m_agl=this_height_m_agl
+                    target_height_m_agl=this_height_m_agl,
+                    plot_inset=plot_inset
                 )
 
                 this_figure_file_name = (
@@ -267,6 +281,7 @@ if __name__ == '__main__':
 
     _run(
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
+        plot_inset=bool(getattr(INPUT_ARG_OBJECT, PLOT_INSET_ARG_NAME)),
         wavelengths_metres=numpy.array(
             getattr(INPUT_ARG_OBJECT, WAVELENGTHS_ARG_NAME), dtype=float
         ),
