@@ -201,10 +201,9 @@ def _plot_one_comparison(
     )
 
     for j in range(num_flux_vars):
-        this_y = max([
-            actual_fluxes_w_m02[j],
-            upper_flux_predictions_w_m02[j]
-        ])
+        this_y = 0.5 * (
+            actual_fluxes_w_m02[j] + mean_flux_predictions_w_m02[j]
+        )
         this_label = 'Err = {0:.1f}'.format(
             mean_flux_predictions_w_m02[j] - actual_fluxes_w_m02[j]
         )
@@ -214,6 +213,7 @@ def _plot_one_comparison(
             ha='center',
             va='bottom',
             fontsize=FLUX_FONT_SIZE,
+            fontweight='bold',
             color=numpy.full(3, 0.)
         )
 
@@ -224,9 +224,6 @@ def _plot_one_comparison(
 
     inset_axes_object.tick_params(axis='y', labelsize=FLUX_FONT_SIZE)
     inset_axes_object.set_title(r'Fluxes (W m$^{-2}$)', fontsize=FLUX_FONT_SIZE)
-
-    y_max = numpy.max(upper_flux_predictions_w_m02) + 3.5 * FLUX_FONT_SIZE
-    inset_axes_object.set_ylim(top=y_max)
 
     this_file_name = '{0:s}/{1:s}.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
