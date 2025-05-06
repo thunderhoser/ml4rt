@@ -18,7 +18,7 @@ KG_TO_MILLIGRAMS = 1e6
 RADIANS_TO_DEGREES = 180. / numpy.pi
 METRES_TO_MICRONS = 1e6
 
-OPACITY_FOR_UNCERTAINTY = 0.6
+OPACITY_FOR_UNCERTAINTY = 0.4
 
 FIGURE_HANDLE_KEY = 'figure_object'
 AXES_OBJECTS_KEY = 'axes_objects'
@@ -698,34 +698,34 @@ def plot_actual_and_predicted(
         pyplot.yscale('log')
 
     axes_objects.append(axes_objects[0].twiny())
+    axes_objects[-1].xaxis.set_ticks_position('bottom')
+    axes_objects[-1].xaxis.set_label_position('bottom')
+    axes_objects[-1].spines['bottom'].set_position(('axes', -0.15))
+    _make_spines_invisible(axes_objects[-1])
+    axes_objects[-1].spines['bottom'].set_visible(True)
 
     if add_two_dummy_axes:
         for k in range(2, 4):
             axes_objects.append(axes_objects[0].twiny())
 
             if k == 2:
+                axes_objects[k].spines['top'].set_position(('axes', 1.))
+            else:
                 axes_objects[k].spines['top'].set_position(('axes', 1.15))
-                _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['top'].set_visible(True)
 
-            if k == 3:
-                axes_objects[k].xaxis.set_ticks_position('bottom')
-                axes_objects[k].xaxis.set_label_position('bottom')
-                axes_objects[k].spines['bottom'].set_position(('axes', -0.15))
-                _make_spines_invisible(axes_objects[k])
-                axes_objects[k].spines['bottom'].set_visible(True)
+            _make_spines_invisible(axes_objects[k])
+            axes_objects[k].spines['top'].set_visible(True)
 
     heights_km_agl = METRES_TO_KM * heights_m_agl
     tick_mark_dict = dict(size=4, width=1.5)
 
     for k in range(2):
-        if not (plot_uncertainty_with_shading and k == 1):
-            axes_objects[k].plot(
-                actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
-                heights_km_agl, color=line_colours[k],
-                linewidth=line_widths[k], linestyle=line_styles[k],
-                zorder=1e12
-            )
+        axes_objects[k].plot(
+            actual_values if k == 0 else numpy.mean(prediction_matrix, axis=1),
+            heights_km_agl, color=line_colours[k],
+            linewidth=line_widths[k], linestyle=line_styles[k],
+            zorder=1e12
+        )
 
         axes_objects[k].set_xlabel('{0:s} {1:s}'.format(
             'Actual' if k == 0 else 'Predicted', fancy_target_name

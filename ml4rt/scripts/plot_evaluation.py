@@ -123,6 +123,9 @@ TARGET_NAME_TO_SQUARED_UNITS = {
     evaluation.LONGWAVE_LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
+MAE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+BIAS_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
+
 POLYGON_OPACITY = 0.5
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -781,6 +784,154 @@ def _plot_score_profile(
         target_name.replace('_', '-'),
         wavelength_to_string(wavelength_metres),
         score_name.replace('_', '-')
+    )
+
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+
+def _plot_mae_and_bias_profiles(
+        evaluation_table_xarray, confidence_level, target_name,
+        wavelength_metres, use_log_scale, report_max_in_title,
+        output_dir_name):
+    """Plots vertical profiles of MAE and bias, on same axes, for one model.
+
+    :param evaluation_table_xarray: See doc for `_plot_attributes_diagram`.
+    :param confidence_level: See doc for `_plot_attributes_diagram`.
+    :param target_name: Name of target variable for which score is being
+        plotted.
+    :param wavelength_metres: Wavelength of target variable.
+    :param use_log_scale: Boolean flag.  If True, will plot heights (y-axis) in
+        log scale.
+    :param report_max_in_title: Boolean flag.  If True, will report maximum MAE
+        and absolute bias in title.
+    :param output_dir_name: Name of output directory.  Figure will be saved
+        here.
+    """
+
+    etx = evaluation_table_xarray
+    tgt_index = numpy.where(
+        etx.coords[evaluation.VECTOR_FIELD_DIM].values == target_name
+    )[0][0]
+    wave_index = example_utils.match_wavelengths(
+        wavelengths_metres=etx.coords[evaluation.WAVELENGTH_DIM].values,
+        desired_wavelength_metres=wavelength_metres
+    )
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    mae_key = SCORE_NAME_TO_PROFILE_KEY[evaluation_plotting.MAE_NAME]
+    bias_key = SCORE_NAME_TO_PROFILE_KEY[evaluation_plotting.BIAS_NAME]
+    legend_handles = []
+    legend_strings = []
+
+    mae_matrix_k_day01 = etx[mae_key].values[:, wave_index, tgt_index, :]
+    bias_matrix_k_day01 = etx[bias_key].values[:, wave_index, tgt_index, :]
+    heights_m_agl = etx.coords[evaluation.HEIGHT_DIM].values
+
+    this_handle = evaluation_plotting.plot_score_profile(
+        heights_m_agl=heights_m_agl,
+        score_values=numpy.nanmean(bias_matrix_k_day01, axis=1),
+        score_name=evaluation_plotting.BIAS_NAME,
+        line_colour=BIAS_COLOUR,
+        line_width=4,
+        line_style='solid',
+        use_log_scale=use_log_scale,
+        axes_object=axes_object,
+        are_axes_new=True
+    )
+
+    legend_handles.append(this_handle)
+    legend_strings.append('Bias')
+    num_bootstrap_reps = bias_matrix_k_day01.shape[1]
+
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(heights_m_agl, axis=-1),
+            y_value_matrix=bias_matrix_k_day01,
+            confidence_level=confidence_level,
+            same_order=True
+        )
+
+        polygon_coord_matrix = numpy.fliplr(polygon_coord_matrix)
+        polygon_coord_matrix[:, 1] = polygon_coord_matrix[:, 1] * METRES_TO_KM
+
+        polygon_colour = matplotlib.colors.to_rgba(BIAS_COLOUR, POLYGON_OPACITY)
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+        )
+        axes_object.add_patch(patch_object)
+
+    this_handle = evaluation_plotting.plot_score_profile(
+        heights_m_agl=heights_m_agl,
+        score_values=numpy.nanmean(mae_matrix_k_day01, axis=1),
+        score_name=evaluation_plotting.MAE_NAME,
+        line_colour=MAE_COLOUR,
+        line_width=4,
+        line_style='solid',
+        use_log_scale=use_log_scale,
+        axes_object=axes_object,
+        are_axes_new=False
+    )
+
+    legend_handles.append(this_handle)
+    legend_strings.append('MAE')
+
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        polygon_coord_matrix = evaluation.confidence_interval_to_polygon(
+            x_value_matrix=numpy.expand_dims(heights_m_agl, axis=-1),
+            y_value_matrix=mae_matrix_k_day01,
+            confidence_level=confidence_level,
+            same_order=True
+        )
+
+        polygon_coord_matrix = numpy.fliplr(polygon_coord_matrix)
+        polygon_coord_matrix[:, 1] = polygon_coord_matrix[:, 1] * METRES_TO_KM
+
+        polygon_colour = matplotlib.colors.to_rgba(MAE_COLOUR, POLYGON_OPACITY)
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+        )
+        axes_object.add_patch(patch_object)
+
+    axes_object.legend(
+        legend_handles, legend_strings, loc='center left',
+        bbox_to_anchor=(0, 0.5), fancybox=True, shadow=False,
+        facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
+    )
+
+    title_string = 'MAE and bias for {0:s}'.format(
+        TARGET_NAME_TO_VERBOSE[target_name]
+    )
+    if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
+        title_string += ' at {0:s}'.format(
+            wavelength_to_string(wavelength_metres)
+        )
+        title_string += r' $\mu$m'
+
+    if report_max_in_title:
+        title_string = (
+            '\nMax MAE = {0:.2f}; max absolute bias = {1:.2f}'
+        ).format(
+            numpy.nanmax(numpy.nanmean(mae_matrix_k_day01, axis=1)),
+            numpy.nanmax(
+                numpy.absolute(numpy.nanmean(bias_matrix_k_day01, axis=1))
+            )
+        )
+
+    axes_object.set_xlabel(r'Error value (K day$^{-1}$)')
+    axes_object.set_title(title_string)
+
+    figure_file_name = '{0:s}/{1:s}_{2:s}microns_mae-bias_profile.jpg'.format(
+        output_dir_name,
+        target_name.replace('_', '-'),
+        wavelength_to_string(wavelength_metres)
     )
 
     print('Saving figure to: "{0:s}"...'.format(figure_file_name))

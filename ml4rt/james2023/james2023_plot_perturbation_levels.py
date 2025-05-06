@@ -600,7 +600,7 @@ def _plot_one_example(example_dict, example_index, output_dir_name):
         _overlay_text(
             image_file_name=this_file_name,
             x_offset_from_left_px=TITLE_FONT_SIZE + 50,
-            y_offset_from_top_px=TITLE_FONT_SIZE + 200,
+            y_offset_from_top_px=TITLE_FONT_SIZE + 100,
             text_string='({0:s})'.format(panel_letter)
         )
         imagemagick_utils.trim_whitespace(
@@ -654,7 +654,7 @@ def _run(example_file_name, num_examples, output_dir_name):
 
     if num_examples < num_examples_total:
         desired_indices = numpy.linspace(
-            0, num_examples - 1, num=num_examples, dtype=int
+            0, num_examples_total - 1, num=num_examples_total, dtype=int
         )
         desired_indices = numpy.random.choice(
             desired_indices, size=num_examples, replace=False
