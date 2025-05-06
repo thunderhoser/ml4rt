@@ -177,6 +177,7 @@ def _plot_one_comparison(
         mean_flux_predictions_w_m02 - lower_flux_predictions_w_m02,
         upper_flux_predictions_w_m02 - mean_flux_predictions_w_m02
     ])
+    flux_error_matrix_w_m02 = numpy.maximum(flux_error_matrix_w_m02, 0.)
 
     error_bar_dict = {
         'ecolor': numpy.full(3, 0.),
