@@ -37,7 +37,7 @@ FLUX_NAME_TO_FANCY_DICT = {
     evaluation.SHORTWAVE_NET_FLUX_NAME: r'$F_{net}$'
 }
 
-FLUX_FONT_SIZE = 10
+FLUX_FONT_SIZE = 20
 TARGET_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
 PREDICTION_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 
@@ -157,7 +157,7 @@ def _plot_one_comparison(
     title_string += r' K day$^{-1}$)'
     axes_objects[0].set_title(title_string)
 
-    inset_axes_object = axes_objects[0].inset_axes([0.6, 0.1, 0.35, 0.35])
+    inset_axes_object = axes_objects[0].inset_axes([0.45, 0.1, 0.5, 0.5])
     num_flux_vars = len(actual_fluxes_w_m02)
     x_tick_values = numpy.linspace(
         0.5, num_flux_vars - 0.5, num=num_flux_vars, dtype=float
@@ -201,21 +201,11 @@ def _plot_one_comparison(
         error_kw=error_bar_dict
     )
 
-    renderer_object = figure_object.canvas.get_renderer()
-    bbox_object = inset_axes_object.get_window_extent(renderer=renderer_object)
-    flux_font_size_px = FLUX_FONT_SIZE * FIGURE_RESOLUTION_DPI / 72
-    flux_font_size_fraction = flux_font_size_px / bbox_object.height
-
-    y_min, y_max = inset_axes_object.get_ylim()
-    y_range = y_max - y_min
-    y_max += flux_font_size_fraction * y_range
-    inset_axes_object.set_ylim(top=y_max)
-
     for j in range(num_flux_vars):
-        this_y = max([
-            actual_fluxes_w_m02[j], upper_flux_predictions_w_m02[j]
-        ])
-        this_label = 'Err = {0:.1f}'.format(
+        this_y = 0.25 * (
+            actual_fluxes_w_m02[j] + mean_flux_predictions_w_m02[j]
+        )
+        this_label = 'Err =\n{0:.1f}'.format(
             mean_flux_predictions_w_m02[j] - actual_fluxes_w_m02[j]
         )
 
@@ -224,6 +214,7 @@ def _plot_one_comparison(
             ha='center',
             va='bottom',
             fontsize=FLUX_FONT_SIZE,
+            fontweight='bold',
             color=numpy.full(3, 0.)
         )
 
@@ -234,7 +225,6 @@ def _plot_one_comparison(
 
     inset_axes_object.tick_params(axis='y', labelsize=FLUX_FONT_SIZE)
     inset_axes_object.set_title(r'Fluxes (W m$^{-2}$)', fontsize=FLUX_FONT_SIZE)
-    inset_axes_object.set_ylim(top=y_max)
 
     this_file_name = '{0:s}/{1:s}.jpg'.format(
         output_dir_name, example_id_string.replace('_', '-')
