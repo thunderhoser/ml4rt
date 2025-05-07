@@ -203,6 +203,9 @@ def _concat_panels_one_example(
         for d in model_dir_suffixes
     ]
 
+    for p in panel_file_names:
+        print(p)
+
     lettered_panel_file_names = [
         '{0:s}/{1:s}/{2:s}_shortwave-heating-rate-k-day01.jpg'.format(
             output_dir_name, s, example_id_string
