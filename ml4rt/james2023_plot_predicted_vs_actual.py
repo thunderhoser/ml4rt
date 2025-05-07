@@ -160,7 +160,7 @@ def _plot_one_comparison(
     inset_axes_object = axes_objects[0].inset_axes([0.45, 0.1, 0.5, 0.5])
     inset_axes_object.set_zorder(1e6)
     inset_axes_object.patch.set_alpha(0.7)
-    for this_axes_object in axes_objects[0]:
+    for this_axes_object in axes_objects:
         this_axes_object.set_zorder(1)
 
     num_flux_vars = len(actual_fluxes_w_m02)
