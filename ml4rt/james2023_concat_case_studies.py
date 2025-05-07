@@ -191,8 +191,7 @@ def _concat_panels_one_example(
 
     panel_file_names = [
         (
-            '{0:s}/{1:s}/{2:s}/{3:s}/predictions_large-heating-rate/'
-            '{4:s}_shortwave-heating-rate-k-day01.jpg'
+            '{0:s}/{1:s}/{2:s}/{3:s}/predictions_large-heating-rate/{4:s}.jpg'
         ).format(
             all_experiments_dir_name,
             d,
