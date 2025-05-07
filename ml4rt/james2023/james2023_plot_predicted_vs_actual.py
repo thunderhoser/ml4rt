@@ -30,7 +30,7 @@ FLUX_NAME_TO_FANCY_DICT = {
     evaluation.SHORTWAVE_NET_FLUX_NAME: r'$F_{net}$'
 }
 
-FLUX_FONT_SIZE = 10
+FLUX_FONT_SIZE = 20
 TARGET_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
 PREDICTION_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 
@@ -150,7 +150,7 @@ def _plot_one_comparison(
     title_string += r' K day$^{-1}$)'
     axes_objects[0].set_title(title_string)
 
-    inset_axes_object = axes_objects[0].inset_axes([0.6, 0.1, 0.35, 0.35])
+    inset_axes_object = axes_objects[0].inset_axes([0.45, 0.1, 0.5, 0.5])
     num_flux_vars = len(actual_fluxes_w_m02)
     x_tick_values = numpy.linspace(
         0.5, num_flux_vars - 0.5, num=num_flux_vars, dtype=float
@@ -170,6 +170,7 @@ def _plot_one_comparison(
         mean_flux_predictions_w_m02 - lower_flux_predictions_w_m02,
         upper_flux_predictions_w_m02 - mean_flux_predictions_w_m02
     ])
+    flux_error_matrix_w_m02 = numpy.maximum(flux_error_matrix_w_m02, 0.)
 
     error_bar_dict = {
         'ecolor': numpy.full(3, 0.),
@@ -194,10 +195,10 @@ def _plot_one_comparison(
     )
 
     for j in range(num_flux_vars):
-        this_y = 0.5 * (
+        this_y = 0.25 * (
             actual_fluxes_w_m02[j] + mean_flux_predictions_w_m02[j]
         )
-        this_label = 'Err = {0:.1f}'.format(
+        this_label = 'Err =\n{0:.1f}'.format(
             mean_flux_predictions_w_m02[j] - actual_fluxes_w_m02[j]
         )
 
