@@ -849,7 +849,7 @@ def _plot_mae_and_bias_for_flux(
         desired_wavelength_metres=wavelength_metres
     )
 
-    flux_names = etx.coords[evaluation.SCALAR_FIELD_DIM].values
+    flux_names = etx.coords[evaluation.SCALAR_FIELD_DIM].values.tolist()
     flux_names.append(evaluation.SHORTWAVE_NET_FLUX_NAME)
     num_flux_vars = len(flux_names)
 
