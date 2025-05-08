@@ -154,10 +154,10 @@ def _run(input_dir_name, wavelengths_metres, output_dir_name):
             input_dir_name=output_dir_name,
             wavelength_metres=this_wavelength_metres
         )
-        resized_panel_file_names = [
-            '{0:s}/{1:s}'.format(f.split('/')[0], f.split('/')[-1])
-            for f in resized_panel_file_names
-        ]
+        # resized_panel_file_names = [
+        #     '{0:s}/{1:s}'.format(f.split('/')[0], f.split('/')[-1])
+        #     for f in resized_panel_file_names
+        # ]
 
         panel_letter = None
 
