@@ -221,6 +221,7 @@ def _compute_large_error_freqs_1file(
     flux_num_large_errors_matrix = numpy.sum(
         flux_large_error_flag_matrix, axis=0
     )
+    flux_num_large_errors_matrix = numpy.transpose(flux_num_large_errors_matrix)
 
     num_flux_vars = actual_flux_matrix_w_m02.shape[-1]
     flux_cat_error_flag_matrix = numpy.full(
