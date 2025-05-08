@@ -46,7 +46,7 @@ PATHLESS_INPUT_FILE_NAMES=("predictions_part01.nc" "predictions_part02.nc" "pred
 input_file_names_string=""
 i=0
 
-while [[ $i -le ${#PATHLESS_INPUT_FILE_NAMES[@]} ]]; do
+while [[ $i -lt ${#PATHLESS_INPUT_FILE_NAMES[@]} ]]; do
     input_file_names_string="${input_file_names_string} ${model_dir_name}/model/testing_perturbed_for_uq/${PATHLESS_INPUT_FILE_NAMES[$i]}"
     ((i++))
 done
