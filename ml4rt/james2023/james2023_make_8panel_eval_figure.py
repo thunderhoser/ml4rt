@@ -14,7 +14,7 @@ TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
 NUM_PANEL_ROWS = 4
-NUM_PANEL_COLUMNS = 3
+NUM_PANEL_COLUMNS = 2
 PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
@@ -63,35 +63,28 @@ def _get_input_files_1wavelength(input_dir_name, wavelength_metres):
 
     wavelength_microns = METRES_TO_MICRONS * wavelength_metres
 
-    pathless_wavelengthless_file_names = [
-        'evaluation/shortwave-heating-rate-k-day01_mae-bias_profile.jpg',
-        'evaluation/fluxes_mae-bias.jpg',
-        'evaluation/shortwave-heating-rate-k-day01_error-freq_profile.jpg',
-        'evaluation/fluxes_error-freq.jpg',
-        'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01.jpg',
-        'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02.jpg',
-        'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01.jpg',
-        'pit_histograms/pit_histogram_net-shortwave-flux-w-m02.jpg'
-    ]
-
     pathless_file_names = [
-        '_'.join(
-            [f.split('_')[0], '{0:.2f}microns'.format(wavelength_microns)] +
-            f.split('_')[1:]
-        )
-        for f in pathless_wavelengthless_file_names
+        'evaluation/shortwave-heating-rate-k-day01_BBmicrons_mae-bias_profile.jpg',
+        'evaluation/fluxes_BBmicrons_mae-bias.jpg',
+        'evaluation/shortwave-heating-rate-k-day01_BBmicrons_error-freq_profile.jpg',
+        'evaluation/fluxes_BBmicrons_error-freq.jpg',
+        'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01_BBmicrons.jpg',
+        'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02_BBmicrons.jpg',
+        'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01_BBmicrons.jpg',
+        'pit_histograms/pit_histogram_net-shortwave-flux-w-m02_BBmicrons.jpg'
     ]
-
+    pathless_file_names = [
+        f.replace('BBmicrons', '{0:.2f}microns'.format(wavelength_microns))
+        for f in pathless_file_names
+    ]
     for i in range(4):
         pathless_file_names[i] = pathless_file_names[i].replace(
             '1000000000.00', 'BB'
         )
 
-    input_file_names = [
+    return [
         '{0:s}/{1:s}'.format(input_dir_name, f) for f in pathless_file_names
     ]
-
-    return input_file_names
 
 
 def _overlay_text(
@@ -145,10 +138,6 @@ def _run(input_dir_name, wavelengths_metres, output_dir_name):
             input_dir_name=output_dir_name,
             wavelength_metres=this_wavelength_metres
         )
-        resized_panel_file_names = [
-            '{0:s}/{1:s}'.format(f.split('/')[0], f.split('/')[-1])
-            for f in resized_panel_file_names
-        ]
 
         panel_letter = None
 
