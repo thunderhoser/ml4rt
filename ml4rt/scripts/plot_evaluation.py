@@ -237,6 +237,26 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _add_wavelength_to_title(title_string, wavelength_metres):
+    """Adds wavelength to figure title.
+
+    :param title_string: Current title.
+    :param wavelength_metres: Wavelength.
+    :return: title_string: New title.
+    """
+
+    if (
+            wavelength_metres <
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES - 1
+    ):
+        title_string += ' at {0:s}'.format(
+            wavelength_to_string(wavelength_metres)
+        )
+        title_string += r' $\mu$m'
+
+    return title_string
+
+
 def _plot_attributes_diagram(
         evaluation_tables_xarray, line_styles, line_colours,
         set_descriptions_abbrev, set_descriptions_verbose, confidence_level,
@@ -560,11 +580,12 @@ def _plot_attributes_diagram(
             TARGET_NAME_TO_UNITS[target_name]
         ))
 
-        title_string = 'Attributes diagram for {0:s} at {1:s}'.format(
-            TARGET_NAME_TO_VERBOSE[target_name],
-            wavelength_to_string(wavelength_metres)
+        title_string = 'Attributes diagram for {0:s}'.format(
+            TARGET_NAME_TO_VERBOSE[target_name]
         )
-        title_string += r' $\mu$m'
+        title_string = _add_wavelength_to_title(
+            title_string=title_string, wavelength_metres=wavelength_metres
+        )
 
         if height_m_agl is not None:
             title_string += ' and {0:d} m AGL'.format(
@@ -755,12 +776,13 @@ def _plot_score_profile(
             facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
         )
 
-    title_string = '{0:s} for {1:s} at {2:s}'.format(
+    title_string = '{0:s} for {1:s}'.format(
         SCORE_NAME_TO_VERBOSE[score_name],
-        TARGET_NAME_TO_VERBOSE[target_name],
-        wavelength_to_string(wavelength_metres)
+        TARGET_NAME_TO_VERBOSE[target_name]
     )
-    title_string += r' $\mu$m'
+    title_string = _add_wavelength_to_title(
+        title_string=title_string, wavelength_metres=wavelength_metres
+    )
 
     if report_max_in_title:
         if score_name == evaluation_plotting.MAE_NAME:
@@ -923,11 +945,10 @@ def _plot_mae_and_bias_for_flux(
     axes_object.set_ylabel(r'MAE or bias (W m$^{-2}$)')
 
     title_string = 'MAE and bias for fluxes'
-    if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
-        title_string += ' at {0:s}'.format(
-            wavelength_to_string(wavelength_metres)
-        )
-        title_string += r' $\mu$m'
+    title_string = _add_wavelength_to_title(
+        title_string=title_string, wavelength_metres=wavelength_metres
+    )
+    axes_object.set_title(title_string)
 
     figure_file_name = '{0:s}/fluxes_{1:s}microns_mae-bias.jpg'.format(
         output_dir_name,
@@ -1020,7 +1041,7 @@ def _plot_mae_and_bias_for_hr(
         axes_object.add_patch(patch_object)
 
         x_min = min([
-            x_min, polygon_coord_matrix[:, 0]
+            x_min, numpy.nanmin(polygon_coord_matrix[:, 0])
         ])
 
     this_handle = evaluation_plotting.plot_score_profile(
@@ -1035,7 +1056,7 @@ def _plot_mae_and_bias_for_hr(
         are_axes_new=False
     )
     x_min = min([
-        x_min, numpy.nanmean(mae_matrix_k_day01, axis=1)
+        x_min, numpy.nanmin(numpy.nanmean(mae_matrix_k_day01, axis=1))
     ])
 
     legend_handles.append(this_handle)
@@ -1059,9 +1080,10 @@ def _plot_mae_and_bias_for_hr(
         axes_object.add_patch(patch_object)
 
         x_min = min([
-            x_min, polygon_coord_matrix[:, 0]
+            x_min, numpy.nanmin(polygon_coord_matrix[:, 0])
         ])
 
+    axes_object.set_xlim(left=x_min)
     axes_object.legend(
         legend_handles, legend_strings, loc='center right',
         bbox_to_anchor=(0.95, 0.5), fancybox=True, shadow=False,
@@ -1071,14 +1093,12 @@ def _plot_mae_and_bias_for_hr(
     title_string = 'MAE and bias for {0:s}'.format(
         TARGET_NAME_TO_VERBOSE[target_name]
     )
-    if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
-        title_string += ' at {0:s}'.format(
-            wavelength_to_string(wavelength_metres)
-        )
-        title_string += r' $\mu$m'
+    title_string = _add_wavelength_to_title(
+        title_string=title_string, wavelength_metres=wavelength_metres
+    )
 
     if report_max_in_title:
-        title_string = (
+        title_string += (
             '\nMax MAE = {0:.2f}; max absolute bias = {1:.2f}'
         ).format(
             numpy.nanmax(numpy.nanmean(mae_matrix_k_day01, axis=1)),
@@ -1179,14 +1199,13 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:s}'
-            ).format(
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
-                TARGET_NAME_TO_UNITS[vector_target_names[t]],
-                wavelength_to_string(wavelength_metres)
+                TARGET_NAME_TO_UNITS[vector_target_names[t]]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string, wavelength_metres=wavelength_metres
+            )
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
@@ -1259,14 +1278,13 @@ def _plot_error_distributions(
             axes_object.set_yticklabels(y_tick_strings)
             axes_object.set_ylabel(r'Actual heating rate (K day$^{-1}$)')
 
-            title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:s}'
-            ).format(
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
                 TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
-                TARGET_NAME_TO_UNITS[vector_target_names[t]],
-                wavelength_to_string(wavelength_metres),
+                TARGET_NAME_TO_UNITS[vector_target_names[t]]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string, wavelength_metres=wavelength_metres
+            )
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
@@ -1307,14 +1325,13 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:s}'
-            ).format(
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
                 TARGET_NAME_TO_VERBOSE[scalar_target_names[t]],
-                TARGET_NAME_TO_UNITS[scalar_target_names[t]],
-                wavelength_to_string(wavelength_metres)
+                TARGET_NAME_TO_UNITS[scalar_target_names[t]]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string, wavelength_metres=wavelength_metres
+            )
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
@@ -1389,14 +1406,13 @@ def _plot_error_distributions(
                 axes_object=axes_object
             )
 
-            title_string = (
-                'Error distribution for {0:s} ({1:s}) at {2:s}'
-            ).format(
+            title_string = 'Error distribution for {0:s} ({1:s})'.format(
                 TARGET_NAME_TO_VERBOSE[aux_target_names[t]],
-                TARGET_NAME_TO_UNITS[aux_target_names[t]],
-                wavelength_to_string(wavelength_metres)
+                TARGET_NAME_TO_UNITS[aux_target_names[t]]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string, wavelength_metres=wavelength_metres
+            )
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
@@ -1481,11 +1497,12 @@ def _plot_reliability_by_height(
                 axes_object=axes_object
             )
 
-            title_string = 'Reliability curves for {0:s} at {1:s}'.format(
-                TARGET_NAME_TO_VERBOSE[vector_target_names[t]],
-                wavelength_to_string(wavelength_metres)
+            title_string = 'Reliability curves for {0:s}'.format(
+                TARGET_NAME_TO_VERBOSE[vector_target_names[t]]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string, wavelength_metres=wavelength_metres
+            )
             if num_evaluation_sets > 1:
                 title_string += '\n{0:s}'.format(set_descriptions_verbose[i])
 
