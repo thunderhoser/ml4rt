@@ -927,7 +927,7 @@ def _plot_mae_and_bias_for_flux(
     x_tick_labels = [FLUX_NAME_TO_FANCY_DICT[f] for f in flux_names]
     axes_object.set_xticks(x_tick_values)
     axes_object.set_xticklabels(x_tick_labels)
-    axes_object.set_ylabel(r'MAE/bias (W m$^{-2}$)')
+    axes_object.set_ylabel(r'MAE or bias (W m$^{-2}$)')
 
     title_string = 'MAE and bias for fluxes'
     if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
@@ -1001,6 +1001,9 @@ def _plot_mae_and_bias_for_hr(
         axes_object=axes_object,
         are_axes_new=True
     )
+    x_min = numpy.nanmin(
+        numpy.nanmean(bias_matrix_k_day01, axis=1)
+    )
 
     legend_handles.append(this_handle)
     legend_strings.append('Bias')
@@ -1023,6 +1026,10 @@ def _plot_mae_and_bias_for_hr(
         )
         axes_object.add_patch(patch_object)
 
+        x_min = min([
+            x_min, polygon_coord_matrix[:, 0]
+        ])
+
     this_handle = evaluation_plotting.plot_score_profile(
         heights_m_agl=heights_m_agl,
         score_values=numpy.nanmean(mae_matrix_k_day01, axis=1),
@@ -1034,6 +1041,9 @@ def _plot_mae_and_bias_for_hr(
         axes_object=axes_object,
         are_axes_new=False
     )
+    x_min = min([
+        x_min, numpy.nanmean(mae_matrix_k_day01, axis=1)
+    ])
 
     legend_handles.append(this_handle)
     legend_strings.append('MAE')
@@ -1054,6 +1064,10 @@ def _plot_mae_and_bias_for_hr(
             polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
         )
         axes_object.add_patch(patch_object)
+
+        x_min = min([
+            x_min, polygon_coord_matrix[:, 0]
+        ])
 
     axes_object.legend(
         legend_handles, legend_strings, loc='center right',
@@ -1080,7 +1094,7 @@ def _plot_mae_and_bias_for_hr(
             )
         )
 
-    axes_object.set_xlabel(r'Error value (K day$^{-1}$)')
+    axes_object.set_xlabel(r'MAE or bias (K day$^{-1}$)')
     axes_object.set_title(title_string)
 
     figure_file_name = '{0:s}/{1:s}_{2:s}microns_mae-bias_profile.jpg'.format(

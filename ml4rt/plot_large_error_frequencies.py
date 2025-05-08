@@ -388,7 +388,7 @@ def _plot_error_freqs_for_flux(
     axes_object.legend(
         [lef_handle, cef_handle],
         ['Large-error freq', 'Catastrophic-error freq'],
-        loc='bottom left',
+        loc='lower left',
         bbox_to_anchor=(0.05, 0.05),
         fancybox=True,
         shadow=False,
