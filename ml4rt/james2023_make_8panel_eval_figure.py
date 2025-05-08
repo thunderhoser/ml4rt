@@ -94,9 +94,11 @@ def _get_input_files_1wavelength(input_dir_name, wavelength_metres):
             '1000000000.00', 'BB'
         )
 
+    print(input_dir_name)
     input_file_names = [
         '{0:s}/{1:s}'.format(input_dir_name, f) for f in pathless_file_names
     ]
+    print(input_file_names[0])
 
     return input_file_names
 
