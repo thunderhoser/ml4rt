@@ -214,6 +214,9 @@ def _compute_large_error_freqs_1file(
         predicted_flux_matrix_w_m02, axis=-1
     )
 
+    print(actual_flux_matrix_w_m02.shape)
+    print(mean_pred_flux_matrix_w_m02.shape)
+
     flux_large_error_flag_matrix = numpy.absolute(
         actual_flux_matrix_w_m02 - mean_pred_flux_matrix_w_m02
     ) >= large_flux_error_threshold_w_m02
