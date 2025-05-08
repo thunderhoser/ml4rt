@@ -382,13 +382,13 @@ def _plot_error_freqs_for_flux(
         [lef_handle, cef_handle],
         ['Large-error freq', 'Catastrophic-error freq'],
         loc='lower left',
-        bbox_to_anchor=(0.05, 0.05),
+        bbox_to_anchor=(0.05, 0.1),
         fancybox=True,
         shadow=False,
         facecolor='white',
         edgecolor='k',
         framealpha=0.5,
-        ncol=2
+        ncol=1
     )
 
     x_tick_labels = [FLUX_NAME_TO_FANCY_DICT[f] for f in flux_var_names]
