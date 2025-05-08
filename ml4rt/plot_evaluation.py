@@ -831,11 +831,12 @@ def _plot_score_profile(
 
 
 def _plot_mae_and_bias_for_flux(
-        evaluation_table_xarray, confidence_level, wavelength_metres,
-        output_dir_name):
+        evaluation_table_xarray, prediction_dict, confidence_level,
+        wavelength_metres, output_dir_name):
     """Plots bar graphs of MAE and bias, on same axes, for one model.
 
     :param evaluation_table_xarray: See doc for `_plot_attributes_diagram`.
+    :param prediction_dict: Dictionary returned by `prediction_io.read_file`.
     :param confidence_level: See doc for `_plot_attributes_diagram`.
     :param wavelength_metres: Wavelength of target variable.
     :param output_dir_name: Name of output directory.  Figure will be saved
@@ -848,16 +849,75 @@ def _plot_mae_and_bias_for_flux(
         desired_wavelength_metres=wavelength_metres
     )
 
-    mae_key = evaluation.SCALAR_MAE_KEY
-    bias_key = evaluation.SCALAR_BIAS_KEY
-    mae_matrix_w_m02 = etx[mae_key].values[wave_index, :, :]
-    bias_matrix_w_m02 = etx[bias_key].values[wave_index, :, :]
+    flux_names = etx.coords[evaluation.SCALAR_FIELD_DIM].values
+    flux_names.append(evaluation.SHORTWAVE_NET_FLUX_NAME)
+    num_flux_vars = len(flux_names)
+
+    pdict = prediction_dict
+    actual_flux_matrix_w_m02 = (
+        pdict[prediction_io.SCALAR_TARGETS_KEY][:, wave_index, :]
+    )
+    predicted_flux_matrix_w_m02 = numpy.mean(
+        pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, wave_index, ...],
+        axis=-1
+    )
+
+    down_index = flux_names.index(
+        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    )
+    up_index = flux_names.index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+    actual_net_flux_matrix_w_m02 = (
+        actual_flux_matrix_w_m02[..., [down_index]] -
+        actual_flux_matrix_w_m02[..., [up_index]]
+    )
+    actual_flux_matrix_w_m02 = numpy.concatenate(
+        [actual_flux_matrix_w_m02, actual_net_flux_matrix_w_m02], axis=-1
+    )
+    predicted_net_flux_matrix_w_m02 = (
+        predicted_flux_matrix_w_m02[..., [down_index]] -
+        predicted_flux_matrix_w_m02[..., [up_index]]
+    )
+    predicted_flux_matrix_w_m02 = numpy.concatenate(
+        [predicted_flux_matrix_w_m02, predicted_net_flux_matrix_w_m02], axis=-1
+    )
+
+    num_bootstrap_reps = etx[evaluation.SCALAR_MAE_KEY].values.shape[-1]
+    mae_matrix_w_m02 = numpy.full(
+        (num_flux_vars, num_bootstrap_reps), numpy.nan
+    )
+    bias_matrix_w_m02 = numpy.full(
+        (num_flux_vars, num_bootstrap_reps), numpy.nan
+    )
+    num_examples = predicted_flux_matrix_w_m02.shape[0]
+    all_example_indices = numpy.linspace(
+        0, num_examples - 1, num=num_examples, dtype=int
+    )
+
+    for k in range(num_bootstrap_reps):
+        if num_bootstrap_reps == 1:
+            these_indices = all_example_indices + 0
+        else:
+            these_indices = numpy.random.choice(
+                all_example_indices, size=num_examples, replace=True
+            )
+
+        mae_matrix_w_m02[:, k] = numpy.mean(
+            numpy.absolute(
+                predicted_flux_matrix_w_m02[these_indices, :] -
+                actual_flux_matrix_w_m02[these_indices, :]
+            ),
+            axis=0
+        )
+        bias_matrix_w_m02[:, k] = numpy.mean(
+            predicted_flux_matrix_w_m02[these_indices, :] -
+            actual_flux_matrix_w_m02[these_indices, :],
+            axis=0
+        )
 
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
 
-    num_flux_vars = mae_matrix_w_m02.shape[0]
     x_tick_values = numpy.linspace(
         0.5, num_flux_vars - 0.5, num=num_flux_vars, dtype=float
     )
@@ -945,7 +1005,6 @@ def _plot_mae_and_bias_for_flux(
         ncol=2
     )
 
-    flux_names = etx.coords[evaluation.SCALAR_FIELD_DIM].values
     x_tick_labels = [FLUX_NAME_TO_FANCY_DICT[f] for f in flux_names]
     axes_object.set_xticks(x_tick_values)
     axes_object.set_xticklabels(x_tick_labels)
@@ -1809,6 +1868,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
         for this_wavelength_metres in wavelengths_metres:
             _plot_mae_and_bias_for_flux(
                 evaluation_table_xarray=evaluation_tables_xarray[0],
+                prediction_dict=prediction_dicts[0],
                 confidence_level=confidence_level,
                 wavelength_metres=this_wavelength_metres,
                 output_dir_name=output_dir_name
