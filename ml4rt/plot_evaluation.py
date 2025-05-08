@@ -857,6 +857,7 @@ def _plot_mae_and_bias_for_flux(
     actual_flux_matrix_w_m02 = (
         pdict[prediction_io.SCALAR_TARGETS_KEY][:, wave_index, :]
     )
+    print(pdict[prediction_io.SCALAR_PREDICTIONS_KEY].shape)
     predicted_flux_matrix_w_m02 = numpy.mean(
         pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, wave_index, ...],
         axis=-1
