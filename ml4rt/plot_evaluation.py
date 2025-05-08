@@ -893,6 +893,9 @@ def _plot_mae_and_bias_for_flux(
         0, num_examples - 1, num=num_examples, dtype=int
     )
 
+    print(predicted_flux_matrix_w_m02.shape)
+    print(actual_flux_matrix_w_m02.shape)
+
     for k in range(num_bootstrap_reps):
         if num_bootstrap_reps == 1:
             these_indices = all_example_indices + 0
