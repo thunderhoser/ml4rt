@@ -290,7 +290,7 @@ def plot_inset_histogram(
     num_bins = len(bin_centers)
     expected_dim = numpy.array([num_bins], dtype=int)
 
-    error_checking.assert_is_integer_numpy_array(bin_counts)
+    # error_checking.assert_is_integer_numpy_array(bin_counts)
     error_checking.assert_is_geq_numpy_array(bin_counts, 0)
     error_checking.assert_is_numpy_array(
         bin_counts, exact_dimensions=expected_dim
