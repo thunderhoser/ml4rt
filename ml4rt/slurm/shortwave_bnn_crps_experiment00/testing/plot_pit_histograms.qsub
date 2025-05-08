@@ -1,9 +1,9 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #SBATCH --job-name="plot_pit_histograms"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="batch"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --time=12:00:00
@@ -14,24 +14,30 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=plot_pit_histograms_%A.out
 
-module load cuda/10.1
-source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda init
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone_sr/ml4rt"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00"
+echo `which conda`
+echo `which python`
+echo `which python3`
 
-set FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
-set BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
-set BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
-set BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
-set BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
 
-set BEST_MODEL_INDEX=30
-set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00"
 
-set input_file_name="${model_dir_name}/model/testing_perturbed_for_uq/pit_histograms.nc"
-set output_dir_name="${model_dir_name}/model/testing_perturbed_for_uq/pit_histograms"
+FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
+BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
+BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2")
+BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
+BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
+
+BEST_MODEL_INDEX=29
+model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
+
+input_file_name="${model_dir_name}/model/testing_perturbed_for_uq/pit_histograms.nc"
+output_dir_name="${model_dir_name}/model/testing_perturbed_for_uq/pit_histograms"
 
 python3 -u "${CODE_DIR_NAME}/plot_pit_histograms.py" \
 --input_file_name="${input_file_name}" \
