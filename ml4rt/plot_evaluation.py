@@ -857,10 +857,12 @@ def _plot_mae_and_bias_for_flux(
     actual_flux_matrix_w_m02 = (
         pdict[prediction_io.SCALAR_TARGETS_KEY][:, wave_index, :]
     )
-    print(pdict[prediction_io.SCALAR_PREDICTIONS_KEY].shape)
-    predicted_flux_matrix_w_m02 = numpy.mean(
-        pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, wave_index, ...],
-        axis=-1
+    # predicted_flux_matrix_w_m02 = numpy.mean(
+    #     pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, wave_index, ...],
+    #     axis=-1
+    # )
+    predicted_flux_matrix_w_m02 = (
+        pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, wave_index, ...]
     )
 
     down_index = flux_names.index(
@@ -893,9 +895,6 @@ def _plot_mae_and_bias_for_flux(
     all_example_indices = numpy.linspace(
         0, num_examples - 1, num=num_examples, dtype=int
     )
-
-    print(predicted_flux_matrix_w_m02.shape)
-    print(actual_flux_matrix_w_m02.shape)
 
     for k in range(num_bootstrap_reps):
         if num_bootstrap_reps == 1:
