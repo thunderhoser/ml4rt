@@ -248,6 +248,10 @@ def _compute_large_error_freqs_1file(
                     flux_cat_error_flag_matrix[i, f, w] = True
 
     flux_num_cat_errors_matrix = numpy.sum(flux_cat_error_flag_matrix, axis=0)
+    print(hr_num_large_errors_matrix.shape)
+    print(flux_num_large_errors_matrix.shape)
+    print(hr_num_cat_errors_matrix.shape)
+    print(flux_num_cat_errors_matrix.shape)
 
     return (
         hr_num_large_errors_matrix, flux_num_large_errors_matrix,
