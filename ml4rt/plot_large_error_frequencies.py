@@ -229,7 +229,7 @@ def _compute_large_error_freqs_1file(
         predicted_flux_matrix_w_m02[..., [up_index], :]
     )
     predicted_flux_matrix_w_m02 = numpy.concatenate(
-        [predicted_flux_matrix_w_m02, predicted_net_flux_matrix_w_m02], axis=-1
+        [predicted_flux_matrix_w_m02, predicted_net_flux_matrix_w_m02], axis=-2
     )
 
     mean_pred_flux_matrix_w_m02 = numpy.mean(
