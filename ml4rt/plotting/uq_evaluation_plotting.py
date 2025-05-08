@@ -70,6 +70,26 @@ pyplot.rc('legend', fontsize=FONT_SIZE)
 pyplot.rc('figure', titlesize=FONT_SIZE)
 
 
+def _add_wavelength_to_title(title_string, wavelength_metres):
+    """Adds wavelength to figure title.
+
+    :param title_string: Current title.
+    :param wavelength_metres: Wavelength.
+    :return: title_string: New title.
+    """
+
+    if (
+            wavelength_metres <
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES - 1
+    ):
+        title_string += ' at {0:.2f}'.format(
+            METRES_TO_MICRONS * wavelength_metres
+        )
+        title_string += r' $\mu$m'
+
+    return title_string
+
+
 def _plot_means_as_inset(
         figure_object, bin_centers, bin_mean_predictions,
         bin_mean_target_values, plotting_corner_string, for_spread_skill_plot):
@@ -398,11 +418,12 @@ def plot_spread_vs_skill(
             'Avgs by model spread', fontsize=INSET_FONT_SIZE
         )
 
-    title_string = 'Spread vs. skill for {0:s} at {1:.2f}'.format(
-        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
-        METRES_TO_MICRONS * target_wavelength_metres
+    title_string = 'Spread vs. skill for {0:s}'.format(
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name]
     )
-    title_string += r' $\mu$m'
+    title_string = _add_wavelength_to_title(
+        title_string=title_string, wavelength_metres=target_wavelength_metres
+    )
 
     title_string += (
         '{0:s}\n'
@@ -564,11 +585,12 @@ def plot_discard_test(
         'Avgs by discard fraction', fontsize=INSET_FONT_SIZE
     )
 
-    title_string = 'Discard test for {0:s} at {1:.2f}'.format(
-        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
-        METRES_TO_MICRONS * target_wavelength_metres
+    title_string = 'Discard test for {0:s}'.format(
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name]
     )
-    title_string += r' $\mu$m'
+    title_string = _add_wavelength_to_title(
+        title_string=title_string, wavelength_metres=target_wavelength_metres
+    )
 
     title_string += (
         '{0:s}\n'
@@ -677,11 +699,12 @@ def plot_pit_histogram(
     axes_object.set_xlim(0., 1.)
     axes_object.set_ylim(bottom=0.)
 
-    title_string = 'PIT histogram for {0:s} at {1:.2f}'.format(
-        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
-        METRES_TO_MICRONS * target_wavelength_metres
+    title_string = 'PIT histogram for {0:s}'.format(
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name]
     )
-    title_string += r' $\mu$m'
+    title_string = _add_wavelength_to_title(
+        title_string=title_string, wavelength_metres=target_wavelength_metres
+    )
 
     title_string += (
         '{0:s}\n'

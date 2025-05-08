@@ -58,6 +58,42 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _add_wavelength_to_title(title_string, wavelength_metres):
+    """Adds wavelength to figure title.
+
+    :param title_string: Current title.
+    :param wavelength_metres: Wavelength.
+    :return: title_string: New title.
+    """
+
+    if (
+            wavelength_metres <
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES - 1
+    ):
+        title_string += ' at {0:s}'.format(
+            wavelength_to_string(wavelength_metres)
+        )
+        title_string += r' $\mu$m'
+
+    return title_string
+
+
+def wavelength_to_string(wavelength_metres):
+    """Converts wavelength to string.
+
+    :param wavelength_metres: Wavelength (scalar float).
+    :return: wavelength_string_microns: Wavelength (string in microns).
+    """
+
+    if (
+            wavelength_metres > 0.99 *
+            example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES
+    ):
+        return 'BB'
+
+    return '{0:.2f}'.format(METRES_TO_MICRONS * wavelength_metres)
+
+
 def _run(input_file_name, plot_inset, wavelengths_metres, output_dir_name):
     """Plots spread-skill relationship for each target variable.
 
@@ -209,11 +245,13 @@ def _run(input_file_name, plot_inset, wavelengths_metres, output_dir_name):
                 )
             )
 
-            title_string = 'SSREL for {0:s} at {1:.2f}'.format(
-                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name],
-                METRES_TO_MICRONS * this_wavelength_metres
+            title_string = 'SSREL for {0:s}'.format(
+                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string,
+                wavelength_metres=this_wavelength_metres
+            )
             axes_object.set_title(title_string)
 
             figure_file_name = '{0:s}/ssrel_{1:s}_{2:.2f}microns.jpg'.format(
@@ -245,11 +283,13 @@ def _run(input_file_name, plot_inset, wavelengths_metres, output_dir_name):
             this_var_name = rtx.coords[ss_utils.VECTOR_FIELD_DIM].values[t]
             axes_object.set_xlabel('Spread-skill ratio (SSRAT)')
 
-            title_string = 'SSRAT for {0:s} at {1:.2f}'.format(
-                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name],
-                METRES_TO_MICRONS * this_wavelength_metres
+            title_string = 'SSRAT for {0:s}'.format(
+                uq_eval_plotting.TARGET_NAME_ABBREV_TO_FANCY[this_var_name]
             )
-            title_string += r' $\mu$m'
+            title_string = _add_wavelength_to_title(
+                title_string=title_string,
+                wavelength_metres=this_wavelength_metres
+            )
             title_string += '\nMin value = {0:.2f}'.format(
                 numpy.nanmin(rtx[ss_utils.VECTOR_SSRAT_KEY].values[t, :, w])
             )
