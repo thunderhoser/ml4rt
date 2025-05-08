@@ -496,7 +496,7 @@ def _run(prediction_file_names, large_hr_error_threshold_k_day01,
     flux_var_names.append(evaluation.SHORTWAVE_NET_FLUX_NAME)
 
     num_flux_vars = (
-        first_prediction_dict[prediction_io.SCALAR_TARGETS_KEY].shape[-1]
+        first_prediction_dict[prediction_io.SCALAR_TARGETS_KEY].shape[-1] + 1
     )
     hr_num_large_errors_matrix = numpy.full(
         (num_heights, num_wavelengths), 0, dtype=int
