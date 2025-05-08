@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #SBATCH --job-name="plot_large_error_frequencies"
 #SBATCH --partition="fge"
