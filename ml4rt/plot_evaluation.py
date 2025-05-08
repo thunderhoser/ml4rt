@@ -1027,7 +1027,7 @@ def _plot_mae_and_bias_for_hr(
         axes_object.add_patch(patch_object)
 
         x_min = min([
-            x_min, polygon_coord_matrix[:, 0]
+            x_min, numpy.nanmin(polygon_coord_matrix[:, 0])
         ])
 
     this_handle = evaluation_plotting.plot_score_profile(
@@ -1042,7 +1042,7 @@ def _plot_mae_and_bias_for_hr(
         are_axes_new=False
     )
     x_min = min([
-        x_min, numpy.nanmean(mae_matrix_k_day01, axis=1)
+        x_min, numpy.nanmin(numpy.nanmean(mae_matrix_k_day01, axis=1))
     ])
 
     legend_handles.append(this_handle)
@@ -1066,9 +1066,10 @@ def _plot_mae_and_bias_for_hr(
         axes_object.add_patch(patch_object)
 
         x_min = min([
-            x_min, polygon_coord_matrix[:, 0]
+            x_min, numpy.nanmin(polygon_coord_matrix[:, 0])
         ])
 
+    axes_object.set_xlim(left=x_min)
     axes_object.legend(
         legend_handles, legend_strings, loc='center right',
         bbox_to_anchor=(0.95, 0.5), fancybox=True, shadow=False,
