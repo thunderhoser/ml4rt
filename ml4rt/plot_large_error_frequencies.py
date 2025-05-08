@@ -214,9 +214,6 @@ def _compute_large_error_freqs_1file(
         predicted_flux_matrix_w_m02, axis=-1
     )
 
-    print(actual_flux_matrix_w_m02.shape)
-    print(mean_pred_flux_matrix_w_m02.shape)
-
     flux_large_error_flag_matrix = numpy.absolute(
         actual_flux_matrix_w_m02 - mean_pred_flux_matrix_w_m02
     ) >= large_flux_error_threshold_w_m02
@@ -224,6 +221,7 @@ def _compute_large_error_freqs_1file(
     flux_num_large_errors_matrix = numpy.sum(
         flux_large_error_flag_matrix, axis=0
     )
+    flux_num_large_errors_matrix = numpy.transpose(flux_num_large_errors_matrix)
 
     num_flux_vars = actual_flux_matrix_w_m02.shape[-1]
     flux_cat_error_flag_matrix = numpy.full(
@@ -251,10 +249,6 @@ def _compute_large_error_freqs_1file(
                     flux_cat_error_flag_matrix[i, f, w] = True
 
     flux_num_cat_errors_matrix = numpy.sum(flux_cat_error_flag_matrix, axis=0)
-    print(hr_num_large_errors_matrix.shape)
-    print(flux_num_large_errors_matrix.shape)
-    print(hr_num_cat_errors_matrix.shape)
-    print(flux_num_cat_errors_matrix.shape)
 
     return (
         hr_num_large_errors_matrix, flux_num_large_errors_matrix,
