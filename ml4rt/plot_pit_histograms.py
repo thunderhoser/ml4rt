@@ -339,6 +339,9 @@ def _run(input_file_name, wavelengths_metres, output_dir_name):
             )
             pyplot.close(figure_object)
 
+            if pit_utils.VECTOR_EXTREME_PIT_FREQ_KEY not in rtx.data_vars:
+                continue
+
             figure_object, axes_object = pyplot.subplots(
                 1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
