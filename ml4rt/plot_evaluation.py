@@ -913,7 +913,7 @@ def _plot_mae_and_bias_for_flux(
 
     axes_object.legend(
         [mae_handle, bias_handle], ['MAE', 'Bias'],
-        loc='bottom left',
+        loc='lower left',
         bbox_to_anchor=(0.05, 0.05),
         fancybox=True,
         shadow=False,
