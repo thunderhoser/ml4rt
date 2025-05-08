@@ -523,7 +523,8 @@ def _run(prediction_file_names, large_hr_error_threshold_k_day01,
             large_flux_error_threshold_w_m02=large_flux_error_threshold_w_m02,
             catastrophic_error_confidence_threshold=
             catastrophic_error_confidence_threshold,
-            wavelengths_metres=wavelengths_metres
+            wavelengths_metres=wavelengths_metres,
+            flux_var_names=flux_var_names
         )
 
         hr_num_large_errors_matrix += this_hr_num_large_matrix
