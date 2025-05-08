@@ -21,7 +21,7 @@ TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
 NUM_PANEL_ROWS = 4
-NUM_PANEL_COLUMNS = 3
+NUM_PANEL_COLUMNS = 2
 PANEL_SIZE_PX = int(5e6)
 CONCAT_FIGURE_SIZE_PX = int(2e7)
 
@@ -89,13 +89,9 @@ def _get_input_files_1wavelength(input_dir_name, wavelength_metres):
             '1000000000.00', 'BB'
         )
 
-    print(input_dir_name)
-    input_file_names = [
+    return [
         '{0:s}/{1:s}'.format(input_dir_name, f) for f in pathless_file_names
     ]
-    print(input_file_names[0])
-
-    return input_file_names
 
 
 def _overlay_text(
@@ -149,10 +145,6 @@ def _run(input_dir_name, wavelengths_metres, output_dir_name):
             input_dir_name=output_dir_name,
             wavelength_metres=this_wavelength_metres
         )
-        # resized_panel_file_names = [
-        #     '{0:s}/{1:s}'.format(f.split('/')[0], f.split('/')[-1])
-        #     for f in resized_panel_file_names
-        # ]
 
         panel_letter = None
 

@@ -121,7 +121,8 @@ def wavelength_to_string(wavelength_metres):
 def _compute_large_error_freqs_1file(
         prediction_file_name, large_hr_error_threshold_k_day01,
         large_flux_error_threshold_w_m02,
-        catastrophic_error_confidence_threshold, wavelengths_metres):
+        catastrophic_error_confidence_threshold,
+        wavelengths_metres, flux_var_names):
     """Computes large-error frequencies for one prediction file.
 
     H = number of heights
@@ -134,6 +135,7 @@ def _compute_large_error_freqs_1file(
     :param large_flux_error_threshold_w_m02: Same.
     :param catastrophic_error_confidence_threshold: Same.
     :param wavelengths_metres: Same.
+    :param flux_var_names: length-F list with names of flux variables.
     :return: hr_num_large_errors_matrix: H-by-W numpy array with large-error
         counts for heating rates.
     :return: flux_num_large_errors_matrix: F-by-W numpy array with large-error
@@ -210,6 +212,26 @@ def _compute_large_error_freqs_1file(
     predicted_flux_matrix_w_m02 = (
         pdict[prediction_io.SCALAR_PREDICTIONS_KEY][:, wave_inds, ...]
     )
+
+    down_index = flux_var_names.index(
+        example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+    )
+    up_index = flux_var_names.index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+    actual_net_flux_matrix_w_m02 = (
+        actual_flux_matrix_w_m02[..., [down_index]] -
+        actual_flux_matrix_w_m02[..., [up_index]]
+    )
+    actual_flux_matrix_w_m02 = numpy.concatenate(
+        [actual_flux_matrix_w_m02, actual_net_flux_matrix_w_m02], axis=-1
+    )
+    predicted_net_flux_matrix_w_m02 = (
+        predicted_flux_matrix_w_m02[..., [down_index], :] -
+        predicted_flux_matrix_w_m02[..., [up_index], :]
+    )
+    predicted_flux_matrix_w_m02 = numpy.concatenate(
+        [predicted_flux_matrix_w_m02, predicted_net_flux_matrix_w_m02], axis=-1
+    )
+
     mean_pred_flux_matrix_w_m02 = numpy.mean(
         predicted_flux_matrix_w_m02, axis=-1
     )
@@ -316,7 +338,7 @@ def _plot_error_freqs_for_heating_rate(
         facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
     )
 
-    title_string = 'Error frequencies for heating rate'
+    title_string = 'Error frequencies for SW heating rate'
     if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
         title_string += ' at {0:s}'.format(
             wavelength_to_string(wavelength_metres)
@@ -404,7 +426,7 @@ def _plot_error_freqs_for_flux(
     axes_object.set_xticklabels(x_tick_labels)
     axes_object.set_ylabel('LEF/CEF frequency')
 
-    title_string = 'Error frequencies for fluxes'
+    title_string = 'Error frequencies for SW fluxes'
     if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
         title_string += ' at {0:s}'.format(
             wavelength_to_string(wavelength_metres)
@@ -471,6 +493,7 @@ def _run(prediction_file_names, large_hr_error_threshold_k_day01,
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     flux_var_names = training_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+    flux_var_names.append(evaluation.SHORTWAVE_NET_FLUX_NAME)
 
     num_flux_vars = (
         first_prediction_dict[prediction_io.SCALAR_TARGETS_KEY].shape[-1]
