@@ -944,7 +944,10 @@ def _plot_mae_and_bias_for_flux(
     axes_object.set_xticklabels(x_tick_labels)
     axes_object.set_ylabel(r'MAE or bias (W m$^{-2}$)')
 
-    title_string = 'MAE and bias for fluxes'
+    title_string = 'MAE and bias for {0:s} fluxes'.format(
+        'SW' if example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME in flux_names
+        else 'LW'
+    )
     title_string = _add_wavelength_to_title(
         title_string=title_string, wavelength_metres=wavelength_metres
     )
@@ -1792,12 +1795,17 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                     report_max_in_title=report_metrics_in_titles,
                     output_dir_name=output_dir_name
                 )
-                _plot_mae_and_bias_for_flux(
-                    evaluation_table_xarray=evaluation_tables_xarray[0],
-                    confidence_level=confidence_level,
-                    wavelength_metres=this_wavelength_metres,
-                    output_dir_name=output_dir_name
-                )
+
+    print(SEPARATOR_STRING)
+
+    if num_evaluation_sets == 1:
+        for this_wavelength_metres in wavelengths_metres:
+            _plot_mae_and_bias_for_flux(
+                evaluation_table_xarray=evaluation_tables_xarray[0],
+                confidence_level=confidence_level,
+                wavelength_metres=this_wavelength_metres,
+                output_dir_name=output_dir_name
+            )
 
     print(SEPARATOR_STRING)
 
