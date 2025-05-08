@@ -70,25 +70,20 @@ def _get_input_files_1wavelength(input_dir_name, wavelength_metres):
 
     wavelength_microns = METRES_TO_MICRONS * wavelength_metres
 
-    pathless_wavelengthless_file_names = [
-        'evaluation/shortwave-heating-rate-k-day01_mae-bias_profile.jpg',
-        'evaluation/fluxes_mae-bias.jpg',
-        'evaluation/shortwave-heating-rate-k-day01_error-freq_profile.jpg',
-        'evaluation/fluxes_error-freq.jpg',
-        'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01.jpg',
-        'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02.jpg',
-        'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01.jpg',
-        'pit_histograms/pit_histogram_net-shortwave-flux-w-m02.jpg'
-    ]
-
     pathless_file_names = [
-        '_'.join(
-            [f.split('_')[0], '{0:.2f}microns'.format(wavelength_microns)] +
-            f.split('_')[1:]
-        )
-        for f in pathless_wavelengthless_file_names
+        'evaluation/shortwave-heating-rate-k-day01_BBmicrons_mae-bias_profile.jpg',
+        'evaluation/fluxes_BBmicrons_mae-bias.jpg',
+        'evaluation/shortwave-heating-rate-k-day01_BBmicrons_error-freq_profile.jpg',
+        'evaluation/fluxes_BBmicrons_error-freq.jpg',
+        'spread_vs_skill/spread_vs_skill_shortwave-heating-rate-k-day01_BBmicrons.jpg',
+        'spread_vs_skill/spread_vs_skill_net-shortwave-flux-w-m02_BBmicrons.jpg',
+        'pit_histograms/pit_histogram_shortwave-heating-rate-k-day01_BBmicrons.jpg',
+        'pit_histograms/pit_histogram_net-shortwave-flux-w-m02_BBmicrons.jpg'
     ]
-
+    pathless_file_names = [
+        f.replace('BBmicrons', '{0:.2f}microns'.format(wavelength_microns))
+        for f in pathless_file_names
+    ]
     for i in range(4):
         pathless_file_names[i] = pathless_file_names[i].replace(
             '1000000000.00', 'BB'
