@@ -54,6 +54,12 @@ SCORE_NAME_TO_PROFILE_KEY = {
     evaluation_plotting.KS_P_VALUE_NAME: evaluation.VECTOR_KS_P_VALUE_KEY
 }
 
+FLUX_NAME_TO_FANCY_DICT = {
+    example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME: r'$F_{down}^{sfc}$',
+    example_utils.SHORTWAVE_TOA_UP_FLUX_NAME: r'$F_{up}^{TOA}$',
+    evaluation.SHORTWAVE_NET_FLUX_NAME: r'$F_{net}$'
+}
+
 OPTIONAL_SCORE_NAMES = [
     evaluation_plotting.MSE_BIAS_NAME, evaluation_plotting.MSE_VARIANCE_NAME,
     evaluation_plotting.KS_STATISTIC_NAME, evaluation_plotting.KS_P_VALUE_NAME
@@ -123,9 +129,10 @@ TARGET_NAME_TO_SQUARED_UNITS = {
     evaluation.LONGWAVE_LOWEST_DOWN_FLUX_NAME: r'W$^{2}$ m$^{-4}$'
 }
 
-MAE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+MAE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 BIAS_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 
+FONT_SIZE = 30
 POLYGON_OPACITY = 0.5
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -794,7 +801,148 @@ def _plot_score_profile(
     pyplot.close(figure_object)
 
 
-def _plot_mae_and_bias_profiles(
+def _plot_mae_and_bias_for_flux(
+        evaluation_table_xarray, confidence_level, wavelength_metres,
+        output_dir_name):
+    """Plots bar graphs of MAE and bias, on same axes, for one model.
+
+    :param evaluation_table_xarray: See doc for `_plot_attributes_diagram`.
+    :param confidence_level: See doc for `_plot_attributes_diagram`.
+    :param wavelength_metres: Wavelength of target variable.
+    :param output_dir_name: Name of output directory.  Figure will be saved
+        here.
+    """
+
+    etx = evaluation_table_xarray
+    wave_index = example_utils.match_wavelengths(
+        wavelengths_metres=etx.coords[evaluation.WAVELENGTH_DIM].values,
+        desired_wavelength_metres=wavelength_metres
+    )
+
+    mae_key = evaluation.SCALAR_MAE_KEY
+    bias_key = evaluation.SCALAR_BIAS_KEY
+    mae_matrix_w_m02 = etx[mae_key].values[wave_index, :, :]
+    bias_matrix_w_m02 = etx[bias_key].values[wave_index, :, :]
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    num_flux_vars = mae_matrix_w_m02.shape[0]
+    x_tick_values = numpy.linspace(
+        0.5, num_flux_vars - 0.5, num=num_flux_vars, dtype=float
+    )
+    bar_width = 0.4
+
+    mae_values_w_m02 = numpy.mean(mae_matrix_w_m02, axis=-1)
+    bias_values_w_m02 = numpy.mean(bias_matrix_w_m02, axis=-1)
+    num_bootstrap_reps = mae_matrix_w_m02.shape[1]
+
+    if num_bootstrap_reps > 1 and confidence_level is not None:
+        lower_mae_values_w_m02 = numpy.percentile(
+            mae_matrix_w_m02, 50 * (1. - confidence_level), axis=-1
+        )
+        upper_mae_values_w_m02 = numpy.percentile(
+            mae_matrix_w_m02, 50 * (1. + confidence_level), axis=-1
+        )
+        mae_uncertainty_matrix_w_m02 = numpy.vstack([
+            mae_values_w_m02 - lower_mae_values_w_m02,
+            upper_mae_values_w_m02 - mae_values_w_m02
+        ])
+        mae_uncertainty_matrix_w_m02 = numpy.maximum(
+            mae_uncertainty_matrix_w_m02, 0.
+        )
+
+        lower_bias_values_w_m02 = numpy.percentile(
+            bias_matrix_w_m02, 50 * (1. - confidence_level), axis=-1
+        )
+        upper_bias_values_w_m02 = numpy.percentile(
+            bias_matrix_w_m02, 50 * (1. + confidence_level), axis=-1
+        )
+        bias_uncertainty_matrix_w_m02 = numpy.vstack([
+            bias_values_w_m02 - lower_bias_values_w_m02,
+            upper_bias_values_w_m02 - bias_values_w_m02
+        ])
+        bias_uncertainty_matrix_w_m02 = numpy.maximum(
+            bias_uncertainty_matrix_w_m02, 0.
+        )
+
+        error_bar_dict = {
+            'ecolor': numpy.full(3, 0.),
+            'elinewidth': 3,
+            'capsize': 7.5,
+            'capthick': 2
+        }
+
+        mae_handle = axes_object.bar(
+            x_tick_values - bar_width / 2,
+            mae_values_w_m02,
+            bar_width,
+            color=MAE_COLOUR,
+            yerr=mae_uncertainty_matrix_w_m02,
+            error_kw=error_bar_dict
+        )
+        bias_handle = axes_object.bar(
+            x_tick_values + bar_width / 2,
+            bias_values_w_m02,
+            bar_width,
+            color=BIAS_COLOUR,
+            yerr=bias_uncertainty_matrix_w_m02,
+            error_kw=error_bar_dict
+        )
+    else:
+        mae_handle = axes_object.bar(
+            x_tick_values - bar_width / 2,
+            mae_values_w_m02,
+            bar_width,
+            color=MAE_COLOUR
+        )
+        bias_handle = axes_object.bar(
+            x_tick_values + bar_width / 2,
+            bias_values_w_m02,
+            bar_width,
+            color=BIAS_COLOUR
+        )
+
+    axes_object.legend(
+        [mae_handle, bias_handle], ['MAE', 'Bias'],
+        loc='bottom left',
+        bbox_to_anchor=(0.05, 0.05),
+        fancybox=True,
+        shadow=False,
+        facecolor='white',
+        edgecolor='k',
+        framealpha=0.5,
+        ncol=2
+    )
+
+    flux_names = etx.coords[evaluation.SCALAR_FIELD_DIM].values
+    x_tick_labels = [FLUX_NAME_TO_FANCY_DICT[f] for f in flux_names]
+    axes_object.set_xticks(x_tick_values)
+    axes_object.set_xticklabels(x_tick_labels)
+    axes_object.set_ylabel(r'MAE/bias (W m$^{-2}$)')
+
+    title_string = 'MAE and bias for fluxes'
+    if wavelength_metres != example_utils.DUMMY_BROADBAND_WAVELENGTH_METRES:
+        title_string += ' at {0:s}'.format(
+            wavelength_to_string(wavelength_metres)
+        )
+        title_string += r' $\mu$m'
+
+    figure_file_name = '{0:s}/fluxes_{1:s}microns_mae-bias.jpg'.format(
+        output_dir_name,
+        wavelength_to_string(wavelength_metres)
+    )
+
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+
+def _plot_mae_and_bias_for_hr(
         evaluation_table_xarray, confidence_level, target_name,
         wavelength_metres, use_log_scale, report_max_in_title,
         output_dir_name):
@@ -901,8 +1049,8 @@ def _plot_mae_and_bias_profiles(
         axes_object.add_patch(patch_object)
 
     axes_object.legend(
-        legend_handles, legend_strings, loc='center left',
-        bbox_to_anchor=(0, 0.5), fancybox=True, shadow=False,
+        legend_handles, legend_strings, loc='center right',
+        bbox_to_anchor=(0.95, 0.5), fancybox=True, shadow=False,
         facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
     )
 
@@ -1599,6 +1747,24 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                     score_name=this_score_name,
                     use_log_scale=use_log_scale,
                     report_max_in_title=report_metrics_in_titles,
+                    output_dir_name=output_dir_name
+                )
+
+        if num_evaluation_sets == 1:
+            for this_wavelength_metres in wavelengths_metres:
+                _plot_mae_and_bias_for_hr(
+                    evaluation_table_xarray=evaluation_tables_xarray[0],
+                    confidence_level=confidence_level,
+                    target_name=vector_target_names[k],
+                    wavelength_metres=this_wavelength_metres,
+                    use_log_scale=use_log_scale,
+                    report_max_in_title=report_metrics_in_titles,
+                    output_dir_name=output_dir_name
+                )
+                _plot_mae_and_bias_for_flux(
+                    evaluation_table_xarray=evaluation_tables_xarray[0],
+                    confidence_level=confidence_level,
+                    wavelength_metres=this_wavelength_metres,
                     output_dir_name=output_dir_name
                 )
 
