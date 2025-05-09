@@ -85,7 +85,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_one_comparison(
         actual_heating_rates_k_day01, predicted_hr_matrix_k_day01,
-        actual_fluxes_w_m02, predicted_flux_matrix_w_m02,
+        actual_fluxes_w_m02, predicted_flux_matrix_w_m02, flux_names,
         example_id_string, model_metadata_dict,
         confidence_level, model_description_string, output_dir_name):
     """Plots predicted vs. actual for one data example.
@@ -103,6 +103,7 @@ def _plot_one_comparison(
         Watts per square metre.
     :param predicted_flux_matrix_w_m02: numpy array (T_s x S) with predicted
         fluxes in Watts per square metre.
+    :param flux_names: List (length T_s) with names of flux variables.
     :param example_id_string: Example ID.
     :param model_metadata_dict: Model metadata in format returned by
         `neural_net.read_metafile`.
@@ -220,7 +221,6 @@ def _plot_one_comparison(
             color=numpy.full(3, 0.)
         )
 
-    flux_names = generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
     x_tick_labels = [FLUX_NAME_TO_FANCY_DICT[f] for f in flux_names]
     inset_axes_object.set_xticks(x_tick_values)
     inset_axes_object.set_xticklabels(x_tick_labels, fontsize=FLUX_FONT_SIZE)
@@ -301,6 +301,9 @@ def _run(prediction_file_name, confidence_level, num_examples,
     ]
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = generator_option_dict
 
+    flux_names = generator_option_dict[neural_net.SCALAR_TARGET_NAMES_KEY]
+    flux_names.append(evaluation.SHORTWAVE_NET_FLUX_NAME)
+
     num_examples = len(prediction_dict[prediction_io.EXAMPLE_IDS_KEY])
     hr_index = generator_option_dict[neural_net.VECTOR_TARGET_NAMES_KEY].index(
         example_utils.SHORTWAVE_HEATING_RATE_NAME
@@ -308,15 +311,38 @@ def _run(prediction_file_name, confidence_level, num_examples,
     pdict = prediction_dict
 
     for i in range(num_examples):
+        actual_fluxes_w_m02 = pdict[prediction_io.SCALAR_TARGETS_KEY][i, 0, :]
+        predicted_flux_matrix_w_m02 = (
+            pdict[prediction_io.SCALAR_PREDICTIONS_KEY][i, 0, :, :]
+        )
+
+        down_index = flux_names.index(
+            example_utils.SHORTWAVE_SURFACE_DOWN_FLUX_NAME
+        )
+        up_index = flux_names.index(example_utils.SHORTWAVE_TOA_UP_FLUX_NAME)
+        actual_net_flux_w_m02 = (
+            actual_fluxes_w_m02[down_index] - actual_fluxes_w_m02[up_index]
+        )
+        actual_fluxes_w_m02 = numpy.concatenate([
+            actual_fluxes_w_m02, numpy.array([actual_net_flux_w_m02])
+        ])
+        predicted_net_flux_matrix_w_m02 = (
+            predicted_flux_matrix_w_m02[[down_index], :] -
+            predicted_flux_matrix_w_m02[[up_index], :]
+        )
+        predicted_flux_matrix_w_m02 = numpy.concatenate(
+            [predicted_flux_matrix_w_m02, predicted_net_flux_matrix_w_m02],
+            axis=0
+        )
+
         _plot_one_comparison(
             actual_heating_rates_k_day01=
             pdict[prediction_io.VECTOR_TARGETS_KEY][i, :, 0, hr_index],
             predicted_hr_matrix_k_day01=
             pdict[prediction_io.VECTOR_PREDICTIONS_KEY][i, :, 0, hr_index, :],
-            actual_fluxes_w_m02=
-            pdict[prediction_io.SCALAR_TARGETS_KEY][i, 0, :],
-            predicted_flux_matrix_w_m02=
-            pdict[prediction_io.SCALAR_PREDICTIONS_KEY][i, 0, :, :],
+            actual_fluxes_w_m02=actual_fluxes_w_m02,
+            predicted_flux_matrix_w_m02=predicted_flux_matrix_w_m02,
+            flux_names=flux_names,
             example_id_string=pdict[prediction_io.EXAMPLE_IDS_KEY][i],
             model_metadata_dict=model_metadata_dict,
             confidence_level=confidence_level,
