@@ -2,6 +2,7 @@
 
 import os
 import sys
+import glob
 import argparse
 import numpy
 import xarray
@@ -1704,8 +1705,37 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             evaluation_tables_xarray[i].attrs[evaluation.PREDICTION_FILE_KEY]
         )
 
-        print('Reading data from: "{0:s}"...'.format(this_prediction_file_name))
-        prediction_dicts[i] = prediction_io.read_file(this_prediction_file_name)
+        if os.path.isfile(this_prediction_file_name):
+            print('Reading data from: "{0:s}"...'.format(
+                this_prediction_file_name
+            ))
+            prediction_dicts[i] = prediction_io.read_file(
+                this_prediction_file_name
+            )
+        else:
+            glob_pattern = '{0:s}_part*.nc'.format(
+                os.path.splitext(this_prediction_file_name[0])
+            )
+            these_prediction_file_names = glob.glob(glob_pattern)
+            assert len(these_prediction_file_names) > 0
+
+            these_prediction_file_names.sort()
+
+            for j in range(len(these_prediction_file_names)):
+                print('Reading data from: "{0:s}"...'.format(
+                    these_prediction_file_names[j]
+                ))
+
+                if j == 0:
+                    prediction_dicts[i] = prediction_io.read_file(
+                        these_prediction_file_names[j]
+                    )
+                else:
+                    prediction_dicts[i] = prediction_io.concat_predictions([
+                        prediction_dicts[i],
+                        prediction_io.read_file(these_prediction_file_names[j])
+                    ])
+
         prediction_dicts[i] = prediction_io.get_ensemble_mean(
             prediction_dicts[i]
         )
