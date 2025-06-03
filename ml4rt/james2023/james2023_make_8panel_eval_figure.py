@@ -139,7 +139,7 @@ def _run(input_dir_name, wavelengths_metres, output_dir_name):
             wavelength_metres=this_wavelength_metres
         )
 
-        panel_letter = None
+        panel_letters = ['a', 'e', 'b', 'f', 'c', 'g', 'd', 'h']
 
         for i in range(len(panel_file_names)):
             print('Resizing panel and saving to: "{0:s}"...'.format(
@@ -150,16 +150,11 @@ def _run(input_dir_name, wavelengths_metres, output_dir_name):
                 output_file_name=resized_panel_file_names[i]
             )
 
-            if panel_letter is None:
-                panel_letter = 'a'
-            else:
-                panel_letter = chr(ord(panel_letter) + 1)
-
             _overlay_text(
                 image_file_name=resized_panel_file_names[i],
                 x_offset_from_left_px=0,
                 y_offset_from_top_px=TITLE_FONT_SIZE,
-                text_string='({0:s})'.format(panel_letter)
+                text_string='({0:s})'.format(panel_letters[i])
             )
             imagemagick_utils.resize_image(
                 input_file_name=resized_panel_file_names[i],
