@@ -1713,6 +1713,8 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
                 this_prediction_file_name
             )
         else:
+            print(this_prediction_file_name)
+
             glob_pattern = '{0:s}_part*.nc'.format(
                 os.path.splitext(this_prediction_file_name[0])
             )
