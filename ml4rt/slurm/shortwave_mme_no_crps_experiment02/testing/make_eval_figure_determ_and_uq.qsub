@@ -2,7 +2,7 @@
 
 #SBATCH --job-name="make_eval_figure_determ_and_uq"
 #SBATCH --partition="fge"
-#SBATCH --account="rda-ghpcs"
+#SBATCH --account="mdl-sti"
 #SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
