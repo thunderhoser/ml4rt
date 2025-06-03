@@ -1,20 +1,21 @@
 #!/bin/bash
 
-#SBATCH --job-name="plot_large_error_frequencies"
+#SBATCH --job-name="make_eval_figure_determ_and_uq"
 #SBATCH --partition="fge"
-#SBATCH --account="rda-ghpcs"
+#SBATCH --account="mdl-sti"
 #SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
 #SBATCH --array=0-4
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_large_error_frequencies_%A_%a.out
+#SBATCH --output=make_eval_figure_determ_and_uq_%A_%a.out
 
+module load imagemagick/7.1.1-11
 conda init
 conda activate base
 
@@ -26,7 +27,7 @@ echo `which python3`
 echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_standalone/ml4rt"
-TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment01"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4rt_models/shortwave_bnn_crps_experiment00"
 
 FIRST_LAYER_CHANNEL_COUNTS=("064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "064" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128" "128")
 BAYESIAN_SKIP_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2")
@@ -34,18 +35,11 @@ BAYESIAN_UPCONV_LAYER_COUNTS=("1" "1" "1" "1" "1" "1" "2" "2" "2" "2" "2" "2" "1
 BAYESIAN_DENSE_LAYER_COUNTS=("1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3" "1" "1" "2" "2" "3" "3")
 BAYESIAN_LAYER_TYPE_STRINGS=("flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization" "flipout" "reparameterization")
 
-BEST_MODEL_INDEX=30
+BEST_MODEL_INDEX=29
 model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-skip-layers=${BAYESIAN_SKIP_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-upconv-layers=${BAYESIAN_UPCONV_LAYER_COUNTS[$BEST_MODEL_INDEX]}_num-bayesian-dense-layers=${BAYESIAN_DENSE_LAYER_COUNTS[$BEST_MODEL_INDEX]}_bayesian-layer-type=${BAYESIAN_LAYER_TYPE_STRINGS[$BEST_MODEL_INDEX]}"
 
 PERTURBATION_TYPE_STRINGS=("liquid_water_content_kg_m03" "ice_water_content_kg_m03" "specific_humidity_kg_kg01" "temperature_kelvins" "o3_mixing_ratio_kg_kg01")
 
-evaluation_dir_name="${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/evaluation"
-evaluation_file_name="${evaluation_dir_name}.nc"
-
-python3 -u "${CODE_DIR_NAME}/plot_large_error_frequencies.py" \
---input_prediction_file_names "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part01.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part02.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part03.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part04.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part05.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part06.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part07.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part08.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part09.nc" \
---large_hr_error_threshold_k_day01=1 \
---large_flux_error_threshold_w_m02=10 \
---catastrophic_error_confidence_threshold=0.95 \
---wavelengths_metres 1000 \
---output_dir_name="${evaluation_dir_name}"
+python3 -u "${CODE_DIR_NAME}/james2023_make_8panel_eval_figure.py" \
+--input_evaluation_dir_name="${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--output_dir_name="${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/james2023_figures"

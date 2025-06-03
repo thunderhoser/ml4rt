@@ -2,7 +2,7 @@
 
 #SBATCH --job-name="plot_large_error_frequencies"
 #SBATCH --partition="fge"
-#SBATCH --account="rda-ghpcs"
+#SBATCH --account="mdl-sti"
 #SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
@@ -39,11 +39,11 @@ model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${FIRST_LAYER_CHA
 
 PERTURBATION_TYPE_STRINGS=("liquid_water_content_kg_m03" "ice_water_content_kg_m03" "specific_humidity_kg_kg01" "temperature_kelvins" "o3_mixing_ratio_kg_kg01")
 
-evaluation_dir_name="${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/evaluation"
+evaluation_dir_name="${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/evaluation"
 evaluation_file_name="${evaluation_dir_name}.nc"
 
 python3 -u "${CODE_DIR_NAME}/plot_large_error_frequencies.py" \
---input_prediction_file_names "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part01.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part02.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part03.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part04.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part05.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part06.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part07.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part08.nc" "${model_dir_name}/model/validation_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part09.nc" \
+--input_prediction_file_names "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part01.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part02.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part03.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part04.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part05.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part06.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part07.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part08.nc" "${model_dir_name}/model/testing_perturbed_for_uq/by_perturbation_type/${PERTURBATION_TYPE_STRINGS[$SLURM_ARRAY_TASK_ID]}/predictions_part09.nc" \
 --large_hr_error_threshold_k_day01=1 \
 --large_flux_error_threshold_w_m02=10 \
 --catastrophic_error_confidence_threshold=0.95 \
