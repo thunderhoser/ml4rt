@@ -3,7 +3,7 @@
 #SBATCH --job-name="split_predictions_by_perturbation_type"
 #SBATCH --partition="fge"
 #SBATCH --account="mdl-sti"
-#SBATCH --qos="batch"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
