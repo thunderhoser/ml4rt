@@ -1716,7 +1716,7 @@ def _run(evaluation_file_names, line_styles, line_colour_strings,
             print(this_prediction_file_name)
 
             glob_pattern = '{0:s}_part*.nc'.format(
-                os.path.splitext(this_prediction_file_name[0])
+                os.path.splitext(this_prediction_file_name)[0]
             )
             these_prediction_file_names = glob.glob(glob_pattern)
             assert len(these_prediction_file_names) > 0
