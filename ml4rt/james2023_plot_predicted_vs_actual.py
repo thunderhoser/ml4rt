@@ -168,12 +168,12 @@ def _plot_one_comparison(
     )
 
     if numpy.any(numpy.logical_and(
-            heights_m_agl < 2.,
+            heights_m_agl < 2000.,
             x_max_by_height > x_max_global / 2
     )):
-        inset_position = [0.45, 0.5, 1. / 3, 1. / 3]
+        inset_position = [0.625, 0.5, 1. / 3, 1. / 3]
     else:
-        inset_position = [0.45, 0.1, 1. / 3, 1. / 3]
+        inset_position = [0.625, 0.1, 1. / 3, 1. / 3]
 
     inset_axes_object = axes_objects[0].inset_axes(inset_position)
     num_flux_vars = len(actual_fluxes_w_m02)
