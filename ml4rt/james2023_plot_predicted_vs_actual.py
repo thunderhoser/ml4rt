@@ -37,7 +37,7 @@ FLUX_NAME_TO_FANCY_DICT = {
     evaluation.SHORTWAVE_NET_FLUX_NAME: r'$F_{net}$'
 }
 
-FLUX_FONT_SIZE = 20
+FLUX_FONT_SIZE = 16
 TARGET_COLOUR = numpy.array([31, 120, 180], dtype=float) / 255
 PREDICTION_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 
@@ -158,7 +158,21 @@ def _plot_one_comparison(
     title_string += r' K day$^{-1}$)'
     axes_objects[0].set_title(title_string)
 
-    inset_axes_object = axes_objects[0].inset_axes([0.45, 0.1, 0.5, 0.5])
+    x_max_global = axes_objects.get_xlim()[-1]
+    x_max_by_height = numpy.maximum(
+        numpy.max(predicted_hr_matrix_k_day01, axis=-1),
+        actual_heating_rates_k_day01
+    )
+
+    if numpy.any(numpy.logical_and(
+            heights_m_agl < 2.,
+            x_max_by_height > x_max_global / 2
+    )):
+        inset_position = [0.45, 0.5, 1. / 3, 1. / 3]
+    else:
+        inset_position = [0.45, 0.1, 1. / 3, 1. / 3]
+
+    inset_axes_object = axes_objects[0].inset_axes(inset_position)
     num_flux_vars = len(actual_fluxes_w_m02)
     x_tick_values = numpy.linspace(
         0.5, num_flux_vars - 0.5, num=num_flux_vars, dtype=float
