@@ -158,7 +158,10 @@ def _plot_one_comparison(
     title_string += r' K day$^{-1}$)'
     axes_objects[0].set_title(title_string)
 
-    x_max_global = axes_objects.get_xlim()[-1]
+    x_max_global = max([
+        axes_objects[0].get_xlim()[1],
+        axes_objects[1].get_xlim()[1]
+    ])
     x_max_by_height = numpy.maximum(
         numpy.max(predicted_hr_matrix_k_day01, axis=-1),
         actual_heating_rates_k_day01
