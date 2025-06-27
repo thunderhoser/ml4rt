@@ -2,7 +2,7 @@
 
 #SBATCH --job-name="make_model_comparison_fig_clean_validation"
 #SBATCH --partition="bigmem"
-#SBATCH --account="rda-ghpcs"
+#SBATCH --account="gsd-hpcs"
 #SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
