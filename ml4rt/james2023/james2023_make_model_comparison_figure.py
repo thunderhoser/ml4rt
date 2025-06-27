@@ -209,8 +209,12 @@ def _plot_bar_graphs_hr_or_flux(
     pyplot.tight_layout()
 
     x_limits = axes_object.get_xlim()
+    # pyplot.plot(
+    #     x_limits, numpy.full(2, 1.),
+    #     linestyle='--', linewidth=2., color=numpy.full(3, 0.)
+    # )
     pyplot.plot(
-        x_limits, numpy.full(2, 1.),
+        numpy.array([2, 2.8]), numpy.full(2, 1.),
         linestyle='--', linewidth=2., color=numpy.full(3, 0.)
     )
     axes_object.set_xlim(x_limits)
