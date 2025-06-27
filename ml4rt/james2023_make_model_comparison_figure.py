@@ -222,7 +222,7 @@ def _plot_bar_graphs_hr_or_flux(
     #     linestyle='--', linewidth=2., color=numpy.full(3, 0.)
     # )
     pyplot.plot(
-        numpy.array([2, 2.8]), numpy.full(2, 1.),
+        numpy.array([1.9, 2.7]), numpy.full(2, 1.),
         linestyle='--', linewidth=2., color=numpy.full(3, 0.)
     )
     axes_object.set_xlim(x_limits)
